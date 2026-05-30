@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Study Planner</title>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <div class="container">
+            <h1>Study Planner</h1>
+
+            <div class="input-group">
+                <input type="text" id="subject" placeholder="Subject name..." />
+                <input type="date" id="examDate" />
+                <select id="level">
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+                <button onclick="addExam()">Add Exam</button>
+            </div>
+
+            <h2>Upcoming Exams</h2>
+            <ul id="examList"></ul>
+        </div>
+        <script src="script.js"></script>
+    </body>
+</html>
