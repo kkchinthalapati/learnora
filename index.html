@@ -1,87 +1,179 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Study Command Center</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <nav class="sidebar" id="sidebar">
-        <h2 class="brand">StudyApp</h2>
-        <ul class="nav-links">
-            <li class="active" onclick="switchTab('exams', this)">📚 Exams</li>
-            <li onclick="switchTab('timer', this)">⏱️ Timer</li>
-            <li onclick="switchTab('todo', this)">📝 To-Do List</li>
-        </ul>
-    </nav>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Study Command Center</title>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <nav class="sidebar" id="sidebar">
+            <h2 class="brand">Command Center</h2>
+            <ul class="nav-links">
+                <li class="active" onclick="switchTab('timer', this)">
+                    ⏱️ Timer
+                </li>
+                <li onclick="switchTab('todo', this)">📝 To-Do List</li>
+                <li onclick="switchTab('exams', this)">📚 Exams</li>
+                <li onclick="switchTab('logs', this)">📊 Dashboard</li>
+            </ul>
+        </nav>
 
-    <main class="main-content">
-        <header>
-            <div class="header-left">
-                <button id="menu-toggle" onclick="toggleSidebar()">☰</button>
-                <h1 id="page-title">Upcoming Exams</h1>
-            </div>
-            <div class="header-right">
-                <span id="live-clock">00:00</span>
-                <button id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle Theme">
-                    <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
-                    </svg>
-                </button>
-            </div>
-        </header>
-
-        <section id="exams-section" class="tab-content" style="display: block;">
-            <div class="input-card glass-panel">
-                <input type="text" id="subject" placeholder="What are you studying?" />
-                <input type="date" id="examDate" />
-                <select id="level">
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                </select>
-                <button onclick="addExam()">Add Exam</button>
-            </div>
-            <div id="empty-state" class="empty-state" style="display: none;">
-                No exams scheduled. You're free (for now)!
-            </div>
-            <ul id="examList" class="grid-list"></ul>
-        </section>
-
-        <section id="timer-section" class="tab-content" style="display: none;">
-            <div class="timer-layout">
-                <div class="config-panel glass-panel">
-                    <h3>Timer Settings</h3>
-                    <label>Focus (mins) <input type="number" id="focusTime" value="25"></label>
-                    <label>Short Break <input type="number" id="shortBreakTime" value="5"></label>
-                    <label>Long Break <input type="number" id="longBreakTime" value="15"></label>
-                    <label>Cycles <input type="number" id="cyclesConfig" value="4"></label>
-                    <button onclick="applyTimerConfig()" class="save-btn">Apply & Reset</button>
+        <main class="main-content">
+            <header>
+                <div class="header-left">
+                    <button id="menu-toggle" onclick="toggleSidebar()">
+                        ☰
+                    </button>
+                    <h1 id="page-title">Study Timer</h1>
                 </div>
+                <div class="header-right">
+                    <span id="live-clock">00:00</span>
+                    <button
+                        id="theme-toggle"
+                        onclick="toggleTheme()"
+                        aria-label="Toggle Theme"
+                    >
+                        <svg
+                            id="theme-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </header>
 
-                <div class="timer-display glass-panel">
-                    <h4 id="timer-mode">Focus Mode</h4>
-                    <h2 id="time-display">25:00</h2>
-                    <p id="cycle-counter">Cycle: 0 / 4</p>
-                    <div class="timer-controls">
-                        <button onclick="startTimer()" class="start-btn">Start</button>
-                        <button onclick="pauseTimer()" class="pause-btn">Pause</button>
-                        <button onclick="resetTimer()" class="reset-btn">Reset</button>
+            <section
+                id="timer-section"
+                class="tab-content"
+                style="display: block"
+            >
+                <div class="timer-layout">
+                    <div class="config-panel glass-panel">
+                        <h3>Workflow Presets</h3>
+                        <div class="preset-buttons">
+                            <button onclick="applyPreset('deep')">
+                                Deep Work (90m)
+                            </button>
+                            <button onclick="applyPreset('cram')">
+                                Exam Cram (45m)
+                            </button>
+                            <button onclick="applyPreset('light')">
+                                Light Study (20m)
+                            </button>
+                        </div>
+                        <hr />
+                        <h3>Custom Rules</h3>
+                        <label
+                            >Focus (mins)
+                            <input type="number" id="focusTime" value="25"
+                        /></label>
+                        <label
+                            >Short Break
+                            <input type="number" id="shortBreakTime" value="5"
+                        /></label>
+                        <label
+                            >Long Break
+                            <input type="number" id="longBreakTime" value="15"
+                        /></label>
+                        <label
+                            >Cycles
+                            <input type="number" id="cyclesConfig" value="4"
+                        /></label>
+
+                        <label class="task-binder"
+                            >Current Task:
+                            <select id="active-task">
+                                <option value="None">None</option>
+                            </select>
+                        </label>
+
+                        <button onclick="applyTimerConfig()" class="save-btn">
+                            Apply & Reset
+                        </button>
+                    </div>
+
+                    <div class="timer-display glass-panel">
+                        <h4 id="timer-mode">Focus Mode</h4>
+                        <h2 id="time-display">25:00</h2>
+                        <p id="cycle-counter">Cycle: 0 / 4</p>
+                        <div class="timer-controls">
+                            <button onclick="startTimer()" class="start-btn">
+                                Start
+                            </button>
+                            <button onclick="pauseTimer()" class="pause-btn">
+                                Pause
+                            </button>
+                            <button onclick="extendTimer()" class="extend-btn">
+                                +5 Mins
+                            </button>
+                            <button onclick="resetTimer()" class="reset-btn">
+                                Reset
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <section id="todo-section" class="tab-content" style="display: none;">
-            <div class="input-card glass-panel">
-                <input type="text" id="todo-input" placeholder="Add a new task..." onkeypress="handleTodoEnter(event)">
-                <button onclick="addTodo()">Add Task</button>
-            </div>
-            <ul id="todo-list" class="list-container"></ul>
-        </section>
-    </main>
+            <section
+                id="todo-section"
+                class="tab-content"
+                style="display: none"
+            >
+                <div class="input-card glass-panel">
+                    <input
+                        type="text"
+                        id="todo-input"
+                        placeholder="Add a new task..."
+                        onkeypress="handleTodoEnter(event)"
+                    />
+                    <button onclick="addTodo()">Add Task</button>
+                </div>
+                <ul id="todo-list" class="list-container"></ul>
+            </section>
 
-    <script src="script.js"></script>
-</body>
+            <section
+                id="exams-section"
+                class="tab-content"
+                style="display: none"
+            >
+                <div class="input-card glass-panel">
+                    <input type="text" id="subject" placeholder="Subject..." />
+                    <input type="date" id="examDate" />
+                    <select id="level">
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                    <button onclick="addExam()">Add Exam</button>
+                </div>
+                <ul id="examList" class="grid-list"></ul>
+            </section>
+
+            <section
+                id="logs-section"
+                class="tab-content"
+                style="display: none"
+            >
+                <div class="glass-panel">
+                    <h2>Session History</h2>
+                    <p>
+                        All completed focus blocks are logged here
+                        automatically.
+                    </p>
+                </div>
+                <ul id="log-list" class="list-container"></ul>
+            </section>
+        </main>
+        <script src="script.js"></script>
+    </body>
 </html>
