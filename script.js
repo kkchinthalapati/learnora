@@ -1,76 +1,182 @@
+// ==========================================
+// 1. GLOBAL LAYOUT & THEME LOGIC
+// ==========================================
+
+// Load saved theme on boot
+if (localStorage.getItem("theme") === "dark") {
+  document.body.setAttribute("data-theme", "dark");
+  document.getElementById("theme-toggle").innerText = "☀️";
+}
+
+function toggleTheme() {
+  const body = document.body;
+  const isDark = body.getAttribute("data-theme") === "dark";
+  const newTheme = isDark ? "light" : "dark";
+
+  body.setAttribute("data-theme", newTheme);
+  localStorage.setItem("theme", newTheme);
+  document.getElementById("theme-toggle").innerText = isDark ? "🌙" : "☀️";
+}
+
+function switchTab(tabId, element) {
+  // Hide all tab sections
+  document
+    .querySelectorAll(".tab-content")
+    .forEach((sec) => (sec.style.display = "none"));
+
+  // Remove 'active' class from all sidebar links
+  document
+    .querySelectorAll(".nav-links li")
+    .forEach((li) => li.classList.remove("active"));
+
+  // Show selected tab & highlight link
+  document.getElementById(`${tabId}-section`).style.display = "block";
+  element.classList.add("active");
+
+  // Update Header
+  document.getElementById("page-title").innerText =
+    tabId === "exams" ? "Upcoming Exams" : "Study Timer";
+}
+
+// ==========================================
+// 2. EXAM TRACKER LOGIC
+// ==========================================
 let exams = JSON.parse(localStorage.getItem("exams")) || [];
 
-// Affirmations logic
-const affirmations = [
-  "You're crushing it, bro.",
-  "One exam at a time. You got this.",
-  "Progress is better than perfection.",
-  "Take a breath. You're doing great.",
-];
-
-function showAffirmation() {
-  const box = document.getElementById("affirmation-box");
-  box.innerText = affirmations[Math.floor(Math.random() * affirmations.length)];
+function saveExams() {
+  localStorage.setItem("exams", JSON.stringify(exams));
+  renderExams();
 }
-
-// Progress bar logic
-function updateProgressBar() {
-  const progressFill = document.getElementById("progress-fill");
-  // Example: If you have 1-5 exams, it fills up.
-  // You can change '5' to however many exams you want as a 'max'
-  const percentage = Math.min((exams.length / 5) * 100, 100);
-  progressFill.style.width = percentage + "%";
-}
-
-// Core functions
-const today = new Date().toISOString().split("T")[0];
-document.getElementById("examDate").setAttribute("min", today);
-
-renderExams();
-showAffirmation(); // Run on load
 
 function addExam() {
   const subject = document.getElementById("subject").value;
   const date = document.getElementById("examDate").value;
   const level = document.getElementById("level").value;
 
-  if (!subject || !date) return alert("Fill in everything, bro!");
-  if (date < today) return alert("Date is in the past!");
+  if (!subject || !date) return alert("Fill in all fields bro.");
 
-  exams.push({ subject, date, level });
-  saveAndRender();
+  exams.push({ id: Date.now(), subject, date, level });
 
+  // Clear inputs
   document.getElementById("subject").value = "";
   document.getElementById("examDate").value = "";
+
+  saveExams();
 }
 
-function saveAndRender() {
-  exams.sort((a, b) => new Date(a.date) - new Date(b.date));
-  localStorage.setItem("exams", JSON.stringify(exams));
-  renderExams();
+function deleteExam(id) {
+  exams = exams.filter((e) => e.id !== id);
+  saveExams();
 }
 
 function renderExams() {
   const list = document.getElementById("examList");
+  const emptyState = document.getElementById("empty-state");
   list.innerHTML = "";
 
-  exams.forEach((ex, index) => {
-    const diff = Math.ceil(
-      (new Date(ex.date) - new Date()) / (1000 * 60 * 60 * 24),
-    );
-    const item = document.createElement("li");
-    item.className = ex.level;
-    item.innerHTML = `
-            <span><strong>${ex.subject}</strong> - ${ex.date} (${diff} days left)</span>
-            <button class="delete-btn" onclick="deleteExam(${index})">Delete</button>
-        `;
-    list.appendChild(item);
-  });
+  // Auto-sort by nearest date (The Panic Fix)
+  exams.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  updateProgressBar(); // This triggers the bar to resize every time the list changes
+  if (exams.length === 0) {
+    emptyState.style.display = "block";
+  } else {
+    emptyState.style.display = "none";
+    exams.forEach((exam) => {
+      // Calculate Countdown
+      const daysLeft = Math.ceil(
+        (new Date(exam.date) - new Date()) / (1000 * 60 * 60 * 24),
+      );
+      let timeText =
+        daysLeft > 1
+          ? `${daysLeft} days left`
+          : daysLeft === 1
+            ? "Tomorrow!"
+            : "Today/Passed";
+
+      const li = document.createElement("li");
+      li.className = "exam-card";
+      li.innerHTML = `
+                <div class="exam-info">
+                    <strong>${exam.subject}</strong>
+                    <span style="opacity: 0.7; font-size: 14px; text-transform: capitalize;">(${exam.level})</span>
+                    <small>⏳ ${timeText}</small>
+                </div>
+                <button class="delete-btn" onclick="deleteExam(${exam.id})">Drop</button>
+            `;
+      list.appendChild(li);
+    });
+  }
+  updateProgress();
 }
 
-function deleteExam(index) {
-  exams.splice(index, 1);
-  saveAndRender();
+function updateProgress() {
+  const maxExams = 10;
+  let percentage = (exams.length / maxExams) * 100;
+  if (percentage > 100) percentage = 100;
+
+  document.getElementById("progress-fill").style.width = percentage + "%";
+
+  const affirmations = [
+    "Let's get this bread.",
+    "Small steps bro, you got this.",
+    "Lock in.",
+    "Future you is thanking you right now.",
+    "Grind time.",
+  ];
+
+  document.getElementById("affirmation-box").innerText =
+    exams.length > 0
+      ? affirmations[Math.floor(Math.random() * affirmations.length)]
+      : "";
 }
+
+// ==========================================
+// 3. STUDY TIMER LOGIC
+// ==========================================
+let timerInterval;
+let timeLeft = 25 * 60; // 25 minutes in seconds
+let isRunning = false;
+
+function updateTimerDisplay() {
+  const mins = Math.floor(timeLeft / 60)
+    .toString()
+    .padStart(2, "0");
+  const secs = (timeLeft % 60).toString().padStart(2, "0");
+  document.getElementById("time-display").innerText = `${mins}:${secs}`;
+
+  // Update tab title so you can see it in browser tab
+  if (isRunning) document.title = `(${mins}:${secs}) Study Session`;
+  else document.title = "Study Dashboard";
+}
+
+function startTimer() {
+  if (isRunning) return;
+  isRunning = true;
+  timerInterval = setInterval(() => {
+    if (timeLeft > 0) {
+      timeLeft--;
+      updateTimerDisplay();
+    } else {
+      clearInterval(timerInterval);
+      isRunning = false;
+      updateTimerDisplay();
+      alert("Time's up! Take a 5-minute break.");
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  clearInterval(timerInterval);
+  isRunning = false;
+  updateTimerDisplay();
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  isRunning = false;
+  timeLeft = 25 * 60;
+  updateTimerDisplay();
+}
+
+// Boot up app
+renderExams();

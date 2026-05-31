@@ -1,57 +1,97 @@
 <!doctype html>
-<html>
+<html lang="en">
     <head>
-        <title>Study Planner</title>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Study Dashboard</title>
         <link rel="stylesheet" href="style.css" />
     </head>
     <body>
-        <div class="container">
-            <h1>Study Planner</h1>
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <h2>StudyApp</h2>
+            <ul class="nav-links">
+                <li class="active" onclick="switchTab('exams', this)">
+                    📚 Exams
+                </li>
+                <li onclick="switchTab('timer', this)">⏱️ Study Timer</li>
+            </ul>
+        </nav>
 
-            <p
-                id="affirmation-box"
-                style="
-                    font-style: italic;
-                    color: #666;
-                    height: 20px;
-                    text-align: center;
-                "
-            ></p>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header>
+                <h1 id="page-title">Upcoming Exams</h1>
+                <button id="theme-toggle" onclick="toggleTheme()">🌙</button>
+            </header>
 
-            <div
-                class="progress-container"
-                style="
-                    background: #e0e0e0;
-                    height: 12px;
-                    border-radius: 10px;
-                    overflow: hidden;
-                    margin: 15px 0;
-                "
+            <!-- Exams Tab -->
+            <section
+                id="exams-section"
+                class="tab-content active"
+                style="display: block"
             >
-                <div
-                    id="progress-fill"
-                    style="
-                        width: 0%;
-                        height: 100%;
-                        background-color: #4caf50;
-                        transition: width 0.5s;
-                    "
-                ></div>
-            </div>
-            <div class="input-group">
-                <input type="text" id="subject" placeholder="Subject name..." />
-                <input type="date" id="examDate" />
-                <select id="level">
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                </select>
-                <button onclick="addExam()">Add Exam</button>
-            </div>
+                <p id="affirmation-box"></p>
+                <div class="progress-container">
+                    <div id="progress-fill"></div>
+                </div>
 
-            <h2>Upcoming Exams</h2>
-            <ul id="examList"></ul>
-        </div>
+                <div class="input-card">
+                    <input
+                        type="text"
+                        id="subject"
+                        placeholder="Subject name..."
+                    />
+                    <input type="date" id="examDate" />
+                    <select id="level">
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                    <button onclick="addExam()">Add</button>
+                </div>
+
+                <div
+                    id="empty-state"
+                    style="
+                        display: none;
+                        color: var(--text-color);
+                        opacity: 0.6;
+                    "
+                >
+                    No exams yet! Add one above to start grinding.
+                </div>
+                <ul id="examList" class="exam-grid"></ul>
+            </section>
+
+            <!-- Timer Tab -->
+            <section
+                id="timer-section"
+                class="tab-content"
+                style="display: none"
+            >
+                <div class="timer-card">
+                    <h2 id="time-display">25:00</h2>
+                    <div class="timer-controls">
+                        <button onclick="startTimer()">Start</button>
+                        <button
+                            onclick="pauseTimer()"
+                            style="background-color: #ff9f43"
+                        >
+                            Pause
+                        </button>
+                        <button
+                            onclick="resetTimer()"
+                            style="background-color: #ff4757"
+                        >
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
         <script src="script.js"></script>
     </body>
 </html>

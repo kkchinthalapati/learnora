@@ -1,98 +1,228 @@
-/* 1. Global Reset & Layout */
+/* --- THEME VARIABLES --- */
+:root {
+    --bg-color: #f4f7f6;
+    --sidebar-bg: #ffffff;
+    --text-color: #333333;
+    --card-bg: #ffffff;
+    --primary: #4caf50;
+    --border: #e0e0e0;
+    --hover: #f0f0f0;
+}
+
+[data-theme="dark"] {
+    --bg-color: #121212;
+    --sidebar-bg: #1e1e1e;
+    --text-color: #ffffff;
+    --card-bg: #1e1e1e;
+    --primary: #81c784;
+    --border: #333333;
+    --hover: #2c2c2c;
+}
+
+/* --- GLOBAL LAYOUT --- */
 * {
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
+
 body {
-    font-family: "Segoe UI", system-ui, sans-serif;
-    background-color: #f8f9fa;
-    color: #333;
     display: flex;
-    justify-content: center;
-    padding: 2rem;
+    height: 100vh;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition:
+        background-color 0.3s,
+        color 0.3s;
 }
 
-.container {
-    background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-    width: 100%;
-    max-width: 500px;
-}
-
-/* 2. Inputs & Forms */
-.input-group {
+/* --- SIDEBAR --- */
+.sidebar {
+    width: 250px;
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-bottom: 20px;
 }
 
-input,
-select {
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 1rem;
+.sidebar h2 {
+    margin-bottom: 30px;
+    color: var(--primary);
 }
 
-button {
-    padding: 12px;
-    background-color: #4a90e2;
-    color: white;
-    border: none;
+.nav-links {
+    list-style: none;
+}
+.nav-links li {
+    padding: 12px 15px;
+    margin-bottom: 10px;
     border-radius: 8px;
     cursor: pointer;
-    font-weight: bold;
     transition: background 0.2s;
+    font-weight: 500;
+}
+.nav-links li:hover,
+.nav-links li.active {
+    background-color: var(--hover);
 }
 
-button:hover {
-    background-color: #357abd;
+/* --- MAIN CONTENT --- */
+.main-content {
+    flex: 1;
+    padding: 40px;
+    overflow-y: auto;
 }
 
-/* 3. List Styles */
-ul {
-    list-style: none;
-    padding: 0;
-}
-
-li {
+header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px;
-    margin-bottom: 10px;
-    background: #fff;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    transition: transform 0.1s;
+    margin-bottom: 30px;
 }
 
-/* Color Coding */
-.easy {
-    border-left: 6px solid #28a745;
-}
-.medium {
-    border-left: 6px solid #ffc107;
-}
-.hard {
-    border-left: 6px solid #dc3545;
-}
-
-.delete-btn {
-    background: #ffe5e5;
-    color: #dc3545;
-    padding: 6px 12px;
+#theme-toggle {
+    background: none;
     border: none;
-    border-radius: 4px;
+    font-size: 24px;
     cursor: pointer;
-}
-.progress-container {
-    width: 100%;
-    margin-bottom: 5px;
+    padding: 0;
 }
 
+/* --- UI CARDS & INPUTS --- */
+.input-card,
+.timer-card {
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    border: 1px solid var(--border);
+}
+
+.input-card input,
+.input-card select {
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    flex: 1;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+button:hover {
+    opacity: 0.9;
+}
+
+/* --- PROGRESS & AFFIRMATIONS --- */
+.progress-container {
+    background: var(--border);
+    height: 12px;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
 #progress-fill {
-    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    width: 0%;
+    height: 100%;
+    background-color: var(--primary);
+    transition: width 0.5s;
+}
+#affirmation-box {
+    font-style: italic;
+    color: #888;
+    margin-bottom: 10px;
+}
+
+/* --- EXAM CARDS --- */
+.exam-grid {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+.exam-card {
+    background-color: var(--card-bg);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.exam-info strong {
+    font-size: 18px;
+}
+.exam-info small {
+    color: #888;
+    display: block;
+    margin-top: 5px;
+}
+.delete-btn {
+    background-color: #ff4757;
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+/* --- TIMER UI --- */
+.timer-card {
+    flex-direction: column;
+    align-items: center;
+    padding: 60px;
+}
+#time-display {
+    font-size: 80px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    letter-spacing: 2px;
+}
+.timer-controls {
+    display: flex;
+    gap: 15px;
+}
+
+/* --- MOBILE RESPONSIVENESS --- */
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 20px;
+    }
+    .sidebar h2 {
+        margin-bottom: 0;
+    }
+    .nav-links {
+        display: flex;
+        gap: 10px;
+    }
+    .nav-links li {
+        margin-bottom: 0;
+        padding: 8px 12px;
+    }
+    .input-card {
+        flex-direction: column;
+    }
 }
