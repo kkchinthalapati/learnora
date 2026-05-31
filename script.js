@@ -3,6 +3,7 @@
 // ==========================================
 
 // Real-time Clock
+console.log("Script is alive!");
 setInterval(() => {
   const now = new Date();
   document.getElementById("live-clock").innerText = now.toLocaleTimeString([], {
