@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Study Planner</title>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <div class="container">
+            <h1>Study Planner</h1>
+
+            <p
+                id="affirmation-box"
+                style="
+                    font-style: italic;
+                    color: #666;
+                    height: 20px;
+                    text-align: center;
+                "
+            ></p>
+
+            <div
+                class="progress-container"
+                style="
+                    background: #e0e0e0;
+                    height: 12px;
+                    border-radius: 10px;
+                    overflow: hidden;
+                    margin: 15px 0;
+                "
+            >
+                <div
+                    id="progress-fill"
+                    style="
+                        width: 0%;
+                        height: 100%;
+                        background-color: #4caf50;
+                        transition: width 0.5s;
+                    "
+                ></div>
+            </div>
+            <div class="input-group">
+                <input type="text" id="subject" placeholder="Subject name..." />
+                <input type="date" id="examDate" />
+                <select id="level">
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+                <button onclick="addExam()">Add Exam</button>
+            </div>
+
+            <h2>Upcoming Exams</h2>
+            <ul id="examList"></ul>
+        </div>
+        <script src="script.js"></script>
+    </body>
+</html>
