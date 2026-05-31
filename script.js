@@ -335,3 +335,17 @@ function renderExams() {
     });
 }
 renderExams();
+window.switchTab = switchTab;
+window.toggleSidebar = toggleSidebar;
+window.addTodo = addTodo;
+window.handleTodoEnter = handleTodoEnter;
+window.deleteTodo = deleteTodo;
+window.toggleTodo = toggleTodo;
+window.applyPreset = applyPreset;
+window.applyTimerConfig = applyTimerConfig;
+window.startTimer = startTimer;
+window.pauseTimer = pauseTimer;
+window.resetTimer = resetTimer;
+window.extendTimer = extendTimer;
+window.addExam = addExam;
+window.deleteExam = deleteExam;
