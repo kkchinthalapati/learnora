@@ -349,3 +349,7 @@ window.resetTimer = resetTimer;
 window.extendTimer = extendTimer;
 window.addExam = addExam;
 window.deleteExam = deleteExam;
+supabase
+  .from("tasks")
+  .select("*")
+  .then((res) => console.log("Supabase Connection Test:", res));
