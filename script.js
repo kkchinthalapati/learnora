@@ -134,8 +134,10 @@ function updateProgress() {
 // 3. STUDY TIMER LOGIC
 // ==========================================
 let timerInterval;
-let timeLeft = 25 * 60; // 25 minutes in seconds
+let timeLeft = 25 * 60; // 25 mins
 let isRunning = false;
+let isBreak = false;
+let completedCycles = 0;
 
 function updateTimerDisplay() {
   const mins = Math.floor(timeLeft / 60)
@@ -143,10 +145,9 @@ function updateTimerDisplay() {
     .padStart(2, "0");
   const secs = (timeLeft % 60).toString().padStart(2, "0");
   document.getElementById("time-display").innerText = `${mins}:${secs}`;
-
-  // Update tab title so you can see it in browser tab
-  if (isRunning) document.title = `(${mins}:${secs}) Study Session`;
-  else document.title = "Study Dashboard";
+  document.title = isRunning
+    ? `(${mins}:${secs}) ${isBreak ? "Break" : "Focus"}`
+    : "Study Dashboard";
 }
 
 function startTimer() {
@@ -157,10 +158,21 @@ function startTimer() {
       timeLeft--;
       updateTimerDisplay();
     } else {
+      // Cycle Finished
       clearInterval(timerInterval);
       isRunning = false;
+
+      if (!isBreak) {
+        completedCycles++;
+        isBreak = true;
+        timeLeft = 5 * 60; // Set break to 5 mins
+        alert("Focus session done! Take a 5-min break.");
+      } else {
+        isBreak = false;
+        timeLeft = 25 * 60; // Reset to 25 mins
+        alert("Break over! Back to work.");
+      }
       updateTimerDisplay();
-      alert("Time's up! Take a 5-minute break.");
     }
   }, 1000);
 }
@@ -168,15 +180,11 @@ function startTimer() {
 function pauseTimer() {
   clearInterval(timerInterval);
   isRunning = false;
-  updateTimerDisplay();
 }
 
 function resetTimer() {
-  clearInterval(timerInterval);
-  isRunning = false;
+  pauseTimer();
+  isBreak = false;
   timeLeft = 25 * 60;
   updateTimerDisplay();
 }
-
-// Boot up app
-renderExams();

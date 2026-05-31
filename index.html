@@ -7,7 +7,6 @@
         <link rel="stylesheet" href="style.css" />
     </head>
     <body>
-        <!-- Sidebar -->
         <nav class="sidebar">
             <h2>StudyApp</h2>
             <ul class="nav-links">
@@ -18,18 +17,15 @@
             </ul>
         </nav>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <!-- Header -->
             <header>
                 <h1 id="page-title">Upcoming Exams</h1>
                 <button id="theme-toggle" onclick="toggleTheme()">🌙</button>
             </header>
 
-            <!-- Exams Tab -->
             <section
                 id="exams-section"
-                class="tab-content active"
+                class="tab-content"
                 style="display: block"
             >
                 <p id="affirmation-box"></p>
@@ -65,7 +61,6 @@
                 <ul id="examList" class="exam-grid"></ul>
             </section>
 
-            <!-- Timer Tab -->
             <section
                 id="timer-section"
                 class="tab-content"
@@ -73,6 +68,7 @@
             >
                 <div class="timer-card">
                     <h2 id="time-display">25:00</h2>
+                    <p id="cycle-status">Ready to focus</p>
                     <div class="timer-controls">
                         <button onclick="startTimer()">Start</button>
                         <button
