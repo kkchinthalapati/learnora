@@ -1,40 +1,36 @@
 /* --- THEME VARIABLES --- */
 :root {
-    --bg-color: #f4f7f6;
+    --bg-color: #f3f4f6;
     --sidebar-bg: #ffffff;
-    --text-color: #333333;
+    --text-color: #1f2937;
     --card-bg: #ffffff;
-    --primary: #4caf50;
-    --border: #e0e0e0;
-    --hover: #f0f0f0;
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --border: #e5e7eb;
+    --danger: #ef4444;
+    --success: #10b981;
 }
 
 [data-theme="dark"] {
-    --bg-color: #121212;
-    --sidebar-bg: #1e1e1e;
-    --text-color: #ffffff;
-    --card-bg: #1e1e1e;
-    --primary: #81c784;
-    --border: #333333;
-    --hover: #2c2c2c;
+    --bg-color: #111827;
+    --sidebar-bg: #1f2937;
+    --text-color: #f9fafb;
+    --card-bg: #1f2937;
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --border: #374151;
 }
 
 /* --- GLOBAL LAYOUT --- */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
 
 body {
     display: flex;
     height: 100vh;
     background-color: var(--bg-color);
     color: var(--text-color);
-    transition:
-        background-color 0.3s,
-        color 0.3s;
+    transition: background-color 0.3s, color 0.3s;
+    overflow: hidden;
 }
 
 /* --- SIDEBAR --- */
@@ -42,36 +38,37 @@ body {
     width: 250px;
     background-color: var(--sidebar-bg);
     border-right: 1px solid var(--border);
-    padding: 20px;
+    padding: 24px;
     display: flex;
     flex-direction: column;
+    transition: width 0.3s ease, padding 0.3s ease;
+    white-space: nowrap;
 }
 
-.sidebar h2 {
-    margin-bottom: 30px;
-    color: var(--primary);
+.sidebar.collapsed {
+    width: 0;
+    padding: 24px 0;
+    border: none;
+    overflow: hidden;
 }
 
-.nav-links {
-    list-style: none;
-}
+.brand { margin-bottom: 32px; color: var(--primary); font-size: 24px;}
+
+.nav-links { list-style: none; }
 .nav-links li {
-    padding: 12px 15px;
-    margin-bottom: 10px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
     border-radius: 8px;
     cursor: pointer;
     transition: background 0.2s;
     font-weight: 500;
 }
-.nav-links li:hover,
-.nav-links li.active {
-    background-color: var(--hover);
-}
+.nav-links li:hover, .nav-links li.active { background-color: var(--bg-color); color: var(--primary); }
 
-/* --- MAIN CONTENT --- */
+/* --- MAIN CONTENT & HEADER --- */
 .main-content {
     flex: 1;
-    padding: 40px;
+    padding: 32px;
     overflow-y: auto;
 }
 
@@ -79,150 +76,111 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
+    margin-bottom: 40px;
 }
 
-#theme-toggle {
+.header-left, .header-right { display: flex; align-items: center; gap: 16px; }
+
+#menu-toggle, #theme-toggle {
     background: none;
     border: none;
-    font-size: 24px;
+    color: var(--text-color);
+    font-size: 20px;
     cursor: pointer;
-    padding: 0;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background 0.2s;
 }
+#menu-toggle:hover, #theme-toggle:hover { background-color: var(--border); }
 
-/* --- UI CARDS & INPUTS --- */
-.input-card,
-.timer-card {
+#live-clock { font-family: monospace; font-size: 18px; font-weight: 600; opacity: 0.8; }
+
+/* --- NEAT UI COMPONENTS --- */
+.glass-panel {
     background-color: var(--card-bg);
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    margin-bottom: 20px;
-    display: flex;
-    gap: 10px;
     border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    padding: 24px;
+    margin-bottom: 24px;
 }
 
-.input-card input,
-.input-card select {
-    padding: 10px;
+.input-card { display: flex; gap: 12px; }
+.input-card input, .input-card select {
+    padding: 12px;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 8px;
     background: var(--bg-color);
     color: var(--text-color);
     flex: 1;
+    outline: none;
 }
+.input-card input:focus { border-color: var(--primary); }
 
 button {
-    padding: 10px 20px;
+    padding: 12px 24px;
     background-color: var(--primary);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 600;
+    transition: opacity 0.2s, transform 0.1s;
 }
-button:hover {
-    opacity: 0.9;
-}
+button:hover { opacity: 0.9; }
+button:active { transform: scale(0.98); }
 
-/* --- PROGRESS & AFFIRMATIONS --- */
-.progress-container {
-    background: var(--border);
-    height: 12px;
-    border-radius: 10px;
-    overflow: hidden;
-    margin-bottom: 20px;
-}
-#progress-fill {
-    width: 0%;
-    height: 100%;
-    background-color: var(--primary);
-    transition: width 0.5s;
-}
-#affirmation-box {
-    font-style: italic;
-    color: #888;
-    margin-bottom: 10px;
-}
-
-/* --- EXAM CARDS --- */
-.exam-grid {
+/* --- GRID & LISTS --- */
+.grid-list {
     list-style: none;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
 }
 
 .exam-card {
     background-color: var(--card-bg);
-    padding: 15px;
-    border-radius: 10px;
+    padding: 20px;
+    border-radius: 12px;
     border: 1px solid var(--border);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
+.exam-info strong { font-size: 18px; display: block; margin-bottom: 4px; }
+.exam-info small { color: var(--primary); font-weight: 500; }
 
-.exam-info strong {
-    font-size: 18px;
-}
-.exam-info small {
-    color: #888;
-    display: block;
-    margin-top: 5px;
-}
-.delete-btn {
-    background-color: #ff4757;
-    padding: 5px 10px;
-    font-size: 12px;
-}
+.delete-btn { background-color: var(--danger); padding: 8px 12px; font-size: 14px; }
 
-/* --- TIMER UI --- */
-.timer-card {
-    flex-direction: column;
-    align-items: center;
-    padding: 60px;
-}
-#time-display {
-    font-size: 80px;
-    font-weight: bold;
-    margin-bottom: 30px;
-    letter-spacing: 2px;
-}
-.timer-controls {
+/* --- TIMER LAYOUT --- */
+.timer-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; }
+@media (max-width: 768px) { .timer-layout { grid-template-columns: 1fr; } }
+
+.config-panel label { display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center; font-size: 14px;}
+.config-panel input { width: 80px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-color); color: var(--text-color);}
+.save-btn { width: 100%; margin-top: 12px; }
+
+.timer-display { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;}
+#timer-mode { color: var(--primary); text-transform: uppercase; letter-spacing: 1px; font-size: 14px; margin-bottom: 12px;}
+#time-display { font-size: 80px; font-weight: 800; font-family: monospace; line-height: 1; margin-bottom: 12px;}
+#cycle-counter { opacity: 0.7; margin-bottom: 32px; }
+
+.timer-controls { display: flex; gap: 12px; }
+.pause-btn { background-color: #f59e0b; }
+.reset-btn { background-color: var(--danger); }
+
+/* --- TO-DO LIST --- */
+.list-container { list-style: none; }
+.todo-item {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border);
+    padding: 16px;
+    margin-bottom: 8px;
+    border-radius: 8px;
     display: flex;
-    gap: 15px;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.2s;
 }
-
-/* --- MOBILE RESPONSIVENESS --- */
-@media (max-width: 768px) {
-    body {
-        flex-direction: column;
-    }
-    .sidebar {
-        width: 100%;
-        height: auto;
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        padding: 10px 20px;
-    }
-    .sidebar h2 {
-        margin-bottom: 0;
-    }
-    .nav-links {
-        display: flex;
-        gap: 10px;
-    }
-    .nav-links li {
-        margin-bottom: 0;
-        padding: 8px 12px;
-    }
-    .input-card {
-        flex-direction: column;
-    }
-}
+.todo-item.done span { text-decoration: line-through; opacity: 0.5; }
+.todo-text { flex: 1; }
