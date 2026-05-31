@@ -3,19 +3,20 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Study Command Center</title>
+        <title>StudyApp</title>
         <link rel="stylesheet" href="style.css" />
     </head>
     <body>
         <nav class="sidebar" id="sidebar">
-            <h2 class="brand">Command Center</h2>
+            <h2 class="brand">StudyApp</h2>
             <ul class="nav-links">
-                <li class="active" onclick="switchTab('timer', this)">
-                    ⏱️ Timer
+                <li class="active" onclick="switchTab('logs', this)">
+                    📊 Dashboard
                 </li>
+                <hr class="sidebar-divider" />
+                <li onclick="switchTab('timer', this)">⏱️ Timer</li>
                 <li onclick="switchTab('todo', this)">📝 To-Do List</li>
                 <li onclick="switchTab('exams', this)">📚 Exams</li>
-                <li onclick="switchTab('logs', this)">📊 Dashboard</li>
             </ul>
         </nav>
 
@@ -25,7 +26,7 @@
                     <button id="menu-toggle" onclick="toggleSidebar()">
                         ☰
                     </button>
-                    <h1 id="page-title">Study Timer</h1>
+                    <h1 id="page-title">Dashboard</h1>
                 </div>
                 <div class="header-right">
                     <span id="live-clock">00:00</span>
@@ -52,12 +53,30 @@
                 </div>
             </header>
 
+            <!-- Tab 1: Dashboard (Pinned to top) -->
             <section
-                id="timer-section"
+                id="logs-section"
                 class="tab-content"
                 style="display: block"
             >
+                <div class="glass-panel">
+                    <h2>Session History</h2>
+                    <p>
+                        All completed focus blocks are logged here
+                        automatically.
+                    </p>
+                </div>
+                <ul id="log-list" class="list-container"></ul>
+            </section>
+
+            <!-- Tab 2: Study Timer -->
+            <section
+                id="timer-section"
+                class="tab-content"
+                style="display: none"
+            >
                 <div class="timer-layout">
+                    <!-- Configuration -->
                     <div class="config-panel glass-panel">
                         <h3>Workflow Presets</h3>
                         <div class="preset-buttons">
@@ -72,7 +91,6 @@
                             </button>
                         </div>
                         <hr />
-                        <h3>Custom Rules</h3>
                         <label
                             >Focus (mins)
                             <input type="number" id="focusTime" value="25"
@@ -96,16 +114,25 @@
                                 <option value="None">None</option>
                             </select>
                         </label>
-
                         <button onclick="applyTimerConfig()" class="save-btn">
                             Apply & Reset
                         </button>
                     </div>
 
+                    <!-- Main Timer -->
                     <div class="timer-display glass-panel">
+                        <p id="quote-display" class="motivational-quote">
+                            "Loading..."
+                        </p>
                         <h4 id="timer-mode">Focus Mode</h4>
                         <h2 id="time-display">25:00</h2>
                         <p id="cycle-counter">Cycle: 0 / 4</p>
+
+                        <!-- Flora-style Progress Bar -->
+                        <div class="progress-container">
+                            <div id="timer-progress" class="progress-bar"></div>
+                        </div>
+
                         <div class="timer-controls">
                             <button onclick="startTimer()" class="start-btn">
                                 Start
@@ -124,6 +151,7 @@
                 </div>
             </section>
 
+            <!-- Tab 3: To-Do -->
             <section
                 id="todo-section"
                 class="tab-content"
@@ -141,6 +169,7 @@
                 <ul id="todo-list" class="list-container"></ul>
             </section>
 
+            <!-- Tab 4: Exams -->
             <section
                 id="exams-section"
                 class="tab-content"
@@ -157,21 +186,6 @@
                     <button onclick="addExam()">Add Exam</button>
                 </div>
                 <ul id="examList" class="grid-list"></ul>
-            </section>
-
-            <section
-                id="logs-section"
-                class="tab-content"
-                style="display: none"
-            >
-                <div class="glass-panel">
-                    <h2>Session History</h2>
-                    <p>
-                        All completed focus blocks are logged here
-                        automatically.
-                    </p>
-                </div>
-                <ul id="log-list" class="list-container"></ul>
             </section>
         </main>
         <script src="script.js"></script>

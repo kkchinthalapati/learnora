@@ -1,5 +1,5 @@
 // ==========================================
-// 1. GLOBAL & UI LOGIC
+// 1. UI, TAB & CLOCK LOGIC
 // ==========================================
 setInterval(() => {
   document.getElementById("live-clock").innerText =
@@ -24,29 +24,44 @@ function switchTab(tabId, element) {
     timer: "Study Timer",
     todo: "Task Manager",
     exams: "Upcoming Exams",
-    logs: "Session Dashboard",
+    logs: "Dashboard",
   };
   document.getElementById("page-title").innerText = titles[tabId];
 }
 
-// Fixed Theme Engine
+// Fixed Theme Engine (Using Classes)
 const sunIcon =
   '<path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>';
 const moonIcon = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>';
 
 if (localStorage.getItem("theme") === "dark") {
-  document.body.setAttribute("data-theme", "dark");
+  document.body.classList.add("dark-theme");
   document.getElementById("theme-icon").innerHTML = sunIcon;
 }
 
 window.toggleTheme = function () {
-  const isDark = document.body.toggleAttribute("data-theme", "dark");
+  document.body.classList.toggle("dark-theme");
+  const isDark = document.body.classList.contains("dark-theme");
   localStorage.setItem("theme", isDark ? "dark" : "light");
   document.getElementById("theme-icon").innerHTML = isDark ? sunIcon : moonIcon;
 };
 
+// Quotes
+const quotes = [
+  "Focus on the step in front of you, not the whole staircase.",
+  "Don't stop until you're proud.",
+  "Small progress is still progress.",
+  "The secret of getting ahead is getting started.",
+  "You didn't come this far to only come this far.",
+];
+function randomizeQuote() {
+  document.getElementById("quote-display").innerText =
+    quotes[Math.floor(Math.random() * quotes.length)];
+}
+randomizeQuote();
+
 // ==========================================
-// 2. TO-DO ENGINE (Syncs with Timer)
+// 2. TO-DO ENGINE (With neat removal)
 // ==========================================
 let todos = JSON.parse(localStorage.getItem("todos")) || [];
 
@@ -67,8 +82,12 @@ function toggleTodo(id) {
 }
 function deleteTodo(id, e) {
   e.stopPropagation();
-  todos = todos.filter((t) => t.id !== id);
-  saveTodos();
+  const li = e.target.closest(".todo-item");
+  li.classList.add("removing"); // Triggers CSS slide out
+  setTimeout(() => {
+    todos = todos.filter((t) => t.id !== id);
+    saveTodos();
+  }, 300); // Wait for animation to finish
 }
 function saveTodos() {
   localStorage.setItem("todos", JSON.stringify(todos));
@@ -82,7 +101,7 @@ function renderTodos() {
     const li = document.createElement("li");
     li.className = `todo-item ${t.done ? "done" : ""}`;
     li.onclick = () => toggleTodo(t.id);
-    li.innerHTML = `<span class="todo-text">${t.text}</span> <button class="delete-btn" onclick="deleteTodo(${t.id}, event)">X</button>`;
+    li.innerHTML = `<span>${t.text}</span> <button class="delete-btn" onclick="deleteTodo(${t.id}, event)">X</button>`;
     list.appendChild(li);
   });
 }
@@ -99,16 +118,17 @@ renderTodos();
 updateTaskDropdown();
 
 // ==========================================
-// 3. GOD-MODE TIMER & LOGGER
+// 3. TIMER, AUTO-RESUME & FLORA BAR
 // ==========================================
 let timerInterval;
-let timeLeft = 25 * 60;
 let isRunning = false;
 let currentMode = "Focus";
 let completedCycles = 0;
 let config = { focus: 25, short: 5, long: 15, cycles: 4 };
 
-// Presets
+let totalSessionTime = 25 * 60;
+let timeLeft = totalSessionTime;
+
 function applyPreset(type) {
   if (type === "deep") {
     document.getElementById("focusTime").value = 90;
@@ -139,10 +159,14 @@ function updateTimerDisplay() {
     .padStart(2, "0");
   const s = (timeLeft % 60).toString().padStart(2, "0");
   document.getElementById("time-display").innerText = `${m}:${s}`;
-  document.title = isRunning ? `(${m}:${s}) ${currentMode}` : "Command Center";
+  document.title = isRunning ? `(${m}:${s}) ${currentMode}` : "StudyApp";
   document.getElementById("timer-mode").innerText = currentMode + " Mode";
   document.getElementById("cycle-counter").innerText =
     `Cycle: ${completedCycles} / ${config.cycles}`;
+
+  // Flora Progress Bar Update
+  const percent = ((totalSessionTime - timeLeft) / totalSessionTime) * 100;
+  document.getElementById("timer-progress").style.width = `${percent}%`;
 }
 
 function startTimer() {
@@ -160,8 +184,8 @@ function startTimer() {
 
 function handleCycleEnd() {
   pauseTimer();
+  randomizeQuote();
 
-  // Log the session if it was a Focus block
   if (currentMode === "Focus") {
     const taskName = document.getElementById("active-task").value;
     logSession(config.focus, taskName);
@@ -169,18 +193,18 @@ function handleCycleEnd() {
 
     if (completedCycles >= config.cycles) {
       currentMode = "LongBreak";
-      timeLeft = config.long * 60;
+      totalSessionTime = config.long * 60;
       completedCycles = 0;
     } else {
       currentMode = "ShortBreak";
-      timeLeft = config.short * 60;
+      totalSessionTime = config.short * 60;
     }
   } else {
     currentMode = "Focus";
-    timeLeft = config.focus * 60;
+    totalSessionTime = config.focus * 60;
   }
 
-  // Play a browser beep (no external assets needed)
+  timeLeft = totalSessionTime;
   new Audio(
     "data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU",
   )
@@ -195,33 +219,45 @@ function pauseTimer() {
   isRunning = false;
   updateTimerDisplay();
 }
+
 function resetTimer() {
   pauseTimer();
   currentMode = "Focus";
-  timeLeft = config.focus * 60;
+  totalSessionTime = config.focus * 60;
+  timeLeft = totalSessionTime;
   completedCycles = 0;
   updateTimerDisplay();
 }
-function extendTimer() {
-  timeLeft += 5 * 60;
-  updateTimerDisplay();
-} // Adds 5 mins
 
-// Auto-Pause System
+function extendTimer() {
+  if (!isRunning) {
+    alert("Start the timer first to add time tbh.");
+    return;
+  }
+  timeLeft += 5 * 60;
+  totalSessionTime += 5 * 60; // Adjust progress bar total
+  updateTimerDisplay();
+}
+
+// Auto-Resume & Auto-Pause Logic
+let wasRunningBeforeHide = false;
 document.addEventListener("visibilitychange", () => {
   if (document.hidden && isRunning) {
-    pauseTimer();
-    console.log("Tab hidden: Auto-Paused");
+    clearInterval(timerInterval);
+    isRunning = false; // Pause logically
+    wasRunningBeforeHide = true;
+  } else if (!document.hidden && wasRunningBeforeHide) {
+    startTimer();
+    wasRunningBeforeHide = false;
   }
 });
 
 updateTimerDisplay();
 
 // ==========================================
-// 4. SESSION LOGGING (Dashboard)
+// 4. SESSION LOGGING & EXAMS
 // ==========================================
 let sessionLogs = JSON.parse(localStorage.getItem("sessions")) || [];
-
 function logSession(minutes, task) {
   const timestamp = new Date().toLocaleString([], {
     month: "short",
@@ -233,7 +269,6 @@ function logSession(minutes, task) {
   localStorage.setItem("sessions", JSON.stringify(sessionLogs));
   renderLogs();
 }
-
 function renderLogs() {
   const list = document.getElementById("log-list");
   list.innerHTML = "";
@@ -250,9 +285,6 @@ function renderLogs() {
 }
 renderLogs();
 
-// ==========================================
-// 5. EXAM ENGINE
-// ==========================================
 let exams = JSON.parse(localStorage.getItem("exams")) || [];
 function addExam() {
   const subject = document.getElementById("subject").value;

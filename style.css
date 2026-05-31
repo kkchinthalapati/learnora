@@ -1,26 +1,27 @@
 /* --- THEME VARIABLES --- */
 :root {
-    --bg-color: #f3f4f6;
+    --bg-color: #f0f4f8;
     --sidebar-bg: #ffffff;
-    --text-color: #1f2937;
-    --card-bg: rgba(255, 255, 255, 0.7);
-    --primary: #4f46e5;
-    --primary-hover: #4338ca;
-    --border: rgba(229, 231, 235, 0.5);
+    --text-color: #1e293b;
+    --card-bg: rgba(255, 255, 255, 0.4);
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --border: rgba(148, 163, 184, 0.3);
     --danger: #ef4444;
     --success: #10b981;
-    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 }
 
-[data-theme="dark"] {
+/* Hardcoded Dark Theme Class (Fixes the toggle bug) */
+body.dark-theme {
     --bg-color: #0f172a;
     --sidebar-bg: #1e293b;
     --text-color: #f8fafc;
-    --card-bg: rgba(30, 41, 59, 0.7);
-    --primary: #6366f1;
-    --primary-hover: #4f46e5;
-    --border: rgba(51, 65, 85, 0.5);
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    --card-bg: rgba(30, 41, 59, 0.6);
+    --primary: #60a5fa;
+    --primary-hover: #3b82f6;
+    --border: rgba(148, 163, 184, 0.2);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -38,7 +39,9 @@ body {
     height: 100vh;
     background-color: var(--bg-color);
     color: var(--text-color);
-    transition: 0.3s;
+    transition:
+        background-color 0.4s ease,
+        color 0.4s ease;
     overflow: hidden;
 }
 
@@ -60,9 +63,16 @@ body {
     overflow: hidden;
 }
 .brand {
-    margin-bottom: 32px;
+    margin-bottom: 24px;
     color: var(--primary);
-    font-size: 22px;
+    font-size: 24px;
+    font-weight: bold;
+}
+.sidebar-divider {
+    border: 0;
+    height: 1px;
+    background: var(--border);
+    margin: 8px 16px 16px 16px;
 }
 .nav-links {
     list-style: none;
@@ -77,7 +87,7 @@ body {
 }
 .nav-links li:hover,
 .nav-links li.active {
-    background-color: var(--bg-color);
+    background-color: var(--border);
     color: var(--primary);
 }
 
@@ -121,13 +131,13 @@ header {
     opacity: 0.8;
 }
 
-/* --- GLASSMORPHISM UI --- */
+/* --- TRUE GLASSMORPHISM --- */
 .glass-panel {
     background: var(--card-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 20px;
     box-shadow: var(--glass-shadow);
     padding: 24px;
     margin-bottom: 24px;
@@ -163,6 +173,7 @@ button {
 }
 button:hover {
     opacity: 0.9;
+    transform: translateY(-1px);
 }
 
 /* --- TIMER LAYOUT --- */
@@ -188,7 +199,7 @@ button:hover {
     margin-bottom: 16px;
 }
 .preset-buttons button {
-    background-color: var(--bg-color);
+    background-color: transparent;
     color: var(--text-color);
     border: 1px solid var(--border);
 }
@@ -233,6 +244,12 @@ hr {
     justify-content: center;
     text-align: center;
 }
+.motivational-quote {
+    font-style: italic;
+    opacity: 0.7;
+    margin-bottom: 20px;
+    min-height: 40px;
+}
 #timer-mode {
     color: var(--primary);
     text-transform: uppercase;
@@ -250,9 +267,26 @@ hr {
 }
 #cycle-counter {
     opacity: 0.7;
-    margin-bottom: 32px;
+    margin-bottom: 20px;
     font-size: 18px;
 }
+
+/* Flora Progress Bar */
+.progress-container {
+    width: 80%;
+    height: 10px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    margin-bottom: 32px;
+    overflow: hidden;
+}
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--success);
+    transition: width 1s linear;
+}
+
 .timer-controls {
     display: flex;
     flex-wrap: wrap;
@@ -269,7 +303,7 @@ hr {
     background-color: var(--success);
 }
 
-/* --- LISTS --- */
+/* --- NEAT LIST ANIMATIONS --- */
 .list-container,
 .grid-list {
     list-style: none;
@@ -279,25 +313,40 @@ hr {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 16px;
 }
-.todo-item,
+
+.todo-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    padding: 16px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease; /* Smooth slide out */
+    opacity: 1;
+    transform: translateX(0);
+}
+.todo-item.done span {
+    text-decoration: line-through;
+    opacity: 0.5;
+}
+.todo-item.removing {
+    opacity: 0;
+    transform: translateX(-30px);
+}
+
 .exam-card,
 .log-item {
     background: var(--card-bg);
     border: 1px solid var(--border);
     padding: 16px;
     margin-bottom: 8px;
-    border-radius: 8px;
+    border-radius: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-.todo-item {
-    cursor: pointer;
-    transition: 0.2s;
-}
-.todo-item.done span {
-    text-decoration: line-through;
-    opacity: 0.5;
 }
 .delete-btn {
     background-color: var(--danger);
