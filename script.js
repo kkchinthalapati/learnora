@@ -1,3 +1,10 @@
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+// --- DATABASE SETUP ---
+const supabaseUrl = "https://mlvgqwqiynpwpwzqufdf.supabase.co";
+const supabaseKey = "sb_publishable_mN1UvxPjHhn6L583LjrSFw_FWY8kRrt";
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 // ==========================================
 // 1. UI, TAB & CLOCK LOGIC
 // ==========================================
@@ -61,61 +68,79 @@ function randomizeQuote() {
 randomizeQuote();
 
 // ==========================================
-// 2. TO-DO ENGINE (With neat removal)
+// 2. CLOUD TO-DO ENGINE (Supabase)
 // ==========================================
-let todos = JSON.parse(localStorage.getItem("todos")) || [];
+let todos = [];
 
-function addTodo() {
+async function fetchTodos() {
+  const { data, error } = await supabase
+    .from("tasks")
+    .select("*")
+    .order("id", { ascending: true });
+  if (error) console.error("Error fetching:", error);
+  else {
+    todos = data;
+    renderTodos();
+    updateTaskDropdown();
+  }
+}
+
+async function addTodo() {
   const input = document.getElementById("todo-input");
   if (!input.value.trim()) return;
-  todos.push({ id: Date.now(), text: input.value, done: false });
-  input.value = "";
-  saveTodos();
+  const { error } = await supabase
+    .from("tasks")
+    .insert([{ text: input.value, is_done: false }]);
+  if (!error) {
+    input.value = "";
+    fetchTodos();
+  } else console.error("Error adding:", error);
 }
+
 function handleTodoEnter(e) {
   if (e.key === "Enter") addTodo();
 }
-function toggleTodo(id) {
-  const todo = todos.find((t) => t.id === id);
-  if (todo) todo.done = !todo.done;
-  saveTodos();
+
+async function toggleTodo(id, currentStatus) {
+  const { error } = await supabase
+    .from("tasks")
+    .update({ is_done: !currentStatus })
+    .eq("id", id);
+  if (!error) fetchTodos();
 }
-function deleteTodo(id, e) {
+
+async function deleteTodo(id, e) {
   e.stopPropagation();
   const li = e.target.closest(".todo-item");
-  li.classList.add("removing"); // Triggers CSS slide out
-  setTimeout(() => {
-    todos = todos.filter((t) => t.id !== id);
-    saveTodos();
-  }, 300); // Wait for animation to finish
+  li.classList.add("removing");
+  await supabase.from("tasks").delete().eq("id", id);
+  setTimeout(fetchTodos, 300);
 }
-function saveTodos() {
-  localStorage.setItem("todos", JSON.stringify(todos));
-  renderTodos();
-  updateTaskDropdown();
-}
+
 function renderTodos() {
   const list = document.getElementById("todo-list");
   list.innerHTML = "";
   todos.forEach((t) => {
     const li = document.createElement("li");
-    li.className = `todo-item ${t.done ? "done" : ""}`;
-    li.onclick = () => toggleTodo(t.id);
+    li.className = `todo-item ${t.is_done ? "done" : ""}`;
+    li.onclick = () => toggleTodo(t.id, t.is_done);
     li.innerHTML = `<span>${t.text}</span> <button class="delete-btn" onclick="deleteTodo(${t.id}, event)">X</button>`;
     list.appendChild(li);
   });
 }
+
 function updateTaskDropdown() {
   const select = document.getElementById("active-task");
   select.innerHTML = '<option value="None">None</option>';
   todos
-    .filter((t) => !t.done)
+    .filter((t) => !t.is_done)
     .forEach((t) => {
       select.innerHTML += `<option value="${t.text}">${t.text}</option>`;
     });
 }
-renderTodos();
-updateTaskDropdown();
+
+// Initial Cloud Fetch
+fetchTodos();
 
 // ==========================================
 // 3. TIMER, AUTO-RESUME & FLORA BAR
@@ -164,7 +189,6 @@ function updateTimerDisplay() {
   document.getElementById("cycle-counter").innerText =
     `Cycle: ${completedCycles} / ${config.cycles}`;
 
-  // Flora Progress Bar Update
   const percent = ((totalSessionTime - timeLeft) / totalSessionTime) * 100;
   document.getElementById("timer-progress").style.width = `${percent}%`;
 }
@@ -185,12 +209,10 @@ function startTimer() {
 function handleCycleEnd() {
   pauseTimer();
   randomizeQuote();
-
   if (currentMode === "Focus") {
     const taskName = document.getElementById("active-task").value;
     logSession(config.focus, taskName);
     completedCycles++;
-
     if (completedCycles >= config.cycles) {
       currentMode = "LongBreak";
       totalSessionTime = config.long * 60;
@@ -203,7 +225,6 @@ function handleCycleEnd() {
     currentMode = "Focus";
     totalSessionTime = config.focus * 60;
   }
-
   timeLeft = totalSessionTime;
   new Audio(
     "data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU",
@@ -235,23 +256,21 @@ function extendTimer() {
     return;
   }
   timeLeft += 5 * 60;
-  totalSessionTime += 5 * 60; // Adjust progress bar total
+  totalSessionTime += 5 * 60;
   updateTimerDisplay();
 }
 
-// Auto-Resume & Auto-Pause Logic
-let wasRunningBeforeHide = false;
 document.addEventListener("visibilitychange", () => {
   if (document.hidden && isRunning) {
     clearInterval(timerInterval);
-    isRunning = false; // Pause logically
+    isRunning = false;
     wasRunningBeforeHide = true;
   } else if (!document.hidden && wasRunningBeforeHide) {
     startTimer();
     wasRunningBeforeHide = false;
   }
 });
-
+let wasRunningBeforeHide = false;
 updateTimerDisplay();
 
 // ==========================================

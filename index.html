@@ -53,7 +53,6 @@
                 </div>
             </header>
 
-            <!-- Tab 1: Dashboard (Pinned to top) -->
             <section
                 id="logs-section"
                 class="tab-content"
@@ -69,14 +68,12 @@
                 <ul id="log-list" class="list-container"></ul>
             </section>
 
-            <!-- Tab 2: Study Timer -->
             <section
                 id="timer-section"
                 class="tab-content"
                 style="display: none"
             >
                 <div class="timer-layout">
-                    <!-- Configuration -->
                     <div class="config-panel glass-panel">
                         <h3>Workflow Presets</h3>
                         <div class="preset-buttons">
@@ -119,7 +116,6 @@
                         </button>
                     </div>
 
-                    <!-- Main Timer -->
                     <div class="timer-display glass-panel">
                         <p id="quote-display" class="motivational-quote">
                             "Loading..."
@@ -128,7 +124,6 @@
                         <h2 id="time-display">25:00</h2>
                         <p id="cycle-counter">Cycle: 0 / 4</p>
 
-                        <!-- Flora-style Progress Bar -->
                         <div class="progress-container">
                             <div id="timer-progress" class="progress-bar"></div>
                         </div>
@@ -151,7 +146,6 @@
                 </div>
             </section>
 
-            <!-- Tab 3: To-Do -->
             <section
                 id="todo-section"
                 class="tab-content"
@@ -169,7 +163,6 @@
                 <ul id="todo-list" class="list-container"></ul>
             </section>
 
-            <!-- Tab 4: Exams -->
             <section
                 id="exams-section"
                 class="tab-content"
@@ -188,6 +181,6 @@
                 <ul id="examList" class="grid-list"></ul>
             </section>
         </main>
-        <script src="script.js"></script>
+        <script type="module" src="script.js"></script>
     </body>
 </html>
