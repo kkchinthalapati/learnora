@@ -11,7 +11,7 @@
             <div class="auth-card glass-panel">
                 <div class="auth-header">
                     <img
-                        src="./study-planner-imageandlogo.jpg"
+                        src="study-planner-imageandlogo.jpg"
                         alt="Study Planner Logo"
                         class="auth-logo"
                     />
@@ -84,6 +84,66 @@
                         />
                         <label for="signup-password">Password</label>
                     </div>
+
+                    <div class="input-group">
+                        <label
+                            style="
+                                position: static;
+                                transform: none;
+                                opacity: 1;
+                                margin-bottom: 8px;
+                                display: block;
+                            "
+                        >
+                            Preferred Sign-In Method:
+                        </label>
+                        <div
+                            style="
+                                display: flex;
+                                gap: 15px;
+                                margin-bottom: 20px;
+                            "
+                        >
+                            <label
+                                style="
+                                    position: static;
+                                    transform: none;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 5px;
+                                    cursor: pointer;
+                                "
+                            >
+                                <input
+                                    type="radio"
+                                    name="auth-method"
+                                    value="otp"
+                                    checked
+                                    style="width: auto"
+                                />
+                                OTP Code
+                            </label>
+                            <label
+                                style="
+                                    position: static;
+                                    transform: none;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 5px;
+                                    cursor: pointer;
+                                "
+                            >
+                                <input
+                                    type="radio"
+                                    name="auth-method"
+                                    value="link"
+                                    style="width: auto"
+                                />
+                                Magic Link
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="auth-actions">
                         <button class="btn-primary" onclick="handleSignup()">
                             Create Account
@@ -347,7 +407,6 @@
         </div>
 
         <div id="toast-container"></div>
-
         <script type="module" src="script.js"></script>
     </body>
 </html>
