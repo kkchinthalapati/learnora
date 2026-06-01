@@ -5,6 +5,35 @@ const supabaseUrl = "https://mlvgqwqiynpwpwzqufdf.supabase.co";
 const supabaseKey = "sb_publishable_mN1UvxPjHhn6L583LjrSFw_FWY8kRrt";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// --- 0. AUTH WALL LOGIC ---
+supabase.auth.onAuthStateChange((event, session) => {
+  const wall = document.getElementById("auth-wall");
+  const app = document.getElementById("main-app");
+  if (session) {
+    wall.style.display = "none";
+    app.style.display = "block";
+    fetchTodos(); // Only fetch data once user is logged in
+  } else {
+    wall.style.display = "flex";
+    app.style.display = "none";
+  }
+});
+
+async function handleLogin() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) alert(error.message);
+}
+
+async function handleSignup() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const { error } = await supabase.auth.signUp({ email, password });
+  if (error) alert(error.message);
+  else alert("Check your email for the confirmation link!");
+}
+
 // ==========================================
 // 1. UI, TAB & CLOCK LOGIC
 // ==========================================
@@ -107,14 +136,11 @@ async function toggleTodo(id, currentStatus) {
   if (!error) fetchTodos();
 }
 
-// FIXED: Bug fixed by adding 'async' and 'await' to ensure UI waits for DB
 async function deleteTodo(id, e) {
   e.stopPropagation();
   const li = e.target.closest(".todo-item");
   li.classList.add("removing");
-
   const { error } = await supabase.from("tasks").delete().eq("id", id);
-
   if (!error) {
     setTimeout(fetchTodos, 300);
   } else {
@@ -145,17 +171,14 @@ function updateTaskDropdown() {
     });
 }
 
-fetchTodos();
-
 // ==========================================
-// 3. TIMER, AUTO-RESUME & FLORA BAR
+// 3. TIMER & LOGGING
 // ==========================================
 let timerInterval;
 let isRunning = false;
 let currentMode = "Focus";
 let completedCycles = 0;
 let config = { focus: 25, short: 5, long: 15, cycles: 4 };
-
 let totalSessionTime = 25 * 60;
 let timeLeft = totalSessionTime;
 
@@ -189,11 +212,9 @@ function updateTimerDisplay() {
     .padStart(2, "0");
   const s = (timeLeft % 60).toString().padStart(2, "0");
   document.getElementById("time-display").innerText = `${m}:${s}`;
-  document.title = isRunning ? `(${m}:${s}) ${currentMode}` : "StudyApp";
   document.getElementById("timer-mode").innerText = currentMode + " Mode";
   document.getElementById("cycle-counter").innerText =
     `Cycle: ${completedCycles} / ${config.cycles}`;
-
   const percent = ((totalSessionTime - timeLeft) / totalSessionTime) * 100;
   document.getElementById("timer-progress").style.width = `${percent}%`;
 }
@@ -240,7 +261,6 @@ function pauseTimer() {
   isRunning = false;
   updateTimerDisplay();
 }
-
 function resetTimer() {
   pauseTimer();
   currentMode = "Focus";
@@ -249,29 +269,12 @@ function resetTimer() {
   completedCycles = 0;
   updateTimerDisplay();
 }
-
 function extendTimer() {
-  if (!isRunning) {
-    alert("Start the timer first to add time tbh.");
-    return;
-  }
+  if (!isRunning) return;
   timeLeft += 5 * 60;
   totalSessionTime += 5 * 60;
   updateTimerDisplay();
 }
-
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden && isRunning) {
-    clearInterval(timerInterval);
-    isRunning = false;
-    wasRunningBeforeHide = true;
-  } else if (!document.hidden && wasRunningBeforeHide) {
-    startTimer();
-    wasRunningBeforeHide = false;
-  }
-});
-let wasRunningBeforeHide = false;
-updateTimerDisplay();
 
 // ==========================================
 // 4. SESSION LOGGING & EXAMS
@@ -336,7 +339,9 @@ function renderExams() {
 }
 renderExams();
 
-// Attach to window
+// Attach all to window
+window.handleLogin = handleLogin;
+window.handleSignup = handleSignup;
 window.switchTab = switchTab;
 window.toggleSidebar = toggleSidebar;
 window.addTodo = addTodo;
