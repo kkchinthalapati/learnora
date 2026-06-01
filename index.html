@@ -15,37 +15,104 @@
                         alt="Study Planner Logo"
                         class="auth-logo"
                     />
-                    <h2>Welcome Back</h2>
-                    <p>Plan Better. Study Smarter. Achieve More.</p>
+                    <h2 id="auth-title">Welcome Back</h2>
+                    <p id="auth-subtitle">
+                        Plan Better. Study Smarter. Achieve More.
+                    </p>
                 </div>
 
-                <div class="auth-form">
+                <div id="login-view" class="auth-form">
                     <div class="input-group">
                         <input
                             type="email"
-                            id="email"
+                            id="login-email"
                             placeholder=" "
                             required
                         />
-                        <label for="email">Email Address</label>
+                        <label for="login-email">Email Address</label>
                     </div>
                     <div class="input-group">
                         <input
                             type="password"
-                            id="password"
+                            id="login-password"
                             placeholder=" "
                             required
                         />
-                        <label for="password">Password</label>
+                        <label for="login-password">Password</label>
                     </div>
-
                     <div class="auth-actions">
                         <button class="btn-primary" onclick="handleLogin()">
                             Log In
                         </button>
-                        <button class="btn-secondary" onclick="handleSignup()">
+                        <p class="auth-link" onclick="switchAuthView('signup')">
+                            Don't have an account? Sign up
+                        </p>
+                    </div>
+                </div>
+
+                <div id="signup-view" class="auth-form" style="display: none">
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            id="signup-name"
+                            placeholder=" "
+                            required
+                        />
+                        <label for="signup-name">Full Name</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="date" id="signup-dob" required />
+                        <label for="signup-dob" class="date-label"
+                            >Date of Birth</label
+                        >
+                    </div>
+                    <div class="input-group">
+                        <input
+                            type="email"
+                            id="signup-email"
+                            placeholder=" "
+                            required
+                        />
+                        <label for="signup-email">Email Address</label>
+                    </div>
+                    <div class="input-group">
+                        <input
+                            type="password"
+                            id="signup-password"
+                            placeholder=" "
+                            required
+                        />
+                        <label for="signup-password">Password</label>
+                    </div>
+                    <div class="auth-actions">
+                        <button class="btn-primary" onclick="handleSignup()">
                             Create Account
                         </button>
+                        <p class="auth-link" onclick="switchAuthView('login')">
+                            Already have an account? Log in
+                        </p>
+                    </div>
+                </div>
+
+                <div id="otp-view" class="auth-form" style="display: none">
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            id="otp-code"
+                            placeholder=" "
+                            maxlength="6"
+                            required
+                        />
+                        <label for="otp-code">6-Digit Code</label>
+                    </div>
+                    <p id="otp-timer">10:00</p>
+                    <div class="auth-actions">
+                        <button class="btn-primary" onclick="handleVerifyOtp()">
+                            Verify & Log In
+                        </button>
+                        <p class="auth-link" onclick="handleSignup()">
+                            Resend Code
+                        </p>
                     </div>
                 </div>
             </div>
@@ -137,42 +204,35 @@
                             <hr />
                             <label
                                 >Focus (mins)
-                                <input
-                                    type="number"
-                                    id="focusTime"
-                                    value="25"
-                                />
-                            </label>
+                                <input type="number" id="focusTime" value="25"
+                            /></label>
                             <label
                                 >Short Break
                                 <input
                                     type="number"
                                     id="shortBreakTime"
                                     value="5"
-                                />
-                            </label>
+                            /></label>
                             <label
                                 >Long Break
                                 <input
                                     type="number"
                                     id="longBreakTime"
                                     value="15"
-                                />
-                            </label>
+                            /></label>
                             <label
                                 >Cycles
                                 <input
                                     type="number"
                                     id="cyclesConfig"
                                     value="4"
-                                />
-                            </label>
+                            /></label>
                             <label class="task-binder"
                                 >Current Task:
                                 <select id="active-task">
                                     <option value="None">None</option>
-                                </select>
-                            </label>
+                                </select></label
+                            >
                             <button
                                 onclick="applyTimerConfig()"
                                 class="save-btn"
@@ -261,8 +321,33 @@
                     </div>
                     <ul id="examList" class="grid-list"></ul>
                 </section>
+
+                <section
+                    id="error-404"
+                    class="tab-content"
+                    style="display: none; text-align: center; padding-top: 50px"
+                >
+                    <h1 style="font-size: 80px; color: var(--primary)">404</h1>
+                    <p style="font-size: 20px; margin-bottom: 24px">
+                        Oops! The page you're looking for doesn't exist.
+                    </p>
+                    <button
+                        onclick="
+                            switchTab(
+                                'logs',
+                                document.querySelector('.nav-links li'),
+                            )
+                        "
+                        class="btn-primary"
+                    >
+                        Return Home
+                    </button>
+                </section>
             </main>
         </div>
+
+        <div id="toast-container"></div>
+
         <script type="module" src="script.js"></script>
     </body>
 </html>

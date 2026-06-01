@@ -1,9 +1,19 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-// --- DATABASE SETUP ---
 const supabaseUrl = "https://mlvgqwqiynpwpwzqufdf.supabase.co";
 const supabaseKey = "sb_publishable_mN1UvxPjHhn6L583LjrSFw_FWY8kRrt";
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// --- TOAST NOTIFICATIONS ---
+function showNotification(message, type = "error") {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+  toast.innerText = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
 
 // --- AUTH WALL LOGIC ---
 supabase.auth.onAuthStateChange((event, session) => {
@@ -11,7 +21,7 @@ supabase.auth.onAuthStateChange((event, session) => {
   const app = document.getElementById("main-app");
   if (session && wall && app) {
     wall.style.display = "none";
-    app.style.display = "flex"; // FIXED: This brings back your side-by-side layout
+    app.style.display = "flex";
     fetchTodos();
   } else if (wall && app) {
     wall.style.display = "flex";
@@ -19,23 +29,120 @@ supabase.auth.onAuthStateChange((event, session) => {
   }
 });
 
+function switchAuthView(view) {
+  document.getElementById("login-view").style.display = "none";
+  document.getElementById("signup-view").style.display = "none";
+  document.getElementById("otp-view").style.display = "none";
+
+  const title = document.getElementById("auth-title");
+  const subtitle = document.getElementById("auth-subtitle");
+
+  if (view === "login") {
+    document.getElementById("login-view").style.display = "flex";
+    title.innerText = "Welcome Back";
+    subtitle.innerText = "Plan Better. Study Smarter. Achieve More.";
+  } else if (view === "signup") {
+    document.getElementById("signup-view").style.display = "flex";
+    title.innerText = "Create Account";
+    subtitle.innerText = "Join us and start studying smarter.";
+  } else if (view === "otp") {
+    document.getElementById("otp-view").style.display = "flex";
+    title.innerText = "Check Your Email";
+    subtitle.innerText = "Enter the 6-digit code we sent you.";
+    startOtpTimer();
+  }
+}
+
 async function handleLogin() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+  const email = document.getElementById("login-email").value;
+  const password = document.getElementById("login-password").value;
+  if (!email || !password)
+    return showNotification("Please enter email and password.");
+
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) alert(error.message);
+  if (error) showNotification(error.message);
 }
 
 async function handleSignup() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  const { error } = await supabase.auth.signUp({ email, password });
-  if (error) alert(error.message);
-  else alert("Check your email for the confirmation link!");
+  const name = document.getElementById("signup-name").value;
+  const dob = document.getElementById("signup-dob").value;
+  const email = document.getElementById("signup-email").value;
+  const password = document.getElementById("signup-password").value;
+
+  if (!name || !dob || !email || !password) {
+    return showNotification("Please fill in all fields.");
+  }
+
+  // Age Validation
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+
+  if (age < 13) {
+    return showNotification("You must be at least 13 years old to sign up.");
+  }
+
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: name, dob: dob } },
+  });
+
+  if (error) {
+    showNotification(error.message);
+  } else {
+    window.signupEmailCache = email;
+    switchAuthView("otp");
+    showNotification("Code sent to your email!", "success");
+  }
+}
+
+async function handleVerifyOtp() {
+  const token = document.getElementById("otp-code").value;
+  const email = window.signupEmailCache;
+
+  if (!token || token.length !== 6)
+    return showNotification("Enter a valid 6-digit code.");
+
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "signup",
+  });
+
+  if (error) {
+    showNotification(error.message);
+  } else {
+    showNotification("Logged in successfully!", "success");
+  }
+}
+
+let otpInterval;
+function startOtpTimer() {
+  clearInterval(otpInterval);
+  let timeLeft = 10 * 60;
+  const timerEl = document.getElementById("otp-timer");
+  otpInterval = setInterval(() => {
+    if (timeLeft <= 0) {
+      clearInterval(otpInterval);
+      timerEl.innerText = "Code expired. Please resend.";
+      return;
+    }
+    timeLeft--;
+    const m = Math.floor(timeLeft / 60)
+      .toString()
+      .padStart(2, "0");
+    const s = (timeLeft % 60).toString().padStart(2, "0");
+    timerEl.innerText = `${m}:${s}`;
+  }, 1000);
 }
 
 // ==========================================
-// 1. UI, TAB & CLOCK LOGIC
+// UI, TAB & CLOCK LOGIC
 // ==========================================
 setInterval(() => {
   const clock = document.getElementById("live-clock");
@@ -58,8 +165,12 @@ function switchTab(tabId, element) {
     .querySelectorAll(".nav-links li")
     .forEach((li) => li.classList.remove("active"));
   const target = document.getElementById(`${tabId}-section`);
-  if (target) target.style.display = "block";
-  element.classList.add("active");
+  if (target) {
+    target.style.display = "block";
+  } else {
+    document.getElementById("error-404").style.display = "block";
+  }
+  if (element) element.classList.add("active");
 
   const titles = {
     timer: "Study Timer",
@@ -67,7 +178,8 @@ function switchTab(tabId, element) {
     exams: "Upcoming Exams",
     logs: "Dashboard",
   };
-  document.getElementById("page-title").innerText = titles[tabId];
+  document.getElementById("page-title").innerText =
+    titles[tabId] || "Error 404";
 }
 
 const sunIcon =
@@ -104,7 +216,7 @@ function randomizeQuote() {
 randomizeQuote();
 
 // ==========================================
-// 2. CLOUD TO-DO ENGINE (Supabase)
+// CLOUD TO-DO ENGINE (Supabase)
 // ==========================================
 let todos = [];
 
@@ -113,7 +225,7 @@ async function fetchTodos() {
     .from("tasks")
     .select("*")
     .order("id", { ascending: true });
-  if (error) console.error("Error fetching:", error);
+  if (error) showNotification("Failed to fetch tasks.");
   else {
     todos = data;
     renderTodos();
@@ -130,7 +242,7 @@ async function addTodo() {
   if (!error) {
     input.value = "";
     fetchTodos();
-  } else console.error("Error adding:", error);
+  } else showNotification("Error adding task.");
 }
 
 function handleTodoEnter(e) {
@@ -151,7 +263,7 @@ async function deleteTodo(id, e) {
   if (li) li.classList.add("removing");
   const { error } = await supabase.from("tasks").delete().eq("id", id);
   if (!error) setTimeout(fetchTodos, 300);
-  else console.error("Delete failed:", error);
+  else showNotification("Delete failed.");
 }
 
 function renderTodos() {
@@ -179,7 +291,7 @@ function updateTaskDropdown() {
 }
 
 // ==========================================
-// 3. TIMER & LOGGING
+// TIMER & LOGGING
 // ==========================================
 let timerInterval,
   isRunning = false,
@@ -260,7 +372,7 @@ function handleCycleEnd() {
     totalSessionTime = config.focus * 60;
   }
   timeLeft = totalSessionTime;
-  alert(`${currentMode} time!`);
+  showNotification(`${currentMode} time!`, "success");
   updateTimerDisplay();
 }
 
@@ -285,7 +397,7 @@ function extendTimer() {
 }
 
 // ==========================================
-// 4. SESSION LOGGING & EXAMS
+// SESSION LOGGING & EXAMS
 // ==========================================
 let sessionLogs = JSON.parse(localStorage.getItem("sessions")) || [];
 function logSession(minutes, task) {
@@ -320,7 +432,7 @@ function addExam() {
   const subject = document.getElementById("subject").value;
   const date = document.getElementById("examDate").value;
   const level = document.getElementById("level").value;
-  if (!subject || !date) return alert("Fill in all fields!");
+  if (!subject || !date) return showNotification("Fill in all fields!");
   exams.push({ id: Date.now(), subject, date, level });
   localStorage.setItem("exams", JSON.stringify(exams));
   renderExams();
@@ -351,6 +463,8 @@ renderExams();
 // Global Window Attachments
 window.handleLogin = handleLogin;
 window.handleSignup = handleSignup;
+window.switchAuthView = switchAuthView;
+window.handleVerifyOtp = handleVerifyOtp;
 window.switchTab = switchTab;
 window.toggleSidebar = toggleSidebar;
 window.addTodo = addTodo;
