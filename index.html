@@ -7,24 +7,47 @@
         <link rel="stylesheet" href="style.css" />
     </head>
     <body>
-        <div
-            id="auth-wall"
-            style="
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                height: 100vh;
-                width: 100%;
-                gap: 10px;
-            "
-        >
-            <h2>StudyApp Login</h2>
-            <input type="email" id="email" placeholder="Email" />
-            <input type="password" id="password" placeholder="Password" />
-            <div>
-                <button onclick="handleLogin()">Login</button>
-                <button onclick="handleSignup()">Sign Up</button>
+        <div id="auth-wall" class="auth-container">
+            <div class="auth-card glass-panel">
+                <div class="auth-header">
+                    <img
+                        src="study-planner-imageandlogo.jpg"
+                        alt="Study Planner Logo"
+                        class="auth-logo"
+                    />
+                    <h2>Welcome Back</h2>
+                    <p>Plan Better. Study Smarter. Achieve More.</p>
+                </div>
+
+                <div class="auth-form">
+                    <div class="input-group">
+                        <input
+                            type="email"
+                            id="email"
+                            placeholder=" "
+                            required
+                        />
+                        <label for="email">Email Address</label>
+                    </div>
+                    <div class="input-group">
+                        <input
+                            type="password"
+                            id="password"
+                            placeholder=" "
+                            required
+                        />
+                        <label for="password">Password</label>
+                    </div>
+
+                    <div class="auth-actions">
+                        <button class="btn-primary" onclick="handleLogin()">
+                            Log In
+                        </button>
+                        <button class="btn-secondary" onclick="handleSignup()">
+                            Create Account
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -114,29 +137,36 @@
                             <hr />
                             <label
                                 >Focus (mins)
-                                <input type="number" id="focusTime" value="25"
-                            /></label>
+                                <input
+                                    type="number"
+                                    id="focusTime"
+                                    value="25"
+                                />
+                            </label>
                             <label
                                 >Short Break
                                 <input
                                     type="number"
                                     id="shortBreakTime"
                                     value="5"
-                            /></label>
+                                />
+                            </label>
                             <label
                                 >Long Break
                                 <input
                                     type="number"
                                     id="longBreakTime"
                                     value="15"
-                            /></label>
+                                />
+                            </label>
                             <label
                                 >Cycles
                                 <input
                                     type="number"
                                     id="cyclesConfig"
                                     value="4"
-                            /></label>
+                                />
+                            </label>
                             <label class="task-binder"
                                 >Current Task:
                                 <select id="active-task">
