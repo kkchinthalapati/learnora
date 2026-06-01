@@ -462,7 +462,7 @@ function renderLogs() {
     const taskStr =
       log.task !== "None" ? ` on <strong>${log.task}</strong>` : "";
     li.innerHTML = `<span><span class="log-mode">${log.minutes}m Focus</span>${taskStr}</span> <span>${log.timestamp}</span>`;
-    li.appendChild(li);
+    list.appendChild(li);
   });
 }
 renderLogs();
@@ -495,7 +495,7 @@ function renderExams() {
       const li = document.createElement("li");
       li.className = "exam-card";
       li.innerHTML = `<div><strong>${exam.subject}</strong> <br><small>⏳ ${daysLeft > 0 ? daysLeft + " days left" : "Passed"} (${exam.level})</small></div> <button class="delete-btn" onclick="deleteExam(${exam.id})">Drop</button>`;
-      li.appendChild(li);
+      list.appendChild(li);
     });
 }
 renderExams();
