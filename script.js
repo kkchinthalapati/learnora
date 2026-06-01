@@ -36,7 +36,6 @@ function switchTab(tabId, element) {
   document.getElementById("page-title").innerText = titles[tabId];
 }
 
-// Fixed Theme Engine (Using Classes)
 const sunIcon =
   '<path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>';
 const moonIcon = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>';
@@ -53,7 +52,6 @@ window.toggleTheme = function () {
   document.getElementById("theme-icon").innerHTML = isDark ? sunIcon : moonIcon;
 };
 
-// Quotes
 const quotes = [
   "Focus on the step in front of you, not the whole staircase.",
   "Don't stop until you're proud.",
@@ -109,12 +107,20 @@ async function toggleTodo(id, currentStatus) {
   if (!error) fetchTodos();
 }
 
+// FIXED: Bug fixed by adding 'async' and 'await' to ensure UI waits for DB
 async function deleteTodo(id, e) {
   e.stopPropagation();
   const li = e.target.closest(".todo-item");
   li.classList.add("removing");
-  await supabase.from("tasks").delete().eq("id", id);
-  setTimeout(fetchTodos, 300);
+
+  const { error } = await supabase.from("tasks").delete().eq("id", id);
+
+  if (!error) {
+    setTimeout(fetchTodos, 300);
+  } else {
+    console.error("Delete failed:", error);
+    li.classList.remove("removing");
+  }
 }
 
 function renderTodos() {
@@ -139,7 +145,6 @@ function updateTaskDropdown() {
     });
 }
 
-// Initial Cloud Fetch
 fetchTodos();
 
 // ==========================================
@@ -226,11 +231,6 @@ function handleCycleEnd() {
     totalSessionTime = config.focus * 60;
   }
   timeLeft = totalSessionTime;
-  new Audio(
-    "data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU",
-  )
-    .play()
-    .catch(() => console.log("Audio skipped"));
   alert(`${currentMode} time!`);
   updateTimerDisplay();
 }
@@ -335,6 +335,8 @@ function renderExams() {
     });
 }
 renderExams();
+
+// Attach to window
 window.switchTab = switchTab;
 window.toggleSidebar = toggleSidebar;
 window.addTodo = addTodo;
@@ -349,7 +351,3 @@ window.resetTimer = resetTimer;
 window.extendTimer = extendTimer;
 window.addExam = addExam;
 window.deleteExam = deleteExam;
-supabase
-  .from("tasks")
-  .select("*")
-  .then((res) => console.log("Supabase Connection Test:", res));
