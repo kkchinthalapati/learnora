@@ -170,7 +170,12 @@
                         <button class="btn-primary" onclick="handleVerifyOtp()">
                             Verify & Log In
                         </button>
-                        <p class="auth-link" onclick="handleSignup()">
+                        <p
+                            class="auth-link"
+                            id="resend-btn"
+                            onclick="handleResend()"
+                            style="cursor: pointer"
+                        >
                             Resend Code
                         </p>
                     </div>
@@ -388,9 +393,6 @@
                     style="display: none; text-align: center; padding-top: 50px"
                 >
                     <h1 style="font-size: 80px; color: var(--primary)">404</h1>
-                    <p style="font-size: 20px; margin-bottom: 24px">
-                        Oops! The page you're looking for doesn't exist.
-                    </p>
                     <button
                         onclick="
                             switchTab(

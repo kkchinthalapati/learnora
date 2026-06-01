@@ -4,6 +4,11 @@ const supabaseUrl = "https://mlvgqwqiynpwpwzqufdf.supabase.co";
 const supabaseKey = "sb_publishable_mN1UvxPjHhn6L583LjrSFw_FWY8kRrt";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// --- STATE VARIABLES ---
+let canResend = true;
+let resendCooldown = 60;
+window.signupEmailCache = "";
+
 // --- TOAST NOTIFICATIONS ---
 function showNotification(message, type = "error") {
   const container = document.getElementById("toast-container");
@@ -68,6 +73,9 @@ async function handleSignup() {
   const dob = document.getElementById("signup-dob").value;
   const email = document.getElementById("signup-email").value;
   const password = document.getElementById("signup-password").value;
+  const method = document.querySelector(
+    'input[name="auth-method"]:checked',
+  ).value;
 
   if (!name || !dob || !email || !password) {
     return showNotification("Please fill in all fields.");
@@ -78,18 +86,19 @@ async function handleSignup() {
   const today = new Date();
   let age = today.getFullYear() - birthDate.getFullYear();
   const m = today.getMonth() - birthDate.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
-  }
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
 
   if (age < 13) {
     return showNotification("You must be at least 13 years old to sign up.");
   }
 
-  const { error } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signInWithOtp({
     email,
-    password,
-    options: { data: { full_name: name, dob: dob } },
+    options: {
+      shouldCreateUser: true,
+      data: { full_name: name, dob: dob, password: password },
+      emailRedirectTo: method === "link" ? window.location.origin : undefined,
+    },
   });
 
   if (error) {
@@ -97,8 +106,39 @@ async function handleSignup() {
   } else {
     window.signupEmailCache = email;
     switchAuthView("otp");
-    showNotification("Code sent to your email!", "success");
+    showNotification(
+      method === "otp"
+        ? "Code sent to your email!"
+        : "Link sent to your email!",
+      "success",
+    );
   }
+}
+
+async function handleResend() {
+  if (!canResend)
+    return showNotification("Please wait 60 seconds before resending.");
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email: window.signupEmailCache,
+  });
+  if (error) return showNotification(error.message);
+
+  canResend = false;
+  showNotification("Code/Link resent successfully!", "success");
+
+  let timer = resendCooldown;
+  const resendBtn = document.getElementById("resend-btn");
+
+  const interval = setInterval(() => {
+    timer--;
+    resendBtn.innerText = `Resend (${timer}s)`;
+    if (timer <= 0) {
+      canResend = true;
+      resendBtn.innerText = "Resend Code";
+      clearInterval(interval);
+    }
+  }, 1000);
 }
 
 async function handleVerifyOtp() {
@@ -422,7 +462,7 @@ function renderLogs() {
     const taskStr =
       log.task !== "None" ? ` on <strong>${log.task}</strong>` : "";
     li.innerHTML = `<span><span class="log-mode">${log.minutes}m Focus</span>${taskStr}</span> <span>${log.timestamp}</span>`;
-    list.appendChild(li);
+    li.appendChild(li);
   });
 }
 renderLogs();
@@ -455,7 +495,7 @@ function renderExams() {
       const li = document.createElement("li");
       li.className = "exam-card";
       li.innerHTML = `<div><strong>${exam.subject}</strong> <br><small>⏳ ${daysLeft > 0 ? daysLeft + " days left" : "Passed"} (${exam.level})</small></div> <button class="delete-btn" onclick="deleteExam(${exam.id})">Drop</button>`;
-      list.appendChild(li);
+      li.appendChild(li);
     });
 }
 renderExams();
@@ -463,6 +503,7 @@ renderExams();
 // Global Window Attachments
 window.handleLogin = handleLogin;
 window.handleSignup = handleSignup;
+window.handleResend = handleResend;
 window.switchAuthView = switchAuthView;
 window.handleVerifyOtp = handleVerifyOtp;
 window.switchTab = switchTab;
