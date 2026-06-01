@@ -96,7 +96,102 @@
                     id="timer-section"
                     class="tab-content"
                     style="display: none"
-                ></section>
+                >
+                    <div class="timer-layout">
+                        <div class="config-panel glass-panel">
+                            <h3>Workflow Presets</h3>
+                            <div class="preset-buttons">
+                                <button onclick="applyPreset('deep')">
+                                    Deep Work (90m)
+                                </button>
+                                <button onclick="applyPreset('cram')">
+                                    Exam Cram (45m)
+                                </button>
+                                <button onclick="applyPreset('light')">
+                                    Light Study (20m)
+                                </button>
+                            </div>
+                            <hr />
+                            <label
+                                >Focus (mins)
+                                <input type="number" id="focusTime" value="25"
+                            /></label>
+                            <label
+                                >Short Break
+                                <input
+                                    type="number"
+                                    id="shortBreakTime"
+                                    value="5"
+                            /></label>
+                            <label
+                                >Long Break
+                                <input
+                                    type="number"
+                                    id="longBreakTime"
+                                    value="15"
+                            /></label>
+                            <label
+                                >Cycles
+                                <input
+                                    type="number"
+                                    id="cyclesConfig"
+                                    value="4"
+                            /></label>
+                            <label class="task-binder"
+                                >Current Task:
+                                <select id="active-task">
+                                    <option value="None">None</option>
+                                </select>
+                            </label>
+                            <button
+                                onclick="applyTimerConfig()"
+                                class="save-btn"
+                            >
+                                Apply & Reset
+                            </button>
+                        </div>
+                        <div class="timer-display glass-panel">
+                            <p id="quote-display" class="motivational-quote">
+                                "Loading..."
+                            </p>
+                            <h4 id="timer-mode">Focus Mode</h4>
+                            <h2 id="time-display">25:00</h2>
+                            <p id="cycle-counter">Cycle: 0 / 4</p>
+                            <div class="progress-container">
+                                <div
+                                    id="timer-progress"
+                                    class="progress-bar"
+                                ></div>
+                            </div>
+                            <div class="timer-controls">
+                                <button
+                                    onclick="startTimer()"
+                                    class="start-btn"
+                                >
+                                    Start
+                                </button>
+                                <button
+                                    onclick="pauseTimer()"
+                                    class="pause-btn"
+                                >
+                                    Pause
+                                </button>
+                                <button
+                                    onclick="extendTimer()"
+                                    class="extend-btn"
+                                >
+                                    +5 Mins
+                                </button>
+                                <button
+                                    onclick="resetTimer()"
+                                    class="reset-btn"
+                                >
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
                 <section
                     id="todo-section"
@@ -119,7 +214,23 @@
                     id="exams-section"
                     class="tab-content"
                     style="display: none"
-                ></section>
+                >
+                    <div class="input-card glass-panel">
+                        <input
+                            type="text"
+                            id="subject"
+                            placeholder="Subject..."
+                        />
+                        <input type="date" id="examDate" />
+                        <select id="level">
+                            <option value="easy">Easy</option>
+                            <option value="medium">Medium</option>
+                            <option value="hard">Hard</option>
+                        </select>
+                        <button onclick="addExam()">Add Exam</button>
+                    </div>
+                    <ul id="examList" class="grid-list"></ul>
+                </section>
             </main>
         </div>
         <script type="module" src="script.js"></script>
