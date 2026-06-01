@@ -12,7 +12,7 @@
     --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 }
 
-/* Hardcoded Dark Theme Class (Fixes the toggle bug) */
+/* Hardcoded Dark Theme Class */
 body.dark-theme {
     --bg-color: #0f172a;
     --sidebar-bg: #1e293b;
@@ -271,7 +271,6 @@ hr {
     font-size: 18px;
 }
 
-/* Flora Progress Bar */
 .progress-container {
     width: 80%;
     height: 10px;
@@ -324,7 +323,7 @@ hr {
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    transition: all 0.3s ease; /* Smooth slide out */
+    transition: all 0.3s ease;
     opacity: 1;
     transform: translateX(0);
 }

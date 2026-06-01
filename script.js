@@ -11,7 +11,7 @@ supabase.auth.onAuthStateChange((event, session) => {
   const app = document.getElementById("main-app");
   if (session && wall && app) {
     wall.style.display = "none";
-    app.style.display = "block";
+    app.style.display = "flex"; // FIXED: This brings back your side-by-side layout
     fetchTodos();
   } else if (wall && app) {
     wall.style.display = "flex";
