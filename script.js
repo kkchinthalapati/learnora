@@ -28,7 +28,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     wall.style.display = "none";
     app.style.display = "flex";
     fetchTodos();
-    initializeCalendar(); // Boot up calendar data immediately
+    initializeCalendar();
   } else if (wall && app) {
     wall.style.display = "flex";
     app.style.display = "none";
@@ -332,16 +332,33 @@ function updateTaskDropdown() {
 }
 
 // ==========================================
-// TIMER & SESSION LOGGING
+// PERSISTENT TIMER & SESSION LOGGING
 // ==========================================
-let timerInterval,
-  isRunning = false,
-  currentMode = "Focus",
-  completedCycles = 0;
+let timerInterval;
+let isRunning = false;
+let currentMode = "Focus";
+let completedCycles = 0;
+let targetEndTime = null;
+
 let config = { focus: 25, short: 5, long: 15, cycles: 4 };
-let totalSessionTime = 25 * 60,
-  timeLeft = totalSessionTime;
+let totalSessionTime = 25 * 60;
+let timeLeft = totalSessionTime;
 let sessionLogs = JSON.parse(localStorage.getItem("sessions")) || [];
+
+// Save state for background syncing
+function saveTimerState() {
+  localStorage.setItem(
+    "timer_state",
+    JSON.stringify({
+      isRunning,
+      timeLeft,
+      currentMode,
+      totalSessionTime,
+      completedCycles,
+      config,
+    }),
+  );
+}
 
 function applyPreset(type) {
   if (type === "deep") {
@@ -387,12 +404,22 @@ function updateTimerDisplay() {
 function startTimer() {
   if (isRunning) return;
   isRunning = true;
+
+  targetEndTime = Date.now() + timeLeft * 1000;
+  localStorage.setItem("timer_end_time", targetEndTime);
+  saveTimerState();
+
+  updateTimerDisplay(); // immediate update
   timerInterval = setInterval(() => {
-    if (timeLeft > 0) {
-      timeLeft--;
+    const now = Date.now();
+    timeLeft = Math.round((targetEndTime - now) / 1000);
+
+    if (timeLeft <= 0) {
+      timeLeft = 0;
       updateTimerDisplay();
-    } else {
       handleCycleEnd();
+    } else {
+      updateTimerDisplay();
     }
   }, 1000);
 }
@@ -400,6 +427,7 @@ function startTimer() {
 function handleCycleEnd() {
   pauseTimer();
   randomizeQuote();
+
   if (currentMode === "Focus") {
     const taskName = document.getElementById("active-task")?.value;
     logSession(config.focus, taskName);
@@ -416,29 +444,79 @@ function handleCycleEnd() {
     currentMode = "Focus";
     totalSessionTime = config.focus * 60;
   }
+
   timeLeft = totalSessionTime;
+  saveTimerState();
   showNotification(`${currentMode} time!`, "success");
   updateTimerDisplay();
 }
 
 function pauseTimer() {
+  if (!isRunning) return;
   clearInterval(timerInterval);
   isRunning = false;
+  targetEndTime = null;
+
+  localStorage.removeItem("timer_end_time");
+  saveTimerState();
   updateTimerDisplay();
 }
+
 function resetTimer() {
-  pauseTimer();
+  clearInterval(timerInterval);
+  isRunning = false;
   currentMode = "Focus";
   totalSessionTime = config.focus * 60;
   timeLeft = totalSessionTime;
   completedCycles = 0;
+  targetEndTime = null;
+
+  localStorage.removeItem("timer_end_time");
+  saveTimerState();
   updateTimerDisplay();
 }
+
 function extendTimer() {
-  if (!isRunning) return;
   timeLeft += 5 * 60;
   totalSessionTime += 5 * 60;
+
+  if (isRunning) {
+    targetEndTime += 5 * 60 * 1000;
+    localStorage.setItem("timer_end_time", targetEndTime);
+  }
+  saveTimerState();
   updateTimerDisplay();
+}
+
+function restoreTimerState() {
+  const savedState = JSON.parse(localStorage.getItem("timer_state"));
+  const savedEndTime = localStorage.getItem("timer_end_time");
+
+  if (savedState) {
+    config = savedState.config || config;
+    currentMode = savedState.currentMode || currentMode;
+    totalSessionTime = savedState.totalSessionTime || totalSessionTime;
+    completedCycles = savedState.completedCycles || completedCycles;
+
+    if (savedState.isRunning && savedEndTime) {
+      const now = Date.now();
+      targetEndTime = parseInt(savedEndTime, 10);
+
+      if (targetEndTime > now) {
+        timeLeft = Math.round((targetEndTime - now) / 1000);
+        startTimer(); // Restart execution loop
+      } else {
+        timeLeft = 0;
+        handleCycleEnd();
+      }
+    } else {
+      timeLeft =
+        savedState.timeLeft !== undefined
+          ? savedState.timeLeft
+          : totalSessionTime;
+      updateTimerDisplay();
+    }
+  }
 }
 
 function logSession(minutes, task) {
@@ -496,7 +574,6 @@ function renderCalendarStructure() {
   if (!calendarDaysGrid || !monthYearDisplay) return;
 
   calendarDaysGrid.innerHTML = "";
-
   const year = currentDisplayDate.getFullYear();
   const month = currentDisplayDate.getMonth();
 
@@ -670,7 +747,7 @@ async function deleteCurrentExam() {
   }
 }
 
-// Map Calendar DOM Listeners
+// Map Calendar DOM Listeners & Initialize UI state
 document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("prev-month-btn")
@@ -687,6 +764,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("exam-form")
     ?.addEventListener("submit", handleExamFormSubmit);
+
+  // Hydrate timer from storage on load
+  restoreTimerState();
 });
 
 // Global Window Attachments
