@@ -339,7 +339,7 @@ function renderExams() {
 }
 renderExams();
 
-// Attach all to window
+// Add these to the very bottom of script.js
 window.handleLogin = handleLogin;
 window.handleSignup = handleSignup;
 window.switchTab = switchTab;
@@ -356,3 +356,4 @@ window.resetTimer = resetTimer;
 window.extendTimer = extendTimer;
 window.addExam = addExam;
 window.deleteExam = deleteExam;
+window.toggleTheme = toggleTheme;
