@@ -568,3 +568,193 @@ body.dark-theme .auth-container {
     opacity: 1;
     font-weight: bold;
 }
+/* ==========================================
+   CALENDAR & MODAL SYSTEM
+============================================= */
+.calendar-container {
+    padding: 20px;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.calendar-header button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-color);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.calendar-header button:hover {
+    background: var(--border);
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-weight: 600;
+    color: var(--primary);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.calendar-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: minmax(100px, auto);
+    gap: 1px;
+    background: var(--border);
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.calendar-day-cell {
+    background: var(--card-bg);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+}
+
+.calendar-day-cell:hover {
+    background: rgba(148, 163, 184, 0.1);
+}
+
+.day-number {
+    font-size: 14px;
+    font-weight: 500;
+    align-self: flex-end;
+    color: var(--text-color);
+    opacity: 0.6;
+}
+
+.calendar-day-cell.today .day-number {
+    color: var(--primary);
+    font-weight: bold;
+    opacity: 1;
+}
+
+.calendar-day-cell.empty {
+    background: rgba(0, 0, 0, 0.05);
+    cursor: default;
+}
+body.dark-theme .calendar-day-cell.empty {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* Exam Bars */
+.exam-bar {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: #fff;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.exam-bar:hover {
+    transform: scale(1.02);
+}
+
+.exam-bar.diff-easy {
+    background-color: var(--success);
+}
+.exam-bar.diff-medium {
+    background-color: #f59e0b;
+}
+.exam-bar.diff-hard {
+    background-color: var(--danger);
+}
+
+/* Completed State Rules */
+.exam-bar.status-completed {
+    background-color: var(--border) !important;
+    color: var(--text-color);
+    text-decoration: line-through;
+    opacity: 0.5;
+}
+
+/* Modal Styling */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-overlay.hidden {
+    display: none;
+}
+
+.modal-content {
+    width: 100%;
+    max-width: 450px;
+    margin: 20px;
+    padding: 24px;
+}
+
+.modal-content h3 {
+    margin-bottom: 20px;
+    color: var(--primary);
+}
+
+.form-group {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group input,
+.form-group select {
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 10px;
+    border-radius: 6px;
+    color: var(--text-color);
+    outline: none;
+}
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--primary);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 24px;
+}
+
+.right-actions {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.hidden {
+    display: none !important;
+}

@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>StudyApp</title>
+        <title>Learnora</title>
         <link rel="stylesheet" href="style.css" />
     </head>
     <body>
@@ -12,7 +12,7 @@
                 <div class="auth-header">
                     <img
                         src="study-planner-imageandlogo.jpg"
-                        alt="Study Planner Logo"
+                        alt="Learnora Logo"
                         class="auth-logo"
                     />
                     <h2 id="auth-title">Welcome Back</h2>
@@ -185,7 +185,7 @@
 
         <div id="main-app" style="display: none; width: 100%; height: 100vh">
             <nav class="sidebar" id="sidebar">
-                <h2 class="brand">StudyApp</h2>
+                <h2 class="brand">Learnora</h2>
                 <ul class="nav-links">
                     <li class="active" onclick="switchTab('logs', this)">
                         📊 Dashboard
@@ -193,7 +193,7 @@
                     <hr class="sidebar-divider" />
                     <li onclick="switchTab('timer', this)">⏱️ Timer</li>
                     <li onclick="switchTab('todo', this)">📝 To-Do List</li>
-                    <li onclick="switchTab('exams', this)">📚 Exams</li>
+                    <li onclick="switchTab('exams', this)">📚 Calendar</li>
                 </ul>
             </nav>
 
@@ -296,8 +296,8 @@
                                 >Current Task:
                                 <select id="active-task">
                                     <option value="None">None</option>
-                                </select></label
-                            >
+                                </select>
+                            </label>
                             <button
                                 onclick="applyTimerConfig()"
                                 class="save-btn"
@@ -321,7 +321,7 @@
                             <div class="timer-controls">
                                 <button
                                     onclick="startTimer()"
-                                    class="start-btn"
+                                    class="start-btn btn-primary"
                                 >
                                     Start
                                 </button>
@@ -370,21 +370,28 @@
                     class="tab-content"
                     style="display: none"
                 >
-                    <div class="input-card glass-panel">
-                        <input
-                            type="text"
-                            id="subject"
-                            placeholder="Subject..."
-                        />
-                        <input type="date" id="examDate" />
-                        <select id="level">
-                            <option value="easy">Easy</option>
-                            <option value="medium">Medium</option>
-                            <option value="hard">Hard</option>
-                        </select>
-                        <button onclick="addExam()">Add Exam</button>
+                    <div class="calendar-container glass-panel">
+                        <div class="calendar-header">
+                            <button id="prev-month-btn">&lt;</button>
+                            <h2 id="month-year-display">June 2026</h2>
+                            <button id="next-month-btn">&gt;</button>
+                        </div>
+
+                        <div class="calendar-weekdays">
+                            <div>Sun</div>
+                            <div>Mon</div>
+                            <div>Tue</div>
+                            <div>Wed</div>
+                            <div>Thu</div>
+                            <div>Fri</div>
+                            <div>Sat</div>
+                        </div>
+
+                        <div
+                            id="calendar-days"
+                            class="calendar-days-grid"
+                        ></div>
                     </div>
-                    <ul id="examList" class="grid-list"></ul>
                 </section>
 
                 <section
@@ -406,6 +413,69 @@
                     </button>
                 </section>
             </main>
+        </div>
+
+        <div id="exam-modal" class="modal-overlay hidden">
+            <div class="modal-content glass-panel">
+                <h3 id="modal-title">Add New Exam</h3>
+                <form id="exam-form">
+                    <input type="hidden" id="modal-exam-id" />
+
+                    <div class="form-group">
+                        <label for="exam-name">Exam Name</label>
+                        <input
+                            type="text"
+                            id="exam-name"
+                            required
+                            placeholder="e.g., AP Chemistry Midterm"
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exam-date">Date</label>
+                        <input type="date" id="exam-date" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exam-difficulty">Difficulty Level</label>
+                        <select id="exam-difficulty">
+                            <option value="Easy">Easy</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="Hard">Hard</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exam-status">Status</label>
+                        <select id="exam-status">
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button
+                            type="button"
+                            id="delete-exam-btn"
+                            class="btn-danger hidden"
+                        >
+                            Delete
+                        </button>
+                        <div class="right-actions">
+                            <button
+                                type="button"
+                                id="close-modal-btn"
+                                class="btn-secondary"
+                            >
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn-primary">
+                                Save Exam
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <div id="toast-container"></div>

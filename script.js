@@ -28,6 +28,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     wall.style.display = "none";
     app.style.display = "flex";
     fetchTodos();
+    initializeCalendar(); // Boot up calendar data immediately
   } else if (wall && app) {
     wall.style.display = "flex";
     app.style.display = "none";
@@ -81,7 +82,6 @@ async function handleSignup() {
     return showNotification("Please fill in all fields.");
   }
 
-  // Age Validation
   const birthDate = new Date(dob);
   const today = new Date();
   let age = today.getFullYear() - birthDate.getFullYear();
@@ -204,6 +204,7 @@ function switchTab(tabId, element) {
   document
     .querySelectorAll(".nav-links li")
     .forEach((li) => li.classList.remove("active"));
+
   const target = document.getElementById(`${tabId}-section`);
   if (target) {
     target.style.display = "block";
@@ -215,7 +216,7 @@ function switchTab(tabId, element) {
   const titles = {
     timer: "Study Timer",
     todo: "Task Manager",
-    exams: "Upcoming Exams",
+    exams: "Calendar & Exams",
     logs: "Dashboard",
   };
   document.getElementById("page-title").innerText =
@@ -331,15 +332,16 @@ function updateTaskDropdown() {
 }
 
 // ==========================================
-// TIMER & LOGGING
+// TIMER & SESSION LOGGING
 // ==========================================
 let timerInterval,
   isRunning = false,
   currentMode = "Focus",
-  completedCycles = 0,
-  config = { focus: 25, short: 5, long: 15, cycles: 4 };
+  completedCycles = 0;
+let config = { focus: 25, short: 5, long: 15, cycles: 4 };
 let totalSessionTime = 25 * 60,
   timeLeft = totalSessionTime;
+let sessionLogs = JSON.parse(localStorage.getItem("sessions")) || [];
 
 function applyPreset(type) {
   if (type === "deep") {
@@ -370,10 +372,13 @@ function updateTimerDisplay() {
   const s = (timeLeft % 60).toString().padStart(2, "0");
   const display = document.getElementById("time-display");
   if (display) display.innerText = `${m}:${s}`;
+
   const mode = document.getElementById("timer-mode");
   if (mode) mode.innerText = currentMode + " Mode";
+
   const cycle = document.getElementById("cycle-counter");
   if (cycle) cycle.innerText = `Cycle: ${completedCycles} / ${config.cycles}`;
+
   const prog = document.getElementById("timer-progress");
   if (prog)
     prog.style.width = `${((totalSessionTime - timeLeft) / totalSessionTime) * 100}%`;
@@ -436,10 +441,6 @@ function extendTimer() {
   updateTimerDisplay();
 }
 
-// ==========================================
-// SESSION LOGGING & EXAMS
-// ==========================================
-let sessionLogs = JSON.parse(localStorage.getItem("sessions")) || [];
 function logSession(minutes, task) {
   const timestamp = new Date().toLocaleString([], {
     month: "short",
@@ -451,6 +452,7 @@ function logSession(minutes, task) {
   localStorage.setItem("sessions", JSON.stringify(sessionLogs));
   renderLogs();
 }
+
 function renderLogs() {
   const list = document.getElementById("log-list");
   if (!list) return;
@@ -467,38 +469,225 @@ function renderLogs() {
 }
 renderLogs();
 
-let exams = JSON.parse(localStorage.getItem("exams")) || [];
-function addExam() {
-  const subject = document.getElementById("subject").value;
-  const date = document.getElementById("examDate").value;
-  const level = document.getElementById("level").value;
-  if (!subject || !date) return showNotification("Fill in all fields!");
-  exams.push({ id: Date.now(), subject, date, level });
-  localStorage.setItem("exams", JSON.stringify(exams));
-  renderExams();
+// ==========================================
+// CALENDAR & EXAM SYSTEM (Supabase)
+// ==========================================
+let currentDisplayDate = new Date();
+let cachedExams = [];
+
+async function initializeCalendar() {
+  await fetchExams();
+  renderCalendarStructure();
 }
-function deleteExam(id) {
-  exams = exams.filter((e) => e.id !== id);
-  localStorage.setItem("exams", JSON.stringify(exams));
-  renderExams();
+
+async function fetchExams() {
+  try {
+    const { data, error } = await supabase.from("exams").select("*");
+    if (error) throw error;
+    cachedExams = data || [];
+  } catch (err) {
+    console.error("Error fetching calendar exam data:", err.message);
+  }
 }
-function renderExams() {
-  const list = document.getElementById("examList");
-  if (!list) return;
-  list.innerHTML = "";
-  exams
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .forEach((exam) => {
-      const daysLeft = Math.ceil(
-        (new Date(exam.date) - new Date()) / (1000 * 60 * 60 * 24),
-      );
-      const li = document.createElement("li");
-      li.className = "exam-card";
-      li.innerHTML = `<div><strong>${exam.subject}</strong> <br><small>⏳ ${daysLeft > 0 ? daysLeft + " days left" : "Passed"} (${exam.level})</small></div> <button class="delete-btn" onclick="deleteExam(${exam.id})">Drop</button>`;
-      list.appendChild(li);
+
+function renderCalendarStructure() {
+  const calendarDaysGrid = document.getElementById("calendar-days");
+  const monthYearDisplay = document.getElementById("month-year-display");
+  if (!calendarDaysGrid || !monthYearDisplay) return;
+
+  calendarDaysGrid.innerHTML = "";
+
+  const year = currentDisplayDate.getFullYear();
+  const month = currentDisplayDate.getMonth();
+
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  monthYearDisplay.innerText = `${monthNames[month]} ${year}`;
+
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+
+  // Render empty offset nodes
+  for (let i = 0; i < firstDayIndex; i++) {
+    const emptyCell = document.createElement("div");
+    emptyCell.className = "calendar-day-cell empty";
+    calendarDaysGrid.appendChild(emptyCell);
+  }
+
+  // Render operational day nodes
+  for (let day = 1; day <= totalDaysInMonth; day++) {
+    const dayCell = document.createElement("div");
+    dayCell.className = "calendar-day-cell";
+
+    // Construct strict YYYY-MM-DD for targeting
+    const currentStringDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    dayCell.setAttribute("data-date", currentStringDate);
+
+    const dayNumberSpan = document.createElement("span");
+    dayNumberSpan.className = "day-number";
+    dayNumberSpan.innerText = day;
+    dayCell.appendChild(dayNumberSpan);
+
+    if (
+      day === today.getDate() &&
+      month === today.getMonth() &&
+      year === today.getFullYear()
+    ) {
+      dayCell.classList.add("today");
+    }
+
+    // Capture standard user click inputs to initialize empty context modals
+    dayCell.addEventListener("click", (e) => {
+      if (e.target === dayCell || e.target.className === "day-number") {
+        showModal(null, currentStringDate);
+      }
     });
+
+    // Match Exams
+    const matchingExams = cachedExams.filter(
+      (exam) => exam.exam_date === currentStringDate,
+    );
+    matchingExams.forEach((exam) => {
+      const examElement = document.createElement("div");
+      examElement.className = `exam-bar diff-${exam.difficulty.toLowerCase()} status-${exam.status.toLowerCase()}`;
+      examElement.innerText = exam.exam_name;
+
+      examElement.addEventListener("click", (e) => {
+        e.stopPropagation(); // Stop empty cell modal from opening
+        showModal(exam);
+      });
+      dayCell.appendChild(examElement);
+    });
+
+    calendarDaysGrid.appendChild(dayCell);
+  }
 }
-renderExams();
+
+function changeMonth(direction) {
+  currentDisplayDate.setMonth(currentDisplayDate.getMonth() + direction);
+  renderCalendarStructure();
+}
+
+function showModal(exam = null, defaultDate = "") {
+  const examModal = document.getElementById("exam-modal");
+  const examForm = document.getElementById("exam-form");
+  if (!examModal || !examForm) return;
+
+  examModal.classList.remove("hidden");
+
+  if (exam) {
+    document.getElementById("modal-title").innerText = "Modify Exam Settings";
+    document.getElementById("modal-exam-id").value = exam.id;
+    document.getElementById("exam-name").value = exam.exam_name;
+    document.getElementById("exam-date").value = exam.exam_date;
+    document.getElementById("exam-difficulty").value = exam.difficulty;
+    document.getElementById("exam-status").value = exam.status;
+    document.getElementById("delete-exam-btn").classList.remove("hidden");
+  } else {
+    document.getElementById("modal-title").innerText = "Schedule New Exam";
+    examForm.reset();
+    document.getElementById("modal-exam-id").value = "";
+    document.getElementById("exam-date").value = defaultDate;
+    document.getElementById("delete-exam-btn").classList.add("hidden");
+  }
+}
+
+function hideModal() {
+  document.getElementById("exam-modal").classList.add("hidden");
+  document.getElementById("exam-form").reset();
+}
+
+async function handleExamFormSubmit(e) {
+  e.preventDefault();
+
+  const examId = document.getElementById("modal-exam-id").value;
+  const exam_name = document.getElementById("exam-name").value;
+  const exam_date = document.getElementById("exam-date").value;
+  const difficulty = document.getElementById("exam-difficulty").value;
+  const status = document.getElementById("exam-status").value;
+
+  const sessionUser = (await supabase.auth.getUser()).data.user;
+  if (!sessionUser)
+    return showNotification("Session validation failed. Re-authenticate.");
+
+  const examPayload = {
+    user_id: sessionUser.id,
+    exam_name,
+    exam_date,
+    difficulty,
+    status,
+  };
+
+  try {
+    if (examId) {
+      const { error } = await supabase
+        .from("exams")
+        .update(examPayload)
+        .eq("id", examId);
+      if (error) throw error;
+      showNotification("Exam updated!", "success");
+    } else {
+      const { error } = await supabase.from("exams").insert([examPayload]);
+      if (error) throw error;
+      showNotification("Exam scheduled!", "success");
+    }
+    hideModal();
+    await initializeCalendar();
+  } catch (err) {
+    showNotification(`Database error: ${err.message}`);
+  }
+}
+
+async function deleteCurrentExam() {
+  const examId = document.getElementById("modal-exam-id").value;
+  if (
+    !examId ||
+    !confirm("Confirm destructive mutation: Remove this exam from database?")
+  )
+    return;
+
+  try {
+    const { error } = await supabase.from("exams").delete().eq("id", examId);
+    if (error) throw error;
+    showNotification("Exam deleted", "success");
+    hideModal();
+    await initializeCalendar();
+  } catch (err) {
+    showNotification(`Deletion failed: ${err.message}`);
+  }
+}
+
+// Map Calendar DOM Listeners
+document.addEventListener("DOMContentLoaded", () => {
+  document
+    .getElementById("prev-month-btn")
+    ?.addEventListener("click", () => changeMonth(-1));
+  document
+    .getElementById("next-month-btn")
+    ?.addEventListener("click", () => changeMonth(1));
+  document
+    .getElementById("close-modal-btn")
+    ?.addEventListener("click", hideModal);
+  document
+    .getElementById("delete-exam-btn")
+    ?.addEventListener("click", deleteCurrentExam);
+  document
+    .getElementById("exam-form")
+    ?.addEventListener("submit", handleExamFormSubmit);
+});
 
 // Global Window Attachments
 window.handleLogin = handleLogin;
@@ -518,6 +707,4 @@ window.startTimer = startTimer;
 window.pauseTimer = pauseTimer;
 window.resetTimer = resetTimer;
 window.extendTimer = extendTimer;
-window.addExam = addExam;
-window.deleteExam = deleteExam;
 window.toggleTheme = toggleTheme;
