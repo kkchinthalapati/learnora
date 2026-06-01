@@ -5,15 +5,15 @@ const supabaseUrl = "https://mlvgqwqiynpwpwzqufdf.supabase.co";
 const supabaseKey = "sb_publishable_mN1UvxPjHhn6L583LjrSFw_FWY8kRrt";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// --- 0. AUTH WALL LOGIC ---
+// --- AUTH WALL LOGIC ---
 supabase.auth.onAuthStateChange((event, session) => {
   const wall = document.getElementById("auth-wall");
   const app = document.getElementById("main-app");
-  if (session) {
+  if (session && wall && app) {
     wall.style.display = "none";
     app.style.display = "block";
-    fetchTodos(); // Only fetch data once user is logged in
-  } else {
+    fetchTodos();
+  } else if (wall && app) {
     wall.style.display = "flex";
     app.style.display = "none";
   }
@@ -38,8 +38,12 @@ async function handleSignup() {
 // 1. UI, TAB & CLOCK LOGIC
 // ==========================================
 setInterval(() => {
-  document.getElementById("live-clock").innerText =
-    new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const clock = document.getElementById("live-clock");
+  if (clock)
+    clock.innerText = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 }, 1000);
 
 function toggleSidebar() {
@@ -53,7 +57,8 @@ function switchTab(tabId, element) {
   document
     .querySelectorAll(".nav-links li")
     .forEach((li) => li.classList.remove("active"));
-  document.getElementById(`${tabId}-section`).style.display = "block";
+  const target = document.getElementById(`${tabId}-section`);
+  if (target) target.style.display = "block";
   element.classList.add("active");
 
   const titles = {
@@ -71,15 +76,17 @@ const moonIcon = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>';
 
 if (localStorage.getItem("theme") === "dark") {
   document.body.classList.add("dark-theme");
-  document.getElementById("theme-icon").innerHTML = sunIcon;
+  const icon = document.getElementById("theme-icon");
+  if (icon) icon.innerHTML = sunIcon;
 }
 
-window.toggleTheme = function () {
+function toggleTheme() {
   document.body.classList.toggle("dark-theme");
   const isDark = document.body.classList.contains("dark-theme");
   localStorage.setItem("theme", isDark ? "dark" : "light");
-  document.getElementById("theme-icon").innerHTML = isDark ? sunIcon : moonIcon;
-};
+  const icon = document.getElementById("theme-icon");
+  if (icon) icon.innerHTML = isDark ? sunIcon : moonIcon;
+}
 
 const quotes = [
   "Focus on the step in front of you, not the whole staircase.",
@@ -88,9 +95,11 @@ const quotes = [
   "The secret of getting ahead is getting started.",
   "You didn't come this far to only come this far.",
 ];
+
 function randomizeQuote() {
-  document.getElementById("quote-display").innerText =
-    quotes[Math.floor(Math.random() * quotes.length)];
+  const quoteEl = document.getElementById("quote-display");
+  if (!quoteEl) return;
+  quoteEl.innerText = quotes[Math.floor(Math.random() * quotes.length)];
 }
 randomizeQuote();
 
@@ -114,7 +123,7 @@ async function fetchTodos() {
 
 async function addTodo() {
   const input = document.getElementById("todo-input");
-  if (!input.value.trim()) return;
+  if (!input || !input.value.trim()) return;
   const { error } = await supabase
     .from("tasks")
     .insert([{ text: input.value, is_done: false }]);
@@ -139,18 +148,15 @@ async function toggleTodo(id, currentStatus) {
 async function deleteTodo(id, e) {
   e.stopPropagation();
   const li = e.target.closest(".todo-item");
-  li.classList.add("removing");
+  if (li) li.classList.add("removing");
   const { error } = await supabase.from("tasks").delete().eq("id", id);
-  if (!error) {
-    setTimeout(fetchTodos, 300);
-  } else {
-    console.error("Delete failed:", error);
-    li.classList.remove("removing");
-  }
+  if (!error) setTimeout(fetchTodos, 300);
+  else console.error("Delete failed:", error);
 }
 
 function renderTodos() {
   const list = document.getElementById("todo-list");
+  if (!list) return;
   list.innerHTML = "";
   todos.forEach((t) => {
     const li = document.createElement("li");
@@ -163,6 +169,7 @@ function renderTodos() {
 
 function updateTaskDropdown() {
   const select = document.getElementById("active-task");
+  if (!select) return;
   select.innerHTML = '<option value="None">None</option>';
   todos
     .filter((t) => !t.is_done)
@@ -174,24 +181,22 @@ function updateTaskDropdown() {
 // ==========================================
 // 3. TIMER & LOGGING
 // ==========================================
-let timerInterval;
-let isRunning = false;
-let currentMode = "Focus";
-let completedCycles = 0;
-let config = { focus: 25, short: 5, long: 15, cycles: 4 };
-let totalSessionTime = 25 * 60;
-let timeLeft = totalSessionTime;
+let timerInterval,
+  isRunning = false,
+  currentMode = "Focus",
+  completedCycles = 0,
+  config = { focus: 25, short: 5, long: 15, cycles: 4 };
+let totalSessionTime = 25 * 60,
+  timeLeft = totalSessionTime;
 
 function applyPreset(type) {
   if (type === "deep") {
     document.getElementById("focusTime").value = 90;
     document.getElementById("shortBreakTime").value = 15;
-  }
-  if (type === "cram") {
+  } else if (type === "cram") {
     document.getElementById("focusTime").value = 45;
     document.getElementById("shortBreakTime").value = 10;
-  }
-  if (type === "light") {
+  } else if (type === "light") {
     document.getElementById("focusTime").value = 20;
     document.getElementById("shortBreakTime").value = 5;
   }
@@ -211,12 +216,15 @@ function updateTimerDisplay() {
     .toString()
     .padStart(2, "0");
   const s = (timeLeft % 60).toString().padStart(2, "0");
-  document.getElementById("time-display").innerText = `${m}:${s}`;
-  document.getElementById("timer-mode").innerText = currentMode + " Mode";
-  document.getElementById("cycle-counter").innerText =
-    `Cycle: ${completedCycles} / ${config.cycles}`;
-  const percent = ((totalSessionTime - timeLeft) / totalSessionTime) * 100;
-  document.getElementById("timer-progress").style.width = `${percent}%`;
+  const display = document.getElementById("time-display");
+  if (display) display.innerText = `${m}:${s}`;
+  const mode = document.getElementById("timer-mode");
+  if (mode) mode.innerText = currentMode + " Mode";
+  const cycle = document.getElementById("cycle-counter");
+  if (cycle) cycle.innerText = `Cycle: ${completedCycles} / ${config.cycles}`;
+  const prog = document.getElementById("timer-progress");
+  if (prog)
+    prog.style.width = `${((totalSessionTime - timeLeft) / totalSessionTime) * 100}%`;
 }
 
 function startTimer() {
@@ -236,7 +244,7 @@ function handleCycleEnd() {
   pauseTimer();
   randomizeQuote();
   if (currentMode === "Focus") {
-    const taskName = document.getElementById("active-task").value;
+    const taskName = document.getElementById("active-task")?.value;
     logSession(config.focus, taskName);
     completedCycles++;
     if (completedCycles >= config.cycles) {
@@ -293,9 +301,9 @@ function logSession(minutes, task) {
 }
 function renderLogs() {
   const list = document.getElementById("log-list");
-  list.innerHTML = "";
-  if (sessionLogs.length === 0)
-    list.innerHTML = "<li>No sessions logged yet. Get to work!</li>";
+  if (!list) return;
+  list.innerHTML =
+    sessionLogs.length === 0 ? "<li>No sessions logged yet.</li>" : "";
   sessionLogs.forEach((log) => {
     const li = document.createElement("li");
     li.className = "log-item";
@@ -324,6 +332,7 @@ function deleteExam(id) {
 }
 function renderExams() {
   const list = document.getElementById("examList");
+  if (!list) return;
   list.innerHTML = "";
   exams
     .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -339,7 +348,7 @@ function renderExams() {
 }
 renderExams();
 
-// Add these to the very bottom of script.js
+// Global Window Attachments
 window.handleLogin = handleLogin;
 window.handleSignup = handleSignup;
 window.switchTab = switchTab;
