@@ -145,8 +145,8 @@ async function handleVerifyOtp() {
   const token = document.getElementById("otp-code").value;
   const email = window.signupEmailCache;
 
-  if (!token || token.length !== 6)
-    return showNotification("Enter a valid 6-digit code.");
+  if (!token || token.length !== 8)
+    return showNotification("Enter a valid 8-digit code.");
 
   const { error } = await supabase.auth.verifyOtp({
     email,
