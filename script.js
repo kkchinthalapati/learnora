@@ -542,7 +542,7 @@ function renderLogs() {
     const taskStr =
       log.task !== "None" ? ` on <strong>${log.task}</strong>` : "";
     li.innerHTML = `<span><span class="log-mode">${log.minutes}m Focus</span>${taskStr}</span> <span>${log.timestamp}</span>`;
-    list.appendChild(li);
+    li.appendChild(li);
   });
 }
 renderLogs();
@@ -737,7 +737,7 @@ async function deleteCurrentExam() {
     return;
 
   try {
-    const { error } = await supabase.from("exams").delete().eq("id", examId);
+    const { error } = await supabase.from("exams").delete().eq("id", id);
     if (error) throw error;
     showNotification("Exam deleted", "success");
     hideModal();
@@ -748,7 +748,7 @@ async function deleteCurrentExam() {
 }
 
 // ==========================================
-// TURBO AI LOGIC
+// TURBO AI LOGIC (Updated for learnora-ai)
 // ==========================================
 async function sendChat() {
   const input = document.getElementById("chat-input");
@@ -760,18 +760,22 @@ async function sendChat() {
   const userQuery = input.value;
   input.value = "";
 
-  // Placeholder for context (we can make this dynamic later to pull from notes!)
+  // Placeholder for context
   const noteContent = "This is a placeholder for your current study notes.";
 
   try {
-    const { data, error } = await supabase.functions.invoke("turbo-chat", {
+    // Calling 'learnora-ai'
+    const { data, error } = await supabase.functions.invoke("learnora-ai", {
       body: { query: userQuery, noteContent: noteContent },
     });
 
     if (error) throw error;
 
+    // Gemini returns 'text'
+    const aiReply = data.text || "No response received.";
+
     // Display AI response
-    msgBox.innerHTML += `<div style="margin-bottom: 10px; color: #8b5cf6;"><strong>AI:</strong> ${data.content}</div>`;
+    msgBox.innerHTML += `<div style="margin-bottom: 10px; color: #8b5cf6;"><strong>AI:</strong> ${aiReply}</div>`;
     msgBox.scrollTop = msgBox.scrollHeight;
   } catch (err) {
     msgBox.innerHTML += `<div style="color: var(--danger);"><strong>AI:</strong> Error: ${err.message}</div>`;
@@ -799,7 +803,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Hydrate timer from storage on load
   restoreTimerState();
 
-  // Attach AI toggle logic dynamically in case HTML onclick is missing
+  // Attach AI toggle logic dynamically
   const turboToggle = document.getElementById("turbo-toggle");
   if (turboToggle) {
     turboToggle.onclick = () => {
