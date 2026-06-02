@@ -737,7 +737,7 @@ async function deleteCurrentExam() {
     return;
 
   try {
-    const { error } = await supabase.from("exams").delete().eq("id", id);
+    const { error } = await supabase.from("exams").delete().eq("id", examId);
     if (error) throw error;
     showNotification("Exam deleted", "success");
     hideModal();
@@ -748,37 +748,66 @@ async function deleteCurrentExam() {
 }
 
 // ==========================================
-// TURBO AI LOGIC (Updated for learnora-ai)
+// TURBO AI LOGIC (Revamped UI & Handling)
 // ==========================================
 async function sendChat() {
   const input = document.getElementById("chat-input");
   const msgBox = document.getElementById("chat-messages");
+  const typingIndicator = document.getElementById("typing-indicator");
+
   if (!input.value.trim()) return;
 
-  // Display user message
-  msgBox.innerHTML += `<div style="margin-bottom: 10px;"><strong>You:</strong> ${input.value}</div>`;
+  // 1. Create User Bubble
+  const userMsg = document.createElement("div");
+  userMsg.className = "chat-bubble user-bubble";
+  userMsg.innerText = input.value;
+  msgBox.appendChild(userMsg);
+
   const userQuery = input.value;
   input.value = "";
+  msgBox.scrollTop = msgBox.scrollHeight;
 
-  // Placeholder for context
+  // 2. Show Typing Indicator
+  typingIndicator.classList.remove("hidden");
+  msgBox.appendChild(typingIndicator); // Pushes it to bottom naturally
+  msgBox.scrollTop = msgBox.scrollHeight;
+
+  // Context placeholder
   const noteContent = "This is a placeholder for your current study notes.";
 
   try {
-    // Calling 'learnora-ai'
+    // Calling 'learnora-ai' via Edge Functions
     const { data, error } = await supabase.functions.invoke("learnora-ai", {
       body: { query: userQuery, noteContent: noteContent },
     });
 
     if (error) throw error;
 
-    // Gemini returns 'text'
+    // 3. Hide Indicator & Show AI Bubble
+    typingIndicator.classList.add("hidden");
     const aiReply = data.text || "No response received.";
 
-    // Display AI response
-    msgBox.innerHTML += `<div style="margin-bottom: 10px; color: #8b5cf6;"><strong>AI:</strong> ${aiReply}</div>`;
+    const aiMsg = document.createElement("div");
+    aiMsg.className = "chat-bubble ai-bubble";
+    aiMsg.innerText = aiReply;
+    msgBox.appendChild(aiMsg);
+
     msgBox.scrollTop = msgBox.scrollHeight;
   } catch (err) {
-    msgBox.innerHTML += `<div style="color: var(--danger);"><strong>AI:</strong> Error: ${err.message}</div>`;
+    typingIndicator.classList.add("hidden");
+    const errorMsg = document.createElement("div");
+    errorMsg.className = "chat-bubble ai-bubble";
+    errorMsg.style.color = "var(--danger)";
+    errorMsg.innerText = `Error: ${err.message}`;
+    msgBox.appendChild(errorMsg);
+    msgBox.scrollTop = msgBox.scrollHeight;
+  }
+}
+
+// Handle hitting 'Enter' in the input box
+function handleChatEnter(e) {
+  if (e.key === "Enter") {
+    sendChat();
   }
 }
 
@@ -832,3 +861,4 @@ window.resetTimer = resetTimer;
 window.extendTimer = extendTimer;
 window.toggleTheme = toggleTheme;
 window.sendChat = sendChat;
+window.handleChatEnter = handleChatEnter;
