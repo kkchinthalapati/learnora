@@ -752,7 +752,7 @@ async function deleteCurrentExam() {
 // ==========================================
 window.currentAiFile = null;
 
-function toggleAiFullscreen() {
+window.toggleAiFullscreen = function () {
   const modal = document.getElementById("turbo-chat");
   modal.classList.toggle("fullscreen");
   if (!modal.classList.contains("fullscreen")) {
@@ -762,14 +762,15 @@ function toggleAiFullscreen() {
     modal.style.bottom = "100px";
     modal.style.right = "24px";
   }
-}
+};
 
-function handleAiFileInput(e) {
-  if (e.target.files && e.target.files.length > 0)
-    processAiFile(e.target.files[0]);
-}
+window.handleAiFileInput = function (e) {
+  if (e.target.files && e.target.files.length > 0) {
+    window.processAiFile(e.target.files[0]);
+  }
+};
 
-function processAiFile(file) {
+window.processAiFile = function (file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     window.currentAiFile = {
@@ -783,16 +784,16 @@ function processAiFile(file) {
       .classList.remove("hidden");
   };
   reader.readAsDataURL(file);
-}
+};
 
-function removeAiFile() {
+window.removeAiFile = function () {
   window.currentAiFile = null;
   document.getElementById("file-preview-container").classList.add("hidden");
   document.getElementById("file-upload").value = "";
-}
+};
 
 // Chat Submission
-async function sendChat() {
+window.sendChat = async function () {
   const input = document.getElementById("chat-input");
   const msgBox = document.getElementById("chat-messages");
   const typingIndicator = document.getElementById("typing-indicator");
@@ -800,19 +801,19 @@ async function sendChat() {
   if (!input.value.trim() && !window.currentAiFile) return;
 
   const userQuery = input.value || "Please analyze this file.";
+  const payloadFile = window.currentAiFile;
 
   // Render user bubble
   const userMsg = document.createElement("div");
   userMsg.className = "chat-bubble user-bubble";
-  userMsg.innerHTML = window.currentAiFile
-    ? `📎 <em>${window.currentAiFile.name}</em><br/><br/>${userQuery}`
+  userMsg.innerHTML = payloadFile
+    ? `📎 <em>${payloadFile.name}</em><br/><br/>${userQuery}`
     : userQuery;
   msgBox.appendChild(userMsg);
 
   // Cache payload & clear UI
-  const payloadFile = window.currentAiFile;
   input.value = "";
-  removeAiFile();
+  window.removeAiFile();
   msgBox.scrollTop = msgBox.scrollHeight;
 
   typingIndicator.classList.remove("hidden");
@@ -862,11 +863,11 @@ async function sendChat() {
     msgBox.appendChild(errorMsg);
     msgBox.scrollTop = msgBox.scrollHeight;
   }
-}
+};
 
-function handleChatEnter(e) {
-  if (e.key === "Enter") sendChat();
-}
+window.handleChatEnter = function (e) {
+  if (e.key === "Enter") window.sendChat();
+};
 
 // DOM Listeners
 document.addEventListener("DOMContentLoaded", () => {
@@ -908,7 +909,7 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       dragOverlay.classList.add("hidden");
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        processAiFile(e.dataTransfer.files[0]);
+        window.processAiFile(e.dataTransfer.files[0]);
       }
     });
   }
@@ -974,8 +975,3 @@ window.pauseTimer = pauseTimer;
 window.resetTimer = resetTimer;
 window.extendTimer = extendTimer;
 window.toggleTheme = toggleTheme;
-window.sendChat = sendChat;
-window.handleChatEnter = handleChatEnter;
-window.toggleAiFullscreen = toggleAiFullscreen;
-window.handleAiFileInput = handleAiFileInput;
-window.removeAiFile = removeAiFile;
