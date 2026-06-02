@@ -309,7 +309,7 @@
                             </label>
                             <button
                                 onclick="applyTimerConfig()"
-                                class="save-btn"
+                                class="save-btn btn-primary"
                             >
                                 Apply & Reset
                             </button>
@@ -369,7 +369,9 @@
                             placeholder="Add a new task..."
                             onkeypress="handleTodoEnter(event)"
                         />
-                        <button onclick="addTodo()">Add Task</button>
+                        <button class="btn-primary" onclick="addTodo()">
+                            Add Task
+                        </button>
                     </div>
                     <ul id="todo-list" class="list-container"></ul>
                 </section>
@@ -489,46 +491,61 @@
 
         <button
             id="turbo-toggle"
-            class="btn-primary"
-            style="
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                border-radius: 50%;
-                width: 60px;
-                height: 60px;
-                z-index: 999;
-                box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
-                font-weight: bold;
+            class="btn-primary ai-trigger-btn"
+            onclick="
+                document.getElementById('turbo-chat').classList.remove('hidden')
             "
         >
             AI
         </button>
 
-        <div id="turbo-chat" class="hidden glass-modal">
-            <div class="chat-header">
-                <h3>✨ Learnora AI</h3>
-                <button
-                    class="close-btn"
-                    onclick="
-                        document
-                            .getElementById('turbo-chat')
-                            .classList.add('hidden')
-                    "
-                >
-                    ✖
-                </button>
+        <div id="turbo-chat" class="hidden glass-modal ai-modal">
+            <div id="drag-overlay" class="hidden">
+                <span>Drop files here to upload</span>
+            </div>
+
+            <div class="chat-header" id="ai-chat-header">
+                <div class="header-drag-handle">
+                    <h3>✨ Learnora AI</h3>
+                </div>
+                <div class="header-controls">
+                    <button
+                        id="fullscreen-btn"
+                        onclick="toggleAiFullscreen()"
+                        title="Toggle Fullscreen"
+                    >
+                        ⛶
+                    </button>
+                    <button
+                        class="close-btn"
+                        onclick="
+                            document
+                                .getElementById('turbo-chat')
+                                .classList.add('hidden')
+                        "
+                    >
+                        ✖
+                    </button>
+                </div>
             </div>
 
             <div id="chat-messages" class="chat-feed">
                 <div class="chat-bubble ai-bubble">
-                    Hi! Drop your notes or ask me anything about your studies.
+                    Hi! Drop your notes, PDFs, or images here and I'll help you
+                    summarize them.
                 </div>
             </div>
 
             <div id="typing-indicator" class="hidden">
                 <span class="dot"></span><span class="dot"></span
                 ><span class="dot"></span>
+            </div>
+
+            <div id="file-preview-container" class="hidden">
+                <div class="file-pill">
+                    <span id="file-name">document.pdf</span>
+                    <button onclick="removeAiFile()">✖</button>
+                </div>
             </div>
 
             <div class="chat-input-dock">
@@ -550,7 +567,12 @@
                         ></path>
                     </svg>
                 </label>
-                <input type="file" id="file-upload" hidden />
+                <input
+                    type="file"
+                    id="file-upload"
+                    hidden
+                    onchange="handleAiFileInput(event)"
+                />
 
                 <input
                     type="text"

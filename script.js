@@ -748,42 +748,91 @@ async function deleteCurrentExam() {
 }
 
 // ==========================================
-// TURBO AI LOGIC (Revamped UI & Handling)
+// TURBO AI LOGIC (Revamped & File Ready)
 // ==========================================
+window.currentAiFile = null;
+
+function toggleAiFullscreen() {
+  const modal = document.getElementById("turbo-chat");
+  modal.classList.toggle("fullscreen");
+  if (!modal.classList.contains("fullscreen")) {
+    // Reset position on exit fullscreen
+    modal.style.top = "";
+    modal.style.left = "";
+    modal.style.bottom = "100px";
+    modal.style.right = "24px";
+  }
+}
+
+function handleAiFileInput(e) {
+  if (e.target.files && e.target.files.length > 0)
+    processAiFile(e.target.files[0]);
+}
+
+function processAiFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    window.currentAiFile = {
+      name: file.name,
+      mimeType: file.type,
+      data: e.target.result.split(",")[1], // Extract Base64 chunk
+    };
+    document.getElementById("file-name").innerText = file.name;
+    document
+      .getElementById("file-preview-container")
+      .classList.remove("hidden");
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeAiFile() {
+  window.currentAiFile = null;
+  document.getElementById("file-preview-container").classList.add("hidden");
+  document.getElementById("file-upload").value = "";
+}
+
+// Chat Submission
 async function sendChat() {
   const input = document.getElementById("chat-input");
   const msgBox = document.getElementById("chat-messages");
   const typingIndicator = document.getElementById("typing-indicator");
 
-  if (!input.value.trim()) return;
+  if (!input.value.trim() && !window.currentAiFile) return;
 
-  // 1. Create User Bubble
+  const userQuery = input.value || "Please analyze this file.";
+
+  // Render user bubble
   const userMsg = document.createElement("div");
   userMsg.className = "chat-bubble user-bubble";
-  userMsg.innerText = input.value;
+  userMsg.innerHTML = window.currentAiFile
+    ? `📎 <em>${window.currentAiFile.name}</em><br/><br/>${userQuery}`
+    : userQuery;
   msgBox.appendChild(userMsg);
 
-  const userQuery = input.value;
+  // Cache payload & clear UI
+  const payloadFile = window.currentAiFile;
   input.value = "";
+  removeAiFile();
   msgBox.scrollTop = msgBox.scrollHeight;
 
-  // 2. Show Typing Indicator
   typingIndicator.classList.remove("hidden");
-  msgBox.appendChild(typingIndicator); // Pushes it to bottom naturally
+  msgBox.appendChild(typingIndicator);
   msgBox.scrollTop = msgBox.scrollHeight;
 
-  // Context placeholder
-  const noteContent = "This is a placeholder for your current study notes.";
+  // Placeholder context mapping
+  const noteContent = "Context mapping available.";
 
   try {
-    // Calling 'learnora-ai' via Edge Functions
     const { data, error } = await supabase.functions.invoke("learnora-ai", {
-      body: { query: userQuery, noteContent: noteContent },
+      body: {
+        query: userQuery,
+        noteContent: noteContent,
+        file: payloadFile,
+      },
     });
 
     if (error) throw error;
 
-    // 3. Hide Indicator & Show AI Bubble
     typingIndicator.classList.add("hidden");
     const aiReply = data.text || "No response received.";
 
@@ -796,22 +845,30 @@ async function sendChat() {
   } catch (err) {
     typingIndicator.classList.add("hidden");
     const errorMsg = document.createElement("div");
-    errorMsg.className = "chat-bubble ai-bubble";
-    errorMsg.style.color = "var(--danger)";
-    errorMsg.innerText = `Error: ${err.message}`;
+    errorMsg.className = "chat-bubble ai-bubble ai-bubble-error";
+
+    // Friendly fallback override for common API/Timeout errors
+    if (
+      err.message.includes("5") ||
+      err.message.includes("status code") ||
+      err.message.includes("fetch")
+    ) {
+      errorMsg.innerText =
+        "My bad, I hit a snag thinking about that! Try rephrasing or using a smaller file.";
+    } else {
+      errorMsg.innerText = `Error: ${err.message}`;
+    }
+
     msgBox.appendChild(errorMsg);
     msgBox.scrollTop = msgBox.scrollHeight;
   }
 }
 
-// Handle hitting 'Enter' in the input box
 function handleChatEnter(e) {
-  if (e.key === "Enter") {
-    sendChat();
-  }
+  if (e.key === "Enter") sendChat();
 }
 
-// Map Calendar DOM Listeners & Initialize UI state
+// DOM Listeners
 document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("prev-month-btn")
@@ -829,15 +886,72 @@ document.addEventListener("DOMContentLoaded", () => {
     .getElementById("exam-form")
     ?.addEventListener("submit", handleExamFormSubmit);
 
-  // Hydrate timer from storage on load
   restoreTimerState();
 
-  // Attach AI toggle logic dynamically
-  const turboToggle = document.getElementById("turbo-toggle");
-  if (turboToggle) {
-    turboToggle.onclick = () => {
-      document.getElementById("turbo-chat").classList.remove("hidden");
-    };
+  // AI Modal Drag & Drop File Listeners
+  const aiModal = document.getElementById("turbo-chat");
+  const dragOverlay = document.getElementById("drag-overlay");
+
+  if (aiModal && dragOverlay) {
+    aiModal.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      if (!aiModal.classList.contains("hidden"))
+        dragOverlay.classList.remove("hidden");
+    });
+
+    aiModal.addEventListener("dragleave", (e) => {
+      e.preventDefault();
+      if (e.target === dragOverlay) dragOverlay.classList.add("hidden");
+    });
+
+    aiModal.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dragOverlay.classList.add("hidden");
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        processAiFile(e.dataTransfer.files[0]);
+      }
+    });
+  }
+
+  // Draggable Modal Logic
+  const chatHeader = document.getElementById("ai-chat-header");
+  let isDragging = false,
+    startX,
+    startY,
+    initialX,
+    initialY;
+
+  if (chatHeader) {
+    chatHeader.addEventListener("mousedown", (e) => {
+      if (
+        aiModal.classList.contains("fullscreen") ||
+        e.target.closest(".header-controls")
+      )
+        return;
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      initialX = aiModal.offsetLeft;
+      initialY = aiModal.offsetTop;
+      document.addEventListener("mousemove", dragAiModal);
+      document.addEventListener("mouseup", stopDragAiModal);
+    });
+  }
+
+  function dragAiModal(e) {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    aiModal.style.left = `${initialX + dx}px`;
+    aiModal.style.top = `${initialY + dy}px`;
+    aiModal.style.bottom = "auto";
+    aiModal.style.right = "auto";
+  }
+
+  function stopDragAiModal() {
+    isDragging = false;
+    document.removeEventListener("mousemove", dragAiModal);
+    document.removeEventListener("mouseup", stopDragAiModal);
   }
 });
 
@@ -862,3 +976,6 @@ window.extendTimer = extendTimer;
 window.toggleTheme = toggleTheme;
 window.sendChat = sendChat;
 window.handleChatEnter = handleChatEnter;
+window.toggleAiFullscreen = toggleAiFullscreen;
+window.handleAiFileInput = handleAiFileInput;
+window.removeAiFile = removeAiFile;
