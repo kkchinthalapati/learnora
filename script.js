@@ -8,6 +8,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 let canResend = true;
 let resendCooldown = 60;
 window.signupEmailCache = "";
+window.currentAiFile = null;
 
 // --- TOAST NOTIFICATIONS ---
 function showNotification(message, type = "error") {
@@ -834,7 +835,7 @@ window.sendChat = async function () {
 
     if (error) throw error;
 
-    typingIndicator.classList.add("hidden");
+    typingIndicator.classList.remove("hidden");
     const aiReply = data.text || "No response received.";
 
     const aiMsg = document.createElement("div");
