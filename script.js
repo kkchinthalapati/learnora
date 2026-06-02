@@ -747,6 +747,37 @@ async function deleteCurrentExam() {
   }
 }
 
+// ==========================================
+// TURBO AI LOGIC
+// ==========================================
+async function sendChat() {
+  const input = document.getElementById("chat-input");
+  const msgBox = document.getElementById("chat-messages");
+  if (!input.value.trim()) return;
+
+  // Display user message
+  msgBox.innerHTML += `<div style="margin-bottom: 10px;"><strong>You:</strong> ${input.value}</div>`;
+  const userQuery = input.value;
+  input.value = "";
+
+  // Placeholder for context (we can make this dynamic later to pull from notes!)
+  const noteContent = "This is a placeholder for your current study notes.";
+
+  try {
+    const { data, error } = await supabase.functions.invoke("turbo-chat", {
+      body: { query: userQuery, noteContent: noteContent },
+    });
+
+    if (error) throw error;
+
+    // Display AI response
+    msgBox.innerHTML += `<div style="margin-bottom: 10px; color: #8b5cf6;"><strong>AI:</strong> ${data.content}</div>`;
+    msgBox.scrollTop = msgBox.scrollHeight;
+  } catch (err) {
+    msgBox.innerHTML += `<div style="color: var(--danger);"><strong>AI:</strong> Error: ${err.message}</div>`;
+  }
+}
+
 // Map Calendar DOM Listeners & Initialize UI state
 document.addEventListener("DOMContentLoaded", () => {
   document
@@ -767,6 +798,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Hydrate timer from storage on load
   restoreTimerState();
+
+  // Attach AI toggle logic dynamically in case HTML onclick is missing
+  const turboToggle = document.getElementById("turbo-toggle");
+  if (turboToggle) {
+    turboToggle.onclick = () => {
+      document.getElementById("turbo-chat").classList.remove("hidden");
+    };
+  }
 });
 
 // Global Window Attachments
@@ -788,3 +827,4 @@ window.pauseTimer = pauseTimer;
 window.resetTimer = resetTimer;
 window.extendTimer = extendTimer;
 window.toggleTheme = toggleTheme;
+window.sendChat = sendChat;

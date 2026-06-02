@@ -194,6 +194,15 @@
                     <li onclick="switchTab('timer', this)">⏱️ Timer</li>
                     <li onclick="switchTab('todo', this)">📝 To-Do List</li>
                     <li onclick="switchTab('exams', this)">📚 Calendar</li>
+                    <li
+                        onclick="
+                            document
+                                .getElementById('turbo-chat')
+                                .classList.remove('hidden')
+                        "
+                    >
+                        🤖 Turbo AI
+                    </li>
                 </ul>
             </nav>
 
@@ -475,6 +484,93 @@
                         </div>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <button
+            id="turbo-toggle"
+            class="btn-primary"
+            style="
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                border-radius: 50%;
+                width: 60px;
+                height: 60px;
+                z-index: 999;
+                box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+                font-weight: bold;
+            "
+        >
+            AI
+        </button>
+
+        <div id="turbo-chat" class="modal-overlay hidden">
+            <div
+                class="modal-content glass-panel"
+                style="
+                    max-height: 80vh;
+                    display: flex;
+                    flex-direction: column;
+                    width: 90%;
+                    max-width: 500px;
+                "
+            >
+                <h3 style="color: #8b5cf6">Turbo AI Analysis</h3>
+                <div
+                    id="chat-messages"
+                    style="
+                        flex: 1;
+                        overflow-y: auto;
+                        margin: 10px 0;
+                        padding: 10px;
+                        background: rgba(0, 0, 0, 0.2);
+                        border-radius: 8px;
+                        min-height: 250px;
+                        max-height: 400px;
+                        display: flex;
+                        flex-direction: column;
+                    "
+                >
+                    <div
+                        style="
+                            opacity: 0.6;
+                            font-size: 0.9em;
+                            margin-bottom: 15px;
+                        "
+                    >
+                        Ask me anything about your notes or study schedule!
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 10px">
+                    <input
+                        type="text"
+                        id="chat-input"
+                        placeholder="e.g., Summarize my exams..."
+                    />
+                    <button
+                        onclick="sendChat()"
+                        class="btn-primary"
+                        style="margin-top: 8px"
+                    >
+                        Send
+                    </button>
+                </div>
+                <div
+                    class="modal-actions"
+                    style="margin-top: 5px; justify-content: flex-end"
+                >
+                    <button
+                        onclick="
+                            document
+                                .getElementById('turbo-chat')
+                                .classList.add('hidden')
+                        "
+                        class="btn-secondary"
+                    >
+                        Close Window
+                    </button>
+                </div>
             </div>
         </div>
 
