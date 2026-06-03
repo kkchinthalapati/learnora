@@ -190,15 +190,10 @@
                     <li onclick="switchTab('timer', this)">⏱️ Timer</li>
                     <li onclick="switchTab('todo', this)">📝 Task Manager</li>
                     <li onclick="switchTab('exams', this)">📚 Calendar</li>
-                    <li
-                        onclick="
-                            document
-                                .getElementById('turbo-chat')
-                                .classList.remove('hidden')
-                        "
-                    >
-                        🤖 Turbo AI
+                    <li onclick="switchTab('flashcards', this)">
+                        🗂️ Flashcards
                     </li>
+                    <li onclick="openAiModal()">🤖 Turbo AI</li>
                 </ul>
             </nav>
 
@@ -396,6 +391,21 @@
                         ></div>
                     </div>
                 </section>
+
+                <section
+                    id="flashcards-section"
+                    class="tab-content"
+                    style="display: none"
+                >
+                    <div class="glass-panel summary-card">
+                        <h2>Flashcards</h2>
+                        <p>
+                            Your AI-generated flashcards will appear here. Click
+                            a card to flip it over.
+                        </p>
+                    </div>
+                    <div id="flashcards-grid" class="grid-list"></div>
+                </section>
             </main>
         </div>
 
@@ -460,9 +470,7 @@
         <button
             id="turbo-toggle"
             class="btn-primary ai-trigger-btn"
-            onclick="
-                document.getElementById('turbo-chat').classList.remove('hidden')
-            "
+            onclick="openAiModal()"
         >
             AI
         </button>
@@ -477,7 +485,7 @@
                     <button
                         id="fullscreen-btn"
                         onclick="toggleAiFullscreen()"
-                        title="Toggle Fullscreen"
+                        title="Toggle Size"
                     >
                         ⛶
                     </button>
@@ -497,7 +505,7 @@
             <div id="chat-messages" class="chat-feed">
                 <div class="chat-bubble ai-bubble">
                     Hi! Drop your notes or images here and I'll help you
-                    summarize them.
+                    summarize them, or ask me to generate flashcards!
                 </div>
             </div>
             <div id="typing-indicator" class="hidden">
@@ -535,7 +543,7 @@
                 <input
                     type="text"
                     id="chat-input"
-                    placeholder="Ask anything..."
+                    placeholder="Ask anything or request flashcards..."
                     onkeypress="handleChatEnter(event)"
                     autocomplete="off"
                 />

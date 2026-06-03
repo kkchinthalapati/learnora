@@ -219,6 +219,7 @@ function switchTab(tabId, element) {
     todo: "Task Manager",
     exams: "Calendar & Exams",
     logs: "Dashboard",
+    flashcards: "Flashcards",
   };
   document.getElementById("page-title").innerText =
     titles[tabId] || "Error 404";
@@ -543,7 +544,7 @@ function renderLogs() {
     const taskStr =
       log.task !== "None" ? ` on <strong>${log.task}</strong>` : "";
     li.innerHTML = `<span><span class="log-mode">${log.minutes}m Focus</span>${taskStr}</span> <span>${log.timestamp}</span>`;
-    li.appendChild(li);
+    list.appendChild(li);
   });
 }
 renderLogs();
@@ -753,15 +754,20 @@ async function deleteCurrentExam() {
 // ==========================================
 window.currentAiFile = null;
 
+window.openAiModal = function () {
+  const modal = document.getElementById("turbo-chat");
+  modal.classList.remove("hidden");
+  // Ensure it opens fullscreen first (no minimized class)
+  modal.classList.remove("minimized");
+};
+
 window.toggleAiFullscreen = function () {
   const modal = document.getElementById("turbo-chat");
-  modal.classList.toggle("fullscreen");
-  if (!modal.classList.contains("fullscreen")) {
-    // Reset position on exit fullscreen
+  // Toggle the minimized state (which shrinks it down)
+  modal.classList.toggle("minimized");
+  if (!modal.classList.contains("minimized")) {
     modal.style.top = "";
     modal.style.left = "";
-    modal.style.bottom = "100px";
-    modal.style.right = "24px";
   }
 };
 
@@ -791,6 +797,33 @@ window.removeAiFile = function () {
   window.currentAiFile = null;
   document.getElementById("file-preview-container").classList.add("hidden");
   document.getElementById("file-upload").value = "";
+};
+
+window.renderFlashcards = function (flashcardsArray) {
+  const grid = document.getElementById("flashcards-grid");
+  if (!grid) return;
+  grid.innerHTML = ""; // Clear old cards
+
+  flashcardsArray.forEach((card) => {
+    const div = document.createElement("div");
+    div.className = "card-container";
+    div.onclick = () => div.classList.toggle("flipped");
+    div.innerHTML = `
+      <div class="card-inner">
+          <div class="card-front">${card.front}</div>
+          <div class="card-back">${card.back}</div>
+      </div>
+    `;
+    grid.appendChild(div);
+  });
+
+  // Switch to the flashcards tab so user can see them
+  const flashcardTabBtn = document.querySelector('li[onclick*="flashcards"]');
+  if (flashcardTabBtn) switchTab("flashcards", flashcardTabBtn);
+
+  // Auto-hide the AI modal so they can review the cards instantly
+  document.getElementById("turbo-chat").classList.add("hidden");
+  showNotification("Flashcards generated!", "success");
 };
 
 // Chat Submission
@@ -835,7 +868,20 @@ window.sendChat = async function () {
 
     if (error) throw error;
 
-    typingIndicator.classList.remove("hidden");
+    // Hide typing dots
+    typingIndicator.classList.add("hidden");
+
+    // NEW LOGIC: Check if it's JSON data (flashcards)
+    try {
+      const parsed = JSON.parse(data.text);
+      if (Array.isArray(parsed)) {
+        window.renderFlashcards(parsed);
+        return; // Don't render a text bubble, exit the function
+      }
+    } catch (e) {
+      // If not JSON, ignore and continue to render standard text bubble
+    }
+
     const aiReply = data.text || "No response received.";
 
     const aiMsg = document.createElement("div");
@@ -915,7 +961,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Draggable Modal Logic
+  // Draggable Modal Logic (Only works when minimized)
   const chatHeader = document.getElementById("ai-chat-header");
   let isDragging = false,
     startX,
@@ -925,8 +971,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (chatHeader) {
     chatHeader.addEventListener("mousedown", (e) => {
+      // Don't drag if fullscreen or if clicking a button
       if (
-        aiModal.classList.contains("fullscreen") ||
+        !aiModal.classList.contains("minimized") ||
         e.target.closest(".header-controls")
       )
         return;
