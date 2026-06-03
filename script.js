@@ -10,6 +10,254 @@ let resendCooldown = 60;
 window.signupEmailCache = "";
 window.currentAiFile = null;
 
+// ==========================================
+// CONFIGURATION ENGINE & SETTINGS
+// ==========================================
+const defaultSettings = {
+  aiPersona: "tutor",
+  aiConciseness: "medium",
+  uiLanguage: "en",
+  aiLanguage: "English",
+};
+
+window.userSettings =
+  JSON.parse(localStorage.getItem("learnora_settings")) || defaultSettings;
+
+window.saveSettings = function () {
+  window.userSettings.aiPersona =
+    document.getElementById("config-persona").value;
+  window.userSettings.aiConciseness =
+    document.getElementById("config-length").value;
+  window.userSettings.uiLanguage =
+    document.getElementById("config-ui-lang").value;
+  window.userSettings.aiLanguage =
+    document.getElementById("config-ai-lang").value;
+
+  localStorage.setItem(
+    "learnora_settings",
+    JSON.stringify(window.userSettings),
+  );
+  applyTranslations(); // Update UI immediately
+  showNotification("Settings saved! AI preferences updated.", "success");
+};
+
+function loadSettingsToUI() {
+  document.getElementById("config-persona").value =
+    window.userSettings.aiPersona;
+  document.getElementById("config-length").value =
+    window.userSettings.aiConciseness;
+  document.getElementById("config-ui-lang").value =
+    window.userSettings.uiLanguage;
+  document.getElementById("config-ai-lang").value =
+    window.userSettings.aiLanguage;
+}
+
+// --- LOCALIZATION ENGINE ---
+// Starter map for major languages. Add remaining ISO codes here to hit 50+.
+const translations = {
+  en: {
+    nav_dashboard: "📊 Dashboard",
+    nav_timer: "⏱️ Timer",
+    nav_tasks: "📝 Task Manager",
+    nav_calendar: "📚 Calendar",
+    nav_flashcards: "🗂️ Flashcards",
+    nav_ai: "🤖 Turbo AI",
+    nav_settings: "⚙️ Settings",
+    title_dashboard: "Dashboard",
+    header_history: "Session History",
+    desc_history: "All completed focus blocks are logged here automatically.",
+    timer_presets: "Workflow Presets",
+    preset_deep: "Deep Work (90m)",
+    preset_cram: "Exam Cram (45m)",
+    preset_light: "Light Study (20m)",
+    config_focus: "Focus (mins)",
+    config_short: "Short Break",
+    config_long: "Long Break",
+    config_cycles: "Cycles",
+    config_task: "Current Task:",
+    btn_apply: "Apply & Reset",
+    btn_start: "Start",
+    btn_pause: "Pause",
+    btn_reset: "Reset",
+    placeholder_task: "Add a new task...",
+    btn_add: "Add Task",
+    day_sun: "Sun",
+    day_mon: "Mon",
+    day_tue: "Tue",
+    day_wed: "Wed",
+    day_thu: "Thu",
+    day_fri: "Fri",
+    day_sat: "Sat",
+    header_flashcards: "Flashcards",
+    desc_flashcards: "Your AI-generated flashcards will appear here.",
+    set_ai_brain: "🧠 AI Personalization",
+    set_persona: "AI Persona",
+    opt_tutor: "Tutor (Patient & Explanatory)",
+    opt_coach: "Coach (Strict & Tough Love)",
+    opt_buddy: "Buddy (Casual & Friendly)",
+    set_length: "Response Length",
+    opt_short: "Short & Concise",
+    opt_med: "Medium (Balanced)",
+    opt_long: "Detailed & Comprehensive",
+    set_localization: "🌍 Localization",
+    set_ui_lang: "UI Language",
+    set_ai_lang: "AI Response Language",
+    set_data: "🔒 Data & Privacy",
+    set_export_desc: "Download a copy of your study logs and tasks.",
+    btn_export: "📥 Export Data (CSV)",
+    set_wipe_desc:
+      "Permanently delete all tasks, logs, and exams from the cloud.",
+    btn_wipe: "🗑️ Wipe All Data",
+    btn_save_config: "Save Changes",
+  },
+  es: {
+    nav_dashboard: "📊 Tablero",
+    nav_timer: "⏱️ Temporizador",
+    nav_tasks: "📝 Tareas",
+    nav_calendar: "📚 Calendario",
+    nav_flashcards: "🗂️ Tarjetas",
+    nav_ai: "🤖 Turbo IA",
+    nav_settings: "⚙️ Ajustes",
+    title_dashboard: "Tablero",
+    header_history: "Historial de Sesiones",
+    desc_history: "Todos los bloques completados se registran aquí.",
+    timer_presets: "Flujos de Trabajo",
+    preset_deep: "Trabajo Profundo (90m)",
+    preset_cram: "Examen (45m)",
+    preset_light: "Estudio Ligero (20m)",
+    config_focus: "Enfoque (min)",
+    config_short: "Pausa Corta",
+    config_long: "Pausa Larga",
+    config_cycles: "Ciclos",
+    config_task: "Tarea Actual:",
+    btn_apply: "Aplicar",
+    btn_start: "Iniciar",
+    btn_pause: "Pausar",
+    btn_reset: "Reiniciar",
+    placeholder_task: "Añadir tarea...",
+    btn_add: "Añadir",
+    day_sun: "Dom",
+    day_mon: "Lun",
+    day_tue: "Mar",
+    day_wed: "Mié",
+    day_thu: "Jue",
+    day_fri: "Vie",
+    day_sat: "Sáb",
+    header_flashcards: "Tarjetas",
+    desc_flashcards: "Tus tarjetas IA aparecerán aquí.",
+    set_ai_brain: "🧠 Personalización de IA",
+    set_persona: "Personalidad de IA",
+    opt_tutor: "Tutor (Paciente)",
+    opt_coach: "Entrenador (Estricto)",
+    opt_buddy: "Amigo (Casual)",
+    set_length: "Longitud de Respuesta",
+    opt_short: "Corta",
+    opt_med: "Media",
+    opt_long: "Detallada",
+    set_localization: "🌍 Localización",
+    set_ui_lang: "Idioma de Interfaz",
+    set_ai_lang: "Idioma de IA",
+    set_data: "🔒 Datos y Privacidad",
+    set_export_desc: "Descarga una copia de tus registros.",
+    btn_export: "📥 Exportar Datos (CSV)",
+    set_wipe_desc: "Eliminar permanentemente todos los datos.",
+    btn_wipe: "🗑️ Borrar Todo",
+    btn_save_config: "Guardar Cambios",
+  },
+  fr: {
+    nav_dashboard: "📊 Tableau de Bord",
+    nav_settings: "⚙️ Paramètres",
+    title_dashboard: "Tableau de Bord",
+    // ... abbreviated for payload space, extends easily via pattern ...
+  },
+};
+
+function applyTranslations() {
+  const lang = window.userSettings.uiLanguage;
+  const dict = translations[lang] || translations["en"];
+
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    if (dict[key]) {
+      if (el.tagName === "INPUT" && el.placeholder) {
+        el.placeholder = dict[key];
+      } else {
+        el.innerHTML = dict[key];
+      }
+    }
+  });
+}
+
+// ==========================================
+// DATA & PRIVACY UTILITIES
+// ==========================================
+window.exportData = async function () {
+  try {
+    const { data: tasks } = await supabase.from("tasks").select("*");
+    const { data: exams } = await supabase.from("exams").select("*");
+
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Type,Name,Status,Date\n";
+
+    if (tasks)
+      tasks.forEach(
+        (t) =>
+          (csvContent += `Task,"${t.text}",${t.is_done ? "Done" : "Pending"},\n`),
+      );
+    if (exams)
+      exams.forEach(
+        (e) =>
+          (csvContent += `Exam,"${e.exam_name}",${e.status},${e.exam_date}\n`),
+      );
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "Learnora_Export.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showNotification("Data exported successfully!", "success");
+  } catch (err) {
+    showNotification("Failed to export data.");
+  }
+};
+
+window.wipeData = async function () {
+  if (
+    !confirm(
+      "🚨 WARNING: This will permanently delete all tasks, exams, and logs from the cloud. Are you sure?",
+    )
+  )
+    return;
+
+  try {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) throw new Error("No user session");
+
+    // Supabase deletes
+    await supabase.from("tasks").delete().eq("user_id", user.id); // Assuming RLS or user_id matching is setup
+    await supabase.from("exams").delete().eq("user_id", user.id);
+
+    // Local deletes
+    localStorage.removeItem("sessions");
+    localStorage.removeItem("timer_state");
+    localStorage.removeItem("timer_end_time");
+
+    sessionLogs = [];
+    todos = [];
+    cachedExams = [];
+
+    renderLogs();
+    renderTodos();
+    initializeCalendar();
+
+    showNotification("All data wiped successfully.", "success");
+  } catch (err) {
+    showNotification("Failed to wipe data: " + err.message);
+  }
+};
+
 // --- TOAST NOTIFICATIONS ---
 function showNotification(message, type = "error") {
   const container = document.getElementById("toast-container");
@@ -28,8 +276,12 @@ supabase.auth.onAuthStateChange((event, session) => {
   if (session && wall && app) {
     wall.style.display = "none";
     app.style.display = "flex";
+
+    // Initialize Systems
     fetchTodos();
     initializeCalendar();
+    loadSettingsToUI();
+    applyTranslations();
   } else if (wall && app) {
     wall.style.display = "flex";
     app.style.display = "none";
@@ -209,20 +461,22 @@ function switchTab(tabId, element) {
   const target = document.getElementById(`${tabId}-section`);
   if (target) {
     target.style.display = "block";
-  } else {
-    document.getElementById("error-404").style.display = "block";
   }
   if (element) element.classList.add("active");
 
+  const dict =
+    translations[window.userSettings.uiLanguage] || translations["en"];
   const titles = {
-    timer: "Study Timer",
-    todo: "Task Manager",
-    exams: "Calendar & Exams",
-    logs: "Dashboard",
-    flashcards: "Flashcards",
+    timer: dict.nav_timer?.replace(/⏱️ /, ""),
+    todo: dict.nav_tasks?.replace(/📝 /, ""),
+    exams: dict.nav_calendar?.replace(/📚 /, ""),
+    logs: dict.nav_dashboard?.replace(/📊 /, ""),
+    flashcards: dict.nav_flashcards?.replace(/🗂️ /, ""),
+    settings: dict.nav_settings?.replace(/⚙️ /, ""),
   };
-  document.getElementById("page-title").innerText =
-    titles[tabId] || "Error 404";
+
+  const titleEl = document.getElementById("page-title");
+  if (titleEl) titleEl.innerText = titles[tabId] || "Dashboard";
 }
 
 const sunIcon =
@@ -268,9 +522,8 @@ async function fetchTodos() {
     .from("tasks")
     .select("*")
     .order("id", { ascending: true });
-  if (error) showNotification("Failed to fetch tasks.");
-  else {
-    todos = data;
+  if (!error) {
+    todos = data || [];
     renderTodos();
     updateTaskDropdown();
   }
@@ -279,9 +532,11 @@ async function fetchTodos() {
 async function addTodo() {
   const input = document.getElementById("todo-input");
   if (!input || !input.value.trim()) return;
+  const user = (await supabase.auth.getUser()).data.user;
+
   const { error } = await supabase
     .from("tasks")
-    .insert([{ text: input.value, is_done: false }]);
+    .insert([{ user_id: user.id, text: input.value, is_done: false }]);
   if (!error) {
     input.value = "";
     fetchTodos();
@@ -347,7 +602,6 @@ let totalSessionTime = 25 * 60;
 let timeLeft = totalSessionTime;
 let sessionLogs = JSON.parse(localStorage.getItem("sessions")) || [];
 
-// Save state for background syncing
 function saveTimerState() {
   localStorage.setItem(
     "timer_state",
@@ -411,7 +665,7 @@ function startTimer() {
   localStorage.setItem("timer_end_time", targetEndTime);
   saveTimerState();
 
-  updateTimerDisplay(); // immediate update
+  updateTimerDisplay();
   timerInterval = setInterval(() => {
     const now = Date.now();
     timeLeft = Math.round((targetEndTime - now) / 1000);
@@ -506,7 +760,7 @@ function restoreTimerState() {
 
       if (targetEndTime > now) {
         timeLeft = Math.round((targetEndTime - now) / 1000);
-        startTimer(); // Restart execution loop
+        startTimer();
       } else {
         timeLeft = 0;
         handleCycleEnd();
@@ -599,19 +853,15 @@ function renderCalendarStructure() {
   const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
   const today = new Date();
 
-  // Render empty offset nodes
   for (let i = 0; i < firstDayIndex; i++) {
     const emptyCell = document.createElement("div");
     emptyCell.className = "calendar-day-cell empty";
     calendarDaysGrid.appendChild(emptyCell);
   }
 
-  // Render operational day nodes
   for (let day = 1; day <= totalDaysInMonth; day++) {
     const dayCell = document.createElement("div");
     dayCell.className = "calendar-day-cell";
-
-    // Construct strict YYYY-MM-DD for targeting
     const currentStringDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     dayCell.setAttribute("data-date", currentStringDate);
 
@@ -628,14 +878,12 @@ function renderCalendarStructure() {
       dayCell.classList.add("today");
     }
 
-    // Capture standard user click inputs to initialize empty context modals
     dayCell.addEventListener("click", (e) => {
       if (e.target === dayCell || e.target.className === "day-number") {
         showModal(null, currentStringDate);
       }
     });
 
-    // Match Exams
     const matchingExams = cachedExams.filter(
       (exam) => exam.exam_date === currentStringDate,
     );
@@ -643,9 +891,8 @@ function renderCalendarStructure() {
       const examElement = document.createElement("div");
       examElement.className = `exam-bar diff-${exam.difficulty.toLowerCase()} status-${exam.status.toLowerCase()}`;
       examElement.innerText = exam.exam_name;
-
       examElement.addEventListener("click", (e) => {
-        e.stopPropagation(); // Stop empty cell modal from opening
+        e.stopPropagation();
         showModal(exam);
       });
       dayCell.appendChild(examElement);
@@ -750,20 +997,16 @@ async function deleteCurrentExam() {
 }
 
 // ==========================================
-// TURBO AI LOGIC (Revamped & File Ready)
+// TURBO AI LOGIC
 // ==========================================
-window.currentAiFile = null;
-
 window.openAiModal = function () {
   const modal = document.getElementById("turbo-chat");
   modal.classList.remove("hidden");
-  // Ensure it opens fullscreen first (no minimized class)
   modal.classList.remove("minimized");
 };
 
 window.toggleAiFullscreen = function () {
   const modal = document.getElementById("turbo-chat");
-  // Toggle the minimized state (which shrinks it down)
   modal.classList.toggle("minimized");
   if (!modal.classList.contains("minimized")) {
     modal.style.top = "";
@@ -783,7 +1026,7 @@ window.processAiFile = function (file) {
     window.currentAiFile = {
       name: file.name,
       mimeType: file.type,
-      data: e.target.result.split(",")[1], // Extract Base64 chunk
+      data: e.target.result.split(",")[1],
     };
     document.getElementById("file-name").innerText = file.name;
     document
@@ -802,31 +1045,24 @@ window.removeAiFile = function () {
 window.renderFlashcards = function (flashcardsArray) {
   const grid = document.getElementById("flashcards-grid");
   if (!grid) return;
-  grid.innerHTML = ""; // Clear old cards
+  grid.innerHTML = "";
 
   flashcardsArray.forEach((card) => {
     const div = document.createElement("div");
     div.className = "card-container";
     div.onclick = () => div.classList.toggle("flipped");
-    div.innerHTML = `
-      <div class="card-inner">
-          <div class="card-front">${card.front}</div>
-          <div class="card-back">${card.back}</div>
-      </div>
-    `;
+    div.innerHTML = `<div class="card-inner"><div class="card-front">${card.front}</div><div class="card-back">${card.back}</div></div>`;
     grid.appendChild(div);
   });
 
-  // Switch to the flashcards tab so user can see them
   const flashcardTabBtn = document.querySelector('li[onclick*="flashcards"]');
   if (flashcardTabBtn) switchTab("flashcards", flashcardTabBtn);
 
-  // Auto-hide the AI modal so they can review the cards instantly
   document.getElementById("turbo-chat").classList.add("hidden");
   showNotification("Flashcards generated!", "success");
 };
 
-// Chat Submission
+// **Updated sendChat - Passing Settings to Backend**
 window.sendChat = async function () {
   const input = document.getElementById("chat-input");
   const msgBox = document.getElementById("chat-messages");
@@ -837,7 +1073,6 @@ window.sendChat = async function () {
   const userQuery = input.value || "Please analyze this file.";
   const payloadFile = window.currentAiFile;
 
-  // Render user bubble
   const userMsg = document.createElement("div");
   userMsg.className = "chat-bubble user-bubble";
   userMsg.innerHTML = payloadFile
@@ -845,7 +1080,6 @@ window.sendChat = async function () {
     : userQuery;
   msgBox.appendChild(userMsg);
 
-  // Cache payload & clear UI
   input.value = "";
   window.removeAiFile();
   msgBox.scrollTop = msgBox.scrollHeight;
@@ -854,39 +1088,32 @@ window.sendChat = async function () {
   msgBox.appendChild(typingIndicator);
   msgBox.scrollTop = msgBox.scrollHeight;
 
-  // Placeholder context mapping
-  const noteContent = "Context mapping available.";
-
   try {
     const { data, error } = await supabase.functions.invoke("learnora-ai", {
       body: {
         query: userQuery,
-        noteContent: noteContent,
         file: payloadFile,
+        settings: window.userSettings, // Injects Persona, Length, & Language Config
       },
     });
 
     if (error) throw error;
 
-    // Hide typing dots
     typingIndicator.classList.add("hidden");
 
-    // NEW LOGIC: Check if it's JSON data (flashcards)
     try {
       const parsed = JSON.parse(data.text);
       if (Array.isArray(parsed)) {
         window.renderFlashcards(parsed);
-        return; // Don't render a text bubble, exit the function
+        return;
       }
     } catch (e) {
-      // If not JSON, ignore and continue to render standard text bubble
+      // Not JSON, continue to Markdown text
     }
-
-    const aiReply = data.text || "No response received.";
 
     const aiMsg = document.createElement("div");
     aiMsg.className = "chat-bubble ai-bubble";
-    aiMsg.innerHTML = marked.parse(aiReply);
+    aiMsg.innerHTML = marked.parse(data.text || "No response.");
     msgBox.appendChild(aiMsg);
 
     msgBox.scrollTop = msgBox.scrollHeight;
@@ -894,21 +1121,8 @@ window.sendChat = async function () {
     typingIndicator.classList.add("hidden");
     const errorMsg = document.createElement("div");
     errorMsg.className = "chat-bubble ai-bubble ai-bubble-error";
-
-    // Friendly fallback override for common API/Timeout errors
-    if (
-      err.message.includes("5") ||
-      err.message.includes("status code") ||
-      err.message.includes("fetch")
-    ) {
-      errorMsg.innerText =
-        "My bad, I hit a snag thinking about that! Try rephrasing or using a smaller file.";
-    } else {
-      errorMsg.innerText = `Error: ${err.message}`;
-    }
-
+    errorMsg.innerText = "Error: " + err.message;
     msgBox.appendChild(errorMsg);
-    msgBox.scrollTop = msgBox.scrollHeight;
   }
 };
 
@@ -916,7 +1130,6 @@ window.handleChatEnter = function (e) {
   if (e.key === "Enter") window.sendChat();
 };
 
-// DOM Listeners
 document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("prev-month-btn")
@@ -936,7 +1149,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   restoreTimerState();
 
-  // AI Modal Drag & Drop File Listeners
   const aiModal = document.getElementById("turbo-chat");
   const dragOverlay = document.getElementById("drag-overlay");
 
@@ -946,22 +1158,18 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!aiModal.classList.contains("hidden"))
         dragOverlay.classList.remove("hidden");
     });
-
     aiModal.addEventListener("dragleave", (e) => {
       e.preventDefault();
       if (e.target === dragOverlay) dragOverlay.classList.add("hidden");
     });
-
     aiModal.addEventListener("drop", (e) => {
       e.preventDefault();
       dragOverlay.classList.add("hidden");
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0)
         window.processAiFile(e.dataTransfer.files[0]);
-      }
     });
   }
 
-  // Draggable Modal Logic (Only works when minimized)
   const chatHeader = document.getElementById("ai-chat-header");
   let isDragging = false,
     startX,
@@ -971,7 +1179,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (chatHeader) {
     chatHeader.addEventListener("mousedown", (e) => {
-      // Don't drag if fullscreen or if clicking a button
       if (
         !aiModal.classList.contains("minimized") ||
         e.target.closest(".header-controls")
@@ -1004,7 +1211,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// Global Window Attachments
+// Globals
 window.handleLogin = handleLogin;
 window.handleSignup = handleSignup;
 window.handleResend = handleResend;

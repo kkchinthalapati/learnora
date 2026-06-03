@@ -4,7 +4,7 @@
     --sidebar-bg: #ffffff;
     --text-color: #1e293b;
     --card-bg: rgba(255, 255, 255, 0.6);
-    --primary: #6366f1; /* Modern indigo/purple */
+    --primary: #6366f1;
     --primary-hover: #4f46e5;
     --border: rgba(148, 163, 184, 0.2);
     --danger: #ef4444;
@@ -152,6 +152,49 @@ header {
     margin-bottom: 24px;
 }
 
+/* --- SETTINGS TAB STYLES --- */
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--border);
+}
+.setting-row:last-of-type {
+    border-bottom: none;
+}
+.setting-row label,
+.setting-row p {
+    font-weight: 500;
+    font-size: 15px;
+    opacity: 0.9;
+}
+.setting-row select,
+.setting-row input {
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--sidebar-bg);
+    color: var(--text-color);
+    outline: none;
+    font-size: 14px;
+    min-width: 200px;
+}
+.setting-row select:focus {
+    border-color: var(--primary);
+}
+.danger-zone p {
+    color: var(--danger);
+}
+.settings-actions {
+    margin-top: 30px;
+    display: flex;
+    justify-content: flex-end;
+}
+.save-settings-btn {
+    min-width: 150px;
+}
+
 /* --- INPUTS & BUTTONS --- */
 .input-card {
     display: flex;
@@ -225,7 +268,7 @@ button:hover {
 hr {
     border: none;
     border-top: 1px solid var(--border);
-    margin: 20px 0;
+    margin: 30px 0;
 }
 .config-panel label {
     display: flex;

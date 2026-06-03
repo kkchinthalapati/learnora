@@ -184,17 +184,44 @@
             <nav class="sidebar" id="sidebar">
                 <h2 class="brand">Learnora</h2>
                 <ul class="nav-links">
-                    <li class="active" onclick="switchTab('logs', this)">
+                    <li
+                        class="active"
+                        onclick="switchTab('logs', this)"
+                        data-i18n="nav_dashboard"
+                    >
                         📊 Dashboard
                     </li>
                     <hr class="sidebar-divider" />
-                    <li onclick="switchTab('timer', this)">⏱️ Timer</li>
-                    <li onclick="switchTab('todo', this)">📝 Task Manager</li>
-                    <li onclick="switchTab('exams', this)">📚 Calendar</li>
-                    <li onclick="switchTab('flashcards', this)">
+                    <li
+                        onclick="switchTab('timer', this)"
+                        data-i18n="nav_timer"
+                    >
+                        ⏱️ Timer
+                    </li>
+                    <li onclick="switchTab('todo', this)" data-i18n="nav_tasks">
+                        📝 Task Manager
+                    </li>
+                    <li
+                        onclick="switchTab('exams', this)"
+                        data-i18n="nav_calendar"
+                    >
+                        📚 Calendar
+                    </li>
+                    <li
+                        onclick="switchTab('flashcards', this)"
+                        data-i18n="nav_flashcards"
+                    >
                         🗂️ Flashcards
                     </li>
-                    <li onclick="openAiModal()">🤖 Turbo AI</li>
+                    <li onclick="openAiModal()" data-i18n="nav_ai">
+                        🤖 Turbo AI
+                    </li>
+                    <li
+                        onclick="switchTab('settings', this)"
+                        data-i18n="nav_settings"
+                    >
+                        ⚙️ Settings
+                    </li>
                 </ul>
             </nav>
 
@@ -204,7 +231,9 @@
                         <button id="menu-toggle" onclick="toggleSidebar()">
                             ☰
                         </button>
-                        <h1 id="page-title">Dashboard</h1>
+                        <h1 id="page-title" data-i18n="title_dashboard">
+                            Dashboard
+                        </h1>
                     </div>
                     <div class="header-right">
                         <span id="live-clock">00:00</span>
@@ -238,8 +267,8 @@
                     style="display: block"
                 >
                     <div class="glass-panel summary-card">
-                        <h2>Session History</h2>
-                        <p>
+                        <h2 data-i18n="header_history">Session History</h2>
+                        <p data-i18n="desc_history">
                             All completed focus blocks are logged here
                             automatically.
                         </p>
@@ -254,45 +283,59 @@
                 >
                     <div class="timer-layout">
                         <div class="config-panel glass-panel">
-                            <h3>Workflow Presets</h3>
+                            <h3 data-i18n="timer_presets">Workflow Presets</h3>
                             <div class="preset-buttons">
-                                <button onclick="applyPreset('deep')">
+                                <button
+                                    onclick="applyPreset('deep')"
+                                    data-i18n="preset_deep"
+                                >
                                     Deep Work (90m)
                                 </button>
-                                <button onclick="applyPreset('cram')">
+                                <button
+                                    onclick="applyPreset('cram')"
+                                    data-i18n="preset_cram"
+                                >
                                     Exam Cram (45m)
                                 </button>
-                                <button onclick="applyPreset('light')">
+                                <button
+                                    onclick="applyPreset('light')"
+                                    data-i18n="preset_light"
+                                >
                                     Light Study (20m)
                                 </button>
                             </div>
                             <hr />
                             <label
-                                >Focus (mins)<input
-                                    type="number"
-                                    id="focusTime"
-                                    value="25"
+                                ><span data-i18n="config_focus"
+                                    >Focus (mins)</span
+                                ><input type="number" id="focusTime" value="25"
                             /></label>
                             <label
-                                >Short Break<input
+                                ><span data-i18n="config_short"
+                                    >Short Break</span
+                                ><input
                                     type="number"
                                     id="shortBreakTime"
                                     value="5"
                             /></label>
                             <label
-                                >Long Break<input
+                                ><span data-i18n="config_long">Long Break</span
+                                ><input
                                     type="number"
                                     id="longBreakTime"
                                     value="15"
                             /></label>
                             <label
-                                >Cycles<input
+                                ><span data-i18n="config_cycles">Cycles</span
+                                ><input
                                     type="number"
                                     id="cyclesConfig"
                                     value="4"
                             /></label>
                             <label class="task-binder"
-                                >Current Task:
+                                ><span data-i18n="config_task"
+                                    >Current Task:</span
+                                >
                                 <select id="active-task">
                                     <option value="None">None</option>
                                 </select>
@@ -300,6 +343,7 @@
                             <button
                                 onclick="applyTimerConfig()"
                                 class="save-btn btn-primary"
+                                data-i18n="btn_apply"
                             >
                                 Apply & Reset
                             </button>
@@ -321,12 +365,14 @@
                                 <button
                                     onclick="startTimer()"
                                     class="start-btn btn-primary"
+                                    data-i18n="btn_start"
                                 >
                                     Start
                                 </button>
                                 <button
                                     onclick="pauseTimer()"
                                     class="pause-btn"
+                                    data-i18n="btn_pause"
                                 >
                                     Pause
                                 </button>
@@ -339,6 +385,7 @@
                                 <button
                                     onclick="resetTimer()"
                                     class="reset-btn"
+                                    data-i18n="btn_reset"
                                 >
                                     Reset
                                 </button>
@@ -357,9 +404,14 @@
                             type="text"
                             id="todo-input"
                             placeholder="Add a new task..."
+                            data-i18n="placeholder_task"
                             onkeypress="handleTodoEnter(event)"
                         />
-                        <button class="btn-primary" onclick="addTodo()">
+                        <button
+                            class="btn-primary"
+                            onclick="addTodo()"
+                            data-i18n="btn_add"
+                        >
                             Add Task
                         </button>
                     </div>
@@ -378,13 +430,13 @@
                             <button id="next-month-btn">&gt;</button>
                         </div>
                         <div class="calendar-weekdays">
-                            <div>Sun</div>
-                            <div>Mon</div>
-                            <div>Tue</div>
-                            <div>Wed</div>
-                            <div>Thu</div>
-                            <div>Fri</div>
-                            <div>Sat</div>
+                            <div data-i18n="day_sun">Sun</div>
+                            <div data-i18n="day_mon">Mon</div>
+                            <div data-i18n="day_tue">Tue</div>
+                            <div data-i18n="day_wed">Wed</div>
+                            <div data-i18n="day_thu">Thu</div>
+                            <div data-i18n="day_fri">Fri</div>
+                            <div data-i18n="day_sat">Sat</div>
                         </div>
                         <div
                             id="calendar-days"
@@ -399,13 +451,143 @@
                     style="display: none"
                 >
                     <div class="glass-panel summary-card">
-                        <h2>Flashcards</h2>
-                        <p>
+                        <h2 data-i18n="header_flashcards">Flashcards</h2>
+                        <p data-i18n="desc_flashcards">
                             Your AI-generated flashcards will appear here. Click
                             a card to flip it over.
                         </p>
                     </div>
                     <div id="flashcards-grid" class="grid-list"></div>
+                </section>
+
+                <!-- NEW SETTINGS SECTION -->
+                <section
+                    id="settings-section"
+                    class="tab-content"
+                    style="display: none"
+                >
+                    <div class="glass-panel">
+                        <h2 data-i18n="set_ai_brain">🧠 AI Personalization</h2>
+                        <div class="setting-row">
+                            <label data-i18n="set_persona">AI Persona</label>
+                            <select id="config-persona">
+                                <option value="tutor" data-i18n="opt_tutor">
+                                    Tutor (Patient & Explanatory)
+                                </option>
+                                <option value="coach" data-i18n="opt_coach">
+                                    Coach (Strict & Tough Love)
+                                </option>
+                                <option value="buddy" data-i18n="opt_buddy">
+                                    Buddy (Casual & Friendly)
+                                </option>
+                            </select>
+                        </div>
+                        <div class="setting-row">
+                            <label data-i18n="set_length"
+                                >Response Length</label
+                            >
+                            <select id="config-length">
+                                <option value="short" data-i18n="opt_short">
+                                    Short & Concise
+                                </option>
+                                <option value="medium" data-i18n="opt_med">
+                                    Medium (Balanced)
+                                </option>
+                                <option value="detailed" data-i18n="opt_long">
+                                    Detailed & Comprehensive
+                                </option>
+                            </select>
+                        </div>
+
+                        <hr />
+
+                        <h2 data-i18n="set_localization">🌍 Localization</h2>
+                        <div class="setting-row">
+                            <label data-i18n="set_ui_lang">UI Language</label>
+                            <select id="config-ui-lang">
+                                <option value="en">English</option>
+                                <option value="es">Español (Spanish)</option>
+                                <option value="fr">Français (French)</option>
+                                <option value="hi">हिन्दी (Hindi)</option>
+                                <option value="zh">中文 (Chinese)</option>
+                                <option value="ar">العربية (Arabic)</option>
+                                <option value="de">Deutsch (German)</option>
+                                <option value="ja">日本語 (Japanese)</option>
+                                <option value="ko">한국어 (Korean)</option>
+                                <option value="pt">
+                                    Português (Portuguese)
+                                </option>
+                                <option value="ru">Русский (Russian)</option>
+                            </select>
+                        </div>
+                        <div class="setting-row">
+                            <label data-i18n="set_ai_lang"
+                                >AI Response Language</label
+                            >
+                            <select id="config-ai-lang">
+                                <option value="English">English</option>
+                                <option value="Spanish">
+                                    Español (Spanish)
+                                </option>
+                                <option value="French">
+                                    Français (French)
+                                </option>
+                                <option value="Hindi">हिन्दी (Hindi)</option>
+                                <option value="Chinese">中文 (Chinese)</option>
+                                <option value="Arabic">العربية (Arabic)</option>
+                                <option value="German">Deutsch (German)</option>
+                                <option value="Japanese">
+                                    日本語 (Japanese)
+                                </option>
+                                <option value="Korean">한국어 (Korean)</option>
+                                <option value="Portuguese">
+                                    Português (Portuguese)
+                                </option>
+                                <option value="Russian">
+                                    Русский (Russian)
+                                </option>
+                            </select>
+                        </div>
+
+                        <hr />
+
+                        <h2 data-i18n="set_data">🔒 Data & Privacy</h2>
+                        <div class="setting-row">
+                            <p data-i18n="set_export_desc">
+                                Download a copy of your study logs and tasks.
+                            </p>
+                            <button
+                                class="btn-secondary"
+                                onclick="exportData()"
+                                data-i18n="btn_export"
+                            >
+                                📥 Export Data (CSV)
+                            </button>
+                        </div>
+                        <div class="setting-row danger-zone">
+                            <p data-i18n="set_wipe_desc">
+                                Permanently delete all tasks, logs, and exams
+                                from the cloud.
+                            </p>
+                            <button
+                                class="btn-danger"
+                                onclick="wipeData()"
+                                data-i18n="btn_wipe"
+                            >
+                                🗑️ Wipe All Data
+                            </button>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button
+                                class="btn-primary save-settings-btn"
+                                onclick="saveSettings()"
+                                data-i18n="btn_save_config"
+                            >
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
                 </section>
             </main>
         </div>
