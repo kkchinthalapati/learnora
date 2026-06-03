@@ -886,7 +886,7 @@ window.sendChat = async function () {
 
     const aiMsg = document.createElement("div");
     aiMsg.className = "chat-bubble ai-bubble";
-    aiMsg.innerText = aiReply;
+    aiMsg.innerHTML = marked.parse(aiReply);
     msgBox.appendChild(aiMsg);
 
     msgBox.scrollTop = msgBox.scrollHeight;
