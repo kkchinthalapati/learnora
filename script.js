@@ -30,13 +30,24 @@ function updateAuthUI(session) {
   }
 }
 
-supabase.auth.onAuthStateChange((event, session) => {
-  // Prevent crash if DOM isn't ready
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => updateAuthUI(session));
-  } else {
-    updateAuthUI(session);
+supabase.auth.onAuthStateChange(async (event, session) => {
+  // 1. If we have a session, double check it with the server
+  if (session) {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    // 2. If the user doesn't exist on the server (because you deleted them),
+    // force a sign out and clear local storage immediately!
+    if (error || !user) {
+      await supabase.auth.signOut();
+      localStorage.clear();
+      location.reload();
+      return;
+    }
   }
+  updateAuthUI(session);
 });
 
 function initializeAppData() {
