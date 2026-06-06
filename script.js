@@ -732,9 +732,6 @@ function renderDashboardWidgets(totalMinutes = 0) {
 // ==========================================
 // CALENDAR & EXAM SYSTEM (RLS Protected)
 // ==========================================
-let currentDisplayDate = new Date();
-let cachedExams = [];
-
 async function initializeCalendar() {
   const grid = document.getElementById("calendar-days");
   if (!grid) return;
