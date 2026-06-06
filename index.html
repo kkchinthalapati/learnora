@@ -8,7 +8,98 @@
         <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     </head>
     <body>
-        <div id="main-app" style="display: flex; width: 100%; height: 100vh">
+        <div id="auth-wall" class="auth-wrapper" style="display: flex">
+            <div class="auth-layout">
+                <div class="auth-card">
+                    <div class="brand-header">
+                        <img
+                            src="study-planner-imageandlogo.jpg"
+                            class="auth-logo"
+                            alt="Logo"
+                        />
+                        <h1>Welcome Back</h1>
+                        <p>Plan Better. Study Smarter. Achieve More.</p>
+                    </div>
+                    <div id="login-view" class="auth-form">
+                        <div class="input-group">
+                            <input
+                                type="email"
+                                id="login-email"
+                                placeholder="Email Address"
+                                required
+                            />
+                        </div>
+                        <div class="input-group">
+                            <input
+                                type="password"
+                                id="login-password"
+                                placeholder="Password"
+                                required
+                            />
+                        </div>
+                        <button class="btn-primary" onclick="handleLogin()">
+                            Log In
+                        </button>
+                        <p class="toggle-text">
+                            New here?
+                            <span
+                                class="auth-link"
+                                onclick="switchAuth('signup')"
+                                >Create an account</span
+                            >
+                        </p>
+                    </div>
+                    <div
+                        id="signup-view"
+                        class="auth-form"
+                        style="display: none"
+                    >
+                        <div class="input-group">
+                            <input
+                                type="text"
+                                id="signup-name"
+                                placeholder="Full Name"
+                                required
+                            />
+                        </div>
+                        <div class="input-group">
+                            <input
+                                type="email"
+                                id="signup-email"
+                                placeholder="Email Address"
+                                required
+                            />
+                        </div>
+                        <div class="input-group">
+                            <input
+                                type="password"
+                                id="signup-password"
+                                placeholder="Password"
+                                required
+                            />
+                        </div>
+                        <button class="btn-primary" onclick="handleSignup()">
+                            Create Account
+                        </button>
+                        <p class="toggle-text">
+                            Already have an account?
+                            <span
+                                class="auth-link"
+                                onclick="switchAuth('login')"
+                                >Log In</span
+                            >
+                        </p>
+                    </div>
+                </div>
+                <div class="auth-visual">
+                    <div class="visual-content">
+                        <h2>Keep your study data<br />secure and synced.</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="main-app" style="display: none; width: 100%; height: 100vh">
             <nav class="sidebar" id="sidebar">
                 <h2 class="brand">Learnora</h2>
                 <ul class="nav-links">

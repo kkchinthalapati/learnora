@@ -5,6 +5,47 @@ const supabaseUrl = "https://mlvgqwqiynpwpwzqufdf.supabase.co";
 const supabaseKey = "sb_publishable_mN1UvxPjHhn6L583LjrSFw_FWY8kRrt";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// --- AUTH LISTENER (BEAST MODE) ---
+supabase.auth.onAuthStateChange((event, session) => {
+  const wall = document.getElementById("auth-wall");
+  const app = document.getElementById("main-app");
+  if (session) {
+    if (wall) wall.style.display = "none";
+    if (app) app.style.display = "flex";
+  } else {
+    if (wall) wall.style.display = "flex";
+    if (app) app.style.display = "none";
+  }
+});
+
+// --- AUTH ACTIONS ---
+window.handleLogin = async function () {
+  const email = document.getElementById("login-email").value;
+  const password = document.getElementById("login-password").value;
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) showNotification("Login failed: " + error.message);
+};
+
+window.handleSignup = async function () {
+  const name = document.getElementById("signup-name").value;
+  const email = document.getElementById("signup-email").value;
+  const password = document.getElementById("signup-password").value;
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: name } },
+  });
+  if (error) showNotification("Signup failed: " + error.message);
+  else showNotification("Check your email for confirmation!", "success");
+};
+
+window.switchAuth = function (view) {
+  document.getElementById("login-view").style.display =
+    view === "login" ? "flex" : "none";
+  document.getElementById("signup-view").style.display =
+    view === "signup" ? "flex" : "none";
+};
+
 // --- STATE VARIABLES ---
 window.currentAiFile = null;
 
@@ -111,11 +152,9 @@ window.wipeData = async function () {
     return;
 
   try {
-    // Delete all visible rows (since RLS is off, this is a total wipe for the public table)
     await supabase.from("tasks").delete().neq("id", 0);
     await supabase.from("exams").delete().neq("id", 0);
 
-    // Local deletes
     localStorage.removeItem("sessions");
     localStorage.removeItem("timer_state");
     localStorage.removeItem("timer_end_time");
@@ -497,7 +536,7 @@ function renderLogs() {
     const taskStr =
       log.task !== "None" ? ` on <strong>${log.task}</strong>` : "";
     li.innerHTML = `<span><span class="log-mode">${log.minutes}m Focus</span>${taskStr}</span> <span>${log.timestamp}</span>`;
-    list.appendChild(li);
+    li.appendChild(li);
   });
 }
 renderLogs();
@@ -725,7 +764,6 @@ window.renderFlashcards = function (flashcardsArray) {
   const grid = document.getElementById("flashcards-grid");
   if (!grid) return;
   grid.innerHTML = "";
-
   flashcardsArray.forEach((card) => {
     const div = document.createElement("div");
     div.className = "card-container";
@@ -733,10 +771,8 @@ window.renderFlashcards = function (flashcardsArray) {
     div.innerHTML = `<div class="card-inner"><div class="card-front">${card.front}</div><div class="card-back">${card.back}</div></div>`;
     grid.appendChild(div);
   });
-
   const flashcardTabBtn = document.querySelector('li[onclick*="flashcards"]');
   if (flashcardTabBtn) switchTab("flashcards", flashcardTabBtn);
-
   document.getElementById("turbo-chat").classList.add("hidden");
   showNotification("Flashcards generated!", "success");
 };
@@ -750,18 +786,15 @@ window.sendChat = async function () {
 
   const userQuery = input.value || "Please analyze this file.";
   const payloadFile = window.currentAiFile;
-
   const userMsg = document.createElement("div");
   userMsg.className = "chat-bubble user-bubble";
   userMsg.innerHTML = payloadFile
     ? `📎 <em>${payloadFile.name}</em><br/><br/>${userQuery}`
     : userQuery;
   msgBox.appendChild(userMsg);
-
   input.value = "";
   window.removeAiFile();
   msgBox.scrollTop = msgBox.scrollHeight;
-
   typingIndicator.classList.remove("hidden");
   msgBox.appendChild(typingIndicator);
   msgBox.scrollTop = msgBox.scrollHeight;
@@ -774,20 +807,15 @@ window.sendChat = async function () {
         settings: window.userSettings,
       },
     });
-
     if (error) throw error;
     typingIndicator.classList.add("hidden");
-
     try {
       const parsed = JSON.parse(data.text);
       if (Array.isArray(parsed)) {
         window.renderFlashcards(parsed);
         return;
       }
-    } catch (e) {
-      // Not JSON, text rendering below
-    }
-
+    } catch (e) {}
     const aiMsg = document.createElement("div");
     aiMsg.className = "chat-bubble ai-bubble";
     aiMsg.innerHTML = marked.parse(data.text || "No response.");
@@ -810,15 +838,10 @@ window.handleChatEnter = function (e) {
 // INITIALIZATION
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
-  // Wrap non-critical UI init in a timeout so DOM paints correctly first
   setTimeout(() => {
     loadSettingsToUI();
     applyTranslations();
   }, 50);
-
-  fetchTodos();
-  initializeCalendar();
-  restoreTimerState();
 
   document
     .getElementById("prev-month-btn")
@@ -838,7 +861,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const aiModal = document.getElementById("turbo-chat");
   const dragOverlay = document.getElementById("drag-overlay");
-
   if (aiModal && dragOverlay) {
     aiModal.addEventListener("dragover", (e) => {
       e.preventDefault();
