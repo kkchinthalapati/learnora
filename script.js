@@ -11,43 +11,64 @@ let todos = [];
 let sessionLogs = JSON.parse(localStorage.getItem("sessions")) || [];
 let cachedExams = [];
 let currentDisplayDate = new Date();
+let appInitialized = false; // Prevents double-fetching data
 
 // ==========================================
-// APP INITIALIZATION & AUTH (BUG FIXED)
+// APP INITIALIZATION & AUTH (GHOST-PROOF)
 // ==========================================
 
-// We wrap the UI update in a function to ensure it runs AFTER the HTML is fully loaded
 function updateAuthUI(session) {
   const wall = document.getElementById("auth-wall");
   const app = document.getElementById("main-app");
+
   if (session) {
     if (wall) wall.style.display = "none";
     if (app) app.style.display = "flex";
-    initializeAppData(); // Load data only when authenticated
+
+    // Only load data once per login
+    if (!appInitialized) {
+      initializeAppData();
+      appInitialized = true;
+    }
   } else {
     if (wall) wall.style.display = "flex";
     if (app) app.style.display = "none";
+    appInitialized = false;
   }
 }
 
-supabase.auth.onAuthStateChange(async (event, session) => {
-  // 1. If we have a session, double check it with the server
+// 1. Initial Boot Check (Runs once when page loads)
+async function checkSessionAndBoot() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   if (session) {
+    // Hard network check: Verify the user still exists in the database
     const {
       data: { user },
       error,
     } = await supabase.auth.getUser();
 
-    // 2. If the user doesn't exist on the server (because you deleted them),
-    // force a sign out and clear local storage immediately!
     if (error || !user) {
+      console.warn("Ghost session detected. Purging local cache...");
       await supabase.auth.signOut();
-      localStorage.clear();
-      location.reload();
+      localStorage.clear(); // Nuke all browser data
+      updateAuthUI(null);
       return;
     }
   }
   updateAuthUI(session);
+}
+
+// Fire the boot sequence
+checkSessionAndBoot();
+
+// 2. Listen for active login/logout clicks
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+    updateAuthUI(session);
+  }
 });
 
 function initializeAppData() {
@@ -57,7 +78,7 @@ function initializeAppData() {
   applyTranslations();
   restoreTimerState();
   loadFavoriteTimes();
-  renderLogs(); // Triggers dashboard widgets update
+  renderLogs();
 }
 
 // --- AUTH ACTIONS ---
@@ -156,6 +177,7 @@ window.exportData = async function () {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
+
     const { data: tasks } = await supabase
       .from("tasks")
       .select("*")
@@ -220,12 +242,17 @@ window.wipeData = async function () {
 
     renderLogs();
     renderTodos();
-    initializeCalendar();
+    renderCalendarStructure();
 
     showNotification("All data wiped successfully.", "success");
   } catch (err) {
     showNotification("Failed to wipe data: " + err.message);
   }
+};
+
+window.logoutUser = async function () {
+  await supabase.auth.signOut();
+  updateAuthUI(null);
 };
 
 // --- TOAST NOTIFICATIONS ---
@@ -446,7 +473,6 @@ function applyPreset(type) {
 }
 
 function applyTimerConfig() {
-  // Input Validation (Regex strip non-numeric)
   const focusInput = document
     .getElementById("focusTime")
     .value.replace(/[^0-9]/g, "");
@@ -538,10 +564,13 @@ function updateTimerDisplay() {
   const s = (timeLeft % 60).toString().padStart(2, "0");
   const display = document.getElementById("time-display");
   if (display) display.innerText = `${m}:${s}`;
+
   const mode = document.getElementById("timer-mode");
   if (mode) mode.innerText = currentMode + " Mode";
+
   const cycle = document.getElementById("cycle-counter");
   if (cycle) cycle.innerText = `Cycle: ${completedCycles} / ${config.cycles}`;
+
   const prog = document.getElementById("timer-progress");
   if (prog)
     prog.style.width = `${((totalSessionTime - timeLeft) / totalSessionTime) * 100}%`;
@@ -715,7 +744,6 @@ function renderDashboardWidgets(totalMinutes = 0) {
     .filter((e) => e.status !== "Completed")
     .slice(0, 3);
 
-  // BUG FIX: Using backticks (``) instead of double quotes to prevent syntax crash
   let examsHtml =
     upcoming.length > 0
       ? upcoming
@@ -727,17 +755,17 @@ function renderDashboardWidgets(totalMinutes = 0) {
       : `<div style="opacity: 0.6;">No upcoming exams! Relax.</div>`;
 
   widgetContainer.innerHTML = `
-      <div class="glass-panel" style="padding: 24px; margin-bottom: 0;">
-          <h3 style="opacity: 0.8; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">📈 Total Focus Time</h3>
-          <h2 style="font-size: 40px; color: var(--primary); margin-top: 10px; line-height: 1;">${hours} <span style="font-size: 16px; color: var(--text-color);">hours</span></h2>
-      </div>
-      <div class="glass-panel" style="padding: 24px; margin-bottom: 0;">
-          <h3 style="opacity: 0.8; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">🚀 Upcoming Deadlines</h3>
-          <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 12px;">
-              ${examsHtml}
-          </div>
-      </div>
-  `;
+        <div class="glass-panel" style="padding: 24px; margin-bottom: 0;">
+            <h3 style="opacity: 0.8; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">📈 Total Focus Time</h3>
+            <h2 style="font-size: 40px; color: var(--primary); margin-top: 10px; line-height: 1;">${hours} <span style="font-size: 16px; color: var(--text-color);">hours</span></h2>
+        </div>
+        <div class="glass-panel" style="padding: 24px; margin-bottom: 0;">
+            <h3 style="opacity: 0.8; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">🚀 Upcoming Deadlines</h3>
+            <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 12px;">
+                ${examsHtml}
+            </div>
+        </div>
+    `;
 }
 
 // ==========================================
@@ -1055,7 +1083,7 @@ window.handleChatEnter = function (e) {
 };
 
 // ==========================================
-// BIND EVENTS (Safe from loading issues)
+// BIND EVENTS
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
   document
@@ -1076,6 +1104,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const aiModal = document.getElementById("turbo-chat");
   const dragOverlay = document.getElementById("drag-overlay");
+
   if (aiModal && dragOverlay) {
     aiModal.addEventListener("dragover", (e) => {
       e.preventDefault();
