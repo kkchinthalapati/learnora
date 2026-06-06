@@ -111,20 +111,9 @@ window.wipeData = async function () {
     return;
 
   try {
-    // Attempt to get user to constrain delete, otherwise proceed carefully based on RLS
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    // Supabase deletes
-    if (user) {
-      await supabase.from("tasks").delete().eq("user_id", user.id);
-      await supabase.from("exams").delete().eq("user_id", user.id);
-    } else {
-      // If anon RLS is used, this deletes visible rows
-      await supabase.from("tasks").delete().neq("id", 0);
-      await supabase.from("exams").delete().neq("id", 0);
-    }
+    // Delete all visible rows (since RLS is off, this is a total wipe for the public table)
+    await supabase.from("tasks").delete().neq("id", 0);
+    await supabase.from("exams").delete().neq("id", 0);
 
     // Local deletes
     localStorage.removeItem("sessions");
@@ -181,9 +170,7 @@ function switchTab(tabId, element) {
     .forEach((li) => li.classList.remove("active"));
 
   const target = document.getElementById(`${tabId}-section`);
-  if (target) {
-    target.style.display = "block";
-  }
+  if (target) target.style.display = "block";
   if (element) element.classList.add("active");
 
   const dict =
@@ -235,7 +222,7 @@ function randomizeQuote() {
 randomizeQuote();
 
 // ==========================================
-// CLOUD TO-DO ENGINE (Supabase)
+// CLOUD TO-DO ENGINE (Supabase - RLS Off)
 // ==========================================
 let todos = [];
 
@@ -255,19 +242,15 @@ async function addTodo() {
   const input = document.getElementById("todo-input");
   if (!input || !input.value.trim()) return;
 
-  // Safe user fallback for authless inserts
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
   const insertPayload = { text: input.value, is_done: false };
-  if (user) insertPayload.user_id = user.id;
-
   const { error } = await supabase.from("tasks").insert([insertPayload]);
 
   if (!error) {
     input.value = "";
     fetchTodos();
-  } else showNotification("Error adding task: " + error.message);
+  } else {
+    showNotification("Error adding task: " + error.message);
+  }
 }
 
 function handleTodoEnter(e) {
@@ -318,12 +301,11 @@ function updateTaskDropdown() {
 // ==========================================
 // PERSISTENT TIMER & SESSION LOGGING
 // ==========================================
-let timerInterval;
-let isRunning = false;
-let currentMode = "Focus";
-let completedCycles = 0;
-let targetEndTime = null;
-
+let timerInterval,
+  isRunning = false,
+  currentMode = "Focus",
+  completedCycles = 0,
+  targetEndTime = null;
 let config = { focus: 25, short: 5, long: 15, cycles: 4 };
 let totalSessionTime = 25 * 60;
 let timeLeft = totalSessionTime;
@@ -372,13 +354,10 @@ function updateTimerDisplay() {
   const s = (timeLeft % 60).toString().padStart(2, "0");
   const display = document.getElementById("time-display");
   if (display) display.innerText = `${m}:${s}`;
-
   const mode = document.getElementById("timer-mode");
   if (mode) mode.innerText = currentMode + " Mode";
-
   const cycle = document.getElementById("cycle-counter");
   if (cycle) cycle.innerText = `Cycle: ${completedCycles} / ${config.cycles}`;
-
   const prog = document.getElementById("timer-progress");
   if (prog)
     prog.style.width = `${((totalSessionTime - timeLeft) / totalSessionTime) * 100}%`;
@@ -387,16 +366,13 @@ function updateTimerDisplay() {
 function startTimer() {
   if (isRunning) return;
   isRunning = true;
-
   targetEndTime = Date.now() + timeLeft * 1000;
   localStorage.setItem("timer_end_time", targetEndTime);
   saveTimerState();
-
   updateTimerDisplay();
-  timerInterval = setInterval(() => {
-    const now = Date.now();
-    timeLeft = Math.round((targetEndTime - now) / 1000);
 
+  timerInterval = setInterval(() => {
+    timeLeft = Math.round((targetEndTime - Date.now()) / 1000);
     if (timeLeft <= 0) {
       timeLeft = 0;
       updateTimerDisplay();
@@ -439,7 +415,6 @@ function pauseTimer() {
   clearInterval(timerInterval);
   isRunning = false;
   targetEndTime = null;
-
   localStorage.removeItem("timer_end_time");
   saveTimerState();
   updateTimerDisplay();
@@ -453,7 +428,6 @@ function resetTimer() {
   timeLeft = totalSessionTime;
   completedCycles = 0;
   targetEndTime = null;
-
   localStorage.removeItem("timer_end_time");
   saveTimerState();
   updateTimerDisplay();
@@ -462,7 +436,6 @@ function resetTimer() {
 function extendTimer() {
   timeLeft += 5 * 60;
   totalSessionTime += 5 * 60;
-
   if (isRunning) {
     targetEndTime += 5 * 60 * 1000;
     localStorage.setItem("timer_end_time", targetEndTime);
@@ -484,7 +457,6 @@ function restoreTimerState() {
     if (savedState.isRunning && savedEndTime) {
       const now = Date.now();
       targetEndTime = parseInt(savedEndTime, 10);
-
       if (targetEndTime > now) {
         timeLeft = Math.round((targetEndTime - now) / 1000);
         startTimer();
@@ -531,7 +503,7 @@ function renderLogs() {
 renderLogs();
 
 // ==========================================
-// CALENDAR & EXAM SYSTEM (Supabase)
+// CALENDAR & EXAM SYSTEM (Supabase - RLS Off)
 // ==========================================
 let currentDisplayDate = new Date();
 let cachedExams = [];
@@ -559,7 +531,6 @@ function renderCalendarStructure() {
   calendarDaysGrid.innerHTML = "";
   const year = currentDisplayDate.getFullYear();
   const month = currentDisplayDate.getMonth();
-
   const monthNames = [
     "January",
     "February",
@@ -606,9 +577,8 @@ function renderCalendarStructure() {
     }
 
     dayCell.addEventListener("click", (e) => {
-      if (e.target === dayCell || e.target.className === "day-number") {
+      if (e.target === dayCell || e.target.className === "day-number")
         showModal(null, currentStringDate);
-      }
     });
 
     const matchingExams = cachedExams.filter(
@@ -624,7 +594,6 @@ function renderCalendarStructure() {
       });
       dayCell.appendChild(examElement);
     });
-
     calendarDaysGrid.appendChild(dayCell);
   }
 }
@@ -665,37 +634,20 @@ function hideModal() {
 
 async function handleExamFormSubmit(e) {
   e.preventDefault();
-
   const examId = document.getElementById("modal-exam-id").value;
-  const exam_name = document.getElementById("exam-name").value;
-  const exam_date = document.getElementById("exam-date").value;
-  const difficulty = document.getElementById("exam-difficulty").value;
-  const status = document.getElementById("exam-status").value;
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   const examPayload = {
-    exam_name,
-    exam_date,
-    difficulty,
-    status,
+    exam_name: document.getElementById("exam-name").value,
+    exam_date: document.getElementById("exam-date").value,
+    difficulty: document.getElementById("exam-difficulty").value,
+    status: document.getElementById("exam-status").value,
   };
-
-  if (user) examPayload.user_id = user.id;
 
   try {
     if (examId) {
-      const { error } = await supabase
-        .from("exams")
-        .update(examPayload)
-        .eq("id", examId);
-      if (error) throw error;
+      await supabase.from("exams").update(examPayload).eq("id", examId);
       showNotification("Exam updated!", "success");
     } else {
-      const { error } = await supabase.from("exams").insert([examPayload]);
-      if (error) throw error;
+      await supabase.from("exams").insert([examPayload]);
       showNotification("Exam scheduled!", "success");
     }
     hideModal();
@@ -743,9 +695,8 @@ window.toggleAiFullscreen = function () {
 };
 
 window.handleAiFileInput = function (e) {
-  if (e.target.files && e.target.files.length > 0) {
+  if (e.target.files && e.target.files.length > 0)
     window.processAiFile(e.target.files[0]);
-  }
 };
 
 window.processAiFile = function (file) {
@@ -825,7 +776,6 @@ window.sendChat = async function () {
     });
 
     if (error) throw error;
-
     typingIndicator.classList.add("hidden");
 
     try {
@@ -835,14 +785,13 @@ window.sendChat = async function () {
         return;
       }
     } catch (e) {
-      // Not JSON
+      // Not JSON, text rendering below
     }
 
     const aiMsg = document.createElement("div");
     aiMsg.className = "chat-bubble ai-bubble";
     aiMsg.innerHTML = marked.parse(data.text || "No response.");
     msgBox.appendChild(aiMsg);
-
     msgBox.scrollTop = msgBox.scrollHeight;
   } catch (err) {
     typingIndicator.classList.add("hidden");
@@ -861,11 +810,14 @@ window.handleChatEnter = function (e) {
 // INITIALIZATION
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
-  // Launch Directly Into App
+  // Wrap non-critical UI init in a timeout so DOM paints correctly first
+  setTimeout(() => {
+    loadSettingsToUI();
+    applyTranslations();
+  }, 50);
+
   fetchTodos();
   initializeCalendar();
-  loadSettingsToUI();
-  applyTranslations();
   restoreTimerState();
 
   document
@@ -946,7 +898,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// Globals
+// UI Event Binding Globals Only
 window.switchTab = switchTab;
 window.toggleSidebar = toggleSidebar;
 window.addTodo = addTodo;
