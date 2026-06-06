@@ -6,9 +6,6 @@ const supabaseKey = "sb_publishable_mN1UvxPjHhn6L583LjrSFw_FWY8kRrt";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // --- STATE VARIABLES ---
-let canResend = true;
-let resendCooldown = 60;
-window.signupEmailCache = "";
 window.currentAiFile = null;
 
 // ==========================================
@@ -39,10 +36,7 @@ window.saveSettings = function () {
     JSON.stringify(window.userSettings),
   );
   applyTranslations(); // Update UI immediately
-  showNotification(
-    "Your settings have been saved! Refresh to see changes.",
-    "success",
-  );
+  showNotification("Your settings have been saved!", "success");
 };
 
 function loadSettingsToUI() {
@@ -117,12 +111,20 @@ window.wipeData = async function () {
     return;
 
   try {
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) throw new Error("No user session");
+    // Attempt to get user to constrain delete, otherwise proceed carefully based on RLS
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     // Supabase deletes
-    await supabase.from("tasks").delete().eq("user_id", user.id);
-    await supabase.from("exams").delete().eq("user_id", user.id);
+    if (user) {
+      await supabase.from("tasks").delete().eq("user_id", user.id);
+      await supabase.from("exams").delete().eq("user_id", user.id);
+    } else {
+      // If anon RLS is used, this deletes visible rows
+      await supabase.from("tasks").delete().neq("id", 0);
+      await supabase.from("exams").delete().neq("id", 0);
+    }
 
     // Local deletes
     localStorage.removeItem("sessions");
@@ -152,171 +154,6 @@ function showNotification(message, type = "error") {
   toast.innerText = message;
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 4000);
-}
-
-// --- AUTH WALL LOGIC ---
-supabase.auth.onAuthStateChange((event, session) => {
-  const wall = document.getElementById("auth-wall");
-  const app = document.getElementById("main-app");
-  if (session && wall && app) {
-    wall.style.display = "none";
-    app.style.display = "flex";
-
-    // Initialize Systems
-    fetchTodos();
-    initializeCalendar();
-    loadSettingsToUI();
-    applyTranslations();
-  } else if (wall && app) {
-    wall.style.display = "flex";
-    app.style.display = "none";
-  }
-});
-
-function switchAuthView(view) {
-  document.getElementById("login-view").style.display = "none";
-  document.getElementById("signup-view").style.display = "none";
-  document.getElementById("otp-view").style.display = "none";
-
-  const title = document.getElementById("auth-title");
-  const subtitle = document.getElementById("auth-subtitle");
-
-  if (view === "login") {
-    document.getElementById("login-view").style.display = "flex";
-    title.innerText = "Welcome Back";
-    subtitle.innerText = "Plan Better. Study Smarter. Achieve More.";
-  } else if (view === "signup") {
-    document.getElementById("signup-view").style.display = "flex";
-    title.innerText = "Create Account";
-    subtitle.innerText = "Join us and start studying smarter.";
-  } else if (view === "otp") {
-    document.getElementById("otp-view").style.display = "flex";
-    title.innerText = "Check Your Email";
-    subtitle.innerText = "Enter the 6-digit code we sent you.";
-    startOtpTimer();
-  }
-}
-
-async function handleLogin() {
-  const email = document.getElementById("login-email").value;
-  const password = document.getElementById("login-password").value;
-  if (!email || !password)
-    return showNotification("Please enter email and password.");
-
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) showNotification(error.message);
-}
-
-async function handleSignup() {
-  const name = document.getElementById("signup-name").value;
-  const dob = document.getElementById("signup-dob").value;
-  const email = document.getElementById("signup-email").value;
-  const password = document.getElementById("signup-password").value;
-  const method = document.querySelector(
-    'input[name="auth-method"]:checked',
-  ).value;
-
-  if (!name || !dob || !email || !password) {
-    return showNotification("Please fill in all fields.");
-  }
-
-  const birthDate = new Date(dob);
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const m = today.getMonth() - birthDate.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-
-  if (age < 13) {
-    return showNotification("You must be at least 13 years old to sign up.");
-  }
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      shouldCreateUser: true,
-      data: { full_name: name, dob: dob, password: password },
-      emailRedirectTo: method === "link" ? window.location.origin : undefined,
-    },
-  });
-
-  if (error) {
-    showNotification(error.message);
-  } else {
-    window.signupEmailCache = email;
-    switchAuthView("otp");
-    showNotification(
-      method === "otp"
-        ? "Code sent to your email!"
-        : "Link sent to your email!",
-      "success",
-    );
-  }
-}
-
-async function handleResend() {
-  if (!canResend)
-    return showNotification("Please wait 60 seconds before resending.");
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email: window.signupEmailCache,
-  });
-  if (error) return showNotification(error.message);
-
-  canResend = false;
-  showNotification("Code/Link resent successfully!", "success");
-
-  let timer = resendCooldown;
-  const resendBtn = document.getElementById("resend-btn");
-
-  const interval = setInterval(() => {
-    timer--;
-    resendBtn.innerText = `Resend (${timer}s)`;
-    if (timer <= 0) {
-      canResend = true;
-      resendBtn.innerText = "Resend Code";
-      clearInterval(interval);
-    }
-  }, 1000);
-}
-
-async function handleVerifyOtp() {
-  const token = document.getElementById("otp-code").value;
-  const email = window.signupEmailCache;
-
-  if (!token || token.length !== 8)
-    return showNotification("Enter a valid 8-digit code.");
-
-  const { error } = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type: "signup",
-  });
-
-  if (error) {
-    showNotification(error.message);
-  } else {
-    showNotification("Logged in successfully!", "success");
-  }
-}
-
-let otpInterval;
-function startOtpTimer() {
-  clearInterval(otpInterval);
-  let timeLeft = 10 * 60;
-  const timerEl = document.getElementById("otp-timer");
-  otpInterval = setInterval(() => {
-    if (timeLeft <= 0) {
-      clearInterval(otpInterval);
-      timerEl.innerText = "Code expired. Please resend.";
-      return;
-    }
-    timeLeft--;
-    const m = Math.floor(timeLeft / 60)
-      .toString()
-      .padStart(2, "0");
-    const s = (timeLeft % 60).toString().padStart(2, "0");
-    timerEl.innerText = `${m}:${s}`;
-  }, 1000);
 }
 
 // ==========================================
@@ -417,15 +254,20 @@ async function fetchTodos() {
 async function addTodo() {
   const input = document.getElementById("todo-input");
   if (!input || !input.value.trim()) return;
-  const user = (await supabase.auth.getUser()).data.user;
 
-  const { error } = await supabase
-    .from("tasks")
-    .insert([{ user_id: user.id, text: input.value, is_done: false }]);
+  // Safe user fallback for authless inserts
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const insertPayload = { text: input.value, is_done: false };
+  if (user) insertPayload.user_id = user.id;
+
+  const { error } = await supabase.from("tasks").insert([insertPayload]);
+
   if (!error) {
     input.value = "";
     fetchTodos();
-  } else showNotification("Error adding task.");
+  } else showNotification("Error adding task: " + error.message);
 }
 
 function handleTodoEnter(e) {
@@ -830,17 +672,18 @@ async function handleExamFormSubmit(e) {
   const difficulty = document.getElementById("exam-difficulty").value;
   const status = document.getElementById("exam-status").value;
 
-  const sessionUser = (await supabase.auth.getUser()).data.user;
-  if (!sessionUser)
-    return showNotification("Session validation failed. Re-authenticate.");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const examPayload = {
-    user_id: sessionUser.id,
     exam_name,
     exam_date,
     difficulty,
     status,
   };
+
+  if (user) examPayload.user_id = user.id;
 
   try {
     if (examId) {
@@ -947,7 +790,6 @@ window.renderFlashcards = function (flashcardsArray) {
   showNotification("Flashcards generated!", "success");
 };
 
-// **Updated sendChat - Passing Settings to Backend**
 window.sendChat = async function () {
   const input = document.getElementById("chat-input");
   const msgBox = document.getElementById("chat-messages");
@@ -978,7 +820,7 @@ window.sendChat = async function () {
       body: {
         query: userQuery,
         file: payloadFile,
-        settings: window.userSettings, // Injects Persona, Length, & Language Config
+        settings: window.userSettings,
       },
     });
 
@@ -993,7 +835,7 @@ window.sendChat = async function () {
         return;
       }
     } catch (e) {
-      // Not JSON, continue to Markdown text
+      // Not JSON
     }
 
     const aiMsg = document.createElement("div");
@@ -1015,7 +857,17 @@ window.handleChatEnter = function (e) {
   if (e.key === "Enter") window.sendChat();
 };
 
+// ==========================================
+// INITIALIZATION
+// ==========================================
 document.addEventListener("DOMContentLoaded", () => {
+  // Launch Directly Into App
+  fetchTodos();
+  initializeCalendar();
+  loadSettingsToUI();
+  applyTranslations();
+  restoreTimerState();
+
   document
     .getElementById("prev-month-btn")
     ?.addEventListener("click", () => changeMonth(-1));
@@ -1031,8 +883,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("exam-form")
     ?.addEventListener("submit", handleExamFormSubmit);
-
-  restoreTimerState();
 
   const aiModal = document.getElementById("turbo-chat");
   const dragOverlay = document.getElementById("drag-overlay");
@@ -1097,11 +947,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Globals
-window.handleLogin = handleLogin;
-window.handleSignup = handleSignup;
-window.handleResend = handleResend;
-window.switchAuthView = switchAuthView;
-window.handleVerifyOtp = handleVerifyOtp;
 window.switchTab = switchTab;
 window.toggleSidebar = toggleSidebar;
 window.addTodo = addTodo;

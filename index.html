@@ -8,178 +8,7 @@
         <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     </head>
     <body>
-        <div id="auth-wall" class="auth-container">
-            <div class="auth-card glass-panel">
-                <div class="auth-header">
-                    <img
-                        src="study-planner-imageandlogo.jpg"
-                        alt="Learnora Logo"
-                        class="auth-logo"
-                    />
-                    <h2 id="auth-title">Welcome Back</h2>
-                    <p id="auth-subtitle">
-                        Plan Better. Study Smarter. Achieve More.
-                    </p>
-                </div>
-
-                <div id="login-view" class="auth-form">
-                    <div class="input-group">
-                        <input
-                            type="email"
-                            id="login-email"
-                            placeholder=" "
-                            required
-                        />
-                        <label for="login-email">Email Address</label>
-                    </div>
-                    <div class="input-group">
-                        <input
-                            type="password"
-                            id="login-password"
-                            placeholder=" "
-                            required
-                        />
-                        <label for="login-password">Password</label>
-                    </div>
-                    <div class="auth-actions">
-                        <button class="btn-primary" onclick="handleLogin()">
-                            Log In
-                        </button>
-                        <p class="auth-link" onclick="switchAuthView('signup')">
-                            Don't have an account? Sign up
-                        </p>
-                    </div>
-                </div>
-
-                <div id="signup-view" class="auth-form" style="display: none">
-                    <div class="input-group">
-                        <input
-                            type="text"
-                            id="signup-name"
-                            placeholder=" "
-                            required
-                        />
-                        <label for="signup-name">Full Name</label>
-                    </div>
-                    <div class="input-group">
-                        <input type="date" id="signup-dob" required />
-                        <label for="signup-dob" class="date-label"
-                            >Date of Birth</label
-                        >
-                    </div>
-                    <div class="input-group">
-                        <input
-                            type="email"
-                            id="signup-email"
-                            placeholder=" "
-                            required
-                        />
-                        <label for="signup-email">Email Address</label>
-                    </div>
-                    <div class="input-group">
-                        <input
-                            type="password"
-                            id="signup-password"
-                            placeholder=" "
-                            required
-                        />
-                        <label for="signup-password">Password</label>
-                    </div>
-
-                    <div class="input-group">
-                        <label
-                            style="
-                                position: static;
-                                transform: none;
-                                opacity: 1;
-                                margin-bottom: 8px;
-                                display: block;
-                            "
-                            >Preferred Sign-In Method:</label
-                        >
-                        <div
-                            style="
-                                display: flex;
-                                gap: 15px;
-                                margin-bottom: 20px;
-                            "
-                        >
-                            <label
-                                style="
-                                    display: flex;
-                                    align-items: center;
-                                    gap: 5px;
-                                    cursor: pointer;
-                                "
-                            >
-                                <input
-                                    type="radio"
-                                    name="auth-method"
-                                    value="otp"
-                                    checked
-                                    style="width: auto"
-                                />
-                                OTP Code
-                            </label>
-                            <label
-                                style="
-                                    display: flex;
-                                    align-items: center;
-                                    gap: 5px;
-                                    cursor: pointer;
-                                "
-                            >
-                                <input
-                                    type="radio"
-                                    name="auth-method"
-                                    value="link"
-                                    style="width: auto"
-                                />
-                                Magic Link
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="auth-actions">
-                        <button class="btn-primary" onclick="handleSignup()">
-                            Create Account
-                        </button>
-                        <p class="auth-link" onclick="switchAuthView('login')">
-                            Already have an account? Log in
-                        </p>
-                    </div>
-                </div>
-
-                <div id="otp-view" class="auth-form" style="display: none">
-                    <div class="input-group">
-                        <input
-                            type="text"
-                            id="otp-code"
-                            placeholder=" "
-                            maxlength="8"
-                            required
-                        />
-                        <label for="otp-code">8-Digit Code</label>
-                    </div>
-                    <p id="otp-timer">10:00</p>
-                    <div class="auth-actions">
-                        <button class="btn-primary" onclick="handleVerifyOtp()">
-                            Verify & Log In
-                        </button>
-                        <p
-                            class="auth-link"
-                            id="resend-btn"
-                            onclick="handleResend()"
-                            style="cursor: pointer"
-                        >
-                            Resend Code
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="main-app" style="display: none; width: 100%; height: 100vh">
+        <div id="main-app" style="display: flex; width: 100%; height: 100vh">
             <nav class="sidebar" id="sidebar">
                 <h2 class="brand">Learnora</h2>
                 <ul class="nav-links">
@@ -496,7 +325,9 @@
                                 </option>
                             </select>
                         </div>
+
                         <hr />
+
                         <h2 data-i18n="set_localization">🌍 Localization</h2>
                         <div class="setting-row">
                             <label data-i18n="set_ui_lang">UI Language</label>
@@ -504,13 +335,12 @@
                                 <option value="en">English</option>
                                 <option value="es">Español (Spanish)</option>
                                 <option value="fr">Français (French)</option>
-                                <option value="ar">العربية (Arabic)</option>
                                 <option value="hi">हिन्दी (Hindi)</option>
-                                <option value="zh">中文 (Simplified)</option>
-                                <option value="zh_tw">
-                                    繁體中文 (Traditional)
-                                </option>
+                                <option value="zh">中文 (Chinese)</option>
+                                <option value="ar">العربية (Arabic)</option>
                                 <option value="de">Deutsch (German)</option>
+                                <option value="ja">日本語 (Japanese)</option>
+                                <option value="ko">한국어 (Korean)</option>
                                 <option value="pt">
                                     Português (Portuguese)
                                 </option>
@@ -529,15 +359,14 @@
                                 <option value="French">
                                     Français (French)
                                 </option>
-                                <option value="Arabic">العربية (Arabic)</option>
                                 <option value="Hindi">हिन्दी (Hindi)</option>
-                                <option value="Chinese (Simplified)">
-                                    中文 (Simplified)
-                                </option>
-                                <option value="Chinese (Traditional)">
-                                    繁體中文 (Traditional)
-                                </option>
+                                <option value="Chinese">中文 (Chinese)</option>
+                                <option value="Arabic">العربية (Arabic)</option>
                                 <option value="German">Deutsch (German)</option>
+                                <option value="Japanese">
+                                    日本語 (Japanese)
+                                </option>
+                                <option value="Korean">한국어 (Korean)</option>
                                 <option value="Portuguese">
                                     Português (Portuguese)
                                 </option>
@@ -546,7 +375,9 @@
                                 </option>
                             </select>
                         </div>
+
                         <hr />
+
                         <h2 data-i18n="set_data">🔒 Data & Privacy</h2>
                         <div class="setting-row">
                             <p data-i18n="set_export_desc">
@@ -573,6 +404,7 @@
                                 🗑️ Wipe All Data
                             </button>
                         </div>
+
                         <div class="settings-actions">
                             <button
                                 class="btn-primary save-settings-btn"
