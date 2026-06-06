@@ -12,6 +12,7 @@ supabase.auth.onAuthStateChange((event, session) => {
   if (session) {
     if (wall) wall.style.display = "none";
     if (app) app.style.display = "flex";
+    initializeAppData(); // Load data only when authenticated
   } else {
     if (wall) wall.style.display = "flex";
     if (app) app.style.display = "none";
@@ -48,6 +49,23 @@ window.switchAuth = function (view) {
 
 // --- STATE VARIABLES ---
 window.currentAiFile = null;
+let todos = [];
+let sessionLogs = JSON.parse(localStorage.getItem("sessions")) || [];
+let cachedExams = [];
+let currentDisplayDate = new Date();
+
+// ==========================================
+// APP INITIALIZATION
+// ==========================================
+function initializeAppData() {
+  fetchTodos();
+  initializeCalendar();
+  loadSettingsToUI();
+  applyTranslations();
+  restoreTimerState();
+  loadFavoriteTimes();
+  renderLogs(); // Triggers dashboard widgets update
+}
 
 // ==========================================
 // CONFIGURATION ENGINE & SETTINGS
@@ -63,32 +81,24 @@ window.userSettings =
   JSON.parse(localStorage.getItem("learnora_settings")) || defaultSettings;
 
 window.saveSettings = function () {
-  window.userSettings.aiPersona =
-    document.getElementById("config-persona").value;
-  window.userSettings.aiConciseness =
-    document.getElementById("config-length").value;
-  window.userSettings.uiLanguage =
-    document.getElementById("config-ui-lang").value;
-  window.userSettings.aiLanguage =
-    document.getElementById("config-ai-lang").value;
+  window.userSettings.aiPersona = document.getElementById("config-persona").value;
+  window.userSettings.aiConciseness = document.getElementById("config-length").value;
+  window.userSettings.uiLanguage = document.getElementById("config-ui-lang").value;
+  window.userSettings.aiLanguage = document.getElementById("config-ai-lang").value;
 
   localStorage.setItem(
     "learnora_settings",
     JSON.stringify(window.userSettings),
   );
-  applyTranslations(); // Update UI immediately
+  applyTranslations();
   showNotification("Your settings have been saved!", "success");
 };
 
 function loadSettingsToUI() {
-  document.getElementById("config-persona").value =
-    window.userSettings.aiPersona;
-  document.getElementById("config-length").value =
-    window.userSettings.aiConciseness;
-  document.getElementById("config-ui-lang").value =
-    window.userSettings.uiLanguage;
-  document.getElementById("config-ai-lang").value =
-    window.userSettings.aiLanguage;
+  document.getElementById("config-persona").value = window.userSettings.aiPersona;
+  document.getElementById("config-length").value = window.userSettings.aiConciseness;
+  document.getElementById("config-ui-lang").value = window.userSettings.uiLanguage;
+  document.getElementById("config-ai-lang").value = window.userSettings.aiLanguage;
 }
 
 // --- LOCALIZATION ENGINE ---
@@ -113,22 +123,16 @@ function applyTranslations() {
 // ==========================================
 window.exportData = async function () {
   try {
-    const { data: tasks } = await supabase.from("tasks").select("*");
-    const { data: exams } = await supabase.from("exams").select("*");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: tasks } = await supabase.from("tasks").select("*").eq("user_id", user.id);
+    const { data: exams } = await supabase.from("exams").select("*").eq("user_id", user.id);
 
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += "Type,Name,Status,Date\n";
 
-    if (tasks)
-      tasks.forEach(
-        (t) =>
-          (csvContent += `Task,"${t.text}",${t.is_done ? "Done" : "Pending"},\n`),
-      );
-    if (exams)
-      exams.forEach(
-        (e) =>
-          (csvContent += `Exam,"${e.exam_name}",${e.status},${e.exam_date}\n`),
-      );
+    if (tasks) tasks.forEach((t) => (csvContent += `Task,"${t.text}",${t.is_done ? "Done" : "Pending"},\n`));
+    if (exams) exams.forEach((e) => (csvContent += `Exam,"${e.exam_name}",${e.status},${e.exam_date}\n`));
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -144,20 +148,19 @@ window.exportData = async function () {
 };
 
 window.wipeData = async function () {
-  if (
-    !confirm(
-      "🚨 WARNING: This will permanently delete all tasks, exams, and logs from the cloud. Are you sure?",
-    )
-  )
-    return;
+  if (!confirm("🚨 WARNING: This will permanently delete all tasks, exams, and logs from the cloud. Are you sure?")) return;
 
   try {
-    await supabase.from("tasks").delete().neq("id", 0);
-    await supabase.from("exams").delete().neq("id", 0);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from("tasks").delete().eq("user_id", user.id);
+      await supabase.from("exams").delete().eq("user_id", user.id);
+    }
 
     localStorage.removeItem("sessions");
     localStorage.removeItem("timer_state");
     localStorage.removeItem("timer_end_time");
+    localStorage.removeItem("fav_times");
 
     sessionLogs = [];
     todos = [];
@@ -201,19 +204,14 @@ function toggleSidebar() {
 }
 
 function switchTab(tabId, element) {
-  document
-    .querySelectorAll(".tab-content")
-    .forEach((sec) => (sec.style.display = "none"));
-  document
-    .querySelectorAll(".nav-links li")
-    .forEach((li) => li.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach((sec) => (sec.style.display = "none"));
+  document.querySelectorAll(".nav-links li").forEach((li) => li.classList.remove("active"));
 
   const target = document.getElementById(`${tabId}-section`);
   if (target) target.style.display = "block";
   if (element) element.classList.add("active");
 
-  const dict =
-    translations[window.userSettings.uiLanguage] || translations["en"];
+  const dict = translations[window.userSettings.uiLanguage] || translations["en"];
   const titles = {
     timer: dict.nav_timer?.replace(/⏱️ /, ""),
     todo: dict.nav_tasks?.replace(/📝 /, ""),
@@ -227,8 +225,7 @@ function switchTab(tabId, element) {
   if (titleEl) titleEl.innerText = titles[tabId] || "Dashboard";
 }
 
-const sunIcon =
-  '<path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>';
+const sunIcon = '<path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>';
 const moonIcon = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>';
 
 if (localStorage.getItem("theme") === "dark") {
@@ -261,15 +258,18 @@ function randomizeQuote() {
 randomizeQuote();
 
 // ==========================================
-// CLOUD TO-DO ENGINE (Supabase - RLS Off)
+// CLOUD TO-DO ENGINE (RLS Protected)
 // ==========================================
-let todos = [];
-
 async function fetchTodos() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
   const { data, error } = await supabase
     .from("tasks")
     .select("*")
+    .eq("user_id", user.id)
     .order("id", { ascending: true });
+
   if (!error) {
     todos = data || [];
     renderTodos();
@@ -281,7 +281,13 @@ async function addTodo() {
   const input = document.getElementById("todo-input");
   if (!input || !input.value.trim()) return;
 
-  const insertPayload = { text: input.value, is_done: false };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    showNotification("Authentication error.");
+    return;
+  }
+
+  const insertPayload = { text: input.value, is_done: false, user_id: user.id };
   const { error } = await supabase.from("tasks").insert([insertPayload]);
 
   if (!error) {
@@ -348,20 +354,11 @@ let timerInterval,
 let config = { focus: 25, short: 5, long: 15, cycles: 4 };
 let totalSessionTime = 25 * 60;
 let timeLeft = totalSessionTime;
-let sessionLogs = JSON.parse(localStorage.getItem("sessions")) || [];
 
 function saveTimerState() {
-  localStorage.setItem(
-    "timer_state",
-    JSON.stringify({
-      isRunning,
-      timeLeft,
-      currentMode,
-      totalSessionTime,
-      completedCycles,
-      config,
-    }),
-  );
+  localStorage.setItem("timer_state", JSON.stringify({
+    isRunning, timeLeft, currentMode, totalSessionTime, completedCycles, config,
+  }));
 }
 
 function applyPreset(type) {
@@ -379,17 +376,80 @@ function applyPreset(type) {
 }
 
 function applyTimerConfig() {
-  config.focus = parseInt(document.getElementById("focusTime").value) || 25;
-  config.short = parseInt(document.getElementById("shortBreakTime").value) || 5;
-  config.long = parseInt(document.getElementById("longBreakTime").value) || 15;
-  config.cycles = parseInt(document.getElementById("cyclesConfig").value) || 4;
+  // Input Validation (Regex strip non-numeric)
+  const focusInput = document.getElementById("focusTime").value.replace(/[^0-9]/g, '');
+  const shortInput = document.getElementById("shortBreakTime").value.replace(/[^0-9]/g, '');
+  const longInput = document.getElementById("longBreakTime").value.replace(/[^0-9]/g, '');
+  const cyclesInput = document.getElementById("cyclesConfig").value.replace(/[^0-9]/g, '');
+
+  config.focus = parseInt(focusInput) || 25;
+  config.short = parseInt(shortInput) || 5;
+  config.long = parseInt(longInput) || 15;
+  config.cycles = parseInt(cyclesInput) || 4;
+
+  // Render cleaned values back to inputs
+  document.getElementById("focusTime").value = config.focus;
+  document.getElementById("shortBreakTime").value = config.short;
+  document.getElementById("longBreakTime").value = config.long;
+  document.getElementById("cyclesConfig").value = config.cycles;
+
   resetTimer();
 }
 
+// --- FAVOURITE PRESETS ---
+window.saveFavoriteTime = function () {
+  const favs = JSON.parse(localStorage.getItem('fav_times')) || [];
+  const name = prompt("Name this preset (e.g., Math Prep):");
+  if (!name) return;
+  favs.push({ name, focus: config.focus, short: config.short, long: config.long, cycles: config.cycles });
+  localStorage.setItem('fav_times', JSON.stringify(favs));
+  loadFavoriteTimes();
+}
+
+window.applyFavPreset = function (index) {
+  const favs = JSON.parse(localStorage.getItem('fav_times')) || [];
+  const f = favs[index];
+  if (!f) return;
+  document.getElementById("focusTime").value = f.focus;
+  document.getElementById("shortBreakTime").value = f.short;
+  document.getElementById("longBreakTime").value = f.long;
+  document.getElementById("cyclesConfig").value = f.cycles;
+  applyTimerConfig();
+}
+
+function loadFavoriteTimes() {
+  let presetDiv = document.querySelector(".preset-buttons");
+  if (!presetDiv) return;
+
+  let container = document.getElementById("fav-presets-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "fav-presets-container";
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
+    container.style.gap = "10px";
+    container.style.marginTop = "10px";
+    presetDiv.appendChild(container);
+
+    let saveBtn = document.createElement("button");
+    saveBtn.innerText = "⭐ Save Current as Preset";
+    saveBtn.className = "btn-secondary";
+    saveBtn.onclick = window.saveFavoriteTime;
+    presetDiv.appendChild(saveBtn);
+  }
+
+  const favs = JSON.parse(localStorage.getItem('fav_times')) || [];
+  container.innerHTML = "";
+  favs.forEach((f, i) => {
+    let btn = document.createElement("button");
+    btn.innerText = `⭐ ${f.name} (${f.focus}m)`;
+    btn.onclick = () => window.applyFavPreset(i);
+    container.appendChild(btn);
+  });
+}
+
 function updateTimerDisplay() {
-  const m = Math.floor(timeLeft / 60)
-    .toString()
-    .padStart(2, "0");
+  const m = Math.floor(timeLeft / 60).toString().padStart(2, "0");
   const s = (timeLeft % 60).toString().padStart(2, "0");
   const display = document.getElementById("time-display");
   if (display) display.innerText = `${m}:${s}`;
@@ -427,8 +487,11 @@ function handleCycleEnd() {
   randomizeQuote();
 
   if (currentMode === "Focus") {
-    const taskName = document.getElementById("active-task")?.value;
-    logSession(config.focus, taskName);
+    // Sync task resolution fix
+    const taskEl = document.getElementById("active-task");
+    const taskName = (taskEl && taskEl.value !== "None") ? taskEl.value : null;
+    logSession(config.focus, taskName || "General Study");
+
     completedCycles++;
     if (completedCycles >= config.cycles) {
       currentMode = "LongBreak";
@@ -505,56 +568,92 @@ function restoreTimerState() {
       }
     } else {
       timeLeft =
-        savedState.timeLeft !== undefined
-          ? savedState.timeLeft
-          : totalSessionTime;
+        savedState.timeLeft !== undefined ? savedState.timeLeft : totalSessionTime;
       updateTimerDisplay();
     }
   }
 }
 
 function logSession(minutes, task) {
-  const timestamp = new Date().toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const timestamp = new Date().toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   sessionLogs.unshift({ id: Date.now(), timestamp, minutes, task });
   localStorage.setItem("sessions", JSON.stringify(sessionLogs));
   renderLogs();
 }
 
+// ==========================================
+// DASHBOARD WIDGETS & LOG RENDERING
+// ==========================================
 function renderLogs() {
   const list = document.getElementById("log-list");
   if (!list) return;
-  list.innerHTML =
-    sessionLogs.length === 0 ? "<li>No sessions logged yet.</li>" : "";
+  list.innerHTML = sessionLogs.length === 0 ? "<li>No sessions logged yet.</li>" : "";
+
+  let totalMinutes = 0;
   sessionLogs.forEach((log) => {
+    totalMinutes += log.minutes || 0;
     const li = document.createElement("li");
     li.className = "log-item";
-    const taskStr =
-      log.task !== "None" ? ` on <strong>${log.task}</strong>` : "";
+    const taskStr = log.task && log.task !== "General Study" ? ` on <strong>${log.task}</strong>` : "";
     li.innerHTML = `<span><span class="log-mode">${log.minutes}m Focus</span>${taskStr}</span> <span>${log.timestamp}</span>`;
-    li.appendChild(li);
+    list.appendChild(li);
   });
+
+  renderDashboardWidgets(totalMinutes);
 }
-renderLogs();
+
+function renderDashboardWidgets(totalMinutes = 0) {
+  const logsSection = document.getElementById("logs-section");
+  if (!logsSection) return;
+
+  let widgetContainer = document.getElementById("dashboard-widgets");
+  if (!widgetContainer) {
+    widgetContainer = document.createElement("div");
+    widgetContainer.id = "dashboard-widgets";
+    widgetContainer.className = "grid-list";
+    widgetContainer.style.marginBottom = "24px";
+    logsSection.insertBefore(widgetContainer, logsSection.children[1]);
+  }
+
+  const hours = (totalMinutes / 60).toFixed(1);
+  const upcoming = cachedExams.filter(e => e.status !== "Completed").slice(0, 3);
+  let examsHtml = upcoming.length > 0
+      ? upcoming.map(e => `<div style="font-weight: 500;">📅 ${e.exam_name} <span style="opacity: 0.6; float:right;">${e.exam_date}</span></div>`).join("")
+      : "<div style="opacity: 0.6;">No upcoming exams! Relax.</div>";
+
+  widgetContainer.innerHTML = `
+      <div class="glass-panel" style="padding: 24px; margin-bottom: 0;">
+          <h3 style="opacity: 0.8; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">📈 Total Focus Time</h3>
+          <h2 style="font-size: 40px; color: var(--primary); margin-top: 10px; line-height: 1;">${hours} <span style="font-size: 16px; color: var(--text-color);">hours</span></h2>
+      </div>
+      <div class="glass-panel" style="padding: 24px; margin-bottom: 0;">
+          <h3 style="opacity: 0.8; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">🚀 Upcoming Deadlines</h3>
+          <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 12px;">
+              ${examsHtml}
+          </div>
+      </div>
+  `;
+}
 
 // ==========================================
-// CALENDAR & EXAM SYSTEM (Supabase - RLS Off)
+// CALENDAR & EXAM SYSTEM (RLS Protected)
 // ==========================================
 let currentDisplayDate = new Date();
 let cachedExams = [];
 
 async function initializeCalendar() {
+  const grid = document.getElementById("calendar-days");
+  if (!grid) return; // Guard clause for rendering bug
   await fetchExams();
   renderCalendarStructure();
+  renderDashboardWidgets(); // Refresh widgets with new exam data
 }
 
 async function fetchExams() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
   try {
-    const { data, error } = await supabase.from("exams").select("*");
+    const { data, error } = await supabase.from("exams").select("*").eq("user_id", user.id);
     if (error) throw error;
     cachedExams = data || [];
   } catch (err) {
@@ -570,20 +669,7 @@ function renderCalendarStructure() {
   calendarDaysGrid.innerHTML = "";
   const year = currentDisplayDate.getFullYear();
   const month = currentDisplayDate.getMonth();
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   monthYearDisplay.innerText = `${monthNames[month]} ${year}`;
 
   const firstDayIndex = new Date(year, month, 1).getDay();
@@ -607,30 +693,20 @@ function renderCalendarStructure() {
     dayNumberSpan.innerText = day;
     dayCell.appendChild(dayNumberSpan);
 
-    if (
-      day === today.getDate() &&
-      month === today.getMonth() &&
-      year === today.getFullYear()
-    ) {
+    if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
       dayCell.classList.add("today");
     }
 
     dayCell.addEventListener("click", (e) => {
-      if (e.target === dayCell || e.target.className === "day-number")
-        showModal(null, currentStringDate);
+      if (e.target === dayCell || e.target.className === "day-number") showModal(null, currentStringDate);
     });
 
-    const matchingExams = cachedExams.filter(
-      (exam) => exam.exam_date === currentStringDate,
-    );
+    const matchingExams = cachedExams.filter((exam) => exam.exam_date === currentStringDate);
     matchingExams.forEach((exam) => {
       const examElement = document.createElement("div");
       examElement.className = `exam-bar diff-${exam.difficulty.toLowerCase()} status-${exam.status.toLowerCase()}`;
       examElement.innerText = exam.exam_name;
-      examElement.addEventListener("click", (e) => {
-        e.stopPropagation();
-        showModal(exam);
-      });
+      examElement.addEventListener("click", (e) => { e.stopPropagation(); showModal(exam); });
       dayCell.appendChild(examElement);
     });
     calendarDaysGrid.appendChild(dayCell);
@@ -673,12 +749,16 @@ function hideModal() {
 
 async function handleExamFormSubmit(e) {
   e.preventDefault();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
   const examId = document.getElementById("modal-exam-id").value;
   const examPayload = {
     exam_name: document.getElementById("exam-name").value,
     exam_date: document.getElementById("exam-date").value,
     difficulty: document.getElementById("exam-difficulty").value,
     status: document.getElementById("exam-status").value,
+    user_id: user.id
   };
 
   try {
@@ -698,11 +778,7 @@ async function handleExamFormSubmit(e) {
 
 async function deleteCurrentExam() {
   const examId = document.getElementById("modal-exam-id").value;
-  if (
-    !examId ||
-    !confirm("Confirm destructive mutation: Remove this exam from database?")
-  )
-    return;
+  if (!examId || !confirm("Confirm destructive mutation: Remove this exam from database?")) return;
 
   try {
     const { error } = await supabase.from("exams").delete().eq("id", examId);
@@ -734,22 +810,15 @@ window.toggleAiFullscreen = function () {
 };
 
 window.handleAiFileInput = function (e) {
-  if (e.target.files && e.target.files.length > 0)
-    window.processAiFile(e.target.files[0]);
+  if (e.target.files && e.target.files.length > 0) window.processAiFile(e.target.files[0]);
 };
 
 window.processAiFile = function (file) {
   const reader = new FileReader();
   reader.onload = (e) => {
-    window.currentAiFile = {
-      name: file.name,
-      mimeType: file.type,
-      data: e.target.result.split(",")[1],
-    };
+    window.currentAiFile = { name: file.name, mimeType: file.type, data: e.target.result.split(",")[1] };
     document.getElementById("file-name").innerText = file.name;
-    document
-      .getElementById("file-preview-container")
-      .classList.remove("hidden");
+    document.getElementById("file-preview-container").classList.remove("hidden");
   };
   reader.readAsDataURL(file);
 };
@@ -788,9 +857,7 @@ window.sendChat = async function () {
   const payloadFile = window.currentAiFile;
   const userMsg = document.createElement("div");
   userMsg.className = "chat-bubble user-bubble";
-  userMsg.innerHTML = payloadFile
-    ? `📎 <em>${payloadFile.name}</em><br/><br/>${userQuery}`
-    : userQuery;
+  userMsg.innerHTML = payloadFile ? `📎 <em>${payloadFile.name}</em><br/><br/>${userQuery}` : userQuery;
   msgBox.appendChild(userMsg);
   input.value = "";
   window.removeAiFile();
@@ -801,21 +868,23 @@ window.sendChat = async function () {
 
   try {
     const { data, error } = await supabase.functions.invoke("learnora-ai", {
-      body: {
-        query: userQuery,
-        file: payloadFile,
-        settings: window.userSettings,
-      },
+      body: { query: userQuery, file: payloadFile, settings: window.userSettings },
     });
     if (error) throw error;
     typingIndicator.classList.add("hidden");
+
+    // Critical UI Bug fix: Defensive parsing strips weird markdown artifacts AI sometimes outputs
     try {
-      const parsed = JSON.parse(data.text);
+      const cleanJson = data.text.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
       if (Array.isArray(parsed)) {
         window.renderFlashcards(parsed);
         return;
       }
-    } catch (e) {}
+    } catch (e) {
+      // Not JSON, fallback to standard markdown render
+    }
+
     const aiMsg = document.createElement("div");
     aiMsg.className = "chat-bubble ai-bubble";
     aiMsg.innerHTML = marked.parse(data.text || "No response.");
@@ -838,61 +907,29 @@ window.handleChatEnter = function (e) {
 // INITIALIZATION
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(() => {
-    loadSettingsToUI();
-    applyTranslations();
-  }, 50);
+  // Event listeners map directly to UI controls.
+  // Note: Data is intentionally not loaded here, it loads via onAuthStateChange above.
 
-  document
-    .getElementById("prev-month-btn")
-    ?.addEventListener("click", () => changeMonth(-1));
-  document
-    .getElementById("next-month-btn")
-    ?.addEventListener("click", () => changeMonth(1));
-  document
-    .getElementById("close-modal-btn")
-    ?.addEventListener("click", hideModal);
-  document
-    .getElementById("delete-exam-btn")
-    ?.addEventListener("click", deleteCurrentExam);
-  document
-    .getElementById("exam-form")
-    ?.addEventListener("submit", handleExamFormSubmit);
+  document.getElementById("prev-month-btn")?.addEventListener("click", () => changeMonth(-1));
+  document.getElementById("next-month-btn")?.addEventListener("click", () => changeMonth(1));
+  document.getElementById("close-modal-btn")?.addEventListener("click", hideModal);
+  document.getElementById("delete-exam-btn")?.addEventListener("click", deleteCurrentExam);
+  document.getElementById("exam-form")?.addEventListener("submit", handleExamFormSubmit);
 
   const aiModal = document.getElementById("turbo-chat");
   const dragOverlay = document.getElementById("drag-overlay");
   if (aiModal && dragOverlay) {
-    aiModal.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      if (!aiModal.classList.contains("hidden"))
-        dragOverlay.classList.remove("hidden");
-    });
-    aiModal.addEventListener("dragleave", (e) => {
-      e.preventDefault();
-      if (e.target === dragOverlay) dragOverlay.classList.add("hidden");
-    });
-    aiModal.addEventListener("drop", (e) => {
-      e.preventDefault();
-      dragOverlay.classList.add("hidden");
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0)
-        window.processAiFile(e.dataTransfer.files[0]);
-    });
+    aiModal.addEventListener("dragover", (e) => { e.preventDefault(); if (!aiModal.classList.contains("hidden")) dragOverlay.classList.remove("hidden"); });
+    aiModal.addEventListener("dragleave", (e) => { e.preventDefault(); if (e.target === dragOverlay) dragOverlay.classList.add("hidden"); });
+    aiModal.addEventListener("drop", (e) => { e.preventDefault(); dragOverlay.classList.add("hidden"); if (e.dataTransfer.files && e.dataTransfer.files.length > 0) window.processAiFile(e.dataTransfer.files[0]); });
   }
 
   const chatHeader = document.getElementById("ai-chat-header");
-  let isDragging = false,
-    startX,
-    startY,
-    initialX,
-    initialY;
+  let isDragging = false, startX, startY, initialX, initialY;
 
   if (chatHeader) {
     chatHeader.addEventListener("mousedown", (e) => {
-      if (
-        !aiModal.classList.contains("minimized") ||
-        e.target.closest(".header-controls")
-      )
-        return;
+      if (!aiModal.classList.contains("minimized") || e.target.closest(".header-controls")) return;
       isDragging = true;
       startX = e.clientX;
       startY = e.clientY;
@@ -920,7 +957,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// UI Event Binding Globals Only
+// Global bindings
 window.switchTab = switchTab;
 window.toggleSidebar = toggleSidebar;
 window.addTodo = addTodo;
