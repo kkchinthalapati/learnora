@@ -95,9 +95,8 @@
                                 margin-bottom: 8px;
                                 display: block;
                             "
+                            >Preferred Sign-In Method:</label
                         >
-                            Preferred Sign-In Method:
-                        </label>
                         <div
                             style="
                                 display: flex;
@@ -460,7 +459,6 @@
                     <div id="flashcards-grid" class="grid-list"></div>
                 </section>
 
-                <!-- NEW SETTINGS SECTION -->
                 <section
                     id="settings-section"
                     class="tab-content"
@@ -498,9 +496,7 @@
                                 </option>
                             </select>
                         </div>
-
                         <hr />
-
                         <h2 data-i18n="set_localization">🌍 Localization</h2>
                         <div class="setting-row">
                             <label data-i18n="set_ui_lang">UI Language</label>
@@ -508,12 +504,13 @@
                                 <option value="en">English</option>
                                 <option value="es">Español (Spanish)</option>
                                 <option value="fr">Français (French)</option>
-                                <option value="hi">हिन्दी (Hindi)</option>
-                                <option value="zh">中文 (Chinese)</option>
                                 <option value="ar">العربية (Arabic)</option>
+                                <option value="hi">हिन्दी (Hindi)</option>
+                                <option value="zh">中文 (Simplified)</option>
+                                <option value="zh_tw">
+                                    繁體中文 (Traditional)
+                                </option>
                                 <option value="de">Deutsch (German)</option>
-                                <option value="ja">日本語 (Japanese)</option>
-                                <option value="ko">한국어 (Korean)</option>
                                 <option value="pt">
                                     Português (Portuguese)
                                 </option>
@@ -532,14 +529,15 @@
                                 <option value="French">
                                     Français (French)
                                 </option>
-                                <option value="Hindi">हिन्दी (Hindi)</option>
-                                <option value="Chinese">中文 (Chinese)</option>
                                 <option value="Arabic">العربية (Arabic)</option>
-                                <option value="German">Deutsch (German)</option>
-                                <option value="Japanese">
-                                    日本語 (Japanese)
+                                <option value="Hindi">हिन्दी (Hindi)</option>
+                                <option value="Chinese (Simplified)">
+                                    中文 (Simplified)
                                 </option>
-                                <option value="Korean">한국어 (Korean)</option>
+                                <option value="Chinese (Traditional)">
+                                    繁體中文 (Traditional)
+                                </option>
+                                <option value="German">Deutsch (German)</option>
                                 <option value="Portuguese">
                                     Português (Portuguese)
                                 </option>
@@ -548,9 +546,7 @@
                                 </option>
                             </select>
                         </div>
-
                         <hr />
-
                         <h2 data-i18n="set_data">🔒 Data & Privacy</h2>
                         <div class="setting-row">
                             <p data-i18n="set_export_desc">
@@ -577,7 +573,6 @@
                                 🗑️ Wipe All Data
                             </button>
                         </div>
-
                         <div class="settings-actions">
                             <button
                                 class="btn-primary save-settings-btn"

@@ -1,4 +1,5 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { translations } from "./i18n.js";
 
 const supabaseUrl = "https://mlvgqwqiynpwpwzqufdf.supabase.co";
 const supabaseKey = "sb_publishable_mN1UvxPjHhn6L583LjrSFw_FWY8kRrt";
@@ -38,7 +39,10 @@ window.saveSettings = function () {
     JSON.stringify(window.userSettings),
   );
   applyTranslations(); // Update UI immediately
-  showNotification("Settings saved! AI preferences updated.", "success");
+  showNotification(
+    "Your settings have been saved! Refresh to see changes.",
+    "success",
+  );
 };
 
 function loadSettingsToUI() {
@@ -53,125 +57,6 @@ function loadSettingsToUI() {
 }
 
 // --- LOCALIZATION ENGINE ---
-// Starter map for major languages. Add remaining ISO codes here to hit 50+.
-const translations = {
-  en: {
-    nav_dashboard: "📊 Dashboard",
-    nav_timer: "⏱️ Timer",
-    nav_tasks: "📝 Task Manager",
-    nav_calendar: "📚 Calendar",
-    nav_flashcards: "🗂️ Flashcards",
-    nav_ai: "🤖 Turbo AI",
-    nav_settings: "⚙️ Settings",
-    title_dashboard: "Dashboard",
-    header_history: "Session History",
-    desc_history: "All completed focus blocks are logged here automatically.",
-    timer_presets: "Workflow Presets",
-    preset_deep: "Deep Work (90m)",
-    preset_cram: "Exam Cram (45m)",
-    preset_light: "Light Study (20m)",
-    config_focus: "Focus (mins)",
-    config_short: "Short Break",
-    config_long: "Long Break",
-    config_cycles: "Cycles",
-    config_task: "Current Task:",
-    btn_apply: "Apply & Reset",
-    btn_start: "Start",
-    btn_pause: "Pause",
-    btn_reset: "Reset",
-    placeholder_task: "Add a new task...",
-    btn_add: "Add Task",
-    day_sun: "Sun",
-    day_mon: "Mon",
-    day_tue: "Tue",
-    day_wed: "Wed",
-    day_thu: "Thu",
-    day_fri: "Fri",
-    day_sat: "Sat",
-    header_flashcards: "Flashcards",
-    desc_flashcards: "Your AI-generated flashcards will appear here.",
-    set_ai_brain: "🧠 AI Personalization",
-    set_persona: "AI Persona",
-    opt_tutor: "Tutor (Patient & Explanatory)",
-    opt_coach: "Coach (Strict & Tough Love)",
-    opt_buddy: "Buddy (Casual & Friendly)",
-    set_length: "Response Length",
-    opt_short: "Short & Concise",
-    opt_med: "Medium (Balanced)",
-    opt_long: "Detailed & Comprehensive",
-    set_localization: "🌍 Localization",
-    set_ui_lang: "UI Language",
-    set_ai_lang: "AI Response Language",
-    set_data: "🔒 Data & Privacy",
-    set_export_desc: "Download a copy of your study logs and tasks.",
-    btn_export: "📥 Export Data (CSV)",
-    set_wipe_desc:
-      "Permanently delete all tasks, logs, and exams from the cloud.",
-    btn_wipe: "🗑️ Wipe All Data",
-    btn_save_config: "Save Changes",
-  },
-  es: {
-    nav_dashboard: "📊 Tablero",
-    nav_timer: "⏱️ Temporizador",
-    nav_tasks: "📝 Tareas",
-    nav_calendar: "📚 Calendario",
-    nav_flashcards: "🗂️ Tarjetas",
-    nav_ai: "🤖 Turbo IA",
-    nav_settings: "⚙️ Ajustes",
-    title_dashboard: "Tablero",
-    header_history: "Historial de Sesiones",
-    desc_history: "Todos los bloques completados se registran aquí.",
-    timer_presets: "Flujos de Trabajo",
-    preset_deep: "Trabajo Profundo (90m)",
-    preset_cram: "Examen (45m)",
-    preset_light: "Estudio Ligero (20m)",
-    config_focus: "Enfoque (min)",
-    config_short: "Pausa Corta",
-    config_long: "Pausa Larga",
-    config_cycles: "Ciclos",
-    config_task: "Tarea Actual:",
-    btn_apply: "Aplicar",
-    btn_start: "Iniciar",
-    btn_pause: "Pausar",
-    btn_reset: "Reiniciar",
-    placeholder_task: "Añadir tarea...",
-    btn_add: "Añadir",
-    day_sun: "Dom",
-    day_mon: "Lun",
-    day_tue: "Mar",
-    day_wed: "Mié",
-    day_thu: "Jue",
-    day_fri: "Vie",
-    day_sat: "Sáb",
-    header_flashcards: "Tarjetas",
-    desc_flashcards: "Tus tarjetas IA aparecerán aquí.",
-    set_ai_brain: "🧠 Personalización de IA",
-    set_persona: "Personalidad de IA",
-    opt_tutor: "Tutor (Paciente)",
-    opt_coach: "Entrenador (Estricto)",
-    opt_buddy: "Amigo (Casual)",
-    set_length: "Longitud de Respuesta",
-    opt_short: "Corta",
-    opt_med: "Media",
-    opt_long: "Detallada",
-    set_localization: "🌍 Localización",
-    set_ui_lang: "Idioma de Interfaz",
-    set_ai_lang: "Idioma de IA",
-    set_data: "🔒 Datos y Privacidad",
-    set_export_desc: "Descarga una copia de tus registros.",
-    btn_export: "📥 Exportar Datos (CSV)",
-    set_wipe_desc: "Eliminar permanentemente todos los datos.",
-    btn_wipe: "🗑️ Borrar Todo",
-    btn_save_config: "Guardar Cambios",
-  },
-  fr: {
-    nav_dashboard: "📊 Tableau de Bord",
-    nav_settings: "⚙️ Paramètres",
-    title_dashboard: "Tableau de Bord",
-    // ... abbreviated for payload space, extends easily via pattern ...
-  },
-};
-
 function applyTranslations() {
   const lang = window.userSettings.uiLanguage;
   const dict = translations[lang] || translations["en"];
@@ -236,7 +121,7 @@ window.wipeData = async function () {
     if (!user) throw new Error("No user session");
 
     // Supabase deletes
-    await supabase.from("tasks").delete().eq("user_id", user.id); // Assuming RLS or user_id matching is setup
+    await supabase.from("tasks").delete().eq("user_id", user.id);
     await supabase.from("exams").delete().eq("user_id", user.id);
 
     // Local deletes
