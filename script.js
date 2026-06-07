@@ -11,7 +11,10 @@ let todos = [];
 let sessionLogs = JSON.parse(localStorage.getItem("sessions")) || [];
 let cachedExams = [];
 let currentDisplayDate = new Date();
-let appInitialized = false; // Prevents double-fetching data
+let appInitialized = false;
+
+// NEW: The Memory Bank
+let chatHistory = [];
 
 // ==========================================
 // APP INITIALIZATION & AUTH (GHOST-PROOF)
@@ -25,7 +28,6 @@ function updateAuthUI(session) {
     if (wall) wall.style.display = "none";
     if (app) app.style.display = "flex";
 
-    // Only load data once per login
     if (!appInitialized) {
       initializeAppData();
       appInitialized = true;
@@ -37,23 +39,20 @@ function updateAuthUI(session) {
   }
 }
 
-// 1. Initial Boot Check (Runs once when page loads)
 async function checkSessionAndBoot() {
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
   if (session) {
-    // Hard network check: Verify the user still exists in the database
     const {
       data: { user },
       error,
     } = await supabase.auth.getUser();
-
     if (error || !user) {
       console.warn("Ghost session detected. Purging local cache...");
       await supabase.auth.signOut();
-      localStorage.clear(); // Nuke all browser data
+      localStorage.clear();
       updateAuthUI(null);
       return;
     }
@@ -61,10 +60,8 @@ async function checkSessionAndBoot() {
   updateAuthUI(session);
 }
 
-// Fire the boot sequence
 checkSessionAndBoot();
 
-// 2. Listen for active login/logout clicks
 supabase.auth.onAuthStateChange((event, session) => {
   if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
     updateAuthUI(session);
@@ -187,8 +184,7 @@ window.exportData = async function () {
       .select("*")
       .eq("user_id", user.id);
 
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Type,Name,Status,Date\n";
+    let csvContent = "data:text/csv;charset=utf-8,Type,Name,Status,Date\n";
 
     if (tasks)
       tasks.forEach(
@@ -239,6 +235,7 @@ window.wipeData = async function () {
     sessionLogs = [];
     todos = [];
     cachedExams = [];
+    chatHistory = []; // Fix: Wipe chat memory on data nuke
 
     renderLogs();
     renderTodos();
@@ -252,6 +249,7 @@ window.wipeData = async function () {
 
 window.logoutUser = async function () {
   await supabase.auth.signOut();
+  chatHistory = []; // Fix: Wipe memory so next user gets a fresh slate
   updateAuthUI(null);
 };
 
@@ -499,7 +497,6 @@ function applyTimerConfig() {
   resetTimer();
 }
 
-// --- FAVOURITE PRESETS ---
 window.saveFavoriteTime = function () {
   const favs = JSON.parse(localStorage.getItem("fav_times")) || [];
   const name = prompt("Name this preset (e.g., Math Prep):");
@@ -956,7 +953,7 @@ async function deleteCurrentExam() {
 }
 
 // ==========================================
-// TURBO AI LOGIC
+// TURBO AI LOGIC (NOW WITH MEMORY)
 // ==========================================
 window.openAiModal = function () {
   const modal = document.getElementById("turbo-chat");
@@ -1026,12 +1023,18 @@ window.sendChat = async function () {
 
   const userQuery = input.value || "Please analyze this file.";
   const payloadFile = window.currentAiFile;
+
+  // --- ADDING TO MEMORY BANK ---
+  // Note: Gemini uses 'user' and 'model' for roles.
+  chatHistory.push({ role: "user", content: userQuery });
+
   const userMsg = document.createElement("div");
   userMsg.className = "chat-bubble user-bubble";
   userMsg.innerHTML = payloadFile
     ? `📎 <em>${payloadFile.name}</em><br/><br/>${userQuery}`
     : userQuery;
   msgBox.appendChild(userMsg);
+
   input.value = "";
   window.removeAiFile();
   msgBox.scrollTop = msgBox.scrollHeight;
@@ -1042,14 +1045,17 @@ window.sendChat = async function () {
   try {
     const { data, error } = await supabase.functions.invoke("learnora-ai", {
       body: {
-        query: userQuery,
+        query: userQuery, // Keeping for backward compatibility
+        history: chatHistory, // SENDING THE FULL MEMORY!
         file: payloadFile,
         settings: window.userSettings,
       },
     });
+
     if (error) throw error;
     typingIndicator.classList.add("hidden");
 
+    // Flashcard JSON parsing check
     try {
       const cleanJson = data.text
         .replace(/```json/gi, "")
@@ -1058,11 +1064,15 @@ window.sendChat = async function () {
       const parsed = JSON.parse(cleanJson);
       if (Array.isArray(parsed)) {
         window.renderFlashcards(parsed);
+        // We return here so we don't save raw JSON to conversational memory!
         return;
       }
     } catch (e) {
-      // Fallback
+      // Not JSON, just continue with normal chat
     }
+
+    // --- SAVING AI RESPONSE TO MEMORY ---
+    chatHistory.push({ role: "model", content: data.text });
 
     const aiMsg = document.createElement("div");
     aiMsg.className = "chat-bubble ai-bubble";
@@ -1075,6 +1085,9 @@ window.sendChat = async function () {
     errorMsg.className = "chat-bubble ai-bubble ai-bubble-error";
     errorMsg.innerText = "Error: " + err.message;
     msgBox.appendChild(errorMsg);
+
+    // --- BUG FIX: Erase the failed question from memory so it doesn't break the context next time
+    chatHistory.pop();
   }
 };
 
