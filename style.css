@@ -1260,3 +1260,59 @@ body.dark-theme .calendar-day-cell.empty {
         padding: 0 10%;
     }
 }
+
+/* ==========================================
+   PRO AUTH ANIMATIONS & STATES
+============================================= */
+.fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.auth-form {
+    transition: opacity 0.2s ease-in-out;
+}
+
+.btn-primary {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Stops users from double-clicking and crashing things */
+.btn-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* The loading circle */
+.loader {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    position: absolute;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}

@@ -78,32 +78,115 @@ function initializeAppData() {
   renderLogs();
 }
 
-// --- AUTH ACTIONS ---
-window.handleLogin = async function () {
-  const email = document.getElementById("login-email").value;
-  const password = document.getElementById("login-password").value;
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) showNotification("Login failed: " + error.message);
-};
+// ==========================================
+// PRO AUTH ACTIONS & STATE MACHINE
+// ==========================================
 
-window.handleSignup = async function () {
-  const name = document.getElementById("signup-name").value;
-  const email = document.getElementById("signup-email").value;
-  const password = document.getElementById("signup-password").value;
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { full_name: name } },
-  });
-  if (error) showNotification("Signup failed: " + error.message);
-  else showNotification("Check your email for confirmation!", "success");
-};
+// HELPER: Toggles button state to prevent double clicks and show loading animation
+function setButtonLoading(buttonId, isLoading) {
+  const btn = document.getElementById(buttonId);
+  if (!btn) return;
+  const text = btn.querySelector(".btn-text");
+  const loader = btn.querySelector(".loader");
 
+  if (isLoading) {
+    btn.disabled = true;
+    text.classList.add("hidden");
+    loader.classList.remove("hidden");
+  } else {
+    btn.disabled = false;
+    text.classList.remove("hidden");
+    loader.classList.add("hidden");
+  }
+}
+
+// Attach listeners after DOM loads so we can bind to the <form> tags
+document.addEventListener("DOMContentLoaded", () => {
+  const loginForm = document.getElementById("login-form");
+  const signupForm = document.getElementById("signup-form");
+
+  // 1. LOGIN LOGIC
+  if (loginForm) {
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault(); // Stop page refresh on "Enter" key
+
+      setButtonLoading("login-btn", true);
+
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      setButtonLoading("login-btn", false);
+
+      if (error) {
+        showNotification("Login failed: " + error.message, "error");
+      } else {
+        loginForm.reset();
+        showNotification("Welcome back!", "success");
+        // Note: supabase.auth.onAuthStateChange automatically handles the redirect!
+      }
+    });
+  }
+
+  // 2. SIGNUP LOGIC
+  if (signupForm) {
+    signupForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      setButtonLoading("signup-btn", true);
+
+      const name = document.getElementById("signup-name").value;
+      const email = document.getElementById("signup-email").value;
+      const password = document.getElementById("signup-password").value;
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: name } },
+      });
+
+      setButtonLoading("signup-btn", false);
+
+      if (error) {
+        showNotification("Signup failed: " + error.message, "error");
+      } else {
+        if (data.session) {
+          signupForm.reset();
+          showNotification("Account created successfully!", "success");
+        } else {
+          showNotification(
+            "Success! Check your email for confirmation.",
+            "success",
+          );
+          switchAuth("login");
+        }
+      }
+    });
+  }
+});
+
+// 3. SMOOTH UI SWITCHER (Bound to window for inline onclick HTML)
 window.switchAuth = function (view) {
-  document.getElementById("login-view").style.display =
-    view === "login" ? "flex" : "none";
-  document.getElementById("signup-view").style.display =
-    view === "signup" ? "flex" : "none";
+  const loginView = document.getElementById("login-form");
+  const signupView = document.getElementById("signup-form");
+
+  // Fade out
+  loginView.style.opacity = "0";
+  signupView.style.opacity = "0";
+
+  setTimeout(() => {
+    loginView.style.display = view === "login" ? "flex" : "none";
+    signupView.style.display = view === "signup" ? "flex" : "none";
+
+    // Browser Hack: Force CSS reflow so the fade-in animation triggers properly
+    void loginView.offsetWidth;
+
+    loginView.style.opacity = "1";
+    signupView.style.opacity = "1";
+  }, 200);
 };
 
 // ==========================================
@@ -235,7 +318,7 @@ window.wipeData = async function () {
     sessionLogs = [];
     todos = [];
     cachedExams = [];
-    chatHistory = []; // Fix: Wipe chat memory on data nuke
+    chatHistory = [];
 
     renderLogs();
     renderTodos();
@@ -249,7 +332,7 @@ window.wipeData = async function () {
 
 window.logoutUser = async function () {
   await supabase.auth.signOut();
-  chatHistory = []; // Fix: Wipe memory so next user gets a fresh slate
+  chatHistory = [];
   updateAuthUI(null);
 };
 
@@ -1025,7 +1108,6 @@ window.sendChat = async function () {
   const payloadFile = window.currentAiFile;
 
   // --- ADDING TO MEMORY BANK ---
-  // Note: Gemini uses 'user' and 'model' for roles.
   chatHistory.push({ role: "user", content: userQuery });
 
   const userMsg = document.createElement("div");
@@ -1045,8 +1127,8 @@ window.sendChat = async function () {
   try {
     const { data, error } = await supabase.functions.invoke("learnora-ai", {
       body: {
-        query: userQuery, // Keeping for backward compatibility
-        history: chatHistory, // SENDING THE FULL MEMORY!
+        query: userQuery,
+        history: chatHistory,
         file: payloadFile,
         settings: window.userSettings,
       },
@@ -1064,11 +1146,10 @@ window.sendChat = async function () {
       const parsed = JSON.parse(cleanJson);
       if (Array.isArray(parsed)) {
         window.renderFlashcards(parsed);
-        // We return here so we don't save raw JSON to conversational memory!
         return;
       }
     } catch (e) {
-      // Not JSON, just continue with normal chat
+      // Not JSON, just continue
     }
 
     // --- SAVING AI RESPONSE TO MEMORY ---
@@ -1086,7 +1167,6 @@ window.sendChat = async function () {
     errorMsg.innerText = "Error: " + err.message;
     msgBox.appendChild(errorMsg);
 
-    // --- BUG FIX: Erase the failed question from memory so it doesn't break the context next time
     chatHistory.pop();
   }
 };

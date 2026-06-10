@@ -20,80 +20,95 @@
                         <h1>Welcome Back</h1>
                         <p>Plan Better. Study Smarter. Achieve More.</p>
                     </div>
-                    <div id="login-view" class="auth-form">
-                        <div class="input-group">
-                            <input
-                                type="email"
-                                id="login-email"
-                                placeholder="Email Address"
-                                autocomplete="email"
-                                required
-                            />
-                        </div>
-                        <div class="input-group">
-                            <input
-                                type="password"
-                                id="login-password"
-                                placeholder="Password"
-                                autocomplete="current-password"
-                                required
-                            />
-                        </div>
-                        <button class="btn-primary" onclick="handleLogin()">
-                            Log In
-                        </button>
-                        <p class="toggle-text">
-                            New here?
-                            <span
-                                class="auth-link"
-                                onclick="switchAuth('signup')"
-                                >Create an account</span
+
+                    <div id="auth-view-container" class="fade-in">
+                        <form id="login-form" class="auth-form">
+                            <div class="input-group">
+                                <input
+                                    type="email"
+                                    id="login-email"
+                                    placeholder="Email Address"
+                                    autocomplete="email"
+                                    required
+                                />
+                            </div>
+                            <div class="input-group">
+                                <input
+                                    type="password"
+                                    id="login-password"
+                                    placeholder="Password"
+                                    autocomplete="current-password"
+                                    required
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                class="btn-primary"
+                                id="login-btn"
                             >
-                        </p>
-                    </div>
-                    <div
-                        id="signup-view"
-                        class="auth-form"
-                        style="display: none"
-                    >
-                        <div class="input-group">
-                            <input
-                                type="text"
-                                id="signup-name"
-                                placeholder="Full Name"
-                                autocomplete="name"
-                                required
-                            />
-                        </div>
-                        <div class="input-group">
-                            <input
-                                type="email"
-                                id="signup-email"
-                                placeholder="Email Address"
-                                autocomplete="email"
-                                required
-                            />
-                        </div>
-                        <div class="input-group">
-                            <input
-                                type="password"
-                                id="signup-password"
-                                placeholder="Password"
-                                autocomplete="new-password"
-                                required
-                            />
-                        </div>
-                        <button class="btn-primary" onclick="handleSignup()">
-                            Create Account
-                        </button>
-                        <p class="toggle-text">
-                            Already have an account?
-                            <span
-                                class="auth-link"
-                                onclick="switchAuth('login')"
-                                >Log In</span
+                                <span class="btn-text">Log In</span>
+                                <div class="loader hidden"></div>
+                            </button>
+                            <p class="toggle-text">
+                                New here?
+                                <span
+                                    class="auth-link"
+                                    onclick="switchAuth('signup')"
+                                    >Create an account</span
+                                >
+                            </p>
+                        </form>
+
+                        <form
+                            id="signup-form"
+                            class="auth-form"
+                            style="display: none"
+                        >
+                            <div class="input-group">
+                                <input
+                                    type="text"
+                                    id="signup-name"
+                                    placeholder="Full Name"
+                                    autocomplete="name"
+                                    required
+                                />
+                            </div>
+                            <div class="input-group">
+                                <input
+                                    type="email"
+                                    id="signup-email"
+                                    placeholder="Email Address"
+                                    autocomplete="email"
+                                    required
+                                />
+                            </div>
+                            <div class="input-group">
+                                <input
+                                    type="password"
+                                    id="signup-password"
+                                    placeholder="Password"
+                                    autocomplete="new-password"
+                                    required
+                                    minlength="6"
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                class="btn-primary"
+                                id="signup-btn"
                             >
-                        </p>
+                                <span class="btn-text">Create Account</span>
+                                <div class="loader hidden"></div>
+                            </button>
+                            <p class="toggle-text">
+                                Already have an account?
+                                <span
+                                    class="auth-link"
+                                    onclick="switchAuth('login')"
+                                    >Log In</span
+                                >
+                            </p>
+                        </form>
                     </div>
                 </div>
                 <div class="auth-visual">
