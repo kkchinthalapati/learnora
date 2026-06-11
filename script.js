@@ -69,6 +69,7 @@ supabase.auth.onAuthStateChange((event, session) => {
 });
 
 function initializeAppData() {
+  updateGreeting(); // Fire the dynamic name greeting
   fetchTodos();
   initializeCalendar();
   loadSettingsToUI();
@@ -76,6 +77,26 @@ function initializeAppData() {
   restoreTimerState();
   loadFavoriteTimes();
   renderLogs();
+}
+
+// --- DYNAMIC GREETING ENGINE ---
+async function updateGreeting() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+      // Pull name from user metadata which we save during sign up
+      let fullName = user.user_metadata?.full_name || "Student";
+      const firstName = fullName.split(" ")[0];
+
+      const greetingEl = document.getElementById("user-greeting");
+      if (greetingEl) {
+          const currentHour = new Date().getHours();
+          let timeGreeting = "Good evening";
+          if (currentHour < 12) timeGreeting = "Good morning";
+          else if (currentHour < 18) timeGreeting = "Good afternoon";
+
+          greetingEl.innerText = `${timeGreeting}, ${firstName}! 👋`;
+      }
+  }
 }
 
 // ==========================================
@@ -108,8 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 1. LOGIN LOGIC
   if (loginForm) {
     loginForm.addEventListener("submit", async (e) => {
-      e.preventDefault(); // Stop page refresh on "Enter" key
-
+      e.preventDefault();
       setButtonLoading("login-btn", true);
 
       const email = document.getElementById("login-email").value;
@@ -127,12 +147,11 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         loginForm.reset();
         showNotification("Welcome back!", "success");
-        // Note: supabase.auth.onAuthStateChange automatically handles the redirect!
       }
     });
   }
 
-  // 2. SIGNUP LOGIC
+  // 2. SIGNUP LOGIC (WITH DOB GATEKEEPER)
   if (signupForm) {
     signupForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -141,11 +160,33 @@ document.addEventListener("DOMContentLoaded", () => {
       const name = document.getElementById("signup-name").value;
       const email = document.getElementById("signup-email").value;
       const password = document.getElementById("signup-password").value;
+      const dob = document.getElementById("signup-dob").value;
 
+      // --- DOB 13+ VALIDATOR ---
+      const birthDate = new Date(dob);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+          age--; // They haven't had their birthday yet this year
+      }
+
+      if (age < 13) {
+          setButtonLoading("signup-btn", false);
+          showNotification("You must be at least 13 years old to sign up.", "error");
+          return; // STOP execution
+      }
+
+      // Execute Supabase Auth with metadata injection
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: name } },
+        options: {
+            data: {
+                full_name: name,
+                dob: dob
+            }
+        },
       });
 
       setButtonLoading("signup-btn", false);
@@ -168,12 +209,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// 3. SMOOTH UI SWITCHER (Bound to window for inline onclick HTML)
+// 3. SMOOTH UI SWITCHER
 window.switchAuth = function (view) {
   const loginView = document.getElementById("login-form");
   const signupView = document.getElementById("signup-form");
 
-  // Fade out
   loginView.style.opacity = "0";
   signupView.style.opacity = "0";
 
@@ -181,7 +221,6 @@ window.switchAuth = function (view) {
     loginView.style.display = view === "login" ? "flex" : "none";
     signupView.style.display = view === "signup" ? "flex" : "none";
 
-    // Browser Hack: Force CSS reflow so the fade-in animation triggers properly
     void loginView.offsetWidth;
 
     loginView.style.opacity = "1";

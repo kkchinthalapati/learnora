@@ -84,6 +84,20 @@
                             </div>
                             <div class="input-group">
                                 <input
+                                    type="text"
+                                    id="signup-dob"
+                                    placeholder="Date of Birth (Must be 13+)"
+                                    onfocus="this.type = 'date'"
+                                    onblur="
+                                        this.value == ''
+                                            ? (this.type = 'text')
+                                            : (this.type = 'date')
+                                    "
+                                    required
+                                />
+                            </div>
+                            <div class="input-group">
+                                <input
                                     type="password"
                                     id="signup-password"
                                     placeholder="Password"
@@ -170,9 +184,21 @@
                         <button id="menu-toggle" onclick="toggleSidebar()">
                             ☰
                         </button>
-                        <h1 id="page-title" data-i18n="title_dashboard">
-                            Dashboard
-                        </h1>
+                        <div>
+                            <h1 id="page-title" data-i18n="title_dashboard">
+                                Dashboard
+                            </h1>
+                            <p
+                                id="user-greeting"
+                                style="
+                                    font-size: 14px;
+                                    opacity: 0.7;
+                                    font-weight: 600;
+                                    margin-top: 4px;
+                                    color: var(--primary);
+                                "
+                            ></p>
+                        </div>
                     </div>
                     <div class="header-right">
                         <span id="live-clock">00:00</span>
@@ -513,6 +539,19 @@
                                 🗑️ Wipe All Data
                             </button>
                         </div>
+
+                        <hr />
+                        <h2 style="color: var(--danger)">🚪 Account Access</h2>
+                        <div class="setting-row danger-zone">
+                            <p>
+                                Securely log out of your current session on this
+                                device.
+                            </p>
+                            <button class="btn-danger" onclick="logoutUser()">
+                                Log Out
+                            </button>
+                        </div>
+
                         <div class="settings-actions">
                             <button
                                 class="btn-primary save-settings-btn"

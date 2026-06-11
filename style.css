@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
 
 /* --- THEME VARIABLES --- */
 :root {
@@ -31,11 +31,8 @@ body.dark-theme {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family:
-        "Plus Jakarta Sans",
-        system-ui,
-        -apple-system,
-        sans-serif;
+    /* BEAST MODE UPGRADE: INTER FONT */
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* --- CUSTOM SCROLLBAR --- */
@@ -162,7 +159,7 @@ header {
     transform: translateY(-2px);
 }
 #live-clock {
-    font-family: "Plus Jakarta Sans", monospace;
+    font-family: 'Inter', monospace;
     font-size: 16px;
     font-weight: 700;
     opacity: 0.8;
