@@ -13,7 +13,7 @@
                 <div class="auth-card">
                     <div class="brand-header">
                         <img
-                            src="study-planner-imageandlogo.jpg"
+                            src="learnora.jpg"
                             class="auth-logo"
                             alt="Learnora Logo"
                         />
@@ -215,8 +215,6 @@
                                 fill="none"
                                 stroke="currentColor"
                                 stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
                             >
                                 <path
                                     d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"
@@ -473,15 +471,6 @@
                                 <option value="es">Español (Spanish)</option>
                                 <option value="fr">Français (French)</option>
                                 <option value="hi">हिन्दी (Hindi)</option>
-                                <option value="zh">中文 (Chinese)</option>
-                                <option value="ar">العربية (Arabic)</option>
-                                <option value="de">Deutsch (German)</option>
-                                <option value="ja">日本語 (Japanese)</option>
-                                <option value="ko">한국어 (Korean)</option>
-                                <option value="pt">
-                                    Português (Portuguese)
-                                </option>
-                                <option value="ru">Русский (Russian)</option>
                             </select>
                         </div>
                         <div class="setting-row">
@@ -497,19 +486,6 @@
                                     Français (French)
                                 </option>
                                 <option value="Hindi">हिन्दी (Hindi)</option>
-                                <option value="Chinese">中文 (Chinese)</option>
-                                <option value="Arabic">العربية (Arabic)</option>
-                                <option value="German">Deutsch (German)</option>
-                                <option value="Japanese">
-                                    日本語 (Japanese)
-                                </option>
-                                <option value="Korean">한국어 (Korean)</option>
-                                <option value="Portuguese">
-                                    Português (Portuguese)
-                                </option>
-                                <option value="Russian">
-                                    Русский (Russian)
-                                </option>
                             </select>
                         </div>
                         <hr />
@@ -564,6 +540,44 @@
                     </div>
                 </section>
             </main>
+        </div>
+
+        <div
+            id="popup-overlay"
+            class="modal-overlay hidden"
+            style="z-index: 9999"
+        >
+            <div
+                class="modal-content glass-panel"
+                style="text-align: center; max-width: 400px; margin: auto"
+            >
+                <h3
+                    id="popup-title"
+                    style="
+                        color: var(--primary);
+                        margin-bottom: 16px;
+                        font-weight: 800;
+                        font-size: 22px;
+                    "
+                >
+                    Information
+                </h3>
+                <p
+                    id="popup-message"
+                    style="
+                        margin-bottom: 24px;
+                        font-weight: 600;
+                        font-size: 15px;
+                    "
+                ></p>
+                <button
+                    class="btn-primary"
+                    onclick="hidePopup()"
+                    style="width: 100%"
+                >
+                    Okay
+                </button>
+            </div>
         </div>
 
         <div id="exam-modal" class="modal-overlay hidden">
@@ -658,7 +672,6 @@
                     </button>
                 </div>
             </div>
-
             <div id="chat-messages" class="chat-feed">
                 <div class="chat-bubble ai-bubble">
                     Hi there! I'm Learnora AI. Drop your notes or images here
@@ -670,14 +683,12 @@
                 <span class="dot"></span><span class="dot"></span
                 ><span class="dot"></span>
             </div>
-
             <div id="file-preview-container" class="hidden">
                 <div class="file-pill">
-                    <span id="file-name">document.pdf</span>
-                    <button onclick="removeAiFile()">✖</button>
+                    <span id="file-name">document.pdf</span
+                    ><button onclick="removeAiFile()">✖</button>
                 </div>
             </div>
-
             <div class="chat-input-dock">
                 <label for="file-upload" class="upload-btn">
                     <svg
@@ -719,7 +730,6 @@
             </div>
         </div>
 
-        <div id="toast-container"></div>
         <script type="module" src="script.js"></script>
     </body>
 </html>

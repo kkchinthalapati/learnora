@@ -17,6 +17,23 @@ let appInitialized = false;
 let chatHistory = [];
 
 // ==========================================
+// NEW POPUP NOTIFICATION SYSTEM
+// ==========================================
+window.showPopup = function (message, title = "Learnora") {
+  const overlay = document.getElementById("popup-overlay");
+  const titleEl = document.getElementById("popup-title");
+  const msgEl = document.getElementById("popup-message");
+  if (titleEl) titleEl.innerText = title;
+  if (msgEl) msgEl.innerText = message;
+  if (overlay) overlay.classList.remove("hidden");
+};
+
+window.hidePopup = function () {
+  const overlay = document.getElementById("popup-overlay");
+  if (overlay) overlay.classList.add("hidden");
+};
+
+// ==========================================
 // APP INITIALIZATION & AUTH (GHOST-PROOF)
 // ==========================================
 
@@ -81,21 +98,23 @@ function initializeAppData() {
 
 // --- DYNAMIC GREETING ENGINE ---
 async function updateGreeting() {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (user) {
-      // Pull name from user metadata which we save during sign up
-      let fullName = user.user_metadata?.full_name || "Student";
-      const firstName = fullName.split(" ")[0];
+    // Pull name from user metadata which we save during sign up
+    let fullName = user.user_metadata?.full_name || "Student";
+    const firstName = fullName.split(" ")[0];
 
-      const greetingEl = document.getElementById("user-greeting");
-      if (greetingEl) {
-          const currentHour = new Date().getHours();
-          let timeGreeting = "Good evening";
-          if (currentHour < 12) timeGreeting = "Good morning";
-          else if (currentHour < 18) timeGreeting = "Good afternoon";
+    const greetingEl = document.getElementById("user-greeting");
+    if (greetingEl) {
+      const currentHour = new Date().getHours();
+      let timeGreeting = "Good evening";
+      if (currentHour < 12) timeGreeting = "Good morning";
+      else if (currentHour < 18) timeGreeting = "Good afternoon";
 
-          greetingEl.innerText = `${timeGreeting}, ${firstName}! 👋`;
-      }
+      greetingEl.innerText = `${timeGreeting}, ${firstName}! 👋`;
+    }
   }
 }
 
@@ -143,15 +162,15 @@ document.addEventListener("DOMContentLoaded", () => {
       setButtonLoading("login-btn", false);
 
       if (error) {
-        showNotification("Login failed: " + error.message, "error");
+        showPopup(error.message, "Login Error");
       } else {
         loginForm.reset();
-        showNotification("Welcome back!", "success");
+        showPopup("Welcome back to your workspace!", "Success");
       }
     });
   }
 
-  // 2. SIGNUP LOGIC (WITH DOB GATEKEEPER)
+  // 2. SIGNUP LOGIC (WITH DOB GATEKEEPER & MAGIC LINK REDIRECT)
   if (signupForm) {
     signupForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -168,39 +187,44 @@ document.addEventListener("DOMContentLoaded", () => {
       let age = today.getFullYear() - birthDate.getFullYear();
       const m = today.getMonth() - birthDate.getMonth();
       if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-          age--; // They haven't had their birthday yet this year
+        age--; // They haven't had their birthday yet this year
       }
 
       if (age < 13) {
-          setButtonLoading("signup-btn", false);
-          showNotification("You must be at least 13 years old to sign up.", "error");
-          return; // STOP execution
+        setButtonLoading("signup-btn", false);
+        showPopup(
+          "You must be at least 13 years old to sign up.",
+          "Age Restriction",
+        );
+        return; // STOP execution
       }
 
-      // Execute Supabase Auth with metadata injection
+      // Execute Supabase Auth with metadata injection and Vercel redirect link
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-            data: {
-                full_name: name,
-                dob: dob
-            }
+          data: {
+            full_name: name,
+            dob: dob,
+          },
+          emailRedirectTo:
+            "https://study-planner-delta-six.vercel.app/verify.html",
         },
       });
 
       setButtonLoading("signup-btn", false);
 
       if (error) {
-        showNotification("Signup failed: " + error.message, "error");
+        showPopup(error.message, "Signup Error");
       } else {
         if (data.session) {
           signupForm.reset();
-          showNotification("Account created successfully!", "success");
+          showPopup("Account created successfully!", "Success");
         } else {
-          showNotification(
-            "Success! Check your email for confirmation.",
-            "success",
+          showPopup(
+            "Success! Check your email for the confirmation link.",
+            "Email Sent",
           );
           switchAuth("login");
         }
@@ -256,7 +280,7 @@ window.saveSettings = function () {
     JSON.stringify(window.userSettings),
   );
   applyTranslations();
-  showNotification("Your settings have been saved!", "success");
+  showPopup("Your settings have been saved successfully.", "Settings Saved");
 };
 
 function loadSettingsToUI() {
@@ -326,9 +350,9 @@ window.exportData = async function () {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showNotification("Data exported successfully!", "success");
+    showPopup("Your data has been exported successfully.", "Export Complete");
   } catch (err) {
-    showNotification("Failed to export data.");
+    showPopup("There was an issue exporting your data.", "Error");
   }
 };
 
@@ -363,9 +387,9 @@ window.wipeData = async function () {
     renderTodos();
     renderCalendarStructure();
 
-    showNotification("All data wiped successfully.", "success");
+    showPopup("All data wiped successfully.", "Data Cleared");
   } catch (err) {
-    showNotification("Failed to wipe data: " + err.message);
+    showPopup("Failed to wipe data: " + err.message, "Error");
   }
 };
 
@@ -374,17 +398,6 @@ window.logoutUser = async function () {
   chatHistory = [];
   updateAuthUI(null);
 };
-
-// --- TOAST NOTIFICATIONS ---
-function showNotification(message, type = "error") {
-  const container = document.getElementById("toast-container");
-  if (!container) return;
-  const toast = document.createElement("div");
-  toast.className = `toast toast-${type}`;
-  toast.innerText = message;
-  container.appendChild(toast);
-  setTimeout(() => toast.remove(), 4000);
-}
 
 // ==========================================
 // UI, TAB & CLOCK LOGIC
@@ -492,7 +505,7 @@ async function addTodo() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    showNotification("Authentication error.");
+    showPopup("Authentication error.", "Error");
     return;
   }
 
@@ -503,7 +516,7 @@ async function addTodo() {
     input.value = "";
     fetchTodos();
   } else {
-    showNotification("Error adding task: " + error.message);
+    showPopup(error.message, "Error Adding Task");
   }
 }
 
@@ -525,7 +538,7 @@ async function deleteTodo(id, e) {
   if (li) li.classList.add("removing");
   const { error } = await supabase.from("tasks").delete().eq("id", id);
   if (!error) setTimeout(fetchTodos, 300);
-  else showNotification("Delete failed.");
+  else showPopup("Failed to delete task.", "Error");
 }
 
 function renderTodos() {
@@ -740,7 +753,7 @@ function handleCycleEnd() {
 
   timeLeft = totalSessionTime;
   saveTimerState();
-  showNotification(`${currentMode} time!`, "success");
+  showPopup(`${currentMode} time started!`, "Timer Finished");
   updateTimerDisplay();
 }
 
@@ -1043,15 +1056,15 @@ async function handleExamFormSubmit(e) {
   try {
     if (examId) {
       await supabase.from("exams").update(examPayload).eq("id", examId);
-      showNotification("Exam updated!", "success");
+      showPopup("Exam details successfully updated.", "Success");
     } else {
       await supabase.from("exams").insert([examPayload]);
-      showNotification("Exam scheduled!", "success");
+      showPopup("New exam scheduled successfully.", "Success");
     }
     hideModal();
     await initializeCalendar();
   } catch (err) {
-    showNotification(`Database error: ${err.message}`);
+    showPopup(`Database error: ${err.message}`, "Error");
   }
 }
 
@@ -1066,11 +1079,11 @@ async function deleteCurrentExam() {
   try {
     const { error } = await supabase.from("exams").delete().eq("id", examId);
     if (error) throw error;
-    showNotification("Exam deleted", "success");
+    showPopup("Exam has been permanently removed.", "Success");
     hideModal();
     await initializeCalendar();
   } catch (err) {
-    showNotification(`Deletion failed: ${err.message}`);
+    showPopup(`Deletion failed: ${err.message}`, "Error");
   }
 }
 
@@ -1133,7 +1146,7 @@ window.renderFlashcards = function (flashcardsArray) {
   const flashcardTabBtn = document.querySelector('li[onclick*="flashcards"]');
   if (flashcardTabBtn) switchTab("flashcards", flashcardTabBtn);
   document.getElementById("turbo-chat").classList.add("hidden");
-  showNotification("Flashcards generated!", "success");
+  showPopup("Your AI flashcards are ready for review!", "Success");
 };
 
 window.sendChat = async function () {
@@ -1297,6 +1310,8 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Global bindings for inline HTML clicks
+window.showPopup = showPopup;
+window.hidePopup = hidePopup;
 window.switchTab = switchTab;
 window.toggleSidebar = toggleSidebar;
 window.addTodo = addTodo;
