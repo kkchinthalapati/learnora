@@ -4,14 +4,15 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Learnora | Study Workspace</title>
+        <link rel="icon" href="learnora.jpg" type="image/jpeg" />
         <link rel="stylesheet" href="style.css" />
         <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     </head>
-    <body>
-        <div id="auth-wall" class="auth-wrapper" style="display: flex">
+    <body class="dark-theme">
+        <div id="auth-wall" class="auth-wrapper">
             <div class="auth-layout">
-                <div class="auth-card">
-                    <div class="brand-header">
+                <div class="auth-card glass-panel">
+                    <div class="brand-header text-center">
                         <img
                             src="learnora.jpg"
                             class="auth-logo"
@@ -43,7 +44,7 @@
                             </div>
                             <button
                                 type="submit"
-                                class="btn-primary"
+                                class="btn-primary full-width mt-16"
                                 id="login-btn"
                             >
                                 <span class="btn-text">Log In</span>
@@ -51,19 +52,13 @@
                             </button>
                             <p class="toggle-text">
                                 New here?
-                                <span
-                                    class="auth-link"
-                                    onclick="switchAuth('signup')"
+                                <span class="auth-link" id="btn-show-signup"
                                     >Create an account</span
                                 >
                             </p>
                         </form>
 
-                        <form
-                            id="signup-form"
-                            class="auth-form"
-                            style="display: none"
-                        >
+                        <form id="signup-form" class="auth-form hidden">
                             <div class="input-group">
                                 <input
                                     type="text"
@@ -84,23 +79,17 @@
                             </div>
                             <div class="input-group">
                                 <input
-                                    type="text"
+                                    type="date"
                                     id="signup-dob"
-                                    placeholder="Date of Birth (Must be 13+)"
-                                    onfocus="this.type = 'date'"
-                                    onblur="
-                                        this.value == ''
-                                            ? (this.type = 'text')
-                                            : (this.type = 'date')
-                                    "
                                     required
+                                    title="Date of Birth (Must be 13+)"
                                 />
                             </div>
                             <div class="input-group">
                                 <input
                                     type="password"
                                     id="signup-password"
-                                    placeholder="Password"
+                                    placeholder="Password (Min 6 chars)"
                                     autocomplete="new-password"
                                     required
                                     minlength="6"
@@ -108,7 +97,7 @@
                             </div>
                             <button
                                 type="submit"
-                                class="btn-primary"
+                                class="btn-primary full-width mt-16"
                                 id="signup-btn"
                             >
                                 <span class="btn-text">Create Account</span>
@@ -116,15 +105,14 @@
                             </button>
                             <p class="toggle-text">
                                 Already have an account?
-                                <span
-                                    class="auth-link"
-                                    onclick="switchAuth('login')"
+                                <span class="auth-link" id="btn-show-login"
                                     >Log In</span
                                 >
                             </p>
                         </form>
                     </div>
                 </div>
+
                 <div class="auth-visual">
                     <div class="visual-content">
                         <h2>Keep your study data<br />secure and synced.</h2>
@@ -133,44 +121,50 @@
             </div>
         </div>
 
-        <div id="main-app" style="display: none; width: 100%; height: 100vh">
-            <nav class="sidebar" id="sidebar">
+        <div id="main-app" class="app-container hidden">
+            <nav class="sidebar glass-panel" id="sidebar">
                 <h2 class="brand">Learnora</h2>
                 <ul class="nav-links">
                     <li
-                        class="active"
-                        onclick="switchTab('logs', this)"
+                        class="nav-item active"
+                        data-target="logs"
                         data-i18n="nav_dashboard"
                     >
                         📊 Dashboard
                     </li>
                     <hr class="sidebar-divider" />
                     <li
-                        onclick="switchTab('timer', this)"
+                        class="nav-item"
+                        data-target="timer"
                         data-i18n="nav_timer"
                     >
                         ⏱️ Timer
                     </li>
-                    <li onclick="switchTab('todo', this)" data-i18n="nav_tasks">
+                    <li
+                        class="nav-item"
+                        data-target="todo"
+                        data-i18n="nav_tasks"
+                    >
                         📝 Task Manager
                     </li>
                     <li
-                        onclick="switchTab('exams', this)"
+                        class="nav-item"
+                        data-target="exams"
                         data-i18n="nav_calendar"
                     >
                         📚 Calendar
                     </li>
                     <li
-                        onclick="switchTab('flashcards', this)"
+                        class="nav-item"
+                        data-target="flashcards"
                         data-i18n="nav_flashcards"
                     >
                         🗂️ Flashcards
                     </li>
-                    <li onclick="openAiModal()" data-i18n="nav_ai">
-                        🤖 Turbo AI
-                    </li>
+                    <li id="nav-ai-trigger" data-i18n="nav_ai">🤖 Turbo AI</li>
                     <li
-                        onclick="switchTab('settings', this)"
+                        class="nav-item"
+                        data-target="settings"
                         data-i18n="nav_settings"
                     >
                         ⚙️ Settings
@@ -181,30 +175,25 @@
             <main class="main-content">
                 <header>
                     <div class="header-left">
-                        <button id="menu-toggle" onclick="toggleSidebar()">
+                        <button
+                            id="menu-toggle"
+                            class="icon-btn"
+                            aria-label="Toggle Menu"
+                        >
                             ☰
                         </button>
                         <div>
                             <h1 id="page-title" data-i18n="title_dashboard">
                                 Dashboard
                             </h1>
-                            <p
-                                id="user-greeting"
-                                style="
-                                    font-size: 14px;
-                                    opacity: 0.7;
-                                    font-weight: 600;
-                                    margin-top: 4px;
-                                    color: var(--primary);
-                                "
-                            ></p>
+                            <p id="user-greeting" class="subtitle"></p>
                         </div>
                     </div>
-                    <div class="header-right">
-                        <span id="live-clock">00:00</span>
+                    <div class="header-right flex-gap">
+                        <span id="live-clock" class="glass-pill">00:00</span>
                         <button
                             id="theme-toggle"
-                            onclick="toggleTheme()"
+                            class="icon-btn"
                             aria-label="Toggle Theme"
                         >
                             <svg
@@ -224,132 +213,168 @@
                     </div>
                 </header>
 
-                <section
-                    id="logs-section"
-                    class="tab-content"
-                    style="display: block"
-                >
-                    <div id="dashboard-widgets"></div>
+                <section id="logs-section" class="tab-content">
+                    <div id="dashboard-widgets" class="grid-list mb-24">
+                        <div class="glass-panel stat-card">
+                            <h3 class="stat-title opacity-70">
+                                📈 Total Focus Time
+                            </h3>
+                            <h2 id="total-hours-display" class="stat-number">
+                                0.0 <span>hours</span>
+                            </h2>
+                        </div>
+                        <div class="glass-panel stat-card">
+                            <h3 class="stat-title opacity-70">
+                                🚀 Upcoming Deadlines
+                            </h3>
+                            <div
+                                id="upcoming-exams-display"
+                                class="exam-list-mini mt-16"
+                            ></div>
+                        </div>
+                    </div>
                     <div class="glass-panel summary-card">
                         <h2 data-i18n="header_history">Session History</h2>
-                        <p data-i18n="desc_history">
+                        <p
+                            data-i18n="desc_history"
+                            class="opacity-70 mt-8 mb-16"
+                        >
                             All completed focus blocks are logged here
                             automatically.
                         </p>
+                        <ul id="log-list" class="list-container"></ul>
                     </div>
-                    <ul id="log-list" class="list-container"></ul>
                 </section>
 
-                <section
-                    id="timer-section"
-                    class="tab-content"
-                    style="display: none"
-                >
+                <section id="timer-section" class="tab-content hidden">
                     <div class="timer-layout">
                         <div class="config-panel glass-panel">
                             <h3 data-i18n="timer_presets">Workflow Presets</h3>
                             <div class="preset-buttons">
                                 <button
-                                    onclick="applyPreset('deep')"
+                                    class="btn-preset btn-secondary"
+                                    data-preset="deep"
                                     data-i18n="preset_deep"
                                 >
                                     Deep Work (90m)
                                 </button>
                                 <button
-                                    onclick="applyPreset('cram')"
+                                    class="btn-preset btn-secondary"
+                                    data-preset="cram"
                                     data-i18n="preset_cram"
                                 >
                                     Exam Cram (45m)
                                 </button>
                                 <button
-                                    onclick="applyPreset('light')"
+                                    class="btn-preset btn-secondary"
+                                    data-preset="light"
                                     data-i18n="preset_light"
                                 >
                                     Light Study (20m)
                                 </button>
                             </div>
-                            <hr />
-                            <label
+                            <hr class="sidebar-divider" />
+                            <label class="flex-between mb-16"
                                 ><span data-i18n="config_focus"
                                     >Focus (mins)</span
-                                ><input type="number" id="focusTime" value="25"
+                                >
+                                <input
+                                    type="number"
+                                    id="config-focus"
+                                    value="25"
+                                    class="small-input"
                             /></label>
-                            <label
+                            <label class="flex-between mb-16"
                                 ><span data-i18n="config_short"
                                     >Short Break</span
-                                ><input
+                                >
+                                <input
                                     type="number"
-                                    id="shortBreakTime"
+                                    id="config-short"
                                     value="5"
+                                    class="small-input"
                             /></label>
-                            <label
-                                ><span data-i18n="config_long">Long Break</span
-                                ><input
+                            <label class="flex-between mb-16"
+                                ><span data-i18n="config_long">Long Break</span>
+                                <input
                                     type="number"
-                                    id="longBreakTime"
+                                    id="config-long"
                                     value="15"
+                                    class="small-input"
                             /></label>
-                            <label
-                                ><span data-i18n="config_cycles">Cycles</span
-                                ><input
+                            <label class="flex-between mb-16"
+                                ><span data-i18n="config_cycles">Cycles</span>
+                                <input
                                     type="number"
-                                    id="cyclesConfig"
+                                    id="config-cycles"
                                     value="4"
+                                    class="small-input"
                             /></label>
-                            <label class="task-binder"
+
+                            <label class="flex-between mt-16 task-binder"
                                 ><span data-i18n="config_task"
                                     >Current Task:</span
                                 >
-                                <select id="active-task">
+                                <select
+                                    id="active-task-select"
+                                    class="small-input"
+                                >
                                     <option value="None">None</option>
                                 </select>
                             </label>
+
                             <button
-                                onclick="applyTimerConfig()"
-                                class="save-btn btn-primary"
+                                id="btn-apply-timer"
+                                class="btn-primary full-width mt-24"
                                 data-i18n="btn_apply"
                             >
                                 Apply & Reset
                             </button>
-                            <div id="fav-presets-container"></div>
+                            <div
+                                id="fav-presets-container"
+                                class="mt-16 flex-col flex-gap"
+                            ></div>
                         </div>
+
                         <div class="timer-display glass-panel">
                             <p id="quote-display" class="motivational-quote">
                                 "Loading..."
                             </p>
-                            <h4 id="timer-mode">Focus Mode</h4>
+                            <h4 id="timer-mode-label">Focus Mode</h4>
                             <h2 id="time-display">25:00</h2>
                             <p id="cycle-counter">Cycle: 0 / 4</p>
+
                             <div class="progress-container">
                                 <div
                                     id="timer-progress"
                                     class="progress-bar"
                                 ></div>
                             </div>
-                            <div class="timer-controls">
+
+                            <div class="timer-controls flex-gap">
                                 <button
-                                    onclick="startTimer()"
-                                    class="start-btn btn-primary"
+                                    id="btn-timer-start"
+                                    class="btn-primary"
                                     data-i18n="btn_start"
                                 >
                                     Start
                                 </button>
                                 <button
-                                    onclick="pauseTimer()"
-                                    class="pause-btn"
+                                    id="btn-timer-pause"
+                                    class="btn-warning"
                                     data-i18n="btn_pause"
                                 >
                                     Pause
                                 </button>
                                 <button
-                                    onclick="extendTimer()"
-                                    class="extend-btn"
+                                    id="btn-timer-extend"
+                                    class="btn-success"
                                 >
                                     +5 Mins
                                 </button>
                                 <button
-                                    onclick="resetTimer()"
-                                    class="reset-btn"
+                                    id="btn-timer-reset"
+                                    class="btn-danger"
                                     data-i18n="btn_reset"
                                 >
                                     Reset
@@ -359,42 +384,38 @@
                     </div>
                 </section>
 
-                <section
-                    id="todo-section"
-                    class="tab-content"
-                    style="display: none"
-                >
-                    <div class="input-card glass-panel">
+                <section id="todo-section" class="tab-content hidden">
+                    <div class="input-card glass-panel flex-row">
                         <input
                             type="text"
                             id="todo-input"
                             placeholder="Add a new task..."
+                            autocomplete="off"
                             data-i18n="placeholder_task"
-                            onkeypress="handleTodoEnter(event)"
                         />
                         <button
+                            id="btn-add-todo"
                             class="btn-primary"
-                            onclick="addTodo()"
                             data-i18n="btn_add"
                         >
                             Add Task
                         </button>
                     </div>
-                    <ul id="todo-list" class="list-container"></ul>
+                    <ul id="todo-list" class="list-container mt-24"></ul>
                 </section>
 
-                <section
-                    id="exams-section"
-                    class="tab-content"
-                    style="display: none"
-                >
+                <section id="exams-section" class="tab-content hidden">
                     <div class="calendar-container glass-panel">
-                        <div class="calendar-header">
-                            <button id="prev-month-btn">&lt;</button>
-                            <h2 id="month-year-display">June 2026</h2>
-                            <button id="next-month-btn">&gt;</button>
+                        <div class="calendar-header flex-between mb-24">
+                            <button id="btn-prev-month" class="icon-btn">
+                                &lt;
+                            </button>
+                            <h2 id="month-year-display">Month Year</h2>
+                            <button id="btn-next-month" class="icon-btn">
+                                &gt;
+                            </button>
                         </div>
-                        <div class="calendar-weekdays">
+                        <div class="calendar-weekdays grid-7">
                             <div data-i18n="day_sun">Sun</div>
                             <div data-i18n="day_mon">Mon</div>
                             <div data-i18n="day_tue">Tue</div>
@@ -405,34 +426,26 @@
                         </div>
                         <div
                             id="calendar-days"
-                            class="calendar-days-grid"
+                            class="calendar-days-grid mt-16"
                         ></div>
                     </div>
                 </section>
 
-                <section
-                    id="flashcards-section"
-                    class="tab-content"
-                    style="display: none"
-                >
+                <section id="flashcards-section" class="tab-content hidden">
                     <div class="glass-panel summary-card">
                         <h2 data-i18n="header_flashcards">Flashcards</h2>
-                        <p data-i18n="desc_flashcards">
+                        <p data-i18n="desc_flashcards" class="opacity-70 mt-8">
                             Your AI-generated flashcards will appear here. Click
                             a card to flip it over.
                         </p>
                     </div>
-                    <div id="flashcards-grid" class="grid-list"></div>
+                    <div id="flashcards-grid" class="grid-list mt-24"></div>
                 </section>
 
-                <section
-                    id="settings-section"
-                    class="tab-content"
-                    style="display: none"
-                >
+                <section id="settings-section" class="tab-content hidden">
                     <div class="glass-panel">
                         <h2 data-i18n="set_ai_brain">🧠 AI Personalization</h2>
-                        <div class="setting-row">
+                        <div class="setting-row flex-between">
                             <label data-i18n="set_persona">AI Persona</label>
                             <select id="config-persona">
                                 <option value="tutor" data-i18n="opt_tutor">
@@ -446,7 +459,7 @@
                                 </option>
                             </select>
                         </div>
-                        <div class="setting-row">
+                        <div class="setting-row flex-between">
                             <label data-i18n="set_length"
                                 >Response Length</label
                             >
@@ -462,9 +475,11 @@
                                 </option>
                             </select>
                         </div>
-                        <hr />
+
+                        <hr class="sidebar-divider mt-24 mb-24" />
+
                         <h2 data-i18n="set_localization">🌍 Localization</h2>
-                        <div class="setting-row">
+                        <div class="setting-row flex-between">
                             <label data-i18n="set_ui_lang">UI Language</label>
                             <select id="config-ui-lang">
                                 <option value="en">English</option>
@@ -473,7 +488,7 @@
                                 <option value="hi">हिन्दी (Hindi)</option>
                             </select>
                         </div>
-                        <div class="setting-row">
+                        <div class="setting-row flex-between">
                             <label data-i18n="set_ai_lang"
                                 >AI Response Language</label
                             >
@@ -488,50 +503,53 @@
                                 <option value="Hindi">हिन्दी (Hindi)</option>
                             </select>
                         </div>
-                        <hr />
+
+                        <hr class="sidebar-divider mt-24 mb-24" />
+
                         <h2 data-i18n="set_data">🔒 Data & Privacy</h2>
-                        <div class="setting-row">
+                        <div class="setting-row flex-between">
                             <p data-i18n="set_export_desc">
                                 Download a copy of your study logs and tasks.
                             </p>
                             <button
+                                id="btn-export-data"
                                 class="btn-secondary"
-                                onclick="exportData()"
                                 data-i18n="btn_export"
                             >
                                 📥 Export Data (CSV)
                             </button>
                         </div>
-                        <div class="setting-row danger-zone">
-                            <p data-i18n="set_wipe_desc">
+                        <div class="setting-row flex-between danger-zone">
+                            <p data-i18n="set_wipe_desc" class="text-danger">
                                 Permanently delete all tasks, logs, and exams
                                 from the cloud.
                             </p>
                             <button
+                                id="btn-wipe-data"
                                 class="btn-danger"
-                                onclick="wipeData()"
                                 data-i18n="btn_wipe"
                             >
                                 🗑️ Wipe All Data
                             </button>
                         </div>
 
-                        <hr />
-                        <h2 style="color: var(--danger)">🚪 Account Access</h2>
-                        <div class="setting-row danger-zone">
-                            <p>
+                        <hr class="sidebar-divider mt-24 mb-24" />
+
+                        <h2 class="text-danger">🚪 Account Access</h2>
+                        <div class="setting-row flex-between danger-zone">
+                            <p class="text-danger">
                                 Securely log out of your current session on this
                                 device.
                             </p>
-                            <button class="btn-danger" onclick="logoutUser()">
+                            <button id="btn-logout" class="btn-danger">
                                 Log Out
                             </button>
                         </div>
 
-                        <div class="settings-actions">
+                        <div class="flex-end mt-40">
                             <button
-                                class="btn-primary save-settings-btn"
-                                onclick="saveSettings()"
+                                id="btn-save-settings"
+                                class="btn-primary"
                                 data-i18n="btn_save_config"
                             >
                                 Save Changes
@@ -542,39 +560,20 @@
             </main>
         </div>
 
-        <div
-            id="popup-overlay"
-            class="modal-overlay hidden"
-            style="z-index: 9999"
-        >
-            <div
-                class="modal-content glass-panel"
-                style="text-align: center; max-width: 400px; margin: auto"
-            >
+        <div id="popup-overlay" class="modal-overlay hidden">
+            <div class="modal-content glass-panel text-center">
                 <h3
                     id="popup-title"
                     style="
                         color: var(--primary);
                         margin-bottom: 16px;
-                        font-weight: 800;
                         font-size: 22px;
                     "
                 >
-                    Information
+                    Notification
                 </h3>
-                <p
-                    id="popup-message"
-                    style="
-                        margin-bottom: 24px;
-                        font-weight: 600;
-                        font-size: 15px;
-                    "
-                ></p>
-                <button
-                    class="btn-primary"
-                    onclick="hidePopup()"
-                    style="width: 100%"
-                >
+                <p id="popup-message" class="mb-24"></p>
+                <button id="btn-close-popup" class="btn-primary full-width">
                     Okay
                 </button>
             </div>
@@ -582,10 +581,11 @@
 
         <div id="exam-modal" class="modal-overlay hidden">
             <div class="modal-content glass-panel">
-                <h3 id="modal-title">Add New Exam</h3>
+                <h3 id="modal-exam-title" class="mb-24">Add New Exam</h3>
                 <form id="exam-form">
                     <input type="hidden" id="modal-exam-id" />
-                    <div class="form-group">
+
+                    <div class="input-group">
                         <label for="exam-name">Exam Name</label>
                         <input
                             type="text"
@@ -594,11 +594,11 @@
                             placeholder="e.g., AP Chemistry Midterm"
                         />
                     </div>
-                    <div class="form-group">
+                    <div class="input-group">
                         <label for="exam-date">Date</label>
                         <input type="date" id="exam-date" required />
                     </div>
-                    <div class="form-group">
+                    <div class="input-group">
                         <label for="exam-difficulty">Difficulty Level</label>
                         <select id="exam-difficulty">
                             <option value="Easy">Easy</option>
@@ -606,25 +606,26 @@
                             <option value="Hard">Hard</option>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="input-group">
                         <label for="exam-status">Status</label>
                         <select id="exam-status">
                             <option value="Scheduled">Scheduled</option>
                             <option value="Completed">Completed</option>
                         </select>
                     </div>
-                    <div class="modal-actions">
+
+                    <div class="modal-actions flex-between mt-32">
                         <button
                             type="button"
-                            id="delete-exam-btn"
+                            id="btn-delete-exam"
                             class="btn-danger hidden"
                         >
                             Delete
                         </button>
-                        <div class="right-actions">
+                        <div class="flex-gap" style="margin-left: auto">
                             <button
                                 type="button"
-                                id="close-modal-btn"
+                                id="btn-cancel-exam"
                                 class="btn-secondary"
                             >
                                 Cancel
@@ -638,40 +639,35 @@
             </div>
         </div>
 
-        <button
-            id="turbo-toggle"
-            class="btn-primary ai-trigger-btn"
-            onclick="openAiModal()"
-        >
-            AI
-        </button>
+        <button id="turbo-toggle" class="btn-primary ai-trigger-btn">AI</button>
 
-        <div id="turbo-chat" class="hidden glass-modal ai-modal">
-            <div id="drag-overlay" class="hidden">
+        <div id="turbo-chat" class="hidden glass-panel ai-modal">
+            <div id="drag-overlay" class="hidden flex-center">
                 <span>Drop files here</span>
             </div>
-            <div class="chat-header" id="ai-chat-header">
-                <div class="header-drag-handle"><h3>✨ Learnora AI</h3></div>
-                <div class="header-controls">
+
+            <div class="chat-header flex-between" id="ai-chat-header">
+                <div class="header-drag-handle full-width">
+                    <h3>✨ Learnora AI</h3>
+                </div>
+                <div class="header-controls flex-gap">
                     <button
-                        id="fullscreen-btn"
-                        onclick="toggleAiFullscreen()"
-                        title="Toggle Size"
+                        id="btn-ai-fullscreen"
+                        class="icon-btn"
+                        aria-label="Toggle Size"
                     >
                         ⛶
                     </button>
                     <button
-                        class="close-btn"
-                        onclick="
-                            document
-                                .getElementById('turbo-chat')
-                                .classList.add('hidden')
-                        "
+                        id="btn-ai-close"
+                        class="icon-btn"
+                        aria-label="Close Chat"
                     >
                         ✖
                     </button>
                 </div>
             </div>
+
             <div id="chat-messages" class="chat-feed">
                 <div class="chat-bubble ai-bubble">
                     Hi there! I'm Learnora AI. Drop your notes or images here
@@ -679,18 +675,30 @@
                     flashcards!
                 </div>
             </div>
+
             <div id="typing-indicator" class="hidden">
                 <span class="dot"></span><span class="dot"></span
                 ><span class="dot"></span>
             </div>
-            <div id="file-preview-container" class="hidden">
+
+            <div
+                id="file-preview-container"
+                class="hidden file-pill-wrapper flex-row"
+            >
                 <div class="file-pill">
-                    <span id="file-name">document.pdf</span
-                    ><button onclick="removeAiFile()">✖</button>
+                    <span id="file-name">document.pdf</span>
+                    <button
+                        id="btn-remove-file"
+                        class="text-danger"
+                        aria-label="Remove File"
+                    >
+                        ✖
+                    </button>
                 </div>
             </div>
-            <div class="chat-input-dock">
-                <label for="file-upload" class="upload-btn">
+
+            <div class="chat-input-dock flex-row">
+                <label for="file-upload" class="upload-btn cursor-pointer">
                     <svg
                         width="22"
                         height="22"
@@ -704,20 +712,14 @@
                         ></path>
                     </svg>
                 </label>
-                <input
-                    type="file"
-                    id="file-upload"
-                    hidden
-                    onchange="handleAiFileInput(event)"
-                />
+                <input type="file" id="file-upload" hidden />
                 <input
                     type="text"
                     id="chat-input"
                     placeholder="Ask anything or request flashcards..."
-                    onkeypress="handleChatEnter(event)"
                     autocomplete="off"
                 />
-                <button onclick="sendChat()" class="send-btn">
+                <button id="btn-send-chat" class="send-btn">
                     <svg
                         width="22"
                         height="22"
@@ -730,6 +732,6 @@
             </div>
         </div>
 
-        <script type="module" src="script.js"></script>
+        <script type="module" src="./js/main.js"></script>
     </body>
 </html>
