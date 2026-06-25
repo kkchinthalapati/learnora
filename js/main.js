@@ -8,7 +8,6 @@ let cachedExams = [];
 
 /**
  * ORCHESTRATOR: Initializes the app and binds all UI events.
- * This file acts as the central traffic controller for Learnora.
  */
 document.addEventListener("DOMContentLoaded", async () => {
   // 1. BOOT SEQUENCE
@@ -32,8 +31,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     initWorkspace();
   } else {
     document.getElementById("auth-wall")?.classList.remove("hidden");
-    if (document.getElementById("main-app"))
+    if (document.getElementById("main-app")) {
       document.getElementById("main-app").style.display = "none";
+    }
   }
 
   // 2. AUTH BINDINGS
@@ -65,13 +65,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
   document.getElementById("btn-show-signup")?.addEventListener("click", () => {
-    document.getElementById("login-form").style.display = "none";
-    document.getElementById("signup-form").style.display = "flex";
+    document.getElementById("login-form").classList.add("hidden");
+    document.getElementById("signup-form").classList.remove("hidden");
   });
 
   document.getElementById("btn-show-login")?.addEventListener("click", () => {
-    document.getElementById("signup-form").style.display = "none";
-    document.getElementById("login-form").style.display = "flex";
+    document.getElementById("signup-form").classList.add("hidden");
+    document.getElementById("login-form").classList.remove("hidden");
   });
 
   document.getElementById("btn-logout")?.addEventListener("click", Auth.logout);
@@ -83,31 +83,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("theme-toggle")
     ?.addEventListener("click", UI.toggleTheme);
+
   document.getElementById("menu-toggle")?.addEventListener("click", () => {
     const sidebar = document.getElementById("sidebar");
-    if (window.innerWidth <= 768) {
-      // On mobile, "collapsed" actually brings it INTO view (left: 0)
-      sidebar.classList.toggle("collapsed");
-    } else {
-      // On desktop, "collapsed" shrinks it (width: 0)
-      sidebar.classList.toggle("collapsed");
-    }
+    // Mobile slides out, desktop shrinks
+    sidebar.classList.toggle("collapsed");
   });
 
-  // Mobile UX: Auto-close sidebar when a tab is clicked
+  // Consolidated Sidebar Navigation Listener
   document.querySelectorAll(".nav-item").forEach((item) => {
     item.addEventListener("click", (e) => {
       UI.switchTab(e.target.dataset.target);
+      // Auto-close sidebar on mobile after clicking a tab
       if (window.innerWidth <= 768) {
-        document.getElementById("sidebar").classList.remove("collapsed");
+        document.getElementById("sidebar")?.classList.remove("collapsed");
       }
     });
-  });
-
-  document.querySelectorAll(".nav-item").forEach((item) => {
-    item.addEventListener("click", (e) =>
-      UI.switchTab(e.target.dataset.target),
-    );
   });
 
   // Settings & Data
@@ -118,8 +109,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     .getElementById("btn-export-data")
     ?.addEventListener("click", DataAdmin.exportCSV);
   document.getElementById("btn-wipe-data")?.addEventListener("click", () => {
-    if (confirm("🚨 WARNING: Permanently delete all tasks and exams?"))
+    if (confirm("🚨 WARNING: Permanently delete all tasks and exams?")) {
       DataAdmin.wipe();
+    }
   });
 
   // 4. TIMER BINDINGS
@@ -192,8 +184,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
 
       list.appendChild(li);
-      if (!t.is_done && select)
+      if (!t.is_done && select) {
         select.innerHTML += `<option value="${t.text}">${t.text}</option>`;
+      }
     });
   }
 
@@ -247,8 +240,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const totalDays = new Date(y, m + 1, 0).getDate();
     const today = new Date();
 
-    for (let i = 0; i < firstDay; i++)
+    for (let i = 0; i < firstDay; i++) {
       grid.innerHTML += `<div class="calendar-day-cell empty"></div>`;
+    }
 
     for (let d = 1; d <= totalDays; d++) {
       const cell = document.createElement("div");
@@ -277,6 +271,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     displayDate.setMonth(displayDate.getMonth() - 1);
     renderCalendar();
   });
+
   document.getElementById("btn-next-month")?.addEventListener("click", () => {
     displayDate.setMonth(displayDate.getMonth() + 1);
     renderCalendar();
@@ -351,9 +346,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         list.innerHTML += `<li class="log-item"><span><strong class="text-primary">${log.minutes}m Focus</strong> ${log.task !== "General Study" ? ` on ${log.task}` : ""}</span> <span class="opacity-70">${log.timestamp}</span></li>`;
       });
     }
-    if (document.getElementById("total-hours-display"))
+    if (document.getElementById("total-hours-display")) {
       document.getElementById("total-hours-display").innerHTML =
         `${(mins / 60).toFixed(1)} <span>hours</span>`;
+    }
 
     const upcoming = document.getElementById("upcoming-exams-display");
     if (upcoming) {
@@ -388,6 +384,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     ?.addEventListener("click", () =>
       document.getElementById("turbo-chat")?.classList.add("hidden"),
     );
+
+  // AI Fullscreen Toggle Logic
   document
     .getElementById("btn-ai-fullscreen")
     ?.addEventListener("click", () => {
@@ -407,9 +405,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("chat-input")?.addEventListener("keypress", (e) => {
     if (e.key === "Enter") document.getElementById("btn-send-chat").click();
   });
+
   document.getElementById("file-upload")?.addEventListener("change", (e) => {
     if (e.target.files[0]) AI.processFile(e.target.files[0]);
   });
+
   document
     .getElementById("btn-remove-file")
     ?.addEventListener("click", () => AI.setFile(null));
@@ -421,11 +421,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     AI.initDragDrop();
     setInterval(() => {
       const c = document.getElementById("live-clock");
-      if (c)
+      if (c) {
         c.innerText = new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
         });
+      }
     }, 1000);
   }
 });

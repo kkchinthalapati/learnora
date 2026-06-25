@@ -32,29 +32,40 @@ export const UI = {
   },
 
   switchTab(targetId) {
-    document
-      .querySelectorAll(".tab-content")
-      .forEach((sec) => (sec.style.display = "none"));
+    // 1. Completely hide all tab sections securely using CSS classes
+    document.querySelectorAll(".tab-content").forEach((sec) => {
+      sec.classList.add("hidden");
+      sec.style.display = ""; // Clear any leftover inline styles
+    });
+
+    // 2. Remove active highlight from all sidebar links
     document
       .querySelectorAll(".nav-links li")
       .forEach((nav) => nav.classList.remove("active"));
 
+    // 3. Unhide the requested tab
     const targetSection = document.getElementById(`${targetId}-section`);
-    if (targetSection) targetSection.style.display = "block";
+    if (targetSection) {
+      targetSection.classList.remove("hidden");
+    }
 
+    // 4. Highlight the active link in the sidebar and update page title
     const activeNav = document.querySelector(
       `.nav-item[data-target="${targetId}"]`,
     );
     if (activeNav) {
       activeNav.classList.add("active");
+
+      // Strip emojis from the nav text to make a clean page title
       const rawText = activeNav.innerText
         .replace(
           /[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g,
           "",
         )
         .trim();
-      if (document.getElementById("page-title"))
+      if (document.getElementById("page-title")) {
         document.getElementById("page-title").innerText = rawText;
+      }
     }
   },
 
@@ -65,8 +76,9 @@ export const UI = {
   },
 
   initTheme() {
-    if (localStorage.getItem("learnora_theme") === "light")
+    if (localStorage.getItem("learnora_theme") === "light") {
       document.body.classList.remove("dark-theme");
+    }
   },
 
   loadSettings() {
@@ -117,9 +129,11 @@ export const UI = {
     document.querySelectorAll("[data-i18n]").forEach((el) => {
       const key = el.getAttribute("data-i18n");
       if (dict[key]) {
-        if (el.tagName === "INPUT" && el.placeholder)
+        if (el.tagName === "INPUT" && el.placeholder) {
           el.placeholder = dict[key];
-        else el.innerHTML = dict[key];
+        } else {
+          el.innerHTML = dict[key];
+        }
       }
     });
   },
