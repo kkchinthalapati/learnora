@@ -6,11 +6,16 @@ import { AI } from "./ai.js";
 let displayDate = new Date();
 let cachedExams = [];
 
+/**
+ * ORCHESTRATOR: Initializes the app and binds all UI events.
+ * This file acts as the central traffic controller for Learnora.
+ */
 document.addEventListener("DOMContentLoaded", async () => {
-  // 1. BOOT
+  // 1. BOOT SEQUENCE
   UI.initTheme();
   UI.populateSettingsUI();
   UI.applyTranslations();
+
   const user = await Auth.getSession();
 
   if (user) {
@@ -19,26 +24,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const name = user.user_metadata?.full_name?.split(" ")[0] || "Student";
     const hr = new Date().getHours();
-    document.getElementById("user-greeting").innerText =
-      `${hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening"}, ${name}! 👋`;
+    const greetingEl = document.getElementById("user-greeting");
+    if (greetingEl) {
+      greetingEl.innerText = `${hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening"}, ${name}! 👋`;
+    }
 
-    loadTasks();
-    loadCalendar();
-    Timer.init();
-    AI.initDragDrop();
-    setInterval(() => {
-      const c = document.getElementById("live-clock");
-      if (c)
-        c.innerText = new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-    }, 1000);
+    initWorkspace();
   } else {
     document.getElementById("auth-wall")?.classList.remove("hidden");
-    document
-      .getElementById("main-app")
-      ?.style.setProperty("display", "none", "important");
+    if (document.getElementById("main-app"))
+      document.getElementById("main-app").style.display = "none";
   }
 
   // 2. AUTH BINDINGS
@@ -47,13 +42,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     ?.addEventListener("submit", async (e) => {
       e.preventDefault();
       UI.setLoading("login-btn", true);
-      if (
-        await Auth.login(
-          document.getElementById("login-email").value,
-          document.getElementById("login-password").value,
-        )
-      )
-        window.location.reload();
+      const ok = await Auth.login(
+        document.getElementById("login-email").value,
+        document.getElementById("login-password").value,
+      );
+      if (ok) window.location.reload();
       UI.setLoading("login-btn", false);
     });
 
@@ -62,26 +55,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     ?.addEventListener("submit", async (e) => {
       e.preventDefault();
       UI.setLoading("signup-btn", true);
-      await Auth.signup(
+      const ok = await Auth.signup(
         document.getElementById("signup-name").value,
         document.getElementById("signup-email").value,
         document.getElementById("signup-password").value,
         document.getElementById("signup-dob").value,
       );
-      UI.setLoading("signup-btn", false);
+      if (ok) UI.setLoading("signup-btn", false);
     });
 
   document.getElementById("btn-show-signup")?.addEventListener("click", () => {
     document.getElementById("login-form").style.display = "none";
     document.getElementById("signup-form").style.display = "flex";
   });
+
   document.getElementById("btn-show-login")?.addEventListener("click", () => {
     document.getElementById("signup-form").style.display = "none";
     document.getElementById("login-form").style.display = "flex";
   });
+
   document.getElementById("btn-logout")?.addEventListener("click", Auth.logout);
 
-  // 3. UI BINDINGS
+  // 3. UI/TAB BINDINGS
   document
     .getElementById("btn-close-popup")
     ?.addEventListener("click", UI.hidePopup);
@@ -93,15 +88,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     ?.addEventListener("click", () =>
       document.getElementById("sidebar").classList.toggle("collapsed"),
     );
-  document
-    .querySelectorAll(".nav-item")
-    .forEach((item) =>
-      item.addEventListener("click", (e) =>
-        UI.switchTab(e.target.dataset.target),
-      ),
-    );
 
-  // Settings
+  document.querySelectorAll(".nav-item").forEach((item) => {
+    item.addEventListener("click", (e) =>
+      UI.switchTab(e.target.dataset.target),
+    );
+  });
+
+  // Settings & Data
   document
     .getElementById("btn-save-settings")
     ?.addEventListener("click", () => UI.saveSettings());
@@ -109,10 +103,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     .getElementById("btn-export-data")
     ?.addEventListener("click", DataAdmin.exportCSV);
   document.getElementById("btn-wipe-data")?.addEventListener("click", () => {
-    if (confirm("🚨 Delete all data?")) DataAdmin.wipe();
+    if (confirm("🚨 WARNING: Permanently delete all tasks and exams?"))
+      DataAdmin.wipe();
   });
 
   // 4. TIMER BINDINGS
+  Timer.init();
   document
     .getElementById("btn-timer-start")
     ?.addEventListener("click", () => Timer.start());
@@ -125,27 +121,35 @@ document.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("btn-timer-extend")
     ?.addEventListener("click", () => Timer.extend());
+
   document.getElementById("btn-apply-timer")?.addEventListener("click", () => {
     Timer.applyConfig(
-      parseInt(document.getElementById("config-focus").value),
-      parseInt(document.getElementById("config-short").value),
-      parseInt(document.getElementById("config-long").value),
-      parseInt(document.getElementById("config-cycles").value),
+      parseInt(document.getElementById("config-focus").value || 25),
+      parseInt(document.getElementById("config-short").value || 5),
+      parseInt(document.getElementById("config-long").value || 15),
+      parseInt(document.getElementById("config-cycles").value || 4),
     );
   });
-  document.querySelectorAll(".btn-preset").forEach((btn) =>
+
+  document.querySelectorAll(".btn-preset").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const p = e.target.dataset.preset;
       if (p === "deep") Timer.applyConfig(90, 15, 30, 4);
       if (p === "cram") Timer.applyConfig(45, 10, 20, 4);
       if (p === "light") Timer.applyConfig(20, 5, 15, 4);
-      document.getElementById("config-focus").value = Timer.state.config.focus;
-      document.getElementById("config-short").value = Timer.state.config.short;
-      document.getElementById("config-long").value = Timer.state.config.long;
-    }),
-  );
 
-  // 5. TASKS BINDINGS
+      if (document.getElementById("config-focus"))
+        document.getElementById("config-focus").value =
+          Timer.state.config.focus;
+      if (document.getElementById("config-short"))
+        document.getElementById("config-short").value =
+          Timer.state.config.short;
+      if (document.getElementById("config-long"))
+        document.getElementById("config-long").value = Timer.state.config.long;
+    });
+  });
+
+  // 5. TASKS ENGINE
   async function loadTasks() {
     const tasks = await Tasks.fetch();
     const list = document.getElementById("todo-list");
@@ -164,37 +168,42 @@ document.addEventListener("DOMContentLoaded", async () => {
           loadTasks();
         }
       });
+
       li.querySelector("button").addEventListener("click", async (e) => {
         e.stopPropagation();
         li.style.opacity = 0;
         await Tasks.delete(t.id);
-        loadTasks();
+        setTimeout(loadTasks, 300);
       });
+
       list.appendChild(li);
       if (!t.is_done && select)
         select.innerHTML += `<option value="${t.text}">${t.text}</option>`;
     });
   }
+
   document
     .getElementById("btn-add-todo")
     ?.addEventListener("click", async () => {
-      const i = document.getElementById("todo-input");
-      if (i.value.trim()) {
-        await Tasks.add(i.value);
-        i.value = "";
+      const input = document.getElementById("todo-input");
+      if (input && input.value.trim()) {
+        await Tasks.add(input.value.trim());
+        input.value = "";
         loadTasks();
       }
     });
+
   document.getElementById("todo-input")?.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") document.getElementById("btn-add-todo").click();
+    if (e.key === "Enter") document.getElementById("btn-add-todo")?.click();
   });
 
-  // 6. CALENDAR & EXAM BINDINGS
+  // 6. CALENDAR & EXAM LOGIC
   async function loadCalendar() {
     cachedExams = await Exams.fetch();
     renderCalendar();
     renderDashboard();
   }
+
   function renderCalendar() {
     const grid = document.getElementById("calendar-days");
     const title = document.getElementById("month-year-display");
@@ -203,7 +212,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     grid.innerHTML = "";
     const y = displayDate.getFullYear(),
       m = displayDate.getMonth();
-    title.innerText = `${["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][m]} ${y}`;
+    const mNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    title.innerText = `${mNames[m]} ${y}`;
 
     const firstDay = new Date(y, m, 1).getDay();
     const totalDays = new Date(y, m + 1, 0).getDate();
@@ -262,11 +285,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.getElementById("btn-delete-exam").classList.add("hidden");
     }
   }
+
   document
     .getElementById("btn-cancel-exam")
     ?.addEventListener("click", () =>
-      document.getElementById("exam-modal").classList.add("hidden"),
+      document.getElementById("exam-modal")?.classList.add("hidden"),
     );
+
   document
     .getElementById("exam-form")
     ?.addEventListener("submit", async (e) => {
@@ -278,24 +303,26 @@ document.addEventListener("DOMContentLoaded", async () => {
           difficulty: document.getElementById("exam-difficulty").value,
           status: document.getElementById("exam-status").value,
         },
-        document.getElementById("modal-exam-id").value,
+        document.getElementById("modal-exam-id").value || null,
       );
+
       if (ok) {
         document.getElementById("exam-modal").classList.add("hidden");
         loadCalendar();
       }
     });
+
   document
     .getElementById("btn-delete-exam")
     ?.addEventListener("click", async () => {
-      if (confirm("Remove exam?")) {
+      if (confirm("Remove this exam?")) {
         await Exams.delete(document.getElementById("modal-exam-id").value);
         document.getElementById("exam-modal").classList.add("hidden");
         loadCalendar();
       }
     });
 
-  // 7. DASHBOARD BINDINGS
+  // 7. DASHBOARD LOGS
   function renderDashboard() {
     const logs = JSON.parse(localStorage.getItem("sessions")) || [];
     const list = document.getElementById("log-list");
@@ -306,7 +333,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         : "<li><span class='opacity-70'>No sessions logged.</span></li>";
       logs.forEach((log) => {
         mins += log.minutes || 0;
-        list.innerHTML += `<li class="log-item"><span><strong class="text-primary">${log.minutes}m</strong> ${log.task !== "General Study" ? ` on ${log.task}` : ""}</span> <span class="opacity-70">${log.timestamp}</span></li>`;
+        list.innerHTML += `<li class="log-item"><span><strong class="text-primary">${log.minutes}m Focus</strong> ${log.task !== "General Study" ? ` on ${log.task}` : ""}</span> <span class="opacity-70">${log.timestamp}</span></li>`;
       });
     }
     if (document.getElementById("total-hours-display"))
@@ -322,7 +349,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         ? next
             .map(
               (e) =>
-                `<div><span>📅 ${e.exam_name}</span> <span class="opacity-70">${e.exam_date}</span></div>`,
+                `<div><span>📅 ${e.exam_name}</span> <span class="opacity-70" style="float:right;">${e.exam_date}</span></div>`,
             )
             .join("")
         : `<div class="opacity-70">No upcoming exams.</div>`;
@@ -361,6 +388,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       i.value = "";
     }
   });
+
   document.getElementById("chat-input")?.addEventListener("keypress", (e) => {
     if (e.key === "Enter") document.getElementById("btn-send-chat").click();
   });
@@ -370,4 +398,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("btn-remove-file")
     ?.addEventListener("click", () => AI.setFile(null));
+
+  function initWorkspace() {
+    loadTasks();
+    loadCalendar();
+    Timer.init();
+    AI.initDragDrop();
+    setInterval(() => {
+      const c = document.getElementById("live-clock");
+      if (c)
+        c.innerText = new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+    }, 1000);
+  }
 });
