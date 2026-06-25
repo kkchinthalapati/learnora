@@ -83,11 +83,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("theme-toggle")
     ?.addEventListener("click", UI.toggleTheme);
-  document
-    .getElementById("menu-toggle")
-    ?.addEventListener("click", () =>
-      document.getElementById("sidebar").classList.toggle("collapsed"),
-    );
+  document.getElementById("menu-toggle")?.addEventListener("click", () => {
+    const sidebar = document.getElementById("sidebar");
+    if (window.innerWidth <= 768) {
+      // On mobile, "collapsed" actually brings it INTO view (left: 0)
+      sidebar.classList.toggle("collapsed");
+    } else {
+      // On desktop, "collapsed" shrinks it (width: 0)
+      sidebar.classList.toggle("collapsed");
+    }
+  });
+
+  // Mobile UX: Auto-close sidebar when a tab is clicked
+  document.querySelectorAll(".nav-item").forEach((item) => {
+    item.addEventListener("click", (e) => {
+      UI.switchTab(e.target.dataset.target);
+      if (window.innerWidth <= 768) {
+        document.getElementById("sidebar").classList.remove("collapsed");
+      }
+    });
+  });
 
   document.querySelectorAll(".nav-item").forEach((item) => {
     item.addEventListener("click", (e) =>
