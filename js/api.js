@@ -1,12 +1,41 @@
 import { supabase } from "./supabase.js";
-import { UI } from "./ui.js";
+import { UI, $ } from "./ui.js";
+
+/* =========================================================================
+   CONSTANTS
+   ========================================================================= */
+
+const VERIFY_REDIRECT = "https://study-planner-delta-six.vercel.app/verify.html";
+const MIN_SIGNUP_AGE = 13;
+
+/* =========================================================================
+   HELPERS
+   ========================================================================= */
+
+async function getCurrentUser() {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) return null;
+  return user;
+}
+
+function calculateAge(dob) {
+  const birth = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+/* =========================================================================
+   AUTH — Login, Signup, Logout, Session
+   ========================================================================= */
 
 export const Auth = {
   async login(email, password) {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       UI.showPopup(error.message, "Login Failed");
       return false;
@@ -15,18 +44,8 @@ export const Auth = {
   },
 
   async signup(name, email, password, dob) {
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    if (
-      today.getMonth() < birthDate.getMonth() ||
-      (today.getMonth() === birthDate.getMonth() &&
-        today.getDate() < birthDate.getDate())
-    )
-      age--;
-
-    if (age < 13) {
-      UI.showPopup("You must be at least 13 years old.", "Age Restriction");
+    if (calculateAge(dob) < MIN_SIGNUP_AGE) {
+      UI.showPopup(`You must be at least ${MIN_SIGNUP_AGE} years old.`, "Age Restriction");
       return false;
     }
 
@@ -34,9 +53,8 @@ export const Auth = {
       email,
       password,
       options: {
-        data: { full_name: name, dob: dob },
-        emailRedirectTo:
-          "https://study-planner-delta-six.vercel.app/verify.html",
+        data: { full_name: name, dob },
+        emailRedirectTo: VERIFY_REDIRECT,
       },
     });
 
@@ -61,124 +79,169 @@ export const Auth = {
 
   async getSession() {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session) {
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
-        if (error || !user) throw new Error("Ghost session");
-        return user;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+
+      const user = await getCurrentUser();
+      if (!user) {
+        await supabase.auth.signOut();
+        return null;
       }
-    } catch (err) {
+      return user;
+    } catch {
+      // Sign out stale auth state but never wipe user study data
       await supabase.auth.signOut();
-      localStorage.clear();
+      return null;
     }
-    return null;
   },
 };
 
+/* =========================================================================
+   TASKS — CRUD for the tasks table
+   ========================================================================= */
+
 export const Tasks = {
   async fetch() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     if (!user) return [];
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("tasks")
       .select("*")
       .eq("user_id", user.id)
       .order("id", { ascending: true });
+    if (error) {
+      console.error("[Tasks.fetch]", error.message);
+      return [];
+    }
     return data || [];
   },
+
   async add(text) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
+    if (!user) return false;
     const { error } = await supabase
       .from("tasks")
       .insert([{ text, is_done: false, user_id: user.id }]);
-    if (error) UI.showPopup(error.message, "Error Adding Task");
+    if (error) {
+      UI.showPopup(error.message, "Error Adding Task");
+      return false;
+    }
+    return true;
   },
+
   async toggle(id, currentStatus) {
-    await supabase
+    const { error } = await supabase
       .from("tasks")
       .update({ is_done: !currentStatus })
       .eq("id", id);
+    if (error) console.error("[Tasks.toggle]", error.message);
   },
+
   async delete(id) {
-    await supabase.from("tasks").delete().eq("id", id);
+    const { error } = await supabase.from("tasks").delete().eq("id", id);
+    if (error) console.error("[Tasks.delete]", error.message);
   },
 };
 
+/* =========================================================================
+   EXAMS — CRUD for the exams table
+   ========================================================================= */
+
 export const Exams = {
   async fetch() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     if (!user) return [];
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("exams")
       .select("*")
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .order("exam_date", { ascending: true });
+    if (error) {
+      console.error("[Exams.fetch]", error.message);
+      return [];
+    }
     return data || [];
   },
+
   async save(payload, id = null) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
+    if (!user) return false;
     payload.user_id = user.id;
-    let res = id
+
+    const res = id
       ? await supabase.from("exams").update(payload).eq("id", id)
       : await supabase.from("exams").insert([payload]);
+
     if (res.error) {
       UI.showPopup(res.error.message, "Database Error");
       return false;
     }
     return true;
   },
+
   async delete(id) {
-    await supabase.from("exams").delete().eq("id", id);
+    const { error } = await supabase.from("exams").delete().eq("id", id);
+    if (error) console.error("[Exams.delete]", error.message);
   },
 };
+
+/* =========================================================================
+   DATA ADMIN — Export & Wipe
+   ========================================================================= */
+
+function escapeCSVField(field) {
+  const str = String(field ?? "");
+  if (/[",\n\r]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
 
 export const DataAdmin = {
   async exportCSV() {
     try {
-      const tasks = await Tasks.fetch();
-      const exams = await Exams.fetch();
-      let csv = "data:text/csv;charset=utf-8,Type,Name,Status,Date\n";
-      tasks.forEach(
-        (t) => (csv += `Task,"${t.text}",${t.is_done ? "Done" : "Pending"},\n`),
+      const [tasks, exams] = await Promise.all([Tasks.fetch(), Exams.fetch()]);
+
+      const rows = [["Type", "Name", "Status", "Date"]];
+      tasks.forEach((t) =>
+        rows.push(["Task", t.text, t.is_done ? "Done" : "Pending", ""]),
       );
-      exams.forEach(
-        (e) => (csv += `Exam,"${e.exam_name}",${e.status},${e.exam_date}\n`),
+      exams.forEach((e) =>
+        rows.push(["Exam", e.exam_name, e.status, e.exam_date]),
       );
 
+      const csv = rows.map((r) => r.map(escapeCSVField).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
       const link = document.createElement("a");
-      link.setAttribute("href", encodeURI(csv));
-      link.setAttribute("download", "Learnora_Export.csv");
+      link.href = url;
+      link.download = `Learnora_Export_${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(link);
       link.click();
       link.remove();
+      URL.revokeObjectURL(url);
     } catch (e) {
-      UI.showPopup("Export failed.", "Error");
+      console.error("[DataAdmin.exportCSV]", e);
+      UI.showPopup("Export failed. Please try again.", "Error");
     }
   },
+
   async wipe() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     if (!user) return;
     try {
-      await supabase.from("tasks").delete().eq("user_id", user.id);
-      await supabase.from("exams").delete().eq("user_id", user.id);
-      localStorage.clear();
+      await Promise.all([
+        supabase.from("tasks").delete().eq("user_id", user.id),
+        supabase.from("exams").delete().eq("user_id", user.id),
+      ]);
+      // Only wipe study-session data, never auth tokens or theme prefs
+      localStorage.removeItem("sessions");
+      localStorage.removeItem("fav_times");
       UI.showPopup("All data wiped.", "Success");
       setTimeout(() => window.location.reload(), 1500);
     } catch (e) {
+      console.error("[DataAdmin.wipe]", e);
       UI.showPopup("Wipe failed.", "Error");
     }
   },

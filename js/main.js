@@ -1,16 +1,39 @@
-import { UI } from "./ui.js";
+import { UI, $, $$, esc, Storage } from "./ui.js";
 import { Auth, Tasks, Exams, DataAdmin } from "./api.js";
 import { Timer } from "./timer.js";
 import { AI } from "./ai.js";
 
+/* =========================================================================
+   STATE
+   ========================================================================= */
+
 let displayDate = new Date();
 let cachedExams = [];
 
-/**
- * ORCHESTRATOR: Initializes the app and binds all UI events.
- */
+/* =========================================================================
+   HELPERS
+   ========================================================================= */
+
+function getGreeting(name) {
+  const hr = new Date().getHours();
+  const period = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+  return `${period}, ${name}! 👋`;
+}
+
+function formatDateStr(y, m, d) {
+  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/* =========================================================================
+   BOOT
+   ========================================================================= */
+
 document.addEventListener("DOMContentLoaded", async () => {
-  // 1. BOOT SEQUENCE
   UI.initTheme();
   UI.populateSettingsUI();
   UI.applyTranslations();
@@ -18,415 +41,529 @@ document.addEventListener("DOMContentLoaded", async () => {
   const user = await Auth.getSession();
 
   if (user) {
-    document.getElementById("auth-wall")?.classList.add("hidden");
-    document.getElementById("main-app")?.classList.remove("hidden");
+    $("auth-wall")?.classList.add("hidden");
+    $("main-app")?.classList.remove("hidden");
 
     const name = user.user_metadata?.full_name?.split(" ")[0] || "Student";
-    const hr = new Date().getHours();
-    const greetingEl = document.getElementById("user-greeting");
-    if (greetingEl) {
-      greetingEl.innerText = `${hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening"}, ${name}! 👋`;
-    }
+    const greetingEl = $("user-greeting");
+    if (greetingEl) greetingEl.textContent = getGreeting(name);
 
     initWorkspace();
   } else {
-    document.getElementById("auth-wall")?.classList.remove("hidden");
-    if (document.getElementById("main-app")) {
-      document.getElementById("main-app").style.display = "none";
-    }
+    $("auth-wall")?.classList.remove("hidden");
+    const mainApp = $("main-app");
+    if (mainApp) mainApp.style.display = "none";
   }
 
-  // 2. AUTH BINDINGS
-  document
-    .getElementById("login-form")
-    ?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      UI.setLoading("login-btn", true);
-      const ok = await Auth.login(
-        document.getElementById("login-email").value,
-        document.getElementById("login-password").value,
-      );
-      if (ok) window.location.reload();
-      UI.setLoading("login-btn", false);
-    });
+  bindAuth();
+  bindNavigation();
+  bindSettings();
+  bindTimer();
+  bindTasks();
+  bindCalendar();
+  bindAI();
+});
 
-  document
-    .getElementById("signup-form")
-    ?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      UI.setLoading("signup-btn", true);
-      const ok = await Auth.signup(
-        document.getElementById("signup-name").value,
-        document.getElementById("signup-email").value,
-        document.getElementById("signup-password").value,
-        document.getElementById("signup-dob").value,
-      );
-      if (ok) UI.setLoading("signup-btn", false);
-    });
+/* =========================================================================
+   AUTH BINDINGS
+   ========================================================================= */
 
-  document.getElementById("btn-show-signup")?.addEventListener("click", () => {
-    document.getElementById("login-form").classList.add("hidden");
-    document.getElementById("signup-form").classList.remove("hidden");
+function bindAuth() {
+  $("login-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    UI.setLoading("login-btn", true);
+    const ok = await Auth.login(
+      $("login-email").value,
+      $("login-password").value,
+    );
+    if (ok) window.location.reload();
+    UI.setLoading("login-btn", false);
   });
 
-  document.getElementById("btn-show-login")?.addEventListener("click", () => {
-    document.getElementById("signup-form").classList.add("hidden");
-    document.getElementById("login-form").classList.remove("hidden");
+  $("signup-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    UI.setLoading("signup-btn", true);
+    const ok = await Auth.signup(
+      $("signup-name").value,
+      $("signup-email").value,
+      $("signup-password").value,
+      $("signup-dob").value,
+    );
+    UI.setLoading("signup-btn", false);
+    // If signup requires email verification, form stays visible
   });
 
-  document.getElementById("btn-logout")?.addEventListener("click", Auth.logout);
-
-  // 3. UI/TAB BINDINGS
-  document
-    .getElementById("btn-close-popup")
-    ?.addEventListener("click", UI.hidePopup);
-  document
-    .getElementById("theme-toggle")
-    ?.addEventListener("click", UI.toggleTheme);
-
-  document.getElementById("menu-toggle")?.addEventListener("click", () => {
-    const sidebar = document.getElementById("sidebar");
-    // Mobile slides out, desktop shrinks
-    sidebar.classList.toggle("collapsed");
+  $("btn-show-signup")?.addEventListener("click", () => {
+    $("login-form")?.classList.add("hidden");
+    $("signup-form")?.classList.remove("hidden");
   });
 
-  // Consolidated Sidebar Navigation Listener
-  document.querySelectorAll(".nav-item").forEach((item) => {
-    item.addEventListener("click", (e) => {
-      UI.switchTab(e.target.dataset.target);
-      // Auto-close sidebar on mobile after clicking a tab
-      if (window.innerWidth <= 768) {
-        document.getElementById("sidebar")?.classList.remove("collapsed");
+  $("btn-show-login")?.addEventListener("click", () => {
+    $("signup-form")?.classList.add("hidden");
+    $("login-form")?.classList.remove("hidden");
+  });
+
+  $("btn-logout")?.addEventListener("click", Auth.logout);
+}
+
+/* =========================================================================
+   NAVIGATION BINDINGS
+   ========================================================================= */
+
+function bindNavigation() {
+  $("btn-close-popup")?.addEventListener("click", UI.hidePopup);
+  $("theme-toggle")?.addEventListener("click", () => UI.toggleTheme());
+
+  $("menu-toggle")?.addEventListener("click", () => {
+    $("sidebar")?.classList.toggle("collapsed");
+  });
+
+  // Event delegation on the nav list
+  document.querySelector(".nav-links")?.addEventListener("click", (e) => {
+    const item = e.target.closest(".nav-item");
+    if (!item) return;
+    UI.switchTab(item.dataset.target);
+    // Auto-close on mobile
+    if (window.innerWidth <= 768) {
+      $("sidebar")?.classList.remove("collapsed");
+    }
+  });
+
+  // Keyboard support for nav items
+  $$(".nav-item").forEach((item) => {
+    item.setAttribute("tabindex", "0");
+    item.setAttribute("role", "tab");
+    item.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        item.click();
       }
     });
   });
+}
 
-  // Settings & Data
-  document
-    .getElementById("btn-save-settings")
-    ?.addEventListener("click", () => UI.saveSettings());
-  document
-    .getElementById("btn-export-data")
-    ?.addEventListener("click", DataAdmin.exportCSV);
-  document.getElementById("btn-wipe-data")?.addEventListener("click", () => {
+/* =========================================================================
+   SETTINGS BINDINGS
+   ========================================================================= */
+
+function bindSettings() {
+  $("btn-save-settings")?.addEventListener("click", () => UI.saveSettings());
+  $("btn-export-data")?.addEventListener("click", DataAdmin.exportCSV);
+
+  $("btn-wipe-data")?.addEventListener("click", () => {
     if (confirm("🚨 WARNING: Permanently delete all tasks and exams?")) {
       DataAdmin.wipe();
     }
   });
+}
 
-  // 4. TIMER BINDINGS
+/* =========================================================================
+   TIMER BINDINGS
+   ========================================================================= */
+
+function bindTimer() {
   Timer.init();
-  document
-    .getElementById("btn-timer-start")
-    ?.addEventListener("click", () => Timer.start());
-  document
-    .getElementById("btn-timer-pause")
-    ?.addEventListener("click", () => Timer.pause());
-  document
-    .getElementById("btn-timer-reset")
-    ?.addEventListener("click", () => Timer.reset());
-  document
-    .getElementById("btn-timer-extend")
-    ?.addEventListener("click", () => Timer.extend());
 
-  document.getElementById("btn-apply-timer")?.addEventListener("click", () => {
+  $("btn-timer-start")?.addEventListener("click", () => Timer.start());
+  $("btn-timer-pause")?.addEventListener("click", () => Timer.pause());
+  $("btn-timer-reset")?.addEventListener("click", () => Timer.reset());
+  $("btn-timer-extend")?.addEventListener("click", () => Timer.extend());
+
+  $("btn-apply-timer")?.addEventListener("click", () => {
     Timer.applyConfig(
-      parseInt(document.getElementById("config-focus").value || 25),
-      parseInt(document.getElementById("config-short").value || 5),
-      parseInt(document.getElementById("config-long").value || 15),
-      parseInt(document.getElementById("config-cycles").value || 4),
+      parseInt($("config-focus")?.value || "25", 10),
+      parseInt($("config-short")?.value || "5", 10),
+      parseInt($("config-long")?.value || "15", 10),
+      parseInt($("config-cycles")?.value || "4", 10),
     );
   });
 
-  document.querySelectorAll(".btn-preset").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const p = e.target.dataset.preset;
-      if (p === "deep") Timer.applyConfig(90, 15, 30, 4);
-      if (p === "cram") Timer.applyConfig(45, 10, 20, 4);
-      if (p === "light") Timer.applyConfig(20, 5, 15, 4);
-
-      if (document.getElementById("config-focus"))
-        document.getElementById("config-focus").value =
-          Timer.state.config.focus;
-      if (document.getElementById("config-short"))
-        document.getElementById("config-short").value =
-          Timer.state.config.short;
-      if (document.getElementById("config-long"))
-        document.getElementById("config-long").value = Timer.state.config.long;
-    });
+  // Presets — event delegation
+  document.querySelector(".preset-buttons")?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-preset");
+    if (!btn) return;
+    const presets = {
+      deep: [90, 15, 30, 4],
+      cram: [45, 10, 20, 4],
+      light: [20, 5, 15, 4],
+    };
+    const p = presets[btn.dataset.preset];
+    if (p) Timer.applyConfig(...p);
   });
+}
 
-  // 5. TASKS ENGINE
-  async function loadTasks() {
-    const tasks = await Tasks.fetch();
-    const list = document.getElementById("todo-list");
-    const select = document.getElementById("active-task-select");
-    if (list) list.innerHTML = "";
-    if (select) select.innerHTML = '<option value="None">None</option>';
+/* =========================================================================
+   TASKS ENGINE
+   ========================================================================= */
 
-    tasks.forEach((t) => {
-      const li = document.createElement("li");
-      li.className = `todo-item ${t.is_done ? "done" : ""}`;
-      li.innerHTML = `<span>${t.text}</span> <button class="delete-btn">✖</button>`;
+let _taskLoadDebounce = null;
 
-      li.addEventListener("click", async (e) => {
-        if (e.target.tagName !== "BUTTON") {
-          await Tasks.toggle(t.id, t.is_done);
-          loadTasks();
-        }
-      });
+async function loadTasks() {
+  const tasks = await Tasks.fetch();
+  const list = $("todo-list");
+  const select = $("active-task-select");
+  if (!list) return;
 
-      li.querySelector("button").addEventListener("click", async (e) => {
-        e.stopPropagation();
-        li.style.opacity = 0;
-        await Tasks.delete(t.id);
-        setTimeout(loadTasks, 300);
-      });
+  list.innerHTML = "";
 
-      list.appendChild(li);
-      if (!t.is_done && select) {
-        select.innerHTML += `<option value="${t.text}">${t.text}</option>`;
-      }
-    });
+  if (tasks.length === 0) {
+    const emptyLi = document.createElement("li");
+    emptyLi.className = "todo-item";
+    emptyLi.style.justifyContent = "center";
+    emptyLi.style.opacity = "0.6";
+    emptyLi.style.cursor = "default";
+    emptyLi.textContent = "No tasks yet — add one above!";
+    list.appendChild(emptyLi);
   }
 
-  document
-    .getElementById("btn-add-todo")
-    ?.addEventListener("click", async () => {
-      const input = document.getElementById("todo-input");
-      if (input && input.value.trim()) {
-        await Tasks.add(input.value.trim());
-        input.value = "";
-        loadTasks();
-      }
+  if (select) select.innerHTML = '<option value="None">None</option>';
+
+  tasks.forEach((t) => {
+    const li = document.createElement("li");
+    li.className = `todo-item${t.is_done ? " done" : ""}`;
+    li.setAttribute("role", "listitem");
+
+    const span = document.createElement("span");
+    span.textContent = t.text;
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "delete-btn";
+    delBtn.textContent = "✖";
+    delBtn.setAttribute("aria-label", `Delete task: ${t.text}`);
+
+    li.appendChild(span);
+    li.appendChild(delBtn);
+
+    // Toggle done
+    li.addEventListener("click", async (e) => {
+      if (e.target.tagName === "BUTTON") return;
+      li.style.opacity = "0.5";
+      li.style.pointerEvents = "none";
+      await Tasks.toggle(t.id, t.is_done);
+      loadTasks();
     });
 
-  document.getElementById("todo-input")?.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") document.getElementById("btn-add-todo")?.click();
-  });
+    // Delete
+    delBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      li.style.opacity = "0";
+      li.style.transform = "translateX(20px)";
+      await Tasks.delete(t.id);
+      setTimeout(loadTasks, 250);
+    });
 
-  // 6. CALENDAR & EXAM LOGIC
-  async function loadCalendar() {
-    cachedExams = await Exams.fetch();
-    renderCalendar();
-    renderDashboard();
-  }
+    list.appendChild(li);
 
-  function renderCalendar() {
-    const grid = document.getElementById("calendar-days");
-    const title = document.getElementById("month-year-display");
-    if (!grid || !title) return;
-
-    grid.innerHTML = "";
-    const y = displayDate.getFullYear(),
-      m = displayDate.getMonth();
-    const mNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    title.innerText = `${mNames[m]} ${y}`;
-
-    const firstDay = new Date(y, m, 1).getDay();
-    const totalDays = new Date(y, m + 1, 0).getDate();
-    const today = new Date();
-
-    for (let i = 0; i < firstDay; i++) {
-      grid.innerHTML += `<div class="calendar-day-cell empty"></div>`;
+    if (!t.is_done && select) {
+      const opt = document.createElement("option");
+      opt.value = t.text;
+      opt.textContent = t.text;
+      select.appendChild(opt);
     }
+  });
+}
 
-    for (let d = 1; d <= totalDays; d++) {
-      const cell = document.createElement("div");
-      cell.className = `calendar-day-cell ${d === today.getDate() && m === today.getMonth() && y === today.getFullYear() ? "today" : ""}`;
-      const dateStr = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      cell.innerHTML = `<span class="day-number">${d}</span>`;
+function bindTasks() {
+  $("btn-add-todo")?.addEventListener("click", async () => {
+    const input = $("todo-input");
+    const text = input?.value.trim();
+    if (!text) return;
+    input.value = "";
+    await Tasks.add(text);
+    loadTasks();
+  });
 
-      cachedExams
-        .filter((e) => e.exam_date === dateStr)
-        .forEach((e) => {
-          const bar = document.createElement("div");
-          bar.className = `exam-bar diff-${e.difficulty.toLowerCase()} status-${e.status.toLowerCase()}`;
-          bar.innerText = e.exam_name;
-          bar.onclick = (evt) => {
-            evt.stopPropagation();
-            openModal(e);
-          };
-          cell.appendChild(bar);
+  $("todo-input")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      $("btn-add-todo")?.click();
+    }
+  });
+}
+
+/* =========================================================================
+   CALENDAR & EXAM LOGIC
+   ========================================================================= */
+
+async function loadCalendar() {
+  cachedExams = await Exams.fetch();
+  renderCalendar();
+  renderDashboard();
+}
+
+function renderCalendar() {
+  const grid = $("calendar-days");
+  const title = $("month-year-display");
+  if (!grid || !title) return;
+
+  grid.innerHTML = "";
+  const y = displayDate.getFullYear();
+  const m = displayDate.getMonth();
+  title.textContent = `${MONTH_NAMES[m]} ${y}`;
+
+  const firstDay = new Date(y, m, 1).getDay();
+  const totalDays = new Date(y, m + 1, 0).getDate();
+  const today = new Date();
+  const todayStr = formatDateStr(today.getFullYear(), today.getMonth(), today.getDate());
+
+  // Empty cells before first day
+  for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement("div");
+    empty.className = "calendar-day-cell empty";
+    empty.setAttribute("aria-hidden", "true");
+    grid.appendChild(empty);
+  }
+
+  for (let d = 1; d <= totalDays; d++) {
+    const dateStr = formatDateStr(y, m, d);
+    const isToday = dateStr === todayStr;
+
+    const cell = document.createElement("div");
+    cell.className = `calendar-day-cell${isToday ? " today" : ""}`;
+    cell.setAttribute("role", "button");
+    cell.setAttribute("tabindex", "0");
+    cell.setAttribute("aria-label", `${MONTH_NAMES[m]} ${d}, ${y}`);
+
+    const dayNum = document.createElement("span");
+    dayNum.className = "day-number";
+    dayNum.textContent = d;
+    cell.appendChild(dayNum);
+
+    // Exam bars for this date
+    cachedExams
+      .filter((e) => e.exam_date === dateStr)
+      .forEach((exam) => {
+        const bar = document.createElement("div");
+        bar.className = `exam-bar diff-${exam.difficulty.toLowerCase()} status-${exam.status.toLowerCase()}`;
+        bar.textContent = exam.exam_name;
+        bar.addEventListener("click", (evt) => {
+          evt.stopPropagation();
+          openExamModal(exam);
         });
-      cell.onclick = () => openModal(null, dateStr);
-      grid.appendChild(cell);
-    }
+        cell.appendChild(bar);
+      });
+
+    const openNewExam = () => openExamModal(null, dateStr);
+    cell.addEventListener("click", openNewExam);
+    cell.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openNewExam();
+      }
+    });
+
+    grid.appendChild(cell);
+  }
+}
+
+function openExamModal(exam = null, dateStr = "") {
+  const modal = $("exam-modal");
+  modal?.classList.remove("hidden");
+
+  if (exam) {
+    $("modal-exam-title").textContent = "Edit Exam";
+    $("modal-exam-id").value = exam.id;
+    $("exam-name").value = exam.exam_name;
+    $("exam-date").value = exam.exam_date;
+    $("exam-difficulty").value = exam.difficulty;
+    $("exam-status").value = exam.status;
+    $("btn-delete-exam")?.classList.remove("hidden");
+  } else {
+    $("modal-exam-title").textContent = "New Exam";
+    $("exam-form")?.reset();
+    $("modal-exam-id").value = "";
+    $("exam-date").value = dateStr;
+    $("btn-delete-exam")?.classList.add("hidden");
   }
 
-  document.getElementById("btn-prev-month")?.addEventListener("click", () => {
+  // Auto-focus the name field
+  requestAnimationFrame(() => $("exam-name")?.focus());
+}
+
+function bindCalendar() {
+  $("btn-prev-month")?.addEventListener("click", () => {
     displayDate.setMonth(displayDate.getMonth() - 1);
     renderCalendar();
   });
 
-  document.getElementById("btn-next-month")?.addEventListener("click", () => {
+  $("btn-next-month")?.addEventListener("click", () => {
     displayDate.setMonth(displayDate.getMonth() + 1);
     renderCalendar();
   });
 
-  function openModal(exam = null, dateStr = "") {
-    document.getElementById("exam-modal")?.classList.remove("hidden");
-    if (exam) {
-      document.getElementById("modal-exam-title").innerText = "Edit Exam";
-      document.getElementById("modal-exam-id").value = exam.id;
-      document.getElementById("exam-name").value = exam.exam_name;
-      document.getElementById("exam-date").value = exam.exam_date;
-      document.getElementById("exam-difficulty").value = exam.difficulty;
-      document.getElementById("exam-status").value = exam.status;
-      document.getElementById("btn-delete-exam").classList.remove("hidden");
-    } else {
-      document.getElementById("modal-exam-title").innerText = "New Exam";
-      document.getElementById("exam-form").reset();
-      document.getElementById("modal-exam-id").value = "";
-      document.getElementById("exam-date").value = dateStr;
-      document.getElementById("btn-delete-exam").classList.add("hidden");
+  $("btn-cancel-exam")?.addEventListener("click", () => {
+    $("exam-modal")?.classList.add("hidden");
+  });
+
+  // Close modal on Escape
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      $("exam-modal")?.classList.add("hidden");
+      $("popup-overlay")?.classList.add("hidden");
     }
-  }
+  });
 
-  document
-    .getElementById("btn-cancel-exam")
-    ?.addEventListener("click", () =>
-      document.getElementById("exam-modal")?.classList.add("hidden"),
+  $("exam-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const ok = await Exams.save(
+      {
+        exam_name: $("exam-name").value,
+        exam_date: $("exam-date").value,
+        difficulty: $("exam-difficulty").value,
+        status: $("exam-status").value,
+      },
+      $("modal-exam-id").value || null,
     );
+    if (ok) {
+      $("exam-modal")?.classList.add("hidden");
+      loadCalendar();
+    }
+  });
 
-  document
-    .getElementById("exam-form")
-    ?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const ok = await Exams.save(
-        {
-          exam_name: document.getElementById("exam-name").value,
-          exam_date: document.getElementById("exam-date").value,
-          difficulty: document.getElementById("exam-difficulty").value,
-          status: document.getElementById("exam-status").value,
-        },
-        document.getElementById("modal-exam-id").value || null,
-      );
+  $("btn-delete-exam")?.addEventListener("click", async () => {
+    if (confirm("Remove this exam?")) {
+      await Exams.delete($("modal-exam-id").value);
+      $("exam-modal")?.classList.add("hidden");
+      loadCalendar();
+    }
+  });
+}
 
-      if (ok) {
-        document.getElementById("exam-modal").classList.add("hidden");
-        loadCalendar();
-      }
-    });
+/* =========================================================================
+   DASHBOARD
+   ========================================================================= */
 
-  document
-    .getElementById("btn-delete-exam")
-    ?.addEventListener("click", async () => {
-      if (confirm("Remove this exam?")) {
-        await Exams.delete(document.getElementById("modal-exam-id").value);
-        document.getElementById("exam-modal").classList.add("hidden");
-        loadCalendar();
-      }
-    });
+function renderDashboard() {
+  const sessions = Storage.get("sessions", []);
+  const list = $("log-list");
+  let totalMins = 0;
 
-  // 7. DASHBOARD LOGS
-  function renderDashboard() {
-    const logs = JSON.parse(localStorage.getItem("sessions")) || [];
-    const list = document.getElementById("log-list");
-    let mins = 0;
-    if (list) {
-      list.innerHTML = logs.length
-        ? ""
-        : "<li><span class='opacity-70'>No sessions logged.</span></li>";
-      logs.forEach((log) => {
-        mins += log.minutes || 0;
-        list.innerHTML += `<li class="log-item"><span><strong class="text-primary">${log.minutes}m Focus</strong> ${log.task !== "General Study" ? ` on ${log.task}` : ""}</span> <span class="opacity-70">${log.timestamp}</span></li>`;
+  if (list) {
+    list.innerHTML = "";
+
+    if (sessions.length === 0) {
+      const li = document.createElement("li");
+      li.innerHTML = "<span class='opacity-70'>No sessions logged yet. Start the timer!</span>";
+      list.appendChild(li);
+    } else {
+      sessions.forEach((log) => {
+        totalMins += log.minutes || 0;
+        const li = document.createElement("li");
+        li.className = "log-item";
+
+        const left = document.createElement("span");
+        left.innerHTML = `<strong class="text-primary">${esc(String(log.minutes))}m Focus</strong>${
+          log.task !== "General Study" ? ` on ${esc(log.task)}` : ""
+        }`;
+
+        const right = document.createElement("span");
+        right.className = "opacity-70";
+        right.textContent = log.timestamp;
+
+        li.appendChild(left);
+        li.appendChild(right);
+        list.appendChild(li);
       });
     }
-    if (document.getElementById("total-hours-display")) {
-      document.getElementById("total-hours-display").innerHTML =
-        `${(mins / 60).toFixed(1)} <span>hours</span>`;
-    }
+  }
 
-    const upcoming = document.getElementById("upcoming-exams-display");
-    if (upcoming) {
-      const next = cachedExams
-        .filter((e) => e.status !== "Completed")
-        .slice(0, 3);
-      upcoming.innerHTML = next.length
-        ? next
-            .map(
-              (e) =>
-                `<div><span>📅 ${e.exam_name}</span> <span class="opacity-70" style="float:right;">${e.exam_date}</span></div>`,
-            )
-            .join("")
-        : `<div class="opacity-70">No upcoming exams.</div>`;
+  const totalDisplay = $("total-hours-display");
+  if (totalDisplay) {
+    totalDisplay.innerHTML = `${(totalMins / 60).toFixed(1)} <span>hours</span>`;
+  }
+
+  // Upcoming exams widget
+  const upcoming = $("upcoming-exams-display");
+  if (upcoming) {
+    const now = new Date().toISOString().slice(0, 10);
+    const next = cachedExams
+      .filter((e) => e.status !== "Completed" && e.exam_date >= now)
+      .slice(0, 3);
+
+    upcoming.innerHTML = "";
+    if (next.length === 0) {
+      upcoming.innerHTML = '<div class="opacity-70">No upcoming exams.</div>';
+    } else {
+      next.forEach((e) => {
+        const row = document.createElement("div");
+        row.innerHTML = `<span>📅 ${esc(e.exam_name)}</span> <span class="opacity-70" style="float:right;">${esc(e.exam_date)}</span>`;
+        upcoming.appendChild(row);
+      });
     }
   }
+}
+
+/* =========================================================================
+   AI BINDINGS
+   ========================================================================= */
+
+function bindAI() {
+  $("nav-ai-trigger")?.addEventListener("click", () => {
+    $("turbo-chat")?.classList.remove("hidden");
+  });
+
+  $("turbo-toggle")?.addEventListener("click", () => {
+    $("turbo-chat")?.classList.remove("hidden");
+  });
+
+  $("btn-ai-close")?.addEventListener("click", () => {
+    $("turbo-chat")?.classList.add("hidden");
+  });
+
+  $("btn-ai-fullscreen")?.addEventListener("click", () => {
+    const m = $("turbo-chat");
+    if (!m) return;
+    m.classList.toggle("fullscreen");
+    m.classList.toggle("minimized");
+  });
+
+  $("btn-send-chat")?.addEventListener("click", () => {
+    const input = $("chat-input");
+    if (!input) return;
+    if (input.value.trim() || AI.currentFile) {
+      AI.send(input.value || "Analyze this.");
+      input.value = "";
+    }
+  });
+
+  $("chat-input")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      $("btn-send-chat")?.click();
+    }
+  });
+
+  $("file-upload")?.addEventListener("change", (e) => {
+    if (e.target.files?.[0]) AI.processFile(e.target.files[0]);
+  });
+
+  $("btn-remove-file")?.addEventListener("click", () => AI.setFile(null));
+}
+
+/* =========================================================================
+   WORKSPACE INIT
+   ========================================================================= */
+
+function initWorkspace() {
+  loadTasks();
+  loadCalendar();
+  Timer.init();
+  AI.initDragDrop();
+  startClock();
   window.addEventListener("sessionLogged", renderDashboard);
+}
 
-  // 8. AI BINDINGS
-  document
-    .getElementById("nav-ai-trigger")
-    ?.addEventListener("click", () =>
-      document.getElementById("turbo-chat")?.classList.remove("hidden"),
-    );
-  document
-    .getElementById("turbo-toggle")
-    ?.addEventListener("click", () =>
-      document.getElementById("turbo-chat")?.classList.remove("hidden"),
-    );
-  document
-    .getElementById("btn-ai-close")
-    ?.addEventListener("click", () =>
-      document.getElementById("turbo-chat")?.classList.add("hidden"),
-    );
+function startClock() {
+  const clock = $("live-clock");
+  if (!clock) return;
 
-  // AI Fullscreen Toggle Logic
-  document
-    .getElementById("btn-ai-fullscreen")
-    ?.addEventListener("click", () => {
-      const m = document.getElementById("turbo-chat");
-      m.classList.toggle("fullscreen");
-      m.classList.toggle("minimized");
+  const update = () => {
+    clock.textContent = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
     });
+  };
 
-  document.getElementById("btn-send-chat")?.addEventListener("click", () => {
-    const i = document.getElementById("chat-input");
-    if (i.value.trim() || AI.currentFile) {
-      AI.send(i.value || "Analyze this.");
-      i.value = "";
-    }
-  });
-
-  document.getElementById("chat-input")?.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") document.getElementById("btn-send-chat").click();
-  });
-
-  document.getElementById("file-upload")?.addEventListener("change", (e) => {
-    if (e.target.files[0]) AI.processFile(e.target.files[0]);
-  });
-
-  document
-    .getElementById("btn-remove-file")
-    ?.addEventListener("click", () => AI.setFile(null));
-
-  function initWorkspace() {
-    loadTasks();
-    loadCalendar();
-    Timer.init();
-    AI.initDragDrop();
-    setInterval(() => {
-      const c = document.getElementById("live-clock");
-      if (c) {
-        c.innerText = new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
-    }, 1000);
-  }
-});
+  update();
+  setInterval(update, 30000); // 30s is enough for HH:MM display
+}

@@ -1,140 +1,213 @@
 import { translations } from "../i18n.js";
 
+/* =========================================================================
+   DOM — Cached element lookups with null-safety
+   ========================================================================= */
+
+const $ = (id) => document.getElementById(id);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+/* =========================================================================
+   SANITIZATION — Prevent XSS in all dynamic text rendering
+   ========================================================================= */
+
+const _escDiv = document.createElement("div");
+
+function esc(str) {
+  if (str == null) return "";
+  _escDiv.textContent = String(str);
+  return _escDiv.innerHTML;
+}
+
+/* =========================================================================
+   STORAGE — Safe localStorage wrapper
+   ========================================================================= */
+
+const Storage = {
+  get(key, fallback = null) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch { /* quota exceeded — silent */ }
+  },
+  remove(key) {
+    localStorage.removeItem(key);
+  },
+};
+
+/* =========================================================================
+   SETTINGS — Centralized settings state
+   ========================================================================= */
+
+const SETTINGS_KEY = "learnora_settings";
+const THEME_KEY = "learnora_theme";
+
+const DEFAULT_SETTINGS = Object.freeze({
+  aiPersona: "tutor",
+  aiConciseness: "medium",
+  uiLanguage: "en",
+  aiLanguage: "English",
+});
+
+/* =========================================================================
+   UI MODULE — Exported public API
+   ========================================================================= */
+
 export const UI = {
+
+  /* ------ Active tab tracking ------ */
+  _activeTab: "logs",
+
+  /* ------ Popup ------ */
+
   showPopup(message, title = "Learnora") {
-    const overlay = document.getElementById("popup-overlay");
-    if (document.getElementById("popup-title"))
-      document.getElementById("popup-title").innerText = title;
-    if (document.getElementById("popup-message"))
-      document.getElementById("popup-message").innerText = message;
+    const overlay = $("popup-overlay");
+    const titleEl = $("popup-title");
+    const msgEl = $("popup-message");
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = message;
     if (overlay) overlay.classList.remove("hidden");
   },
 
   hidePopup() {
-    document.getElementById("popup-overlay")?.classList.add("hidden");
+    $("popup-overlay")?.classList.add("hidden");
   },
 
+  /* ------ Loading state ------ */
+
   setLoading(btnId, isLoading) {
-    const btn = document.getElementById(btnId);
+    const btn = $(btnId);
     if (!btn) return;
     const text = btn.querySelector(".btn-text");
     const loader = btn.querySelector(".loader");
 
-    if (isLoading) {
-      btn.disabled = true;
-      text?.classList.add("hidden");
-      loader?.classList.remove("hidden");
-    } else {
-      btn.disabled = false;
-      text?.classList.remove("hidden");
-      loader?.classList.add("hidden");
-    }
+    btn.disabled = isLoading;
+    btn.setAttribute("aria-busy", isLoading);
+    text?.classList.toggle("hidden", isLoading);
+    loader?.classList.toggle("hidden", !isLoading);
   },
+
+  /* ------ Tab navigation ------ */
 
   switchTab(targetId) {
-    // 1. Completely hide all tab sections securely using CSS classes
-    document.querySelectorAll(".tab-content").forEach((sec) => {
+    if (!targetId) return;
+    this._activeTab = targetId;
+
+    $$(".tab-content").forEach((sec) => {
       sec.classList.add("hidden");
-      sec.style.display = ""; // Clear any leftover inline styles
+      sec.style.display = "";
     });
+    $$(".nav-links li").forEach((nav) => nav.classList.remove("active"));
 
-    // 2. Remove active highlight from all sidebar links
-    document
-      .querySelectorAll(".nav-links li")
-      .forEach((nav) => nav.classList.remove("active"));
+    const targetSection = $(`${targetId}-section`);
+    if (targetSection) targetSection.classList.remove("hidden");
 
-    // 3. Unhide the requested tab
-    const targetSection = document.getElementById(`${targetId}-section`);
-    if (targetSection) {
-      targetSection.classList.remove("hidden");
-    }
-
-    // 4. Highlight the active link in the sidebar and update page title
-    const activeNav = document.querySelector(
-      `.nav-item[data-target="${targetId}"]`,
-    );
+    const activeNav = document.querySelector(`.nav-item[data-target="${targetId}"]`);
     if (activeNav) {
       activeNav.classList.add("active");
-
-      // Strip emojis from the nav text to make a clean page title
-      const rawText = activeNav.innerText
-        .replace(
-          /[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g,
-          "",
-        )
-        .trim();
-      if (document.getElementById("page-title")) {
-        document.getElementById("page-title").innerText = rawText;
-      }
+      this._updatePageTitle(activeNav);
     }
   },
+
+  _updatePageTitle(navElement) {
+    const titleEl = $("page-title");
+    if (!titleEl) return;
+    const rawText = navElement.textContent
+      .replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, "")
+      .trim();
+    titleEl.textContent = rawText;
+  },
+
+  /* ------ Theme ------ */
 
   toggleTheme() {
     document.body.classList.toggle("dark-theme");
     const isDark = document.body.classList.contains("dark-theme");
-    localStorage.setItem("learnora_theme", isDark ? "dark" : "light");
+    Storage.set(THEME_KEY, isDark ? "dark" : "light");
+    this._updateThemeIcon();
   },
 
   initTheme() {
-    if (localStorage.getItem("learnora_theme") === "light") {
+    const saved = Storage.get(THEME_KEY);
+    if (saved === "light") {
       document.body.classList.remove("dark-theme");
     }
+    this._updateThemeIcon();
   },
 
+  _updateThemeIcon() {
+    const icon = $("theme-icon");
+    if (!icon) return;
+    const isDark = document.body.classList.contains("dark-theme");
+    icon.innerHTML = isDark
+      ? '<path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>'
+      : '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>';
+  },
+
+  /* ------ Settings ------ */
+
   loadSettings() {
-    const defaultSettings = {
-      aiPersona: "tutor",
-      aiConciseness: "medium",
-      uiLanguage: "en",
-      aiLanguage: "English",
-    };
-    return (
-      JSON.parse(localStorage.getItem("learnora_settings")) || defaultSettings
-    );
+    return { ...DEFAULT_SETTINGS, ...Storage.get(SETTINGS_KEY, {}) };
   },
 
   saveSettings() {
     const settings = {
-      aiPersona: document.getElementById("config-persona")?.value || "tutor",
-      aiConciseness:
-        document.getElementById("config-length")?.value || "medium",
-      uiLanguage: document.getElementById("config-ui-lang")?.value || "en",
-      aiLanguage: document.getElementById("config-ai-lang")?.value || "English",
+      aiPersona: $("config-persona")?.value || "tutor",
+      aiConciseness: $("config-length")?.value || "medium",
+      uiLanguage: $("config-ui-lang")?.value || "en",
+      aiLanguage: $("config-ai-lang")?.value || "English",
     };
-    localStorage.setItem("learnora_settings", JSON.stringify(settings));
+    Storage.set(SETTINGS_KEY, settings);
     this.applyTranslations();
-    this.showPopup(
-      "Your settings have been saved successfully.",
-      "Settings Saved",
-    );
+    this.showPopup("Your settings have been saved successfully.", "Settings Saved");
   },
 
   populateSettingsUI() {
-    const settings = this.loadSettings();
-    if (document.getElementById("config-persona"))
-      document.getElementById("config-persona").value = settings.aiPersona;
-    if (document.getElementById("config-length"))
-      document.getElementById("config-length").value = settings.aiConciseness;
-    if (document.getElementById("config-ui-lang"))
-      document.getElementById("config-ui-lang").value = settings.uiLanguage;
-    if (document.getElementById("config-ai-lang"))
-      document.getElementById("config-ai-lang").value = settings.aiLanguage;
+    const s = this.loadSettings();
+    const fields = {
+      "config-persona": s.aiPersona,
+      "config-length": s.aiConciseness,
+      "config-ui-lang": s.uiLanguage,
+      "config-ai-lang": s.aiLanguage,
+    };
+    for (const [id, value] of Object.entries(fields)) {
+      const el = $(id);
+      if (el) el.value = value;
+    }
   },
+
+  /* ------ Translations ------ */
 
   applyTranslations() {
     const lang = this.loadSettings().uiLanguage;
-    const dict = translations[lang] || translations["en"];
+    const dict = translations[lang] || translations.en;
     if (!dict) return;
 
-    document.querySelectorAll("[data-i18n]").forEach((el) => {
+    $$("[data-i18n]").forEach((el) => {
       const key = el.getAttribute("data-i18n");
-      if (dict[key]) {
-        if (el.tagName === "INPUT" && el.placeholder) {
-          el.placeholder = dict[key];
-        } else {
-          el.innerHTML = dict[key];
-        }
+      if (!dict[key]) return;
+
+      // Skip the active page title — it's managed by switchTab
+      if (el.id === "page-title") return;
+
+      if (el.tagName === "INPUT" && el.hasAttribute("placeholder")) {
+        el.placeholder = dict[key];
+      } else {
+        el.innerHTML = dict[key];
       }
     });
   },
 };
+
+/* =========================================================================
+   PUBLIC UTILITIES — Shared across modules
+   ========================================================================= */
+
+export { $, $$, esc, Storage };
