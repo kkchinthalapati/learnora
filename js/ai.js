@@ -227,8 +227,14 @@ export const AI = {
 
     const onMouseMove = (e) => {
       if (!isDragging) return;
-      modal.style.left = `${initX + (e.clientX - startX)}px`;
-      modal.style.top = `${initY + (e.clientY - startY)}px`;
+      let newLeft = initX + (e.clientX - startX);
+      let newTop = initY + (e.clientY - startY);
+      const maxLeft = window.innerWidth - modal.offsetWidth;
+      const maxTop = window.innerHeight - modal.offsetHeight;
+      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+      newTop = Math.max(0, Math.min(newTop, maxTop));
+      modal.style.left = `${newLeft}px`;
+      modal.style.top = `${newTop}px`;
       modal.style.bottom = "auto";
       modal.style.right = "auto";
     };
@@ -255,8 +261,14 @@ export const AI = {
     header.addEventListener("touchmove", (e) => {
       if (!isDragging) return;
       const touch = e.touches[0];
-      modal.style.left = `${initX + (touch.clientX - startX)}px`;
-      modal.style.top = `${initY + (touch.clientY - startY)}px`;
+      let newLeft = initX + (touch.clientX - startX);
+      let newTop = initY + (touch.clientY - startY);
+      const maxLeft = window.innerWidth - modal.offsetWidth;
+      const maxTop = window.innerHeight - modal.offsetHeight;
+      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+      newTop = Math.max(0, Math.min(newTop, maxTop));
+      modal.style.left = `${newLeft}px`;
+      modal.style.top = `${newTop}px`;
       modal.style.bottom = "auto";
       modal.style.right = "auto";
     }, { passive: true });

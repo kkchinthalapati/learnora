@@ -134,12 +134,32 @@ export const Tasks = {
       .from("tasks")
       .update({ is_done: !currentStatus })
       .eq("id", id);
-    if (error) console.error("[Tasks.toggle]", error.message);
+    if (error) {
+      console.error("[Tasks.toggle]", error.message);
+      return false;
+    }
+    return true;
   },
 
   async delete(id) {
     const { error } = await supabase.from("tasks").delete().eq("id", id);
-    if (error) console.error("[Tasks.delete]", error.message);
+    if (error) {
+      console.error("[Tasks.delete]", error.message);
+      return false;
+    }
+    return true;
+  },
+
+  async updateText(id, newText) {
+    const { error } = await supabase
+      .from("tasks")
+      .update({ text: newText })
+      .eq("id", id);
+    if (error) {
+      console.error("[Tasks.updateText]", error.message);
+      return false;
+    }
+    return true;
   },
 };
 
@@ -201,6 +221,13 @@ export const DataAdmin = {
   async exportCSV() {
     try {
       const [tasks, exams] = await Promise.all([Tasks.fetch(), Exams.fetch()]);
+      let sessions = [];
+      try {
+        const raw = localStorage.getItem("sessions");
+        sessions = raw ? JSON.parse(raw) : [];
+      } catch (err) {
+        console.error("Failed to parse sessions for export", err);
+      }
 
       const rows = [["Type", "Name", "Status", "Date"]];
       tasks.forEach((t) =>
@@ -208,6 +235,9 @@ export const DataAdmin = {
       );
       exams.forEach((e) =>
         rows.push(["Exam", e.exam_name, e.status, e.exam_date]),
+      );
+      sessions.forEach((s) =>
+        rows.push(["Focus Session", `${s.minutes}m Focus on ${s.task || "General Study"}`, "Completed", s.timestamp]),
       );
 
       const csv = rows.map((r) => r.map(escapeCSVField).join(",")).join("\n");

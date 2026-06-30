@@ -204,6 +204,8 @@ async function loadTasks() {
   const select = $("active-task-select");
   if (!list) return;
 
+  const selectedValue = select ? select.value : "None";
+
   list.innerHTML = "";
 
   if (tasks.length === 0) {
@@ -221,26 +223,100 @@ async function loadTasks() {
   tasks.forEach((t) => {
     const li = document.createElement("li");
     li.className = `todo-item${t.is_done ? " done" : ""}`;
-    li.setAttribute("role", "listitem");
+    li.setAttribute("role", "checkbox");
+    li.setAttribute("aria-checked", t.is_done ? "true" : "false");
+    li.setAttribute("tabindex", "0");
 
     const span = document.createElement("span");
     span.textContent = t.text;
+    span.className = "todo-text";
 
     const delBtn = document.createElement("button");
     delBtn.className = "delete-btn";
     delBtn.textContent = "✖";
     delBtn.setAttribute("aria-label", `Delete task: ${t.text}`);
+    delBtn.setAttribute("tabindex", "0");
 
     li.appendChild(span);
     li.appendChild(delBtn);
 
-    // Toggle done
-    li.addEventListener("click", async (e) => {
-      if (e.target.tagName === "BUTTON") return;
-      li.style.opacity = "0.5";
+    // Toggle done (Optimistic update)
+    const toggleDone = async () => {
+      li.classList.toggle("done");
+      li.setAttribute("aria-checked", li.classList.contains("done") ? "true" : "false");
       li.style.pointerEvents = "none";
-      await Tasks.toggle(t.id, t.is_done);
+      
+      const ok = await Tasks.toggle(t.id, t.is_done);
+      li.style.pointerEvents = "";
+      if (!ok) {
+        li.classList.toggle("done");
+        li.setAttribute("aria-checked", t.is_done ? "true" : "false");
+        UI.showPopup("Failed to toggle task status.", "Connection Error");
+      } else {
+        t.is_done = !t.is_done;
+      }
       loadTasks();
+    };
+
+    li.addEventListener("click", (e) => {
+      if (e.target.tagName === "BUTTON" || e.target.tagName === "INPUT") return;
+      toggleDone();
+    });
+
+    li.addEventListener("keydown", (e) => {
+      if (e.target.tagName === "BUTTON" || e.target.tagName === "INPUT") return;
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        toggleDone();
+      }
+    });
+
+    // Double-click inline edit
+    span.addEventListener("dblclick", () => {
+      if (t.is_done) return;
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "todo-edit-input";
+      input.value = t.text;
+      input.setAttribute("aria-label", "Edit task text");
+
+      let hasSaved = false;
+      const saveEdit = async () => {
+        if (hasSaved) return;
+        hasSaved = true;
+
+        const newText = input.value.trim();
+        if (newText && newText !== t.text) {
+          span.textContent = newText;
+          const ok = await Tasks.updateText(t.id, newText);
+          if (!ok) {
+            span.textContent = t.text;
+            UI.showPopup("Failed to edit task name.", "Error");
+          } else {
+            t.text = newText;
+          }
+        }
+        input.replaceWith(span);
+        loadTasks();
+      };
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          saveEdit();
+        } else if (e.key === "Escape") {
+          hasSaved = true;
+          input.replaceWith(span);
+        }
+      });
+
+      input.addEventListener("blur", () => {
+        saveEdit();
+      });
+
+      span.replaceWith(input);
+      input.focus();
     });
 
     // Delete
@@ -248,8 +324,21 @@ async function loadTasks() {
       e.stopPropagation();
       li.style.opacity = "0";
       li.style.transform = "translateX(20px)";
-      await Tasks.delete(t.id);
-      setTimeout(loadTasks, 250);
+      const ok = await Tasks.delete(t.id);
+      if (!ok) {
+        li.style.opacity = "";
+        li.style.transform = "";
+        UI.showPopup("Failed to delete task.", "Error");
+      } else {
+        setTimeout(loadTasks, 250);
+      }
+    });
+
+    delBtn.addEventListener("keydown", (e) => {
+      if (e.key === " " || e.key === "Enter") {
+        e.stopPropagation();
+        delBtn.click();
+      }
     });
 
     list.appendChild(li);
@@ -261,6 +350,15 @@ async function loadTasks() {
       select.appendChild(opt);
     }
   });
+
+  if (select) {
+    const exists = Array.from(select.options).some((o) => o.value === selectedValue);
+    if (exists) {
+      select.value = selectedValue;
+    } else {
+      select.value = "None";
+    }
+  }
 }
 
 function bindTasks() {
@@ -329,19 +427,27 @@ function renderCalendar() {
     dayNum.textContent = d;
     cell.appendChild(dayNum);
 
-    // Exam bars for this date
-    cachedExams
-      .filter((e) => e.exam_date === dateStr)
-      .forEach((exam) => {
-        const bar = document.createElement("div");
-        bar.className = `exam-bar diff-${exam.difficulty.toLowerCase()} status-${exam.status.toLowerCase()}`;
-        bar.textContent = exam.exam_name;
-        bar.addEventListener("click", (evt) => {
-          evt.stopPropagation();
-          openExamModal(exam);
-        });
-        cell.appendChild(bar);
+    const examsForDate = cachedExams.filter((e) => e.exam_date === dateStr);
+    const maxExamsToShow = 2;
+
+    examsForDate.slice(0, maxExamsToShow).forEach((exam) => {
+      const bar = document.createElement("div");
+      bar.className = `exam-bar diff-${exam.difficulty.toLowerCase()} status-${exam.status.toLowerCase()}`;
+      bar.textContent = exam.exam_name;
+      bar.addEventListener("click", (evt) => {
+        evt.stopPropagation();
+        openExamModal(exam);
       });
+      cell.appendChild(bar);
+    });
+
+    if (examsForDate.length > maxExamsToShow) {
+      const overflowCount = examsForDate.length - maxExamsToShow;
+      const overflowBadge = document.createElement("div");
+      overflowBadge.className = "calendar-overflow-badge";
+      overflowBadge.textContent = `+${overflowCount} more`;
+      cell.appendChild(overflowBadge);
+    }
 
     const openNewExam = () => openExamModal(null, dateStr);
     cell.addEventListener("click", openNewExam);

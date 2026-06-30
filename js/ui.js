@@ -203,6 +203,11 @@ export const UI = {
         el.innerHTML = dict[key];
       }
     });
+
+    const activeNav = document.querySelector(`.nav-item[data-target="${this._activeTab}"]`);
+    if (activeNav) {
+      this._updatePageTitle(activeNav);
+    }
   },
 };
 

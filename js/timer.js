@@ -272,7 +272,11 @@ export const Timer = {
   randomizeQuote() {
     const el = $("quote-display");
     if (!el) return;
-    el.textContent = `"${QUOTES[Math.floor(Math.random() * QUOTES.length)]}"`;
+    el.classList.add("fade-out");
+    setTimeout(() => {
+      el.textContent = `"${QUOTES[Math.floor(Math.random() * QUOTES.length)]}"`;
+      el.classList.remove("fade-out");
+    }, 250);
   },
 
   /* ------ Favorite presets ------ */

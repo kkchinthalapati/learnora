@@ -572,6 +572,10 @@ label {
     font-size: clamp(14px, 2vw, 16px);
     margin-bottom: var(--s-6);
     max-width: 46ch;
+    transition: opacity 0.25s ease;
+}
+.motivational-quote.fade-out {
+    opacity: 0;
 }
 #timer-mode-label {
     color: var(--accent);
@@ -812,6 +816,16 @@ label {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
+}
+.calendar-overflow-badge {
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    color: var(--text-muted);
+    padding: var(--s-1) var(--s-2);
+    align-self: flex-start;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-xs);
 }
 .exam-bar {
     font-size: var(--fs-xs);
@@ -1159,15 +1173,15 @@ label {
     right: clamp(20px, 4vw, 36px);
 }
 .ai-modal.fullscreen {
-    top: 0;
-    left: 0;
-    bottom: auto;
-    right: auto;
-    width: 100vw;
-    height: 100vh;
-    border-radius: 0;
-    border: none;
-    background: var(--glass-bg-strong);
+    top: 0 !important;
+    left: 0 !important;
+    bottom: auto !important;
+    right: auto !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+    border: none !important;
+    background: var(--glass-bg-strong) !important;
 }
 
 .chat-header {
@@ -1231,6 +1245,47 @@ label {
     background: var(--danger-soft);
     border-color: transparent;
     color: var(--danger);
+}
+
+/* AI Markdown rendering styles */
+.ai-bubble p {
+    margin-bottom: var(--s-2);
+}
+.ai-bubble ul,
+.ai-bubble ol {
+    margin-left: var(--s-5);
+    margin-bottom: var(--s-2);
+}
+.ai-bubble ul {
+    list-style-type: disc;
+}
+.ai-bubble ol {
+    list-style-type: decimal;
+}
+.ai-bubble li {
+    margin-bottom: var(--s-1);
+}
+.ai-bubble code {
+    font-family: monospace;
+    background: var(--bg-tint-1);
+    color: var(--accent);
+    padding: 2px 4px;
+    border-radius: var(--r-xs);
+    font-size: 0.9em;
+}
+.ai-bubble pre {
+    background: var(--surface-2);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-sm);
+    padding: var(--s-3);
+    margin: var(--s-3) 0;
+    overflow-x: auto;
+}
+.ai-bubble pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
 }
 
 /* Typing indicator */
