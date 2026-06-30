@@ -264,6 +264,16 @@ export const Timer = {
       progressEl.style.width = `${pct}%`;
     }
 
+    // Update circular SVG ring
+    const ringEl = document.getElementById("timer-ring-progress");
+    if (ringEl) {
+      const circumference = 2 * Math.PI * 90; // r=90
+      const progress = this.state.totalTime > 0
+        ? (this.state.totalTime - this.state.timeLeft) / this.state.totalTime
+        : 0;
+      ringEl.style.strokeDashoffset = circumference * (1 - progress);
+    }
+
     // Toggle start/pause button visibility
     if (startBtn) startBtn.classList.toggle("hidden", this.state.isRunning);
     if (pauseBtn) pauseBtn.classList.toggle("hidden", !this.state.isRunning);

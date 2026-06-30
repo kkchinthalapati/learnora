@@ -13,6 +13,11 @@
              AUTH WALL
         ============================================== -->
         <div id="auth-wall" class="auth-wrapper">
+            <div class="liquid-blobs" aria-hidden="true">
+                <div class="liquid-blob liquid-blob--1"></div>
+                <div class="liquid-blob liquid-blob--2"></div>
+                <div class="liquid-blob liquid-blob--3"></div>
+            </div>
             <div class="auth-layout">
                 <div class="auth-card glass-panel">
                     <div class="brand-header text-center">
@@ -136,6 +141,13 @@
              MAIN WORKSPACE
         ============================================== -->
         <div id="main-app" class="app-container hidden">
+            <!-- Liquid glass background blobs -->
+            <div class="liquid-blobs" aria-hidden="true">
+                <div class="liquid-blob liquid-blob--1"></div>
+                <div class="liquid-blob liquid-blob--2"></div>
+                <div class="liquid-blob liquid-blob--3"></div>
+            </div>
+
             <nav class="sidebar glass-panel" id="sidebar">
                 <h2 class="brand">Learnora</h2>
                 <ul class="nav-links">
@@ -362,9 +374,18 @@
                             <p id="quote-display" class="motivational-quote">
                                 "Loading..."
                             </p>
-                            <h4 id="timer-mode-label">Focus Mode</h4>
-                            <h2 id="time-display">25:00</h2>
-                            <p id="cycle-counter">Cycle: 0 / 4</p>
+
+                            <div class="timer-ring-wrapper">
+                                <svg class="timer-ring" viewBox="0 0 200 200">
+                                    <circle class="timer-ring-bg" cx="100" cy="100" r="90" />
+                                    <circle class="timer-ring-progress" id="timer-ring-progress" cx="100" cy="100" r="90" />
+                                </svg>
+                                <div class="timer-ring-content">
+                                    <h4 id="timer-mode-label">Focus Mode</h4>
+                                    <h2 id="time-display">25:00</h2>
+                                    <p id="cycle-counter">Cycle: 0 / 4</p>
+                                </div>
+                            </div>
 
                             <div class="progress-container">
                                 <div
