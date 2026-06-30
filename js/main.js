@@ -69,28 +69,50 @@ document.addEventListener("DOMContentLoaded", async () => {
    ========================================================================= */
 
 function bindAuth() {
+  let signingUp = false;
+  let loggingIn = false;
+
   $("login-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
+
+    if (loggingIn) return;
+    loggingIn = true;
+
     UI.setLoading("login-btn", true);
+
     const ok = await Auth.login(
       $("login-email").value,
       $("login-password").value,
     );
-    if (ok) window.location.reload();
+
     UI.setLoading("login-btn", false);
+    loggingIn = false;
+
+    if (ok) window.location.reload();
   });
 
   $("signup-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
+
+    if (signingUp) return;
+    signingUp = true;
+
+    const signupBtn = $("signup-btn");
+    if (signupBtn) signupBtn.disabled = true;
+
     UI.setLoading("signup-btn", true);
-    const ok = await Auth.signup(
+
+    await Auth.signup(
       $("signup-name").value,
       $("signup-email").value,
       $("signup-password").value,
       $("signup-dob").value,
     );
+
     UI.setLoading("signup-btn", false);
-    // If signup requires email verification, form stays visible
+
+    if (signupBtn) signupBtn.disabled = false;
+    signingUp = false;
   });
 
   $("btn-show-signup")?.addEventListener("click", () => {
