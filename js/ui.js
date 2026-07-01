@@ -96,24 +96,10 @@ export const UI = {
 
   /* ------ Tab navigation ------ */
 
-  switchTab(targetId) {
-    if (!targetId) return;
-    this._activeTab = targetId;
-
-    $$(".tab-content").forEach((sec) => {
-      sec.classList.add("hidden");
-      sec.style.display = "";
-    });
-    $$(".nav-links li").forEach((nav) => nav.classList.remove("active"));
-
-    const targetSection = $(`${targetId}-section`);
-    if (targetSection) targetSection.classList.remove("hidden");
-
-    const activeNav = document.querySelector(`.nav-item[data-target="${targetId}"]`);
-    if (activeNav) {
-      activeNav.classList.add("active");
-      this._updatePageTitle(activeNav);
-    }
+  switchTab(targetRoute) {
+    if (!targetRoute) return;
+    this._activeTab = targetRoute;
+    window.location.hash = targetRoute;
   },
 
   _updatePageTitle(navElement) {

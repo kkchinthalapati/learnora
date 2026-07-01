@@ -2,6 +2,7 @@ import { UI, $, $$, esc, Storage } from "./ui.js";
 import { Auth, Tasks, Exams, DataAdmin } from "./api.js";
 import { Timer } from "./timer.js";
 import { AI } from "./ai.js";
+import { Router } from "./router.js";
 
 /* =========================================================================
    STATE
@@ -48,6 +49,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const greetingEl = $("user-greeting");
     if (greetingEl) greetingEl.textContent = getGreeting(name);
 
+    Router.init();
     initWorkspace();
   } else {
     $("auth-wall")?.classList.remove("hidden");
@@ -143,27 +145,13 @@ function bindNavigation() {
     $("sidebar")?.classList.toggle("collapsed");
   });
 
-  // Event delegation on the nav list
+  // Auto-close sidebar on mobile when a nav link is clicked
   document.querySelector(".nav-links")?.addEventListener("click", (e) => {
-    const item = e.target.closest(".nav-item");
-    if (!item) return;
-    UI.switchTab(item.dataset.target);
-    // Auto-close on mobile
-    if (window.innerWidth <= 768) {
-      $("sidebar")?.classList.remove("collapsed");
-    }
-  });
-
-  // Keyboard support for nav items
-  $$(".nav-item").forEach((item) => {
-    item.setAttribute("tabindex", "0");
-    item.setAttribute("role", "tab");
-    item.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        item.click();
+    if (e.target.closest("a.nav-link")) {
+      if (window.innerWidth <= 768) {
+        $("sidebar")?.classList.remove("collapsed");
       }
-    });
+    }
   });
 }
 

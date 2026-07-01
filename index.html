@@ -182,51 +182,53 @@
             <nav class="sidebar glass-panel" id="sidebar">
                 <h2 class="brand">Learnora</h2>
                 <ul class="nav-links">
-                    <li
-                        class="nav-item active"
-                        data-target="logs"
-                        data-i18n="nav_dashboard"
-                    >
-                        📊 Dashboard
+                    <li>
+                        <a href="#dashboard" class="nav-link active" data-i18n="nav_dashboard">
+                            📊 Dashboard
+                        </a>
                     </li>
                     <hr class="sidebar-divider" />
-                    <li
-                        class="nav-item"
-                        data-target="timer"
-                        data-i18n="nav_timer"
-                    >
-                        ⏱️ Timer
+                    <li>
+                        <a href="#folders" class="nav-link">
+                            📁 Courses / Folders
+                        </a>
                     </li>
-                    <li
-                        class="nav-item"
-                        data-target="todo"
-                        data-i18n="nav_tasks"
-                    >
-                        📝 Task Manager
+                    <li>
+                        <a href="#upload" class="nav-link">
+                            📤 Upload & Generate
+                        </a>
                     </li>
-                    <li
-                        class="nav-item"
-                        data-target="exams"
-                        data-i18n="nav_calendar"
-                    >
-                        📚 Calendar
+                    <hr class="sidebar-divider" />
+                    <li>
+                        <a href="#timer" class="nav-link" data-i18n="nav_timer">
+                            ⏱️ Timer
+                        </a>
                     </li>
-                    <li
-                        class="nav-item"
-                        data-target="flashcards"
-                        data-i18n="nav_flashcards"
-                    >
-                        🗂️ Flashcards
+                    <li>
+                        <a href="#todo" class="nav-link" data-i18n="nav_tasks">
+                            📝 Task Manager
+                        </a>
                     </li>
-                    <li id="nav-ai-trigger" data-i18n="nav_ai">
-                        🤖 Learnora AI
+                    <li>
+                        <a href="#exams" class="nav-link" data-i18n="nav_calendar">
+                            📚 Calendar
+                        </a>
                     </li>
-                    <li
-                        class="nav-item"
-                        data-target="settings"
-                        data-i18n="nav_settings"
-                    >
-                        ⚙️ Settings
+                    <li>
+                        <a href="#flashcards" class="nav-link" data-i18n="nav_flashcards">
+                            🗂️ Flashcards
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#ai" id="nav-ai-trigger" class="nav-link" data-i18n="nav_ai">
+                            🤖 Learnora AI
+                        </a>
+                    </li>
+                    <hr class="sidebar-divider" />
+                    <li>
+                        <a href="#settings" class="nav-link" data-i18n="nav_settings">
+                            ⚙️ Settings
+                        </a>
                     </li>
                 </ul>
             </nav>
@@ -273,8 +275,8 @@
                     </div>
                 </header>
 
-                <!-- TAB: Dashboard Logs -->
-                <section id="logs-section" class="tab-content">
+                <!-- VIEW: Dashboard -->
+                <section id="view-dashboard" class="view-section">
                     <div id="dashboard-widgets" class="grid-list mb-24">
                         <div class="glass-panel stat-card">
                             <h3 class="stat-title opacity-70">
@@ -307,8 +309,8 @@
                     </div>
                 </section>
 
-                <!-- TAB: Timer -->
-                <section id="timer-section" class="tab-content hidden">
+                <!-- VIEW: Timer -->
+                <section id="view-timer" class="view-section hidden">
                     <div class="timer-layout">
                         <div class="config-panel glass-panel">
                             <h3 data-i18n="timer_presets">Workflow Presets</h3>
@@ -458,8 +460,8 @@
                     </div>
                 </section>
 
-                <!-- TAB: Todo -->
-                <section id="todo-section" class="tab-content hidden">
+                <!-- VIEW: Todo -->
+                <section id="view-todo" class="view-section hidden">
                     <div class="input-card glass-panel flex-row">
                         <input
                             type="text"
@@ -480,8 +482,8 @@
                     <ul id="todo-list" class="list-container mt-24"></ul>
                 </section>
 
-                <!-- TAB: Calendar -->
-                <section id="exams-section" class="tab-content hidden">
+                <!-- VIEW: Calendar -->
+                <section id="view-exams" class="view-section hidden">
                     <div class="calendar-container glass-panel">
                         <div class="calendar-header flex-between mb-24">
                             <button
@@ -516,8 +518,8 @@
                     </div>
                 </section>
 
-                <!-- TAB: Flashcards -->
-                <section id="flashcards-section" class="tab-content hidden">
+                <!-- VIEW: Flashcards -->
+                <section id="view-flashcards" class="view-section hidden">
                     <div class="glass-panel summary-card">
                         <h2 data-i18n="header_flashcards">Flashcards</h2>
                         <p data-i18n="desc_flashcards" class="opacity-70 mt-8">
@@ -528,8 +530,8 @@
                     <div id="flashcards-grid" class="grid-list mt-24"></div>
                 </section>
 
-                <!-- TAB: Settings -->
-                <section id="settings-section" class="tab-content hidden">
+                <!-- VIEW: Settings -->
+                <section id="view-settings" class="view-section hidden">
                     <div class="glass-panel">
                         <h2 data-i18n="set_ai_brain">🧠 AI Personalization</h2>
                         <div class="setting-row flex-between">
@@ -651,6 +653,26 @@
                                 Save Changes
                             </button>
                         </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: Folders (New) -->
+                <section id="view-folders" class="view-section hidden">
+                    <div class="glass-panel summary-card">
+                        <h2>Folders & Workspaces</h2>
+                        <p class="opacity-70 mt-8">Organize your study materials by course or subject.</p>
+                    </div>
+                    <div id="folders-container" class="grid-list mt-24">
+                        <!-- Folders will be loaded here via router -->
+                    </div>
+                </section>
+
+                <!-- VIEW: Upload (New) -->
+                <section id="view-upload" class="view-section hidden">
+                    <div class="glass-panel text-center" style="padding: 60px 20px;">
+                        <h2 class="mb-16">Upload & Generate</h2>
+                        <p class="opacity-70 mb-24">Drop your PDFs, images, or audio lectures here to instantly generate notes and flashcards.</p>
+                        <button class="btn-primary" style="font-size: 1.2rem; padding: 16px 32px;">Choose File</button>
                     </div>
                 </section>
             </main>

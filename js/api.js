@@ -185,6 +185,72 @@ export const Auth = {
 };
 
 /* =========================================================================
+   FOLDERS — Workspace grouping for materials
+   ========================================================================= */
+
+export const Folders = {
+  async fetch() {
+    const user = await getCurrentUser();
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from("folders")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("[Folders.fetch]", error.message);
+      return [];
+    }
+    return data || [];
+  },
+
+  async add(name, color = "#4A90E2") {
+    const user = await getCurrentUser();
+    if (!user) return null;
+    const { data, error } = await supabase
+      .from("folders")
+      .insert([{ name, color, user_id: user.id }])
+      .select()
+      .single();
+    if (error) {
+      UI.showPopup(error.message, "Error Creating Folder");
+      return null;
+    }
+    return data;
+  },
+
+  async delete(id) {
+    const { error } = await supabase.from("folders").delete().eq("id", id);
+    if (error) {
+      console.error("[Folders.delete]", error.message);
+      return false;
+    }
+    return true;
+  }
+};
+
+/* =========================================================================
+   MATERIALS — Uploaded documents, audio, videos
+   ========================================================================= */
+
+export const Materials = {
+  async fetch(folderId = null) {
+    const user = await getCurrentUser();
+    if (!user) return [];
+    let query = supabase.from("materials").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    
+    if (folderId) query = query.eq("folder_id", folderId);
+    
+    const { data, error } = await query;
+    if (error) {
+      console.error("[Materials.fetch]", error.message);
+      return [];
+    }
+    return data || [];
+  }
+};
+
+/* =========================================================================
    TASKS — CRUD for the tasks table
    ========================================================================= */
 
