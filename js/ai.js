@@ -37,8 +37,7 @@ Please read the provided file and generate TWO things exactly in this format:
 
       const { data, error } = await supabase.functions.invoke("learnora-ai", {
         body: {
-          query: ingestionPrompt,
-          history: [],
+          history: [{ role: "user", content: ingestionPrompt }], // Pass prompt as the last history item
           file: fileDataPayload,
           settings: UI.loadSettings(),
         },
@@ -168,11 +167,16 @@ User query: ${query}
     typing.classList.remove("hidden");
     msgBox.scrollTop = msgBox.scrollHeight;
 
+    // Build the request history: Previous history + the context-injected current message at the end
+    const requestHistory = [
+      ...this.chatHistory.slice(0, -1),
+      { role: "user", content: workspaceContext }
+    ];
+
     try {
       const { data, error } = await supabase.functions.invoke("learnora-ai", {
         body: {
-          query: workspaceContext, // Send the injected query to the edge function
-          history: this.chatHistory.slice(0, -1), // Exclude the last user message since we put it in 'query'
+          history: requestHistory, // Send the full history with the final message holding the injected context
           file: this.currentFile,
           settings: UI.loadSettings(),
         },
