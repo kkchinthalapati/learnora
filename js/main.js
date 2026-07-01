@@ -3,6 +3,7 @@ import { Auth, Tasks, Exams, DataAdmin, Folders, Materials } from "./api.js";
 import { Timer } from "./timer.js";
 import { AI } from "./ai.js";
 import { Router } from "./router.js";
+import { supabase } from "./supabase.js";
 
 /* =========================================================================
    STATE
@@ -205,6 +206,14 @@ function bindAuth() {
   let signingUp = false;
   let loggingIn = false;
 
+  // Auto-refresh when session is established, but only if the user is currently on the auth wall
+  supabase.auth.onAuthStateChange((event, session) => {
+    const authWallVisible = !$("auth-wall")?.classList.contains("hidden");
+    if (session?.user && authWallVisible) {
+      window.location.reload();
+    }
+  });
+
   // Toggle password visibility
   $$(".password-toggle").forEach(btn => {
     btn.addEventListener("click", (e) => {
@@ -297,9 +306,10 @@ function bindAuth() {
     signingUp = true;
     UI.setLoading("signup-btn", true);
     try {
+      const email = $("signup-email").value.trim();
       const ok = await Auth.signup(
         $("signup-name").value.trim(),
-        $("signup-email").value.trim(),
+        email,
         pass,
         $("signup-dob").value,
       );
@@ -311,7 +321,22 @@ function bindAuth() {
         }
         const btnText = $("signup-btn")?.querySelector(".btn-text");
         if (btnText) btnText.textContent = "Check your email inbox! ✉️";
-        // Keep signingUp = true and loading state active to completely lock the UI
+        
+        // Start background polling to automatically log in and refresh once confirmed
+        const pollInterval = setInterval(async () => {
+          try {
+            const loggedIn = await Auth.login(email, pass, true); // silent login attempt
+            if (loggedIn) {
+              clearInterval(pollInterval);
+              window.location.reload();
+            }
+          } catch (e) {
+            // Suppress errors during polling
+          }
+        }, 5000);
+
+        // Save interval to prevent multiple polling loops
+        window.authPollInterval = pollInterval;
         return;
       }
       if (ok) {

@@ -78,16 +78,20 @@ function friendlyAuthError(error) {
    ========================================================================= */
 
 export const Auth = {
-  async login(email, password) {
+  async login(email, password, silent = false) {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        UI.showPopup(friendlyAuthError(error), "Login Failed");
+        if (!silent) {
+          UI.showPopup(friendlyAuthError(error), "Login Failed");
+        }
         return false;
       }
       return true;
     } catch (e) {
-      UI.showPopup(friendlyAuthError(e), "Login Failed");
+      if (!silent) {
+        UI.showPopup(friendlyAuthError(e), "Login Failed");
+      }
       return false;
     }
   },
