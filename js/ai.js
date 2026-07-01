@@ -26,19 +26,33 @@ export const AI = {
     try {
       const { Notes, Decks, Flashcards } = await import("./api.js");
       
-      const ingestionPrompt = `
+      let finalPrompt = `
 [SYSTEM INSTRUCTION: You are processing a study material document for the user. 
-Please read the provided file and generate TWO things exactly in this format:
+Please read the provided file/text and generate TWO things exactly in this format:
 1. Markdown structured notes summarizing the core concepts.
 2. A special separator: "---FLASHCARDS---"
 3. A JSON array of flashcards, e.g. [{"front": "Q1", "back": "A1"}]. Do NOT put markdown blocks around the JSON.
 ]
 `;
 
+      let filePayloadToSend = fileDataPayload;
+
+      // Gemini inlineData does NOT support text/plain.
+      // If it's a URL or raw text, we decode and append it directly to the text query.
+      if (fileDataPayload && fileDataPayload.mimeType === "text/plain") {
+        try {
+          const decodedText = atob(fileDataPayload.data);
+          finalPrompt += `\n\nStudy Material Content:\n${decodedText}`;
+          filePayloadToSend = null; // Don't send as file attachment
+        } catch (e) {
+          console.error("Failed to decode text payload:", e);
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke("learnora-ai", {
         body: {
-          history: [{ role: "user", content: ingestionPrompt }], // Pass prompt as the last history item
-          file: fileDataPayload,
+          history: [{ role: "user", content: finalPrompt }], // Pass prompt as the last history item
+          file: filePayloadToSend,
           settings: UI.loadSettings(),
         },
       });
