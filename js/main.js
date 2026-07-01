@@ -303,6 +303,17 @@ function bindAuth() {
         pass,
         $("signup-dob").value,
       );
+      if (ok === "verification-sent") {
+        const form = $("signup-form");
+        if (form) {
+          const inputs = form.querySelectorAll("input, button");
+          inputs.forEach(el => el.disabled = true);
+        }
+        const btnText = $("signup-btn")?.querySelector(".btn-text");
+        if (btnText) btnText.textContent = "Check your email inbox! ✉️";
+        // Keep signingUp = true and loading state active to completely lock the UI
+        return;
+      }
       if (ok) {
         window.location.reload();
         return;

@@ -135,7 +135,7 @@ export const Auth = {
           "Account created! Check your email for the confirmation link. (Check spam too!)",
           "Verify Your Email ✉️",
         );
-        return false;
+        return "verification-sent";
       }
 
       // Auto-confirmed signup — proceed directly
