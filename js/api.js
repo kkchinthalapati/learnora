@@ -306,6 +306,18 @@ export const Materials = {
 
     if (error) throw new Error(error.message);
     return data;
+  },
+
+  async getSignedUrl(storagePath) {
+    const { data, error } = await supabase.storage
+      .from('materials')
+      .createSignedUrl(storagePath, 3600); // 1 hour expiration
+
+    if (error) {
+      console.error("[Materials.getSignedUrl]", error.message);
+      return null;
+    }
+    return data.signedUrl;
   }
 };
 
