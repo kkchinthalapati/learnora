@@ -136,6 +136,7 @@ function bindUploadHub() {
   processBtn.addEventListener('click', async () => {
     const type = document.querySelector('input[name="material-type"]:checked').value;
     const folderId = folderSelect.value;
+    const customTitle = document.getElementById('upload-custom-title')?.value.trim() || "";
     
     if (!folderId) {
       UI.showPopup("Please select or create a folder first.", "Folder Required");
@@ -153,7 +154,7 @@ function bindUploadHub() {
       if (type === 'pdf' || type === 'audio') {
         if (!fileInput.files.length) throw new Error("Please select a file.");
         const file = fileInput.files[0];
-        material = await Materials.uploadFile(file, folderId, type);
+        material = await Materials.uploadFile(file, folderId, type, customTitle);
         
         // Read file into base64 to send to edge function
         fileDataPayload = await new Promise((resolve, reject) => {
@@ -170,7 +171,7 @@ function bindUploadHub() {
       } else {
         const urlOrText = linkInput.querySelector('input').value;
         if (!urlOrText) throw new Error("Please provide a link or text.");
-        material = await Materials.addLink(urlOrText, folderId);
+        material = await Materials.addLink(urlOrText, folderId, customTitle);
         
         // Pass the raw text or link directly
         fileDataPayload = { name: (type === 'youtube' ? "YouTube Link" : "Raw Text"), mimeType: "text/plain", data: btoa(unescape(encodeURIComponent(urlOrText))) };
@@ -183,6 +184,7 @@ function bindUploadHub() {
       UI.showPopup("Material successfully ingested. Notes and flashcards will be available shortly.", "Success");
       // Reset UI
       fileInput.value = "";
+      if (document.getElementById('upload-custom-title')) document.getElementById('upload-custom-title').value = "";
       linkInput.querySelector('input').value = "";
       const h3 = dropzone.querySelector('h3');
       if (h3) h3.textContent = "Drag & Drop";

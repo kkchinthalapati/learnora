@@ -249,7 +249,7 @@ export const Materials = {
     return data || [];
   },
 
-  async uploadFile(file, folderId, type) {
+  async uploadFile(file, folderId, type, customTitle) {
     const user = await getCurrentUser();
     if (!user) throw new Error("Not logged in");
 
@@ -273,7 +273,7 @@ export const Materials = {
       .insert([{
         user_id: user.id,
         folder_id: folderId,
-        title: file.name,
+        title: customTitle || file.name,
         type: type,
         storage_path: filePath
       }])
@@ -288,17 +288,19 @@ export const Materials = {
     return data;
   },
 
-  async addLink(url, folderId) {
+  async addLink(url, folderId, customTitle) {
     const user = await getCurrentUser();
     if (!user) throw new Error("Not logged in");
+
+    const defaultTitle = url.includes("youtube.com") || url.includes("youtu.be") ? "YouTube Link" : "Web Link";
 
     const { data, error } = await supabase
       .from("materials")
       .insert([{
         user_id: user.id,
         folder_id: folderId,
-        title: "YouTube Video",
-        type: "youtube",
+        title: customTitle || defaultTitle,
+        type: url.includes("youtube.com") || url.includes("youtu.be") ? "youtube" : "text",
         raw_content: url
       }])
       .select()
