@@ -169,51 +169,17 @@ export const Router = {
     const notes = await Notes.fetchByMaterial(materialId);
     if (notes.length > 0) {
       const rawMarkdown = notes[0].markdown_content;
-      content.innerHTML = Router.parseMarkdown(rawMarkdown);
+      // Use AI module's hardened markdown renderer for consistency
+      const { AI } = await import("./ai.js");
+      content.innerHTML = AI.renderMarkdown(rawMarkdown);
     } else {
       content.innerHTML = `
         <div class="text-center">
           <h3 class="opacity-70">No notes available for this material yet.</h3>
-          <p>The AI is likely still processing it.</p>
+          <p>The AI is likely still processing it. Refresh in a minute.</p>
         </div>
       `;
     }
-  },
-
-  parseMarkdown(md) {
-    if (!md) return "";
-    let html = md;
-    
-    // Escape HTML entities to prevent XSS
-    html = html
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-
-    // Code blocks: ```language ... ```
-    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
-      return `<pre class="glass-panel" style="padding:16px; margin: 16px 0; overflow-x:auto; background: rgba(0,0,0,0.4);"><code style="font-family:monospace; color:#4AE283;">${code}</code></pre>`;
-    });
-
-    // Inline code: `code`
-    html = html.replace(/`([^`\n]+)`/g, '<code style="font-family:monospace; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: var(--radius-sm); color: var(--primary-color);">$1</code>');
-
-    // Headers: ###, ####
-    html = html.replace(/^#### (.*?)$/gm, '<h4 style="font-size: 1.2rem; margin-top:24px; margin-bottom:8px; color:var(--text-color); font-weight:600;">$1</h4>');
-    html = html.replace(/^### (.*?)$/gm, '<h3 style="font-size: 1.4rem; margin-top:28px; margin-bottom:12px; color:var(--text-color); font-weight:600;">$1</h3>');
-    html = html.replace(/^## (.*?)$/gm, '<h2 style="font-size: 1.8rem; margin-top:32px; margin-bottom:16px; color:var(--primary-color); font-weight:700;">$1</h2>');
-    html = html.replace(/^# (.*?)$/gm, '<h1 style="font-size: 2.2rem; margin-top:36px; margin-bottom:20px; color:var(--primary-color); font-weight:800;">$1</h1>');
-
-    // Bold: **text**
-    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong style="color:var(--text-color); font-weight:700;">$1</strong>');
-
-    // Lists: - item
-    html = html.replace(/^\- (.*?)$/gm, '<li style="margin-left: 20px; margin-bottom: 8px; list-style-type: disc;">$1</li>');
-
-    // Paragraphs / Newlines
-    html = html.replace(/\n/g, '<br/>');
-    
-    return html;
   },
 
   async createNewFolder() {
