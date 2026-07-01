@@ -247,6 +247,65 @@ export const Materials = {
       return [];
     }
     return data || [];
+  },
+
+  async uploadFile(file, folderId, type) {
+    const user = await getCurrentUser();
+    if (!user) throw new Error("Not logged in");
+
+    // 1. Upload to Supabase Storage
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('materials')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error("[Materials.upload]", uploadError.message);
+      throw new Error(uploadError.message);
+    }
+
+    // 2. Insert DB record
+    const { data, error: dbError } = await supabase
+      .from("materials")
+      .insert([{
+        user_id: user.id,
+        folder_id: folderId,
+        title: file.name,
+        type: type,
+        storage_path: filePath
+      }])
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error("[Materials.db]", dbError.message);
+      throw new Error(dbError.message);
+    }
+
+    return data;
+  },
+
+  async addLink(url, folderId) {
+    const user = await getCurrentUser();
+    if (!user) throw new Error("Not logged in");
+
+    const { data, error } = await supabase
+      .from("materials")
+      .insert([{
+        user_id: user.id,
+        folder_id: folderId,
+        title: "YouTube Video",
+        type: "youtube",
+        raw_content: url
+      }])
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
   }
 };
 

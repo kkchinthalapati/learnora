@@ -669,10 +669,53 @@
 
                 <!-- VIEW: Upload (New) -->
                 <section id="view-upload" class="view-section hidden">
-                    <div class="glass-panel text-center" style="padding: 60px 20px;">
-                        <h2 class="mb-16">Upload & Generate</h2>
-                        <p class="opacity-70 mb-24">Drop your PDFs, images, or audio lectures here to instantly generate notes and flashcards.</p>
-                        <button class="btn-primary" style="font-size: 1.2rem; padding: 16px 32px;">Choose File</button>
+                    <div class="glass-panel" style="max-width: 600px; margin: 0 auto; padding: 40px 24px;">
+                        <div class="text-center mb-32">
+                            <h2>Upload & Generate</h2>
+                            <p class="opacity-70 mt-8">Turn any lecture, PDF, or video into structured notes and flashcards.</p>
+                        </div>
+                        
+                        <div class="input-group mb-24">
+                            <label for="upload-folder">Save to Course / Folder</label>
+                            <select id="upload-folder" class="full-width">
+                                <option value="" disabled selected>Select a folder...</option>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+
+                        <div class="input-group mb-24">
+                            <label for="upload-type">Material Type</label>
+                            <div class="grid-list" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+                                <label class="radio-card glass-panel cursor-pointer text-center" style="padding: 12px;">
+                                    <input type="radio" name="material-type" value="pdf" checked> 📄 Document
+                                </label>
+                                <label class="radio-card glass-panel cursor-pointer text-center" style="padding: 12px;">
+                                    <input type="radio" name="material-type" value="audio"> 🎤 Audio / Lecture
+                                </label>
+                                <label class="radio-card glass-panel cursor-pointer text-center" style="padding: 12px;">
+                                    <input type="radio" name="material-type" value="youtube"> 📺 YouTube Link
+                                </label>
+                                <label class="radio-card glass-panel cursor-pointer text-center" style="padding: 12px;">
+                                    <input type="radio" name="material-type" value="text"> 📝 Raw Text
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="upload-dropzone" class="dropzone glass-panel text-center mb-24 cursor-pointer" style="border: 2px dashed rgba(255,255,255,0.2); border-radius: var(--radius-lg); padding: 40px 20px; transition: all 0.3s ease;">
+                            <h3 class="mb-8">Drag & Drop</h3>
+                            <p class="opacity-70 mb-16">or click to browse files</p>
+                            <input type="file" id="hub-file-upload" hidden accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav">
+                            <button class="btn-secondary" onclick="document.getElementById('hub-file-upload').click()">Browse Files</button>
+                        </div>
+
+                        <div id="upload-link-input" class="input-group mb-24 hidden">
+                            <label for="youtube-link">YouTube URL</label>
+                            <input type="url" id="youtube-link" placeholder="https://youtube.com/watch?v=..." class="full-width">
+                        </div>
+
+                        <button id="btn-process-material" class="btn-primary full-width" style="font-size: 1.1rem; padding: 14px;">
+                            ✨ Generate Notes & Flashcards
+                        </button>
                     </div>
                 </section>
             </main>

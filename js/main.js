@@ -1,5 +1,5 @@
 import { UI, $, $$, esc, Storage } from "./ui.js";
-import { Auth, Tasks, Exams, DataAdmin } from "./api.js";
+import { Auth, Tasks, Exams, DataAdmin, Folders, Materials } from "./api.js";
 import { Timer } from "./timer.js";
 import { AI } from "./ai.js";
 import { Router } from "./router.js";
@@ -64,7 +64,117 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindTasks();
   bindCalendar();
   bindAI();
+  bindUploadHub();
 });
+
+/* =========================================================================
+   UPLOAD HUB (Phase 2)
+   ========================================================================= */
+
+function bindUploadHub() {
+  const typeRadios = document.querySelectorAll('input[name="material-type"]');
+  const dropzone = document.getElementById('upload-dropzone');
+  const linkInput = document.getElementById('upload-link-input');
+  const fileInput = document.getElementById('hub-file-upload');
+  const folderSelect = document.getElementById('upload-folder');
+  const processBtn = document.getElementById('btn-process-material');
+
+  if (!dropzone) return;
+
+  // Toggle UI based on material type
+  typeRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      const type = e.target.value;
+      if (type === 'youtube' || type === 'text') {
+        dropzone.classList.add('hidden');
+        linkInput.classList.remove('hidden');
+        if (type === 'text') {
+          linkInput.querySelector('label').textContent = "Paste Text Content";
+          linkInput.querySelector('input').placeholder = "Paste your notes or text here...";
+        } else {
+          linkInput.querySelector('label').textContent = "YouTube URL";
+          linkInput.querySelector('input').placeholder = "https://youtube.com/watch?v=...";
+        }
+      } else {
+        dropzone.classList.remove('hidden');
+        linkInput.classList.add('hidden');
+      }
+    });
+  });
+
+  // Handle Drag & Drop styling
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = 'var(--primary-color)';
+    dropzone.style.backgroundColor = 'rgba(74, 144, 226, 0.1)';
+  });
+
+  dropzone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = 'rgba(255,255,255,0.2)';
+    dropzone.style.backgroundColor = 'transparent';
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = 'rgba(255,255,255,0.2)';
+    dropzone.style.backgroundColor = 'transparent';
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      const h3 = dropzone.querySelector('h3');
+      if (h3) h3.textContent = e.dataTransfer.files[0].name;
+    }
+  });
+
+  fileInput.addEventListener('change', (e) => {
+    if (fileInput.files.length) {
+      const h3 = dropzone.querySelector('h3');
+      if (h3) h3.textContent = fileInput.files[0].name;
+    }
+  });
+
+  processBtn.addEventListener('click', async () => {
+    const type = document.querySelector('input[name="material-type"]:checked').value;
+    const folderId = folderSelect.value;
+    
+    if (!folderId) {
+      UI.showPopup("Please select or create a folder first.", "Folder Required");
+      return;
+    }
+
+    const originalBtnText = processBtn.innerHTML;
+    processBtn.innerHTML = "⏳ Processing Material (This may take a minute)...";
+    processBtn.disabled = true;
+
+    try {
+      if (type === 'pdf' || type === 'audio') {
+        if (!fileInput.files.length) throw new Error("Please select a file.");
+        // Upload via api.js
+        const file = fileInput.files[0];
+        // Note: Materials needs to be imported if not already. We will assume it's imported via `api.js` wildcard or added.
+        // Wait, main.js imports: import { Auth, Tasks, Exams, DataAdmin } from "./api.js";
+        // We need to make sure Materials and Folders are imported! We will fix imports next.
+        await Materials.uploadFile(file, folderId, type);
+      } else {
+        const url = linkInput.querySelector('input').value;
+        if (!url) throw new Error("Please provide a link or text.");
+        await Materials.addLink(url, folderId);
+      }
+      
+      UI.showPopup("Material successfully ingested. Notes and flashcards will be available shortly.", "Success");
+      // Reset UI
+      fileInput.value = "";
+      linkInput.querySelector('input').value = "";
+      const h3 = dropzone.querySelector('h3');
+      if (h3) h3.textContent = "Drag & Drop";
+    } catch (err) {
+      UI.showPopup(err.message, "Upload Failed");
+    } finally {
+      processBtn.innerHTML = originalBtnText;
+      processBtn.disabled = false;
+    }
+  });
+}
 
 /* =========================================================================
    AUTH BINDINGS

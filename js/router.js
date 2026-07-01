@@ -1,4 +1,5 @@
 import { UI, $ } from "./ui.js";
+import { Folders } from "./api.js";
 
 /* =========================================================================
    ROUTER — Simple Hash-Based Navigation
@@ -46,25 +47,64 @@ export const Router = {
     }
 
     // specific routing logic
-    if (route === "folders") {
-      this.loadFolders();
+    if (route === "folders" || route === "upload") {
+      this.loadFolders(route);
     }
   },
 
-  async loadFolders() {
-    // This will connect to api.js Folders.fetch() later
-    const container = $("folders-container");
-    if (!container) return;
-    container.innerHTML = "<p>Loading folders...</p>";
-    // Placeholder until we implement API
-    setTimeout(() => {
-      container.innerHTML = `
-        <div class="glass-panel text-center">
-            <h3>No folders yet.</h3>
-            <p>Create a folder to start organizing your study materials.</p>
-            <button class="btn-primary mt-16">Create Folder</button>
-        </div>
-      `;
-    }, 500);
+  async loadFolders(route) {
+    const folders = await Folders.fetch();
+    
+    if (route === "folders") {
+      const container = $("folders-container");
+      if (!container) return;
+      
+      if (folders.length === 0) {
+        container.innerHTML = `
+          <div class="glass-panel text-center" style="grid-column: 1 / -1; padding: 40px;">
+              <h3>No folders yet.</h3>
+              <p class="opacity-70 mt-8 mb-16">Create a folder to start organizing your study materials.</p>
+              <button class="btn-primary" onclick="Router.createNewFolder()">+ Create Folder</button>
+          </div>
+        `;
+      } else {
+        container.innerHTML = folders.map(f => `
+          <div class="glass-panel stat-card cursor-pointer" style="border-top: 4px solid ${f.color}; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'">
+            <h3>📁 ${f.name}</h3>
+            <p class="opacity-70 mt-8">0 materials</p>
+          </div>
+        `).join("") + `
+          <div class="glass-panel text-center cursor-pointer flex-center" style="border: 2px dashed rgba(255,255,255,0.2);" onclick="Router.createNewFolder()">
+            <h3>+ New Folder</h3>
+          </div>
+        `;
+      }
+    }
+    
+    if (route === "upload") {
+      const select = $("upload-folder");
+      if (!select) return;
+      select.innerHTML = '<option value="" disabled selected>Select a folder...</option>';
+      folders.forEach(f => {
+        const opt = document.createElement("option");
+        opt.value = f.id;
+        opt.textContent = f.name;
+        select.appendChild(opt);
+      });
+    }
+  },
+
+  async createNewFolder() {
+    const name = prompt("Enter folder name (e.g. 'CS101', 'Biology'):");
+    if (!name) return;
+    const colors = ['#4A90E2', '#E24A4A', '#4AE283', '#E2A84A', '#9B4AE2'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    
+    const newFolder = await Folders.add(name, randomColor);
+    if (newFolder) {
+      this.loadFolders("folders");
+    }
   }
 };
+// Expose for inline onclick
+window.Router = Router;
