@@ -1195,16 +1195,97 @@ label {
     );
     animation: drift 32s linear infinite;
 }
-.visual-content h2 {
+.visual-content {
     position: relative;
     z-index: 2;
-    padding: 0 var(--s-6);
     text-align: center;
+    padding: 0 var(--s-8);
+}
+.visual-content h2 {
     font-size: clamp(28px, 4vw, 44px);
     font-weight: 700;
     line-height: 1.2;
     letter-spacing: -0.02em;
     color: #fff;
+    margin-bottom: var(--s-8);
+}
+
+/* Auth status message */
+.auth-status {
+    padding: 12px 16px;
+    border-radius: var(--r-md);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: var(--s-4);
+    animation: fade-up var(--t) var(--ease);
+}
+.auth-status.status-error {
+    background: var(--danger-soft);
+    color: var(--danger);
+    border: 1px solid rgba(224, 90, 78, 0.2);
+}
+.auth-status.status-success {
+    background: var(--success-soft);
+    color: var(--success);
+    border: 1px solid rgba(52, 184, 138, 0.2);
+}
+.auth-status.status-info {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid var(--accent-ring);
+}
+
+/* Visual feature highlights */
+.visual-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-3);
+    max-width: 320px;
+    margin: 0 auto;
+}
+.visual-feature {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: 12px 16px;
+    border-radius: var(--r-md);
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+}
+.feature-icon {
+    font-size: var(--fs-lg);
+    line-height: 1;
+}
+
+/* Floating study decorations */
+.auth-float {
+    position: absolute;
+    font-size: 28px;
+    opacity: 0.3;
+    pointer-events: none;
+    animation: float-drift 12s ease-in-out infinite;
+}
+.auth-float--1 {
+    top: 12%;
+    left: 15%;
+    animation-delay: 0s;
+}
+.auth-float--2 {
+    bottom: 18%;
+    right: 12%;
+    animation-delay: -4s;
+    animation-duration: 15s;
+}
+.auth-float--3 {
+    top: 55%;
+    left: 75%;
+    animation-delay: -8s;
+    animation-duration: 18s;
 }
 
 /* Loader */
@@ -1726,6 +1807,21 @@ label {
     }
     50% {
         filter: drop-shadow(0 0 12px var(--accent-glow));
+    }
+}
+
+@keyframes float-drift {
+    0%, 100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+    25% {
+        transform: translate(8px, -12px) rotate(5deg);
+    }
+    50% {
+        transform: translate(-6px, 6px) rotate(-3deg);
+    }
+    75% {
+        transform: translate(4px, -8px) rotate(2deg);
     }
 }
 

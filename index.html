@@ -26,28 +26,33 @@
                             class="auth-logo"
                             alt="Learnora Logo"
                         />
-                        <h1>Welcome Back</h1>
-                        <p>Plan Better. Study Smarter. Achieve More.</p>
+                        <h1>Welcome to Learnora</h1>
+                        <p>Your personal study command center.</p>
                     </div>
+
+                    <!-- Auth status message -->
+                    <div id="auth-status" class="auth-status hidden"></div>
 
                     <div id="auth-view-container" class="fade-in">
                         <!-- Login Form -->
                         <form id="login-form" class="auth-form">
                             <div class="input-group">
+                                <label for="login-email">📧 Email</label>
                                 <input
                                     type="email"
                                     id="login-email"
-                                    placeholder="Email Address"
+                                    placeholder="you@email.com"
                                     autocomplete="email"
                                     aria-label="Email Address"
                                     required
                                 />
                             </div>
                             <div class="input-group">
+                                <label for="login-password">🔒 Password</label>
                                 <input
                                     type="password"
                                     id="login-password"
-                                    placeholder="Password"
+                                    placeholder="Enter your password"
                                     autocomplete="current-password"
                                     aria-label="Password"
                                     required
@@ -58,7 +63,7 @@
                                 class="btn-primary full-width mt-16"
                                 id="login-btn"
                             >
-                                <span class="btn-text">Log In</span>
+                                <span class="btn-text">Log In →</span>
                                 <div class="loader hidden"></div>
                             </button>
                             <p class="toggle-text">
@@ -72,39 +77,43 @@
                         <!-- Signup Form -->
                         <form id="signup-form" class="auth-form hidden">
                             <div class="input-group">
+                                <label for="signup-name">👤 Full Name</label>
                                 <input
                                     type="text"
                                     id="signup-name"
-                                    placeholder="Full Name"
+                                    placeholder="Your full name"
                                     autocomplete="name"
                                     aria-label="Full Name"
                                     required
                                 />
                             </div>
                             <div class="input-group">
+                                <label for="signup-email">📧 Email</label>
                                 <input
                                     type="email"
                                     id="signup-email"
-                                    placeholder="Email Address"
+                                    placeholder="you@email.com"
                                     autocomplete="email"
                                     aria-label="Email Address"
                                     required
                                 />
                             </div>
                             <div class="input-group">
+                                <label for="signup-dob">🎂 Date of Birth</label>
                                 <input
                                     type="date"
                                     id="signup-dob"
                                     required
                                     aria-label="Date of Birth"
-                                    title="Date of Birth (Must be 13+)"
+                                    title="Must be 13 or older"
                                 />
                             </div>
                             <div class="input-group">
+                                <label for="signup-password">🔒 Password</label>
                                 <input
                                     type="password"
                                     id="signup-password"
-                                    placeholder="Password (Min 6 chars)"
+                                    placeholder="Min 6 characters"
                                     autocomplete="new-password"
                                     aria-label="New Password"
                                     required
@@ -116,7 +125,7 @@
                                 class="btn-primary full-width mt-16"
                                 id="signup-btn"
                             >
-                                <span class="btn-text">Create Account</span>
+                                <span class="btn-text">Create Account →</span>
                                 <div class="loader hidden"></div>
                             </button>
                             <p class="toggle-text">
@@ -131,8 +140,30 @@
 
                 <div class="auth-visual">
                     <div class="visual-content">
-                        <h2>Keep your study data<br />secure and synced.</h2>
+                        <h2>Study Smarter,<br />Not Harder.</h2>
+                        <div class="visual-features">
+                            <div class="visual-feature">
+                                <span class="feature-icon">⏱️</span>
+                                <span>Pomodoro Timer</span>
+                            </div>
+                            <div class="visual-feature">
+                                <span class="feature-icon">📝</span>
+                                <span>Task Manager</span>
+                            </div>
+                            <div class="visual-feature">
+                                <span class="feature-icon">📅</span>
+                                <span>Exam Calendar</span>
+                            </div>
+                            <div class="visual-feature">
+                                <span class="feature-icon">🤖</span>
+                                <span>AI Study Assistant</span>
+                            </div>
+                        </div>
                     </div>
+                    <!-- Floating study decorations -->
+                    <div class="auth-float auth-float--1" aria-hidden="true">📚</div>
+                    <div class="auth-float auth-float--2" aria-hidden="true">🎯</div>
+                    <div class="auth-float auth-float--3" aria-hidden="true">💡</div>
                 </div>
             </div>
         </div>

@@ -12,11 +12,26 @@ const MIN_SIGNUP_AGE = 13;
    HELPERS
    ========================================================================= */
 
+/** Cache the current user to avoid redundant getUser() calls */
+let _cachedUser = null;
+
 async function getCurrentUser() {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return null;
-  return user;
+  if (_cachedUser) return _cachedUser;
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) { _cachedUser = null; return null; }
+    _cachedUser = user;
+    return user;
+  } catch {
+    _cachedUser = null;
+    return null;
+  }
 }
+
+/** Invalidate user cache on auth state changes */
+supabase.auth.onAuthStateChange((_event, session) => {
+  _cachedUser = session?.user ?? null;
+});
 
 function calculateAge(dob) {
   const birth = new Date(dob);
@@ -29,68 +44,141 @@ function calculateAge(dob) {
   return age;
 }
 
+/** Friendly error messages for Supabase error codes */
+function friendlyAuthError(error) {
+  const msg = error?.message?.toLowerCase() || "";
+  const code = error?.code || error?.status;
+
+  if (code === 429 || msg.includes("rate limit") || msg.includes("too many")) {
+    return "Too many requests. Please wait a minute and try again.";
+  }
+  if (msg.includes("invalid login") || msg.includes("invalid credentials")) {
+    return "Incorrect email or password. Please try again.";
+  }
+  if (msg.includes("email not confirmed")) {
+    return "Please confirm your email before logging in. Check your inbox.";
+  }
+  if (msg.includes("user already registered") || msg.includes("already been registered")) {
+    return "An account with this email already exists. Try logging in instead.";
+  }
+  if (msg.includes("signup is disabled")) {
+    return "New signups are temporarily disabled. Please try again later.";
+  }
+  if (msg.includes("password") && msg.includes("characters")) {
+    return "Password must be at least 6 characters long.";
+  }
+  if (msg.includes("network") || msg.includes("fetch")) {
+    return "Network error. Please check your internet connection.";
+  }
+  return error?.message || "An unexpected error occurred. Please try again.";
+}
+
 /* =========================================================================
    AUTH — Login, Signup, Logout, Session
    ========================================================================= */
 
 export const Auth = {
   async login(email, password) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      UI.showPopup(error.message, "Login Failed");
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        UI.showPopup(friendlyAuthError(error), "Login Failed");
+        return false;
+      }
+      return true;
+    } catch (e) {
+      UI.showPopup(friendlyAuthError(e), "Login Failed");
       return false;
     }
-    return true;
   },
 
   async signup(name, email, password, dob) {
+    // Validate age
+    if (!dob) {
+      UI.showPopup("Please enter your date of birth.", "Missing Field");
+      return false;
+    }
     if (calculateAge(dob) < MIN_SIGNUP_AGE) {
       UI.showPopup(`You must be at least ${MIN_SIGNUP_AGE} years old.`, "Age Restriction");
       return false;
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name, dob },
-        emailRedirectTo: VERIFY_REDIRECT,
-      },
-    });
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name, dob },
+          emailRedirectTo: VERIFY_REDIRECT,
+        },
+      });
 
-    if (error) {
-      UI.showPopup(error.message, "Signup Failed");
+      if (error) {
+        UI.showPopup(friendlyAuthError(error), "Signup Failed");
+        return false;
+      }
+
+      // Supabase returns a user with a fake session if email confirmation
+      // is disabled, or no session if confirmation is required.
+      // Also: if user already exists, Supabase may return data.user with
+      // an empty identities array (obfuscated duplicate).
+      if (data?.user && data.user.identities?.length === 0) {
+        UI.showPopup(
+          "An account with this email already exists. Try logging in instead.",
+          "Account Exists",
+        );
+        return false;
+      }
+
+      if (!data.session) {
+        UI.showPopup(
+          "Account created! Check your email for the confirmation link. (Check spam too!)",
+          "Verify Your Email ✉️",
+        );
+        return false;
+      }
+
+      // Auto-confirmed signup — proceed directly
+      return true;
+    } catch (e) {
+      UI.showPopup(friendlyAuthError(e), "Signup Failed");
       return false;
     }
-    if (!data.session) {
-      UI.showPopup(
-        "Success! Check your email for the confirmation link.",
-        "Email Sent",
-      );
-      return false;
-    }
-    return true;
   },
 
   async logout() {
-    await supabase.auth.signOut();
+    try {
+      _cachedUser = null;
+      await supabase.auth.signOut();
+    } catch {
+      // Force clear even if signOut API fails
+      _cachedUser = null;
+    }
     window.location.reload();
   },
 
   async getSession() {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return null;
+      // Use getSession() first — it reads from the local cache, no network call
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error || !session) return null;
 
+      // Session exists — use the embedded user to avoid extra getUser() call
+      // Only call getUser() if session.user is missing (shouldn't happen)
+      if (session.user) {
+        _cachedUser = session.user;
+        return session.user;
+      }
+
+      // Fallback: fetch user from server
       const user = await getCurrentUser();
       if (!user) {
-        await supabase.auth.signOut();
+        // Session is stale — sign out silently
+        try { await supabase.auth.signOut(); } catch { /* ignore */ }
         return null;
       }
       return user;
     } catch {
-      // Sign out stale auth state but never wipe user study data
-      await supabase.auth.signOut();
       return null;
     }
   },
