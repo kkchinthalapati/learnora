@@ -49,14 +49,17 @@
                             </div>
                             <div class="input-group">
                                 <label for="login-password">🔒 Password</label>
-                                <input
-                                    type="password"
-                                    id="login-password"
-                                    placeholder="Enter your password"
-                                    autocomplete="current-password"
-                                    aria-label="Password"
-                                    required
-                                />
+                                <div class="password-wrapper">
+                                    <input
+                                        type="password"
+                                        id="login-password"
+                                        placeholder="Enter your password"
+                                        autocomplete="current-password"
+                                        aria-label="Password"
+                                        required
+                                    />
+                                    <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility">👁️</button>
+                                </div>
                             </div>
                             <button
                                 type="submit"
@@ -110,15 +113,42 @@
                             </div>
                             <div class="input-group">
                                 <label for="signup-password">🔒 Password</label>
-                                <input
-                                    type="password"
-                                    id="signup-password"
-                                    placeholder="Min 6 characters"
-                                    autocomplete="new-password"
-                                    aria-label="New Password"
-                                    required
-                                    minlength="6"
-                                />
+                                <div class="password-wrapper">
+                                    <input
+                                        type="password"
+                                        id="signup-password"
+                                        placeholder="Min 8 characters"
+                                        autocomplete="new-password"
+                                        aria-label="New Password"
+                                        required
+                                        minlength="8"
+                                    />
+                                    <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility">👁️</button>
+                                </div>
+                                <div class="password-strength-container hidden" id="password-strength-container">
+                                    <div class="strength-bars">
+                                        <div class="strength-segment" id="seg-1"></div>
+                                        <div class="strength-segment" id="seg-2"></div>
+                                        <div class="strength-segment" id="seg-3"></div>
+                                        <div class="strength-segment" id="seg-4"></div>
+                                    </div>
+                                    <span id="strength-text" class="strength-text">Too Weak</span>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="signup-confirm-password">🔄 Re-enter Password</label>
+                                <div class="password-wrapper">
+                                    <input
+                                        type="password"
+                                        id="signup-confirm-password"
+                                        placeholder="Match password above"
+                                        autocomplete="new-password"
+                                        aria-label="Confirm Password"
+                                        required
+                                        minlength="8"
+                                    />
+                                    <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility">👁️</button>
+                                </div>
                             </div>
                             <button
                                 type="submit"

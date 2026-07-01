@@ -205,6 +205,57 @@ function bindAuth() {
   let signingUp = false;
   let loggingIn = false;
 
+  // Toggle password visibility
+  $$(".password-toggle").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const input = e.currentTarget.parentElement.querySelector("input");
+      if (input.type === "password") {
+        input.type = "text";
+        e.currentTarget.textContent = "🙈";
+      } else {
+        input.type = "password";
+        e.currentTarget.textContent = "👁️";
+      }
+    });
+  });
+
+  // Password strength logic
+  const signupPass = $("signup-password");
+  const strengthContainer = $("password-strength-container");
+  const strengthText = $("strength-text");
+
+  if (signupPass) {
+    signupPass.addEventListener("input", (e) => {
+      const val = e.target.value;
+      if (!val) {
+        strengthContainer.classList.add("hidden");
+        return;
+      }
+      strengthContainer.classList.remove("hidden");
+      
+      let score = 0;
+      if (val.length >= 8) score++;
+      if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+      if (/\d/.test(val)) score++;
+      if (/[^A-Za-z0-9]/.test(val)) score++;
+
+      strengthContainer.className = "password-strength-container"; // reset
+      if (score <= 1 || val.length < 8) {
+        strengthContainer.classList.add("strength-weak");
+        strengthText.textContent = "Too Weak (Need 8+ chars & mix)";
+      } else if (score === 2) {
+        strengthContainer.classList.add("strength-fair");
+        strengthText.textContent = "Fair";
+      } else if (score === 3) {
+        strengthContainer.classList.add("strength-good");
+        strengthText.textContent = "Good";
+      } else {
+        strengthContainer.classList.add("strength-strong");
+        strengthText.textContent = "Strong";
+      }
+    });
+  }
+
   $("login-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (loggingIn) return;
@@ -229,6 +280,19 @@ function bindAuth() {
 
   $("signup-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
+
+    const pass = $("signup-password").value;
+    const confirmPass = $("signup-confirm-password").value;
+
+    if (pass.length < 8) {
+      UI.showPopup("Password must be at least 8 characters long.", "Weak Password");
+      return;
+    }
+    if (pass !== confirmPass) {
+      UI.showPopup("Passwords do not match. Please re-enter them.", "Password Mismatch");
+      return;
+    }
+
     if (signingUp) return;
     signingUp = true;
     UI.setLoading("signup-btn", true);
@@ -236,7 +300,7 @@ function bindAuth() {
       const ok = await Auth.signup(
         $("signup-name").value.trim(),
         $("signup-email").value.trim(),
-        $("signup-password").value,
+        pass,
         $("signup-dob").value,
       );
       if (ok) {
