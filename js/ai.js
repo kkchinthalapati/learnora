@@ -1,5 +1,6 @@
 import { supabase } from "./supabase.js";
 import { UI, $, esc } from "./ui.js";
+import { Tasks, Exams } from "./api.js";
 
 /* =========================================================================
    AI MODULE — Chat, file handling, flashcard generation
@@ -49,6 +50,26 @@ export const AI = {
     const typing = $("typing-indicator");
     if (!msgBox || !typing) return;
 
+    // Fetch workspace context
+    const tasks = await Tasks.fetch();
+    const exams = await Exams.fetch();
+    const pendingTasks = tasks.filter(t => !t.is_done).map(t => t.text).join(", ") || "None";
+    const upcomingExams = exams.map(e => `${e.exam_name} on ${e.exam_date}`).join(", ") || "None";
+
+    const workspaceContext = `
+[SYSTEM INSTRUCTION: You are a Turbo.ai-like specialized study assistant integrated directly into the user's workspace.
+CURRENT WORKSPACE STATE:
+- Pending Tasks: ${pendingTasks}
+- Upcoming Exams: ${upcomingExams}
+
+If the user asks you to create a task, you MUST output the exact string <ADD_TASK>task description here</ADD_TASK> anywhere in your response. We will parse this and add the task automatically. Do NOT say "I have added it" unless you output the tag. 
+If the user asks for flashcards based on their file upload, output the flashcards in a JSON array format surrounded by brackets, e.g. [{"front": "Q", "back": "A"}].
+]
+
+User query: ${query}
+`;
+
+    // Only store the original query in the visible history to avoid polluting context window too much over time
     this.chatHistory.push({ role: "user", content: query });
 
     // Render user bubble (XSS-safe)
@@ -63,8 +84,8 @@ export const AI = {
     try {
       const { data, error } = await supabase.functions.invoke("learnora-ai", {
         body: {
-          query,
-          history: this.chatHistory,
+          query: workspaceContext, // Send the injected query to the edge function
+          history: this.chatHistory.slice(0, -1), // Exclude the last user message since we put it in 'query'
           file: this.currentFile,
           settings: UI.loadSettings(),
         },
@@ -75,11 +96,37 @@ export const AI = {
 
       typing.classList.add("hidden");
 
-      // Attempt to detect flashcard JSON in the response
-      if (this._tryRenderFlashcards(data.text)) return;
+      let responseText = data.text;
 
-      this.chatHistory.push({ role: "model", content: data.text });
-      this._appendBubble(marked.parse(data.text), "ai-bubble", true);
+      // Parse commands (Tool Calling)
+      const addTaskRegex = /<ADD_TASK>(.*?)<\/ADD_TASK>/g;
+      let match;
+      let tasksAdded = 0;
+      while ((match = addTaskRegex.exec(responseText)) !== null) {
+        const taskText = match[1].trim();
+        if (taskText) {
+          await Tasks.add(taskText);
+          tasksAdded++;
+        }
+      }
+      // Strip commands from output so user doesn't see them
+      responseText = responseText.replace(addTaskRegex, "").trim();
+
+      // Refresh UI if tasks were added
+      if (tasksAdded > 0) {
+        // We dispatch an event or rely on main.js reloading tasks.
+        // Easiest is to force a re-render by calling the globally bound renderTasks if it exists,
+        // but for now we just show a popup. The user will see them when they switch tabs.
+        UI.showPopup(`Added ${tasksAdded} task(s) to your workspace!`, "Tasks Created");
+      }
+
+      // Attempt to detect flashcard JSON in the response
+      if (this._tryRenderFlashcards(responseText)) return;
+
+      this.chatHistory.push({ role: "model", content: responseText });
+      if (responseText.trim().length > 0) {
+        this._appendBubble(marked.parse(responseText), "ai-bubble", true);
+      }
     } catch (err) {
       typing.classList.add("hidden");
       this._appendBubble(

@@ -788,6 +788,13 @@
                 ><span class="dot"></span>
             </div>
 
+            <!-- Quick Action Chips for Turbo.ai feel -->
+            <div class="chat-suggestions flex-gap" style="padding: 0 16px 12px; overflow-x: auto; white-space: nowrap;">
+                <button class="glass-pill cursor-pointer" onclick="document.getElementById('chat-input').value='What are my pending tasks?'; document.getElementById('btn-send-chat').click();" style="font-size: var(--fs-xs); padding: 6px 12px;">📝 What are my tasks?</button>
+                <button class="glass-pill cursor-pointer" onclick="document.getElementById('chat-input').value='Create a task to study for my next exam';" style="font-size: var(--fs-xs); padding: 6px 12px;">✨ Plan my study</button>
+                <button class="glass-pill cursor-pointer" onclick="document.getElementById('chat-input').value='Generate flashcards from my notes';" style="font-size: var(--fs-xs); padding: 6px 12px;">🗂️ Create flashcards</button>
+            </div>
+
             <div
                 id="file-preview-container"
                 class="hidden file-pill-wrapper flex-row"
