@@ -322,6 +322,99 @@ export const Materials = {
 };
 
 /* =========================================================================
+   NOTES & FLASHCARDS (Phase 3)
+   ========================================================================= */
+
+export const Notes = {
+  async fetchByMaterial(materialId) {
+    const { data, error } = await supabase
+      .from("notes")
+      .select("*")
+      .eq("material_id", materialId)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("[Notes.fetch]", error.message);
+      return [];
+    }
+    return data || [];
+  },
+
+  async add(materialId, markdownContent) {
+    const user = await getCurrentUser();
+    if (!user) return null;
+    const { data, error } = await supabase
+      .from("notes")
+      .insert([{ user_id: user.id, material_id: materialId, markdown_content: markdownContent }])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+};
+
+export const Decks = {
+  async fetch(folderId) {
+    const { data, error } = await supabase
+      .from("flashcard_decks")
+      .select("*")
+      .eq("folder_id", folderId)
+      .order("created_at", { ascending: false });
+    if (error) return [];
+    return data || [];
+  },
+
+  async add(folderId, title) {
+    const user = await getCurrentUser();
+    if (!user) return null;
+    const { data, error } = await supabase
+      .from("flashcard_decks")
+      .insert([{ user_id: user.id, folder_id: folderId, title }])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+};
+
+export const Flashcards = {
+  async fetchByDeck(deckId) {
+    const { data, error } = await supabase
+      .from("flashcards")
+      .select("*")
+      .eq("deck_id", deckId);
+    if (error) return [];
+    return data || [];
+  },
+
+  async addBatch(deckId, cardsArray) {
+    const user = await getCurrentUser();
+    if (!user) return null;
+    const inserts = cardsArray.map(c => ({
+      user_id: user.id,
+      deck_id: deckId,
+      front: c.front,
+      back: c.back
+    }));
+    const { data, error } = await supabase.from("flashcards").insert(inserts).select();
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  
+  async updateReview(cardId, nextReviewDate, interval, ease) {
+    const { error } = await supabase
+      .from("flashcards")
+      .update({
+        next_review_date: nextReviewDate,
+        srs_interval: interval,
+        ease_factor: ease
+      })
+      .eq("id", cardId);
+    if (error) throw new Error(error.message);
+    return true;
+  }
+};
+
+/* =========================================================================
    TASKS — CRUD for the tasks table
    ========================================================================= */
 

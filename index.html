@@ -718,6 +718,62 @@
                         </button>
                     </div>
                 </section>
+
+                <!-- VIEW: Folder Detail / Workspace -->
+                <section id="view-folder-detail" class="view-section hidden">
+                    <div class="flex-between mb-24">
+                        <button class="btn-secondary" onclick="window.location.hash='folders'">← Back to Folders</button>
+                        <h2 id="workspace-title">Workspace</h2>
+                    </div>
+
+                    <div class="grid-list" style="grid-template-columns: 1fr 1fr;">
+                        <!-- Materials List -->
+                        <div class="glass-panel">
+                            <h3 class="mb-16">📄 Materials & Notes</h3>
+                            <div id="workspace-materials-list" class="list-container"></div>
+                        </div>
+
+                        <!-- Flashcard Decks -->
+                        <div class="glass-panel">
+                            <div class="flex-between mb-16">
+                                <h3>🗂️ Flashcard Decks</h3>
+                            </div>
+                            <div id="workspace-decks-list" class="list-container"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: Notes Reader -->
+                <section id="view-notes" class="view-section hidden">
+                    <div class="glass-panel">
+                        <button class="btn-secondary mb-24" onclick="window.history.back()">← Back</button>
+                        <div id="notes-content" class="markdown-body" style="font-size: 1.1rem; line-height: 1.6;">
+                            Loading notes...
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: Flashcard Review -->
+                <section id="view-review" class="view-section hidden flex-col flex-center" style="min-height: 70vh;">
+                    <div class="text-center mb-24" style="width: 100%; max-width: 600px;">
+                        <button class="btn-secondary pull-left" onclick="window.history.back()">← Exit Review</button>
+                        <h2 id="review-deck-title">Flashcard Review</h2>
+                        <p id="review-progress" class="opacity-70 mt-8">Card 1 of 10</p>
+                    </div>
+
+                    <div id="flashcard-container" class="glass-panel text-center cursor-pointer flex-center flex-col" style="width: 100%; max-width: 600px; min-height: 300px; padding: 40px; font-size: 1.5rem;">
+                        <div id="flashcard-front">Loading...</div>
+                        <div id="flashcard-back" class="hidden mt-24 pt-24" style="border-top: 1px solid rgba(255,255,255,0.1); width: 100%; color: var(--primary-color);"></div>
+                        <p id="flashcard-hint" class="opacity-70 mt-32" style="font-size: 1rem;">Click to reveal answer</p>
+                    </div>
+
+                    <div id="review-controls" class="flex-gap mt-32 hidden">
+                        <button class="btn-danger" id="btn-score-again">Again (1)</button>
+                        <button class="btn-warning" id="btn-score-hard">Hard (2)</button>
+                        <button class="btn-primary" id="btn-score-good">Good (3)</button>
+                        <button class="btn-success" id="btn-score-easy">Easy (4)</button>
+                    </div>
+                </section>
             </main>
         </div>
 
