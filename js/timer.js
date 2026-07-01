@@ -45,10 +45,17 @@ export const Timer = {
       this.state.cycles = saved.cycles || 0;
 
       const endTime = localStorage.getItem(TIMER_END_KEY);
-      if (saved.isRunning && endTime && parseInt(endTime, 10) > Date.now()) {
-        this.state.targetEndTime = parseInt(endTime, 10);
-        this.state.timeLeft = Math.round((this.state.targetEndTime - Date.now()) / 1000);
-        this.start();
+      if (saved.isRunning && endTime) {
+        if (parseInt(endTime, 10) > Date.now()) {
+          this.state.targetEndTime = parseInt(endTime, 10);
+          this.state.timeLeft = Math.round((this.state.targetEndTime - Date.now()) / 1000);
+          this.start();
+        } else {
+          // Timer completed while offline
+          this.state.targetEndTime = parseInt(endTime, 10);
+          this.state.timeLeft = 0;
+          this._handleEnd();
+        }
       } else {
         this.state.timeLeft = saved.timeLeft ?? this.state.totalTime;
         this.state.isRunning = false;

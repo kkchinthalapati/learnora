@@ -486,20 +486,27 @@ async function loadTasks() {
 
     // Toggle done (Optimistic update)
     const toggleDone = async () => {
+      if (li.style.pointerEvents === "none") return;
       li.classList.toggle("done");
-      li.setAttribute("aria-checked", li.classList.contains("done") ? "true" : "false");
+      const isNowDone = li.classList.contains("done");
+      li.setAttribute("aria-checked", isNowDone ? "true" : "false");
       li.style.pointerEvents = "none";
       
       const ok = await Tasks.toggle(t.id, t.is_done);
-      li.style.pointerEvents = "";
       if (!ok) {
         li.classList.toggle("done");
         li.setAttribute("aria-checked", t.is_done ? "true" : "false");
+        li.style.pointerEvents = "";
         UI.showPopup("Failed to toggle task status.", "Connection Error");
       } else {
         t.is_done = !t.is_done;
+        li.style.pointerEvents = "";
+        
+        if (_taskLoadDebounce) clearTimeout(_taskLoadDebounce);
+        _taskLoadDebounce = setTimeout(() => {
+          loadTasks();
+        }, 300);
       }
-      loadTasks();
     };
 
     li.addEventListener("click", (e) => {

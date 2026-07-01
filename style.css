@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
 
 /* ==========================================================================
    LEARNORA — LIQUID GLASS DESIGN SYSTEM
@@ -93,7 +93,8 @@
     --shadow-accent: 0 4px 16px var(--accent-glow);
 
     /* --- Typography --- */
-    --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-head: "Outfit", system-ui, sans-serif;
     --fs-xs: 12px;
     --fs-sm: 13px;
     --fs-base: 15px;
@@ -201,9 +202,10 @@ h1,
 h2,
 h3,
 h4 {
+    font-family: var(--font-head);
     font-weight: 700;
     line-height: 1.25;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     color: var(--text);
 }
 h1 {
@@ -352,15 +354,20 @@ header {
     padding: clamp(20px, 3vw, 28px);
     margin-bottom: var(--s-6);
     transition:
-        transform var(--t) var(--ease),
-        box-shadow var(--t) var(--ease),
-        border-color var(--t) var(--ease);
+        transform var(--t-slow) var(--ease-spring),
+        box-shadow var(--t-slow) var(--ease),
+        border-color var(--t-slow) var(--ease),
+        background-color var(--t-slow) var(--ease);
 }
 .glass-panel:hover {
     box-shadow:
         var(--glass-inner),
         var(--glass-inner-bottom),
-        var(--shadow-lg);
+        var(--shadow-lg),
+        0 0 0 1px var(--glass-highlight);
+    border-color: var(--glass-highlight);
+    transform: translateY(-2px);
+    background: var(--glass-bg-strong);
 }
 
 /* --- 5.2 Navigation --- */
@@ -425,13 +432,14 @@ button:active {
 .btn-primary {
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
     color: var(--accent-on);
-    box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 .btn-primary:hover {
     background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent-press) 100%);
-    box-shadow: var(--shadow-accent), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    transform: translateY(-1px);
+    box-shadow: var(--shadow-accent), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 20px var(--accent-glow);
+    transform: translateY(-2px) scale(1.02);
 }
 .btn-primary:active {
     background: var(--accent-press);
@@ -512,9 +520,10 @@ textarea {
     outline: none;
     box-shadow: var(--glass-inner), var(--glass-inner-bottom);
     transition:
-        border-color var(--t-fast) ease,
-        box-shadow var(--t-fast) ease,
-        background var(--t-fast) ease;
+        border-color var(--t) var(--ease-spring),
+        box-shadow var(--t) var(--ease-spring),
+        transform var(--t) var(--ease-spring),
+        background var(--t) ease;
 }
 input::placeholder {
     color: var(--text-faint);
@@ -523,8 +532,9 @@ input:focus,
 select:focus,
 textarea:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-ring), var(--glass-inner);
+    box-shadow: 0 0 0 4px var(--accent-ring), var(--glass-inner), 0 0 16px var(--accent-glow);
     background: var(--surface);
+    transform: translateY(-1px);
 }
 select {
     cursor: pointer;
@@ -655,17 +665,17 @@ label {
 .timer-ring-bg {
     fill: none;
     stroke: var(--line);
-    stroke-width: 5;
+    stroke-width: 8;
 }
 .timer-ring-progress {
     fill: none;
     stroke: var(--accent);
-    stroke-width: 5;
+    stroke-width: 8;
     stroke-linecap: round;
     stroke-dasharray: 565.49;
     stroke-dashoffset: 565.49;
     transition: stroke-dashoffset 1s linear;
-    filter: drop-shadow(0 0 6px var(--accent-glow));
+    filter: drop-shadow(0 0 16px var(--accent-glow));
 }
 .timer-ring-content {
     position: relative;
@@ -1892,45 +1902,45 @@ label {
    8. DARK MODE
 ========================================================================== */
 body.dark-theme {
-    --accent: #8b9bf5;
-    --accent-hover: #a0aef8;
-    --accent-press: #7787ef;
-    --accent-soft: rgba(139, 155, 245, 0.14);
-    --accent-ring: rgba(139, 155, 245, 0.32);
-    --accent-on: #0e1018;
-    --accent-glow: rgba(139, 155, 245, 0.4);
+    --accent: #d845f8;
+    --accent-hover: #e57afc;
+    --accent-press: #b429d2;
+    --accent-soft: rgba(216, 69, 248, 0.15);
+    --accent-ring: rgba(216, 69, 248, 0.4);
+    --accent-on: #ffffff;
+    --accent-glow: rgba(216, 69, 248, 0.5);
 
-    --success: #4dd4a8;
-    --success-soft: rgba(77, 212, 168, 0.16);
-    --warning: #f0be5e;
-    --warning-soft: rgba(240, 190, 94, 0.16);
-    --danger: #f08070;
-    --danger-soft: rgba(240, 128, 112, 0.14);
+    --success: #00f0ff;
+    --success-soft: rgba(0, 240, 255, 0.15);
+    --warning: #ffb800;
+    --warning-soft: rgba(255, 184, 0, 0.15);
+    --danger: #ff2a5f;
+    --danger-soft: rgba(255, 42, 95, 0.15);
 
-    --bg: #080a10;
-    --bg-tint-1: rgba(139, 155, 245, 0.06);
-    --bg-tint-2: rgba(77, 212, 168, 0.04);
-    --surface: #12151e;
-    --surface-2: #1a1e2a;
+    --bg: #05010d;
+    --bg-tint-1: rgba(216, 69, 248, 0.08);
+    --bg-tint-2: rgba(0, 240, 255, 0.06);
+    --surface: #0a0414;
+    --surface-2: #110722;
 
-    --glass-bg: rgba(255, 255, 255, 0.035);
-    --glass-bg-strong: rgba(18, 21, 30, 0.82);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-border-subtle: rgba(255, 255, 255, 0.05);
-    --glass-highlight: rgba(255, 255, 255, 0.15);
-    --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    --glass-inner-bottom: inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    --glass-bg: rgba(20, 10, 40, 0.45);
+    --glass-bg-strong: rgba(20, 10, 40, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-border-subtle: rgba(255, 255, 255, 0.04);
+    --glass-highlight: rgba(255, 255, 255, 0.2);
+    --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    --glass-inner-bottom: inset 0 -1px 0 rgba(0, 0, 0, 0.6);
 
-    --text: #e8eaf2;
-    --text-muted: #8c96aa;
-    --text-faint: #5c6578;
+    --text: #ffffff;
+    --text-muted: #a698ba;
+    --text-faint: #6e6082;
 
-    --line: rgba(255, 255, 255, 0.06);
+    --line: rgba(255, 255, 255, 0.08);
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
-    --shadow-accent: 0 4px 20px var(--accent-glow);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.7);
+    --shadow-accent: 0 0 24px var(--accent-glow);
 }
 
 /* Dark mode specific overrides */
@@ -1947,10 +1957,18 @@ body.dark-theme select {
 }
 
 body.dark-theme .liquid-blob {
-    opacity: 0.08;
+    opacity: 0.4;
+    filter: blur(120px) saturate(150%);
+}
+body.dark-theme .liquid-blob--1 {
+    background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+}
+body.dark-theme .liquid-blob--2 {
+    background: radial-gradient(circle, var(--success) 0%, transparent 70%);
 }
 body.dark-theme .liquid-blob--3 {
-    opacity: 0.04;
+    opacity: 0.3;
+    background: radial-gradient(circle, var(--danger) 0%, transparent 70%);
 }
 
 body.dark-theme .calendar-day-cell {
