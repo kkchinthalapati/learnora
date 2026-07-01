@@ -147,19 +147,38 @@ function bindUploadHub() {
     processBtn.disabled = true;
 
     try {
+      let material;
+      let fileDataPayload = null;
+
       if (type === 'pdf' || type === 'audio') {
         if (!fileInput.files.length) throw new Error("Please select a file.");
-        // Upload via api.js
         const file = fileInput.files[0];
-        // Note: Materials needs to be imported if not already. We will assume it's imported via `api.js` wildcard or added.
-        // Wait, main.js imports: import { Auth, Tasks, Exams, DataAdmin } from "./api.js";
-        // We need to make sure Materials and Folders are imported! We will fix imports next.
-        await Materials.uploadFile(file, folderId, type);
+        material = await Materials.uploadFile(file, folderId, type);
+        
+        // Read file into base64 to send to edge function
+        fileDataPayload = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve({
+            name: file.name,
+            mimeType: file.type,
+            data: e.target.result.split(',')[1]
+          });
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(file);
+        });
+
       } else {
-        const url = linkInput.querySelector('input').value;
-        if (!url) throw new Error("Please provide a link or text.");
-        await Materials.addLink(url, folderId);
+        const urlOrText = linkInput.querySelector('input').value;
+        if (!urlOrText) throw new Error("Please provide a link or text.");
+        material = await Materials.addLink(urlOrText, folderId);
+        
+        // Pass the raw text or link directly
+        fileDataPayload = { name: (type === 'youtube' ? "YouTube Link" : "Raw Text"), mimeType: "text/plain", data: btoa(unescape(encodeURIComponent(urlOrText))) };
       }
+      
+      // TRIGGER AI GENERATION IN THE BACKGROUND
+      // We don't await this because we want to unblock the UI.
+      AI.generateStudyMaterial(material, folderId, fileDataPayload).catch(e => console.error("AI Generation failed:", e));
       
       UI.showPopup("Material successfully ingested. Notes and flashcards will be available shortly.", "Success");
       // Reset UI

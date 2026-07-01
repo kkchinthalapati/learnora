@@ -20,6 +20,71 @@ export const AI = {
     preview?.classList.toggle("hidden", !fileData);
   },
 
+  /* ------ Ingestion Orchestration (Phase 4) ------ */
+
+  async generateStudyMaterial(material, folderId, fileDataPayload) {
+    try {
+      const { Notes, Decks, Flashcards } = await import("./api.js");
+      
+      const ingestionPrompt = `
+[SYSTEM INSTRUCTION: You are processing a study material document for the user. 
+Please read the provided file and generate TWO things exactly in this format:
+1. Markdown structured notes summarizing the core concepts.
+2. A special separator: "---FLASHCARDS---"
+3. A JSON array of flashcards, e.g. [{"front": "Q1", "back": "A1"}]. Do NOT put markdown blocks around the JSON.
+]
+`;
+
+      const { data, error } = await supabase.functions.invoke("learnora-ai", {
+        body: {
+          query: ingestionPrompt,
+          history: [],
+          file: fileDataPayload,
+          settings: UI.loadSettings(),
+        },
+      });
+
+      if (error) throw new Error("Learnora AI Edge Function failed: " + error.message);
+      if (!data || !data.text) throw new Error("Empty response from AI.");
+
+      const responseText = data.text;
+      
+      // Parse output
+      const parts = responseText.split("---FLASHCARDS---");
+      const markdownNotes = parts[0] ? parts[0].trim() : "No notes generated.";
+      
+      let flashcardsData = [];
+      if (parts[1]) {
+        try {
+          // Attempt to parse the JSON array
+          let rawJson = parts[1].trim();
+          // Remove any stray markdown code blocks if the AI accidentally wrapped it
+          if (rawJson.startsWith("```json")) {
+            rawJson = rawJson.replace(/```json/g, "").replace(/```/g, "").trim();
+          }
+          flashcardsData = JSON.parse(rawJson);
+        } catch (e) {
+          console.error("Failed to parse flashcards JSON:", e, parts[1]);
+        }
+      }
+
+      // Save Notes
+      if (markdownNotes) {
+        await Notes.add(material.id, markdownNotes);
+      }
+
+      // Save Flashcards
+      if (flashcardsData && flashcardsData.length > 0) {
+        const deck = await Decks.add(folderId, material.title + " Flashcards");
+        await Flashcards.addBatch(deck.id, flashcardsData);
+      }
+
+      console.log("✅ Ingestion completely successful.");
+    } catch (err) {
+      console.error("🚨 Ingestion Pipeline Error:", err);
+    }
+  },
+
   processFile(file) {
     if (!file) return;
 
@@ -50,11 +115,31 @@ export const AI = {
     const typing = $("typing-indicator");
     if (!msgBox || !typing) return;
 
-    // Fetch workspace context
+    // Fetch base workspace context
     const tasks = await Tasks.fetch();
     const exams = await Exams.fetch();
     const pendingTasks = tasks.filter(t => !t.is_done).map(t => t.text).join(", ") || "None";
     const upcomingExams = exams.map(e => `${e.exam_name} on ${e.exam_date}`).join(", ") || "None";
+
+    // Determine active route context for true Turbo.ai feel
+    let activeContextString = "User is on the general dashboard.";
+    const hash = window.location.hash.replace("#", "");
+    
+    if (hash.startsWith("folder-")) {
+      const folderId = hash.replace("folder-", "");
+      activeContextString = `User is currently viewing Folder/Workspace ID: ${folderId}. They are studying this specific course/subject right now.`;
+    } else if (hash.startsWith("notes-")) {
+      const materialId = hash.replace("notes-", "");
+      try {
+        const { Notes } = await import("./api.js");
+        const notes = await Notes.fetchByMaterial(materialId);
+        if (notes && notes.length > 0) {
+          activeContextString = `User is currently reading these specific study notes:\n"""\n${notes[0].markdown_content}\n"""\nAct as a tutor specifically for the content of these notes.`;
+        }
+      } catch(e) {}
+    } else if (hash.startsWith("review-")) {
+      activeContextString = "User is currently doing Spaced Repetition Flashcard review. Encourage them!";
+    }
 
     const workspaceContext = `
 [SYSTEM INSTRUCTION: You are a Turbo.ai-like specialized study assistant integrated directly into the user's workspace.
@@ -62,8 +147,10 @@ CURRENT WORKSPACE STATE:
 - Pending Tasks: ${pendingTasks}
 - Upcoming Exams: ${upcomingExams}
 
+ACTIVE VIEW CONTEXT:
+${activeContextString}
+
 If the user asks you to create a task, you MUST output the exact string <ADD_TASK>task description here</ADD_TASK> anywhere in your response. We will parse this and add the task automatically. Do NOT say "I have added it" unless you output the tag. 
-If the user asks for flashcards based on their file upload, output the flashcards in a JSON array format surrounded by brackets, e.g. [{"front": "Q", "back": "A"}].
 ]
 
 User query: ${query}
