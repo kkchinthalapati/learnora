@@ -314,6 +314,7 @@ function bindAuth() {
         $("signup-dob").value,
       );
       if (ok === "verification-sent") {
+        UI.setLoading("signup-btn", false);
         const form = $("signup-form");
         if (form) {
           const inputs = form.querySelectorAll("input, button");

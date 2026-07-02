@@ -94,6 +94,17 @@ export const UI = {
     loader?.classList.toggle("hidden", !isLoading);
   },
 
+  setGlobalLoading(isLoading) {
+    const loader = $("global-loader");
+    if (loader) {
+      if (isLoading) {
+        loader.classList.remove("hidden");
+      } else {
+        loader.classList.add("hidden");
+      }
+    }
+  },
+
   /* ------ Tab navigation ------ */
 
   switchTab(targetRoute) {
