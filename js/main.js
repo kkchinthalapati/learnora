@@ -82,6 +82,8 @@ function bindUploadHub() {
 
   if (!dropzone) return;
 
+  $("btn-browse-files")?.addEventListener("click", () => fileInput.click());
+
   // Toggle UI based on material type
   typeRadios.forEach(radio => {
     radio.addEventListener('change', (e) => {
@@ -155,6 +157,11 @@ function bindUploadHub() {
       if (type === 'pdf' || type === 'audio') {
         if (!fileInput.files.length) throw new Error("Please select a file.");
         const file = fileInput.files[0];
+        // Same limit as the chat uploader — reading a huge file into base64
+        // freezes the tab, and the edge function rejects it anyway
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error("File too large. Maximum size is 10MB.");
+        }
         material = await Materials.uploadFile(file, folderId, type, customTitle);
         
         // Read file into base64 to send to edge function
@@ -323,8 +330,18 @@ function bindAuth() {
         const btnText = $("signup-btn")?.querySelector(".btn-text");
         if (btnText) btnText.textContent = "Check your email inbox! ✉️";
         
-        // Start background polling to automatically log in and refresh once confirmed
+        // Start background polling to automatically log in and refresh once confirmed.
+        // Poll every 10s, stop after 10 minutes — endless 5s polling can trip
+        // Supabase auth rate limits and lock the user out of real login attempts.
+        if (window.authPollInterval) clearInterval(window.authPollInterval);
+        let pollAttempts = 0;
+        const MAX_POLL_ATTEMPTS = 60;
         const pollInterval = setInterval(async () => {
+          pollAttempts++;
+          if (pollAttempts > MAX_POLL_ATTEMPTS) {
+            clearInterval(pollInterval);
+            return;
+          }
           try {
             const loggedIn = await Auth.login(email, pass, true); // silent login attempt
             if (loggedIn) {
@@ -334,7 +351,7 @@ function bindAuth() {
           } catch (e) {
             // Suppress errors during polling
           }
-        }, 5000);
+        }, 10000);
 
         // Save interval to prevent multiple polling loops
         window.authPollInterval = pollInterval;
@@ -684,7 +701,7 @@ function renderCalendar() {
 
     examsForDate.slice(0, maxExamsToShow).forEach((exam) => {
       const bar = document.createElement("div");
-      bar.className = `exam-bar diff-${exam.difficulty.toLowerCase()} status-${exam.status.toLowerCase()}`;
+      bar.className = `exam-bar diff-${(exam.difficulty || "Medium").toLowerCase()} status-${(exam.status || "Pending").toLowerCase()}`;
       bar.textContent = exam.exam_name;
       bar.addEventListener("click", (evt) => {
         evt.stopPropagation();
@@ -856,7 +873,10 @@ function renderDashboard() {
    ========================================================================= */
 
 function bindAI() {
-  $("nav-ai-trigger")?.addEventListener("click", () => {
+  $("nav-ai-trigger")?.addEventListener("click", (e) => {
+    // Prevent the #ai hash from routing (there is no view-ai section,
+    // which would hide the current view and fall back to the dashboard)
+    e.preventDefault();
     $("turbo-chat")?.classList.remove("hidden");
   });
 
@@ -896,6 +916,16 @@ function bindAI() {
   });
 
   $("btn-remove-file")?.addEventListener("click", () => AI.setFile(null));
+
+  // Quick-action pills (replaces inline onclick — CSP-safe)
+  $$("[data-chat-prompt]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const input = $("chat-input");
+      if (!input) return;
+      input.value = btn.dataset.chatPrompt;
+      if (btn.dataset.chatSend) $("btn-send-chat")?.click();
+    });
+  });
 }
 
 /* =========================================================================

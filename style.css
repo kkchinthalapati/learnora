@@ -2100,3 +2100,17 @@ body.dark-theme .stat-card::before {
         height: 200px;
     }
 }
+
+/* Hover utilities — replace inline onmouseover/onmouseout handlers (CSP-safe) */
+.hover-lift {
+    transition: transform 0.2s ease;
+}
+.hover-lift:hover {
+    transform: translateY(-4px);
+}
+.hover-bright {
+    transition: background 0.2s ease;
+}
+.hover-bright:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
