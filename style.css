@@ -314,7 +314,7 @@ header {
     align-items: center;
     gap: var(--s-4);
     flex-wrap: wrap;
-    margin-bottom: clamp(24px, 4vw, 44px);
+    margin-bottom: clamp(20px, 2.5vw, 32px);
 }
 .header-left {
     display: flex;
@@ -853,6 +853,7 @@ label {
 }
 .dashboard-grid > .dash-card {
     margin-bottom: 0;
+    min-width: 0;
     display: flex;
     flex-direction: column;
 }
@@ -1388,19 +1389,21 @@ label {
     inset: 0;
     z-index: 9999;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--s-5);
+    /* Scroll instead of clipping when the card is taller than the viewport. */
+    overflow-y: auto;
+    padding: clamp(16px, 3vh, 40px) var(--s-5);
     background-color: var(--bg);
     background-image:
         radial-gradient(ellipse 80% 60% at 10% 15%, var(--bg-tint-1) 0, transparent 55%),
         radial-gradient(ellipse 70% 50% at 90% 85%, var(--bg-tint-2) 0, transparent 55%);
 }
 .auth-layout {
+    /* margin:auto centers when it fits and stays fully scrollable when it doesn't. */
+    margin: auto;
     display: flex;
     width: 100%;
     max-width: 1040px;
-    min-height: 620px;
+    min-height: min(600px, 90vh);
     border-radius: var(--r-2xl);
     overflow: hidden;
     box-shadow: var(--shadow-lg);
@@ -1411,7 +1414,7 @@ label {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: clamp(32px, 5vw, 56px) clamp(24px, 7vw, 64px);
+    padding: clamp(28px, 4vw, 44px) clamp(24px, 6vw, 56px);
     background: var(--glass-bg-strong);
     backdrop-filter: blur(36px) var(--glass-saturate);
     -webkit-backdrop-filter: blur(36px) var(--glass-saturate);
@@ -1420,27 +1423,28 @@ label {
     box-shadow: var(--glass-inner);
 }
 .auth-logo {
-    width: 64px;
+    width: 56px;
     border-radius: var(--r-lg);
-    margin: 0 auto var(--s-5);
+    margin: 0 auto var(--s-4);
     box-shadow: var(--shadow-md), 0 0 24px var(--accent-glow);
 }
 .brand-header h1 {
-    font-size: clamp(26px, 4vw, 34px);
+    font-size: clamp(24px, 3.4vw, 30px);
     margin-bottom: var(--s-2);
 }
 .brand-header p {
     color: var(--text-muted);
-    margin: 0 auto var(--s-8);
+    margin: 0 auto var(--s-6);
 }
 #auth-view-container {
     position: relative;
     width: 100%;
-    min-height: 380px;
+    /* Both forms occupy the same grid cell; the cell grows to the taller
+       (signup) form, so nothing is ever clipped or absolutely overflowing. */
+    display: grid;
 }
 .auth-form {
-    position: absolute;
-    inset: 0 0 auto 0;
+    grid-area: 1 / 1;
     display: flex;
     flex-direction: column;
     gap: var(--s-4);
