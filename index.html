@@ -37,8 +37,8 @@
                             class="auth-logo"
                             alt="Learnora Logo"
                         />
-                        <h1>Welcome to Learnora</h1>
-                        <p>Your personal study command center.</p>
+                        <h1>Welcome back</h1>
+                        <p>Sign in to your study workspace.</p>
                     </div>
 
                     <!-- Auth status message -->
@@ -48,7 +48,7 @@
                         <!-- Login Form -->
                         <form id="login-form" class="auth-form">
                             <div class="input-group">
-                                <label for="login-email">📧 Email</label>
+                                <label for="login-email">Email</label>
                                 <input
                                     type="email"
                                     id="login-email"
@@ -59,7 +59,7 @@
                                 />
                             </div>
                             <div class="input-group">
-                                <label for="login-password">🔒 Password</label>
+                                <label for="login-password">Password</label>
                                 <div class="password-wrapper">
                                     <input
                                         type="password"
@@ -69,7 +69,7 @@
                                         aria-label="Password"
                                         required
                                     />
-                                    <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility">👁️</button>
+                                    <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility">Show</button>
                                 </div>
                             </div>
                             <button
@@ -91,7 +91,7 @@
                         <!-- Signup Form -->
                         <form id="signup-form" class="auth-form hidden">
                             <div class="input-group">
-                                <label for="signup-name">👤 Full Name</label>
+                                <label for="signup-name">Full name</label>
                                 <input
                                     type="text"
                                     id="signup-name"
@@ -102,7 +102,7 @@
                                 />
                             </div>
                             <div class="input-group">
-                                <label for="signup-email">📧 Email</label>
+                                <label for="signup-email">Email</label>
                                 <input
                                     type="email"
                                     id="signup-email"
@@ -113,7 +113,7 @@
                                 />
                             </div>
                             <div class="input-group">
-                                <label for="signup-dob">🎂 Date of Birth</label>
+                                <label for="signup-dob">Date of birth</label>
                                 <input
                                     type="date"
                                     id="signup-dob"
@@ -123,7 +123,7 @@
                                 />
                             </div>
                             <div class="input-group">
-                                <label for="signup-password">🔒 Password</label>
+                                <label for="signup-password">Password</label>
                                 <div class="password-wrapper">
                                     <input
                                         type="password"
@@ -134,7 +134,7 @@
                                         required
                                         minlength="8"
                                     />
-                                    <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility">👁️</button>
+                                    <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility">Show</button>
                                 </div>
                                 <div class="password-strength-container hidden" id="password-strength-container">
                                     <div class="strength-bars">
@@ -147,18 +147,18 @@
                                 </div>
                             </div>
                             <div class="input-group">
-                                <label for="signup-confirm-password">🔄 Re-enter Password</label>
+                                <label for="signup-confirm-password">Confirm password</label>
                                 <div class="password-wrapper">
                                     <input
                                         type="password"
                                         id="signup-confirm-password"
-                                        placeholder="Match password above"
+                                        placeholder="Re-enter your password"
                                         autocomplete="new-password"
                                         aria-label="Confirm Password"
                                         required
                                         minlength="8"
                                     />
-                                    <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility">👁️</button>
+                                    <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility">Show</button>
                                 </div>
                             </div>
                             <button
@@ -181,30 +181,27 @@
 
                 <div class="auth-visual">
                     <div class="visual-content">
-                        <h2>Study Smarter,<br />Not Harder.</h2>
+                        <h2>Everything you need to study,<br />in one calm place.</h2>
+                        <p class="visual-subtitle">Focus sessions, tasks, exams, and an AI tutor — working together.</p>
                         <div class="visual-features">
                             <div class="visual-feature">
                                 <span class="feature-icon">⏱️</span>
-                                <span>Pomodoro Timer</span>
+                                <span>Focus timer</span>
                             </div>
                             <div class="visual-feature">
                                 <span class="feature-icon">📝</span>
-                                <span>Task Manager</span>
+                                <span>Task manager</span>
                             </div>
                             <div class="visual-feature">
                                 <span class="feature-icon">📅</span>
-                                <span>Exam Calendar</span>
+                                <span>Exam calendar</span>
                             </div>
                             <div class="visual-feature">
                                 <span class="feature-icon">🤖</span>
-                                <span>AI Study Assistant</span>
+                                <span>AI study assistant</span>
                             </div>
                         </div>
                     </div>
-                    <!-- Floating study decorations -->
-                    <div class="auth-float auth-float--1" aria-hidden="true">📚</div>
-                    <div class="auth-float auth-float--2" aria-hidden="true">🎯</div>
-                    <div class="auth-float auth-float--3" aria-hidden="true">💡</div>
                 </div>
             </div>
         </div>
@@ -318,32 +315,105 @@
 
                 <!-- VIEW: Dashboard -->
                 <section id="view-dashboard" class="view-section">
-                    <div id="dashboard-widgets" class="grid-list mb-24">
-                        <div class="glass-panel stat-card">
-                            <h3 class="stat-title opacity-70">
-                                📈 Total Focus Time
-                            </h3>
-                            <h2 id="total-hours-display" class="stat-number">
-                                0.0 <span>hours</span>
-                            </h2>
+                    <div class="dashboard-grid mb-24">
+                        <!-- Next exam spotlight -->
+                        <div
+                            class="glass-panel dash-card dash-exam"
+                            id="dash-next-exam"
+                        >
+                            <!-- Populated by renderDashboard() -->
                         </div>
-                        <div class="glass-panel stat-card">
-                            <h3 class="stat-title opacity-70">
-                                🚀 Upcoming Deadlines
-                            </h3>
-                            <div
-                                id="upcoming-exams-display"
-                                class="exam-list-mini mt-16"
-                            ></div>
+
+                        <!-- Focus today -->
+                        <div class="glass-panel dash-card dash-focus">
+                            <span class="dash-eyebrow">Focus</span>
+                            <h2 id="total-hours-display" class="stat-number">
+                                0.0 <span>hours total</span>
+                            </h2>
+                            <p class="dash-sub">
+                                <strong id="dash-today-focus">0m</strong>
+                                logged today
+                            </p>
+                            <button
+                                class="btn-primary full-width mt-16"
+                                data-hash="timer"
+                            >
+                                Start a focus session →
+                            </button>
+                        </div>
+
+                        <!-- Today's tasks -->
+                        <div class="glass-panel dash-card dash-tasks">
+                            <div class="dash-card-head flex-between">
+                                <span class="dash-eyebrow">Today's tasks</span>
+                                <a href="#todo" class="dash-link">View all →</a>
+                            </div>
+                            <div class="dash-quick-add flex-row mt-8">
+                                <input
+                                    type="text"
+                                    id="dash-task-input"
+                                    placeholder="Add a task…"
+                                    autocomplete="off"
+                                    aria-label="Quick add task"
+                                />
+                                <button id="dash-task-add" class="btn-primary">
+                                    Add
+                                </button>
+                            </div>
+                            <ul id="dash-today-tasks" class="dash-task-list mt-16"></ul>
+                        </div>
+
+                        <!-- AI quick actions -->
+                        <div class="glass-panel dash-card dash-ai">
+                            <span class="dash-eyebrow">Ask Learnora AI</span>
+                            <p class="dash-sub mb-16">
+                                Turn your workload into a plan in one tap.
+                            </p>
+                            <div class="dash-ai-actions">
+                                <button
+                                    class="dash-ai-btn"
+                                    data-chat-prompt="Look at my upcoming exams and pending tasks, then build me a focused study plan for this week."
+                                    data-chat-send="true"
+                                >
+                                    <span class="dash-ai-icon">🗓️</span>
+                                    Plan my week
+                                </button>
+                                <button
+                                    class="dash-ai-btn"
+                                    data-chat-prompt="What should I focus on right now given my next exam and open tasks?"
+                                    data-chat-send="true"
+                                >
+                                    <span class="dash-ai-icon">🎯</span>
+                                    What next?
+                                </button>
+                                <button
+                                    class="dash-ai-btn"
+                                    data-chat-prompt="Quiz me with a few quick questions on my most recent study notes."
+                                    data-chat-send="true"
+                                >
+                                    <span class="dash-ai-icon">🧠</span>
+                                    Quiz me
+                                </button>
+                                <button
+                                    class="dash-ai-btn"
+                                    data-chat-prompt="Summarize the notes I uploaded most recently into key points."
+                                    data-chat-send="true"
+                                >
+                                    <span class="dash-ai-icon">📝</span>
+                                    Summarize notes
+                                </button>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Session history (secondary) -->
                     <div class="glass-panel summary-card">
-                        <h2 data-i18n="header_history">Session History</h2>
+                        <h2 data-i18n="header_history">Recent focus sessions</h2>
                         <p
                             data-i18n="desc_history"
                             class="opacity-70 mt-8 mb-16"
                         >
-                            All completed focus blocks are logged here
+                            Every completed focus block is logged here
                             automatically.
                         </p>
                         <ul id="log-list" class="list-container"></ul>
@@ -478,20 +548,20 @@
                                 </button>
                                 <button
                                     id="btn-timer-pause"
-                                    class="btn-warning"
+                                    class="btn-secondary"
                                     data-i18n="btn_pause"
                                 >
                                     Pause
                                 </button>
                                 <button
                                     id="btn-timer-extend"
-                                    class="btn-success"
+                                    class="btn-secondary"
                                 >
-                                    +5 Mins
+                                    +5 min
                                 </button>
                                 <button
                                     id="btn-timer-reset"
-                                    class="btn-danger"
+                                    class="btn-ghost-danger"
                                     data-i18n="btn_reset"
                                 >
                                     Reset
@@ -526,23 +596,31 @@
                 <!-- VIEW: Calendar -->
                 <section id="view-exams" class="view-section hidden">
                     <div class="calendar-container glass-panel">
-                        <div class="calendar-header flex-between mb-24">
-                            <button
-                                id="btn-prev-month"
-                                class="icon-btn"
-                                aria-label="Previous Month"
-                            >
-                                &lt;
-                            </button>
-                            <h2 id="month-year-display">Month Year</h2>
-                            <button
-                                id="btn-next-month"
-                                class="icon-btn"
-                                aria-label="Next Month"
-                            >
-                                &gt;
+                        <div class="calendar-toolbar flex-between mb-24">
+                            <div class="month-nav flex-gap">
+                                <button
+                                    id="btn-prev-month"
+                                    class="icon-btn"
+                                    aria-label="Previous Month"
+                                >
+                                    ‹
+                                </button>
+                                <h2 id="month-year-display">Month Year</h2>
+                                <button
+                                    id="btn-next-month"
+                                    class="icon-btn"
+                                    aria-label="Next Month"
+                                >
+                                    ›
+                                </button>
+                            </div>
+                            <button id="btn-add-exam" class="btn-primary">
+                                + Add exam
                             </button>
                         </div>
+                        <p class="calendar-hint opacity-70 mb-16">
+                            Tap any day to add an exam, or a colored label to edit one.
+                        </p>
                         <div class="calendar-weekdays grid-7">
                             <div data-i18n="day_sun">Sun</div>
                             <div data-i18n="day_mon">Mon</div>
@@ -845,33 +923,73 @@
             </div>
         </div>
 
+        <!-- Reusable confirm / prompt dialog (replaces native alert/confirm/prompt) -->
+        <div id="app-dialog" class="modal-overlay hidden">
+            <div class="modal-content glass-panel">
+                <div class="modal-head">
+                    <h3 id="app-dialog-title">Are you sure?</h3>
+                    <p id="app-dialog-message" class="modal-subtitle"></p>
+                </div>
+                <div class="input-group hidden" id="app-dialog-input-group">
+                    <input
+                        type="text"
+                        id="app-dialog-input"
+                        autocomplete="off"
+                        aria-label="Dialog input"
+                    />
+                </div>
+                <div class="modal-actions flex-end mt-24">
+                    <button id="app-dialog-cancel" class="btn-secondary">
+                        Cancel
+                    </button>
+                    <button id="app-dialog-confirm" class="btn-primary">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div id="exam-modal" class="modal-overlay hidden">
             <div class="modal-content glass-panel">
-                <h3 id="modal-exam-title" class="mb-24">Add New Exam</h3>
+                <div class="modal-head">
+                    <h3 id="modal-exam-title">New exam</h3>
+                    <p id="modal-exam-subtitle" class="modal-subtitle">
+                        Add it to your calendar and we'll count down to the day.
+                    </p>
+                </div>
                 <form id="exam-form">
                     <input type="hidden" id="modal-exam-id" />
                     <div class="input-group">
-                        <label for="exam-name">Exam Name</label>
+                        <label for="exam-name">What's the exam?</label>
                         <input
                             type="text"
                             id="exam-name"
                             required
-                            placeholder="e.g., AP Chemistry Midterm"
+                            placeholder="e.g. AP Chemistry Midterm"
                         />
                     </div>
                     <div class="input-group">
-                        <label for="exam-date">Date</label>
+                        <label for="exam-date">When is it?</label>
                         <input type="date" id="exam-date" required />
                     </div>
                     <div class="input-group">
-                        <label for="exam-difficulty">Difficulty Level</label>
-                        <select id="exam-difficulty">
-                            <option value="Easy">Easy</option>
-                            <option value="Medium" selected>Medium</option>
-                            <option value="Hard">Hard</option>
-                        </select>
+                        <label>How tough is it?</label>
+                        <div class="segmented" role="radiogroup" aria-label="Difficulty">
+                            <label class="segmented-option">
+                                <input type="radio" name="exam-difficulty" value="Easy" />
+                                <span>Easy</span>
+                            </label>
+                            <label class="segmented-option">
+                                <input type="radio" name="exam-difficulty" value="Medium" checked />
+                                <span>Medium</span>
+                            </label>
+                            <label class="segmented-option">
+                                <input type="radio" name="exam-difficulty" value="Hard" />
+                                <span>Hard</span>
+                            </label>
+                        </div>
                     </div>
-                    <div class="input-group">
+                    <div class="input-group" id="exam-status-group">
                         <label for="exam-status">Status</label>
                         <select id="exam-status">
                             <option value="Scheduled">Scheduled</option>
@@ -883,7 +1001,7 @@
                         <button
                             type="button"
                             id="btn-delete-exam"
-                            class="btn-danger hidden"
+                            class="btn-ghost-danger hidden"
                         >
                             Delete
                         </button>
@@ -895,8 +1013,8 @@
                             >
                                 Cancel
                             </button>
-                            <button type="submit" class="btn-primary">
-                                Save Exam
+                            <button type="submit" class="btn-primary" id="btn-save-exam">
+                                Add exam
                             </button>
                         </div>
                     </div>

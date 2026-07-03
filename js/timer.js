@@ -300,8 +300,12 @@ export const Timer = {
 
   /* ------ Favorite presets ------ */
 
-  saveFav() {
-    const name = prompt("Name this preset (e.g., Math Prep):");
+  async saveFav() {
+    const name = await UI.promptText("Save these durations as a reusable preset.", {
+      title: "Name this preset",
+      placeholder: "e.g. Math Prep",
+      confirmText: "Save preset",
+    });
     if (!name?.trim()) return;
 
     const favs = Storage.get("fav_times", []);

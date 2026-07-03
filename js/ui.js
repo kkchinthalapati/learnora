@@ -82,6 +82,98 @@ export const UI = {
     $("popup-overlay")?.classList.add("hidden");
   },
 
+  /* ------ Confirm / Prompt dialogs (Promise-based, glass UI) ------ */
+
+  _dialog({
+    title = "Are you sure?",
+    message = "",
+    confirmText = "Confirm",
+    cancelText = "Cancel",
+    danger = false,
+    isPrompt = false,
+    placeholder = "",
+    defaultValue = "",
+  } = {}) {
+    return new Promise((resolve) => {
+      const overlay = $("app-dialog");
+      if (!overlay) {
+        resolve(isPrompt ? null : false);
+        return;
+      }
+
+      $("app-dialog-title").textContent = title;
+      const msgEl = $("app-dialog-message");
+      msgEl.textContent = message;
+      msgEl.classList.toggle("hidden", !message);
+
+      const inputGroup = $("app-dialog-input-group");
+      const input = $("app-dialog-input");
+      inputGroup.classList.toggle("hidden", !isPrompt);
+      if (isPrompt) {
+        input.value = defaultValue;
+        input.placeholder = placeholder;
+      }
+
+      const confirmBtn = $("app-dialog-confirm");
+      const cancelBtn = $("app-dialog-cancel");
+      confirmBtn.textContent = confirmText;
+      cancelBtn.textContent = cancelText;
+      confirmBtn.classList.toggle("btn-danger", danger);
+      confirmBtn.classList.toggle("btn-primary", !danger);
+
+      overlay.classList.remove("hidden");
+      requestAnimationFrame(() => (isPrompt ? input : confirmBtn).focus());
+
+      const cleanup = () => {
+        overlay.classList.add("hidden");
+        confirmBtn.removeEventListener("click", onConfirm);
+        cancelBtn.removeEventListener("click", onCancel);
+        overlay.removeEventListener("mousedown", onOverlay);
+        document.removeEventListener("keydown", onKey);
+      };
+      const onConfirm = () => {
+        const val = isPrompt ? input.value.trim() : true;
+        cleanup();
+        resolve(isPrompt ? (val || null) : true);
+      };
+      const onCancel = () => {
+        cleanup();
+        resolve(isPrompt ? null : false);
+      };
+      const onOverlay = (e) => {
+        if (e.target === overlay) onCancel();
+      };
+      const onKey = (e) => {
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          onCancel();
+        } else if (e.key === "Enter" && (isPrompt || document.activeElement === confirmBtn)) {
+          e.preventDefault();
+          onConfirm();
+        }
+      };
+
+      confirmBtn.addEventListener("click", onConfirm);
+      cancelBtn.addEventListener("click", onCancel);
+      overlay.addEventListener("mousedown", onOverlay);
+      document.addEventListener("keydown", onKey);
+    });
+  },
+
+  confirm(message, opts = {}) {
+    return this._dialog({ message, ...opts });
+  },
+
+  promptText(message, opts = {}) {
+    return this._dialog({
+      title: opts.title || "Enter a value",
+      message,
+      isPrompt: true,
+      confirmText: opts.confirmText || "Save",
+      ...opts,
+    });
+  },
+
   /* ------ Loading state ------ */
 
   setLoading(btnId, isLoading) {

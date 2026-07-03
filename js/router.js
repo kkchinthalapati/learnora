@@ -212,7 +212,11 @@ export const Router = {
   },
 
   async createNewFolder() {
-    const name = prompt("Enter folder name (e.g. 'CS101', 'Biology'):");
+    const name = await UI.promptText("Give it a name so it's easy to find later.", {
+      title: "New folder",
+      placeholder: "e.g. CS101, Biology",
+      confirmText: "Create folder",
+    });
     if (!name) return;
     const colors = ['#4A90E2', '#E24A4A', '#4AE283', '#E2A84A', '#9B4AE2'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];

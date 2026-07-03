@@ -842,6 +842,225 @@ label {
     text-align: left;
 }
 
+/* ==========================================================================
+   5.x DASHBOARD — Study command center
+========================================================================== */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: var(--s-6);
+    align-items: stretch;
+}
+.dashboard-grid > .dash-card {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+.dash-eyebrow {
+    display: block;
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin-bottom: var(--s-3);
+}
+.dash-sub {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+}
+.dash-card-head {
+    align-items: center;
+    margin-bottom: var(--s-1);
+}
+.dash-link {
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    white-space: nowrap;
+}
+.dash-link:hover {
+    color: var(--accent-hover);
+}
+
+/* --- Next exam spotlight --- */
+.dash-exam {
+    position: relative;
+    overflow: hidden;
+    justify-content: space-between;
+    gap: var(--s-4);
+}
+.dash-exam::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 90% 70% at 100% 0%, var(--accent-soft) 0%, transparent 60%);
+    pointer-events: none;
+}
+.dash-exam > * {
+    position: relative;
+}
+.dash-countdown {
+    font-family: var(--font-head);
+    font-size: clamp(38px, 6vw, 56px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+}
+.dash-countdown .dash-countdown-unit {
+    display: block;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0;
+    margin-top: var(--s-2);
+}
+.dash-exam-name {
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    color: var(--text);
+}
+.dash-exam-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    flex-wrap: wrap;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+}
+.dash-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: var(--r-pill);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+.dash-pill.diff-easy {
+    background: var(--success-soft);
+    color: var(--success);
+}
+.dash-pill.diff-medium {
+    background: var(--warning-soft);
+    color: var(--warning);
+}
+.dash-pill.diff-hard {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+.dash-empty {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    margin: auto 0;
+}
+
+/* --- Focus card --- */
+.dash-focus .stat-number {
+    text-align: left;
+    font-size: clamp(30px, 4vw, 40px);
+    margin-bottom: var(--s-2);
+}
+.dash-focus {
+    justify-content: flex-start;
+}
+
+/* --- Today's tasks --- */
+.dash-quick-add input {
+    flex: 1;
+    min-width: 0;
+}
+.dash-quick-add .btn-primary {
+    flex-shrink: 0;
+}
+.dash-task-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    overflow-y: auto;
+    max-height: 240px;
+}
+.dash-task {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: 10px 12px;
+    border-radius: var(--r-md);
+    background: var(--surface-2);
+    border: 1px solid var(--glass-border-subtle);
+    cursor: pointer;
+    transition: border-color var(--t-fast) ease, background var(--t-fast) ease;
+}
+.dash-task:hover {
+    border-color: var(--accent-ring);
+    background: var(--accent-soft);
+}
+.dash-task-check {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--text-faint);
+    transition: all var(--t-fast) ease;
+}
+.dash-task.done .dash-task-check {
+    background: var(--success);
+    border-color: var(--success);
+}
+.dash-task.done .dash-task-label {
+    text-decoration: line-through;
+    color: var(--text-faint);
+}
+.dash-task-label {
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* --- AI quick actions --- */
+.dash-ai-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-3);
+    margin-top: auto;
+}
+.dash-ai-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    justify-content: flex-start;
+    padding: 14px;
+    text-align: left;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--glass-border-subtle);
+    border-radius: var(--r-md);
+    transition: border-color var(--t-fast) ease, background var(--t-fast) ease, transform var(--t-fast) ease;
+}
+.dash-ai-btn:hover {
+    border-color: var(--accent-ring);
+    background: var(--accent-soft);
+    transform: translateY(-1px);
+}
+.dash-ai-icon {
+    font-size: var(--fs-lg);
+    line-height: 1;
+}
+
+@media (max-width: 860px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Flashcards (3D glass flip) */
 .card-container {
     perspective: 1200px;
@@ -892,8 +1111,20 @@ label {
 .calendar-container {
     overflow-x: auto;
 }
-.calendar-header h2 {
+.calendar-header h2,
+.calendar-toolbar h2 {
     font-size: var(--fs-lg);
+}
+.calendar-toolbar {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+}
+.month-nav {
+    align-items: center;
+}
+.calendar-hint {
+    font-size: var(--fs-sm);
 }
 .grid-7 {
     display: grid;
@@ -1086,6 +1317,70 @@ label {
 .modal-actions {
     gap: var(--s-3);
 }
+.modal-head {
+    margin-bottom: var(--s-6);
+}
+.modal-head h3 {
+    font-size: var(--fs-xl);
+}
+.modal-subtitle {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    margin-top: var(--s-1);
+}
+
+/* Segmented control (guided choice, replaces plain dropdowns) */
+.segmented {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--s-1);
+    padding: var(--s-1);
+    background: var(--surface-2);
+    border: 1px solid var(--glass-border-subtle);
+    border-radius: var(--r-md);
+}
+.segmented-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 8px;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background var(--t-fast) ease, color var(--t-fast) ease;
+}
+.segmented-option input {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    margin: 0;
+    cursor: pointer;
+}
+.segmented-option:hover {
+    color: var(--text);
+}
+.segmented-option:has(input:checked) {
+    background: var(--surface);
+    color: var(--accent);
+    box-shadow: var(--shadow-sm);
+}
+.segmented-option:has(input:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Ghost danger — de-emphasized destructive action so Save stays primary */
+.btn-ghost-danger {
+    background: transparent;
+    color: var(--danger);
+    border-color: transparent;
+}
+.btn-ghost-danger:hover {
+    background: var(--danger-soft);
+}
 
 /* --- 5.10 Auth wall --- */
 .auth-wrapper {
@@ -1186,25 +1481,28 @@ label {
     align-items: center;
 }
 .password-wrapper input {
-    padding-right: 40px;
+    padding-right: 60px;
 }
 .password-toggle {
     position: absolute;
-    right: 12px;
+    right: 10px;
     background: none;
     border: none;
-    padding: 0;
+    padding: 4px 6px;
     margin: 0;
     cursor: pointer;
-    opacity: 0.6;
-    transition: opacity var(--t) ease;
-    font-size: 1.1rem;
+    color: var(--text-muted);
+    transition: color var(--t) ease;
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 .password-toggle:hover {
-    opacity: 1;
+    color: var(--accent);
 }
 
 .password-strength-container {
@@ -1275,12 +1573,19 @@ label {
     padding: 0 var(--s-8);
 }
 .visual-content h2 {
-    font-size: clamp(28px, 4vw, 44px);
+    font-size: clamp(26px, 3.4vw, 38px);
     font-weight: 700;
     line-height: 1.2;
     letter-spacing: -0.02em;
     color: #fff;
-    margin-bottom: var(--s-8);
+    margin-bottom: var(--s-4);
+}
+.visual-subtitle {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: var(--fs-md);
+    line-height: 1.5;
+    max-width: 380px;
+    margin: 0 auto var(--s-8);
 }
 
 /* Auth status message */

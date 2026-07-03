@@ -227,10 +227,10 @@ function bindAuth() {
       const input = e.currentTarget.parentElement.querySelector("input");
       if (input.type === "password") {
         input.type = "text";
-        e.currentTarget.textContent = "🙈";
+        e.currentTarget.textContent = "Hide";
       } else {
         input.type = "password";
-        e.currentTarget.textContent = "👁️";
+        e.currentTarget.textContent = "Show";
       }
     });
   });
@@ -369,14 +369,24 @@ function bindAuth() {
     signingUp = false;
   });
 
+  // Keep the shared brand header in sync with the active auth view.
+  const setAuthHeader = (title, sub) => {
+    const h1 = document.querySelector(".brand-header h1");
+    const p = document.querySelector(".brand-header p");
+    if (h1) h1.textContent = title;
+    if (p) p.textContent = sub;
+  };
+
   $("btn-show-signup")?.addEventListener("click", () => {
     $("login-form")?.classList.add("hidden");
     $("signup-form")?.classList.remove("hidden");
+    setAuthHeader("Create your account", "Start studying smarter in minutes.");
   });
 
   $("btn-show-login")?.addEventListener("click", () => {
     $("signup-form")?.classList.add("hidden");
     $("login-form")?.classList.remove("hidden");
+    setAuthHeader("Welcome back", "Sign in to your study workspace.");
   });
 
   $("btn-logout")?.addEventListener("click", Auth.logout);
@@ -412,10 +422,12 @@ function bindSettings() {
   $("btn-save-settings")?.addEventListener("click", () => UI.saveSettings());
   $("btn-export-data")?.addEventListener("click", DataAdmin.exportCSV);
 
-  $("btn-wipe-data")?.addEventListener("click", () => {
-    if (confirm("🚨 WARNING: Permanently delete all tasks and exams?")) {
-      DataAdmin.wipe();
-    }
+  $("btn-wipe-data")?.addEventListener("click", async () => {
+    const ok = await UI.confirm(
+      "This permanently deletes all your tasks, logs, and exams from the cloud. This cannot be undone.",
+      { title: "Wipe all data?", confirmText: "Delete everything", danger: true },
+    );
+    if (ok) DataAdmin.wipe();
   });
 }
 
@@ -628,6 +640,9 @@ async function loadTasks() {
       select.value = "None";
     }
   }
+
+  // Keep the dashboard's compact task list in sync from the same fetch.
+  renderDashboardTasks(tasks);
 }
 
 function bindTasks() {
@@ -644,6 +659,23 @@ function bindTasks() {
     if (e.key === "Enter") {
       e.preventDefault();
       $("btn-add-todo")?.click();
+    }
+  });
+
+  // Dashboard quick-add — same flow, different entry point.
+  const dashAdd = async () => {
+    const input = $("dash-task-input");
+    const text = input?.value.trim();
+    if (!text) return;
+    input.value = "";
+    await Tasks.add(text);
+    loadTasks();
+  };
+  $("dash-task-add")?.addEventListener("click", dashAdd);
+  $("dash-task-input")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      dashAdd();
     }
   });
 }
@@ -731,23 +763,40 @@ function renderCalendar() {
   }
 }
 
+function setExamDifficulty(value) {
+  const target = document.querySelector(
+    `input[name="exam-difficulty"][value="${value}"]`,
+  );
+  (target || document.querySelector('input[name="exam-difficulty"][value="Medium"]')).checked = true;
+}
+
 function openExamModal(exam = null, dateStr = "") {
   const modal = $("exam-modal");
   modal?.classList.remove("hidden");
 
   if (exam) {
-    $("modal-exam-title").textContent = "Edit Exam";
+    // Editing an existing exam — show status and the delete affordance.
+    $("modal-exam-title").textContent = "Edit exam";
+    $("modal-exam-subtitle").textContent = "Update the details or remove it from your calendar.";
+    $("btn-save-exam").textContent = "Save changes";
     $("modal-exam-id").value = exam.id;
     $("exam-name").value = exam.exam_name;
     $("exam-date").value = exam.exam_date;
-    $("exam-difficulty").value = exam.difficulty;
+    setExamDifficulty(exam.difficulty);
     $("exam-status").value = exam.status;
+    $("exam-status-group")?.classList.remove("hidden");
     $("btn-delete-exam")?.classList.remove("hidden");
   } else {
-    $("modal-exam-title").textContent = "New Exam";
+    // Creating — keep it minimal. Status defaults to "Scheduled" and stays hidden.
+    $("modal-exam-title").textContent = "New exam";
+    $("modal-exam-subtitle").textContent = "Add it to your calendar and we'll count down to the day.";
+    $("btn-save-exam").textContent = "Add exam";
     $("exam-form")?.reset();
+    setExamDifficulty("Medium");
     $("modal-exam-id").value = "";
     $("exam-date").value = dateStr;
+    $("exam-status").value = "Scheduled";
+    $("exam-status-group")?.classList.add("hidden");
     $("btn-delete-exam")?.classList.add("hidden");
   }
 
@@ -766,6 +815,10 @@ function bindCalendar() {
     renderCalendar();
   });
 
+  $("btn-add-exam")?.addEventListener("click", () => {
+    openExamModal(null, new Date().toISOString().slice(0, 10));
+  });
+
   $("btn-cancel-exam")?.addEventListener("click", () => {
     $("exam-modal")?.classList.add("hidden");
   });
@@ -780,11 +833,13 @@ function bindCalendar() {
 
   $("exam-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const difficulty =
+      document.querySelector('input[name="exam-difficulty"]:checked')?.value || "Medium";
     const ok = await Exams.save(
       {
         exam_name: $("exam-name").value,
         exam_date: $("exam-date").value,
-        difficulty: $("exam-difficulty").value,
+        difficulty,
         status: $("exam-status").value,
       },
       $("modal-exam-id").value || null,
@@ -796,7 +851,11 @@ function bindCalendar() {
   });
 
   $("btn-delete-exam")?.addEventListener("click", async () => {
-    if (confirm("Remove this exam?")) {
+    const ok = await UI.confirm(
+      "This exam will be removed from your calendar.",
+      { title: "Remove exam?", confirmText: "Remove", danger: true },
+    );
+    if (ok) {
       await Exams.delete($("modal-exam-id").value);
       $("exam-modal")?.classList.add("hidden");
       loadCalendar();
@@ -812,17 +871,21 @@ function renderDashboard() {
   const sessions = Storage.get("sessions", []);
   const list = $("log-list");
   let totalMins = 0;
+  let todayMins = 0;
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfTodayMs = startOfToday.getTime();
 
   if (list) {
     list.innerHTML = "";
 
     if (sessions.length === 0) {
       const li = document.createElement("li");
-      li.innerHTML = "<span class='opacity-70'>No sessions logged yet. Start the timer!</span>";
+      li.innerHTML = "<span class='opacity-70'>No sessions yet — start a focus block to see it here.</span>";
       list.appendChild(li);
     } else {
-      sessions.forEach((log) => {
-        totalMins += log.minutes || 0;
+      // Only render the most recent handful; the full history stays in storage.
+      sessions.slice(0, 8).forEach((log) => {
         const li = document.createElement("li");
         li.className = "log-item";
 
@@ -840,32 +903,147 @@ function renderDashboard() {
         list.appendChild(li);
       });
     }
+
+    // Totals span the entire session log, not just the rendered slice.
+    sessions.forEach((log) => {
+      totalMins += log.minutes || 0;
+      // `id` is Date.now() at log time — a reliable timestamp for "today".
+      if (typeof log.id === "number" && log.id >= startOfTodayMs) {
+        todayMins += log.minutes || 0;
+      }
+    });
   }
 
   const totalDisplay = $("total-hours-display");
   if (totalDisplay) {
-    totalDisplay.innerHTML = `${(totalMins / 60).toFixed(1)} <span>hours</span>`;
+    totalDisplay.innerHTML = `${(totalMins / 60).toFixed(1)} <span>hours total</span>`;
   }
 
-  // Upcoming exams widget
-  const upcoming = $("upcoming-exams-display");
-  if (upcoming) {
-    const now = new Date().toISOString().slice(0, 10);
-    const next = cachedExams
-      .filter((e) => e.status !== "Completed" && e.exam_date >= now)
-      .slice(0, 3);
-
-    upcoming.innerHTML = "";
-    if (next.length === 0) {
-      upcoming.innerHTML = '<div class="opacity-70">No upcoming exams.</div>';
-    } else {
-      next.forEach((e) => {
-        const row = document.createElement("div");
-        row.innerHTML = `<span>📅 ${esc(e.exam_name)}</span> <span class="opacity-70" style="float:right;">${esc(e.exam_date)}</span>`;
-        upcoming.appendChild(row);
-      });
-    }
+  const todayDisplay = $("dash-today-focus");
+  if (todayDisplay) {
+    todayDisplay.textContent = todayMins >= 60
+      ? `${(todayMins / 60).toFixed(1)}h`
+      : `${todayMins}m`;
   }
+
+  renderNextExam();
+}
+
+function renderNextExam() {
+  const el = $("dash-next-exam");
+  if (!el) return;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().slice(0, 10);
+
+  const next = cachedExams
+    .filter((e) => e.status !== "Completed" && e.exam_date >= todayStr)
+    .sort((a, b) => a.exam_date.localeCompare(b.exam_date))[0];
+
+  if (!next) {
+    el.innerHTML = `
+      <span class="dash-eyebrow">Next exam</span>
+      <p class="dash-empty">No exams scheduled. You're all clear — or add one to start planning.</p>
+      <a href="#exams" class="dash-link">Open calendar →</a>`;
+    return;
+  }
+
+  const examDate = new Date(next.exam_date + "T00:00:00");
+  const days = Math.round((examDate - today) / 86400000);
+  let big, unit;
+  if (days <= 0) {
+    big = "Today";
+    unit = "Good luck!";
+  } else if (days === 1) {
+    big = "1";
+    unit = "day away";
+  } else {
+    big = String(days);
+    unit = "days away";
+  }
+
+  const prettyDate = examDate.toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  const diff = (next.difficulty || "Medium");
+
+  el.innerHTML = `
+    <span class="dash-eyebrow">Next exam</span>
+    <div class="dash-countdown">${esc(big)}<span class="dash-countdown-unit">${esc(unit)}</span></div>
+    <div>
+      <div class="dash-exam-name">${esc(next.exam_name)}</div>
+      <div class="dash-exam-meta mt-8">
+        <span>📅 ${esc(prettyDate)}</span>
+        <span class="dash-pill diff-${esc(diff.toLowerCase())}">${esc(diff)}</span>
+      </div>
+    </div>
+    <a href="#exams" class="dash-link">Open calendar →</a>`;
+}
+
+/* Render the compact "today's tasks" list on the dashboard. */
+function renderDashboardTasks(tasks) {
+  const list = $("dash-today-tasks");
+  if (!list) return;
+
+  const pending = tasks.filter((t) => !t.is_done).slice(0, 6);
+  list.innerHTML = "";
+
+  if (pending.length === 0) {
+    const li = document.createElement("li");
+    li.className = "dash-empty";
+    li.textContent = tasks.length
+      ? "All caught up — nothing pending. 🎉"
+      : "No tasks yet. Add your first above.";
+    list.appendChild(li);
+    return;
+  }
+
+  pending.forEach((t) => {
+    const li = document.createElement("li");
+    li.className = "dash-task";
+    li.setAttribute("role", "checkbox");
+    li.setAttribute("aria-checked", "false");
+    li.setAttribute("tabindex", "0");
+
+    const check = document.createElement("span");
+    check.className = "dash-task-check";
+
+    const label = document.createElement("span");
+    label.className = "dash-task-label";
+    label.textContent = t.text;
+
+    li.appendChild(check);
+    li.appendChild(label);
+
+    const complete = async () => {
+      if (li.dataset.busy) return;
+      li.dataset.busy = "1";
+      li.classList.add("done");
+      li.setAttribute("aria-checked", "true");
+      const ok = await Tasks.toggle(t.id, t.is_done);
+      if (ok) {
+        loadTasks();
+      } else {
+        li.classList.remove("done");
+        li.setAttribute("aria-checked", "false");
+        delete li.dataset.busy;
+        UI.showPopup("Failed to update task.", "Connection Error");
+      }
+    };
+
+    li.addEventListener("click", complete);
+    li.addEventListener("keydown", (e) => {
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        complete();
+      }
+    });
+
+    list.appendChild(li);
+  });
 }
 
 /* =========================================================================
@@ -917,13 +1095,19 @@ function bindAI() {
 
   $("btn-remove-file")?.addEventListener("click", () => AI.setFile(null));
 
-  // Quick-action pills (replaces inline onclick — CSP-safe)
+  // Quick-action pills / dashboard AI actions (CSP-safe, no inline onclick).
+  // Works from inside the chat and from the dashboard: always reveal the panel.
   $$("[data-chat-prompt]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const input = $("chat-input");
       if (!input) return;
+      $("turbo-chat")?.classList.remove("hidden");
       input.value = btn.dataset.chatPrompt;
-      if (btn.dataset.chatSend) $("btn-send-chat")?.click();
+      if (btn.dataset.chatSend) {
+        $("btn-send-chat")?.click();
+      } else {
+        input.focus();
+      }
     });
   });
 }
