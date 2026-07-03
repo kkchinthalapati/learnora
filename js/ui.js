@@ -11,12 +11,14 @@ const $$ = (sel) => document.querySelectorAll(sel);
    SANITIZATION — Prevent XSS in all dynamic text rendering
    ========================================================================= */
 
-const _escDiv = document.createElement("div");
-
 function esc(str) {
   if (str == null) return "";
-  _escDiv.textContent = String(str);
-  return _escDiv.innerHTML;
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /* =========================================================================
@@ -63,7 +65,7 @@ const DEFAULT_SETTINGS = Object.freeze({
 export const UI = {
 
   /* ------ Active tab tracking ------ */
-  _activeTab: "logs",
+  _activeTab: "dashboard",
 
   /* ------ Popup ------ */
 
@@ -201,7 +203,7 @@ export const UI = {
       }
     });
 
-    const activeNav = document.querySelector(`.nav-item[data-target="${this._activeTab}"]`);
+    const activeNav = document.querySelector(`.nav-link[href="#${this._activeTab}"]`);
     if (activeNav) {
       this._updatePageTitle(activeNav);
     }

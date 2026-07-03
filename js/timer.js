@@ -170,7 +170,9 @@ export const Timer = {
     this.pause();
 
     if (this.state.mode === "Focus") {
-      this._logSession(this.state.config.focus);
+      // Log the actual session length (totalTime includes +5m extensions),
+      // not just the configured focus duration
+      this._logSession(Math.round(this.state.totalTime / 60));
       this.state.cycles++;
 
       if (this.state.cycles >= this.state.config.maxCycles) {

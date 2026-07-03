@@ -371,13 +371,15 @@ User message: ${query}`;
 
       let responseText = data.text;
 
-      // Parse and execute tool calls
+      // Parse and execute tool calls — capped so a prompt-injected
+      // document can't spam the workspace with hundreds of tasks
+      const MAX_TASKS_PER_REPLY = 10;
       const addTaskRegex = /<ADD_TASK>(.*?)<\/ADD_TASK>/g;
       let match;
       let tasksAdded = 0;
       while ((match = addTaskRegex.exec(responseText)) !== null) {
         const taskText = match[1].trim();
-        if (taskText) {
+        if (taskText && tasksAdded < MAX_TASKS_PER_REPLY) {
           await Tasks.add(taskText);
           tasksAdded++;
         }
@@ -389,15 +391,18 @@ User message: ${query}`;
       }
 
       // Check if response is flashcard JSON
-      if (this._tryRenderFlashcards(responseText)) return;
+      if (this._tryRenderFlashcards(responseText)) {
+        // Keep history consistent so follow-up messages have context
+        this.chatHistory.push({ role: "model", content: "[Generated a set of flashcards for the student]" });
+        return;
+      }
 
       // Store and render
       this.chatHistory.push({ role: "model", content: responseText });
       if (responseText.trim().length > 0) {
-        // Use our local markdown renderer instead of unreliable global `marked`
-        const rendered = typeof marked !== "undefined"
-          ? marked.parse(responseText)
-          : this.renderMarkdown(responseText);
+        // Always use the local renderer — it HTML-escapes before formatting,
+        // unlike marked.parse() which passes raw HTML through (XSS risk)
+        const rendered = this.renderMarkdown(responseText);
         this._appendBubble(rendered, "ai-bubble", true);
       }
     } catch (err) {

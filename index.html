@@ -3,13 +3,16 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://mlvgqwqiynpwpwzqufdf.supabase.co wss://mlvgqwqiynpwpwzqufdf.supabase.co https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+        />
         <title>Learnora | Study Workspace</title>
         <link rel="icon" href="learnora.jpg" type="image/jpeg" />
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="style.css" />
-        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     </head>
     <body class="dark-theme">
         <!-- GLOBAL LOADER -->
@@ -743,7 +746,7 @@
                             <h3 class="mb-8">Drag & Drop</h3>
                             <p class="opacity-70 mb-16">or click to browse files</p>
                             <input type="file" id="hub-file-upload" hidden accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav">
-                            <button class="btn-secondary" onclick="document.getElementById('hub-file-upload').click()">Browse Files</button>
+                            <button class="btn-secondary" id="btn-browse-files" type="button">Browse Files</button>
                         </div>
 
                         <div id="upload-link-input" class="input-group mb-24 hidden">
@@ -765,7 +768,7 @@
                 <!-- VIEW: Folder Detail / Workspace -->
                 <section id="view-folder-detail" class="view-section hidden">
                     <div class="flex-between mb-24">
-                        <button class="btn-secondary" onclick="window.location.hash='folders'">← Back to Folders</button>
+                        <button class="btn-secondary" data-hash="folders">← Back to Folders</button>
                         <h2 id="workspace-title">Workspace</h2>
                     </div>
 
@@ -789,7 +792,7 @@
                 <!-- VIEW: Notes Reader -->
                 <section id="view-notes" class="view-section hidden">
                     <div class="glass-panel">
-                        <button class="btn-secondary mb-24" onclick="window.history.back()">← Back</button>
+                        <button class="btn-secondary mb-24" data-action="history-back">← Back</button>
                         <div id="notes-content" class="markdown-body" style="font-size: 1.1rem; line-height: 1.6;">
                             Loading notes...
                         </div>
@@ -799,7 +802,7 @@
                 <!-- VIEW: Flashcard Review -->
                 <section id="view-review" class="view-section hidden flex-col flex-center" style="min-height: 70vh;">
                     <div class="text-center mb-24" style="width: 100%; max-width: 600px;">
-                        <button class="btn-secondary pull-left" onclick="window.history.back()">← Exit Review</button>
+                        <button class="btn-secondary pull-left" data-action="history-back">← Exit Review</button>
                         <h2 id="review-deck-title">Flashcard Review</h2>
                         <p id="review-progress" class="opacity-70 mt-8">Card 1 of 10</p>
                     </div>
@@ -954,9 +957,9 @@
 
             <!-- Quick Action Chips for Turbo.ai feel -->
             <div class="chat-suggestions flex-gap" style="padding: 0 16px 12px; overflow-x: auto; white-space: nowrap;">
-                <button class="glass-pill cursor-pointer" onclick="document.getElementById('chat-input').value='What are my pending tasks?'; document.getElementById('btn-send-chat').click();" style="font-size: var(--fs-xs); padding: 6px 12px;">📝 What are my tasks?</button>
-                <button class="glass-pill cursor-pointer" onclick="document.getElementById('chat-input').value='Create a task to study for my next exam';" style="font-size: var(--fs-xs); padding: 6px 12px;">✨ Plan my study</button>
-                <button class="glass-pill cursor-pointer" onclick="document.getElementById('chat-input').value='Generate flashcards from my notes';" style="font-size: var(--fs-xs); padding: 6px 12px;">🗂️ Create flashcards</button>
+                <button class="glass-pill cursor-pointer" data-chat-prompt="What are my pending tasks?" data-chat-send="true" style="font-size: var(--fs-xs); padding: 6px 12px;">📝 What are my tasks?</button>
+                <button class="glass-pill cursor-pointer" data-chat-prompt="Create a task to study for my next exam" style="font-size: var(--fs-xs); padding: 6px 12px;">✨ Plan my study</button>
+                <button class="glass-pill cursor-pointer" data-chat-prompt="Generate flashcards from my notes" style="font-size: var(--fs-xs); padding: 6px 12px;">🗂️ Create flashcards</button>
             </div>
 
             <div

@@ -1,5 +1,10 @@
-import { UI, $ } from "./ui.js";
+import { UI, $, esc } from "./ui.js";
 import { Folders, Materials, Decks, Notes, Flashcards } from "./api.js";
+
+/** Only allow safe hex colors into inline style attributes */
+function safeColor(color, fallback = "#4A90E2") {
+  return /^#[0-9a-fA-F]{3,8}$/.test(String(color || "")) ? color : fallback;
+}
 
 /* =========================================================================
    ROUTER — Simple Hash-Based Navigation
@@ -10,6 +15,21 @@ export const Router = {
 
   init() {
     window.addEventListener("hashchange", () => this.handleHashChange());
+
+    // Delegated clicks for dynamically generated content.
+    // No inline onclick attributes — required for a strict CSP.
+    document.addEventListener("click", (e) => {
+      const navEl = e.target.closest("[data-hash]");
+      if (navEl) {
+        window.location.hash = navEl.dataset.hash;
+        return;
+      }
+      const actionEl = e.target.closest("[data-action]");
+      if (!actionEl) return;
+      if (actionEl.dataset.action === "new-folder") this.createNewFolder();
+      else if (actionEl.dataset.action === "history-back") window.history.back();
+    });
+
     // Trigger on first load
     this.handleHashChange();
   },
@@ -29,6 +49,8 @@ export const Router = {
       link.classList.remove("active");
       if (link.getAttribute("href") === `#${route}`) {
         link.classList.add("active");
+        UI._activeTab = route;
+        UI._updatePageTitle(link);
       }
     });
 
@@ -88,17 +110,17 @@ export const Router = {
           <div class="glass-panel text-center" style="grid-column: 1 / -1; padding: 40px;">
               <h3>No folders yet.</h3>
               <p class="opacity-70 mt-8 mb-16">Create a folder to start organizing your study materials.</p>
-              <button class="btn-primary" onclick="Router.createNewFolder()">+ Create Folder</button>
+              <button class="btn-primary" data-action="new-folder">+ Create Folder</button>
           </div>
         `;
       } else {
         container.innerHTML = folders.map(f => `
-          <div class="glass-panel stat-card cursor-pointer" style="border-top: 4px solid ${f.color}; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='none'" onclick="window.location.hash='folder-${f.id}'">
-            <h3>📁 ${f.name}</h3>
+          <div class="glass-panel stat-card cursor-pointer hover-lift" style="border-top: 4px solid ${safeColor(f.color)};" data-hash="folder-${encodeURIComponent(f.id)}">
+            <h3>📁 ${esc(f.name)}</h3>
             <p class="opacity-70 mt-8">View contents →</p>
           </div>
         `).join("") + `
-          <div class="glass-panel text-center cursor-pointer flex-center" style="border: 2px dashed rgba(255,255,255,0.2);" onclick="Router.createNewFolder()">
+          <div class="glass-panel text-center cursor-pointer flex-center" style="border: 2px dashed rgba(255,255,255,0.2);" data-action="new-folder">
             <h3>+ New Folder</h3>
           </div>
         `;
@@ -145,9 +167,9 @@ export const Router = {
         else if (m.type === "text") icon = "📝";
         
         return `
-          <div class="todo-item cursor-pointer" onclick="window.location.hash='notes-${m.id}'" style="display:flex; align-items:center; gap:12px; margin-bottom:8px; padding:12px; border-radius:var(--radius-md); background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.1)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.05)'">
+          <div class="todo-item cursor-pointer hover-bright" data-hash="notes-${encodeURIComponent(m.id)}" style="display:flex; align-items:center; gap:12px; margin-bottom:8px; padding:12px; border-radius:var(--radius-md); background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);">
             <span style="font-size:1.5rem;">${icon}</span>
-            <span class="todo-text" style="font-weight:500;">${m.title}</span>
+            <span class="todo-text" style="font-weight:500;">${esc(m.title)}</span>
           </div>
         `;
       }).join("");
@@ -157,8 +179,8 @@ export const Router = {
       decksList.innerHTML = "<p class='opacity-70'>No flashcard decks yet.</p>";
     } else {
       decksList.innerHTML = decks.map(d => `
-        <div class="todo-item cursor-pointer" onclick="window.location.hash='review-${d.id}'">
-          <span class="todo-text">🗂️ ${d.title}</span>
+        <div class="todo-item cursor-pointer" data-hash="review-${encodeURIComponent(d.id)}">
+          <span class="todo-text">🗂️ ${esc(d.title)}</span>
         </div>
       `).join("");
     }
@@ -242,8 +264,8 @@ export const Router = {
       
       const card = cards[currentIndex];
       progress.textContent = `Card ${currentIndex + 1} of ${cards.length}`;
-      front.innerHTML = card.front.replace(/\n/g, '<br/>');
-      back.innerHTML = card.back.replace(/\n/g, '<br/>');
+      front.innerHTML = esc(card.front).replace(/\n/g, '<br/>');
+      back.innerHTML = esc(card.back).replace(/\n/g, '<br/>');
       
       back.classList.add("hidden");
       controls.classList.add("hidden");
