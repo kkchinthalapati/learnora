@@ -3,6 +3,10 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'"
+        />
         <title>Verified | Learnora</title>
         <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap"
@@ -69,11 +73,6 @@
             </p>
             <div class="spinner"></div>
         </div>
-        <script>
-            // Smoothly redirects back to your main app while carrying the secure Supabase tokens
-            setTimeout(() => {
-                window.location.replace("index.html" + window.location.hash);
-            }, 3000);
-        </script>
+        <script src="verify.js"></script>
     </body>
 </html>

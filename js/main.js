@@ -323,23 +323,28 @@ function bindAuth() {
       if (ok === "verification-sent") {
         UI.setLoading("signup-btn", false);
         const form = $("signup-form");
-        if (form) {
-          const inputs = form.querySelectorAll("input, button");
-          inputs.forEach(el => el.disabled = true);
-        }
+        const inputs = form ? form.querySelectorAll("input, button") : [];
+        inputs.forEach((el) => (el.disabled = true));
         const btnText = $("signup-btn")?.querySelector(".btn-text");
         if (btnText) btnText.textContent = "Check your email inbox! ✉️";
-        
-        // Start background polling to automatically log in and refresh once confirmed.
-        // Poll every 10s, stop after 10 minutes — endless 5s polling can trip
-        // Supabase auth rate limits and lock the user out of real login attempts.
+
+        // Background poll: silently log in once the email is confirmed, then refresh.
+        // Every silent attempt is a real auth request that counts toward Supabase's
+        // rate limit, so we keep the cadence gentle: every 20s for ~5 minutes.
         if (window.authPollInterval) clearInterval(window.authPollInterval);
         let pollAttempts = 0;
-        const MAX_POLL_ATTEMPTS = 60;
+        const MAX_POLL_ATTEMPTS = 15;
         const pollInterval = setInterval(async () => {
           pollAttempts++;
           if (pollAttempts > MAX_POLL_ATTEMPTS) {
             clearInterval(pollInterval);
+            // Give up gracefully: re-enable the form so the user can log in manually.
+            inputs.forEach((el) => (el.disabled = false));
+            if (btnText) btnText.textContent = "Sign up";
+            UI.showPopup(
+              "Once you've clicked the confirmation link in your email, just log in normally.",
+              "Almost there",
+            );
             return;
           }
           try {
@@ -351,7 +356,7 @@ function bindAuth() {
           } catch (e) {
             // Suppress errors during polling
           }
-        }, 10000);
+        }, 20000);
 
         // Save interval to prevent multiple polling loops
         window.authPollInterval = pollInterval;
@@ -733,7 +738,7 @@ function renderCalendar() {
 
     examsForDate.slice(0, maxExamsToShow).forEach((exam) => {
       const bar = document.createElement("div");
-      bar.className = `exam-bar diff-${(exam.difficulty || "Medium").toLowerCase()} status-${(exam.status || "Pending").toLowerCase()}`;
+      bar.className = `exam-bar diff-${(exam.difficulty || "Medium").toLowerCase()} status-${(exam.status || "Scheduled").toLowerCase()}`;
       bar.textContent = exam.exam_name;
       bar.addEventListener("click", (evt) => {
         evt.stopPropagation();
@@ -935,7 +940,9 @@ function renderNextExam() {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().slice(0, 10);
+  // Use local-date formatting (matches the calendar). toISOString() converts to
+  // UTC and returns the wrong day for positive-offset timezones (e.g. IST).
+  const todayStr = formatDateStr(today.getFullYear(), today.getMonth(), today.getDate());
 
   const next = cachedExams
     .filter((e) => e.status !== "Completed" && e.exam_date >= todayStr)
@@ -1119,7 +1126,7 @@ function bindAI() {
 function initWorkspace() {
   loadTasks();
   loadCalendar();
-  Timer.init();
+  // Timer.init() is already called by bindTimer() during boot — no second init.
   AI.initDragDrop();
   startClock();
   window.addEventListener("sessionLogged", renderDashboard);
