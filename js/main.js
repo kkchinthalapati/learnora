@@ -1130,6 +1130,9 @@ function initWorkspace() {
   AI.initDragDrop();
   startClock();
   window.addEventListener("sessionLogged", renderDashboard);
+  // When the AI assistant creates tasks, refresh the Task Manager list and the
+  // dashboard's compact task widget (loadTasks() re-renders both).
+  window.addEventListener("tasksUpdated", loadTasks);
 }
 
 function startClock() {

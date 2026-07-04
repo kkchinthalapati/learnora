@@ -334,11 +334,16 @@ WORKSPACE STATE:
 ACTIVE VIEW:
 ${activeContext}
 
+GROUNDING RULES (important — follow exactly):
+- Only reference tasks and exams that appear in WORKSPACE STATE above. Never invent, assume, or hallucinate tasks, chapters, sections, or deadlines that are not listed there.
+- If "Pending Tasks" is "None", tell the student they have no pending tasks yet — do NOT make any up.
+- If the student mentions something you don't see in the workspace, say you don't see it rather than fabricating details.
+
 CAPABILITIES:
-- To create a task, output: <ADD_TASK>task text</ADD_TASK>
-- Answer questions about the student's current study material
-- Help with exam prep, concept explanations, and study strategies
-- Be conversational, supportive, and concise
+- To create a task, emit the tag <ADD_TASK>the task name</ADD_TASK>. The app executes this tag and displays it to the student as the task's name, so lead into it naturally (e.g. "Done — I've added this to your tasks: <ADD_TASK>Review Chapter 3</ADD_TASK>") and do not repeat the same name elsewhere in the sentence. Only create a task when the student clearly asks you to.
+- Answer questions about the student's current study material.
+- Help with exam prep, concept explanations, and study strategies.
+- Be conversational, supportive, and concise.
 
 User message: ${query}`;
 
@@ -372,22 +377,34 @@ User message: ${query}`;
       let responseText = data.text;
 
       // Parse and execute tool calls — capped so a prompt-injected
-      // document can't spam the workspace with hundreds of tasks
+      // document can't spam the workspace with hundreds of tasks.
+      // [\s\S] (not .) so a task name spanning a newline still matches.
       const MAX_TASKS_PER_REPLY = 10;
-      const addTaskRegex = /<ADD_TASK>(.*?)<\/ADD_TASK>/g;
+      const addTaskRegex = /<ADD_TASK>([\s\S]*?)<\/ADD_TASK>/g;
+      const addedTasks = [];
       let match;
-      let tasksAdded = 0;
       while ((match = addTaskRegex.exec(responseText)) !== null) {
         const taskText = match[1].trim();
-        if (taskText && tasksAdded < MAX_TASKS_PER_REPLY) {
-          await Tasks.add(taskText);
-          tasksAdded++;
+        if (taskText && addedTasks.length < MAX_TASKS_PER_REPLY) {
+          const ok = await Tasks.add(taskText);
+          if (ok) addedTasks.push(taskText);
         }
       }
-      responseText = responseText.replace(addTaskRegex, "").trim();
 
-      if (tasksAdded > 0) {
-        UI.showPopup(`Added ${tasksAdded} task(s) to your workspace!`, "Tasks Created");
+      // Replace each tag with the task name (bold) rather than stripping it
+      // wholesale — otherwise the sentence is left with a confusing blank like
+      // "I've created a task for you: ." Tags whose task failed to save (or
+      // were over the cap) are dropped.
+      responseText = responseText
+        .replace(addTaskRegex, (_, name) =>
+          addedTasks.includes(name.trim()) ? `**${name.trim()}**` : "")
+        .trim();
+
+      if (addedTasks.length > 0) {
+        // Notify the rest of the app so the Task Manager + dashboard re-render,
+        // mirroring the manual add-task flow (which calls loadTasks()).
+        window.dispatchEvent(new Event("tasksUpdated"));
+        UI.showPopup(`Added ${addedTasks.length} task(s) to your workspace!`, "Tasks Created");
       }
 
       // Check if response is flashcard JSON
