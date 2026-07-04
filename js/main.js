@@ -447,28 +447,59 @@ function bindTimer() {
   $("btn-timer-pause")?.addEventListener("click", () => Timer.pause());
   $("btn-timer-reset")?.addEventListener("click", () => Timer.reset());
   $("btn-timer-extend")?.addEventListener("click", () => Timer.extend());
+  $("btn-timer-break")?.addEventListener("click", () => Timer.takeBreak());
 
-  $("btn-apply-timer")?.addEventListener("click", () => {
-    Timer.applyConfig(
-      parseInt($("config-focus")?.value || "25", 10),
-      parseInt($("config-short")?.value || "5", 10),
-      parseInt($("config-long")?.value || "15", 10),
-      parseInt($("config-cycles")?.value || "4", 10),
-    );
+  // Timer-type selector. While a timer runs, switching type never cancels it —
+  // it's staged and the config panel switches to that type for setup.
+  document.querySelectorAll('input[name="timer-type"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      if (!radio.checked) return;
+      if (Timer.isRunning()) Timer.stageType(radio.value);
+      else Timer.applyNow(Timer.readInputs(), radio.value);
+    });
   });
 
-  // Presets — event delegation
+  // Apply & Reset — the one explicit "switch now" action. If a timer is
+  // running, confirm before we tear it down.
+  $("btn-apply-timer")?.addEventListener("click", async () => {
+    const type = Timer.stagedType() || Timer.currentType();
+    if (Timer.isRunning()) {
+      const ok = await UI.confirm(
+        "A timer is currently running. Switch to these settings and reset it now?",
+        {
+          title: "Timer running",
+          confirmText: "Reset & switch",
+          cancelText: "Keep running",
+          danger: true,
+        },
+      );
+      if (!ok) return;
+    }
+    Timer.applyNow(Timer.readInputs(), type);
+  });
+
+  // Workflow presets (Pomodoro durations) — event delegation.
   document.querySelector(".preset-buttons")?.addEventListener("click", (e) => {
     const btn = e.target.closest(".btn-preset");
     if (!btn) return;
     const presets = {
-      deep: [90, 15, 30, 4],
-      cram: [45, 10, 20, 4],
-      light: [20, 5, 15, 4],
+      deep: { focus: 90, short: 15, long: 30, maxCycles: 4 },
+      cram: { focus: 45, short: 10, long: 20, maxCycles: 4 },
+      light: { focus: 20, short: 5, long: 15, maxCycles: 4 },
     };
     const p = presets[btn.dataset.preset];
-    if (p) Timer.applyConfig(...p);
+    if (!p) return;
+    // Staged while running (won't cancel the active timer), applied when idle.
+    if (Timer.isRunning()) Timer.stagePreset(p, "pomodoro");
+    else Timer.applyNow(p, "pomodoro");
   });
+
+  // Persistent mini-timer controls.
+  $("mini-timer-open")?.addEventListener("click", () => UI.switchTab("timer"));
+  $("mini-timer-toggle")?.addEventListener("click", () => Timer.toggle());
+
+  // Keep the mini-timer's show/hide in sync as the user navigates views.
+  window.addEventListener("hashchange", () => Timer.updateUI());
 }
 
 /* =========================================================================

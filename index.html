@@ -424,6 +424,47 @@
                 <section id="view-timer" class="view-section hidden">
                     <div class="timer-layout">
                         <div class="config-panel glass-panel">
+                            <div
+                                class="segmented timer-type-seg"
+                                role="radiogroup"
+                                aria-label="Timer type"
+                            >
+                                <label class="segmented-option"
+                                    ><input
+                                        type="radio"
+                                        name="timer-type"
+                                        value="pomodoro"
+                                        checked
+                                    />Pomodoro</label
+                                >
+                                <label class="segmented-option"
+                                    ><input
+                                        type="radio"
+                                        name="timer-type"
+                                        value="countdown"
+                                    />Countdown</label
+                                >
+                                <label class="segmented-option"
+                                    ><input
+                                        type="radio"
+                                        name="timer-type"
+                                        value="stopwatch"
+                                    />Stopwatch</label
+                                >
+                                <label class="segmented-option"
+                                    ><input
+                                        type="radio"
+                                        name="timer-type"
+                                        value="flowtime"
+                                    />Flowtime</label
+                                >
+                            </div>
+                            <p
+                                id="timer-stage-hint"
+                                class="timer-stage-hint hidden"
+                            ></p>
+
+                            <div id="cfg-pomodoro">
                             <h3 data-i18n="timer_presets">Workflow Presets</h3>
                             <div class="preset-buttons">
                                 <button
@@ -487,6 +528,45 @@
                                     class="small-input"
                                     aria-label="Timer Cycles"
                             /></label>
+                            </div>
+                            <!-- /cfg-pomodoro -->
+
+                            <div id="cfg-countdown" class="hidden">
+                                <h3>Countdown</h3>
+                                <label class="flex-between mb-16"
+                                    ><span>Duration (mins)</span
+                                    ><input
+                                        type="number"
+                                        id="config-countdown"
+                                        value="15"
+                                        min="1"
+                                        class="small-input"
+                                        aria-label="Countdown Minutes"
+                                /></label>
+                                <p class="timer-type-note opacity-70">
+                                    A single timed block — no break cycles. It
+                                    rings and logs your session when it reaches
+                                    zero.
+                                </p>
+                            </div>
+
+                            <div id="cfg-stopwatch" class="hidden">
+                                <h3>Stopwatch</h3>
+                                <p class="timer-type-note opacity-70">
+                                    Open-ended count-up for flow sessions. Start
+                                    it and focus — “Stop &amp; log” records the
+                                    minutes you studied.
+                                </p>
+                            </div>
+
+                            <div id="cfg-flowtime" class="hidden">
+                                <h3>Flowtime</h3>
+                                <p class="timer-type-note opacity-70">
+                                    Focus as long as you like, then hit “Take a
+                                    break”. You’ll get a break about a fifth as
+                                    long, then it loops back to focus.
+                                </p>
+                            </div>
 
                             <label class="flex-between mt-16 task-binder"
                                 ><span data-i18n="config_task"
@@ -558,6 +638,12 @@
                                     class="btn-secondary"
                                 >
                                     +5 min
+                                </button>
+                                <button
+                                    id="btn-timer-break"
+                                    class="btn-secondary hidden"
+                                >
+                                    Take a break →
                                 </button>
                                 <button
                                     id="btn-timer-reset"
@@ -1032,6 +1118,42 @@
         >
             AI
         </button>
+
+        <!-- Persistent mini-timer — visible on every view while a timer runs -->
+        <div
+            id="mini-timer"
+            class="mini-timer hidden glass-panel"
+            role="status"
+            aria-live="polite"
+        >
+            <button
+                id="mini-timer-open"
+                class="mini-timer-main"
+                aria-label="Open the timer"
+            >
+                <span class="mini-timer-dot" aria-hidden="true"></span>
+                <span class="mini-timer-text">
+                    <span id="mini-timer-label" class="mini-timer-label"
+                        >Focus</span
+                    >
+                    <span id="mini-timer-time" class="mini-timer-time"
+                        >25:00</span
+                    >
+                </span>
+            </button>
+            <button
+                id="mini-timer-toggle"
+                class="mini-timer-btn"
+                aria-label="Pause timer"
+            >
+                ⏸
+            </button>
+            <span
+                id="mini-timer-bar"
+                class="mini-timer-bar"
+                aria-hidden="true"
+            ></span>
+        </div>
 
         <div id="turbo-chat" class="hidden glass-panel ai-modal">
             <div id="drag-overlay" class="hidden flex-center">
