@@ -134,12 +134,27 @@ export const AI = {
      FLASHCARD JSON EXTRACTION — hardened parser with multiple fallbacks
      ========================================================================= */
 
+  _decodeBase64UTF8(base64Str) {
+    const binaryString = atob(base64Str);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
+  },
+
   _extractFlashcardJSON(text) {
     if (!text) return [];
 
+    const sanitizeJSON = (str) => {
+      // Remove trailing commas from arrays and objects
+      return str.replace(/,(\s*[\]}])/g, '$1');
+    };
+
     // Strategy 1: Direct JSON.parse of trimmed text
     try {
-      const trimmed = text.trim();
+      const trimmed = sanitizeJSON(text.trim());
       if (trimmed.startsWith("[")) {
         const parsed = JSON.parse(trimmed);
         if (Array.isArray(parsed) && parsed.length && parsed[0].front) return parsed;
@@ -149,6 +164,7 @@ export const AI = {
     // Strategy 2: Strip markdown code fences
     try {
       let cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+      cleaned = sanitizeJSON(cleaned);
       if (cleaned.startsWith("[")) {
         const parsed = JSON.parse(cleaned);
         if (Array.isArray(parsed) && parsed.length && parsed[0].front) return parsed;
@@ -160,7 +176,8 @@ export const AI = {
       const start = text.indexOf("[");
       const end = text.lastIndexOf("]");
       if (start !== -1 && end > start) {
-        const parsed = JSON.parse(text.substring(start, end + 1));
+        const cleaned = sanitizeJSON(text.substring(start, end + 1));
+        const parsed = JSON.parse(cleaned);
         if (Array.isArray(parsed) && parsed.length && parsed[0].front) return parsed;
       }
     } catch {}
@@ -217,7 +234,7 @@ Do NOT wrap in code fences. Do NOT add any text before or after the JSON array.`
       // Handle text/plain content (URLs, raw text) — Gemini rejects text/plain as inlineData
       if (fileDataPayload && fileDataPayload.mimeType === "text/plain") {
         try {
-          const decoded = atob(fileDataPayload.data);
+          const decoded = this._decodeBase64UTF8(fileDataPayload.data);
 
           // Detect YouTube URLs — be honest about limitations
           if (decoded.match(/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//)) {
@@ -323,6 +340,19 @@ Do NOT wrap in code fences. Do NOT add any text before or after the JSON array.`
       activeContext = "User is doing flashcard review. Be encouraging and supportive!";
     }
 
+    // Handle text/plain content in chat file upload
+    let filePayload = this.currentFile;
+    let appendedFileContext = "";
+    if (this.currentFile && this.currentFile.mimeType === "text/plain") {
+      try {
+        const decodedText = this._decodeBase64UTF8(this.currentFile.data);
+        appendedFileContext = `\n\nThe student attached a text file "${this.currentFile.name}" with the following content:\n"""\n${decodedText}\n"""`;
+        filePayload = null; // Don't send as binary attachment to Edge function
+      } catch (e) {
+        console.error("[AI.send] Failed to decode chat text file payload:", e);
+      }
+    }
+
     // Build the injected system context
     const systemContext = `[SYSTEM — Learnora AI Workspace Assistant]
 You are Learnora AI, an expert study assistant embedded in the student's workspace.
@@ -332,7 +362,7 @@ WORKSPACE STATE:
 - Upcoming Exams: ${upcomingExams}
 
 ACTIVE VIEW:
-${activeContext}
+${activeContext}${appendedFileContext}
 
 GROUNDING RULES (important — follow exactly):
 - Only reference tasks and exams that appear in WORKSPACE STATE above. Never invent, assume, or hallucinate tasks, chapters, sections, or deadlines that are not listed there.
@@ -368,7 +398,7 @@ User message: ${query}`;
     try {
       const data = await this._callEdge({
         history: requestHistory,
-        file: this.currentFile,
+        file: filePayload,
         settings: UI.loadSettings(),
       });
 
@@ -466,6 +496,14 @@ User message: ${query}`;
   _tryRenderFlashcards(text) {
     const cards = this._extractFlashcardJSON(text);
     if (cards.length === 0) return false;
+
+    // Avoid hijacking the UI if the response is conversational and just includes a small sample
+    const trimmed = text.trim();
+    const isConversational = trimmed.length > 0 && !trimmed.startsWith("[") && !trimmed.startsWith("```");
+    if (isConversational && cards.length < 3) {
+      return false; 
+    }
+
     this._renderFlashcards(cards);
     return true;
   },
