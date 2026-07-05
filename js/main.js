@@ -213,10 +213,28 @@ function bindAuth() {
   let signingUp = false;
   let loggingIn = false;
 
+  // Keep the shared brand header in sync with the active auth view.
+  const setAuthHeader = (title, sub) => {
+    const h1 = document.querySelector(".brand-header h1");
+    const p = document.querySelector(".brand-header p");
+    if (h1) h1.textContent = title;
+    if (p) p.textContent = sub;
+  };
+
   // Auto-refresh when session is established, but only if the user is currently on the auth wall
   supabase.auth.onAuthStateChange((event, session) => {
     const authWallVisible = !$("auth-wall")?.classList.contains("hidden");
-    if (session?.user && authWallVisible) {
+    if (event === "PASSWORD_RECOVERY") {
+      $("auth-wall")?.classList.remove("hidden");
+      const mainApp = $("main-app");
+      if (mainApp) mainApp.style.display = "none";
+      
+      $$(".auth-form").forEach(f => f.classList.add("hidden"));
+      $("reset-password-form")?.classList.remove("hidden");
+      setAuthHeader("Reset Password", "Choose a strong, new password.");
+      return;
+    }
+    if (session?.user && authWallVisible && event !== "PASSWORD_RECOVERY") {
       window.location.reload();
     }
   });
@@ -236,18 +254,19 @@ function bindAuth() {
   });
 
   // Password strength logic
-  const signupPass = $("signup-password");
-  const strengthContainer = $("password-strength-container");
-  const strengthText = $("strength-text");
+  const bindStrengthMeter = (inputId, containerId, textId) => {
+    const inputEl = $(inputId);
+    const containerEl = $(containerId);
+    const textEl = $(textId);
+    if (!inputEl || !containerEl || !textEl) return;
 
-  if (signupPass) {
-    signupPass.addEventListener("input", (e) => {
+    inputEl.addEventListener("input", (e) => {
       const val = e.target.value;
       if (!val) {
-        strengthContainer.classList.add("hidden");
+        containerEl.classList.add("hidden");
         return;
       }
-      strengthContainer.classList.remove("hidden");
+      containerEl.classList.remove("hidden");
       
       let score = 0;
       if (val.length >= 8) score++;
@@ -255,22 +274,25 @@ function bindAuth() {
       if (/\d/.test(val)) score++;
       if (/[^A-Za-z0-9]/.test(val)) score++;
 
-      strengthContainer.className = "password-strength-container"; // reset
+      containerEl.className = "password-strength-container"; // reset
       if (score <= 1 || val.length < 8) {
-        strengthContainer.classList.add("strength-weak");
-        strengthText.textContent = "Too Weak (Need 8+ chars & mix)";
+        containerEl.classList.add("strength-weak");
+        textEl.textContent = "Too Weak (Need 8+ chars & mix)";
       } else if (score === 2) {
-        strengthContainer.classList.add("strength-fair");
-        strengthText.textContent = "Fair";
+        containerEl.classList.add("strength-fair");
+        textEl.textContent = "Fair";
       } else if (score === 3) {
-        strengthContainer.classList.add("strength-good");
-        strengthText.textContent = "Good";
+        containerEl.classList.add("strength-good");
+        textEl.textContent = "Good";
       } else {
-        strengthContainer.classList.add("strength-strong");
-        strengthText.textContent = "Strong";
+        containerEl.classList.add("strength-strong");
+        textEl.textContent = "Strong";
       }
     });
-  }
+  };
+
+  bindStrengthMeter("signup-password", "password-strength-container", "strength-text");
+  bindStrengthMeter("reset-password", "reset-password-strength-container", "reset-strength-text");
 
   $("login-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -374,24 +396,63 @@ function bindAuth() {
     signingUp = false;
   });
 
-  // Keep the shared brand header in sync with the active auth view.
-  const setAuthHeader = (title, sub) => {
-    const h1 = document.querySelector(".brand-header h1");
-    const p = document.querySelector(".brand-header p");
-    if (h1) h1.textContent = title;
-    if (p) p.textContent = sub;
-  };
-
   $("btn-show-signup")?.addEventListener("click", () => {
-    $("login-form")?.classList.add("hidden");
+    $$(".auth-form").forEach(f => f.classList.add("hidden"));
     $("signup-form")?.classList.remove("hidden");
     setAuthHeader("Create your account", "Start studying smarter in minutes.");
   });
 
   $("btn-show-login")?.addEventListener("click", () => {
-    $("signup-form")?.classList.add("hidden");
+    $$(".auth-form").forEach(f => f.classList.add("hidden"));
     $("login-form")?.classList.remove("hidden");
     setAuthHeader("Welcome back", "Sign in to your study workspace.");
+  });
+
+  $("btn-show-forgot")?.addEventListener("click", () => {
+    $$(".auth-form").forEach(f => f.classList.add("hidden"));
+    $("forgot-password-form")?.classList.remove("hidden");
+    setAuthHeader("Reset Password", "We'll send you a recovery link.");
+  });
+
+  $("btn-show-login-from-forgot")?.addEventListener("click", () => {
+    $$(".auth-form").forEach(f => f.classList.add("hidden"));
+    $("login-form")?.classList.remove("hidden");
+    setAuthHeader("Welcome back", "Sign in to your study workspace.");
+  });
+
+  $("forgot-password-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    UI.setLoading("forgot-btn", true);
+    const email = $("forgot-email").value.trim();
+    const ok = await Auth.resetPasswordRequest(email);
+    UI.setLoading("forgot-btn", false);
+    if (ok) {
+      UI.showPopup("If an account exists, a reset link has been sent to your email.", "Check Your Email");
+      $("btn-show-login-from-forgot")?.click(); // Go back to login
+    }
+  });
+
+  $("reset-password-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const pass = $("reset-password").value;
+    const confirmPass = $("reset-confirm-password").value;
+
+    if (pass.length < 8) {
+      UI.showPopup("Password must be at least 8 characters long.", "Weak Password");
+      return;
+    }
+    if (pass !== confirmPass) {
+      UI.showPopup("Passwords do not match. Please re-enter them.", "Password Mismatch");
+      return;
+    }
+
+    UI.setLoading("reset-btn", true);
+    const ok = await Auth.updatePassword(pass);
+    UI.setLoading("reset-btn", false);
+    if (ok) {
+      UI.showPopup("Your password has been updated successfully. You are now logged in.", "Password Updated");
+      window.location.reload();
+    }
   });
 
   $("btn-logout")?.addEventListener("click", Auth.logout);
@@ -425,7 +486,33 @@ function bindNavigation() {
 
 function bindSettings() {
   $("btn-save-settings")?.addEventListener("click", () => UI.saveSettings());
-  $("btn-export-data")?.addEventListener("click", DataAdmin.exportCSV);
+  $("btn-export-data")?.addEventListener("click", async () => {
+    const ok = await UI.confirm(
+      "Download a CSV copy of all your study logs and tasks to your device?",
+      { title: "Export Data?", confirmText: "Export" }
+    );
+    if (ok) DataAdmin.exportCSV();
+  });
+
+  $("btn-change-email")?.addEventListener("click", async () => {
+    const newEmail = $("settings-new-email")?.value.trim();
+    if (!newEmail || !newEmail.includes("@")) {
+      UI.showPopup("Please enter a valid email address.", "Invalid Email");
+      return;
+    }
+    const btn = $("btn-change-email");
+    const originalText = btn.textContent;
+    btn.textContent = "Updating...";
+    btn.disabled = true;
+
+    const ok = await Auth.updateEmail(newEmail);
+    if (ok) {
+      UI.showPopup("A verification link has been sent to your new email address. Please check your inbox to confirm the change.", "Check Your Email");
+      if ($("settings-new-email")) $("settings-new-email").value = "";
+    }
+    btn.textContent = originalText;
+    btn.disabled = false;
+  });
 
   $("btn-wipe-data")?.addEventListener("click", async () => {
     const ok = await UI.confirm(

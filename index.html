@@ -59,7 +59,10 @@
                                 />
                             </div>
                             <div class="input-group">
-                                <label for="login-password">Password</label>
+                                <div class="flex-between">
+                                    <label for="login-password">Password</label>
+                                    <span class="auth-link" id="btn-show-forgot" style="font-size: var(--fs-xs);">Forgot Password?</span>
+                                </div>
                                 <div class="password-wrapper">
                                     <input
                                         type="password"
@@ -86,6 +89,88 @@
                                     >Create an account</span
                                 >
                             </p>
+                        </form>
+
+                        <!-- Forgot Password Form -->
+                        <form id="forgot-password-form" class="auth-form hidden">
+                            <p class="mb-16 opacity-70">Enter your email address and we'll send you a link to reset your password.</p>
+                            <div class="input-group">
+                                <label for="forgot-email">Email</label>
+                                <input
+                                    type="email"
+                                    id="forgot-email"
+                                    placeholder="you@email.com"
+                                    autocomplete="email"
+                                    aria-label="Email Address"
+                                    required
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                class="btn-primary full-width mt-16"
+                                id="forgot-btn"
+                            >
+                                <span class="btn-text">Send Reset Link →</span>
+                                <div class="loader hidden"></div>
+                            </button>
+                            <p class="toggle-text">
+                                Remembered your password?
+                                <span class="auth-link" id="btn-show-login-from-forgot"
+                                    >Log In</span
+                                >
+                            </p>
+                        </form>
+
+                        <!-- Reset Password Form (Triggered via link) -->
+                        <form id="reset-password-form" class="auth-form hidden">
+                            <p class="mb-16 opacity-70">Create a new password for your account.</p>
+                            <div class="input-group">
+                                <label for="reset-password">New Password</label>
+                                <div class="password-wrapper">
+                                    <input
+                                        type="password"
+                                        id="reset-password"
+                                        placeholder="Min 8 characters"
+                                        autocomplete="new-password"
+                                        aria-label="New Password"
+                                        required
+                                        minlength="8"
+                                    />
+                                    <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility">Show</button>
+                                </div>
+                                <div class="password-strength-container hidden" id="reset-password-strength-container">
+                                    <div class="strength-bars">
+                                        <div class="strength-segment"></div>
+                                        <div class="strength-segment"></div>
+                                        <div class="strength-segment"></div>
+                                        <div class="strength-segment"></div>
+                                    </div>
+                                    <span id="reset-strength-text" class="strength-text">Too Weak</span>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="reset-confirm-password">Confirm Password</label>
+                                <div class="password-wrapper">
+                                    <input
+                                        type="password"
+                                        id="reset-confirm-password"
+                                        placeholder="Re-enter new password"
+                                        autocomplete="new-password"
+                                        aria-label="Confirm Password"
+                                        required
+                                        minlength="8"
+                                    />
+                                    <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility">Show</button>
+                                </div>
+                            </div>
+                            <button
+                                type="submit"
+                                class="btn-primary full-width mt-16"
+                                id="reset-btn"
+                            >
+                                <span class="btn-text">Update Password →</span>
+                                <div class="loader hidden"></div>
+                            </button>
                         </form>
 
                         <!-- Signup Form -->
@@ -839,6 +924,15 @@
                         <hr class="sidebar-divider mt-24 mb-24" />
 
                         <h2 class="text-danger">🚪 Account Access</h2>
+                        <div class="setting-row flex-between danger-zone mb-16" style="flex-wrap: wrap; gap: 16px;">
+                            <p class="text-danger" style="flex: 1 1 100%;">
+                                Change the email address associated with your account.
+                            </p>
+                            <input type="email" id="settings-new-email" placeholder="New email address" class="small-input" style="flex: 1;" />
+                            <button id="btn-change-email" class="btn-danger">
+                                Change Email
+                            </button>
+                        </div>
                         <div class="setting-row flex-between danger-zone">
                             <p class="text-danger">
                                 Securely log out of your current session on this

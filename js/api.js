@@ -186,6 +186,50 @@ export const Auth = {
       return null;
     }
   },
+
+  async resetPasswordRequest(email) {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + window.location.pathname,
+      });
+      if (error) {
+        UI.showPopup(friendlyAuthError(error), "Reset Failed");
+        return false;
+      }
+      return true;
+    } catch (e) {
+      UI.showPopup(friendlyAuthError(e), "Reset Failed");
+      return false;
+    }
+  },
+
+  async updatePassword(newPassword) {
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        UI.showPopup(friendlyAuthError(error), "Update Failed");
+        return false;
+      }
+      return true;
+    } catch (e) {
+      UI.showPopup(friendlyAuthError(e), "Update Failed");
+      return false;
+    }
+  },
+
+  async updateEmail(newEmail) {
+    try {
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) {
+        UI.showPopup(friendlyAuthError(error), "Email Update Failed");
+        return false;
+      }
+      return true;
+    } catch (e) {
+      UI.showPopup(friendlyAuthError(e), "Email Update Failed");
+      return false;
+    }
+  },
 };
 
 /* =========================================================================
