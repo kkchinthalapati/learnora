@@ -51,26 +51,41 @@ export const AI = {
      EDGE FUNCTION CALLER — with retry logic
      ========================================================================= */
 
-  async _callEdge(payload, retries = MAX_RETRIES) {
+  async _callEdgeStream(payload, onChunk, retries = MAX_RETRIES) {
+    // Uses raw fetch to the edge function URL so we can consume the stream
+    const edgeUrl = "https://mlvgqwqiynpwpwzqufdf.supabase.co/functions/v1/learnora-ai";
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token;
+    
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        const { data, error } = await supabase.functions.invoke("learnora-ai", {
-          body: payload,
+        const response = await fetch(edgeUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : undefined
+          },
+          body: JSON.stringify(payload)
         });
 
-        if (error) throw new Error(error.message || "Edge function error");
-        if (!data || !data.text) throw new Error("Empty response from AI");
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let fullText = "";
 
-        return data;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          fullText += chunk;
+          if (onChunk) onChunk(fullText, chunk);
+        }
+        
+        return { text: fullText };
       } catch (err) {
         const isLast = attempt === retries;
-        const isRetryable = err.message?.includes("429") ||
-                            err.message?.includes("503") ||
-                            err.message?.includes("timeout") ||
-                            err.message?.includes("fetch");
-
-        if (isLast || !isRetryable) throw err;
-
+        if (isLast) throw err;
         console.warn(`[AI] Retry ${attempt + 1}/${retries}: ${err.message}`);
         await new Promise(r => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
       }
@@ -126,6 +141,14 @@ export const AI = {
 
     // Newlines to <br> (but not inside code blocks — already handled)
     html = html.replace(/\n/g, '<br/>');
+
+    // Protect HTML widgets created during preprocessing (e.g. AI action widgets)
+    html = html.replace(/&lt;div class="ai-widget"&gt;/g, '<div class="ai-widget">')
+               .replace(/&lt;\/div&gt;/g, '</div>')
+               .replace(/&lt;span class="ai-widget-icon"&gt;/g, '<span class="ai-widget-icon">')
+               .replace(/&lt;\/span&gt;/g, '</span>')
+               .replace(/&lt;strong&gt;/g, '<strong>')
+               .replace(/&lt;\/strong&gt;/g, '</strong>');
 
     return html;
   },
@@ -248,11 +271,11 @@ Do NOT wrap in code fences. Do NOT add any text before or after the JSON array.`
         }
       }
 
-      const data = await this._callEdge({
+      const data = await this._callEdgeStream({
         history: [{ role: "user", content: prompt }],
         file: filePayload,
         settings: UI.loadSettings(),
-      });
+      }, null);
 
       const responseText = data.text;
 
@@ -396,62 +419,107 @@ User message: ${query}`;
     ];
 
     try {
-      const data = await this._callEdge({
+      const bubbleId = 'ai-msg-' + Date.now();
+      const typingBubble = this._appendBubble('<span class="streaming-pulse"></span>', "ai-bubble", true, bubbleId);
+      const modal = $("turbo-chat");
+      if (modal) modal.classList.add("streaming");
+
+      let currentText = "";
+      const MAX_TASKS_PER_REPLY = 10;
+      const addedTasks = [];
+
+      const data = await this._callEdgeStream({
         history: requestHistory,
         file: filePayload,
         settings: UI.loadSettings(),
+      }, async (fullText) => {
+         currentText = fullText;
+         // Strip tags during streaming so user doesn't see them being typed out
+         let display = fullText.replace(/<ADD_TASK>[\s\S]*?<\/ADD_TASK>/g, "")
+                               .replace(/<START_TIMER>[\s\S]*?<\/START_TIMER>/g, "")
+                               .replace(/<SET_THEME>[\s\S]*?<\/SET_THEME>/g, "");
+         
+         typingBubble.innerHTML = this.renderMarkdown(display) + '<span class="streaming-pulse"></span>';
+         msgBox.scrollTop = msgBox.scrollHeight;
       });
 
+      if (modal) modal.classList.remove("streaming");
       typing.classList.add("hidden");
 
-      let responseText = data.text;
-
-      // Parse and execute tool calls — capped so a prompt-injected
-      // document can't spam the workspace with hundreds of tasks.
-      // [\s\S] (not .) so a task name spanning a newline still matches.
-      const MAX_TASKS_PER_REPLY = 10;
+      let finalResponse = currentText;
+      
+      // Parse <ADD_TASK>
       const addTaskRegex = /<ADD_TASK>([\s\S]*?)<\/ADD_TASK>/g;
-      const addedTasks = [];
       let match;
-      while ((match = addTaskRegex.exec(responseText)) !== null) {
+      while ((match = addTaskRegex.exec(currentText)) !== null) {
         const taskText = match[1].trim();
         if (taskText && addedTasks.length < MAX_TASKS_PER_REPLY) {
-          const ok = await Tasks.add(taskText);
-          if (ok) addedTasks.push(taskText);
+          await Tasks.add(taskText);
+          addedTasks.push(taskText);
         }
       }
 
-      // Replace each tag with the task name (bold) rather than stripping it
-      // wholesale — otherwise the sentence is left with a confusing blank like
-      // "I've created a task for you: ." Tags whose task failed to save (or
-      // were over the cap) are dropped.
-      responseText = responseText
-        .replace(addTaskRegex, (_, name) =>
-          addedTasks.includes(name.trim()) ? `**${name.trim()}**` : "")
+      // Parse <START_TIMER>
+      const startTimerRegex = /<START_TIMER>(\d+)<\/START_TIMER>/g;
+      if ((match = startTimerRegex.exec(currentText)) !== null) {
+         const mins = parseInt(match[1]);
+         if (!isNaN(mins)) {
+           // Simulate clicking the timer tab and starting it
+           const focusInput = $("config-focus");
+           if (focusInput) focusInput.value = mins;
+           const typeRadio = document.querySelector('input[name="timer-type"][value="countdown"]');
+           if (typeRadio) typeRadio.checked = true;
+           UI.switchTab("timer");
+           
+           // If UI script can listen, great. Otherwise we manually trigger:
+           const applyBtn = $("btn-apply-timer");
+           const startBtn = $("btn-timer-start");
+           if (applyBtn) applyBtn.click();
+           setTimeout(() => { if (startBtn) startBtn.click(); }, 300);
+         }
+      }
+      
+      // Parse <SET_THEME>
+      const themeRegex = /<SET_THEME>(dark|light)<\/SET_THEME>/gi;
+      if ((match = themeRegex.exec(currentText)) !== null) {
+         const theme = match[1].toLowerCase();
+         if (theme === 'light') {
+           document.body.classList.remove("dark-theme");
+           document.body.classList.add("light-theme");
+         } else {
+           document.body.classList.remove("light-theme");
+           document.body.classList.add("dark-theme");
+         }
+      }
+
+      // Replace tags with beautiful action widgets
+      finalResponse = finalResponse
+        .replace(addTaskRegex, (_, name) => `<div class="ai-widget"><span class="ai-widget-icon">✅</span> Added task: <strong>${esc(name.trim())}</strong></div>`)
+        .replace(startTimerRegex, (_, mins) => `<div class="ai-widget"><span class="ai-widget-icon">⏱️</span> Started focus timer for ${mins}m</div>`)
+        .replace(themeRegex, (_, theme) => `<div class="ai-widget"><span class="ai-widget-icon">🎨</span> Theme changed to ${theme} mode</div>`)
         .trim();
 
       if (addedTasks.length > 0) {
-        // Notify the rest of the app so the Task Manager + dashboard re-render,
-        // mirroring the manual add-task flow (which calls loadTasks()).
         window.dispatchEvent(new Event("tasksUpdated"));
         UI.showPopup(`Added ${addedTasks.length} task(s) to your workspace!`, "Tasks Created");
       }
 
       // Check if response is flashcard JSON
-      if (this._tryRenderFlashcards(responseText)) {
-        // Keep history consistent so follow-up messages have context
+      if (this._tryRenderFlashcards(finalResponse)) {
         this.chatHistory.push({ role: "model", content: "[Generated a set of flashcards for the student]" });
+        typingBubble.remove();
         return;
       }
 
-      // Store and render
-      this.chatHistory.push({ role: "model", content: responseText });
-      if (responseText.trim().length > 0) {
-        // Always use the local renderer — it HTML-escapes before formatting,
-        // unlike marked.parse() which passes raw HTML through (XSS risk)
-        const rendered = this.renderMarkdown(responseText);
-        this._appendBubble(rendered, "ai-bubble", true);
+      // Store and render final markdown (widgets are protected in renderMarkdown)
+      this.chatHistory.push({ role: "model", content: currentText });
+      if (finalResponse.length > 0) {
+        typingBubble.innerHTML = this.renderMarkdown(finalResponse);
+      } else {
+        typingBubble.remove();
       }
+      
+      msgBox.scrollTop = msgBox.scrollHeight;
     } catch (err) {
       typing.classList.add("hidden");
       this._appendBubble(
@@ -476,6 +544,11 @@ User message: ${query}`;
     const bubble = document.createElement("div");
     bubble.className = `chat-bubble ${className}`;
     bubble.setAttribute("role", "log");
+    
+    // Add optional ID so we can retrieve it to update streaming text
+    if (arguments.length > 3 && arguments[3]) {
+        bubble.id = arguments[3];
+    }
 
     if (isHTML) {
       bubble.innerHTML = content;
@@ -487,6 +560,8 @@ User message: ${query}`;
     requestAnimationFrame(() => {
       msgBox.scrollTop = msgBox.scrollHeight;
     });
+    
+    return bubble;
   },
 
   /* =========================================================================
@@ -653,5 +728,54 @@ User message: ${query}`;
     header.addEventListener("touchend", () => {
       isDragging = false;
     }, { passive: true });
+    
+    // Voice Input Integration
+    const voiceBtn = $("btn-ai-voice");
+    const chatInput = $("chat-input");
+    if (voiceBtn && chatInput && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      
+      let isRecording = false;
+      
+      recognition.onstart = () => {
+        isRecording = true;
+        voiceBtn.innerHTML = '<span class="streaming-pulse" style="background:#fff;"></span>';
+        voiceBtn.style.background = 'rgba(239, 68, 68, 0.8)';
+        chatInput.placeholder = "Listening...";
+      };
+      
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        chatInput.value += (chatInput.value ? " " : "") + transcript;
+      };
+      
+      recognition.onerror = (e) => {
+        console.error("Speech recognition error:", e);
+      };
+      
+      recognition.onend = () => {
+        isRecording = false;
+        voiceBtn.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>';
+        voiceBtn.style.background = 'transparent';
+        chatInput.placeholder = "Ask anything or request flashcards...";
+        
+        // Auto-send if there's text
+        if (chatInput.value.trim() !== "") {
+          const sendBtn = $("btn-send-chat");
+          if (sendBtn) sendBtn.click();
+        }
+      };
+      
+      voiceBtn.addEventListener("click", () => {
+        if (isRecording) {
+          recognition.stop();
+        } else {
+          recognition.start();
+        }
+      });
+    }
   },
 };
