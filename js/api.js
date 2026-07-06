@@ -5,7 +5,7 @@ import { UI, $ } from "./ui.js";
    CONSTANTS
    ========================================================================= */
 
-const VERIFY_REDIRECT = "https://study-planner-delta-six.vercel.app/verify.html";
+const VERIFY_REDIRECT = `${window.location.origin}/verify.html`;
 const MIN_SIGNUP_AGE = 13;
 
 /* =========================================================================
