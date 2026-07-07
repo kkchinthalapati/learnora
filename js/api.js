@@ -190,7 +190,7 @@ export const Auth = {
   async resetPasswordRequest(email) {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + window.location.pathname,
+        redirectTo: window.location.origin + "/reset-password.html",
       });
       if (error) {
         UI.showPopup(friendlyAuthError(error), "Reset Failed");
@@ -221,13 +221,95 @@ export const Auth = {
     try {
       const { error } = await supabase.auth.updateUser({ email: newEmail });
       if (error) {
-        UI.showPopup(friendlyAuthError(error), "Email Update Failed");
-        return false;
+        // Return error message instead of showing popup — caller handles inline feedback
+        return { ok: false, message: friendlyAuthError(error) };
       }
-      return true;
+      return { ok: true };
     } catch (e) {
-      UI.showPopup(friendlyAuthError(e), "Email Update Failed");
-      return false;
+      return { ok: false, message: friendlyAuthError(e) };
+    }
+  },
+
+  /** Update user profile metadata (display name, etc.) */
+  async updateProfile(data) {
+    try {
+      const { error } = await supabase.auth.updateUser({ data });
+      if (error) {
+        return { ok: false, message: friendlyAuthError(error) };
+      }
+      // Invalidate cached user so next getSession() picks up new metadata
+      _cachedUser = null;
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, message: friendlyAuthError(e) };
+    }
+  },
+
+  /** Change password from the settings page, then invalidate other sessions */
+  async changePassword(newPassword) {
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        // Supabase rejects reuse of the same password — provide a friendly message
+        const msg = error?.message?.toLowerCase() || "";
+        if (msg.includes("same") || msg.includes("different")) {
+          return { ok: false, message: "New password must be different from your current password." };
+        }
+        return { ok: false, message: friendlyAuthError(error) };
+      }
+      // Invalidate all other sessions for security
+      try {
+        await supabase.auth.signOut({ scope: "others" });
+      } catch {
+        // Non-critical — the password was still changed
+      }
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, message: friendlyAuthError(e) };
+    }
+  },
+
+  /** Sign out all other sessions (not the current one) */
+  async signOutOthers() {
+    try {
+      const { error } = await supabase.auth.signOut({ scope: "others" });
+      if (error) {
+        return { ok: false, message: friendlyAuthError(error) };
+      }
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, message: friendlyAuthError(e) };
+    }
+  },
+
+  /** Delete user account — requires a Supabase Edge Function since
+   *  client-side SDK cannot delete users (admin-only operation). */
+  async deleteAccount() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        return { ok: false, message: "No active session. Please log in again." };
+      }
+      const res = await fetch(
+        `${supabase.supabaseUrl}/functions/v1/delete-account`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        return { ok: false, message: body.error || "Failed to delete account. Please try again." };
+      }
+      // Sign out locally after account deletion
+      _cachedUser = null;
+      await supabase.auth.signOut();
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, message: "Failed to delete account. Please try again." };
     }
   },
 };

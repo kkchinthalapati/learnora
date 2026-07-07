@@ -822,135 +822,357 @@
 
                 <!-- VIEW: Settings -->
                 <section id="view-settings" class="view-section hidden">
-                    <div class="glass-panel">
-                        <h2 data-i18n="set_ai_brain">🧠 AI Personalization</h2>
-                        <div class="setting-row flex-between">
-                            <label data-i18n="set_persona">AI Persona</label>
-                            <select id="config-persona" aria-label="AI Persona">
-                                <option value="tutor" data-i18n="opt_tutor">
-                                    Tutor (Patient & Explanatory)
-                                </option>
-                                <option value="coach" data-i18n="opt_coach">
-                                    Coach (Strict & Tough Love)
-                                </option>
-                                <option value="buddy" data-i18n="opt_buddy">
-                                    Buddy (Casual & Friendly)
-                                </option>
-                            </select>
-                        </div>
-                        <div class="setting-row flex-between">
-                            <label data-i18n="set_length"
-                                >Response Length</label
-                            >
-                            <select
-                                id="config-length"
-                                aria-label="AI Response Length"
-                            >
-                                <option value="short" data-i18n="opt_short">
-                                    Short & Concise
-                                </option>
-                                <option value="medium" data-i18n="opt_med">
-                                    Medium (Balanced)
-                                </option>
-                                <option value="detailed" data-i18n="opt_long">
-                                    Detailed & Comprehensive
-                                </option>
-                            </select>
-                        </div>
-
-                        <hr class="sidebar-divider mt-24 mb-24" />
-
-                        <h2 data-i18n="set_localization">🌍 Localization</h2>
-                        <div class="setting-row flex-between">
-                            <label data-i18n="set_ui_lang">UI Language</label>
-                            <select
-                                id="config-ui-lang"
-                                aria-label="UI Language"
-                            >
-                                <option value="en">English</option>
-                                <option value="es">Español (Spanish)</option>
-                                <option value="fr">Français (French)</option>
-                                <option value="hi">हिन्दी (Hindi)</option>
-                            </select>
-                        </div>
-                        <div class="setting-row flex-between">
-                            <label data-i18n="set_ai_lang"
-                                >AI Response Language</label
-                            >
-                            <select
-                                id="config-ai-lang"
-                                aria-label="AI Language"
-                            >
-                                <option value="English">English</option>
-                                <option value="Spanish">
-                                    Español (Spanish)
-                                </option>
-                                <option value="French">
-                                    Français (French)
-                                </option>
-                                <option value="Hindi">हिन्दी (Hindi)</option>
-                            </select>
-                        </div>
-
-                        <hr class="sidebar-divider mt-24 mb-24" />
-
-                        <h2 data-i18n="set_data">🔒 Data & Privacy</h2>
-                        <div class="setting-row flex-between">
-                            <p data-i18n="set_export_desc">
-                                Download a copy of your study logs and tasks.
-                            </p>
-                            <button
-                                id="btn-export-data"
-                                class="btn-secondary"
-                                data-i18n="btn_export"
-                            >
-                                📥 Export Data (CSV)
+                    <div class="settings-layout">
+                        <!-- Settings Sidebar Navigation -->
+                        <nav class="settings-sidebar" aria-label="Settings tabs">
+                            <button class="settings-tab-btn active" data-settings-tab="account" id="settings-tab-account">
+                                <span class="tab-icon">👤</span> Account
                             </button>
-                        </div>
-                        <div class="setting-row flex-between danger-zone">
-                            <p data-i18n="set_wipe_desc" class="text-danger">
-                                Permanently delete all tasks, logs, and exams
-                                from the cloud.
-                            </p>
-                            <button
-                                id="btn-wipe-data"
-                                class="btn-danger"
-                                data-i18n="btn_wipe"
-                            >
-                                🗑️ Wipe All Data
+                            <button class="settings-tab-btn" data-settings-tab="security" id="settings-tab-security">
+                                <span class="tab-icon">🔒</span> Security
                             </button>
-                        </div>
+                            <button class="settings-tab-btn" data-settings-tab="preferences" id="settings-tab-preferences">
+                                <span class="tab-icon">🎨</span> Preferences
+                            </button>
+                            <button class="settings-tab-btn" data-settings-tab="notifications" id="settings-tab-notifications">
+                                <span class="tab-icon">🔔</span> Notifications
+                            </button>
+                            <hr class="settings-sidebar-divider" />
+                            <button class="settings-tab-btn" data-settings-tab="danger" id="settings-tab-danger">
+                                <span class="tab-icon">⚠️</span> Danger Zone
+                            </button>
+                            <hr class="settings-sidebar-divider" />
+                            <button class="settings-logout-btn" id="settings-logout-btn">
+                                <span class="tab-icon">🚪</span> Log Out
+                            </button>
+                        </nav>
 
-                        <hr class="sidebar-divider mt-24 mb-24" />
+                        <!-- Settings Content Panels -->
+                        <div class="settings-content">
 
-                        <h2 class="text-danger">🚪 Account Access</h2>
-                        <div class="setting-row flex-between danger-zone mb-16" style="flex-wrap: wrap; gap: 16px;">
-                            <p class="text-danger" style="flex: 1 1 100%;">
-                                Change the email address associated with your account.
-                            </p>
-                            <input type="email" id="settings-new-email" placeholder="New email address" class="small-input" style="flex: 1;" />
-                            <button id="btn-change-email" class="btn-danger">
-                                Change Email
-                            </button>
-                        </div>
-                        <div class="setting-row flex-between danger-zone">
-                            <p class="text-danger">
-                                Securely log out of your current session on this
-                                device.
-                            </p>
-                            <button id="btn-logout" class="btn-danger">
-                                Log Out
-                            </button>
-                        </div>
+                            <!-- ===== ACCOUNT TAB ===== -->
+                            <div class="settings-panel active" id="settings-panel-account">
 
-                        <div class="flex-end mt-40">
-                            <button
-                                id="btn-save-settings"
-                                class="btn-primary"
-                                data-i18n="btn_save_config"
-                            >
-                                Save Changes
-                            </button>
+                                <!-- Profile Card -->
+                                <div class="settings-card">
+                                    <div class="settings-card-header">
+                                        <span class="card-icon">👤</span>
+                                        <div>
+                                            <h3>Profile</h3>
+                                            <p>Your personal information</p>
+                                        </div>
+                                    </div>
+                                    <div class="settings-avatar">
+                                        <div class="avatar-circle" id="settings-avatar-initials">?</div>
+                                        <div class="avatar-info">
+                                            <h4 id="settings-display-name">Loading...</h4>
+                                            <p id="settings-user-email">Loading...</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Display Name -->
+                                    <div class="settings-field">
+                                        <div class="field-label">
+                                            <label>Display Name</label>
+                                            <p class="field-desc">This is the name shown in your workspace</p>
+                                        </div>
+                                        <div class="field-action">
+                                            <button class="btn-secondary" id="btn-edit-name" style="font-size: var(--fs-sm); padding: 8px 16px;">Edit</button>
+                                        </div>
+                                    </div>
+                                    <div class="inline-form" id="name-edit-form">
+                                        <div class="input-row">
+                                            <input type="text" id="settings-name-input" placeholder="Your full name" autocomplete="name" />
+                                            <button class="btn-primary" id="btn-save-name" style="padding: 10px 20px;">Save</button>
+                                        </div>
+                                        <div class="inline-feedback" id="name-feedback"></div>
+                                    </div>
+
+                                    <!-- Email -->
+                                    <div class="settings-field">
+                                        <div class="field-label">
+                                            <label>Email Address</label>
+                                            <p class="field-desc">Used for login and notifications</p>
+                                        </div>
+                                        <div class="field-action">
+                                            <span class="field-value" id="settings-email-display">—</span>
+                                            <button class="btn-secondary" id="btn-change-email-toggle" style="font-size: var(--fs-sm); padding: 8px 16px;">Change</button>
+                                        </div>
+                                    </div>
+                                    <div class="inline-form" id="email-edit-form">
+                                        <div class="input-row">
+                                            <input type="email" id="settings-new-email" placeholder="New email address" autocomplete="email" />
+                                            <button class="btn-primary" id="btn-submit-email" style="padding: 10px 20px;">Update</button>
+                                        </div>
+                                        <div class="inline-feedback" id="email-feedback"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Export Data Card -->
+                                <div class="settings-card">
+                                    <div class="settings-card-header">
+                                        <span class="card-icon">📥</span>
+                                        <div>
+                                            <h3>Export Data</h3>
+                                            <p>Download a copy of your study data</p>
+                                        </div>
+                                    </div>
+                                    <div class="settings-field">
+                                        <div class="field-label">
+                                            <label>CSV Export</label>
+                                            <p class="field-desc">Download your tasks, exams, and study logs as a CSV file</p>
+                                        </div>
+                                        <div class="field-action">
+                                            <button class="btn-secondary" id="btn-export-data" style="padding: 8px 16px;">
+                                                📥 Export Data
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ===== SECURITY TAB ===== -->
+                            <div class="settings-panel" id="settings-panel-security">
+
+                                <!-- Change Password Card -->
+                                <div class="settings-card">
+                                    <div class="settings-card-header">
+                                        <span class="card-icon">🔑</span>
+                                        <div>
+                                            <h3>Change Password</h3>
+                                            <p>Update your account password</p>
+                                        </div>
+                                    </div>
+                                    <div class="input-group" style="margin-bottom: var(--s-4);">
+                                        <label for="settings-new-password">New Password</label>
+                                        <div class="password-wrapper">
+                                            <input type="password" id="settings-new-password" placeholder="Min 8 characters" autocomplete="new-password" minlength="8" />
+                                            <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility">Show</button>
+                                        </div>
+                                        <div class="password-strength-container hidden" id="settings-password-strength-container">
+                                            <div class="strength-bars">
+                                                <div class="strength-segment"></div>
+                                                <div class="strength-segment"></div>
+                                                <div class="strength-segment"></div>
+                                                <div class="strength-segment"></div>
+                                            </div>
+                                            <span id="settings-strength-text" class="strength-text">Too Weak</span>
+                                        </div>
+                                    </div>
+                                    <div class="input-group" style="margin-bottom: var(--s-5);">
+                                        <label for="settings-confirm-password">Confirm New Password</label>
+                                        <div class="password-wrapper">
+                                            <input type="password" id="settings-confirm-password" placeholder="Re-enter new password" autocomplete="new-password" minlength="8" />
+                                            <button type="button" class="password-toggle" tabindex="-1" aria-label="Toggle password visibility">Show</button>
+                                        </div>
+                                    </div>
+                                    <button class="btn-primary" id="btn-change-password" style="padding: 10px 24px;">
+                                        Update Password
+                                    </button>
+                                    <div class="inline-feedback" id="password-feedback"></div>
+                                </div>
+
+                                <!-- Active Sessions Info -->
+                                <div class="settings-card">
+                                    <div class="settings-card-header">
+                                        <span class="card-icon">📱</span>
+                                        <div>
+                                            <h3>Sessions</h3>
+                                            <p>Manage your active sessions</p>
+                                        </div>
+                                    </div>
+                                    <div class="settings-field">
+                                        <div class="field-label">
+                                            <label>Sign Out Other Sessions</label>
+                                            <p class="field-desc">Sign out of all other browsers and devices</p>
+                                        </div>
+                                        <div class="field-action">
+                                            <button class="btn-danger" id="btn-signout-others" style="font-size: var(--fs-sm); padding: 8px 16px;">Sign Out Others</button>
+                                        </div>
+                                    </div>
+                                    <div class="inline-feedback" id="sessions-feedback"></div>
+                                </div>
+                            </div>
+
+                            <!-- ===== PREFERENCES TAB ===== -->
+                            <div class="settings-panel" id="settings-panel-preferences">
+
+                                <!-- AI Personalization Card -->
+                                <div class="settings-card">
+                                    <div class="settings-card-header">
+                                        <span class="card-icon">🧠</span>
+                                        <div>
+                                            <h3 data-i18n="set_ai_brain">AI Personalization</h3>
+                                            <p>Customize how Learnora AI responds to you</p>
+                                        </div>
+                                    </div>
+                                    <div class="settings-field">
+                                        <div class="field-label">
+                                            <label data-i18n="set_persona">AI Persona</label>
+                                            <p class="field-desc">Choose the teaching style that works best for you</p>
+                                        </div>
+                                        <div class="field-action">
+                                            <select id="config-persona" aria-label="AI Persona">
+                                                <option value="tutor" data-i18n="opt_tutor">Tutor (Patient &amp; Explanatory)</option>
+                                                <option value="coach" data-i18n="opt_coach">Coach (Strict &amp; Tough Love)</option>
+                                                <option value="buddy" data-i18n="opt_buddy">Buddy (Casual &amp; Friendly)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="settings-field">
+                                        <div class="field-label">
+                                            <label data-i18n="set_length">Response Length</label>
+                                            <p class="field-desc">How detailed AI responses should be</p>
+                                        </div>
+                                        <div class="field-action">
+                                            <select id="config-length" aria-label="AI Response Length">
+                                                <option value="short" data-i18n="opt_short">Short &amp; Concise</option>
+                                                <option value="medium" data-i18n="opt_med">Medium (Balanced)</option>
+                                                <option value="detailed" data-i18n="opt_long">Detailed &amp; Comprehensive</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Localization Card -->
+                                <div class="settings-card">
+                                    <div class="settings-card-header">
+                                        <span class="card-icon">🌍</span>
+                                        <div>
+                                            <h3 data-i18n="set_localization">Localization</h3>
+                                            <p>Language and regional preferences</p>
+                                        </div>
+                                    </div>
+                                    <div class="settings-field">
+                                        <div class="field-label">
+                                            <label data-i18n="set_ui_lang">UI Language</label>
+                                            <p class="field-desc">Language used for the interface</p>
+                                        </div>
+                                        <div class="field-action">
+                                            <select id="config-ui-lang" aria-label="UI Language">
+                                                <option value="en">English</option>
+                                                <option value="es">Español (Spanish)</option>
+                                                <option value="fr">Français (French)</option>
+                                                <option value="hi">हिन्दी (Hindi)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="settings-field">
+                                        <div class="field-label">
+                                            <label data-i18n="set_ai_lang">AI Response Language</label>
+                                            <p class="field-desc">Language for AI-generated content</p>
+                                        </div>
+                                        <div class="field-action">
+                                            <select id="config-ai-lang" aria-label="AI Language">
+                                                <option value="English">English</option>
+                                                <option value="Spanish">Español (Spanish)</option>
+                                                <option value="French">Français (French)</option>
+                                                <option value="Hindi">हिन्दी (Hindi)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; justify-content: flex-end;">
+                                    <button id="btn-save-settings" class="btn-primary" data-i18n="btn_save_config" style="padding: 10px 28px;">
+                                        Save Preferences
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- ===== NOTIFICATIONS TAB ===== -->
+                            <div class="settings-panel" id="settings-panel-notifications">
+                                <div class="settings-card">
+                                    <div class="settings-card-header">
+                                        <span class="card-icon">🔔</span>
+                                        <div>
+                                            <h3>Email Notifications</h3>
+                                            <p>Choose which emails you want to receive</p>
+                                        </div>
+                                    </div>
+                                    <div class="settings-field">
+                                        <div class="field-label">
+                                            <label>Study Reminders</label>
+                                            <p class="field-desc">Reminders to complete your daily study goals</p>
+                                        </div>
+                                        <div class="field-action">
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="notif-study-reminders" checked />
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="settings-field">
+                                        <div class="field-label">
+                                            <label>Exam Alerts</label>
+                                            <p class="field-desc">Notifications before upcoming exams</p>
+                                        </div>
+                                        <div class="field-action">
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="notif-exam-alerts" checked />
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="settings-field">
+                                        <div class="field-label">
+                                            <label>Security Alerts</label>
+                                            <p class="field-desc">Notifications about password changes and new logins</p>
+                                        </div>
+                                        <div class="field-action">
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="notif-security" checked disabled />
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="settings-field">
+                                        <div class="field-label">
+                                            <label>Product Updates</label>
+                                            <p class="field-desc">News about new features and improvements</p>
+                                        </div>
+                                        <div class="field-action">
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="notif-updates" />
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ===== DANGER ZONE TAB ===== -->
+                            <div class="settings-panel" id="settings-panel-danger">
+                                <div class="settings-card danger-card">
+                                    <div class="settings-card-header">
+                                        <span class="card-icon">⚠️</span>
+                                        <div>
+                                            <h3>Danger Zone</h3>
+                                            <p>Irreversible and destructive actions</p>
+                                        </div>
+                                    </div>
+                                    <div class="danger-item">
+                                        <div class="danger-item-info">
+                                            <h4>Wipe All Data</h4>
+                                            <p>Permanently delete all tasks, study logs, and exams from the cloud. Your account will remain active.</p>
+                                        </div>
+                                        <button class="btn-danger" id="btn-wipe-data" style="padding: 8px 20px;">
+                                            🗑️ Wipe Data
+                                        </button>
+                                    </div>
+                                    <div class="danger-item">
+                                        <div class="danger-item-info">
+                                            <h4>Delete Account</h4>
+                                            <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+                                        </div>
+                                        <button class="btn-danger" id="btn-delete-account" style="padding: 8px 20px;">
+                                            ❌ Delete Account
+                                        </button>
+                                    </div>
+                                    <div class="inline-feedback" id="danger-feedback"></div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </section>

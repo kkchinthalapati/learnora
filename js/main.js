@@ -456,6 +456,8 @@ function bindAuth() {
   });
 
   $("btn-logout")?.addEventListener("click", Auth.logout);
+  // Settings panel also has a logout button
+  $("settings-logout-btn")?.addEventListener("click", Auth.logout);
 }
 
 /* =========================================================================
@@ -484,8 +486,65 @@ function bindNavigation() {
    SETTINGS BINDINGS
    ========================================================================= */
 
+/** Show inline feedback (success or error) next to a settings control */
+function showFeedback(elementId, message, type = "success") {
+  const el = $(elementId);
+  if (!el) return;
+  el.className = `inline-feedback show ${type}`;
+  el.textContent = (type === "success" ? "✓ " : "✗ ") + message;
+  // Auto-hide after 5 seconds
+  clearTimeout(el._hideTimer);
+  el._hideTimer = setTimeout(() => {
+    el.classList.remove("show");
+  }, 5000);
+}
+
+/** Populate settings panels with current user data */
+async function populateSettingsProfile() {
+  const user = await Auth.getSession();
+  if (!user) return;
+
+  const name = user.user_metadata?.full_name || "Student";
+  const email = user.email || "—";
+  const initials = name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "?";
+
+  const nameEl = $("settings-display-name");
+  const emailEl = $("settings-user-email");
+  const emailDisplay = $("settings-email-display");
+  const avatarEl = $("settings-avatar-initials");
+  const nameInput = $("settings-name-input");
+
+  if (nameEl) nameEl.textContent = name;
+  if (emailEl) emailEl.textContent = email;
+  if (emailDisplay) emailDisplay.textContent = email;
+  if (avatarEl) avatarEl.textContent = initials;
+  if (nameInput) nameInput.value = name;
+}
+
 function bindSettings() {
+  // ----- Tab switching -----
+  document.querySelectorAll(".settings-tab-btn[data-settings-tab]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.settingsTab;
+      // Update active tab button
+      document.querySelectorAll(".settings-tab-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      // Show matching panel
+      document.querySelectorAll(".settings-panel").forEach((p) => p.classList.remove("active"));
+      const panel = $(`settings-panel-${tab}`);
+      if (panel) panel.classList.add("active");
+    });
+  });
+
+  // ----- Save Preferences (AI + Localization) -----
   $("btn-save-settings")?.addEventListener("click", () => UI.saveSettings());
+
+  // ----- Export Data -----
   $("btn-export-data")?.addEventListener("click", async () => {
     const ok = await UI.confirm(
       "Download a CSV copy of all your study logs and tasks to your device?",
@@ -494,32 +553,203 @@ function bindSettings() {
     if (ok) DataAdmin.exportCSV();
   });
 
-  $("btn-change-email")?.addEventListener("click", async () => {
-    const newEmail = $("settings-new-email")?.value.trim();
-    if (!newEmail || !newEmail.includes("@")) {
-      UI.showPopup("Please enter a valid email address.", "Invalid Email");
-      return;
-    }
-    const btn = $("btn-change-email");
-    const originalText = btn.textContent;
-    btn.textContent = "Updating...";
-    btn.disabled = true;
-
-    const ok = await Auth.updateEmail(newEmail);
-    if (ok) {
-      UI.showPopup("A verification link has been sent to your new email address. Please check your inbox to confirm the change.", "Check Your Email");
-      if ($("settings-new-email")) $("settings-new-email").value = "";
-    }
-    btn.textContent = originalText;
-    btn.disabled = false;
+  // ----- Edit Display Name -----
+  $("btn-edit-name")?.addEventListener("click", () => {
+    const form = $("name-edit-form");
+    if (form) form.classList.toggle("open");
+    // Focus the input when opening
+    if (form?.classList.contains("open")) $("settings-name-input")?.focus();
   });
 
+  $("btn-save-name")?.addEventListener("click", async () => {
+    const nameInput = $("settings-name-input");
+    const newName = nameInput?.value.trim();
+    if (!newName) {
+      showFeedback("name-feedback", "Name cannot be empty.", "error");
+      return;
+    }
+    const btn = $("btn-save-name");
+    btn.disabled = true;
+    btn.textContent = "Saving...";
+
+    const result = await Auth.updateProfile({ full_name: newName });
+    if (result.ok) {
+      showFeedback("name-feedback", "Display name updated.", "success");
+      // Update the UI immediately
+      $("settings-display-name").textContent = newName;
+      const initials = newName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+      $("settings-avatar-initials").textContent = initials;
+      $("user-greeting").textContent = getGreeting(newName.split(" ")[0]);
+      $("name-edit-form")?.classList.remove("open");
+    } else {
+      showFeedback("name-feedback", result.message, "error");
+    }
+    btn.disabled = false;
+    btn.textContent = "Save";
+  });
+
+  // ----- Change Email -----
+  $("btn-change-email-toggle")?.addEventListener("click", () => {
+    const form = $("email-edit-form");
+    if (form) form.classList.toggle("open");
+    if (form?.classList.contains("open")) $("settings-new-email")?.focus();
+  });
+
+  $("btn-submit-email")?.addEventListener("click", async () => {
+    const newEmail = $("settings-new-email")?.value.trim();
+    if (!newEmail || !newEmail.includes("@")) {
+      showFeedback("email-feedback", "Please enter a valid email address.", "error");
+      return;
+    }
+    // Check if same as current
+    const currentEmail = $("settings-email-display")?.textContent;
+    if (newEmail === currentEmail) {
+      showFeedback("email-feedback", "This is already your current email.", "error");
+      return;
+    }
+
+    const btn = $("btn-submit-email");
+    btn.disabled = true;
+    btn.textContent = "Sending...";
+
+    const result = await Auth.updateEmail(newEmail);
+    if (result.ok) {
+      showFeedback("email-feedback", `Confirmation email sent to ${newEmail}. Check your inbox.`, "success");
+      $("settings-new-email").value = "";
+    } else {
+      showFeedback("email-feedback", result.message, "error");
+    }
+    btn.disabled = false;
+    btn.textContent = "Update";
+  });
+
+  // ----- Change Password (Security tab) -----
+  // Bind the password strength meter for the settings page
+  const bindSettingsStrength = () => {
+    const inputEl = $("settings-new-password");
+    const containerEl = $("settings-password-strength-container");
+    const textEl = $("settings-strength-text");
+    if (!inputEl || !containerEl || !textEl) return;
+
+    inputEl.addEventListener("input", () => {
+      const val = inputEl.value;
+      if (!val) { containerEl.classList.add("hidden"); return; }
+      containerEl.classList.remove("hidden");
+
+      let score = 0;
+      if (val.length >= 8) score++;
+      if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+      if (/\d/.test(val)) score++;
+      if (/[^A-Za-z0-9]/.test(val)) score++;
+
+      containerEl.className = "password-strength-container";
+      if (score <= 1 || val.length < 8) {
+        containerEl.classList.add("strength-weak");
+        textEl.textContent = "Too Weak (Need 8+ chars & mix)";
+      } else if (score === 2) {
+        containerEl.classList.add("strength-fair");
+        textEl.textContent = "Fair";
+      } else if (score === 3) {
+        containerEl.classList.add("strength-good");
+        textEl.textContent = "Good";
+      } else {
+        containerEl.classList.add("strength-strong");
+        textEl.textContent = "Strong";
+      }
+    });
+  };
+  bindSettingsStrength();
+
+  // Bind password toggle buttons added in the settings Security tab
+  document.querySelectorAll("#settings-panel-security .password-toggle").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const input = e.currentTarget.parentElement.querySelector("input");
+      if (input.type === "password") {
+        input.type = "text";
+        e.currentTarget.textContent = "Hide";
+      } else {
+        input.type = "password";
+        e.currentTarget.textContent = "Show";
+      }
+    });
+  });
+
+  $("btn-change-password")?.addEventListener("click", async () => {
+    const newPass = $("settings-new-password")?.value;
+    const confirmPass = $("settings-confirm-password")?.value;
+
+    if (!newPass || newPass.length < 8) {
+      showFeedback("password-feedback", "Password must be at least 8 characters.", "error");
+      return;
+    }
+    if (newPass !== confirmPass) {
+      showFeedback("password-feedback", "Passwords do not match.", "error");
+      return;
+    }
+
+    const btn = $("btn-change-password");
+    btn.disabled = true;
+    btn.textContent = "Updating...";
+
+    const result = await Auth.changePassword(newPass);
+    if (result.ok) {
+      showFeedback("password-feedback", "Password updated. Other sessions have been signed out.", "success");
+      $("settings-new-password").value = "";
+      $("settings-confirm-password").value = "";
+      $("settings-password-strength-container")?.classList.add("hidden");
+    } else {
+      showFeedback("password-feedback", result.message, "error");
+    }
+    btn.disabled = false;
+    btn.textContent = "Update Password";
+  });
+
+  // ----- Sign Out Others -----
+  $("btn-signout-others")?.addEventListener("click", async () => {
+    const ok = await UI.confirm(
+      "This will sign you out of all other browsers and devices.",
+      { title: "Sign out other sessions?", confirmText: "Sign Out Others", danger: true }
+    );
+    if (!ok) return;
+
+    const result = await Auth.signOutOthers();
+    if (result.ok) {
+      showFeedback("sessions-feedback", "All other sessions have been signed out.", "success");
+    } else {
+      showFeedback("sessions-feedback", result.message, "error");
+    }
+  });
+
+  // ----- Wipe Data (Danger Zone) -----
   $("btn-wipe-data")?.addEventListener("click", async () => {
     const ok = await UI.confirm(
       "This permanently deletes all your tasks, logs, and exams from the cloud. This cannot be undone.",
       { title: "Wipe all data?", confirmText: "Delete everything", danger: true },
     );
     if (ok) DataAdmin.wipe();
+  });
+
+  // ----- Delete Account (Danger Zone) -----
+  $("btn-delete-account")?.addEventListener("click", async () => {
+    const ok = await UI.confirm(
+      "This will permanently delete your account and all data. This action is IRREVERSIBLE.",
+      { title: "Delete your account?", confirmText: "Yes, delete my account", danger: true }
+    );
+    if (!ok) return;
+
+    // Double confirmation
+    const doubleOk = await UI.confirm(
+      "Last chance — are you absolutely sure?",
+      { title: "Final confirmation", confirmText: "Delete forever", danger: true }
+    );
+    if (!doubleOk) return;
+
+    const result = await Auth.deleteAccount();
+    if (result.ok) {
+      window.location.reload();
+    } else {
+      showFeedback("danger-feedback", result.message, "error");
+    }
   });
 }
 

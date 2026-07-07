@@ -1818,7 +1818,357 @@ label {
     margin-left: var(--s-2);
 }
 
-/* --- 5.11 Settings --- */
+/* --- 5.11 Settings (Tabbed SaaS layout) --- */
+
+/* -- Settings shell: sidebar + content -- */
+.settings-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: var(--s-8);
+    min-height: 70vh;
+}
+
+/* -- Settings sidebar nav -- */
+.settings-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-1);
+    position: sticky;
+    top: 0;
+    align-self: start;
+}
+.settings-tab-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: 11px 16px;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-base);
+    font-weight: 500;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: background var(--t-fast) ease, color var(--t-fast) ease,
+        border-color var(--t-fast) ease, box-shadow var(--t-fast) ease;
+}
+.settings-tab-btn:hover {
+    background: var(--accent-soft);
+    color: var(--text);
+}
+.settings-tab-btn.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent-soft);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+.settings-tab-btn .tab-icon {
+    font-size: 1.1rem;
+    width: 22px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.settings-sidebar-divider {
+    height: 1px;
+    background: var(--line);
+    margin: var(--s-3) 0;
+    border: none;
+}
+.settings-logout-btn {
+    margin-top: auto;
+    padding: 11px 16px;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--danger);
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    transition: background var(--t-fast) ease;
+}
+.settings-logout-btn:hover {
+    background: var(--danger-soft);
+}
+
+/* -- Settings content area -- */
+.settings-content {
+    min-width: 0;
+}
+.settings-panel {
+    display: none;
+    animation: settings-fade-in var(--t) var(--ease) both;
+}
+.settings-panel.active {
+    display: block;
+}
+@keyframes settings-fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* -- Settings card -- */
+.settings-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-lg);
+    padding: var(--s-6);
+    margin-bottom: var(--s-5);
+    box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-sm);
+    transition: box-shadow var(--t) var(--ease), border-color var(--t) var(--ease);
+}
+.settings-card:hover {
+    box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
+}
+.settings-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    margin-bottom: var(--s-5);
+    padding-bottom: var(--s-4);
+    border-bottom: 1px solid var(--line);
+}
+.settings-card-header h3 {
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    margin: 0;
+}
+.settings-card-header .card-icon {
+    font-size: 1.25rem;
+}
+.settings-card-header p {
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    margin: 2px 0 0;
+}
+
+/* -- Settings field rows -- */
+.settings-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--s-4);
+    padding: var(--s-4) 0;
+    border-bottom: 1px solid var(--line);
+}
+.settings-field:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.settings-field:first-child {
+    padding-top: 0;
+}
+.field-label {
+    flex: 1;
+    min-width: 0;
+}
+.field-label label {
+    display: block;
+    font-weight: 600;
+    font-size: var(--fs-base);
+    color: var(--text);
+    margin-bottom: 2px;
+}
+.field-label .field-desc {
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    margin: 0;
+}
+.field-action {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+}
+.field-action select {
+    min-width: 180px;
+    width: auto;
+}
+.field-value {
+    font-size: var(--fs-base);
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-right: var(--s-3);
+}
+
+/* -- Avatar -- */
+.settings-avatar {
+    display: flex;
+    align-items: center;
+    gap: var(--s-5);
+    padding: var(--s-4) 0;
+}
+.avatar-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent) 0%, #8b9bf5 60%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-head);
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-sm), 0 0 0 3px rgba(255, 255, 255, 0.15);
+    transition: box-shadow var(--t) ease, transform var(--t) var(--ease-spring);
+}
+.avatar-circle:hover {
+    box-shadow: var(--shadow-md), 0 0 0 3px var(--accent-ring);
+    transform: scale(1.05);
+}
+.avatar-info h4 {
+    font-size: var(--fs-md);
+    font-weight: 600;
+    margin: 0;
+}
+.avatar-info p {
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    margin: 2px 0 0;
+}
+
+/* -- Inline expandable form -- */
+.inline-form {
+    display: none;
+    margin-top: var(--s-4);
+    padding: var(--s-4);
+    background: var(--surface-2);
+    border-radius: var(--r-sm);
+    border: 1px solid var(--line);
+    animation: settings-fade-in var(--t-fast) ease both;
+}
+.inline-form.open {
+    display: block;
+}
+.inline-form .input-row {
+    display: flex;
+    gap: var(--s-3);
+    align-items: flex-end;
+}
+.inline-form .input-row input {
+    flex: 1;
+}
+.inline-form .input-row button {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* -- Inline feedback messages -- */
+.inline-feedback {
+    display: none;
+    padding: var(--s-3) var(--s-4);
+    border-radius: var(--r-sm);
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    margin-top: var(--s-3);
+    animation: settings-fade-in var(--t-fast) ease both;
+}
+.inline-feedback.show {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+}
+.inline-feedback.success {
+    background: var(--success-soft);
+    color: var(--success);
+    border: 1px solid rgba(52, 184, 138, 0.2);
+}
+.inline-feedback.error {
+    background: var(--danger-soft);
+    color: var(--danger);
+    border: 1px solid rgba(224, 90, 78, 0.2);
+}
+
+/* -- Toggle switch -- */
+.toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+.toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--line);
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    transition: background var(--t-fast) ease;
+}
+.toggle-slider::before {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    left: 3px;
+    top: 3px;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--t-fast) var(--ease-spring);
+}
+.toggle-switch input:checked + .toggle-slider {
+    background: var(--accent);
+}
+.toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(20px);
+}
+.toggle-switch input:focus-visible + .toggle-slider {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* -- Danger Zone card -- */
+.danger-card {
+    border-color: var(--danger-soft);
+    border-left: 3px solid var(--danger);
+}
+.danger-card .settings-card-header {
+    border-bottom-color: var(--danger-soft);
+}
+.danger-card .settings-card-header h3 {
+    color: var(--danger);
+}
+.danger-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--s-4);
+    padding: var(--s-4) 0;
+    border-bottom: 1px solid var(--line);
+}
+.danger-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.danger-item-info h4 {
+    font-size: var(--fs-base);
+    font-weight: 600;
+    margin: 0 0 2px;
+}
+.danger-item-info p {
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* -- Legacy compat: still used in upload/other sections -- */
 .setting-row {
     display: flex;
     justify-content: space-between;
@@ -2535,6 +2885,62 @@ body.dark-theme .stat-card::before {
     .setting-row button {
         width: 100%;
         min-width: 0;
+    }
+
+    /* Settings tabbed layout → stacked on mobile */
+    .settings-layout {
+        grid-template-columns: 1fr;
+        gap: var(--s-4);
+    }
+    .settings-sidebar {
+        flex-direction: row;
+        overflow-x: auto;
+        gap: var(--s-2);
+        padding-bottom: var(--s-3);
+        border-bottom: 1px solid var(--line);
+        position: static;
+        -webkit-overflow-scrolling: touch;
+    }
+    .settings-tab-btn {
+        padding: 8px 14px;
+        font-size: var(--fs-sm);
+        white-space: nowrap;
+        border-radius: var(--r-pill);
+    }
+    .settings-tab-btn.active {
+        box-shadow: none;
+        background: var(--accent);
+        color: var(--accent-on);
+    }
+    .settings-sidebar-divider {
+        display: none;
+    }
+    .settings-logout-btn {
+        margin-top: 0;
+        font-size: var(--fs-xs);
+        white-space: nowrap;
+    }
+    .settings-field {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .field-action {
+        width: 100%;
+    }
+    .field-action select {
+        width: 100%;
+        min-width: 0;
+    }
+    .danger-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--s-3);
+    }
+    .danger-item button {
+        width: 100%;
+    }
+    .inline-form .input-row {
+        flex-direction: column;
     }
 
     .modal-content {

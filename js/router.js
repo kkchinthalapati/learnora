@@ -94,6 +94,41 @@ export const Router = {
     if (route === "folders" || route === "upload") {
       this.loadFolders(route);
     }
+
+    // Populate settings profile data when navigating to settings
+    if (route === "settings") {
+      this.loadSettingsProfile();
+    }
+  },
+
+  /** Populate settings panels with user data */
+  async loadSettingsProfile() {
+    // Import main.js functions would create circular deps, so we inline the logic here.
+    // Get the user session from the Auth module (already imported via api.js).
+    const { Auth } = await import("./api.js");
+    const user = await Auth.getSession();
+    if (!user) return;
+
+    const name = user.user_metadata?.full_name || "Student";
+    const email = user.email || "\u2014";
+    const initials = name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "?";
+
+    const nameEl = $("settings-display-name");
+    const emailEl = $("settings-user-email");
+    const emailDisplay = $("settings-email-display");
+    const avatarEl = $("settings-avatar-initials");
+    const nameInput = $("settings-name-input");
+
+    if (nameEl) nameEl.textContent = name;
+    if (emailEl) emailEl.textContent = email;
+    if (emailDisplay) emailDisplay.textContent = email;
+    if (avatarEl) avatarEl.textContent = initials;
+    if (nameInput) nameInput.value = name;
   },
 
   async loadFolders(route) {
