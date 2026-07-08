@@ -17,7 +17,7 @@
 :root {
     /* --- Accent (vivid indigo) --- */
     --accent: #5468e7;
-    --accent-hover: #4f61c5;
+    --accent-hover: #4358d6;
     --accent-press: #3a4ec4;
     --accent-soft: rgba(84, 104, 231, 0.12);
     --accent-ring: rgba(84, 104, 231, 0.32);
