@@ -186,8 +186,6 @@ export const Router = {
     materialsList.innerHTML = "<p>Loading...</p>";
     decksList.innerHTML = "<p>Loading...</p>";
 
-    // We fetch globally exposed API objects if they aren't imported here.
-    // Let's assume they are globally available from main.js or we will fix imports.
     const materials = await Materials.fetch(folderId);
     const decks = await Decks.fetch(folderId);
     UI.setGlobalLoading(false);
@@ -343,14 +341,20 @@ export const Router = {
       showCard();
     };
 
-    // Bind scores (we remove previous listeners by cloning or just assigning on onclick)
-    $("btn-score-again").onclick = (e) => { e.stopPropagation(); scoreCard(1); };
-    $("btn-score-hard").onclick = (e) => { e.stopPropagation(); scoreCard(2); };
-    $("btn-score-good").onclick = (e) => { e.stopPropagation(); scoreCard(3); };
-    $("btn-score-easy").onclick = (e) => { e.stopPropagation(); scoreCard(4); };
+    // Bind review scores via cloned elements to prevent listener accumulation
+    // across repeated startReview() calls on the same DOM nodes.
+    const bindScore = (id, quality) => {
+      const btn = $(id);
+      if (!btn) return;
+      const fresh = btn.cloneNode(true);
+      btn.replaceWith(fresh);
+      fresh.addEventListener("click", (e) => { e.stopPropagation(); scoreCard(quality); });
+    };
+    bindScore("btn-score-again", 1);
+    bindScore("btn-score-hard",  2);
+    bindScore("btn-score-good",  3);
+    bindScore("btn-score-easy",  4);
 
     showCard();
   }
 };
-// Expose for inline onclick
-window.Router = Router;

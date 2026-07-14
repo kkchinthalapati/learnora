@@ -59,12 +59,12 @@ export const AI = {
     
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
+        const headers = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
         const response = await fetch(edgeUrl, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": token ? `Bearer ${token}` : undefined
-          },
+          headers,
           body: JSON.stringify(payload)
         });
 
@@ -458,6 +458,8 @@ User message: ${query}`;
           addedTasks.push(taskText);
         }
       }
+      // Reset lastIndex so the same regex can be reused in .replace() below.
+      addTaskRegex.lastIndex = 0;
 
       // Parse <START_TIMER>
       const startTimerRegex = /<START_TIMER>(\d+)<\/START_TIMER>/g;
@@ -483,13 +485,13 @@ User message: ${query}`;
       const themeRegex = /<SET_THEME>(dark|light)<\/SET_THEME>/gi;
       if ((match = themeRegex.exec(currentText)) !== null) {
          const theme = match[1].toLowerCase();
+         // The app's theme system only uses "dark-theme" / no-class (light).
          if (theme === 'light') {
            document.body.classList.remove("dark-theme");
-           document.body.classList.add("light-theme");
          } else {
-           document.body.classList.remove("light-theme");
            document.body.classList.add("dark-theme");
          }
+         UI._updateThemeIcon();
       }
 
       // Replace tags with beautiful action widgets
@@ -537,18 +539,14 @@ User message: ${query}`;
      BUBBLE RENDERING
      ========================================================================= */
 
-  _appendBubble(content, className, isHTML = false) {
+  _appendBubble(content, className, isHTML = false, id = null) {
     const msgBox = $("chat-messages");
     if (!msgBox) return;
 
     const bubble = document.createElement("div");
     bubble.className = `chat-bubble ${className}`;
     bubble.setAttribute("role", "log");
-    
-    // Add optional ID so we can retrieve it to update streaming text
-    if (arguments.length > 3 && arguments[3]) {
-        bubble.id = arguments[3];
-    }
+    if (id) bubble.id = id;
 
     if (isHTML) {
       bubble.innerHTML = content;
@@ -754,6 +752,11 @@ User message: ${query}`;
       
       recognition.onerror = (e) => {
         console.error("Speech recognition error:", e);
+        // Restore button state so the user isn't left with a stuck recording indicator.
+        isRecording = false;
+        voiceBtn.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>';
+        voiceBtn.style.background = 'transparent';
+        chatInput.placeholder = "Ask anything or request flashcards...";
       };
       
       recognition.onend = () => {

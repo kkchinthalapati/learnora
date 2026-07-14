@@ -65,7 +65,7 @@ function friendlyAuthError(error) {
     return "New signups are temporarily disabled. Please try again later.";
   }
   if (msg.includes("password") && msg.includes("characters")) {
-    return "Password must be at least 6 characters long.";
+    return "Password must be at least 8 characters long.";
   }
   if (msg.includes("network") || msg.includes("fetch")) {
     return "Network error. Please check your internet connection.";
@@ -651,7 +651,11 @@ export const Exams = {
 
   async delete(id) {
     const { error } = await supabase.from("exams").delete().eq("id", id);
-    if (error) console.error("[Exams.delete]", error.message);
+    if (error) {
+      console.error("[Exams.delete]", error.message);
+      return false;
+    }
+    return true;
   },
 };
 

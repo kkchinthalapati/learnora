@@ -7,6 +7,9 @@ import { UI, $, Storage } from "./ui.js";
 const TIMER_STATE_KEY = "timer_state";
 const TIMER_END_KEY = "timer_end_time";
 
+// Tracks the last quote shown to avoid repeating it immediately.
+let _lastQuoteIndex = -1;
+
 // The four timer styles the workspace supports.
 const TYPES = ["pomodoro", "countdown", "stopwatch", "flowtime"];
 
@@ -601,7 +604,13 @@ export const Timer = {
     if (!el) return;
     el.classList.add("fade-out");
     setTimeout(() => {
-      el.textContent = `"${QUOTES[Math.floor(Math.random() * QUOTES.length)]}"`;
+      let idx;
+      // Re-roll until we get a different quote (only skip if there's more than one).
+      do {
+        idx = Math.floor(Math.random() * QUOTES.length);
+      } while (idx === _lastQuoteIndex && QUOTES.length > 1);
+      _lastQuoteIndex = idx;
+      el.textContent = `"${QUOTES[idx]}"`;
       el.classList.remove("fade-out");
     }, 250);
   },

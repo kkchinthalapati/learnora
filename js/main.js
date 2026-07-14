@@ -476,7 +476,7 @@ function bindNavigation() {
   document.querySelector(".nav-links")?.addEventListener("click", (e) => {
     if (e.target.closest("a.nav-link")) {
       if (window.innerWidth <= 768) {
-        $("sidebar")?.classList.remove("collapsed");
+        $("sidebar")?.classList.add("collapsed"); // add = collapse/hide on mobile
       }
     }
   });
@@ -499,32 +499,6 @@ function showFeedback(elementId, message, type = "success") {
   }, 5000);
 }
 
-/** Populate settings panels with current user data */
-async function populateSettingsProfile() {
-  const user = await Auth.getSession();
-  if (!user) return;
-
-  const name = user.user_metadata?.full_name || "Student";
-  const email = user.email || "—";
-  const initials = name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase() || "?";
-
-  const nameEl = $("settings-display-name");
-  const emailEl = $("settings-user-email");
-  const emailDisplay = $("settings-email-display");
-  const avatarEl = $("settings-avatar-initials");
-  const nameInput = $("settings-name-input");
-
-  if (nameEl) nameEl.textContent = name;
-  if (emailEl) emailEl.textContent = email;
-  if (emailDisplay) emailDisplay.textContent = email;
-  if (avatarEl) avatarEl.textContent = initials;
-  if (nameInput) nameInput.value = name;
-}
 
 function bindSettings() {
   // ----- Tab switching -----
@@ -1425,7 +1399,6 @@ function bindAI() {
     const m = $("turbo-chat");
     if (!m) return;
     m.classList.toggle("fullscreen");
-    m.classList.toggle("minimized");
   });
 
   $("btn-send-chat")?.addEventListener("click", () => {
@@ -1494,6 +1467,13 @@ function startClock() {
     });
   };
 
+  // Render immediately, then sync the first tick to the next minute boundary
+  // so the display is never more than ~1 s stale.
   update();
-  setInterval(update, 30000); // 30s is enough for HH:MM display
+  const now = new Date();
+  const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+  setTimeout(() => {
+    update();
+    setInterval(update, 60_000);
+  }, msToNextMinute);
 }
