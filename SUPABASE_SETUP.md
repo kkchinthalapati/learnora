@@ -48,32 +48,7 @@ Add the reset password page to your allowed redirect URLs:
 
 ---
 
-## 4. Edge Functions — Password Changed Notification
-
-### Deploy the notification function:
-
-```bash
-supabase functions deploy password-changed-notify
-```
-
-### Set required secrets:
-
-```bash
-# Resend API key (get one at https://resend.com)
-supabase secrets set RESEND_API_KEY="re_your_api_key_here"
-
-# Optional: custom support email (defaults to support@learnora.app)
-supabase secrets set SUPPORT_EMAIL="support@yourdomain.com"
-```
-
-### Configure Resend:
-1. Sign up at [resend.com](https://resend.com)
-2. Verify your sending domain (`learnora.app` or your custom domain)
-3. Create an API key and set it as the `RESEND_API_KEY` secret above
-
----
-
-## 5. Edge Functions — Delete Account (Optional)
+## 4. Edge Functions — Delete Account (Optional)
 
 If you want the "Delete Account" button to work, deploy a `delete-account` edge function:
 
@@ -146,17 +121,16 @@ Deno.serve(async (req) => {
 
 ---
 
-## 6. Summary Checklist
+## 5. Summary Checklist
 
 | Step | Status |
 |------|--------|
 | Add `reset-password.html` to Redirect URLs | ⬜ |
 | Customize "Reset Password" email template | ⬜ |
 | Set OTP expiry to 3600s (1 hour) | ⬜ |
-| Deploy `password-changed-notify` edge function | ⬜ |
-| Set `RESEND_API_KEY` secret | ⬜ |
 | Deploy `delete-account` edge function (optional) | ⬜ |
-| Verify Resend sending domain | ⬜ |
+
+> Password reset emails are sent via Supabase's built-in mailer (no SMTP/Resend setup required). There is no post-reset "password changed" notification email — that would require a custom email provider with a verified domain, which isn't set up.
 
 ---
 
