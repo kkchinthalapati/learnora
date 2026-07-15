@@ -221,6 +221,24 @@ function bindAuth() {
     if (p) p.textContent = sub;
   };
 
+  // Show inline feedback inside the auth card (popup-overlay is inside #main-app
+  // which is hidden during auth, so we use the dedicated #auth-status banner).
+  const showAuthStatus = (msg, type = "error") => {
+    const el = $("auth-status");
+    if (!el) return;
+    el.textContent = msg;
+    el.className = `auth-status status-${type}`;
+    el.classList.remove("hidden");
+    // Auto-hide after 6 seconds
+    clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(() => el.classList.add("hidden"), 6000);
+  };
+
+  const clearAuthStatus = () => {
+    const el = $("auth-status");
+    if (el) { el.classList.add("hidden"); el.textContent = ""; }
+  };
+
   // Auto-refresh when session is established, but only if the user is currently on the auth wall
   supabase.auth.onAuthStateChange((event, session) => {
     const authWallVisible = !$("auth-wall")?.classList.contains("hidden");
@@ -298,6 +316,7 @@ function bindAuth() {
     e.preventDefault();
     if (loggingIn) return;
     loggingIn = true;
+    clearAuthStatus();
     UI.setLoading("login-btn", true);
     try {
       const ok = await Auth.login(
@@ -308,9 +327,12 @@ function bindAuth() {
         window.location.reload();
         return;
       }
+      // Auth.login calls UI.showPopup internally, but since popup-overlay lives
+      // inside #main-app (hidden), we also mirror it to the inline auth-status banner.
+      showAuthStatus("Invalid email or password. Please try again.");
     } catch (err) {
       console.error("[Auth.login] Unhandled:", err);
-      UI.showPopup("Something went wrong. Please try again.", "Login Error");
+      showAuthStatus("Something went wrong. Please try again.");
     }
     UI.setLoading("login-btn", false);
     loggingIn = false;
@@ -323,11 +345,11 @@ function bindAuth() {
     const confirmPass = $("signup-confirm-password").value;
 
     if (pass.length < 8) {
-      UI.showPopup("Password must be at least 8 characters long.", "Weak Password");
+      showAuthStatus("Password must be at least 8 characters long.");
       return;
     }
     if (pass !== confirmPass) {
-      UI.showPopup("Passwords do not match. Please re-enter them.", "Password Mismatch");
+      showAuthStatus("Passwords do not match. Please re-enter them.");
       return;
     }
 
@@ -390,7 +412,7 @@ function bindAuth() {
       }
     } catch (err) {
       console.error("[Auth.signup] Unhandled:", err);
-      UI.showPopup("Something went wrong. Please try again.", "Signup Error");
+      showAuthStatus("Something went wrong. Please try again.");
     }
     UI.setLoading("signup-btn", false);
     signingUp = false;
@@ -399,24 +421,28 @@ function bindAuth() {
   $("btn-show-signup")?.addEventListener("click", () => {
     $$(".auth-form").forEach(f => f.classList.add("hidden"));
     $("signup-form")?.classList.remove("hidden");
+    clearAuthStatus();
     setAuthHeader("Create your account", "Start studying smarter in minutes.");
   });
 
   $("btn-show-login")?.addEventListener("click", () => {
     $$(".auth-form").forEach(f => f.classList.add("hidden"));
     $("login-form")?.classList.remove("hidden");
+    clearAuthStatus();
     setAuthHeader("Welcome back", "Sign in to your study workspace.");
   });
 
   $("btn-show-forgot")?.addEventListener("click", () => {
     $$(".auth-form").forEach(f => f.classList.add("hidden"));
     $("forgot-password-form")?.classList.remove("hidden");
+    clearAuthStatus();
     setAuthHeader("Reset Password", "We'll send you a recovery link.");
   });
 
   $("btn-show-login-from-forgot")?.addEventListener("click", () => {
     $$(".auth-form").forEach(f => f.classList.add("hidden"));
     $("login-form")?.classList.remove("hidden");
+    clearAuthStatus();
     setAuthHeader("Welcome back", "Sign in to your study workspace.");
   });
 
@@ -427,7 +453,7 @@ function bindAuth() {
     const ok = await Auth.resetPasswordRequest(email);
     UI.setLoading("forgot-btn", false);
     if (ok) {
-      UI.showPopup("If an account exists, a reset link has been sent to your email.", "Check Your Email");
+      showAuthStatus("If an account exists, a reset link has been sent to your email.", "success");
       $("btn-show-login-from-forgot")?.click(); // Go back to login
     }
   });
