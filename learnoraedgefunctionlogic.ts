@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
             tutor: 'a patient, explanatory, supportive tutor'
         };
 
-        const systemInstruction = `You are Learnora AI. Act as ${personaMap[s.aiPersona] || personaMap.tutor}. 
+        const systemInstruction = `You are Learnora AI. Act as ${personaMap[s.aiPersona as keyof typeof personaMap] || personaMap.tutor}.
     Keep response ${s.aiConciseness === 'short' ? 'brief' : 'detailed'}. Use ${s.aiLanguage || 'English'}. 
     If asked for flashcards, output ONLY raw JSON: [{"front":"...", "back":"..."}].`;
 
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
             });
 
         } catch (geminiError) {
-            debugErrors["Gemini Channel"] = geminiError.message;
+            debugErrors["Gemini Channel"] = geminiError instanceof Error ? geminiError.message : String(geminiError);
             console.error("Gemini Error:", geminiError);
 
             let fallbackMsg = currentMsg;
@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
                 });
 
             } catch (groqError) {
-                debugErrors["Groq Channel"] = groqError.message;
+                debugErrors["Groq Channel"] = groqError instanceof Error ? groqError.message : String(groqError);
                 console.error("Groq Error:", groqError);
 
                 // =========================================================================
@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
                     });
 
                 } catch (orError) {
-                    debugErrors["OpenRouter Channel"] = orError.message;
+                    debugErrors["OpenRouter Channel"] = orError instanceof Error ? orError.message : String(orError);
                     console.error("OpenRouter Error:", orError);
                     throw new Error("All channels offline.");
                 }
@@ -170,11 +170,12 @@ Deno.serve(async (req) => {
 
     } catch (err) {
         // Return all step-by-step failures to the UI
+        const errMsg = err instanceof Error ? err.message : String(err);
         const debugMessage = `🚨 AI Pipeline Failure:\n` +
             `- Gemini: ${debugErrors["Gemini Channel"] || "Skipped"}\n` +
             `- Groq: ${debugErrors["Groq Channel"] || "Skipped"}\n` +
             `- OpenRouter: ${debugErrors["OpenRouter Channel"] || "Skipped"}\n\n` +
-            `System error: ${err.message}`;
+            `System error: ${errMsg}`;
 
         return new Response(JSON.stringify({
             text: debugMessage

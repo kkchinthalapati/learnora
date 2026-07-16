@@ -121,7 +121,32 @@ Deno.serve(async (req) => {
 
 ---
 
-## 5. Summary Checklist
+## 5. Edge Functions — Post-Reset Notification (Optional)
+
+If you want to send users a notification email when their password is changed, deploy the `post-reset-notification` edge function:
+
+```bash
+supabase functions deploy post-reset-notification
+supabase secrets set RESEND_API_KEY=your_resend_api_key
+supabase secrets set WEBHOOK_SECRET=your_secure_random_string
+```
+
+Then, configure a Database Webhook to trigger this function:
+1. Go to **Database** → **Webhooks**
+2. Click **Create Webhook**
+3. Name: `notify_password_change`
+4. Table: `users` (in the `auth` schema)
+5. Events: `UPDATE`
+6. Condition (optional but recommended): `old_record.encrypted_password <> record.encrypted_password`
+7. Type: `HTTP Request`
+8. Method: `POST`
+9. URL: `https://<your-project-ref>.supabase.co/functions/v1/post-reset-notification`
+10. Under **HTTP Headers**, add a new header `x-webhook-secret` with the value `your_secure_random_string` (matching the `WEBHOOK_SECRET` secret).
+11. Click **Create webhook**
+
+---
+
+## 6. Summary Checklist
 
 | Step | Status |
 |------|--------|
@@ -129,8 +154,9 @@ Deno.serve(async (req) => {
 | Customize "Reset Password" email template | ⬜ |
 | Set OTP expiry to 3600s (1 hour) | ⬜ |
 | Deploy `delete-account` edge function (optional) | ⬜ |
+| Deploy `post-reset-notification` edge function (optional) | ⬜ |
 
-> Password reset emails are sent via Supabase's built-in mailer (no SMTP/Resend setup required). There is no post-reset "password changed" notification email — that would require a custom email provider with a verified domain, which isn't set up.
+> Password reset emails are sent via Supabase's built-in mailer (no SMTP/Resend setup required). There is no post-reset "password changed" notification email natively — that requires a custom email provider with a verified domain (like Resend) and a Database Webhook.
 
 ---
 
