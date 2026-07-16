@@ -219,6 +219,157 @@ export const AI = {
     return [];
   },
 
+  _extractPlanJSON(text) {
+    if (!text) return null;
+    const sanitize = (str) => str.replace(/,(\s*[\]}])/g, "$1");
+
+    try {
+      const parsed = JSON.parse(sanitize(text.trim()));
+      if (parsed && Array.isArray(parsed.days)) return parsed;
+    } catch {}
+
+    try {
+      const cleaned = sanitize(text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim());
+      const parsed = JSON.parse(cleaned);
+      if (parsed && Array.isArray(parsed.days)) return parsed;
+    } catch {}
+
+    try {
+      const start = text.indexOf("{");
+      const end = text.lastIndexOf("}");
+      if (start !== -1 && end > start) {
+        const parsed = JSON.parse(sanitize(text.substring(start, end + 1)));
+        if (parsed && Array.isArray(parsed.days)) return parsed;
+      }
+    } catch {}
+
+    return null;
+  },
+
+  _extractQuizJSON(text) {
+    if (!text) return [];
+    const sanitize = (str) => str.replace(/,(\s*[\]}])/g, "$1");
+    const isValid = (arr) => Array.isArray(arr) && arr.length && arr[0].question && Array.isArray(arr[0].choices);
+
+    try {
+      const parsed = JSON.parse(sanitize(text.trim()));
+      if (isValid(parsed)) return parsed;
+    } catch {}
+
+    try {
+      const cleaned = sanitize(text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim());
+      const parsed = JSON.parse(cleaned);
+      if (isValid(parsed)) return parsed;
+    } catch {}
+
+    try {
+      const start = text.indexOf("[");
+      const end = text.lastIndexOf("]");
+      if (start !== -1 && end > start) {
+        const parsed = JSON.parse(sanitize(text.substring(start, end + 1)));
+        if (isValid(parsed)) return parsed;
+      }
+    } catch {}
+
+    return [];
+  },
+
+  /* =========================================================================
+     WEEKLY PLAN GENERATION
+     ========================================================================= */
+
+  async generateWeeklyPlan() {
+    try {
+      const { Plans } = await import("./api.js");
+      const [tasks, exams] = await Promise.all([Tasks.fetch(), Exams.fetch()]);
+      const pendingTasks = tasks.filter(t => !t.is_done).map(t => t.text).join(", ") || "None";
+      const upcomingExams = exams.map(e => `${e.exam_name} on ${e.exam_date} (difficulty: ${e.difficulty || "unspecified"})`).join(", ") || "None";
+
+      const now = new Date();
+      const day = now.getDay();
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - ((day + 6) % 7));
+      const weekStartISO = monday.toISOString().slice(0, 10);
+      const weekDates = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        return d.toISOString().slice(0, 10);
+      });
+
+      const prompt = `Build a weekly study schedule for the week of ${weekStartISO} (days: ${weekDates.join(", ")}).
+Pending tasks: ${pendingTasks}
+Upcoming exams: ${upcomingExams}
+Prioritize subjects with closer/harder exams. Keep daily blocks realistic (30-90 minutes each, a couple of blocks per day at most). If there is no exam/task data, suggest light general review blocks.`;
+
+      const data = await this._callEdgeStream({
+        history: [{ role: "user", content: prompt }],
+        mode: "plan",
+        settings: UI.loadSettings(),
+      }, null);
+
+      const planJson = this._extractPlanJSON(data.text);
+      if (!planJson) {
+        UI.showPopup("Couldn't generate a plan this time. Please try again.", "AI Plan");
+        return null;
+      }
+
+      const saved = await Plans.upsert(weekStartISO, planJson);
+      return saved;
+    } catch (err) {
+      console.error("[AI.generateWeeklyPlan]", err);
+      UI.showPopup("Failed to generate your weekly plan. Please try again.", "AI Plan");
+      return null;
+    }
+  },
+
+  /* =========================================================================
+     QUIZ GENERATION — distinct from flashcards, auto-graded MCQ
+     ========================================================================= */
+
+  async generateQuiz(materialId, folderId) {
+    try {
+      const { Notes, Materials, Quizzes } = await import("./api.js");
+
+      let sourceText = "";
+      let title = "Quiz";
+      if (materialId) {
+        const notes = await Notes.fetchByMaterial(materialId);
+        if (notes?.[0]?.markdown_content) {
+          sourceText = notes[0].markdown_content.substring(0, 6000);
+        }
+        const materials = await Materials.fetch(folderId);
+        const material = materials.find(m => m.id === materialId);
+        if (material) title = `${material.title} Quiz`;
+      }
+
+      if (!sourceText) {
+        UI.showPopup("No notes are available for this material yet — wait for AI processing to finish, then try again.", "Quiz Generation");
+        return null;
+      }
+
+      const prompt = `Generate a quiz from the following study notes:\n"""\n${sourceText}\n"""`;
+
+      const data = await this._callEdgeStream({
+        history: [{ role: "user", content: prompt }],
+        mode: "quiz",
+        settings: UI.loadSettings(),
+      }, null);
+
+      const questions = this._extractQuizJSON(data.text);
+      if (questions.length === 0) {
+        UI.showPopup("Couldn't generate a quiz this time. Please try again.", "Quiz Generation");
+        return null;
+      }
+
+      const quiz = await Quizzes.add(materialId, folderId, title, questions);
+      return quiz;
+    } catch (err) {
+      console.error("[AI.generateQuiz]", err);
+      UI.showPopup("Failed to generate quiz. Please try again.", "Quiz Generation");
+      return null;
+    }
+  },
+
   /* =========================================================================
      INGESTION PIPELINE — Process uploaded materials into notes + flashcards
      ========================================================================= */

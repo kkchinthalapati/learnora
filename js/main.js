@@ -1,5 +1,5 @@
 import { UI, $, $$, esc, Storage } from "./ui.js";
-import { Auth, Tasks, Exams, DataAdmin, Folders, Materials } from "./api.js";
+import { Auth, Tasks, Exams, DataAdmin, Folders, Materials, Sessions, Flashcards, Quizzes } from "./api.js";
 import { Timer } from "./timer.js";
 import { AI } from "./ai.js";
 import { Router } from "./router.js";
@@ -85,6 +85,27 @@ function bindUploadHub() {
   if (!dropzone) return;
 
   $("btn-browse-files")?.addEventListener("click", () => fileInput.click());
+
+  // Friction fix: brand-new users with zero folders would otherwise hit a
+  // dead end here, forced to detour to #folders before they can upload anything.
+  $("btn-upload-new-folder")?.addEventListener("click", async () => {
+    const name = await UI.promptText("Give it a name so it's easy to find later.", {
+      title: "New folder",
+      placeholder: "e.g. CS101, Biology",
+      confirmText: "Create folder",
+    });
+    if (!name) return;
+    const colors = ["#4A90E2", "#E24A4A", "#4AE283", "#E2A84A", "#9B4AE2"];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    const newFolder = await Folders.add(name, randomColor);
+    if (newFolder && folderSelect) {
+      const opt = document.createElement("option");
+      opt.value = newFolder.id;
+      opt.textContent = newFolder.name;
+      folderSelect.appendChild(opt);
+      folderSelect.value = newFolder.id;
+    }
+  });
 
   // Toggle UI based on material type
   typeRadios.forEach(radio => {
@@ -828,7 +849,36 @@ function bindTimer() {
   $("mini-timer-toggle")?.addEventListener("click", () => Timer.toggle());
 
   // Keep the mini-timer's show/hide in sync as the user navigates views.
-  window.addEventListener("hashchange", () => Timer.updateUI());
+  window.addEventListener("hashchange", () => {
+    Timer.updateUI();
+    if (window.location.hash !== "#timer") return;
+
+    // Pre-stage a plan block's subject/duration when arriving via a
+    // "Start focus session" button on the #plan view (Router's start-plan-block action).
+    const pendingTask = sessionStorage.getItem("pending_timer_task");
+    const pendingMins = sessionStorage.getItem("pending_timer_focus_mins");
+    if (!pendingTask && !pendingMins) return;
+    sessionStorage.removeItem("pending_timer_task");
+    sessionStorage.removeItem("pending_timer_focus_mins");
+
+    if (pendingMins) {
+      const focusInput = $("config-focus");
+      if (focusInput) focusInput.value = pendingMins;
+    }
+    if (pendingTask) {
+      const taskSelect = $("active-task-select");
+      if (taskSelect) {
+        const exists = Array.from(taskSelect.options).some((o) => o.value === pendingTask);
+        if (!exists) {
+          const opt = document.createElement("option");
+          opt.value = pendingTask;
+          opt.textContent = pendingTask;
+          taskSelect.appendChild(opt);
+        }
+        taskSelect.value = pendingTask;
+      }
+    }
+  });
 }
 
 /* =========================================================================
@@ -1458,6 +1508,240 @@ function renderDashboardTasks(tasks) {
 }
 
 /* =========================================================================
+   ANALYTICS & STREAKS (Area 1)
+   ========================================================================= */
+
+function safeColorLocal(color) {
+  return /^#[0-9a-fA-F]{3,8}$/.test(String(color || "")) ? color : "#4A90E2";
+}
+
+async function loadActiveFolderSelect() {
+  const select = $("active-folder-select");
+  if (!select) return;
+  const folders = await Folders.fetch();
+  const selectedValue = select.value;
+  select.innerHTML = '<option value="">Unassigned</option>';
+  folders.forEach((f) => {
+    const opt = document.createElement("option");
+    opt.value = f.id;
+    opt.textContent = f.name;
+    select.appendChild(opt);
+  });
+  if (Array.from(select.options).some((o) => o.value === selectedValue)) {
+    select.value = selectedValue;
+  }
+}
+
+function computeStreak(sessions) {
+  const dayTotals = {};
+  sessions.forEach((s) => {
+    const day = new Date(s.started_at).toDateString();
+    dayTotals[day] = (dayTotals[day] || 0) + (s.minutes || 0);
+  });
+  let streak = 0;
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+  while ((dayTotals[cursor.toDateString()] || 0) >= 5) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+async function renderAnalytics() {
+  const card = $("dash-streak-card");
+  if (!card) return;
+
+  const sessions = await Sessions.fetchSince(90);
+
+  if (sessions.length === 0) {
+    card.innerHTML = `
+      <span class="dash-eyebrow">Streak</span>
+      <p class="dash-empty">Start your first streak today — complete a focus session to begin.</p>
+    `;
+    return;
+  }
+
+  const streak = computeStreak(sessions);
+
+  // Supabase-sourced totals reconcile the instant-paint localStorage numbers
+  // renderDashboard() already set — single source of truth across devices.
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  let totalMins = 0, todayMins = 0;
+  sessions.forEach((s) => {
+    totalMins += s.minutes || 0;
+    if (new Date(s.started_at) >= startOfToday) todayMins += s.minutes || 0;
+  });
+  const totalDisplay = $("total-hours-display");
+  if (totalDisplay) totalDisplay.innerHTML = `${formatFocusTime(totalMins)} <span>total</span>`;
+  const todayDisplay = $("dash-today-focus");
+  if (todayDisplay) todayDisplay.textContent = formatFocusTime(todayMins);
+
+  // Last 7 days sparkline
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - i);
+    days.push({ label: d.toLocaleDateString([], { weekday: "narrow" }), key: d.toDateString(), mins: 0 });
+  }
+  sessions.forEach((s) => {
+    const key = new Date(s.started_at).toDateString();
+    const day = days.find((d) => d.key === key);
+    if (day) day.mins += s.minutes || 0;
+  });
+  const maxMins = Math.max(1, ...days.map((d) => d.mins));
+  const barsHTML = days.map((d) => `
+    <div class="dash-streak-bar-col" title="${formatFocusTime(d.mins)}">
+      <div class="dash-streak-bar" style="height:${Math.max(4, Math.round((d.mins / maxMins) * 40))}px"></div>
+      <span class="dash-streak-bar-label">${esc(d.label)}</span>
+    </div>
+  `).join("");
+
+  // Folder breakdown
+  const folders = await Folders.fetch();
+  const folderInfo = {};
+  folders.forEach((f) => { folderInfo[f.id] = { name: f.name, color: f.color }; });
+  const folderTotals = {};
+  sessions.forEach((s) => {
+    const key = s.folder_id || "unassigned";
+    folderTotals[key] = (folderTotals[key] || 0) + (s.minutes || 0);
+  });
+  const breakdownHTML = Object.entries(folderTotals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([id, mins]) => {
+      const info = folderInfo[id] || { name: "Unassigned", color: "#888" };
+      return `
+        <div class="dash-folder-row flex-between">
+          <span><span class="dash-folder-dot" style="background:${safeColorLocal(info.color)};"></span>${esc(info.name)}</span>
+          <span class="opacity-70">${formatFocusTime(mins)}</span>
+        </div>`;
+    }).join("");
+
+  card.innerHTML = `
+    <span class="dash-eyebrow">Streak</span>
+    <h2 class="stat-number">🔥 ${streak} <span>day${streak === 1 ? "" : "s"}</span></h2>
+    <div class="dash-streak-bars mt-16">${barsHTML}</div>
+    ${breakdownHTML ? `<div class="dash-folder-breakdown mt-16">${breakdownHTML}</div>` : ""}
+  `;
+}
+
+/* =========================================================================
+   SRS DUE-TODAY REMINDERS (Area 2)
+   ========================================================================= */
+
+function notifyDueCardsOncePerDay(count) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const todayKey = new Date().toDateString();
+  if (Storage.get("srs_notified_date") === todayKey) return;
+  new Notification("Learnora", {
+    body: `${count} flashcard${count > 1 ? "s" : ""} due for review today.`,
+    icon: "learnora.jpg",
+  });
+  Storage.set("srs_notified_date", todayKey);
+}
+
+async function renderDueCards() {
+  const count = await Flashcards.fetchDueCount();
+
+  const badge = $("nav-flashcards-badge");
+  if (badge) {
+    badge.textContent = String(count);
+    badge.classList.toggle("hidden", count === 0);
+  }
+
+  const dueEl = $("dash-srs-due");
+  if (dueEl) {
+    if (count > 0) {
+      dueEl.classList.remove("hidden");
+      dueEl.innerHTML = `
+        <div class="flex-between">
+          <span>🗂️ ${count} card${count === 1 ? "" : "s"} due today</span>
+          <a href="#flashcards" class="dash-link">Review now →</a>
+        </div>`;
+    } else {
+      dueEl.classList.add("hidden");
+      dueEl.innerHTML = "";
+    }
+  }
+
+  const banner = $("flashcards-due-banner");
+  if (banner) {
+    if (count > 0) {
+      banner.classList.remove("hidden");
+      banner.innerHTML = `🗂️ <strong>${count}</strong> card${count === 1 ? "" : "s"} due for review today.`;
+    } else {
+      banner.classList.add("hidden");
+      banner.innerHTML = "";
+    }
+  }
+
+  if (count > 0) notifyDueCardsOncePerDay(count);
+}
+
+/* =========================================================================
+   AI WEAK-TOPICS SURFACING (Area 3b)
+   ========================================================================= */
+
+async function renderWeakTopics() {
+  const el = $("dash-weak-topics");
+  if (!el) return;
+  const topics = await Quizzes.fetchWeakTopics(3);
+  if (topics.length === 0) {
+    el.classList.add("hidden");
+    el.innerHTML = "";
+    return;
+  }
+  el.classList.remove("hidden");
+  el.innerHTML = `<span class="opacity-70 text-sm">Struggling with: </span>` +
+    topics.map((t) => `<span class="glass-pill" style="font-size:0.75rem; padding:4px 10px; margin:2px;">${esc(t.topic)}</span>`).join("");
+}
+
+/* =========================================================================
+   ONBOARDING (Area 4)
+   ========================================================================= */
+
+async function maybeRenderOnboardingBanner() {
+  const banner = $("dash-onboarding-banner");
+  if (!banner) return;
+  if (Storage.get("onboarding_dismissed", false)) {
+    banner.classList.add("hidden");
+    return;
+  }
+
+  const [folders, tasks] = await Promise.all([Folders.fetch(), Tasks.fetch()]);
+  const hasData = folders.length > 0 || tasks.length > 0 || cachedExams.length > 0;
+  if (hasData) {
+    banner.classList.add("hidden");
+    return;
+  }
+
+  banner.classList.remove("hidden");
+  banner.innerHTML = `
+    <div class="flex-between">
+      <div>
+        <h3>👋 Welcome to Learnora!</h3>
+        <p class="opacity-70 mt-8">Upload your first study material or add a task to get started — Learnora AI will build notes, flashcards, and quizzes from it.</p>
+      </div>
+      <button id="btn-dismiss-onboarding" class="icon-btn" aria-label="Dismiss">✖</button>
+    </div>
+    <div class="flex-gap mt-16">
+      <button class="btn-primary" data-hash="upload">📤 Upload material</button>
+      <button class="btn-secondary" id="btn-onboarding-add-task">📝 Add a task</button>
+    </div>
+  `;
+  $("btn-dismiss-onboarding")?.addEventListener("click", () => {
+    Storage.set("onboarding_dismissed", true);
+    banner.classList.add("hidden");
+  });
+  $("btn-onboarding-add-task")?.addEventListener("click", () => {
+    $("dash-task-input")?.focus();
+  });
+}
+
+/* =========================================================================
    AI BINDINGS
    ========================================================================= */
 
@@ -1528,6 +1812,49 @@ function bindAI() {
       }
     });
   });
+
+  // "Plan my week" — generates a real persisted weekly plan instead of a chat reply.
+  $("dash-plan-week-btn")?.addEventListener("click", async () => {
+    const btn = $("dash-plan-week-btn");
+    const original = btn.innerHTML;
+    btn.innerHTML = '<span class="dash-ai-icon">🗓️</span> Generating…';
+    btn.disabled = true;
+    const plan = await AI.generateWeeklyPlan();
+    btn.innerHTML = original;
+    btn.disabled = false;
+    if (plan) window.location.hash = "plan";
+  });
+
+  // "Quiz me" — generates a real auto-graded quiz from the most recent material.
+  $("dash-quiz-me-btn")?.addEventListener("click", async () => {
+    const btn = $("dash-quiz-me-btn");
+    const original = btn.innerHTML;
+    btn.innerHTML = '<span class="dash-ai-icon">🧠</span> Generating…';
+    btn.disabled = true;
+    const material = await Materials.fetchMostRecent();
+    if (!material) {
+      UI.showPopup("Upload a study material first, then Learnora AI can quiz you on it.", "No materials yet");
+      btn.innerHTML = original;
+      btn.disabled = false;
+      return;
+    }
+    const quiz = await AI.generateQuiz(material.id, material.folder_id);
+    btn.innerHTML = original;
+    btn.disabled = false;
+    if (quiz) window.location.hash = `quiz-${quiz.id}`;
+  });
+
+  // "Regenerate" on the #plan view — upsert just overwrites this week's plan.
+  $("btn-regenerate-plan")?.addEventListener("click", async () => {
+    const btn = $("btn-regenerate-plan");
+    const original = btn.textContent;
+    btn.textContent = "⏳ Generating...";
+    btn.disabled = true;
+    const plan = await AI.generateWeeklyPlan();
+    btn.textContent = original;
+    btn.disabled = false;
+    if (plan) Router.loadPlanView();
+  });
 }
 
 /* =========================================================================
@@ -1537,13 +1864,23 @@ function bindAI() {
 function initWorkspace() {
   loadTasks();
   loadCalendar();
+  loadActiveFolderSelect();
+  renderAnalytics();
+  renderDueCards();
+  renderWeakTopics();
+  maybeRenderOnboardingBanner();
   // Timer.init() is already called by bindTimer() during boot — no second init.
   AI.initDragDrop();
   startClock();
-  window.addEventListener("sessionLogged", renderDashboard);
+  window.addEventListener("sessionLogged", () => {
+    renderDashboard();
+    renderAnalytics();
+  });
   // When the AI assistant creates tasks, refresh the Task Manager list and the
   // dashboard's compact task widget (loadTasks() re-renders both).
   window.addEventListener("tasksUpdated", loadTasks);
+  // A flashcard review can change which cards are due next.
+  window.addEventListener("flashcardReviewed", renderDueCards);
 }
 
 function startClock() {

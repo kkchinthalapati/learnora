@@ -1,4 +1,5 @@
 import { UI, $, Storage } from "./ui.js";
+import { Sessions } from "./api.js";
 
 /* =========================================================================
    CONSTANTS
@@ -406,6 +407,8 @@ export const Timer = {
     const sessions = Storage.get("sessions", []);
     const taskEl = $("active-task-select");
     const taskName = taskEl && taskEl.value !== "None" ? taskEl.value : "General Study";
+    const folderEl = $("active-folder-select");
+    const folderId = folderEl && folderEl.value !== "" ? folderEl.value : null;
     const ts = new Date().toLocaleString([], {
       month: "short",
       day: "numeric",
@@ -417,6 +420,12 @@ export const Timer = {
     if (sessions.length > 500) sessions.length = 500;
 
     Storage.set("sessions", sessions);
+
+    // Local history above is the source of truth for instant UI; the Supabase
+    // write is best-effort so a flaky connection never drops a logged session.
+    Sessions.log({ minutes: mins, task: taskName, folderId, timerType: this.state.type })
+      .catch((err) => console.warn("[Timer] Supabase session log failed (local copy preserved):", err));
+
     window.dispatchEvent(new Event("sessionLogged"));
   },
 
