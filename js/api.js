@@ -450,6 +450,23 @@ export const Materials = {
       return null;
     }
     return data.signedUrl;
+  },
+
+  async fetchMostRecent() {
+    const user = await getCurrentUser();
+    if (!user) return null;
+    const { data, error } = await supabase
+      .from("materials")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      console.error("[Materials.fetchMostRecent]", error.message);
+      return null;
+    }
+    return data;
   }
 };
 
@@ -555,6 +572,39 @@ export const Flashcards = {
       .eq("id", cardId);
     if (error) throw new Error(error.message);
     return true;
+  },
+
+  /** Count of cards scheduled on/before now — excludes never-reviewed (null) cards. */
+  async fetchDueCount() {
+    const user = await getCurrentUser();
+    if (!user) return 0;
+    const { count, error } = await supabase
+      .from("flashcards")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .lte("next_review_date", new Date().toISOString());
+    if (error) {
+      console.error("[Flashcards.fetchDueCount]", error.message);
+      return 0;
+    }
+    return count || 0;
+  },
+
+  async fetchAllDue(limit = 50) {
+    const user = await getCurrentUser();
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from("flashcards")
+      .select("*, flashcard_decks(title)")
+      .eq("user_id", user.id)
+      .lte("next_review_date", new Date().toISOString())
+      .order("next_review_date", { ascending: true })
+      .limit(limit);
+    if (error) {
+      console.error("[Flashcards.fetchAllDue]", error.message);
+      return [];
+    }
+    return data || [];
   }
 };
 
@@ -672,6 +722,187 @@ export const Exams = {
 };
 
 /* =========================================================================
+   SESSIONS — Durable study-session log backing analytics & streaks
+   ========================================================================= */
+
+export const Sessions = {
+  async log({ minutes, task, folderId = null, timerType = null }) {
+    const user = await getCurrentUser();
+    if (!user) return false;
+    const startedAt = new Date(Date.now() - minutes * 60000).toISOString();
+    const { error } = await supabase.from("study_sessions").insert([{
+      user_id: user.id,
+      task: task || null,
+      folder_id: folderId,
+      minutes,
+      timer_type: timerType,
+      started_at: startedAt,
+    }]);
+    if (error) {
+      console.error("[Sessions.log]", error.message);
+      return false;
+    }
+    return true;
+  },
+
+  async fetchSince(daysBack = 90) {
+    const user = await getCurrentUser();
+    if (!user) return [];
+    const since = new Date();
+    since.setDate(since.getDate() - daysBack);
+    const { data, error } = await supabase
+      .from("study_sessions")
+      .select("*")
+      .eq("user_id", user.id)
+      .gte("started_at", since.toISOString())
+      .order("started_at", { ascending: false });
+    if (error) {
+      console.error("[Sessions.fetchSince]", error.message);
+      return [];
+    }
+    return data || [];
+  },
+};
+
+/* =========================================================================
+   PLANS — AI-generated weekly study schedules
+   ========================================================================= */
+
+export const Plans = {
+  async fetchForWeek(weekStartISO) {
+    const user = await getCurrentUser();
+    if (!user) return null;
+    const { data, error } = await supabase
+      .from("weekly_plans")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("week_start", weekStartISO)
+      .maybeSingle();
+    if (error) {
+      console.error("[Plans.fetchForWeek]", error.message);
+      return null;
+    }
+    return data;
+  },
+
+  async upsert(weekStartISO, planJson) {
+    const user = await getCurrentUser();
+    if (!user) return null;
+    const { data, error } = await supabase
+      .from("weekly_plans")
+      .upsert([{ user_id: user.id, week_start: weekStartISO, plan_json: planJson }], {
+        onConflict: "user_id,week_start",
+      })
+      .select()
+      .single();
+    if (error) {
+      console.error("[Plans.upsert]", error.message);
+      return null;
+    }
+    return data;
+  },
+};
+
+/* =========================================================================
+   QUIZZES — AI-generated auto-graded quizzes, distinct from flashcards
+   ========================================================================= */
+
+export const Quizzes = {
+  async add(materialId, folderId, title, questions) {
+    const user = await getCurrentUser();
+    if (!user) return null;
+    const { data, error } = await supabase
+      .from("quizzes")
+      .insert([{
+        user_id: user.id,
+        material_id: materialId,
+        folder_id: folderId,
+        title,
+        questions_json: questions,
+      }])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  async fetchAll() {
+    const user = await getCurrentUser();
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from("quizzes")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("[Quizzes.fetchAll]", error.message);
+      return [];
+    }
+    return data || [];
+  },
+
+  async fetchById(id) {
+    const { data, error } = await supabase
+      .from("quizzes")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) {
+      console.error("[Quizzes.fetchById]", error.message);
+      return null;
+    }
+    return data;
+  },
+
+  async delete(id) {
+    const { error } = await supabase.from("quizzes").delete().eq("id", id);
+    if (error) {
+      console.error("[Quizzes.delete]", error.message);
+      return false;
+    }
+    return true;
+  },
+
+  async recordAttempt(quizId, score, total, answers, weakTopics) {
+    const user = await getCurrentUser();
+    if (!user) return false;
+    const { error } = await supabase.from("quiz_attempts").insert([{
+      user_id: user.id,
+      quiz_id: quizId,
+      score,
+      total,
+      answers_json: answers,
+      weak_topics: weakTopics,
+    }]);
+    if (error) {
+      console.error("[Quizzes.recordAttempt]", error.message);
+      return false;
+    }
+    return true;
+  },
+
+  async fetchWeakTopics(limit = 5) {
+    const user = await getCurrentUser();
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from("quiz_attempts")
+      .select("weak_topics")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (error) return [];
+    const counts = {};
+    (data || []).forEach((a) => (a.weak_topics || []).forEach((t) => {
+      counts[t] = (counts[t] || 0) + 1;
+    }));
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([topic, count]) => ({ topic, count }));
+  },
+};
+
+/* =========================================================================
    DATA ADMIN — Export & Wipe
    ========================================================================= */
 
@@ -686,14 +917,11 @@ function escapeCSVField(field) {
 export const DataAdmin = {
   async exportCSV() {
     try {
-      const [tasks, exams] = await Promise.all([Tasks.fetch(), Exams.fetch()]);
-      let sessions = [];
-      try {
-        const raw = localStorage.getItem("sessions");
-        sessions = raw ? JSON.parse(raw) : [];
-      } catch (err) {
-        console.error("Failed to parse sessions for export", err);
-      }
+      const [tasks, exams, dbSessions] = await Promise.all([
+        Tasks.fetch(),
+        Exams.fetch(),
+        Sessions.fetchSince(3650),
+      ]);
 
       const rows = [["Type", "Name", "Status", "Date"]];
       tasks.forEach((t) =>
@@ -702,9 +930,24 @@ export const DataAdmin = {
       exams.forEach((e) =>
         rows.push(["Exam", e.exam_name, e.status, e.exam_date]),
       );
-      sessions.forEach((s) =>
-        rows.push(["Focus Session", `${s.minutes}m Focus on ${s.task || "General Study"}`, "Completed", s.timestamp]),
-      );
+
+      if (dbSessions.length) {
+        dbSessions.forEach((s) =>
+          rows.push(["Focus Session", `${s.minutes}m Focus on ${s.task || "General Study"}`, "Completed", s.started_at]),
+        );
+      } else {
+        // Fall back to localStorage history predating the study_sessions table.
+        let localSessions = [];
+        try {
+          const raw = localStorage.getItem("sessions");
+          localSessions = raw ? JSON.parse(raw) : [];
+        } catch (err) {
+          console.error("Failed to parse sessions for export", err);
+        }
+        localSessions.forEach((s) =>
+          rows.push(["Focus Session", `${s.minutes}m Focus on ${s.task || "General Study"}`, "Completed", s.timestamp]),
+        );
+      }
 
       const csv = rows.map((r) => r.map(escapeCSVField).join(",")).join("\n");
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -730,6 +973,9 @@ export const DataAdmin = {
       await Promise.all([
         supabase.from("tasks").delete().eq("user_id", user.id),
         supabase.from("exams").delete().eq("user_id", user.id),
+        supabase.from("study_sessions").delete().eq("user_id", user.id),
+        supabase.from("weekly_plans").delete().eq("user_id", user.id),
+        supabase.from("quizzes").delete().eq("user_id", user.id),
       ]);
       // Only wipe study-session data, never auth tokens or theme prefs
       localStorage.removeItem("sessions");

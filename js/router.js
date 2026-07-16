@@ -1,5 +1,5 @@
 import { UI, $, esc } from "./ui.js";
-import { Folders, Materials, Decks, Notes, Flashcards } from "./api.js";
+import { Folders, Materials, Decks, Notes, Flashcards, Quizzes } from "./api.js";
 
 /** Only allow safe hex colors into inline style attributes */
 function safeColor(color, fallback = "#4A90E2") {
@@ -28,6 +28,11 @@ export const Router = {
       if (!actionEl) return;
       if (actionEl.dataset.action === "new-folder") this.createNewFolder();
       else if (actionEl.dataset.action === "history-back") window.history.back();
+      else if (actionEl.dataset.action === "start-plan-block") {
+        sessionStorage.setItem("pending_timer_task", actionEl.dataset.planSubject || "");
+        sessionStorage.setItem("pending_timer_focus_mins", actionEl.dataset.planDuration || "25");
+        window.location.hash = "timer";
+      }
     });
 
     // Trigger on first load
@@ -81,6 +86,13 @@ export const Router = {
       return;
     }
 
+    if (route.startsWith("quiz-")) {
+      const quizId = route.replace("quiz-", "");
+      $(`view-quiz`)?.classList.remove("hidden");
+      this.startQuiz(quizId);
+      return;
+    }
+
     // Show target view
     const targetView = $(`view-${route}`);
     if (targetView) {
@@ -96,6 +108,12 @@ export const Router = {
     }
     if (route === "flashcards") {
       this.loadAllFlashcards();
+    }
+    if (route === "quizzes") {
+      this.loadAllQuizzes();
+    }
+    if (route === "plan") {
+      this.loadPlanView();
     }
 
     // Populate settings profile data when navigating to settings
@@ -146,7 +164,8 @@ export const Router = {
       container.innerHTML = `
         <div class="glass-panel text-center" style="grid-column: 1 / -1; padding: 40px;">
             <h3>No flashcards yet.</h3>
-            <p class="opacity-70 mt-8">Generate flashcards from your study materials using Learnora AI.</p>
+            <p class="opacity-70 mt-8 mb-16">Generate flashcards from your study materials using Learnora AI.</p>
+            <button class="btn-primary" data-hash="upload">📤 Upload a material →</button>
         </div>
       `;
     } else {
@@ -179,7 +198,11 @@ export const Router = {
         container.innerHTML = `
           <div class="glass-panel text-center" style="grid-column: 1 / -1; padding: 40px;">
               <h3>No folders yet.</h3>
-              <p class="opacity-70 mt-8 mb-16">Create a folder to start organizing your study materials.</p>
+              <p class="opacity-70 mt-8 mb-16">
+                1. Create a folder for a course or subject &nbsp;→&nbsp;
+                2. Upload a PDF, link, or notes into it &nbsp;→&nbsp;
+                3. Learnora AI builds notes, flashcards, and quizzes for you.
+              </p>
               <button class="btn-primary" data-action="new-folder">+ Create Folder</button>
           </div>
         `;
@@ -215,14 +238,18 @@ export const Router = {
     // We need Materials and Decks imported!
     const materialsList = $("workspace-materials-list");
     const decksList = $("workspace-decks-list");
-    
+    const quizzesList = $("workspace-quizzes-list");
+
     if (!materialsList || !decksList) { UI.setGlobalLoading(false); return; }
-    
+
     materialsList.innerHTML = "<p>Loading...</p>";
     decksList.innerHTML = "<p>Loading...</p>";
+    if (quizzesList) quizzesList.innerHTML = "<p>Loading...</p>";
 
     const materials = await Materials.fetch(folderId);
     const decks = await Decks.fetch(folderId);
+    const allQuizzes = await Quizzes.fetchAll();
+    const quizzes = allQuizzes.filter((q) => q.folder_id === folderId);
     UI.setGlobalLoading(false);
 
     if (materials.length === 0) {
@@ -251,6 +278,35 @@ export const Router = {
           <span class="todo-text">🗂️ ${esc(d.title)}</span>
         </div>
       `).join("");
+    }
+
+    if (quizzesList) {
+      if (quizzes.length === 0) {
+        quizzesList.innerHTML = "<p class='opacity-70'>No quizzes yet.</p>";
+      } else {
+        quizzesList.innerHTML = quizzes.map(q => `
+          <div class="todo-item cursor-pointer" data-hash="quiz-${encodeURIComponent(q.id)}">
+            <span class="todo-text">❓ ${esc(q.title)}</span>
+          </div>
+        `).join("");
+      }
+
+      const genBtn = $("btn-generate-quiz");
+      if (genBtn) {
+        const fresh = genBtn.cloneNode(true);
+        genBtn.replaceWith(fresh);
+        fresh.addEventListener("click", async () => {
+          if (materials.length === 0) {
+            UI.showPopup("Upload a material into this folder first, then generate a quiz from it.", "No materials yet");
+            return;
+          }
+          const { AI } = await import("./ai.js");
+          UI.setGlobalLoading(true);
+          const quiz = await AI.generateQuiz(materials[0].id, folderId);
+          UI.setGlobalLoading(false);
+          if (quiz) window.location.hash = `quiz-${quiz.id}`;
+        });
+      }
     }
   },
 
@@ -371,7 +427,8 @@ export const Router = {
       nextDate.setDate(nextDate.getDate() + interval);
       
       await Flashcards.updateReview(card.id, nextDate.toISOString(), interval, ease);
-      
+      window.dispatchEvent(new Event("flashcardReviewed"));
+
       currentIndex++;
       showCard();
     };
@@ -391,5 +448,137 @@ export const Router = {
     bindScore("btn-score-easy",  4);
 
     showCard();
+  },
+
+  async loadAllQuizzes() {
+    UI.setGlobalLoading(true);
+    const quizzes = await Quizzes.fetchAll();
+    UI.setGlobalLoading(false);
+
+    const container = $("quizzes-grid");
+    if (!container) return;
+
+    if (quizzes.length === 0) {
+      container.innerHTML = `
+        <div class="glass-panel text-center" style="grid-column: 1 / -1; padding: 40px;">
+            <h3>No quizzes yet.</h3>
+            <p class="opacity-70 mt-8 mb-16">Generate a quiz from a folder's materials to test yourself.</p>
+            <button class="btn-primary" data-hash="folders">Browse folders →</button>
+        </div>
+      `;
+    } else {
+      container.innerHTML = quizzes.map(q => `
+        <div class="glass-panel stat-card cursor-pointer hover-lift flex-between" data-hash="quiz-${encodeURIComponent(q.id)}">
+          <div>
+            <h3>❓ ${esc(q.title)}</h3>
+            <p class="opacity-70 mt-4 text-sm">${(q.questions_json || []).length} questions · Created: ${new Date(q.created_at).toLocaleDateString()}</p>
+          </div>
+          <span class="btn-primary" style="padding: 6px 12px; font-size: 0.8rem;">Take Quiz</span>
+        </div>
+      `).join("");
+    }
+  },
+
+  async startQuiz(quizId) {
+    UI.setGlobalLoading(true);
+    const quiz = await Quizzes.fetchById(quizId);
+    UI.setGlobalLoading(false);
+
+    const container = $("quiz-container");
+    if (!container) return;
+
+    if (!quiz) {
+      container.innerHTML = `<h3>Quiz not found.</h3>`;
+      return;
+    }
+
+    const questions = quiz.questions_json || [];
+    let currentIndex = 0;
+    const answers = [];
+
+    const renderQuestion = () => {
+      if (currentIndex >= questions.length) {
+        const score = answers.filter(a => a.correct).length;
+        const total = questions.length;
+        const weakTopics = [...new Set(answers.filter(a => !a.correct).map(a => a.topic).filter(Boolean))];
+        Quizzes.recordAttempt(quiz.id, score, total, answers, weakTopics);
+
+        container.innerHTML = `
+          <button class="btn-secondary mb-24" data-action="history-back">← Exit</button>
+          <h2>Quiz Complete! 🎉</h2>
+          <p class="mt-8" style="font-size: 1.5rem;">${score} / ${total} correct</p>
+          ${weakTopics.length ? `<p class="opacity-70 mt-16">Topics to review: ${weakTopics.map(esc).join(", ")}</p>` : ""}
+          <button class="btn-primary mt-24" data-hash="quizzes">Back to Quizzes</button>
+        `;
+        return;
+      }
+
+      const q = questions[currentIndex];
+      container.innerHTML = `
+        <button class="btn-secondary mb-24" data-action="history-back">← Exit</button>
+        <p class="opacity-70">Question ${currentIndex + 1} of ${questions.length}</p>
+        <h3 class="mt-8 mb-16">${esc(q.question)}</h3>
+        <div id="quiz-choices" class="flex-col flex-gap"></div>
+      `;
+
+      const choicesEl = $("quiz-choices");
+      (q.choices || []).forEach((choice, i) => {
+        const btn = document.createElement("button");
+        btn.className = "btn-secondary full-width";
+        btn.textContent = choice;
+        btn.addEventListener("click", () => {
+          const correct = i === q.correctIndex;
+          answers.push({ questionId: q.id ?? currentIndex, chosenIndex: i, correct, topic: q.topic });
+          currentIndex++;
+          renderQuestion();
+        });
+        choicesEl.appendChild(btn);
+      });
+    };
+
+    renderQuestion();
+  },
+
+  async loadPlanView() {
+    UI.setGlobalLoading(true);
+    const { Plans } = await import("./api.js");
+    const now = new Date();
+    const day = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((day + 6) % 7));
+    const weekStartISO = monday.toISOString().slice(0, 10);
+
+    const plan = await Plans.fetchForWeek(weekStartISO);
+    UI.setGlobalLoading(false);
+
+    const summaryEl = $("plan-summary");
+    const daysEl = $("plan-days");
+    if (!summaryEl || !daysEl) return;
+
+    if (!plan) {
+      summaryEl.innerHTML = `<p class="opacity-70">No plan generated yet for this week. Click "Regenerate" to have Learnora AI build one from your exams and tasks.</p>`;
+      daysEl.innerHTML = "";
+      return;
+    }
+
+    const planJson = plan.plan_json || {};
+    summaryEl.innerHTML = `<p>${esc(planJson.summary || "")}</p>`;
+    const days = planJson.days || [];
+    daysEl.innerHTML = days.map(d => `
+      <div class="glass-panel">
+        <h4>${esc(d.date)}</h4>
+        <div class="flex-col flex-gap mt-8">
+          ${(d.blocks || []).map(b => `
+            <div class="todo-item">
+              <div class="flex-between">
+                <span class="todo-text">${esc(b.subject)} — ${esc(String(b.durationMins))}m (${esc(b.startHint || "")})</span>
+                <button class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" data-action="start-plan-block" data-plan-subject="${esc(b.subject)}" data-plan-duration="${esc(String(b.durationMins || 25))}">Start →</button>
+              </div>
+              ${b.reason ? `<p class="opacity-70 mt-4 text-sm">${esc(b.reason)}</p>` : ""}
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `).join("");
   }
 };

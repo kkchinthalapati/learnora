@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     const debugErrors: Record<string, string> = {};
 
     try {
-        const { history, file, settings } = await req.json();
+        const { history, file, settings, mode } = await req.json();
         const s = settings || {};
 
         const availableGeminiModels = ["gemini-1.5-flash", "gemini-2.0-flash"];
@@ -26,9 +26,15 @@ Deno.serve(async (req) => {
             tutor: 'a patient, explanatory, supportive tutor'
         };
 
-        const systemInstruction = `You are Learnora AI. Act as ${personaMap[s.aiPersona] || personaMap.tutor}. 
-    Keep response ${s.aiConciseness === 'short' ? 'brief' : 'detailed'}. Use ${s.aiLanguage || 'English'}. 
-    If asked for flashcards, output ONLY raw JSON: [{"front":"...", "back":"..."}].`;
+        const modeInstructions = mode === "plan"
+            ? `\nYou are generating a weekly study schedule. Output ONLY raw JSON (no prose, no code fences) matching this shape: {"days":[{"date":"YYYY-MM-DD","blocks":[{"startHint":"morning|afternoon|evening","durationMins":45,"subject":"string","reason":"string","examId":null,"taskId":null}]}],"summary":"one-sentence summary of the week's priorities"}.`
+            : mode === "quiz"
+            ? `\nYou are generating a multiple-choice quiz from the provided material. Output ONLY raw JSON (no prose, no code fences): [{"question":"string","choices":["a","b","c","d"],"correctIndex":0,"topic":"short topic label"}]. Produce 6-10 questions covering distinct concepts.`
+            : "";
+
+        const systemInstruction = `You are Learnora AI. Act as ${personaMap[s.aiPersona] || personaMap.tutor}.
+    Keep response ${s.aiConciseness === 'short' ? 'brief' : 'detailed'}. Use ${s.aiLanguage || 'English'}.
+    If asked for flashcards, output ONLY raw JSON: [{"front":"...", "back":"..."}].${modeInstructions}`;
 
         const currentMsg = history[history.length - 1].content;
 

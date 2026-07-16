@@ -344,6 +344,12 @@
                     <li>
                         <a href="#flashcards" class="nav-link" data-i18n="nav_flashcards">
                             🗂️ Flashcards
+                            <span id="nav-flashcards-badge" class="nav-badge hidden">0</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#quizzes" class="nav-link" data-i18n="nav_quizzes">
+                            ❓ Quizzes
                         </a>
                     </li>
                     <li>
@@ -431,7 +437,12 @@
                             </button>
                         </div>
 
-                        <!-- Today's tasks -->
+                        <!-- Streak & analytics -->
+                        <div class="glass-panel dash-card dash-streak" id="dash-streak-card">
+                            <!-- Populated by renderAnalytics() -->
+                        </div>
+
+                        <!-- Today's tasks + SRS due-today -->
                         <div class="glass-panel dash-card dash-tasks">
                             <div class="dash-card-head flex-between">
                                 <span class="dash-eyebrow">Today's tasks</span>
@@ -450,6 +461,9 @@
                                 </button>
                             </div>
                             <ul id="dash-today-tasks" class="dash-task-list mt-16"></ul>
+                            <div id="dash-srs-due" class="dash-srs-due hidden mt-16">
+                                <!-- Populated by renderDueCards() -->
+                            </div>
                         </div>
 
                         <!-- AI quick actions -->
@@ -460,9 +474,8 @@
                             </p>
                             <div class="dash-ai-actions">
                                 <button
+                                    id="dash-plan-week-btn"
                                     class="dash-ai-btn"
-                                    data-chat-prompt="Look at my upcoming exams and pending tasks, then build me a focused study plan for this week."
-                                    data-chat-send="true"
                                 >
                                     <span class="dash-ai-icon">🗓️</span>
                                     Plan my week
@@ -476,9 +489,8 @@
                                     What next?
                                 </button>
                                 <button
+                                    id="dash-quiz-me-btn"
                                     class="dash-ai-btn"
-                                    data-chat-prompt="Quiz me with a few quick questions on my most recent study notes."
-                                    data-chat-send="true"
                                 >
                                     <span class="dash-ai-icon">🧠</span>
                                     Quiz me
@@ -492,7 +504,15 @@
                                     Summarize notes
                                 </button>
                             </div>
+                            <div id="dash-weak-topics" class="dash-weak-topics hidden mt-16">
+                                <!-- Populated by renderWeakTopics() -->
+                            </div>
                         </div>
+                    </div>
+
+                    <!-- One-time onboarding nudge for brand-new users -->
+                    <div id="dash-onboarding-banner" class="glass-panel onboarding-banner hidden mb-24">
+                        <!-- Populated by maybeRenderOnboardingBanner() -->
                     </div>
 
                     <!-- Session history (secondary) -->
@@ -670,6 +690,19 @@
                                 </select>
                             </label>
 
+                            <label class="flex-between mt-16 task-binder"
+                                ><span data-i18n="config_folder"
+                                    >Subject (optional):</span
+                                >
+                                <select
+                                    id="active-folder-select"
+                                    class="small-input"
+                                    aria-label="Active Folder"
+                                >
+                                    <option value="">Unassigned</option>
+                                </select>
+                            </label>
+
                             <button
                                 id="btn-apply-timer"
                                 class="btn-primary full-width mt-24"
@@ -821,7 +854,44 @@
                             a card to flip it over.
                         </p>
                     </div>
+                    <div id="flashcards-due-banner" class="glass-panel flashcards-due-banner hidden mt-16"></div>
                     <div id="flashcards-grid" class="grid-list mt-24"></div>
+                </section>
+
+                <!-- VIEW: Quizzes -->
+                <section id="view-quizzes" class="view-section hidden">
+                    <div class="glass-panel summary-card">
+                        <h2 data-i18n="header_quizzes">Quizzes</h2>
+                        <p data-i18n="desc_quizzes" class="opacity-70 mt-8">
+                            AI-generated quizzes from your materials, auto-graded
+                            with weak-topic tracking.
+                        </p>
+                    </div>
+                    <div id="quizzes-grid" class="grid-list mt-24"></div>
+                </section>
+
+                <!-- VIEW: Quiz taking / results -->
+                <section id="view-quiz" class="view-section hidden">
+                    <div class="glass-panel summary-card" id="quiz-container">
+                        <!-- Populated by Router.startQuiz() -->
+                    </div>
+                </section>
+
+                <!-- VIEW: Weekly Plan -->
+                <section id="view-plan" class="view-section hidden">
+                    <div class="glass-panel summary-card flex-between">
+                        <div>
+                            <h2 data-i18n="header_plan">This week's plan</h2>
+                            <p data-i18n="desc_plan" class="opacity-70 mt-8">
+                                AI-generated from your exams and open tasks.
+                            </p>
+                        </div>
+                        <button id="btn-regenerate-plan" class="btn-secondary">
+                            🔄 Regenerate
+                        </button>
+                    </div>
+                    <div id="plan-summary" class="glass-panel mt-16"></div>
+                    <div id="plan-days" class="plan-days-grid mt-24"></div>
                 </section>
 
                 <!-- VIEW: Settings -->
@@ -1202,10 +1272,13 @@
                         
                         <div class="input-group mb-24">
                             <label for="upload-folder">Save to Course / Folder</label>
-                            <select id="upload-folder" class="full-width">
-                                <option value="" disabled selected>Select a folder...</option>
-                                <!-- Populated dynamically -->
-                            </select>
+                            <div class="flex-row" style="gap: 8px;">
+                                <select id="upload-folder" class="full-width">
+                                    <option value="" disabled selected>Select a folder...</option>
+                                    <!-- Populated dynamically -->
+                                </select>
+                                <button type="button" id="btn-upload-new-folder" class="btn-secondary" style="white-space: nowrap;">+ New</button>
+                            </div>
                         </div>
 
                         <div class="input-group mb-24">
@@ -1256,7 +1329,7 @@
                         <h2 id="workspace-title">Workspace</h2>
                     </div>
 
-                    <div class="grid-list" style="grid-template-columns: 1fr 1fr;">
+                    <div class="grid-list" style="grid-template-columns: 1fr 1fr 1fr;">
                         <!-- Materials List -->
                         <div class="glass-panel">
                             <h3 class="mb-16">📄 Materials & Notes</h3>
@@ -1269,6 +1342,15 @@
                                 <h3>🗂️ Flashcard Decks</h3>
                             </div>
                             <div id="workspace-decks-list" class="list-container"></div>
+                        </div>
+
+                        <!-- Quizzes -->
+                        <div class="glass-panel">
+                            <div class="flex-between mb-16">
+                                <h3>❓ Quizzes</h3>
+                                <button id="btn-generate-quiz" class="btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">+ Generate</button>
+                            </div>
+                            <div id="workspace-quizzes-list" class="list-container"></div>
                         </div>
                     </div>
                 </section>
