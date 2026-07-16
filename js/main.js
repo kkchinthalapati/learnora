@@ -58,6 +58,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (mainApp) mainApp.style.display = "none";
   }
 
+  UI.setGlobalLoading(false);
+
   bindAuth();
   bindNavigation();
   bindSettings();
@@ -311,7 +313,6 @@ function bindAuth() {
 
   bindStrengthMeter("signup-password", "password-strength-container", "strength-text");
   bindStrengthMeter("reset-password", "reset-password-strength-container", "reset-strength-text");
-
   $("login-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (loggingIn) return;
@@ -806,9 +807,20 @@ function bindTimer() {
     };
     const p = presets[btn.dataset.preset];
     if (!p) return;
-    // Staged while running (won't cancel the active timer), applied when idle.
-    if (Timer.isRunning()) Timer.stagePreset(p, "pomodoro");
-    else Timer.applyNow(p, "pomodoro");
+    
+    // Bug 9: Only change the config inputs
+    const setVal = (id, val) => { const el = $(id); if (el) el.value = val; };
+    setVal("config-focus", p.focus);
+    setVal("config-short", p.short);
+    setVal("config-long", p.long);
+    setVal("config-cycles", p.maxCycles);
+
+    // Auto-select pomodoro mode if it isn't active
+    const radio = document.querySelector('input[name="timer-type"][value="pomodoro"]');
+    if (radio && !radio.checked) {
+        radio.checked = true;
+        radio.dispatchEvent(new Event("change"));
+    }
   });
 
   // Persistent mini-timer controls.
@@ -954,18 +966,44 @@ async function loadTasks() {
     });
 
     // Delete
+    // Delete (Bug 11: Undo)
     delBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      li.style.opacity = "0";
-      li.style.transform = "translateX(20px)";
-      const ok = await Tasks.delete(t.id);
-      if (!ok) {
-        li.style.opacity = "";
-        li.style.transform = "";
-        UI.showPopup("Failed to delete task.", "Error");
-      } else {
-        setTimeout(loadTasks, 250);
-      }
+      li.style.display = "none";
+      
+      let undoClicked = false;
+      const toast = document.createElement("div");
+      toast.className = "toast glass-panel";
+      toast.innerHTML = `<span>Task deleted.</span> <button class="btn-primary btn-sm" style="margin-left:16px; padding:4px 12px; font-size:0.8rem;">Undo</button>`;
+      toast.style.position = "fixed";
+      toast.style.bottom = "20px";
+      toast.style.left = "50%";
+      toast.style.transform = "translateX(-50%)";
+      toast.style.zIndex = "9999";
+      toast.style.display = "flex";
+      toast.style.alignItems = "center";
+      toast.style.padding = "12px 24px";
+      
+      document.body.appendChild(toast);
+      
+      toast.querySelector("button").addEventListener("click", () => {
+        undoClicked = true;
+        li.style.display = "";
+        toast.remove();
+      });
+      
+      setTimeout(async () => {
+        if (toast.parentNode) toast.remove();
+        if (!undoClicked) {
+           const ok = await Tasks.delete(t.id);
+           if (!ok) {
+             li.style.display = "";
+             UI.showPopup("Failed to delete task.", "Error");
+           } else {
+             loadTasks();
+           }
+        }
+      }, 4000);
     });
 
     delBtn.addEventListener("keydown", (e) => {
@@ -1002,7 +1040,14 @@ function bindTasks() {
   $("btn-add-todo")?.addEventListener("click", async () => {
     const input = $("todo-input");
     const text = input?.value.trim();
-    if (!text) return;
+    if (!text) {
+      if (input) {
+        input.classList.remove("input-error");
+        void input.offsetWidth;
+        input.classList.add("input-error");
+      }
+      return;
+    }
     input.value = "";
     await Tasks.add(text);
     loadTasks();
@@ -1019,7 +1064,14 @@ function bindTasks() {
   const dashAdd = async () => {
     const input = $("dash-task-input");
     const text = input?.value.trim();
-    if (!text) return;
+    if (!text) {
+      if (input) {
+        input.classList.remove("input-error");
+        void input.offsetWidth;
+        input.classList.add("input-error");
+      }
+      return;
+    }
     input.value = "";
     await Tasks.add(text);
     loadTasks();
@@ -1072,6 +1124,7 @@ function renderCalendar() {
 
     const cell = document.createElement("div");
     cell.className = `calendar-day-cell${isToday ? " today" : ""}`;
+    cell.dataset.date = dateStr;
     cell.setAttribute("role", "button");
     cell.setAttribute("tabindex", "0");
     cell.setAttribute("aria-label", `${MONTH_NAMES[m]} ${d}, ${y}`);
@@ -1103,12 +1156,12 @@ function renderCalendar() {
       cell.appendChild(overflowBadge);
     }
 
-    const openNewExam = () => openExamModal(null, dateStr);
+    const openNewExam = (e) => openExamModal(null, e.currentTarget.dataset.date);
     cell.addEventListener("click", openNewExam);
     cell.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        openNewExam();
+        openNewExam(e);
       }
     });
 
@@ -1137,10 +1190,9 @@ function openExamModal(exam = null, dateStr = "") {
     $("exam-date").value = exam.exam_date;
     setExamDifficulty(exam.difficulty);
     $("exam-status").value = exam.status;
-    $("exam-status-group")?.classList.remove("hidden");
     $("btn-delete-exam")?.classList.remove("hidden");
   } else {
-    // Creating — keep it minimal. Status defaults to "Scheduled" and stays hidden.
+    // Creating
     $("modal-exam-title").textContent = "New exam";
     $("modal-exam-subtitle").textContent = "Add it to your calendar and we'll count down to the day.";
     $("btn-save-exam").textContent = "Add exam";
@@ -1149,7 +1201,6 @@ function openExamModal(exam = null, dateStr = "") {
     $("modal-exam-id").value = "";
     $("exam-date").value = dateStr;
     $("exam-status").value = "Scheduled";
-    $("exam-status-group")?.classList.add("hidden");
     $("btn-delete-exam")?.classList.add("hidden");
   }
 
@@ -1220,6 +1271,13 @@ function bindCalendar() {
    DASHBOARD
    ========================================================================= */
 
+function formatFocusTime(mins) {
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
 function renderDashboard() {
   const sessions = Storage.get("sessions", []);
   const list = $("log-list");
@@ -1243,7 +1301,7 @@ function renderDashboard() {
         li.className = "log-item";
 
         const left = document.createElement("span");
-        left.innerHTML = `<strong class="text-primary">${esc(String(log.minutes))}m Focus</strong>${
+        left.innerHTML = `<strong class="text-primary">${formatFocusTime(log.minutes)} Focus</strong>${
           log.task !== "General Study" ? ` on ${esc(log.task)}` : ""
         }`;
 
@@ -1269,14 +1327,12 @@ function renderDashboard() {
 
   const totalDisplay = $("total-hours-display");
   if (totalDisplay) {
-    totalDisplay.innerHTML = `${(totalMins / 60).toFixed(1)} <span>hours total</span>`;
+    totalDisplay.innerHTML = `${formatFocusTime(totalMins)} <span>total</span>`;
   }
 
   const todayDisplay = $("dash-today-focus");
   if (todayDisplay) {
-    todayDisplay.textContent = todayMins >= 60
-      ? `${(todayMins / 60).toFixed(1)}h`
-      : `${todayMins}m`;
+    todayDisplay.textContent = formatFocusTime(todayMins);
   }
 
   renderNextExam();
@@ -1418,7 +1474,15 @@ function bindAI() {
   });
 
   $("btn-ai-close")?.addEventListener("click", () => {
-    $("turbo-chat")?.classList.add("hidden");
+    const modal = $("turbo-chat");
+    if (modal) {
+      modal.classList.add("hidden");
+      modal.classList.remove("fullscreen");
+    }
+    // Bug 1 cleanup: ensure no orphaned teal ghosts
+    document.querySelectorAll('.streaming-pulse, .ripple, .ai-widget, .avatar-circle').forEach(el => {
+       if (el.parentNode === document.body) el.remove();
+    });
   });
 
   $("btn-ai-fullscreen")?.addEventListener("click", () => {

@@ -485,6 +485,18 @@ export const Notes = {
 };
 
 export const Decks = {
+  async fetchAll() {
+    const user = await getCurrentUser();
+    if (!user) return [];
+    const { data, error } = await supabase
+      .from("flashcard_decks")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (error) return [];
+    return data || [];
+  },
+  
   async fetch(folderId) {
     const { data, error } = await supabase
       .from("flashcard_decks")

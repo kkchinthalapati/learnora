@@ -132,9 +132,15 @@ export const UI = {
         document.removeEventListener("keydown", onKey);
       };
       const onConfirm = () => {
+        if (isPrompt && !input.value.trim()) {
+          input.classList.remove("input-error");
+          void input.offsetWidth; // trigger reflow
+          input.classList.add("input-error");
+          return;
+        }
         const val = isPrompt ? input.value.trim() : true;
         cleanup();
-        resolve(isPrompt ? (val || null) : true);
+        resolve(val);
       };
       const onCancel = () => {
         cleanup();

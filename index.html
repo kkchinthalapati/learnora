@@ -12,18 +12,22 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="style.css" />
+        <link rel="stylesheet" href="style.css?v=2" />
     </head>
     <body class="dark-theme">
         <!-- GLOBAL LOADER -->
-        <div id="global-loader" class="global-loader hidden">
-            <div class="loader-wheel"></div>
+        <div id="global-loader" class="global-loader splash-screen">
+            <div class="splash-content text-center flex-col flex-center">
+                <img src="learnora.jpg" class="auth-logo splash-logo" alt="Learnora Logo" style="width: 80px; height: 80px; border-radius: 20px; box-shadow: 0 0 30px var(--accent-glow); animation: pulse 2s infinite;" />
+                <h2 class="mt-16 text-gradient" style="font-size: 1.5rem; letter-spacing: 2px; font-weight: 700;">LEARNORA</h2>
+                <div class="loader-wheel mt-24" style="margin: 0 auto; width: 40px; height: 40px; border-width: 3px;"></div>
+            </div>
         </div>
 
         <!-- ==========================================
              AUTH WALL
         ============================================== -->
-        <div id="auth-wall" class="auth-wrapper">
+        <div id="auth-wall" class="auth-wrapper hidden">
             <div class="liquid-blobs" aria-hidden="true">
                 <div class="liquid-blob liquid-blob--1"></div>
                 <div class="liquid-blob liquid-blob--2"></div>
