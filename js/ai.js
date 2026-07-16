@@ -419,6 +419,9 @@ User message: ${query}`;
     ];
 
     try {
+      const sendBtn = $("btn-send-chat");
+      if (sendBtn) sendBtn.disabled = true;
+
       const bubbleId = 'ai-msg-' + Date.now();
       const typingBubble = this._appendBubble('<span class="streaming-pulse"></span>', "ai-bubble", true, bubbleId);
       const modal = $("turbo-chat");
@@ -454,51 +457,79 @@ User message: ${query}`;
       while ((match = addTaskRegex.exec(currentText)) !== null) {
         const taskText = match[1].trim();
         if (taskText && addedTasks.length < MAX_TASKS_PER_REPLY) {
-          await Tasks.add(taskText);
-          addedTasks.push(taskText);
+          if (await UI.confirm(`AI wants to create a new task:\n\n"${taskText}"\n\nAllow this?`, "AI Action Confirmation")) {
+            await Tasks.add(taskText);
+            addedTasks.push(taskText);
+          }
         }
       }
       // Reset lastIndex so the same regex can be reused in .replace() below.
       addTaskRegex.lastIndex = 0;
 
+      let timerStarted = false;
+      let startedTimerMins = 0;
       // Parse <START_TIMER>
       const startTimerRegex = /<START_TIMER>(\d+)<\/START_TIMER>/g;
       if ((match = startTimerRegex.exec(currentText)) !== null) {
          const mins = parseInt(match[1]);
          if (!isNaN(mins)) {
-           // Simulate clicking the timer tab and starting it
-           const focusInput = $("config-focus");
-           if (focusInput) focusInput.value = mins;
-           const typeRadio = document.querySelector('input[name="timer-type"][value="countdown"]');
-           if (typeRadio) typeRadio.checked = true;
-           UI.switchTab("timer");
-           
-           // If UI script can listen, great. Otherwise we manually trigger:
-           const applyBtn = $("btn-apply-timer");
-           const startBtn = $("btn-timer-start");
-           if (applyBtn) applyBtn.click();
-           setTimeout(() => { if (startBtn) startBtn.click(); }, 300);
+           if (await UI.confirm(`AI wants to start a ${mins}-minute focus timer.\n\nAllow this?`, "AI Action Confirmation")) {
+             // Simulate clicking the timer tab and starting it
+             const focusInput = $("config-focus");
+             if (focusInput) focusInput.value = mins;
+             const typeRadio = document.querySelector('input[name="timer-type"][value="countdown"]');
+             if (typeRadio) typeRadio.checked = true;
+             UI.switchTab("timer");
+             
+             // If UI script can listen, great. Otherwise we manually trigger:
+             const applyBtn = $("btn-apply-timer");
+             const startBtn = $("btn-timer-start");
+             if (applyBtn) applyBtn.click();
+             setTimeout(() => { if (startBtn) startBtn.click(); }, 300);
+             timerStarted = true;
+             startedTimerMins = mins;
+           }
          }
       }
       
+      let themeChangedTo = "";
       // Parse <SET_THEME>
       const themeRegex = /<SET_THEME>(dark|light)<\/SET_THEME>/gi;
       if ((match = themeRegex.exec(currentText)) !== null) {
          const theme = match[1].toLowerCase();
-         // The app's theme system only uses "dark-theme" / no-class (light).
-         if (theme === 'light') {
-           document.body.classList.remove("dark-theme");
-         } else {
-           document.body.classList.add("dark-theme");
+         if (await UI.confirm(`AI wants to switch to ${theme} mode.\n\nAllow this?`, "AI Action Confirmation")) {
+           // The app's theme system only uses "dark-theme" / no-class (light).
+           if (theme === 'light') {
+             document.body.classList.remove("dark-theme");
+           } else {
+             document.body.classList.add("dark-theme");
+           }
+           UI._updateThemeIcon();
+           themeChangedTo = theme;
          }
-         UI._updateThemeIcon();
       }
 
       // Replace tags with beautiful action widgets
       finalResponse = finalResponse
-        .replace(addTaskRegex, (_, name) => `<div class="ai-widget"><span class="ai-widget-icon">✅</span> Added task: <strong>${esc(name.trim())}</strong></div>`)
-        .replace(startTimerRegex, (_, mins) => `<div class="ai-widget"><span class="ai-widget-icon">⏱️</span> Started focus timer for ${mins}m</div>`)
-        .replace(themeRegex, (_, theme) => `<div class="ai-widget"><span class="ai-widget-icon">🎨</span> Theme changed to ${theme} mode</div>`)
+        .replace(addTaskRegex, (_, name) => {
+          const taskName = name.trim();
+          if (addedTasks.includes(taskName)) {
+            return `<div class="ai-widget"><span class="ai-widget-icon">✅</span> Added task: <strong>${esc(taskName)}</strong></div>`;
+          }
+          return `<div class="ai-widget"><span class="ai-widget-icon">❌</span> Canceled adding task: <strong>${esc(taskName)}</strong></div>`;
+        })
+        .replace(startTimerRegex, (_, mins) => {
+          if (timerStarted) {
+            return `<div class="ai-widget"><span class="ai-widget-icon">⏱️</span> Started focus timer for ${mins}m</div>`;
+          }
+          return `<div class="ai-widget"><span class="ai-widget-icon">❌</span> Canceled focus timer</div>`;
+        })
+        .replace(themeRegex, (_, theme) => {
+          if (themeChangedTo) {
+            return `<div class="ai-widget"><span class="ai-widget-icon">🎨</span> Theme changed to ${theme} mode</div>`;
+          }
+          return `<div class="ai-widget"><span class="ai-widget-icon">❌</span> Canceled theme change</div>`;
+        })
         .trim();
 
       if (addedTasks.length > 0) {
@@ -518,7 +549,7 @@ User message: ${query}`;
       if (finalResponse.length > 0) {
         typingBubble.innerHTML = this.renderMarkdown(finalResponse);
       } else {
-        typingBubble.remove();
+        typingBubble.innerHTML = `<em>Action completed.</em>`;
       }
       
       msgBox.scrollTop = msgBox.scrollHeight;
@@ -531,6 +562,8 @@ User message: ${query}`;
       );
       this.chatHistory.pop(); // Remove the failed user message
     } finally {
+      const sendBtn = $("btn-send-chat");
+      if (sendBtn) sendBtn.disabled = false;
       this.setFile(null);
     }
   },

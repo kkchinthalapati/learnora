@@ -257,10 +257,12 @@ a {
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
     -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+    border: none;
     border-right: 1px solid var(--glass-border-subtle);
     box-shadow: var(--glass-inner), var(--glass-inner-bottom), 1px 0 0 var(--glass-border);
     white-space: nowrap;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     transition:
         width var(--t) var(--ease),
         padding var(--t) var(--ease),
@@ -270,6 +272,9 @@ a {
 .sidebar.glass-panel {
     border-radius: 0;
     margin-bottom: 0;
+    border: none;
+    border-right: 1px solid var(--glass-border-subtle);
+    box-shadow: var(--glass-inner), var(--glass-inner-bottom), 1px 0 0 var(--glass-border);
 }
 .sidebar.collapsed {
     width: 0;
@@ -507,7 +512,7 @@ button:active {
 }
 
 /* --- 5.4 Inputs --- */
-input,
+input:not([type="radio"]):not([type="checkbox"]):not([type="file"]),
 select,
 textarea {
     width: 100%;
@@ -530,10 +535,10 @@ textarea {
         transform var(--t) var(--ease-spring),
         background var(--t) ease;
 }
-input::placeholder {
+input:not([type="radio"]):not([type="checkbox"]):not([type="file"])::placeholder {
     color: var(--text-faint);
 }
-input:focus,
+input:not([type="radio"]):not([type="checkbox"]):not([type="file"]):focus,
 select:focus,
 textarea:focus {
     border-color: var(--accent);
@@ -747,13 +752,8 @@ label {
    Compound selector so the 4-col grid beats the base `.segmented` (3-col)
    rule regardless of source order. */
 .segmented.timer-type-seg {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
     margin-bottom: var(--s-4);
-}
-@media (max-width: 520px) {
-    .segmented.timer-type-seg {
-        grid-template-columns: repeat(2, 1fr);
-    }
 }
 
 /* Explanatory note shown for Countdown / Stopwatch / Flowtime setups */
@@ -1515,6 +1515,34 @@ label {
     outline-offset: 2px;
 }
 
+/* Radio cards (e.g. for Upload Material Type selection) */
+.radio-card {
+    position: relative;
+    margin-bottom: 0 !important;
+    transition: all var(--t) var(--ease);
+}
+.radio-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+.radio-card:has(input[type="radio"]:checked) {
+    background: var(--glass-bg-strong) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 
+        var(--glass-inner),
+        var(--glass-inner-bottom),
+        var(--shadow-accent),
+        0 0 0 1px var(--accent) !important;
+    color: var(--accent);
+    font-weight: 700;
+}
+.radio-card:hover {
+    transform: translateY(-2px);
+}
+
 /* Ghost danger — de-emphasized destructive action so Save stays primary */
 .btn-ghost-danger {
     background: transparent;
@@ -2175,11 +2203,10 @@ label {
 
 /* -- Legacy compat: still used in upload/other sections -- */
 .setting-row {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto;
     align-items: center;
-    flex-wrap: wrap;
-    gap: var(--s-4);
+    gap: 1rem;
     padding: var(--s-5) 0;
     border-bottom: 1px solid var(--line);
 }
@@ -2196,7 +2223,6 @@ label {
 }
 .setting-row select,
 .setting-row button {
-    flex-shrink: 0;
     width: auto;
     min-width: 200px;
 }
@@ -2708,12 +2734,12 @@ label {
     position: fixed;
     inset: 0;
     z-index: 9999;
-    background: rgba(10, 5, 20, 0.6);
-    backdrop-filter: blur(16px) saturate(120%);
-    -webkit-backdrop-filter: blur(16px) saturate(120%);
+    background: var(--bg);
     display: flex;
     justify-content: center;
     align-items: center;
+    backdrop-filter: blur(16px) saturate(120%);
+    -webkit-backdrop-filter: blur(16px) saturate(120%);
     transition: opacity var(--t) ease, visibility var(--t) ease;
 }
 .global-loader.hidden {
@@ -3052,3 +3078,15 @@ body.dark-theme .stat-card::before {
     font-weight: 600;
 }
 
+/* Validation animations */
+.input-error {
+    animation: shake-error 0.5s ease-in-out;
+    border-color: var(--danger) !important;
+}
+
+@keyframes shake-error {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-5px); }
+}

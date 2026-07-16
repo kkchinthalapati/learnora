@@ -94,6 +94,9 @@ export const Router = {
     if (route === "folders" || route === "upload") {
       this.loadFolders(route);
     }
+    if (route === "flashcards") {
+      this.loadAllFlashcards();
+    }
 
     // Populate settings profile data when navigating to settings
     if (route === "settings") {
@@ -131,10 +134,42 @@ export const Router = {
     if (nameInput) nameInput.value = name;
   },
 
-  async loadFolders(route) {
+  async loadAllFlashcards() {
     UI.setGlobalLoading(true);
-    const folders = await Folders.fetch();
+    const decks = await Decks.fetchAll();
     UI.setGlobalLoading(false);
+    
+    const container = $("flashcards-grid");
+    if (!container) return;
+    
+    if (decks.length === 0) {
+      container.innerHTML = `
+        <div class="glass-panel text-center" style="grid-column: 1 / -1; padding: 40px;">
+            <h3>No flashcards yet.</h3>
+            <p class="opacity-70 mt-8">Generate flashcards from your study materials using Learnora AI.</p>
+        </div>
+      `;
+    } else {
+      container.innerHTML = decks.map(d => `
+        <div class="glass-panel stat-card cursor-pointer hover-lift flex-between" data-hash="review-${encodeURIComponent(d.id)}">
+          <div>
+            <h3>🗂️ ${esc(d.title)}</h3>
+            <p class="opacity-70 mt-4 text-sm">Created: ${new Date(d.created_at).toLocaleDateString()}</p>
+          </div>
+          <span class="btn-primary" style="padding: 6px 12px; font-size: 0.8rem;">Review</span>
+        </div>
+      `).join("");
+    }
+  },
+
+  async loadFolders(route) {
+    if (route !== "upload") {
+      UI.setGlobalLoading(true);
+    }
+    const folders = await Folders.fetch();
+    if (route !== "upload") {
+      UI.setGlobalLoading(false);
+    }
     
     if (route === "folders") {
       const container = $("folders-container");
