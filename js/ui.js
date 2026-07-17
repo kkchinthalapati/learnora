@@ -205,6 +205,18 @@ export const UI = {
     }
   },
 
+  showQuizConfigModal(materialId, folderId, defaultTopic = "") {
+    const modal = $("quiz-config-modal");
+    if (!modal) return;
+    
+    $("quiz-material-id").value = materialId || "";
+    $("quiz-folder-id").value = folderId || "";
+    $("quiz-topic").value = defaultTopic;
+    
+    modal.classList.remove("hidden");
+    $("quiz-topic").focus();
+  },
+
   /* ------ Tab navigation ------ */
 
   switchTab(targetRoute) {

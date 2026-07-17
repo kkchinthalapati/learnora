@@ -872,8 +872,15 @@
 
                 <!-- VIEW: Quiz taking / results -->
                 <section id="view-quiz" class="view-section hidden">
-                    <div class="glass-panel summary-card" id="quiz-container">
-                        <!-- Populated by Router.startQuiz() -->
+                    <div class="glass-panel summary-card" id="quiz-container" style="position: relative;">
+                        <!-- Host Bubble -->
+                        <div id="quiz-host-bubble" class="ai-host-bubble hidden">
+                            <div class="ai-host-avatar">🧠</div>
+                            <div class="ai-host-message" id="quiz-host-text"></div>
+                        </div>
+                        
+                        <!-- Quiz Content Populated by Router.startQuiz() -->
+                        <div id="quiz-content"></div>
                     </div>
                 </section>
 
@@ -1505,6 +1512,66 @@
                                 Add exam
                             </button>
                         </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Quiz Config Modal -->
+        <div id="quiz-config-modal" class="modal-overlay hidden">
+            <div class="modal-content glass-panel">
+                <div class="modal-head">
+                    <h3>Configure Quiz</h3>
+                    <p class="modal-subtitle">Customize the AI host and difficulty.</p>
+                </div>
+                <form id="quiz-config-form">
+                    <input type="hidden" id="quiz-material-id" />
+                    <input type="hidden" id="quiz-folder-id" />
+                    
+                    <div class="input-group">
+                        <label for="quiz-topic">Subject / Topic</label>
+                        <input type="text" id="quiz-topic" required placeholder="e.g. Ionic Bonding" />
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Difficulty</label>
+                        <div class="segmented" role="radiogroup">
+                            <label class="segmented-option">
+                                <input type="radio" name="quiz-difficulty" value="Easy" />
+                                <span>Easy</span>
+                            </label>
+                            <label class="segmented-option">
+                                <input type="radio" name="quiz-difficulty" value="Medium" checked />
+                                <span>Medium</span>
+                            </label>
+                            <label class="segmented-option">
+                                <input type="radio" name="quiz-difficulty" value="Hard" />
+                                <span>Hard</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="quiz-personality">AI Host Personality</label>
+                        <select id="quiz-personality">
+                            <option value="Friendly Tutor">Friendly Tutor (Supportive)</option>
+                            <option value="Strict Coach">Strict Coach (Tough Love)</option>
+                            <option value="Sarcastic Buddy">Sarcastic Buddy (Funny & Roasting)</option>
+                            <option value="Academic Professor">Academic Professor (Formal)</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="quiz-length">Number of Questions</label>
+                        <select id="quiz-length">
+                            <option value="5">5 questions (Quick)</option>
+                            <option value="10" selected>10 questions (Standard)</option>
+                            <option value="15">15 questions (Deep Dive)</option>
+                        </select>
+                    </div>
+
+                    <div class="modal-actions flex-end mt-32">
+                        <button type="button" id="btn-cancel-quiz-config" class="btn-secondary">Cancel</button>
+                        <button type="submit" class="btn-primary" id="btn-start-quiz">Start Quiz</button>
                     </div>
                 </form>
             </div>

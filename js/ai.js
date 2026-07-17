@@ -79,10 +79,16 @@ export const AI = {
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
           fullText += chunk;
-          if (onChunk) onChunk(fullText, chunk);
         }
         
-        return { text: fullText };
+        let parsedText = fullText;
+        try {
+          const parsed = JSON.parse(fullText);
+          if (parsed && parsed.text) parsedText = parsed.text;
+        } catch (e) {}
+
+        if (onChunk) onChunk(parsedText, parsedText);
+        return { text: parsedText };
       } catch (err) {
         const isLast = attempt === retries;
         if (isLast) throw err;
@@ -326,12 +332,14 @@ Prioritize subjects with closer/harder exams. Keep daily blocks realistic (30-90
      QUIZ GENERATION — distinct from flashcards, auto-graded MCQ
      ========================================================================= */
 
-  async generateQuiz(materialId, folderId) {
+  async generateQuiz(materialId, folderId, config = null) {
     try {
       const { Notes, Materials, Quizzes } = await import("./api.js");
 
       let sourceText = "";
       let title = "Quiz";
+      let topic = config?.topic || "";
+
       if (materialId) {
         const notes = await Notes.fetchByMaterial(materialId);
         if (notes?.[0]?.markdown_content) {
@@ -339,7 +347,13 @@ Prioritize subjects with closer/harder exams. Keep daily blocks realistic (30-90
         }
         const materials = await Materials.fetch(folderId);
         const material = materials.find(m => m.id === materialId);
-        if (material) title = `${material.title} Quiz`;
+        if (material) {
+           title = `${material.title} Quiz`;
+           if (!topic) topic = material.title;
+        }
+      } else if (topic) {
+        sourceText = `Topic: ${topic}`;
+        title = `${topic} Quiz`;
       }
 
       if (!sourceText) {
@@ -347,7 +361,20 @@ Prioritize subjects with closer/harder exams. Keep daily blocks realistic (30-90
         return null;
       }
 
-      const prompt = `Generate a quiz from the following study notes:\n"""\n${sourceText}\n"""`;
+      let prompt = `Generate a multiple choice quiz from the following study notes or topic.\n\n`;
+      if (config) {
+         prompt += `Configuration:
+- Topic: ${topic}
+- Difficulty: ${config.difficulty || "Medium"}
+- AI Host Personality: ${config.personality || "Friendly Tutor"}
+- Question Count: ${config.length || 10}
+
+IMPORTANT: For EACH question, you MUST include a "feedback" string. The feedback should explain why the correct answer is right and why others are wrong, but it MUST be written in the exact voice and tone of the chosen AI Host Personality (${config.personality || "Friendly Tutor"}). Be highly expressive, engaging, and directly address the student.
+
+`;
+      }
+      
+      prompt += `Material:\n"""\n${sourceText}\n"""`;
 
       const data = await this._callEdgeStream({
         history: [{ role: "user", content: prompt }],
@@ -545,6 +572,8 @@ GROUNDING RULES (important — follow exactly):
 
 CAPABILITIES:
 - To create a task, emit the tag <ADD_TASK>the task name</ADD_TASK>. The app executes this tag and displays it to the student as the task's name, so lead into it naturally (e.g. "Done — I've added this to your tasks: <ADD_TASK>Review Chapter 3</ADD_TASK>") and do not repeat the same name elsewhere in the sentence. Only create a task when the student clearly asks you to.
+- To generate a formal interactive quiz, emit the tag <ADD_QUIZ>Topic Name</ADD_QUIZ>. The app will generate a quiz for that topic.
+- To generate a formal weekly study schedule, emit the tag <ADD_PLAN></ADD_PLAN>. The app will build a weekly plan and navigate the user there.
 - Answer questions about the student's current study material.
 - Help with exam prep, concept explanations, and study strategies.
 - Be conversational, supportive, and concise.
@@ -591,7 +620,9 @@ User message: ${query}`;
          // Strip tags during streaming so user doesn't see them being typed out
          let display = fullText.replace(/<ADD_TASK>[\s\S]*?<\/ADD_TASK>/g, "")
                                .replace(/<START_TIMER>[\s\S]*?<\/START_TIMER>/g, "")
-                               .replace(/<SET_THEME>[\s\S]*?<\/SET_THEME>/g, "");
+                               .replace(/<SET_THEME>[\s\S]*?<\/SET_THEME>/g, "")
+                               .replace(/<ADD_QUIZ>[\s\S]*?<\/ADD_QUIZ>/g, "")
+                               .replace(/<ADD_PLAN>[\s\S]*?<\/ADD_PLAN>/g, "");
          
          typingBubble.innerHTML = this.renderMarkdown(display) + '<span class="streaming-pulse"></span>';
          msgBox.scrollTop = msgBox.scrollHeight;
@@ -660,6 +691,42 @@ User message: ${query}`;
          }
       }
 
+      let generatedQuizTopic = "";
+      // Parse <ADD_QUIZ>
+      const quizRegex = /<ADD_QUIZ>([\s\S]*?)<\/ADD_QUIZ>/g;
+      if ((match = quizRegex.exec(currentText)) !== null) {
+         const topic = match[1].trim();
+         if (topic) {
+            if (await UI.confirm(`AI wants to generate a formal interactive quiz on "${topic}".\n\nAllow this?`, "AI Quiz Generation")) {
+               UI.showPopup("Generating quiz, please wait...", "AI Quiz");
+               // Run asynchronously so it doesn't block the chat from finishing its UI update
+               this.generateQuiz(null, null, topic).then((quiz) => {
+                 if (quiz) {
+                    window.location.hash = `quiz-${quiz.id}`;
+                    UI.showPopup("Quiz generated successfully!", "AI Quiz");
+                 }
+               });
+               generatedQuizTopic = topic;
+            }
+         }
+      }
+
+      let generatedPlan = false;
+      // Parse <ADD_PLAN>
+      const planRegex = /<ADD_PLAN>[\s\S]*?<\/ADD_PLAN>/g;
+      if ((match = planRegex.exec(currentText)) !== null) {
+          if (await UI.confirm(`AI wants to generate a weekly study schedule.\n\nAllow this?`, "AI Plan Generation")) {
+             UI.showPopup("Generating plan, please wait...", "AI Planner");
+             this.generateWeeklyPlan().then((plan) => {
+                 if (plan) {
+                     window.location.hash = "planner";
+                     UI.showPopup("Plan generated successfully!", "AI Planner");
+                 }
+             });
+             generatedPlan = true;
+          }
+      }
+
       // Replace tags with beautiful action widgets
       finalResponse = finalResponse
         .replace(addTaskRegex, (_, name) => {
@@ -680,6 +747,18 @@ User message: ${query}`;
             return `<div class="ai-widget"><span class="ai-widget-icon">🎨</span> Theme changed to ${theme} mode</div>`;
           }
           return `<div class="ai-widget"><span class="ai-widget-icon">❌</span> Canceled theme change</div>`;
+        })
+        .replace(quizRegex, (_, topic) => {
+          if (generatedQuizTopic) {
+            return `<div class="ai-widget"><span class="ai-widget-icon">❓</span> Generated quiz: <strong>${esc(topic.trim())}</strong></div>`;
+          }
+          return `<div class="ai-widget"><span class="ai-widget-icon">❌</span> Canceled quiz generation</div>`;
+        })
+        .replace(planRegex, () => {
+          if (generatedPlan) {
+            return `<div class="ai-widget"><span class="ai-widget-icon">📅</span> Generated weekly study plan</div>`;
+          }
+          return `<div class="ai-widget"><span class="ai-widget-icon">❌</span> Canceled plan generation</div>`;
         })
         .trim();
 

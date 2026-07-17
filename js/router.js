@@ -300,11 +300,7 @@ export const Router = {
             UI.showPopup("Upload a material into this folder first, then generate a quiz from it.", "No materials yet");
             return;
           }
-          const { AI } = await import("./ai.js");
-          UI.setGlobalLoading(true);
-          const quiz = await AI.generateQuiz(materials[0].id, folderId);
-          UI.setGlobalLoading(false);
-          if (quiz) window.location.hash = `quiz-${quiz.id}`;
+          UI.showQuizConfigModal(materials[0].id, folderId, materials[0].title);
         });
       }
     }
@@ -484,7 +480,9 @@ export const Router = {
     const quiz = await Quizzes.fetchById(quizId);
     UI.setGlobalLoading(false);
 
-    const container = $("quiz-container");
+    const container = $("quiz-content");
+    const hostBubble = $("quiz-host-bubble");
+    const hostText = $("quiz-host-text");
     if (!container) return;
 
     if (!quiz) {
@@ -496,7 +494,21 @@ export const Router = {
     let currentIndex = 0;
     const answers = [];
 
+    const showHost = (message) => {
+      if (hostBubble && hostText) {
+        hostText.innerHTML = message;
+        hostBubble.classList.remove("hidden");
+        hostBubble.classList.add("pop-in");
+        setTimeout(() => hostBubble.classList.remove("pop-in"), 300);
+      }
+    };
+    
+    const hideHost = () => {
+      if (hostBubble) hostBubble.classList.add("hidden");
+    };
+
     const renderQuestion = () => {
+      hideHost();
       if (currentIndex >= questions.length) {
         const score = answers.filter(a => a.correct).length;
         const total = questions.length;
@@ -510,6 +522,7 @@ export const Router = {
           ${weakTopics.length ? `<p class="opacity-70 mt-16">Topics to review: ${weakTopics.map(esc).join(", ")}</p>` : ""}
           <button class="btn-primary mt-24" data-hash="quizzes">Back to Quizzes</button>
         `;
+        showHost(`Finished! You got ${score} out of ${total}. Check your weak topics and keep studying!`);
         return;
       }
 
@@ -519,20 +532,57 @@ export const Router = {
         <p class="opacity-70">Question ${currentIndex + 1} of ${questions.length}</p>
         <h3 class="mt-8 mb-16">${esc(q.question)}</h3>
         <div id="quiz-choices" class="flex-col flex-gap"></div>
+        <div id="quiz-next-container" class="mt-24 hidden flex-end">
+           <button id="btn-next-question" class="btn-primary">Next Question →</button>
+        </div>
       `;
 
+      if (currentIndex === 0) {
+        showHost("Welcome to the quiz. Let's see what you've got!");
+      }
+
       const choicesEl = $("quiz-choices");
+      const nextContainer = $("quiz-next-container");
+      const nextBtn = $("btn-next-question");
+      
+      let answered = false;
+
       (q.choices || []).forEach((choice, i) => {
         const btn = document.createElement("button");
         btn.className = "btn-secondary full-width";
+        btn.style.textAlign = "left";
         btn.textContent = choice;
+        
         btn.addEventListener("click", () => {
+          if (answered) return;
+          answered = true;
+          
           const correct = i === q.correctIndex;
           answers.push({ questionId: q.id ?? currentIndex, chosenIndex: i, correct, topic: q.topic });
-          currentIndex++;
-          renderQuestion();
+          
+          // Style choices
+          Array.from(choicesEl.children).forEach((childBtn, childIdx) => {
+             if (childIdx === q.correctIndex) {
+               childBtn.classList.add("correct-choice");
+             } else if (childIdx === i && !correct) {
+               childBtn.classList.add("wrong-choice");
+             }
+             childBtn.disabled = true;
+          });
+
+          // Show feedback from Host
+          const defaultFeedback = correct ? "Correct!" : "Incorrect.";
+          showHost(esc(q.feedback || defaultFeedback));
+
+          // Reveal Next button
+          nextContainer.classList.remove("hidden");
         });
         choicesEl.appendChild(btn);
+      });
+      
+      nextBtn.addEventListener("click", () => {
+         currentIndex++;
+         renderQuestion();
       });
     };
 
