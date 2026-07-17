@@ -1825,23 +1825,41 @@ function bindAI() {
     if (plan) window.location.hash = "plan";
   });
 
-  // "Quiz me" — generates a real auto-graded quiz from the most recent material.
   $("dash-quiz-me-btn")?.addEventListener("click", async () => {
     const btn = $("dash-quiz-me-btn");
-    const original = btn.innerHTML;
-    btn.innerHTML = '<span class="dash-ai-icon">🧠</span> Generating…';
-    btn.disabled = true;
     const material = await Materials.fetchMostRecent();
     if (!material) {
       UI.showPopup("Upload a study material first, then Learnora AI can quiz you on it.", "No materials yet");
-      btn.innerHTML = original;
-      btn.disabled = false;
       return;
     }
-    const quiz = await AI.generateQuiz(material.id, material.folder_id);
-    btn.innerHTML = original;
-    btn.disabled = false;
-    if (quiz) window.location.hash = `quiz-${quiz.id}`;
+    UI.showQuizConfigModal(material.id, material.folder_id, material.title);
+  });
+
+  $("btn-cancel-quiz-config")?.addEventListener("click", () => {
+    $("quiz-config-modal")?.classList.add("hidden");
+  });
+
+  $("quiz-config-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const materialId = $("quiz-material-id").value || null;
+    const folderId = $("quiz-folder-id").value || null;
+    
+    const config = {
+      topic: $("quiz-topic").value.trim(),
+      difficulty: document.querySelector('input[name="quiz-difficulty"]:checked')?.value || "Medium",
+      personality: $("quiz-personality").value,
+      length: parseInt($("quiz-length").value) || 10
+    };
+
+    $("quiz-config-modal").classList.add("hidden");
+    UI.setGlobalLoading(true);
+    
+    const quiz = await AI.generateQuiz(materialId, folderId, config);
+    UI.setGlobalLoading(false);
+    
+    if (quiz) {
+      window.location.hash = `quiz-${quiz.id}`;
+    }
   });
 
   // "Regenerate" on the #plan view — upsert just overwrites this week's plan.

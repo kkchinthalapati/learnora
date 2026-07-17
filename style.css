@@ -3183,3 +3183,55 @@ body.dark-theme .stat-card::before {
     50% { transform: translateX(5px); }
     75% { transform: translateX(-5px); }
 }
+
+/* Quiz Interactive Gamification */
+.ai-host-bubble {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    background: var(--surface-hover);
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+}
+.ai-host-avatar {
+    font-size: 2rem;
+    line-height: 1;
+    background: var(--surface-active);
+    padding: 10px;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.ai-host-message {
+    flex: 1;
+    font-size: 1.1rem;
+    line-height: 1.5;
+    color: var(--text);
+    padding-top: 6px;
+}
+
+.correct-choice {
+    background-color: rgba(34, 197, 94, 0.1) !important;
+    border-color: #22c55e !important;
+    color: #22c55e !important;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+}
+
+.wrong-choice {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+    animation: shake-error 0.5s ease-in-out;
+}
+
+@keyframes pop-in {
+    0% { opacity: 0; transform: scale(0.95) translateY(-10px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.pop-in {
+    animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}

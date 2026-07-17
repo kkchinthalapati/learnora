@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
         const modeInstructions = mode === "plan"
             ? `\nYou are generating a weekly study schedule. Output ONLY raw JSON (no prose, no code fences) matching this shape: {"days":[{"date":"YYYY-MM-DD","blocks":[{"startHint":"morning|afternoon|evening","durationMins":45,"subject":"string","reason":"string","examId":null,"taskId":null}]}],"summary":"one-sentence summary of the week's priorities"}.`
             : mode === "quiz"
-            ? `\nYou are generating a multiple-choice quiz from the provided material. Output ONLY raw JSON (no prose, no code fences): [{"question":"string","choices":["a","b","c","d"],"correctIndex":0,"topic":"short topic label"}]. Produce 6-10 questions covering distinct concepts.`
+            ? `\nYou are generating a multiple-choice quiz from the provided material. Output ONLY raw JSON (no prose, no code fences): [{"question":"string","choices":["a","b","c","d"],"correctIndex":0,"topic":"short topic label","feedback":"string"}]. Produce questions covering distinct concepts.`
             : "";
 
         const systemInstruction = `You are Learnora AI. Act as ${personaMap[s.aiPersona] || personaMap.tutor}.
