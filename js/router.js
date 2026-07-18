@@ -262,7 +262,7 @@ export const Router = {
         else if (m.type === "text") icon = "📝";
         
         return `
-          <div class="todo-item cursor-pointer hover-bright" data-hash="notes-${encodeURIComponent(m.id)}" style="display:flex; align-items:center; gap:12px; margin-bottom:8px; padding:12px; border-radius:var(--radius-md); background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);">
+          <div class="todo-item cursor-pointer hover-bright" data-hash="notes-${encodeURIComponent(m.id)}" style="display:flex; align-items:center; gap:12px; margin-bottom:8px; padding:12px; border-radius:var(--r-md); background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);">
             <span style="font-size:1.5rem;">${icon}</span>
             <span class="todo-text" style="font-weight:500;">${esc(m.title)}</span>
           </div>
@@ -458,8 +458,7 @@ export const Router = {
       container.innerHTML = `
         <div class="glass-panel text-center" style="grid-column: 1 / -1; padding: 40px;">
             <h3>No quizzes yet.</h3>
-            <p class="opacity-70 mt-8 mb-16">Generate a quiz from a folder's materials to test yourself.</p>
-            <button class="btn-primary" data-hash="folders">Browse folders →</button>
+            <p class="opacity-70 mt-8 mb-16">Click "+ Generate Quiz" above to test yourself on any topic — or open a folder to quiz yourself on a specific material.</p>
         </div>
       `;
     } else {

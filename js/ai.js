@@ -112,18 +112,18 @@ export const AI = {
 
     // Fenced code blocks: ```lang\n...\n```
     html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
-      return `<pre class="glass-panel" style="padding:16px; margin:16px 0; overflow-x:auto; background:rgba(0,0,0,0.4); border-radius:var(--radius-md);"><code style="font-family:'Fira Code',monospace; color:#4AE283; font-size:0.9rem; line-height:1.5;">${code.trim()}</code></pre>`;
+      return `<pre class="glass-panel" style="padding:16px; margin:16px 0; overflow-x:auto; background:rgba(0,0,0,0.4); border-radius:var(--r-md);"><code style="font-family:'Fira Code',monospace; color:#4AE283; font-size:0.9rem; line-height:1.5;">${code.trim()}</code></pre>`;
     });
 
     // Inline code
     html = html.replace(/`([^`\n]+)`/g,
-      '<code style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; color:var(--primary-color);">$1</code>');
+      '<code style="font-family:monospace; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; color:var(--primary);">$1</code>');
 
     // Headers (process longest first to avoid conflicts)
-    html = html.replace(/^#### (.*?)$/gm, '<h4 style="font-size:1.15rem; margin:20px 0 8px; color:var(--text-color); font-weight:600;">$1</h4>');
-    html = html.replace(/^### (.*?)$/gm,  '<h3 style="font-size:1.3rem; margin:24px 0 10px; color:var(--text-color); font-weight:600;">$1</h3>');
-    html = html.replace(/^## (.*?)$/gm,   '<h2 style="font-size:1.6rem; margin:28px 0 12px; color:var(--primary-color); font-weight:700;">$1</h2>');
-    html = html.replace(/^# (.*?)$/gm,    '<h1 style="font-size:2rem; margin:32px 0 16px; color:var(--primary-color); font-weight:800;">$1</h1>');
+    html = html.replace(/^#### (.*?)$/gm, '<h4 style="font-size:1.15rem; margin:20px 0 8px; color:var(--text); font-weight:600;">$1</h4>');
+    html = html.replace(/^### (.*?)$/gm,  '<h3 style="font-size:1.3rem; margin:24px 0 10px; color:var(--text); font-weight:600;">$1</h3>');
+    html = html.replace(/^## (.*?)$/gm,   '<h2 style="font-size:1.6rem; margin:28px 0 12px; color:var(--primary); font-weight:700;">$1</h2>');
+    html = html.replace(/^# (.*?)$/gm,    '<h1 style="font-size:2rem; margin:32px 0 16px; color:var(--primary); font-weight:800;">$1</h1>');
 
     // Bold and italic
     html = html.replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>');
@@ -132,7 +132,7 @@ export const AI = {
 
     // Blockquotes
     html = html.replace(/^&gt; (.*?)$/gm,
-      '<blockquote style="border-left:3px solid var(--primary-color); padding:8px 16px; margin:12px 0; opacity:0.85; font-style:italic;">$1</blockquote>');
+      '<blockquote style="border-left:3px solid var(--primary); padding:8px 16px; margin:12px 0; opacity:0.85; font-style:italic;">$1</blockquote>');
 
     // Unordered lists
     html = html.replace(/^- (.*?)$/gm,
@@ -574,6 +574,8 @@ CAPABILITIES:
 - To create a task, emit the tag <ADD_TASK>the task name</ADD_TASK>. The app executes this tag and displays it to the student as the task's name, so lead into it naturally (e.g. "Done — I've added this to your tasks: <ADD_TASK>Review Chapter 3</ADD_TASK>") and do not repeat the same name elsewhere in the sentence. Only create a task when the student clearly asks you to.
 - To generate a formal interactive quiz, emit the tag <ADD_QUIZ>Topic Name</ADD_QUIZ>. The app will generate a quiz for that topic.
 - To generate a formal weekly study schedule, emit the tag <ADD_PLAN></ADD_PLAN>. The app will build a weekly plan and navigate the user there.
+- To start a focus timer, emit the tag <START_TIMER>25</START_TIMER> with the number of minutes. Only do this when the student explicitly asks to start studying/focusing for a specific duration.
+- To switch the app's theme, emit <SET_THEME>dark</SET_THEME> or <SET_THEME>light</SET_THEME> when the student asks to change the theme/appearance.
 - Answer questions about the student's current study material.
 - Help with exam prep, concept explanations, and study strategies.
 - Be conversational, supportive, and concise.
@@ -639,7 +641,7 @@ User message: ${query}`;
       while ((match = addTaskRegex.exec(currentText)) !== null) {
         const taskText = match[1].trim();
         if (taskText && addedTasks.length < MAX_TASKS_PER_REPLY) {
-          if (await UI.confirm(`AI wants to create a new task:\n\n"${taskText}"\n\nAllow this?`, "AI Action Confirmation")) {
+          if (await UI.confirm(`AI wants to create a new task:\n\n"${taskText}"\n\nAllow this?`, { title: "AI Task Creation", confirmText: "Add Task" })) {
             await Tasks.add(taskText);
             addedTasks.push(taskText);
           }
@@ -655,7 +657,7 @@ User message: ${query}`;
       if ((match = startTimerRegex.exec(currentText)) !== null) {
          const mins = parseInt(match[1]);
          if (!isNaN(mins)) {
-           if (await UI.confirm(`AI wants to start a ${mins}-minute focus timer.\n\nAllow this?`, "AI Action Confirmation")) {
+           if (await UI.confirm(`AI wants to start a ${mins}-minute focus timer.\n\nAllow this?`, { title: "AI Timer Start", confirmText: "Start Timer" })) {
              // Simulate clicking the timer tab and starting it
              const focusInput = $("config-focus");
              if (focusInput) focusInput.value = mins;
@@ -679,7 +681,7 @@ User message: ${query}`;
       const themeRegex = /<SET_THEME>(dark|light)<\/SET_THEME>/gi;
       if ((match = themeRegex.exec(currentText)) !== null) {
          const theme = match[1].toLowerCase();
-         if (await UI.confirm(`AI wants to switch to ${theme} mode.\n\nAllow this?`, "AI Action Confirmation")) {
+         if (await UI.confirm(`AI wants to switch to ${theme} mode.\n\nAllow this?`, { title: "AI Theme Change", confirmText: "Switch Theme" })) {
            // The app's theme system only uses "dark-theme" / no-class (light).
            if (theme === 'light') {
              document.body.classList.remove("dark-theme");
@@ -697,10 +699,10 @@ User message: ${query}`;
       if ((match = quizRegex.exec(currentText)) !== null) {
          const topic = match[1].trim();
          if (topic) {
-            if (await UI.confirm(`AI wants to generate a formal interactive quiz on "${topic}".\n\nAllow this?`, "AI Quiz Generation")) {
+            if (await UI.confirm(`AI wants to generate a formal interactive quiz on "${topic}".\n\nAllow this?`, { title: "AI Quiz Generation", confirmText: "Generate Quiz" })) {
                UI.showPopup("Generating quiz, please wait...", "AI Quiz");
                // Run asynchronously so it doesn't block the chat from finishing its UI update
-               this.generateQuiz(null, null, topic).then((quiz) => {
+               this.generateQuiz(null, null, { topic }).then((quiz) => {
                  if (quiz) {
                     window.location.hash = `quiz-${quiz.id}`;
                     UI.showPopup("Quiz generated successfully!", "AI Quiz");
@@ -715,11 +717,11 @@ User message: ${query}`;
       // Parse <ADD_PLAN>
       const planRegex = /<ADD_PLAN>[\s\S]*?<\/ADD_PLAN>/g;
       if ((match = planRegex.exec(currentText)) !== null) {
-          if (await UI.confirm(`AI wants to generate a weekly study schedule.\n\nAllow this?`, "AI Plan Generation")) {
+          if (await UI.confirm(`AI wants to generate a weekly study schedule.\n\nAllow this?`, { title: "AI Plan Generation", confirmText: "Generate Plan", danger: true })) {
              UI.showPopup("Generating plan, please wait...", "AI Planner");
              this.generateWeeklyPlan().then((plan) => {
                  if (plan) {
-                     window.location.hash = "planner";
+                     window.location.hash = "plan";
                      UI.showPopup("Plan generated successfully!", "AI Planner");
                  }
              });

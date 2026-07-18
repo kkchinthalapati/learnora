@@ -131,7 +131,7 @@ function bindUploadHub() {
   // Handle Drag & Drop styling
   dropzone.addEventListener('dragover', (e) => {
     e.preventDefault();
-    dropzone.style.borderColor = 'var(--primary-color)';
+    dropzone.style.borderColor = 'var(--primary)';
     dropzone.style.backgroundColor = 'rgba(74, 144, 226, 0.1)';
   });
 
@@ -745,7 +745,7 @@ function bindSettings() {
   // ----- Wipe Data (Danger Zone) -----
   $("btn-wipe-data")?.addEventListener("click", async () => {
     const ok = await UI.confirm(
-      "This permanently deletes all your tasks, logs, and exams from the cloud. This cannot be undone.",
+      "This permanently deletes all your tasks, study logs, exams, weekly plans, quizzes, and saved timer presets from the cloud and this device. Folders, materials, notes, and flashcards are not affected. This cannot be undone.",
       { title: "Wipe all data?", confirmText: "Delete everything", danger: true },
     );
     if (ok) DataAdmin.wipe();
@@ -1816,6 +1816,21 @@ function bindAI() {
   // "Plan my week" — generates a real persisted weekly plan instead of a chat reply.
   $("dash-plan-week-btn")?.addEventListener("click", async () => {
     const btn = $("dash-plan-week-btn");
+    const { Plans } = await import("./api.js");
+    const now = new Date();
+    const day = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((day + 6) % 7));
+    const weekStartISO = monday.toISOString().slice(0, 10);
+    const existing = await Plans.fetchForWeek(weekStartISO);
+    if (existing) {
+      const ok = await UI.confirm(
+        "This will replace your current weekly plan. Continue?",
+        { title: "Regenerate Weekly Plan", confirmText: "Regenerate", danger: true },
+      );
+      if (!ok) return;
+    }
+
     const original = btn.innerHTML;
     btn.innerHTML = '<span class="dash-ai-icon">🗓️</span> Generating…';
     btn.disabled = true;
@@ -1833,6 +1848,13 @@ function bindAI() {
       return;
     }
     UI.showQuizConfigModal(material.id, material.folder_id, material.title);
+  });
+
+  // Standalone "Quizzes" tab — the main entry point for creating a quiz on
+  // any topic, with no folder/material required (materialId/folderId null
+  // means AI.generateQuiz() falls back to topic-only generation).
+  $("btn-generate-quiz-standalone")?.addEventListener("click", () => {
+    UI.showQuizConfigModal(null, null, "");
   });
 
   $("btn-cancel-quiz-config")?.addEventListener("click", () => {
