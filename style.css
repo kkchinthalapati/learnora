@@ -40,6 +40,8 @@
     --bg-tint-2: rgba(52, 184, 138, 0.04);
     --surface: #ffffff;
     --surface-2: #f5f6fa;
+    --surface-hover: #edeff6;
+    --surface-active: #e5e8f2;
 
     /* --- Glass --- */
     --glass-bg: rgba(255, 255, 255, 0.55);
@@ -2359,23 +2361,21 @@ label {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-radius: var(--r-2xl);
-    border: 1px solid var(--glass-border);
-    background: var(--glass-bg-strong);
-    backdrop-filter: blur(36px) var(--glass-saturate);
-    -webkit-backdrop-filter: blur(36px) var(--glass-saturate);
-    box-shadow:
-        var(--glass-inner),
-        var(--shadow-lg);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(15, 15, 20, 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     margin-bottom: 0;
     transition:
-        width var(--t) var(--ease),
-        height var(--t) var(--ease),
-        border-radius var(--t) var(--ease);
+        transform var(--t) cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity var(--t) var(--ease),
+        border var(--t) var(--ease);
 }
-.ai-modal.minimized {
-    bottom: 96px;
-    right: clamp(20px, 4vw, 36px);
+.ai-modal.streaming {
+    border: 1px solid rgba(139, 92, 246, 0.6);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.2), 0 20px 40px rgba(0, 0, 0, 0.6);
 }
 .ai-modal.fullscreen {
     top: 0 !important;
@@ -2447,10 +2447,11 @@ label {
 }
 .ai-bubble {
     align-self: flex-start;
-    background: var(--glass-bg);
+    position: relative;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--glass-border);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     box-shadow: var(--glass-inner), var(--shadow-sm);
     color: var(--text);
     border-bottom-left-radius: var(--r-xs);
@@ -2878,6 +2879,8 @@ body.dark-theme {
     --bg-tint-2: rgba(0, 240, 255, 0.06);
     --surface: #0a0414;
     --surface-2: #110722;
+    --surface-hover: #180a30;
+    --surface-active: #1f0d3e;
 
     --glass-bg: rgba(20, 10, 40, 0.45);
     --glass-bg-strong: rgba(20, 10, 40, 0.85);
@@ -3095,35 +3098,15 @@ body.dark-theme .stat-card::before {
 }
 
 /* ==========================================
-   AI BEAST MODE STYLES
+   AI chat action widgets & quiz gamification
 ============================================== */
-.ai-modal {
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(15, 15, 20, 0.85);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border-radius: 20px;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease, border 0.3s ease;
-}
-
-.ai-modal.streaming {
-    border: 1px solid rgba(139, 92, 246, 0.6);
-    box-shadow: 0 0 30px rgba(139, 92, 246, 0.2), 0 20px 40px rgba(0, 0, 0, 0.6);
-}
-
-.ai-bubble {
-    border: 1px solid rgba(255,255,255,0.05);
-    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
-    position: relative;
-}
 
 /* Typing / Streaming Wave Animation */
 .streaming-pulse {
     display: inline-block;
     width: 8px;
     height: 16px;
-    background: var(--primary-color);
+    background: var(--primary);
     margin-left: 4px;
     vertical-align: middle;
     animation: blink 1s step-end infinite;
@@ -3196,7 +3179,7 @@ body.dark-theme .stat-card::before {
     padding: 16px;
     border-radius: 12px;
     margin-bottom: 24px;
-    border: 1px solid var(--border);
+    border: var(--border);
     transition: all 0.3s ease;
 }
 .ai-host-avatar {

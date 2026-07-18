@@ -1238,7 +1238,7 @@
                                     <div class="danger-item">
                                         <div class="danger-item-info">
                                             <h4>Wipe All Data</h4>
-                                            <p>Permanently delete all tasks, study logs, and exams from the cloud. Your account will remain active.</p>
+                                            <p>Permanently delete all tasks, study logs, exams, weekly plans, quizzes, and saved timer presets from the cloud and this device. Folders, uploaded materials, notes, and flashcards are not affected. Your account will remain active.</p>
                                         </div>
                                         <button class="btn-danger" id="btn-wipe-data" style="padding: 8px 20px;">
                                             🗑️ Wipe Data
@@ -1309,7 +1309,7 @@
                             </div>
                         </div>
 
-                        <div id="upload-dropzone" class="dropzone glass-panel text-center mb-24 cursor-pointer" style="border: 2px dashed rgba(255,255,255,0.2); border-radius: var(--radius-lg); padding: 40px 20px; transition: all 0.3s ease;">
+                        <div id="upload-dropzone" class="dropzone glass-panel text-center mb-24 cursor-pointer" style="border: 2px dashed rgba(255,255,255,0.2); border-radius: var(--r-lg); padding: 40px 20px; transition: all 0.3s ease;">
                             <h3 class="mb-8">Drag & Drop</h3>
                             <p class="opacity-70 mb-16">or click to browse files</p>
                             <input type="file" id="hub-file-upload" hidden accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav">
@@ -1388,7 +1388,7 @@
 
                     <div id="flashcard-container" class="glass-panel text-center cursor-pointer flex-center flex-col" style="width: 100%; max-width: 600px; min-height: 300px; padding: 40px; font-size: 1.5rem;">
                         <div id="flashcard-front">Loading...</div>
-                        <div id="flashcard-back" class="hidden mt-24 pt-24" style="border-top: 1px solid rgba(255,255,255,0.1); width: 100%; color: var(--primary-color);"></div>
+                        <div id="flashcard-back" class="hidden mt-24 pt-24" style="border-top: 1px solid rgba(255,255,255,0.1); width: 100%; color: var(--primary);"></div>
                         <p id="flashcard-hint" class="opacity-70 mt-32" style="font-size: 1rem;">Click to reveal answer</p>
                     </div>
 
@@ -1675,6 +1675,7 @@
                 <button class="glass-pill cursor-pointer" data-chat-prompt="What are my pending tasks?" data-chat-send="true" style="font-size: var(--fs-xs); padding: 6px 12px;">📝 What are my tasks?</button>
                 <button class="glass-pill cursor-pointer" data-chat-prompt="Create a task to study for my next exam" style="font-size: var(--fs-xs); padding: 6px 12px;">✨ Plan my study</button>
                 <button class="glass-pill cursor-pointer" data-chat-prompt="Generate flashcards from my notes" style="font-size: var(--fs-xs); padding: 6px 12px;">🗂️ Create flashcards</button>
+                <button class="glass-pill cursor-pointer" data-chat-prompt="Start a 25-minute focus timer" data-chat-send="true" style="font-size: var(--fs-xs); padding: 6px 12px;">⏱️ Start a timer</button>
             </div>
 
             <div
@@ -1726,7 +1727,7 @@
                     id="btn-ai-voice"
                     class="icon-btn"
                     aria-label="Voice Input"
-                    style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: var(--primary-color); transition: all 0.3s ease;"
+                    style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: var(--primary); transition: all 0.3s ease;"
                 >
                     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
