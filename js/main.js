@@ -1835,6 +1835,13 @@ function bindAI() {
     UI.showQuizConfigModal(material.id, material.folder_id, material.title);
   });
 
+  // Standalone "Quizzes" tab — the main entry point for creating a quiz on
+  // any topic, with no folder/material required (materialId/folderId null
+  // means AI.generateQuiz() falls back to topic-only generation).
+  $("btn-generate-quiz-standalone")?.addEventListener("click", () => {
+    UI.showQuizConfigModal(null, null, "");
+  });
+
   $("btn-cancel-quiz-config")?.addEventListener("click", () => {
     $("quiz-config-modal")?.classList.add("hidden");
   });

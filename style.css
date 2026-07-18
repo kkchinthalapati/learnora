@@ -2708,13 +2708,16 @@ label {
 }
 
 .mt-0 { margin-top: 0; }
+.mt-4 { margin-top: var(--s-1); }
 .mt-8 { margin-top: var(--s-2); }
 .mt-16 { margin-top: var(--s-4); }
 .mt-24 { margin-top: var(--s-6); }
 .mt-32 { margin-top: var(--s-8); }
 .mt-40 { margin-top: var(--s-10); }
+.mb-8 { margin-bottom: var(--s-2); }
 .mb-16 { margin-bottom: var(--s-4); }
 .mb-24 { margin-bottom: var(--s-6); }
+.text-sm { font-size: var(--fs-sm); }
 
 /* ==========================================================================
    7. KEYFRAME ANIMATIONS

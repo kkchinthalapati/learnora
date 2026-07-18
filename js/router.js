@@ -458,8 +458,7 @@ export const Router = {
       container.innerHTML = `
         <div class="glass-panel text-center" style="grid-column: 1 / -1; padding: 40px;">
             <h3>No quizzes yet.</h3>
-            <p class="opacity-70 mt-8 mb-16">Generate a quiz from a folder's materials to test yourself.</p>
-            <button class="btn-primary" data-hash="folders">Browse folders →</button>
+            <p class="opacity-70 mt-8 mb-16">Click "+ Generate Quiz" above to test yourself on any topic — or open a folder to quiz yourself on a specific material.</p>
         </div>
       `;
     } else {

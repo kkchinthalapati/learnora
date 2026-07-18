@@ -860,12 +860,15 @@
 
                 <!-- VIEW: Quizzes -->
                 <section id="view-quizzes" class="view-section hidden">
-                    <div class="glass-panel summary-card">
-                        <h2 data-i18n="header_quizzes">Quizzes</h2>
-                        <p data-i18n="desc_quizzes" class="opacity-70 mt-8">
-                            AI-generated quizzes from your materials, auto-graded
-                            with weak-topic tracking.
-                        </p>
+                    <div class="glass-panel summary-card flex-between">
+                        <div>
+                            <h2 data-i18n="header_quizzes">Quizzes</h2>
+                            <p data-i18n="desc_quizzes" class="opacity-70 mt-8">
+                                AI-generated quizzes from your materials, auto-graded
+                                with weak-topic tracking.
+                            </p>
+                        </div>
+                        <button id="btn-generate-quiz-standalone" class="btn-primary" style="white-space: nowrap;">+ Generate Quiz</button>
                     </div>
                     <div id="quizzes-grid" class="grid-list mt-24"></div>
                 </section>
@@ -1340,6 +1343,7 @@
                         <!-- Materials List -->
                         <div class="glass-panel">
                             <h3 class="mb-16">📄 Materials & Notes</h3>
+                            <p class="opacity-70 text-sm mb-8">Click a file to read its AI-generated notes.</p>
                             <div id="workspace-materials-list" class="list-container"></div>
                         </div>
 
@@ -1348,6 +1352,7 @@
                             <div class="flex-between mb-16">
                                 <h3>🗂️ Flashcard Decks</h3>
                             </div>
+                            <p class="opacity-70 text-sm mb-8">Created automatically whenever you upload material here.</p>
                             <div id="workspace-decks-list" class="list-container"></div>
                         </div>
 
@@ -1355,8 +1360,9 @@
                         <div class="glass-panel">
                             <div class="flex-between mb-16">
                                 <h3>❓ Quizzes</h3>
-                                <button id="btn-generate-quiz" class="btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">+ Generate</button>
+                                <button id="btn-generate-quiz" class="btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" title="Generates a quiz from the most recently added material in this folder">+ Generate</button>
                             </div>
+                            <p class="opacity-70 text-sm mb-8">On-demand — generated from this folder's newest material. For any other topic, use the Quizzes tab.</p>
                             <div id="workspace-quizzes-list" class="list-container"></div>
                         </div>
                     </div>

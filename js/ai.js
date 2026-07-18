@@ -700,7 +700,7 @@ User message: ${query}`;
             if (await UI.confirm(`AI wants to generate a formal interactive quiz on "${topic}".\n\nAllow this?`, "AI Quiz Generation")) {
                UI.showPopup("Generating quiz, please wait...", "AI Quiz");
                // Run asynchronously so it doesn't block the chat from finishing its UI update
-               this.generateQuiz(null, null, topic).then((quiz) => {
+               this.generateQuiz(null, null, { topic }).then((quiz) => {
                  if (quiz) {
                     window.location.hash = `quiz-${quiz.id}`;
                     UI.showPopup("Quiz generated successfully!", "AI Quiz");
@@ -719,7 +719,7 @@ User message: ${query}`;
              UI.showPopup("Generating plan, please wait...", "AI Planner");
              this.generateWeeklyPlan().then((plan) => {
                  if (plan) {
-                     window.location.hash = "planner";
+                     window.location.hash = "plan";
                      UI.showPopup("Plan generated successfully!", "AI Planner");
                  }
              });
