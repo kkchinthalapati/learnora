@@ -210,6 +210,7 @@
                                     aria-label="Date of Birth"
                                     title="Must be 13 or older"
                                 />
+                                <p class="field-desc mt-8">You must be 13 or older to use Learnora</p>
                             </div>
                             <div class="input-group">
                                 <label for="signup-password">Password</label>
@@ -283,7 +284,7 @@
                             </div>
                             <div class="visual-feature">
                                 <span class="feature-icon">📅</span>
-                                <span>Exam calendar</span>
+                                <span>Exams</span>
                             </div>
                             <div class="visual-feature">
                                 <span class="feature-icon">🤖</span>
@@ -337,8 +338,13 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#exams" class="nav-link" data-i18n="nav_calendar">
-                            📚 Calendar
+                        <a href="#plan" class="nav-link" data-i18n="nav_plan">
+                            🗓️ This week's plan
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#exams" class="nav-link" data-i18n="nav_exams">
+                            📅 Exams
                         </a>
                     </li>
                     <li>
@@ -355,6 +361,7 @@
                     <li>
                         <a href="#ai" id="nav-ai-trigger" class="nav-link" data-i18n="nav_ai">
                             🤖 Learnora AI
+                            <span class="ai-nav-dot"></span>
                         </a>
                     </li>
                     <hr class="sidebar-divider" />
@@ -385,6 +392,17 @@
                     </div>
                     <div class="header-right flex-gap">
                         <span id="live-clock" class="glass-pill">00:00</span>
+                        <button
+                            id="header-logout-btn"
+                            class="icon-btn"
+                            aria-label="Log Out"
+                        >
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                        </button>
                         <button
                             id="theme-toggle"
                             class="icon-btn"
@@ -1008,7 +1026,7 @@
                                         </div>
                                         <div class="field-action">
                                             <button class="btn-secondary" id="btn-export-data" style="padding: 8px 16px;">
-                                                📥 Export Data
+                                                📥 Export CSV
                                             </button>
                                         </div>
                                     </div>
@@ -1071,7 +1089,7 @@
                                             <p class="field-desc">Sign out of all other browsers and devices</p>
                                         </div>
                                         <div class="field-action">
-                                            <button class="btn-danger" id="btn-signout-others" style="font-size: var(--fs-sm); padding: 8px 16px;">Sign Out Others</button>
+                                            <button class="btn-warning" id="btn-signout-others" style="font-size: var(--fs-sm); padding: 8px 16px;">Sign Out Others</button>
                                         </div>
                                     </div>
                                     <div class="inline-feedback" id="sessions-feedback"></div>
@@ -1170,14 +1188,23 @@
                                     <div class="settings-card-header">
                                         <span class="card-icon">🔔</span>
                                         <div>
-                                            <h3>Email Notifications</h3>
-                                            <p>Choose which emails you want to receive</p>
+                                            <h3>Browser Notifications</h3>
+                                            <p>Control which desktop notifications Learnora can send you</p>
+                                        </div>
+                                    </div>
+                                    <div class="settings-field" id="notif-permission-row" style="background: rgba(255,255,255,0.02); border-radius: var(--r-md); padding: 16px; margin-bottom: 24px; border: 1px solid var(--border);">
+                                        <div class="field-label">
+                                            <label>Browser Permission</label>
+                                            <p class="field-desc" id="notif-permission-desc">Checking permission status...</p>
+                                        </div>
+                                        <div class="field-action">
+                                            <button class="btn-primary" id="btn-request-notif-perm" style="padding: 8px 16px;">Enable Browser Notifications</button>
                                         </div>
                                     </div>
                                     <div class="settings-field">
                                         <div class="field-label">
-                                            <label>Study Reminders</label>
-                                            <p class="field-desc">Reminders to complete your daily study goals</p>
+                                            <label>Flashcard Due Reminders</label>
+                                            <p class="field-desc">Get notified once a day when you have flashcards due for review</p>
                                         </div>
                                         <div class="field-action">
                                             <label class="toggle-switch">
@@ -1188,36 +1215,12 @@
                                     </div>
                                     <div class="settings-field">
                                         <div class="field-label">
-                                            <label>Exam Alerts</label>
-                                            <p class="field-desc">Notifications before upcoming exams</p>
+                                            <label>Timer Alerts</label>
+                                            <p class="field-desc">Get notified when a focus session, countdown, or flowtime block ends</p>
                                         </div>
                                         <div class="field-action">
                                             <label class="toggle-switch">
-                                                <input type="checkbox" id="notif-exam-alerts" checked />
-                                                <span class="toggle-slider"></span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="settings-field">
-                                        <div class="field-label">
-                                            <label>Security Alerts</label>
-                                            <p class="field-desc">Notifications about password changes and new logins</p>
-                                        </div>
-                                        <div class="field-action">
-                                            <label class="toggle-switch">
-                                                <input type="checkbox" id="notif-security" checked disabled />
-                                                <span class="toggle-slider"></span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="settings-field">
-                                        <div class="field-label">
-                                            <label>Product Updates</label>
-                                            <p class="field-desc">News about new features and improvements</p>
-                                        </div>
-                                        <div class="field-action">
-                                            <label class="toggle-switch">
-                                                <input type="checkbox" id="notif-updates" />
+                                                <input type="checkbox" id="notif-timer-alerts" checked />
                                                 <span class="toggle-slider"></span>
                                             </label>
                                         </div>
@@ -1281,9 +1284,9 @@
                         </div>
                         
                         <div class="input-group mb-24">
-                            <label for="upload-folder">Save to Course / Folder</label>
+                            <label for="upload-folder">Save to Course / Folder <span class="text-danger">*</span></label>
                             <div class="flex-row" style="gap: 8px;">
-                                <select id="upload-folder" class="full-width">
+                                <select id="upload-folder" class="full-width" required>
                                     <option value="" disabled selected>Select a folder...</option>
                                     <!-- Populated dynamically -->
                                 </select>
@@ -1293,7 +1296,7 @@
 
                         <div class="input-group mb-24">
                             <label for="upload-type">Material Type</label>
-                            <div class="grid-list" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+                            <div class="grid-list grid-responsive" style="gap: 12px; margin-top: 8px;">
                                 <label class="radio-card glass-panel cursor-pointer text-center" style="padding: 12px;">
                                     <input type="radio" name="material-type" value="pdf" checked> 📄 Document
                                 </label>
@@ -1339,7 +1342,7 @@
                         <h2 id="workspace-title">Workspace</h2>
                     </div>
 
-                    <div class="grid-list" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <div class="grid-list grid-responsive">
                         <!-- Materials List -->
                         <div class="glass-panel">
                             <h3 class="mb-16">📄 Materials & Notes</h3>
@@ -1371,7 +1374,7 @@
                 <!-- VIEW: Notes Reader -->
                 <section id="view-notes" class="view-section hidden">
                     <div class="glass-panel">
-                        <button class="btn-secondary mb-24" data-action="history-back">← Back</button>
+                        <button class="btn-secondary mb-24" data-hash="folders">← Back</button>
                         <div id="notes-content" class="markdown-body" style="font-size: 1.1rem; line-height: 1.6;">
                             Loading notes...
                         </div>
@@ -1381,7 +1384,7 @@
                 <!-- VIEW: Flashcard Review -->
                 <section id="view-review" class="view-section hidden flex-col flex-center" style="min-height: 70vh;">
                     <div class="text-center mb-24" style="width: 100%; max-width: 600px;">
-                        <button class="btn-secondary pull-left" data-action="history-back">← Exit Review</button>
+                        <button class="btn-secondary pull-left" data-hash="flashcards">← Exit Review</button>
                         <h2 id="review-deck-title">Flashcard Review</h2>
                         <p id="review-progress" class="opacity-70 mt-8">Card 1 of 10</p>
                     </div>
@@ -1450,6 +1453,24 @@
             </div>
         </div>
 
+        <!-- Day Detail Modal -->
+        <div id="day-detail-modal" class="modal-overlay hidden">
+            <div class="modal-content glass-panel" style="max-width: 400px;">
+                <div class="modal-head">
+                    <h3 id="modal-day-title">Exams</h3>
+                    <p class="modal-subtitle">View or add exams for this day.</p>
+                </div>
+                <div id="day-detail-list" class="flex-column" style="gap: var(--s-3); margin-bottom: var(--s-4);">
+                    <!-- Exam items go here -->
+                </div>
+                <div class="modal-actions flex-between">
+                    <button type="button" id="btn-close-day-detail" class="btn-secondary">Close</button>
+                    <button type="button" class="btn-primary" id="btn-add-exam-for-day">+ Add exam</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exam Modal -->
         <div id="exam-modal" class="modal-overlay hidden">
             <div class="modal-content glass-panel">
                 <div class="modal-head">

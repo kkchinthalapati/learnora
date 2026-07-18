@@ -490,6 +490,16 @@ button:active {
     color: #fff;
     box-shadow: 0 4px 16px rgba(224, 90, 78, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
+.btn-danger:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.btn-danger:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
 
 .btn-warning {
     background: var(--warning-soft);
@@ -501,6 +511,16 @@ button:active {
     color: #fff;
     box-shadow: 0 4px 16px rgba(212, 154, 56, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
+.btn-warning:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.btn-warning:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
 
 .btn-success {
     background: var(--success-soft);
@@ -511,6 +531,16 @@ button:active {
     background: var(--success);
     color: #fff;
     box-shadow: 0 4px 16px rgba(52, 184, 138, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.btn-success:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.btn-success:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
 }
 
 /* --- 5.4 Inputs --- */
@@ -891,6 +921,9 @@ label {
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
     gap: var(--s-6);
 }
+.grid-responsive {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
+}
 
 .todo-item,
 .log-item {
@@ -1097,7 +1130,13 @@ label {
     background: var(--danger-soft);
     color: var(--danger);
 }
-.dash-empty {
+.empty-state {
+    grid-column: 1 / -1;
+    padding: var(--s-10) var(--s-5);
+    text-align: center;
+    color: var(--text-muted);
+}
+.empty-state-sm {
     color: var(--text-muted);
     font-size: var(--fs-sm);
     margin: auto 0;
@@ -1648,6 +1687,15 @@ label {
     background: var(--danger-soft);
 }
 
+.btn-ghost-success {
+    background: transparent;
+    color: var(--success);
+    border-color: transparent;
+}
+.btn-ghost-success:hover {
+    background: var(--success-soft);
+}
+
 /* --- 5.10 Auth wall --- */
 .auth-wrapper {
     position: fixed;
@@ -1983,15 +2031,30 @@ label {
         border-color var(--t-fast) ease, box-shadow var(--t-fast) ease;
 }
 .settings-tab-btn:hover {
-    background: var(--accent-soft);
+    background: var(--surface-hover);
     color: var(--text);
 }
 .settings-tab-btn.active {
-    background: var(--accent-soft);
-    color: var(--accent);
-    border-color: var(--accent-soft);
+    background: var(--surface-active);
+    color: var(--text);
+    border-color: var(--surface-active);
     font-weight: 600;
     box-shadow: inset 3px 0 0 var(--accent);
+}
+
+#settings-tab-danger {
+    color: var(--danger);
+    border-color: transparent;
+}
+#settings-tab-danger:hover {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+#settings-tab-danger.active {
+    background: var(--danger-soft);
+    color: var(--danger);
+    border-color: var(--danger-soft);
+    box-shadow: inset 3px 0 0 var(--danger);
 }
 .settings-tab-btn .tab-icon {
     font-size: 1.1rem;
@@ -2349,6 +2412,16 @@ label {
     background: linear-gradient(135deg, var(--accent-hover), var(--accent));
     transform: translateY(-2px) scale(1.06);
     box-shadow: 0 8px 28px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.ai-nav-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-left: auto;
+    box-shadow: 0 0 6px var(--accent-glow);
 }
 
 .ai-modal {
@@ -2719,6 +2792,24 @@ label {
 .mb-16 { margin-bottom: var(--s-4); }
 .mb-24 { margin-bottom: var(--s-6); }
 .text-sm { font-size: var(--fs-sm); }
+.mb-32 { margin-bottom: var(--s-8); }
+.pt-24 { padding-top: var(--s-6); }
+.btn-sm { padding: 4px 12px; font-size: var(--fs-sm); }
+.pull-left { float: left; margin-right: 12px; }
+.text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.fade-in { animation: fade-in 0.3s ease-out; }
+
+/* 
+ * NOTE: The following classes are intentionally style-free JS hooks or semantic markers, 
+ * and do not need CSS rules:
+ * .header-drag-handle, .markdown-body, .splash-content, .splash-logo, .splash-screen,
+ * .todo-text, .view-section, .dropzone, .chat-suggestions, .btn-preset, 
+ * .dash-ai, .dash-streak, .dash-tasks
+ */
 
 /* ==========================================================================
    7. KEYFRAME ANIMATIONS
@@ -2732,6 +2823,11 @@ label {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 @keyframes spin {
@@ -3199,17 +3295,17 @@ body.dark-theme .stat-card::before {
 }
 
 .correct-choice {
-    background-color: rgba(34, 197, 94, 0.1) !important;
-    border-color: #22c55e !important;
-    color: #22c55e !important;
+    background-color: var(--success-soft) !important;
+    border-color: var(--success) !important;
+    color: var(--success) !important;
     transform: scale(1.02);
     box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
 }
 
 .wrong-choice {
-    background-color: rgba(239, 68, 68, 0.1) !important;
-    border-color: #ef4444 !important;
-    color: #ef4444 !important;
+    background-color: var(--danger-soft) !important;
+    border-color: var(--danger) !important;
+    color: var(--danger) !important;
     animation: shake-error 0.5s ease-in-out;
 }
 

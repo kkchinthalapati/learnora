@@ -432,6 +432,7 @@ export const Timer = {
   /* ------ Browser notifications ------ */
 
   _tryNotify(label) {
+    if (!UI.loadSettings().notifyTimerAlerts) return;
     if (!("Notification" in window)) return;
     if (Notification.permission === "granted") {
       new Notification("Learnora", { body: `${label} time! Let's go.`, icon: "learnora.jpg" });
@@ -530,8 +531,15 @@ export const Timer = {
       breakBtn.classList.toggle("hidden", !showBreak);
     }
     if (resetBtn) {
-      resetBtn.textContent =
-        countUp && this._currentCountUpSeconds() >= 60 ? "Stop & log" : "Reset";
+      const isStopAndLog = countUp && this._currentCountUpSeconds() >= 60;
+      resetBtn.textContent = isStopAndLog ? "Stop & log" : "Reset";
+      if (isStopAndLog) {
+        resetBtn.classList.remove("btn-ghost-danger");
+        resetBtn.classList.add("btn-ghost-success");
+      } else {
+        resetBtn.classList.remove("btn-ghost-success");
+        resetBtn.classList.add("btn-ghost-danger");
+      }
     }
 
     this._renderMini();
@@ -637,6 +645,9 @@ export const Timer = {
     const favs = Storage.get("fav_times", []);
     favs.push({
       name: name.trim(),
+      type: this.state.type,
+      config: { ...this.state.config },
+      // Legacy fields for backward compatibility
       focus: this.state.config.focus,
       short: this.state.config.short,
       long: this.state.config.long,
@@ -668,12 +679,17 @@ export const Timer = {
       const btn = document.createElement("button");
       btn.className = "btn-secondary mt-0";
       btn.style.flex = "1";
-      btn.textContent = `⭐ ${f.name} (${f.focus}m)`;
+      const type = f.type || "pomodoro";
+      const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+      const dur = type === "countdown" ? f.config?.countdown : f.focus;
+      const durStr = dur ? ` (${dur}m)` : "";
+      
+      btn.textContent = `⭐ ${f.name} [${typeLabel}]${durStr}`;
       btn.addEventListener("click", () => {
-        const partial = { focus: f.focus, short: f.short, long: f.long, maxCycles: f.cycles };
+        const partial = f.config ? f.config : { focus: f.focus, short: f.short, long: f.long, maxCycles: f.cycles };
         // Never cancel a running timer — stage it instead.
-        if (this.state.isRunning) this.stagePreset(partial, "pomodoro");
-        else this.applyNow(partial, "pomodoro");
+        if (this.state.isRunning) this.stagePreset(partial, type);
+        else this.applyNow(partial, type);
       });
 
       const delBtn = document.createElement("button");
