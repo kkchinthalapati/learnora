@@ -356,7 +356,16 @@ export const Folders = {
       return false;
     }
     return true;
-  }
+  },
+
+  async rename(id, name) {
+    const { error } = await supabase.from("folders").update({ name }).eq("id", id);
+    if (error) {
+      console.error("[Folders.rename]", error.message);
+      return false;
+    }
+    return true;
+  },
 };
 
 /* =========================================================================

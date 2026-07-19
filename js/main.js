@@ -1,4 +1,4 @@
-import { UI, $, $$, esc, Storage } from "./ui.js";
+import { UI, $, $$, esc, Storage, ModalManager } from "./ui.js";
 import { Auth, Tasks, Exams, DataAdmin, Folders, Materials, Sessions, Flashcards, Quizzes } from "./api.js";
 import { Timer } from "./timer.js";
 import { AI } from "./ai.js";
@@ -221,35 +221,22 @@ function bindUploadHub() {
       if (!container) {
         container = document.createElement("div");
         container.id = "toast-container";
-        container.style.position = "fixed";
-        container.style.bottom = "24px";
-        container.style.right = "24px";
-        container.style.display = "flex";
-        container.style.flexDirection = "column";
-        container.style.gap = "8px";
-        container.style.zIndex = "9999";
+        container.className = "toast-container";
         document.body.appendChild(container);
       }
-      
+
       const toast = document.createElement("div");
-      toast.className = "glass-panel";
-      toast.style.padding = "12px 16px";
-      toast.style.borderRadius = "var(--r-md)";
-      toast.style.background = "var(--surface-active)";
-      toast.style.border = "1px solid var(--border)";
-      toast.style.display = "flex";
-      toast.style.alignItems = "center";
-      toast.innerHTML = `<span>⏳ Generating notes and flashcards for ${UI.escapeHTML(material.title || "material")}...</span>`;
+      toast.className = "glass-panel toast";
+      toast.innerHTML = `<span>⏳ Generating notes and flashcards for ${esc(material.title || "material")}...</span>`;
       container.appendChild(toast);
 
       AI.generateStudyMaterial(material, folderId, fileDataPayload).then(() => {
-        toast.innerHTML = `<span>✅ Generation complete for ${UI.escapeHTML(material.title || "material")}! <a href="#folders" style="color: var(--accent); text-decoration: underline;">View folder</a></span>`;
+        toast.innerHTML = `<span>✅ Generation complete for ${esc(material.title || "material")}! <a href="#folders" style="color: var(--accent); text-decoration: underline;">View folder</a></span>`;
         setTimeout(() => toast.remove(), 10000);
       }).catch(e => {
         console.error("AI Generation failed:", e);
-        toast.style.background = "var(--danger-soft)";
-        toast.style.border = "1px solid var(--danger)";
-        toast.innerHTML = `<span>❌ Generation failed for ${UI.escapeHTML(material.title || "material")}.</span>`;
+        toast.classList.add("toast-error");
+        toast.innerHTML = `<span>❌ Generation failed for ${esc(material.title || "material")}.</span>`;
         setTimeout(() => toast.remove(), 10000);
       });
       
@@ -1339,11 +1326,18 @@ function setExamDifficulty(value) {
 }
 
 function openExamModal(exam = null, dateStr = "") {
-  const modal = $("exam-modal");
-  modal?.classList.remove("hidden");
+  ModalManager.open("exam-modal");
+
+  const dateInput = $("exam-date");
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() + 5);
+  if (dateInput) dateInput.max = maxDate.toISOString().slice(0, 10);
 
   if (exam) {
     // Editing an existing exam - show status and the delete affordance.
+    // No `min` here: an existing exam's date may legitimately be in the
+    // past (e.g. marking it Completed after the fact).
+    dateInput?.removeAttribute("min");
     $("modal-exam-title").textContent = "Edit exam";
     $("modal-exam-subtitle").textContent = "Update the details or remove it from your calendar.";
     $("btn-save-exam").textContent = "Save changes";
@@ -1356,6 +1350,7 @@ function openExamModal(exam = null, dateStr = "") {
     $("btn-delete-exam")?.classList.remove("hidden");
   } else {
     // Creating
+    if (dateInput) dateInput.min = new Date().toISOString().slice(0, 10);
     $("modal-exam-title").textContent = "New exam";
     $("modal-exam-subtitle").textContent = "Add it to your calendar and we'll count down to the day.";
     $("btn-save-exam").textContent = "Add exam";
@@ -1367,16 +1362,15 @@ function openExamModal(exam = null, dateStr = "") {
     $("exam-status-group")?.classList.add("hidden");
     $("btn-delete-exam")?.classList.add("hidden");
   }
-
-  // Auto-focus the name field
-  requestAnimationFrame(() => $("exam-name")?.focus());
+  // Focus is handled by ModalManager.open() (focuses the first focusable
+  // element, which is exam-name).
 }
 
 function openDayDetailModal(dateStr, exams) {
   const modal = $("day-detail-modal");
   if (!modal) return;
-  modal.classList.remove("hidden");
-  
+  ModalManager.open("day-detail-modal");
+
   const formattedDate = new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   $("modal-day-title").textContent = `Exams on ${formattedDate}`;
   
@@ -1391,26 +1385,26 @@ function openDayDetailModal(dateStr, exams) {
     item.style.borderRadius = "var(--r-md)";
     item.style.cursor = "pointer";
     item.innerHTML = `
-      <div class="flex-column" style="gap: 4px;">
-        <span style="font-weight: 500;">${UI.escapeHTML(exam.exam_name)}</span>
+      <div class="flex-column" style="gap: 4px; min-width: 0;">
+        <span class="day-detail-exam-name">${esc(exam.exam_name)}</span>
         <span class="text-sm" style="color: var(--text-muted);">${exam.difficulty} • ${exam.status}</span>
       </div>
       <span class="icon-btn">✎</span>
     `;
     item.addEventListener("click", () => {
-      modal.classList.add("hidden");
+      ModalManager.close("day-detail-modal");
       openExamModal(exam, dateStr);
     });
     listEl.appendChild(item);
   });
-  
+
   const btnAdd = $("btn-add-exam-for-day");
   if (btnAdd) {
     // Replace element to clear old listeners
     const newBtn = btnAdd.cloneNode(true);
     btnAdd.parentNode.replaceChild(newBtn, btnAdd);
     newBtn.addEventListener("click", () => {
-      modal.classList.add("hidden");
+      ModalManager.close("day-detail-modal");
       openExamModal(null, dateStr);
     });
   }
@@ -1432,24 +1426,28 @@ function bindCalendar() {
   });
 
   $("btn-cancel-exam")?.addEventListener("click", () => {
-    $("exam-modal")?.classList.add("hidden");
+    ModalManager.close("exam-modal");
   });
 
   $("btn-close-day-detail")?.addEventListener("click", () => {
-    $("day-detail-modal")?.classList.add("hidden");
+    ModalManager.close("day-detail-modal");
   });
 
-  // Close modal on Escape
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      $("exam-modal")?.classList.add("hidden");
-      $("day-detail-modal")?.classList.add("hidden");
-      $("popup-overlay")?.classList.add("hidden");
-    }
-  });
+  // Escape-key handling for exam-modal/day-detail-modal/popup-overlay is
+  // centralized in ModalManager (js/ui.js) — it always closes only the
+  // top-most open modal instead of every listener firing independently.
 
   $("exam-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const isEditing = !!$("modal-exam-id").value;
+    const dateInput = $("exam-date");
+    if (!isEditing && dateInput.value < new Date().toISOString().slice(0, 10)) {
+      dateInput.classList.remove("input-error");
+      void dateInput.offsetWidth; // trigger reflow so the shake replays
+      dateInput.classList.add("input-error");
+      UI.showPopup("Exam date can't be in the past.", "Invalid Date");
+      return;
+    }
     const difficulty =
       document.querySelector('input[name="exam-difficulty"]:checked')?.value || "Medium";
     const ok = await Exams.save(
@@ -1462,7 +1460,7 @@ function bindCalendar() {
       $("modal-exam-id").value || null,
     );
     if (ok) {
-      $("exam-modal")?.classList.add("hidden");
+      ModalManager.close("exam-modal");
       loadCalendar();
     }
   });
@@ -1474,7 +1472,7 @@ function bindCalendar() {
     );
     if (ok) {
       await Exams.delete($("modal-exam-id").value);
-      $("exam-modal")?.classList.add("hidden");
+      ModalManager.close("exam-modal");
       loadCalendar();
     }
   });
@@ -2027,8 +2025,10 @@ function bindAI() {
   });
 
   $("btn-cancel-quiz-config")?.addEventListener("click", () => {
-    $("quiz-config-modal")?.classList.add("hidden");
+    ModalManager.close("quiz-config-modal");
   });
+
+  $("quiz-personality")?.addEventListener("change", () => UI.syncQuizPersonalityDesc());
 
   $("quiz-config-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -2039,10 +2039,10 @@ function bindAI() {
       topic: $("quiz-topic").value.trim(),
       difficulty: document.querySelector('input[name="quiz-difficulty"]:checked')?.value || "Medium",
       personality: $("quiz-personality").value,
-      length: parseInt($("quiz-length").value) || 10
+      length: parseInt(document.querySelector('input[name="quiz-length"]:checked')?.value) || 10
     };
 
-    $("quiz-config-modal").classList.add("hidden");
+    ModalManager.close("quiz-config-modal");
     UI.setGlobalLoading(true);
     
     const quiz = await AI.generateQuiz(materialId, folderId, config);
