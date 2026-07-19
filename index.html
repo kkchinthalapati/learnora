@@ -380,6 +380,7 @@
                             id="menu-toggle"
                             class="icon-btn"
                             aria-label="Toggle Sidebar Menu"
+                            title="Toggle Sidebar Menu"
                         >
                             ☰
                         </button>
@@ -396,6 +397,7 @@
                             id="header-logout-btn"
                             class="icon-btn"
                             aria-label="Log Out"
+                            title="Log Out"
                         >
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -407,6 +409,7 @@
                             id="theme-toggle"
                             class="icon-btn"
                             aria-label="Toggle Theme"
+                            title="Toggle Theme"
                         >
                             <svg
                                 id="theme-icon"
@@ -1408,7 +1411,7 @@
         <!-- ==========================================
              MODALS
         ============================================== -->
-        <div id="popup-overlay" class="modal-overlay hidden">
+        <div id="popup-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="popup-title">
             <div class="modal-content glass-panel text-center">
                 <h3
                     id="popup-title"
@@ -1428,7 +1431,7 @@
         </div>
 
         <!-- Reusable confirm / prompt dialog (replaces native alert/confirm/prompt) -->
-        <div id="app-dialog" class="modal-overlay hidden">
+        <div id="app-dialog" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="app-dialog-title">
             <div class="modal-content glass-panel">
                 <div class="modal-head">
                     <h3 id="app-dialog-title">Are you sure?</h3>
@@ -1454,11 +1457,10 @@
         </div>
 
         <!-- Day Detail Modal -->
-        <div id="day-detail-modal" class="modal-overlay hidden">
+        <div id="day-detail-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-day-title">
             <div class="modal-content glass-panel" style="max-width: 400px;">
                 <div class="modal-head">
                     <h3 id="modal-day-title">Exams</h3>
-                    <p class="modal-subtitle">View or add exams for this day.</p>
                 </div>
                 <div id="day-detail-list" class="flex-column" style="gap: var(--s-3); margin-bottom: var(--s-4);">
                     <!-- Exam items go here -->
@@ -1471,7 +1473,7 @@
         </div>
 
         <!-- Exam Modal -->
-        <div id="exam-modal" class="modal-overlay hidden">
+        <div id="exam-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-exam-title">
             <div class="modal-content glass-panel">
                 <div class="modal-head">
                     <h3 id="modal-exam-title">New exam</h3>
@@ -1487,6 +1489,7 @@
                             type="text"
                             id="exam-name"
                             required
+                            maxlength="120"
                             placeholder="e.g. AP Chemistry Midterm"
                         />
                     </div>
@@ -1544,10 +1547,10 @@
             </div>
         </div>
         <!-- Quiz Config Modal -->
-        <div id="quiz-config-modal" class="modal-overlay hidden">
+        <div id="quiz-config-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="quiz-config-title">
             <div class="modal-content glass-panel">
                 <div class="modal-head">
-                    <h3>Configure Quiz</h3>
+                    <h3 id="quiz-config-title">Configure Quiz</h3>
                     <p class="modal-subtitle">Customize the AI host and difficulty.</p>
                 </div>
                 <form id="quiz-config-form">
@@ -1580,20 +1583,30 @@
                     <div class="input-group">
                         <label for="quiz-personality">AI Host Personality</label>
                         <select id="quiz-personality">
-                            <option value="Friendly Tutor">Friendly Tutor (Supportive)</option>
-                            <option value="Strict Coach">Strict Coach (Tough Love)</option>
-                            <option value="Sarcastic Buddy">Sarcastic Buddy (Funny & Roasting)</option>
-                            <option value="Academic Professor">Academic Professor (Formal)</option>
+                            <option value="Friendly Tutor">Friendly Tutor</option>
+                            <option value="Strict Coach">Strict Coach</option>
+                            <option value="Sarcastic Buddy">Sarcastic Buddy</option>
+                            <option value="Academic Professor">Academic Professor</option>
                         </select>
+                        <p class="field-desc" id="quiz-personality-desc">Patient, supportive, explains things step by step.</p>
                     </div>
 
                     <div class="input-group">
-                        <label for="quiz-length">Number of Questions</label>
-                        <select id="quiz-length">
-                            <option value="5">5 questions (Quick)</option>
-                            <option value="10" selected>10 questions (Standard)</option>
-                            <option value="15">15 questions (Deep Dive)</option>
-                        </select>
+                        <label>Number of Questions</label>
+                        <div class="segmented" role="radiogroup" aria-label="Number of questions">
+                            <label class="segmented-option">
+                                <input type="radio" name="quiz-length" value="5" />
+                                <span>5 Quick</span>
+                            </label>
+                            <label class="segmented-option">
+                                <input type="radio" name="quiz-length" value="10" checked />
+                                <span>10 Standard</span>
+                            </label>
+                            <label class="segmented-option">
+                                <input type="radio" name="quiz-length" value="15" />
+                                <span>15 Deep</span>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="modal-actions flex-end mt-32">

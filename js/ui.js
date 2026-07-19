@@ -61,10 +61,109 @@ const DEFAULT_SETTINGS = Object.freeze({
 });
 
 /* =========================================================================
+   MODAL MANAGER — single source of truth for which modal is "on top".
+   Coordinates Escape-key routing, body scroll locking, focus trapping,
+   and focus restoration for the plain show/hide modals (popup, exam,
+   day-detail, quiz-config). `UI._dialog()` (the app-dialog confirm/prompt)
+   stays self-contained — it already manages its own Escape/focus
+   lifecycle — but shares the same scroll-lock counter and focus-trap
+   helper, and the global Escape handler below defers to it when open.
+   ========================================================================= */
+
+const _modalStack = [];
+let _scrollLockCount = 0;
+
+function _lockScroll() {
+  _scrollLockCount++;
+  if (_scrollLockCount === 1) document.body.style.overflow = "hidden";
+}
+function _unlockScroll() {
+  _scrollLockCount = Math.max(0, _scrollLockCount - 1);
+  if (_scrollLockCount === 0) document.body.style.overflow = "";
+}
+
+function _getFocusable(container) {
+  return Array.from(
+    container.querySelectorAll(
+      'a[href], button:not([disabled]), textarea, input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+  ).filter((el) => el.offsetParent !== null);
+}
+
+function _trapFocus(modal) {
+  const onKeydown = (e) => {
+    if (e.key !== "Tab") return;
+    const focusables = _getFocusable(modal);
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+  modal.addEventListener("keydown", onKeydown);
+  return () => modal.removeEventListener("keydown", onKeydown);
+}
+
+export const ModalManager = {
+  open(id) {
+    const modal = $(id);
+    if (!modal || !modal.classList.contains("hidden")) return;
+    const trigger = document.activeElement;
+    modal.classList.remove("hidden");
+    _lockScroll();
+    const untrap = _trapFocus(modal);
+    _modalStack.push({ id, trigger, untrap });
+    requestAnimationFrame(() => {
+      const focusables = _getFocusable(modal);
+      (focusables[0] || modal).focus?.();
+    });
+  },
+
+  close(id) {
+    const idx = id ? _modalStack.findIndex((m) => m.id === id) : _modalStack.length - 1;
+    if (idx === -1) return;
+    const entry = _modalStack[idx];
+    $(entry.id)?.classList.add("hidden");
+    entry.untrap();
+    _modalStack.splice(idx, 1);
+    _unlockScroll();
+    entry.trigger?.focus?.();
+  },
+
+  closeTop() {
+    if (_modalStack.length === 0) return;
+    this.close(_modalStack[_modalStack.length - 1].id);
+  },
+
+  isOpen(id) {
+    return _modalStack.some((m) => m.id === id);
+  },
+};
+
+// Single global Escape handler for all ModalManager-tracked modals. Bails
+// if app-dialog (UI._dialog, Promise-based) is open — it owns its own
+// Escape handling — so Escape only ever closes one layer, top-most
+// first, instead of every open modal firing independently at once.
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (!$("app-dialog")?.classList.contains("hidden")) return;
+  ModalManager.closeTop();
+});
+
+/* =========================================================================
    UI MODULE — Exported public API
    ========================================================================= */
 
 export const UI = {
+
+  /* Alias so `UI.escapeHTML(...)` also works — `esc()` is the canonical
+     standalone export, this just guards against the naming mismatch. */
+  escapeHTML: esc,
 
   /* ------ Active tab tracking ------ */
   _activeTab: "dashboard",
@@ -72,16 +171,15 @@ export const UI = {
   /* ------ Popup ------ */
 
   showPopup(message, title = "Learnora") {
-    const overlay = $("popup-overlay");
     const titleEl = $("popup-title");
     const msgEl = $("popup-message");
     if (titleEl) titleEl.textContent = title;
     if (msgEl) msgEl.textContent = message;
-    if (overlay) overlay.classList.remove("hidden");
+    ModalManager.open("popup-overlay");
   },
 
   hidePopup() {
-    $("popup-overlay")?.classList.add("hidden");
+    ModalManager.close("popup-overlay");
   },
 
   /* ------ Confirm / Prompt dialogs (Promise-based, glass UI) ------ */
@@ -123,15 +221,21 @@ export const UI = {
       confirmBtn.classList.toggle("btn-danger", danger);
       confirmBtn.classList.toggle("btn-primary", !danger);
 
+      const trigger = document.activeElement;
       overlay.classList.remove("hidden");
+      _lockScroll();
+      const untrap = _trapFocus(overlay);
       requestAnimationFrame(() => (isPrompt ? input : confirmBtn).focus());
 
       const cleanup = () => {
         overlay.classList.add("hidden");
+        untrap();
+        _unlockScroll();
         confirmBtn.removeEventListener("click", onConfirm);
         cancelBtn.removeEventListener("click", onCancel);
         overlay.removeEventListener("mousedown", onOverlay);
         document.removeEventListener("keydown", onKey);
+        trigger?.focus?.();
       };
       const onConfirm = () => {
         if (isPrompt && !input.value.trim()) {
@@ -208,15 +312,27 @@ export const UI = {
   },
 
   showQuizConfigModal(materialId, folderId, defaultTopic = "") {
-    const modal = $("quiz-config-modal");
-    if (!modal) return;
-    
+    if (!$("quiz-config-modal")) return;
+
     $("quiz-material-id").value = materialId || "";
     $("quiz-folder-id").value = folderId || "";
     $("quiz-topic").value = defaultTopic;
-    
-    modal.classList.remove("hidden");
-    $("quiz-topic").focus();
+    this.syncQuizPersonalityDesc();
+
+    ModalManager.open("quiz-config-modal");
+  },
+
+  QUIZ_PERSONALITY_DESC: {
+    "Friendly Tutor": "Patient, supportive, explains things step by step.",
+    "Strict Coach": "Tough love, no-nonsense, pushes you to improve.",
+    "Sarcastic Buddy": "Casual, funny, roasts your wrong answers.",
+    "Academic Professor": "Formal, precise, textbook-style explanations.",
+  },
+
+  syncQuizPersonalityDesc() {
+    const select = $("quiz-personality");
+    const desc = $("quiz-personality-desc");
+    if (select && desc) desc.textContent = this.QUIZ_PERSONALITY_DESC[select.value] || "";
   },
 
   /* ------ Tab navigation ------ */
