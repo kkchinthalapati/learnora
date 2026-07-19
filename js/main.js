@@ -116,9 +116,11 @@ function bindUploadHub() {
         linkInput.classList.remove('hidden');
         if (type === 'text') {
           linkInput.querySelector('label').textContent = "Paste Text Content";
+          linkInput.querySelector('input').type = "text";
           linkInput.querySelector('input').placeholder = "Paste your notes or text here...";
         } else {
           linkInput.querySelector('label').textContent = "YouTube URL";
+          linkInput.querySelector('input').type = "url";
           linkInput.querySelector('input').placeholder = "https://youtube.com/watch?v=...";
         }
       } else {
@@ -149,6 +151,9 @@ function bindUploadHub() {
       fileInput.files = e.dataTransfer.files;
       const h3 = dropzone.querySelector('h3');
       if (h3) h3.textContent = e.dataTransfer.files[0].name;
+      const ext = e.dataTransfer.files[0].name.split('.').pop().toLowerCase();
+      const isAudio = ['mp3', 'mp4', 'wav', 'm4a', 'aac', 'ogg'].includes(ext);
+      document.querySelector(`input[name="material-type"][value="${isAudio ? 'audio' : 'pdf'}"]`).checked = true;
     }
   });
 
@@ -156,6 +161,9 @@ function bindUploadHub() {
     if (fileInput.files.length) {
       const h3 = dropzone.querySelector('h3');
       if (h3) h3.textContent = fileInput.files[0].name;
+      const ext = fileInput.files[0].name.split('.').pop().toLowerCase();
+      const isAudio = ['mp3', 'mp4', 'wav', 'm4a', 'aac', 'ogg'].includes(ext);
+      document.querySelector(`input[name="material-type"][value="${isAudio ? 'audio' : 'pdf'}"]`).checked = true;
     }
   });
 
@@ -209,10 +217,43 @@ function bindUploadHub() {
       }
       
       // TRIGGER AI GENERATION IN THE BACKGROUND
-      // We don't await this because we want to unblock the UI.
-      AI.generateStudyMaterial(material, folderId, fileDataPayload).catch(e => console.error("AI Generation failed:", e));
+      let container = document.getElementById("toast-container");
+      if (!container) {
+        container = document.createElement("div");
+        container.id = "toast-container";
+        container.style.position = "fixed";
+        container.style.bottom = "24px";
+        container.style.right = "24px";
+        container.style.display = "flex";
+        container.style.flexDirection = "column";
+        container.style.gap = "8px";
+        container.style.zIndex = "9999";
+        document.body.appendChild(container);
+      }
       
-      UI.showPopup("Material successfully ingested. Notes and flashcards will be available shortly.", "Success");
+      const toast = document.createElement("div");
+      toast.className = "glass-panel";
+      toast.style.padding = "12px 16px";
+      toast.style.borderRadius = "var(--r-md)";
+      toast.style.background = "var(--surface-active)";
+      toast.style.border = "1px solid var(--border)";
+      toast.style.display = "flex";
+      toast.style.alignItems = "center";
+      toast.innerHTML = `<span>⏳ Generating notes and flashcards for ${UI.escapeHTML(material.title || "material")}...</span>`;
+      container.appendChild(toast);
+
+      AI.generateStudyMaterial(material, folderId, fileDataPayload).then(() => {
+        toast.innerHTML = `<span>✅ Generation complete for ${UI.escapeHTML(material.title || "material")}! <a href="#folders" style="color: var(--accent); text-decoration: underline;">View folder</a></span>`;
+        setTimeout(() => toast.remove(), 10000);
+      }).catch(e => {
+        console.error("AI Generation failed:", e);
+        toast.style.background = "var(--danger-soft)";
+        toast.style.border = "1px solid var(--danger)";
+        toast.innerHTML = `<span>❌ Generation failed for ${UI.escapeHTML(material.title || "material")}.</span>`;
+        setTimeout(() => toast.remove(), 10000);
+      });
+      
+      UI.showPopup("Material successfully uploaded. Generation is running in the background.", "Success");
       // Reset UI
       fileInput.value = "";
       if (document.getElementById('upload-custom-title')) document.getElementById('upload-custom-title').value = "";
@@ -486,11 +527,15 @@ function bindAuth() {
     const confirmPass = $("reset-confirm-password").value;
 
     if (pass.length < 8) {
-      UI.showPopup("Password must be at least 8 characters long.", "Weak Password");
+      showAuthStatus("Password must be at least 8 characters long.");
+      UI.setLoading("reset-btn", false);
+      resettingPass = false;
       return;
     }
     if (pass !== confirmPass) {
-      UI.showPopup("Passwords do not match. Please re-enter them.", "Password Mismatch");
+      showAuthStatus("Passwords do not match. Please re-enter them.");
+      UI.setLoading("reset-btn", false);
+      resettingPass = false;
       return;
     }
 
@@ -498,14 +543,17 @@ function bindAuth() {
     const ok = await Auth.updatePassword(pass);
     UI.setLoading("reset-btn", false);
     if (ok) {
-      UI.showPopup("Your password has been updated successfully. You are now logged in.", "Password Updated");
-      window.location.reload();
+      showAuthStatus("Your password has been updated successfully. You are now logged in.", "success");
+      setTimeout(() => window.location.reload(), 1500);
+    } else {
+      resettingPass = false;
     }
   });
 
   $("btn-logout")?.addEventListener("click", Auth.logout);
   // Settings panel also has a logout button
   $("settings-logout-btn")?.addEventListener("click", Auth.logout);
+  $("header-logout-btn")?.addEventListener("click", Auth.logout);
 }
 
 /* =========================================================================
@@ -579,8 +627,10 @@ function bindSettings() {
   $("btn-edit-name")?.addEventListener("click", () => {
     const form = $("name-edit-form");
     if (form) form.classList.toggle("open");
-    // Focus the input when opening
-    if (form?.classList.contains("open")) $("settings-name-input")?.focus();
+    const isOpen = form?.classList.contains("open");
+    const btn = $("btn-edit-name");
+    if (btn) btn.textContent = isOpen ? "Cancel" : "Edit";
+    if (isOpen) $("settings-name-input")?.focus();
   });
 
   $("btn-save-name")?.addEventListener("click", async () => {
@@ -614,7 +664,10 @@ function bindSettings() {
   $("btn-change-email-toggle")?.addEventListener("click", () => {
     const form = $("email-edit-form");
     if (form) form.classList.toggle("open");
-    if (form?.classList.contains("open")) $("settings-new-email")?.focus();
+    const isOpen = form?.classList.contains("open");
+    const btn = $("btn-change-email-toggle");
+    if (btn) btn.textContent = isOpen ? "Cancel" : "Change";
+    if (isOpen) $("settings-new-email")?.focus();
   });
 
   $("btn-submit-email")?.addEventListener("click", async () => {
@@ -644,6 +697,46 @@ function bindSettings() {
     btn.disabled = false;
     btn.textContent = "Update";
   });
+
+  // ----- Browser Notifications (Settings tab) -----
+  const updateNotifUI = () => {
+    const desc = $("notif-permission-desc");
+    const btnRow = $("notif-permission-row");
+    const btn = $("btn-request-notif-perm");
+    if (!desc || !btn || !btnRow) return;
+
+    if (!("Notification" in window)) {
+      desc.textContent = "Your browser does not support notifications.";
+      btn.classList.add("hidden");
+      return;
+    }
+
+    if (Notification.permission === "granted") {
+      desc.textContent = "✓ Enabled";
+      desc.style.color = "var(--success)";
+      btn.classList.add("hidden");
+    } else if (Notification.permission === "denied") {
+      desc.textContent = "Denied. Please enable in your browser settings.";
+      desc.style.color = "var(--danger)";
+      btn.classList.add("hidden");
+    } else {
+      desc.textContent = "Checking permission status...";
+      desc.style.color = "var(--text-muted)";
+      btn.classList.remove("hidden");
+    }
+  };
+
+  updateNotifUI();
+
+  $("btn-request-notif-perm")?.addEventListener("click", () => {
+    if (!("Notification" in window)) return;
+    Notification.requestPermission().then(() => {
+      updateNotifUI();
+    });
+  });
+
+  $("notif-study-reminders")?.addEventListener("change", () => UI.saveSettings());
+  $("notif-timer-alerts")?.addEventListener("change", () => UI.saveSettings());
 
   // ----- Change Password (Security tab) -----
   // Bind the password strength meter for the settings page
@@ -784,7 +877,22 @@ function bindTimer() {
 
   $("btn-timer-start")?.addEventListener("click", () => Timer.start());
   $("btn-timer-pause")?.addEventListener("click", () => Timer.pause());
-  $("btn-timer-reset")?.addEventListener("click", () => Timer.reset());
+  $("btn-timer-reset")?.addEventListener("click", () => {
+    const isCountDown = !Timer._isCountUp();
+    const hasStarted = Timer.state.timeLeft < Timer.state.totalTime;
+    
+    if (isCountDown && hasStarted) {
+      UI.confirm("Are you sure you want to discard your current session progress?", {
+        title: "Reset Timer",
+        confirmText: "Reset",
+        danger: true
+      }).then(confirmed => {
+        if (confirmed) Timer.reset();
+      });
+    } else {
+      Timer.reset();
+    }
+  });
   $("btn-timer-extend")?.addEventListener("click", () => Timer.extend());
   $("btn-timer-break")?.addEventListener("click", () => Timer.takeBreak());
 
@@ -899,11 +1007,8 @@ async function loadTasks() {
 
   if (tasks.length === 0) {
     const emptyLi = document.createElement("li");
-    emptyLi.className = "todo-item";
-    emptyLi.style.justifyContent = "center";
-    emptyLi.style.opacity = "0.6";
-    emptyLi.style.cursor = "default";
-    emptyLi.textContent = "No tasks yet — add one above!";
+    emptyLi.className = "todo-item empty-state-sm flex-center";
+    emptyLi.textContent = "No tasks yet - add one above!";
     list.appendChild(emptyLi);
   }
 
@@ -1024,7 +1129,7 @@ async function loadTasks() {
       let undoClicked = false;
       const toast = document.createElement("div");
       toast.className = "toast glass-panel";
-      toast.innerHTML = `<span>Task deleted.</span> <button class="btn-primary btn-sm" style="margin-left:16px; padding:4px 12px; font-size:0.8rem;">Undo</button>`;
+      toast.innerHTML = `<span>Task deleted.</span> <button class="btn-primary btn-sm" style="margin-left:16px;">Undo</button>`;
       toast.style.position = "fixed";
       toast.style.bottom = "20px";
       toast.style.left = "50%";
@@ -1206,12 +1311,19 @@ function renderCalendar() {
       cell.appendChild(overflowBadge);
     }
 
-    const openNewExam = (e) => openExamModal(null, e.currentTarget.dataset.date);
-    cell.addEventListener("click", openNewExam);
+    const handleCellClick = (e) => {
+      const date = e.currentTarget.dataset.date;
+      if (examsForDate.length > 0) {
+        openDayDetailModal(date, examsForDate);
+      } else {
+        openExamModal(null, date);
+      }
+    };
+    cell.addEventListener("click", handleCellClick);
     cell.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        openNewExam(e);
+        handleCellClick(e);
       }
     });
 
@@ -1231,7 +1343,7 @@ function openExamModal(exam = null, dateStr = "") {
   modal?.classList.remove("hidden");
 
   if (exam) {
-    // Editing an existing exam — show status and the delete affordance.
+    // Editing an existing exam - show status and the delete affordance.
     $("modal-exam-title").textContent = "Edit exam";
     $("modal-exam-subtitle").textContent = "Update the details or remove it from your calendar.";
     $("btn-save-exam").textContent = "Save changes";
@@ -1240,6 +1352,7 @@ function openExamModal(exam = null, dateStr = "") {
     $("exam-date").value = exam.exam_date;
     setExamDifficulty(exam.difficulty);
     $("exam-status").value = exam.status;
+    $("exam-status-group")?.classList.remove("hidden");
     $("btn-delete-exam")?.classList.remove("hidden");
   } else {
     // Creating
@@ -1251,11 +1364,56 @@ function openExamModal(exam = null, dateStr = "") {
     $("modal-exam-id").value = "";
     $("exam-date").value = dateStr;
     $("exam-status").value = "Scheduled";
+    $("exam-status-group")?.classList.add("hidden");
     $("btn-delete-exam")?.classList.add("hidden");
   }
 
   // Auto-focus the name field
   requestAnimationFrame(() => $("exam-name")?.focus());
+}
+
+function openDayDetailModal(dateStr, exams) {
+  const modal = $("day-detail-modal");
+  if (!modal) return;
+  modal.classList.remove("hidden");
+  
+  const formattedDate = new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  $("modal-day-title").textContent = `Exams on ${formattedDate}`;
+  
+  const listEl = $("day-detail-list");
+  listEl.innerHTML = "";
+  
+  exams.forEach(exam => {
+    const item = document.createElement("div");
+    item.className = "flex-between";
+    item.style.padding = "var(--s-3)";
+    item.style.background = "var(--surface-active)";
+    item.style.borderRadius = "var(--r-md)";
+    item.style.cursor = "pointer";
+    item.innerHTML = `
+      <div class="flex-column" style="gap: 4px;">
+        <span style="font-weight: 500;">${UI.escapeHTML(exam.exam_name)}</span>
+        <span class="text-sm" style="color: var(--text-muted);">${exam.difficulty} • ${exam.status}</span>
+      </div>
+      <span class="icon-btn">✎</span>
+    `;
+    item.addEventListener("click", () => {
+      modal.classList.add("hidden");
+      openExamModal(exam, dateStr);
+    });
+    listEl.appendChild(item);
+  });
+  
+  const btnAdd = $("btn-add-exam-for-day");
+  if (btnAdd) {
+    // Replace element to clear old listeners
+    const newBtn = btnAdd.cloneNode(true);
+    btnAdd.parentNode.replaceChild(newBtn, btnAdd);
+    newBtn.addEventListener("click", () => {
+      modal.classList.add("hidden");
+      openExamModal(null, dateStr);
+    });
+  }
 }
 
 function bindCalendar() {
@@ -1277,10 +1435,15 @@ function bindCalendar() {
     $("exam-modal")?.classList.add("hidden");
   });
 
+  $("btn-close-day-detail")?.addEventListener("click", () => {
+    $("day-detail-modal")?.classList.add("hidden");
+  });
+
   // Close modal on Escape
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       $("exam-modal")?.classList.add("hidden");
+      $("day-detail-modal")?.classList.add("hidden");
       $("popup-overlay")?.classList.add("hidden");
     }
   });
@@ -1405,7 +1568,7 @@ function renderNextExam() {
   if (!next) {
     el.innerHTML = `
       <span class="dash-eyebrow">Next exam</span>
-      <p class="dash-empty">No exams scheduled. You're all clear — or add one to start planning.</p>
+      <p class="empty-state-sm">No exams scheduled. You're all clear — or add one to start planning.</p>
       <a href="#exams" class="dash-link">Open calendar →</a>`;
     return;
   }
@@ -1454,7 +1617,7 @@ function renderDashboardTasks(tasks) {
 
   if (pending.length === 0) {
     const li = document.createElement("li");
-    li.className = "dash-empty";
+    li.className = "empty-state-sm";
     li.textContent = tasks.length
       ? "All caught up — nothing pending. 🎉"
       : "No tasks yet. Add your first above.";
@@ -1557,7 +1720,7 @@ async function renderAnalytics() {
   if (sessions.length === 0) {
     card.innerHTML = `
       <span class="dash-eyebrow">Streak</span>
-      <p class="dash-empty">Start your first streak today — complete a focus session to begin.</p>
+      <p class="empty-state-sm">Start your first streak today — complete a focus session to begin.</p>
     `;
     return;
   }
@@ -1633,14 +1796,20 @@ async function renderAnalytics() {
    ========================================================================= */
 
 function notifyDueCardsOncePerDay(count) {
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (!UI.loadSettings().notifyStudyReminders) return;
+  if (!("Notification" in window)) return;
   const todayKey = new Date().toDateString();
   if (Storage.get("srs_notified_date") === todayKey) return;
-  new Notification("Learnora", {
-    body: `${count} flashcard${count > 1 ? "s" : ""} due for review today.`,
-    icon: "learnora.jpg",
-  });
-  Storage.set("srs_notified_date", todayKey);
+
+  if (Notification.permission === "granted") {
+    new Notification("Learnora", {
+      body: `${count} flashcard${count > 1 ? "s" : ""} due for review today.`,
+      icon: "learnora.jpg",
+    });
+    Storage.set("srs_notified_date", todayKey);
+  } else if (Notification.permission !== "denied") {
+    Notification.requestPermission();
+  }
 }
 
 async function renderDueCards() {

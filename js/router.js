@@ -49,10 +49,9 @@ export const Router = {
   navigate(route) {
     this.currentRoute = route;
     
-    // Update active state in sidebar
     document.querySelectorAll(".nav-link").forEach(link => {
       link.classList.remove("active");
-      if (link.getAttribute("href") === `#${route}`) {
+      if (link.getAttribute("href") === `#${route}` && route !== "ai") {
         link.classList.add("active");
         UI._activeTab = route;
         UI._updatePageTitle(link);
@@ -162,9 +161,9 @@ export const Router = {
     
     if (decks.length === 0) {
       container.innerHTML = `
-        <div class="glass-panel text-center" style="grid-column: 1 / -1; padding: 40px;">
+        <div class="glass-panel empty-state">
             <h3>No flashcards yet.</h3>
-            <p class="opacity-70 mt-8 mb-16">Generate flashcards from your study materials using Learnora AI.</p>
+            <p class="mt-8 mb-16">Generate flashcards from your study materials using Learnora AI.</p>
             <button class="btn-primary" data-hash="upload">📤 Upload a material →</button>
         </div>
       `;
@@ -196,9 +195,9 @@ export const Router = {
       
       if (folders.length === 0) {
         container.innerHTML = `
-          <div class="glass-panel text-center" style="grid-column: 1 / -1; padding: 40px;">
+          <div class="glass-panel empty-state">
               <h3>No folders yet.</h3>
-              <p class="opacity-70 mt-8 mb-16">
+              <p class="mt-8 mb-16">
                 1. Create a folder for a course or subject &nbsp;→&nbsp;
                 2. Upload a PDF, link, or notes into it &nbsp;→&nbsp;
                 3. Learnora AI builds notes, flashcards, and quizzes for you.
@@ -323,9 +322,9 @@ export const Router = {
       content.innerHTML = AI.renderMarkdown(rawMarkdown);
     } else {
       content.innerHTML = `
-        <div class="text-center">
-          <h3 class="opacity-70">No notes available for this material yet.</h3>
-          <p>The AI is likely still processing it. Refresh in a minute.</p>
+        <div class="empty-state">
+          <h3>No notes available for this material yet.</h3>
+          <p class="mt-8">The AI is likely still processing it. Refresh in a minute.</p>
         </div>
       `;
     }
@@ -371,7 +370,7 @@ export const Router = {
     cards = cards.filter(c => !c.next_review_date || new Date(c.next_review_date) <= now);
 
     if (cards.length === 0) {
-      front.innerHTML = `<h3>All caught up! 🎉</h3><p style="font-size: 1rem;" class="mt-16 opacity-70">No cards due for review in this deck right now.</p>`;
+      front.innerHTML = `<div class="empty-state"><h3>All caught up! 🎉</h3><p class="mt-16">No cards due for review in this deck right now.</p></div>`;
       return;
     }
 
@@ -379,7 +378,7 @@ export const Router = {
 
     const showCard = () => {
       if (currentIndex >= cards.length) {
-        front.innerHTML = `<h3>Review Complete! 🧠</h3><p style="font-size: 1rem;" class="mt-16 opacity-70">Great job.</p>`;
+        front.innerHTML = `<div class="empty-state"><h3>Review Complete! 🧠</h3><p class="mt-16">Great job.</p></div>`;
         back.classList.add("hidden");
         controls.classList.add("hidden");
         hint.classList.add("hidden");
@@ -456,9 +455,9 @@ export const Router = {
 
     if (quizzes.length === 0) {
       container.innerHTML = `
-        <div class="glass-panel text-center" style="grid-column: 1 / -1; padding: 40px;">
+        <div class="glass-panel empty-state">
             <h3>No quizzes yet.</h3>
-            <p class="opacity-70 mt-8 mb-16">Click "+ Generate Quiz" above to test yourself on any topic — or open a folder to quiz yourself on a specific material.</p>
+            <p class="mt-8 mb-16">Click "+ Generate Quiz" above to test yourself on any topic — or open a folder to quiz yourself on a specific material.</p>
         </div>
       `;
     } else {
@@ -515,7 +514,7 @@ export const Router = {
         Quizzes.recordAttempt(quiz.id, score, total, answers, weakTopics);
 
         container.innerHTML = `
-          <button class="btn-secondary mb-24" data-action="history-back">← Exit</button>
+          <button class="btn-secondary mb-24" data-hash="quizzes">← Exit</button>
           <h2>Quiz Complete! 🎉</h2>
           <p class="mt-8" style="font-size: 1.5rem;">${score} / ${total} correct</p>
           ${weakTopics.length ? `<p class="opacity-70 mt-16">Topics to review: ${weakTopics.map(esc).join(", ")}</p>` : ""}
@@ -527,7 +526,7 @@ export const Router = {
 
       const q = questions[currentIndex];
       container.innerHTML = `
-        <button class="btn-secondary mb-24" data-action="history-back">← Exit</button>
+        <button class="btn-secondary mb-24" data-hash="quizzes">← Exit</button>
         <p class="opacity-70">Question ${currentIndex + 1} of ${questions.length}</p>
         <h3 class="mt-8 mb-16">${esc(q.question)}</h3>
         <div id="quiz-choices" class="flex-col flex-gap"></div>

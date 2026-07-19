@@ -56,6 +56,8 @@ const DEFAULT_SETTINGS = Object.freeze({
   aiConciseness: "medium",
   uiLanguage: "en",
   aiLanguage: "English",
+  notifyStudyReminders: true,
+  notifyTimerAlerts: true,
 });
 
 /* =========================================================================
@@ -272,6 +274,8 @@ export const UI = {
       aiConciseness: $("config-length")?.value || "medium",
       uiLanguage: $("config-ui-lang")?.value || "en",
       aiLanguage: $("config-ai-lang")?.value || "English",
+      notifyStudyReminders: $("notif-study-reminders")?.checked ?? true,
+      notifyTimerAlerts: $("notif-timer-alerts")?.checked ?? true,
     };
     Storage.set(SETTINGS_KEY, settings);
     this.applyTranslations();
@@ -290,6 +294,9 @@ export const UI = {
       const el = $(id);
       if (el) el.value = value;
     }
+    
+    if ($("notif-study-reminders")) $("notif-study-reminders").checked = s.notifyStudyReminders;
+    if ($("notif-timer-alerts")) $("notif-timer-alerts").checked = s.notifyTimerAlerts;
   },
 
   /* ------ Translations ------ */
