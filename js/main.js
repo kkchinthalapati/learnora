@@ -1,4 +1,4 @@
-import { UI, $, $$, esc, Storage, ModalManager } from "./ui.js";
+import { UI, $, $$, esc, Storage, ModalManager, localDateStr, mondayOfWeek } from "./ui.js";
 import { Auth, Tasks, Exams, DataAdmin, Folders, Materials, Sessions, Flashcards, Quizzes } from "./api.js";
 import { Timer } from "./timer.js";
 import { AI } from "./ai.js";
@@ -24,6 +24,20 @@ function getGreeting(name) {
 
 function formatDateStr(y, m, d) {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+// Pending tasks with the soonest/overdue due date first, undated pending
+// tasks after (in their original order), completed tasks last.
+function sortTasksByUrgency(tasks) {
+  const pending = tasks.filter((t) => !t.is_done);
+  const done = tasks.filter((t) => t.is_done);
+  pending.sort((a, b) => {
+    if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
+    if (a.due_date) return -1;
+    if (b.due_date) return 1;
+    return 0;
+  });
+  return [...pending, ...done];
 }
 
 const MONTH_NAMES = [
@@ -1001,7 +1015,7 @@ async function loadTasks() {
 
   if (select) select.innerHTML = '<option value="None">None</option>';
 
-  tasks.forEach((t) => {
+  sortTasksByUrgency(tasks).forEach((t) => {
     const li = document.createElement("li");
     li.className = `todo-item${t.is_done ? " done" : ""}`;
     li.setAttribute("role", "checkbox");
@@ -1019,6 +1033,82 @@ async function loadTasks() {
     delBtn.setAttribute("tabindex", "0");
 
     li.appendChild(span);
+
+    let dueBadge = null;
+    if (!t.is_done) {
+      dueBadge = document.createElement("span");
+      dueBadge.className = "todo-due";
+      dueBadge.setAttribute("tabindex", "0");
+      dueBadge.setAttribute("role", "button");
+      dueBadge.setAttribute("aria-label", t.due_date ? `Due date: ${t.due_date}. Click to change.` : "Set a due date");
+
+      const renderDueBadge = () => {
+        const today = formatDateStr(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+        dueBadge.classList.remove("overdue", "due-today", "unset");
+        if (t.due_date) {
+          dueBadge.textContent = `📅 ${t.due_date}`;
+          if (t.due_date < today) dueBadge.classList.add("overdue");
+          else if (t.due_date === today) dueBadge.classList.add("due-today");
+        } else {
+          dueBadge.textContent = "+ due date";
+          dueBadge.classList.add("unset");
+        }
+      };
+      renderDueBadge();
+
+      const editDueDate = (e) => {
+        e.stopPropagation();
+        const dateInput = document.createElement("input");
+        dateInput.type = "date";
+        dateInput.className = "todo-due-edit-input";
+        dateInput.value = t.due_date || "";
+
+        let hasSaved = false;
+        const saveDue = async () => {
+          if (hasSaved) return;
+          hasSaved = true;
+          const newDate = dateInput.value || null;
+          if (newDate !== t.due_date) {
+            const ok = await Tasks.updateDueDate(t.id, newDate);
+            if (ok) {
+              t.due_date = newDate;
+            } else {
+              UI.showPopup("Failed to update due date.", "Error");
+            }
+          }
+          dateInput.replaceWith(dueBadge);
+          renderDueBadge();
+          loadTasks();
+        };
+
+        dateInput.addEventListener("change", saveDue);
+        dateInput.addEventListener("blur", saveDue);
+        dateInput.addEventListener("keydown", (ev) => {
+          if (ev.key === "Escape") {
+            hasSaved = true;
+            dateInput.replaceWith(dueBadge);
+          }
+        });
+
+        dueBadge.replaceWith(dateInput);
+        dateInput.focus();
+        if (typeof dateInput.showPicker === "function") {
+          try { dateInput.showPicker(); } catch { /* not supported/allowed — input stays focused */ }
+        }
+      };
+
+      dueBadge.addEventListener("click", editDueDate);
+      dueBadge.addEventListener("keydown", (e) => {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          e.stopPropagation();
+          editDueDate(e);
+        }
+      });
+
+      li.appendChild(dueBadge);
+    }
+
     li.appendChild(delBtn);
 
     // Toggle done (Optimistic update)
@@ -1181,6 +1271,7 @@ async function loadTasks() {
 function bindTasks() {
   $("btn-add-todo")?.addEventListener("click", async () => {
     const input = $("todo-input");
+    const dueInput = $("todo-due-date");
     const text = input?.value.trim();
     if (!text) {
       if (input) {
@@ -1190,8 +1281,10 @@ function bindTasks() {
       }
       return;
     }
+    const dueDate = dueInput?.value || null;
     input.value = "";
-    await Tasks.add(text);
+    if (dueInput) dueInput.value = "";
+    await Tasks.add(text, dueDate);
     loadTasks();
   });
 
@@ -1279,9 +1372,12 @@ function renderCalendar() {
     const examsForDate = cachedExams.filter((e) => e.exam_date === dateStr);
     const maxExamsToShow = 2;
 
+    const isPastDate = dateStr < todayStr;
+
     examsForDate.slice(0, maxExamsToShow).forEach((exam) => {
       const bar = document.createElement("div");
-      bar.className = `exam-bar diff-${(exam.difficulty || "Medium").toLowerCase()} status-${(exam.status || "Scheduled").toLowerCase()}`;
+      const status = (exam.status || "Scheduled").toLowerCase();
+      bar.className = `exam-bar diff-${(exam.difficulty || "Medium").toLowerCase()} status-${status}${isPastDate && status !== "completed" ? " is-past" : ""}`;
       bar.textContent = exam.exam_name;
       bar.addEventListener("click", (evt) => {
         evt.stopPropagation();
@@ -1331,7 +1427,7 @@ function openExamModal(exam = null, dateStr = "") {
   const dateInput = $("exam-date");
   const maxDate = new Date();
   maxDate.setFullYear(maxDate.getFullYear() + 5);
-  if (dateInput) dateInput.max = maxDate.toISOString().slice(0, 10);
+  if (dateInput) dateInput.max = localDateStr(maxDate);
 
   if (exam) {
     // Editing an existing exam - show status and the delete affordance.
@@ -1350,7 +1446,7 @@ function openExamModal(exam = null, dateStr = "") {
     $("btn-delete-exam")?.classList.remove("hidden");
   } else {
     // Creating
-    if (dateInput) dateInput.min = new Date().toISOString().slice(0, 10);
+    if (dateInput) dateInput.min = localDateStr();
     $("modal-exam-title").textContent = "New exam";
     $("modal-exam-subtitle").textContent = "Add it to your calendar and we'll count down to the day.";
     $("btn-save-exam").textContent = "Add exam";
@@ -1610,7 +1706,7 @@ function renderDashboardTasks(tasks) {
   const list = $("dash-today-tasks");
   if (!list) return;
 
-  const pending = tasks.filter((t) => !t.is_done).slice(0, 6);
+  const pending = sortTasksByUrgency(tasks.filter((t) => !t.is_done)).slice(0, 6);
   list.innerHTML = "";
 
   if (pending.length === 0) {
@@ -1917,19 +2013,16 @@ function bindAI() {
     // Prevent the #ai hash from routing (there is no view-ai section,
     // which would hide the current view and fall back to the dashboard)
     e.preventDefault();
-    $("turbo-chat")?.classList.remove("hidden");
+    ModalManager.open("turbo-chat");
   });
 
   $("turbo-toggle")?.addEventListener("click", () => {
-    $("turbo-chat")?.classList.remove("hidden");
+    ModalManager.open("turbo-chat");
   });
 
   $("btn-ai-close")?.addEventListener("click", () => {
-    const modal = $("turbo-chat");
-    if (modal) {
-      modal.classList.add("hidden");
-      modal.classList.remove("fullscreen");
-    }
+    $("turbo-chat")?.classList.remove("fullscreen");
+    ModalManager.close("turbo-chat");
     // Bug 1 cleanup: ensure no orphaned teal ghosts
     document.querySelectorAll('.streaming-pulse, .ripple, .ai-widget, .avatar-circle').forEach(el => {
        if (el.parentNode === document.body) el.remove();
@@ -1970,7 +2063,7 @@ function bindAI() {
     btn.addEventListener("click", () => {
       const input = $("chat-input");
       if (!input) return;
-      $("turbo-chat")?.classList.remove("hidden");
+      ModalManager.open("turbo-chat");
       input.value = btn.dataset.chatPrompt;
       if (btn.dataset.chatSend) {
         $("btn-send-chat")?.click();
@@ -1984,11 +2077,7 @@ function bindAI() {
   $("dash-plan-week-btn")?.addEventListener("click", async () => {
     const btn = $("dash-plan-week-btn");
     const { Plans } = await import("./api.js");
-    const now = new Date();
-    const day = now.getDay();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - ((day + 6) % 7));
-    const weekStartISO = monday.toISOString().slice(0, 10);
+    const weekStartISO = localDateStr(mondayOfWeek());
     const existing = await Plans.fetchForWeek(weekStartISO);
     if (existing) {
       const ok = await UI.confirm(
@@ -2056,6 +2145,17 @@ function bindAI() {
   // "Regenerate" on the #plan view — upsert just overwrites this week's plan.
   $("btn-regenerate-plan")?.addEventListener("click", async () => {
     const btn = $("btn-regenerate-plan");
+    const { Plans } = await import("./api.js");
+    const weekStartISO = localDateStr(mondayOfWeek());
+    const existing = await Plans.fetchForWeek(weekStartISO);
+    if (existing) {
+      const ok = await UI.confirm(
+        "This will replace your current weekly plan. Continue?",
+        { title: "Regenerate Weekly Plan", confirmText: "Regenerate", danger: true },
+      );
+      if (!ok) return;
+    }
+
     const original = btn.textContent;
     btn.textContent = "⏳ Generating...";
     btn.disabled = true;

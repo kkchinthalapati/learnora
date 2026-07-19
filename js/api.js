@@ -637,12 +637,12 @@ export const Tasks = {
     return data || [];
   },
 
-  async add(text) {
+  async add(text, dueDate = null) {
     const user = await getCurrentUser();
     if (!user) return false;
     const { error } = await supabase
       .from("tasks")
-      .insert([{ text, is_done: false, user_id: user.id }]);
+      .insert([{ text, is_done: false, user_id: user.id, due_date: dueDate || null }]);
     if (error) {
       UI.showPopup(error.message, "Error Adding Task");
       return false;
@@ -678,6 +678,18 @@ export const Tasks = {
       .eq("id", id);
     if (error) {
       console.error("[Tasks.updateText]", error.message);
+      return false;
+    }
+    return true;
+  },
+
+  async updateDueDate(id, dueDate) {
+    const { error } = await supabase
+      .from("tasks")
+      .update({ due_date: dueDate || null })
+      .eq("id", id);
+    if (error) {
+      console.error("[Tasks.updateDueDate]", error.message);
       return false;
     }
     return true;

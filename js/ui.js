@@ -22,6 +22,22 @@ function esc(str) {
 }
 
 /* =========================================================================
+   DATES — Local-timezone-safe date helpers. Never use .toISOString() to
+   derive a calendar date: it converts to UTC and silently returns the
+   wrong day for positive-offset timezones near local midnight.
+   ========================================================================= */
+
+function localDateStr(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function mondayOfWeek(d = new Date()) {
+  const monday = new Date(d);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return monday;
+}
+
+/* =========================================================================
    STORAGE — Safe localStorage wrapper
    ========================================================================= */
 
@@ -447,4 +463,4 @@ export const UI = {
    PUBLIC UTILITIES — Shared across modules
    ========================================================================= */
 
-export { $, $$, esc, Storage };
+export { $, $$, esc, Storage, localDateStr, mondayOfWeek };

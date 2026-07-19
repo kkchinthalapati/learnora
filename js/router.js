@@ -1,9 +1,19 @@
-import { UI, $, esc } from "./ui.js";
+import { UI, $, esc, localDateStr, mondayOfWeek } from "./ui.js";
 import { Folders, Materials, Decks, Notes, Flashcards, Quizzes } from "./api.js";
 
 /** Only allow safe hex colors into inline style attributes */
 function safeColor(color, fallback = "#4A90E2") {
   return /^#[0-9a-fA-F]{3,8}$/.test(String(color || "")) ? color : fallback;
+}
+
+function formatRelativeTime(isoString) {
+  const diffMs = Date.now() - new Date(isoString).getTime();
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.round(hrs / 24)}d ago`;
 }
 
 /* =========================================================================
@@ -545,10 +555,12 @@ export const Router = {
     let currentIndex = 0;
     const answers = [];
 
-    const showHost = (message) => {
+    const showHost = (message, tone = null) => {
       if (hostBubble && hostText) {
         hostText.innerHTML = message;
         hostBubble.classList.remove("hidden");
+        hostBubble.classList.remove("tone-correct", "tone-incorrect");
+        if (tone) hostBubble.classList.add(`tone-${tone}`);
         hostBubble.classList.add("pop-in");
         setTimeout(() => hostBubble.classList.remove("pop-in"), 300);
       }
@@ -623,7 +635,7 @@ export const Router = {
 
           // Show feedback from Host
           const defaultFeedback = correct ? "Correct!" : "Incorrect.";
-          showHost(esc(q.feedback || defaultFeedback));
+          showHost(esc(q.feedback || defaultFeedback), correct ? "correct" : "incorrect");
 
           // Reveal Next button
           nextContainer.classList.remove("hidden");
@@ -641,45 +653,83 @@ export const Router = {
   },
 
   async loadPlanView() {
-    UI.setGlobalLoading(true);
     const { Plans } = await import("./api.js");
-    const now = new Date();
-    const day = now.getDay();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - ((day + 6) % 7));
-    const weekStartISO = monday.toISOString().slice(0, 10);
-
-    const plan = await Plans.fetchForWeek(weekStartISO);
-    UI.setGlobalLoading(false);
+    const monday = mondayOfWeek();
+    const weekStartISO = localDateStr(monday);
+    const todayStr = localDateStr();
 
     const summaryEl = $("plan-summary");
     const daysEl = $("plan-days");
+    const rangeEl = $("plan-week-range");
+    const regenBtn = $("btn-regenerate-plan");
     if (!summaryEl || !daysEl) return;
 
+    const fmtShort = (d) => d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    if (rangeEl) rangeEl.textContent = `${fmtShort(monday)} – ${fmtShort(sunday)}`;
+
+    // Scoped skeleton in the panel itself — this is a small page-local
+    // fetch, it shouldn't block the whole app behind the global splash.
+    summaryEl.innerHTML = "";
+    daysEl.innerHTML = Array.from({ length: 5 }, () => `
+      <div class="plan-day-card is-skeleton" aria-hidden="true">
+        <div class="plan-day-header"></div>
+        <div class="plan-block"></div>
+        <div class="plan-block"></div>
+      </div>
+    `).join("");
+
+    const plan = await Plans.fetchForWeek(weekStartISO);
+
+    if (regenBtn) regenBtn.textContent = plan ? "🔄 Regenerate" : "✨ Generate Plan";
+
     if (!plan) {
-      summaryEl.innerHTML = `<p class="opacity-70">No plan generated yet for this week. Click "Regenerate" to have Learnora AI build one from your exams and tasks.</p>`;
-      daysEl.innerHTML = "";
+      summaryEl.innerHTML = "";
+      daysEl.innerHTML = `
+        <div class="plan-empty-state glass-panel">
+          <div class="plan-empty-icon">🗓️</div>
+          <h3>No plan yet for this week</h3>
+          <p class="opacity-70">Learnora AI can build one from your open tasks and upcoming exams.</p>
+        </div>
+      `;
       return;
     }
 
     const planJson = plan.plan_json || {};
-    summaryEl.innerHTML = `<p>${esc(planJson.summary || "")}</p>`;
+    const lastGenerated = plan.created_at ? formatRelativeTime(plan.created_at) : "";
+    summaryEl.innerHTML = `
+      <p>${esc(planJson.summary || "")}</p>
+      ${lastGenerated ? `<p class="opacity-60 mt-8 text-sm">Last generated ${esc(lastGenerated)}</p>` : ""}
+    `;
+
+    const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const days = planJson.days || [];
-    daysEl.innerHTML = days.map(d => `
-      <div class="glass-panel">
-        <h4>${esc(d.date)}</h4>
-        <div class="flex-col flex-gap mt-8">
-          ${(d.blocks || []).map(b => `
-            <div class="todo-item">
-              <div class="flex-between">
-                <span class="todo-text">${esc(b.subject)} — ${esc(String(b.durationMins))}m (${esc(b.startHint || "")})</span>
-                <button class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" data-action="start-plan-block" data-plan-subject="${esc(b.subject)}" data-plan-duration="${esc(String(b.durationMins || 25))}">Start →</button>
+    daysEl.innerHTML = days.map(d => {
+      const isToday = d.date === todayStr;
+      const isPast = d.date < todayStr;
+      // Parse as local midnight (not bare `new Date(str)`, which parses
+      // YYYY-MM-DD as UTC and can display the wrong weekday/date locally).
+      const dateObj = d.date ? new Date(`${d.date}T00:00:00`) : null;
+      const dayLabel = dateObj ? `${WEEKDAY_NAMES[dateObj.getDay()]}, ${fmtShort(dateObj)}` : esc(d.date || "");
+      const blocks = d.blocks || [];
+      return `
+        <div class="plan-day-card${isToday ? " is-today" : ""}${isPast ? " is-past" : ""}">
+          <div class="plan-day-header">${esc(dayLabel)}</div>
+          <div class="plan-day-blocks">
+            ${blocks.length ? blocks.map(b => `
+              <div class="plan-block">
+                <div class="flex-between">
+                  <span class="plan-block-subject">${esc(b.subject)}</span>
+                  <button class="btn-secondary plan-block-start" data-action="start-plan-block" data-plan-subject="${esc(b.subject)}" data-plan-duration="${esc(String(b.durationMins || 25))}">Start →</button>
+                </div>
+                <div class="plan-block-meta">${esc(String(b.durationMins))}m${b.startHint ? ` · ${esc(b.startHint)}` : ""}</div>
+                ${b.reason ? `<p class="plan-block-reason">${esc(b.reason)}</p>` : ""}
               </div>
-              ${b.reason ? `<p class="opacity-70 mt-4 text-sm">${esc(b.reason)}</p>` : ""}
-            </div>
-          `).join("")}
+            `).join("") : `<p class="plan-day-empty opacity-60">Free day — nothing scheduled</p>`}
+          </div>
         </div>
-      </div>
-    `).join("");
+      `;
+    }).join("");
   }
 };
