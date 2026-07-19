@@ -329,6 +329,12 @@ header {
     gap: var(--s-4);
     min-width: 0;
 }
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    flex-shrink: 0;
+}
 #page-title {
     font-size: clamp(22px, 3vw, 30px);
 }
@@ -987,6 +993,25 @@ label {
     opacity: 0.5;
     pointer-events: none;
 }
+.folder-card-actions {
+    position: absolute;
+    top: var(--s-2);
+    right: var(--s-2);
+    display: flex;
+    gap: var(--s-1);
+    opacity: 0;
+    transition: opacity var(--t-fast) var(--ease);
+    z-index: 1;
+}
+.stat-card:hover .folder-card-actions,
+.folder-card-actions:focus-within {
+    opacity: 1;
+}
+.folder-card-actions .icon-btn {
+    width: 32px;
+    height: 32px;
+    background: var(--surface-2);
+}
 .stat-title {
     position: relative;
     font-size: var(--fs-sm);
@@ -1490,6 +1515,14 @@ label {
 }
 .exam-bar:hover {
     transform: translateY(-1px);
+}
+.day-detail-exam-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    display: block;
 }
 .exam-bar.diff-easy {
     background: linear-gradient(135deg, var(--success), #2aad80);
@@ -2803,11 +2836,42 @@ label {
 }
 .fade-in { animation: fade-in 0.3s ease-out; }
 
-/* 
- * NOTE: The following classes are intentionally style-free JS hooks or semantic markers, 
+/* AI-generated markdown content (notes reader) can contain long unbroken
+   tokens/URLs and wide code blocks — contain it inside its panel. */
+.markdown-body {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    overflow-x: auto;
+}
+
+/* Background-generation status toasts (upload flow) */
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    z-index: 9999;
+}
+.toast {
+    padding: 12px 16px;
+    border-radius: var(--r-md);
+    background: var(--surface-active);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+}
+.toast-error {
+    background: var(--danger-soft);
+    border: 1px solid var(--danger);
+}
+
+/*
+ * NOTE: The following classes are intentionally style-free JS hooks or semantic markers,
  * and do not need CSS rules:
- * .header-drag-handle, .markdown-body, .splash-content, .splash-logo, .splash-screen,
- * .todo-text, .view-section, .dropzone, .chat-suggestions, .btn-preset, 
+ * .header-drag-handle, .splash-content, .splash-logo, .splash-screen,
+ * .todo-text, .view-section, .dropzone, .chat-suggestions, .btn-preset,
  * .dash-ai, .dash-streak, .dash-tasks
  */
 
@@ -3093,7 +3157,7 @@ body.dark-theme .stat-card::before {
     }
     .header-right {
         width: 100%;
-        justify-content: space-between;
+        justify-content: flex-end;
     }
 
     .timer-controls {

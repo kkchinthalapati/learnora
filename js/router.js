@@ -19,12 +19,24 @@ export const Router = {
     // Delegated clicks for dynamically generated content.
     // No inline onclick attributes — required for a strict CSP.
     document.addEventListener("click", (e) => {
+      // Folder card quick-actions are nested inside a [data-hash] card, so
+      // they must be checked (and stop here) before the data-hash handler
+      // below, or clicking rename/delete would also navigate into the folder.
+      const actionEl = e.target.closest("[data-action]");
+      if (actionEl?.dataset.action === "rename-folder") {
+        this.renameFolder(actionEl.dataset.folderId, actionEl.dataset.folderName);
+        return;
+      }
+      if (actionEl?.dataset.action === "delete-folder") {
+        this.deleteFolder(actionEl.dataset.folderId, actionEl.dataset.folderName);
+        return;
+      }
+
       const navEl = e.target.closest("[data-hash]");
       if (navEl) {
         window.location.hash = navEl.dataset.hash;
         return;
       }
-      const actionEl = e.target.closest("[data-action]");
       if (!actionEl) return;
       if (actionEl.dataset.action === "new-folder") this.createNewFolder();
       else if (actionEl.dataset.action === "history-back") window.history.back();
@@ -185,14 +197,24 @@ export const Router = {
       UI.setGlobalLoading(true);
     }
     const folders = await Folders.fetch();
+
+    let materialCounts = {};
+    if (route === "folders" && folders.length > 0) {
+      const allMaterials = await Materials.fetch();
+      materialCounts = allMaterials.reduce((acc, m) => {
+        acc[m.folder_id] = (acc[m.folder_id] || 0) + 1;
+        return acc;
+      }, {});
+    }
+
     if (route !== "upload") {
       UI.setGlobalLoading(false);
     }
-    
+
     if (route === "folders") {
       const container = $("folders-container");
       if (!container) return;
-      
+
       if (folders.length === 0) {
         container.innerHTML = `
           <div class="glass-panel empty-state">
@@ -206,12 +228,22 @@ export const Router = {
           </div>
         `;
       } else {
-        container.innerHTML = folders.map(f => `
-          <div class="glass-panel stat-card cursor-pointer hover-lift" style="border-top: 4px solid ${safeColor(f.color)};" data-hash="folder-${encodeURIComponent(f.id)}">
+        container.innerHTML = folders.map(f => {
+          const count = materialCounts[f.id] || 0;
+          const created = f.created_at
+            ? new Date(f.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+            : "";
+          return `
+          <div class="glass-panel stat-card cursor-pointer hover-lift" style="border-top: 4px solid ${safeColor(f.color)}; position: relative;" data-hash="folder-${encodeURIComponent(f.id)}">
+            <div class="folder-card-actions">
+              <button type="button" class="icon-btn" data-action="rename-folder" data-folder-id="${f.id}" data-folder-name="${esc(f.name)}" aria-label="Rename folder" title="Rename folder">✎</button>
+              <button type="button" class="icon-btn" data-action="delete-folder" data-folder-id="${f.id}" data-folder-name="${esc(f.name)}" aria-label="Delete folder" title="Delete folder">🗑</button>
+            </div>
             <h3>📁 ${esc(f.name)}</h3>
-            <p class="opacity-70 mt-8">View contents →</p>
+            <p class="opacity-70 mt-8">${count} material${count === 1 ? "" : "s"}${created ? ` • Created ${created}` : ""}</p>
           </div>
-        `).join("") + `
+        `;
+        }).join("") + `
           <div class="glass-panel text-center cursor-pointer flex-center" style="border: 2px dashed rgba(255,255,255,0.2);" data-action="new-folder">
             <h3>+ New Folder</h3>
           </div>
@@ -344,6 +376,27 @@ export const Router = {
     if (newFolder) {
       this.loadFolders("folders");
     }
+  },
+
+  async renameFolder(id, currentName) {
+    const name = await UI.promptText("Give this folder a new name.", {
+      title: "Rename folder",
+      defaultValue: currentName,
+      confirmText: "Save",
+    });
+    if (!name || name === currentName) return;
+    const ok = await Folders.rename(id, name);
+    if (ok) this.loadFolders("folders");
+  },
+
+  async deleteFolder(id, name) {
+    const ok = await UI.confirm(
+      `This deletes the "${name}" folder itself. Its materials, flashcards, and quizzes are not deleted — they're detached from the folder and won't be reachable from Courses anymore.`,
+      { title: "Delete folder?", confirmText: "Delete", danger: true },
+    );
+    if (!ok) return;
+    const deleted = await Folders.delete(id);
+    if (deleted) this.loadFolders("folders");
   },
 
   async startReview(deckId) {
