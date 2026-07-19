@@ -391,7 +391,7 @@ export const Router = {
 
   async deleteFolder(id, name) {
     const ok = await UI.confirm(
-      `This deletes the "${name}" folder itself. Its materials, flashcards, and quizzes are not deleted — they're detached from the folder and won't be reachable from Courses anymore.`,
+      `"${name}" and everything inside it — materials, notes, flashcards, and quizzes — will be permanently deleted. Your logged study time for this folder is kept.`,
       { title: "Delete folder?", confirmText: "Delete", danger: true },
     );
     if (!ok) return;
