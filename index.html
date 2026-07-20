@@ -811,6 +811,12 @@
                             data-i18n="placeholder_task"
                             aria-label="New Task Input"
                         />
+                        <input
+                            type="date"
+                            id="todo-due-date"
+                            class="todo-due-input"
+                            aria-label="Due date (optional)"
+                        />
                         <button
                             id="btn-add-todo"
                             class="btn-primary"
@@ -913,16 +919,14 @@
                     <div class="glass-panel summary-card flex-between">
                         <div>
                             <h2 data-i18n="header_plan">This week's plan</h2>
-                            <p data-i18n="desc_plan" class="opacity-70 mt-8">
-                                AI-generated from your exams and open tasks.
-                            </p>
+                            <p id="plan-week-range" class="opacity-70 mt-8"></p>
                         </div>
                         <button id="btn-regenerate-plan" class="btn-secondary">
-                            🔄 Regenerate
+                            ✨ Generate Plan
                         </button>
                     </div>
                     <div id="plan-summary" class="glass-panel mt-16"></div>
-                    <div id="plan-days" class="plan-days-grid mt-24"></div>
+                    <div id="plan-days" class="plan-week-grid mt-24"></div>
                 </section>
 
                 <!-- VIEW: Settings -->
@@ -1625,7 +1629,10 @@
             class="btn-primary ai-trigger-btn"
             aria-label="Open AI Chat"
         >
-            AI
+            <svg class="ai-trigger-icon" viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true">
+                <path d="M12 2l1.8 5.6L19.4 9.4 13.8 11.2 12 17l-1.8-5.8L4.6 9.4l5.6-1.8L12 2z" fill="currentColor"/>
+                <path d="M19 15l0.8 2.4L22 18l-2.2 0.8L19 21l-0.8-2.2L16 18l2.2-0.6L19 15z" fill="currentColor" opacity="0.75"/>
+            </svg>
         </button>
 
         <!-- Persistent mini-timer — visible on every view while a timer runs -->

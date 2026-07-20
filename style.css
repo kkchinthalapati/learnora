@@ -978,6 +978,47 @@ label {
     color: #fff;
 }
 
+.todo-due {
+    flex-shrink: 0;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background var(--t-fast) ease, color var(--t-fast) ease;
+}
+.todo-due:hover {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+.todo-due.unset {
+    opacity: 0;
+    transition: opacity var(--t-fast) ease, background var(--t-fast) ease, color var(--t-fast) ease;
+}
+.todo-item:hover .todo-due.unset,
+.todo-due.unset:focus {
+    opacity: 0.6;
+}
+.todo-due.due-today {
+    background: var(--warning-soft);
+    color: var(--warning);
+}
+.todo-due.overdue {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+.todo-due-input,
+.todo-due-edit-input {
+    font: inherit;
+    padding: 6px 10px;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--glass-border);
+    background: var(--surface);
+    color: var(--text);
+}
+
 /* Stat & summary cards */
 .stat-card {
     text-align: center;
@@ -1357,10 +1398,123 @@ label {
 }
 
 /* --- Weekly plan view --- */
-.plan-days-grid {
+.plan-week-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: var(--s-4);
+    grid-template-columns: repeat(7, minmax(180px, 1fr));
+    gap: var(--s-3);
+    overflow-x: auto;
+    padding-bottom: var(--s-2);
+}
+@media (max-width: 900px) {
+    .plan-week-grid {
+        grid-auto-flow: column;
+        grid-template-columns: none;
+        grid-auto-columns: minmax(200px, 1fr);
+    }
+}
+
+.plan-day-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+    padding: var(--s-4);
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--glass-inner), var(--shadow-sm);
+    transition: opacity var(--t-fast) ease, box-shadow var(--t-fast) ease;
+}
+.plan-day-card.is-today {
+    border-color: var(--accent);
+    box-shadow: var(--glass-inner), 0 0 0 1px var(--accent-ring), 0 0 16px var(--accent-glow);
+}
+.plan-day-card.is-past {
+    opacity: 0.55;
+}
+
+.plan-day-header {
+    font-size: var(--fs-sm);
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.plan-day-card.is-today .plan-day-header {
+    color: var(--accent);
+}
+
+.plan-day-blocks {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+}
+.plan-day-empty {
+    font-size: var(--fs-sm);
+    padding: var(--s-2) 0;
+}
+
+.plan-block {
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border-radius: var(--r-sm);
+    border: 1px solid var(--glass-border-subtle);
+}
+.plan-block-subject {
+    font-weight: 600;
+    font-size: var(--fs-sm);
+}
+.plan-block-meta {
+    font-size: var(--fs-xs);
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+.plan-block-reason {
+    font-size: var(--fs-xs);
+    color: var(--text-muted);
+    margin-top: var(--s-2);
+}
+.plan-block-start {
+    padding: 4px 10px;
+    font-size: var(--fs-xs);
+    flex-shrink: 0;
+}
+
+.plan-day-card.is-skeleton {
+    min-height: 140px;
+    animation: plan-skeleton-pulse 1.4s ease-in-out infinite;
+}
+.plan-day-card.is-skeleton .plan-day-header,
+.plan-day-card.is-skeleton .plan-block {
+    background: var(--surface-2);
+    border-radius: var(--r-sm);
+    min-height: 16px;
+}
+.plan-day-card.is-skeleton .plan-day-header {
+    width: 60%;
+    min-height: 14px;
+}
+.plan-day-card.is-skeleton .plan-block {
+    min-height: 44px;
+    border: none;
+}
+@keyframes plan-skeleton-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+.plan-empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: clamp(32px, 5vw, 48px) 24px;
+}
+.plan-empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: var(--s-3);
+}
+.plan-empty-state h3 {
+    margin-bottom: var(--s-2);
 }
 
 /* Flashcards (3D glass flip) */
@@ -1539,6 +1693,10 @@ label {
     text-decoration: line-through;
     border: 1px solid var(--glass-border-subtle);
     box-shadow: none;
+}
+.exam-bar.is-past {
+    opacity: 0.55;
+    filter: saturate(0.5);
 }
 
 /* --- 5.8 Header controls & pills --- */
@@ -2446,6 +2604,10 @@ label {
     transform: translateY(-2px) scale(1.06);
     box-shadow: 0 8px 28px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
+.ai-trigger-icon {
+    color: var(--accent-on);
+    animation: ring-glow 3s ease-in-out infinite;
+}
 
 .ai-nav-dot {
     display: inline-block;
@@ -3349,6 +3511,15 @@ body.dark-theme .stat-card::before {
     padding: 10px;
     border-radius: 50%;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: box-shadow var(--t-fast) ease, background var(--t-fast) ease;
+}
+.ai-host-bubble.tone-correct .ai-host-avatar {
+    background: var(--success-soft);
+    box-shadow: 0 0 0 3px var(--success-soft), 0 0 16px rgba(52, 184, 138, 0.4);
+}
+.ai-host-bubble.tone-incorrect .ai-host-avatar {
+    background: var(--danger-soft);
+    box-shadow: 0 0 0 3px var(--danger-soft), 0 0 16px rgba(224, 90, 78, 0.4);
 }
 .ai-host-message {
     flex: 1;
