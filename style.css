@@ -25,6 +25,7 @@
     --accent-glow: rgba(84, 104, 231, 0.35);
     --primary: var(--accent);
     --primary-hover: var(--accent-hover);
+    --gradient-primary: linear-gradient(135deg, var(--accent), var(--accent-hover));
 
     /* --- Semantic --- */
     --success: #34b88a;
@@ -2630,8 +2631,8 @@ label {
     flex-direction: column;
     overflow: hidden;
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(15, 15, 20, 0.85);
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg-strong);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -2716,10 +2717,10 @@ label {
 .ai-bubble {
     align-self: flex-start;
     position: relative;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+    background: var(--glass-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border-subtle);
     box-shadow: var(--glass-inner), var(--shadow-sm);
     color: var(--text);
     border-bottom-left-radius: var(--r-xs);
@@ -2788,6 +2789,27 @@ label {
     animation-delay: 0.15s;
 }
 #typing-indicator .dot:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+/* In-bubble "thinking" state — the AI's response arrives in one shot, not
+   incrementally, so this signals "waiting," not "typing." */
+.ai-thinking {
+    display: inline-flex;
+    gap: 5px;
+    padding: 4px 0;
+}
+.ai-thinking .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    animation: typing 1.2s var(--ease) infinite;
+}
+.ai-thinking .dot:nth-child(2) {
+    animation-delay: 0.15s;
+}
+.ai-thinking .dot:nth-child(3) {
     animation-delay: 0.3s;
 }
 
@@ -2972,7 +2994,7 @@ label {
 .cursor-pointer {
     cursor: pointer;
 }
-.opacity-70 {
+.text-muted {
     color: var(--text-muted);
 }
 

@@ -329,6 +329,7 @@ export const Folders = {
       .order("created_at", { ascending: false });
     if (error) {
       console.error("[Folders.fetch]", error.message);
+      UI.notifyFetchError("folders");
       return [];
     }
     return data || [];
@@ -350,11 +351,27 @@ export const Folders = {
   },
 
   async delete(id) {
+    // The DB CASCADE removes materials/quizzes/decks rows, but not the
+    // uploaded files themselves — collect their storage paths before the
+    // folder (and the rows referencing them) are gone.
+    const materials = await Materials.fetch(id);
+    const paths = materials.map((m) => m.storage_path).filter(Boolean);
+
     const { error } = await supabase.from("folders").delete().eq("id", id);
     if (error) {
       console.error("[Folders.delete]", error.message);
       return false;
     }
+
+    if (paths.length) {
+      const { error: storageError } = await supabase.storage.from("materials").remove(paths);
+      if (storageError) {
+        // The folder is already gone and the DB is consistent — a storage
+        // cleanup miss here is recoverable later, not worth failing on.
+        console.error("[Folders.delete] storage cleanup failed", storageError.message);
+      }
+    }
+
     return true;
   },
 
@@ -383,6 +400,7 @@ export const Materials = {
     const { data, error } = await query;
     if (error) {
       console.error("[Materials.fetch]", error.message);
+      UI.notifyFetchError("materials");
       return [];
     }
     return data || [];
@@ -519,17 +537,25 @@ export const Decks = {
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
-    if (error) return [];
+    if (error) {
+      console.error("[Decks.fetchAll]", error.message);
+      UI.notifyFetchError("flashcard decks");
+      return [];
+    }
     return data || [];
   },
-  
+
   async fetch(folderId) {
     const { data, error } = await supabase
       .from("flashcard_decks")
       .select("*")
       .eq("folder_id", folderId)
       .order("created_at", { ascending: false });
-    if (error) return [];
+    if (error) {
+      console.error("[Decks.fetch]", error.message);
+      UI.notifyFetchError("flashcard decks");
+      return [];
+    }
     return data || [];
   },
 
@@ -552,7 +578,11 @@ export const Flashcards = {
       .from("flashcards")
       .select("*")
       .eq("deck_id", deckId);
-    if (error) return [];
+    if (error) {
+      console.error("[Flashcards.fetchByDeck]", error.message);
+      UI.notifyFetchError("flashcards");
+      return [];
+    }
     return data || [];
   },
 
@@ -632,6 +662,7 @@ export const Tasks = {
       .order("id", { ascending: true });
     if (error) {
       console.error("[Tasks.fetch]", error.message);
+      UI.notifyFetchError("tasks");
       return [];
     }
     return data || [];
@@ -711,6 +742,7 @@ export const Exams = {
       .order("exam_date", { ascending: true });
     if (error) {
       console.error("[Exams.fetch]", error.message);
+      UI.notifyFetchError("exams");
       return [];
     }
     return data || [];
@@ -857,6 +889,7 @@ export const Quizzes = {
       .order("created_at", { ascending: false });
     if (error) {
       console.error("[Quizzes.fetchAll]", error.message);
+      UI.notifyFetchError("quizzes");
       return [];
     }
     return data || [];

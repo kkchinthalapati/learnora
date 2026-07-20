@@ -623,7 +623,11 @@ User message: ${query}`;
       if (sendBtn) sendBtn.disabled = true;
 
       const bubbleId = 'ai-msg-' + Date.now();
-      const typingBubble = this._appendBubble('<span class="streaming-pulse"></span>', "ai-bubble", true, bubbleId);
+      // The edge function returns one complete response, not a real token
+      // stream (see learnoraedgefunctionlogic.ts) — show an honest "thinking"
+      // state rather than a typing cursor that implies text is arriving
+      // gradually.
+      const typingBubble = this._appendBubble('<span class="ai-thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>', "ai-bubble", true, bubbleId);
       const modal = $("turbo-chat");
       if (modal) modal.classList.add("streaming");
 
@@ -637,18 +641,18 @@ User message: ${query}`;
         settings: UI.loadSettings(),
       }, async (fullText) => {
          currentText = fullText;
-         // The 3-dot indicator means "waiting for a reply to start"; the
-         // in-bubble pulse means "reply is actively streaming in" — once
-         // real text is arriving, the dots have nothing left to say.
          typing.classList.add("hidden");
-         // Strip tags during streaming so user doesn't see them being typed out
+         // Strip tags before display so the user never sees the raw action tags
          let display = fullText.replace(/<ADD_TASK>[\s\S]*?<\/ADD_TASK>/g, "")
                                .replace(/<START_TIMER>[\s\S]*?<\/START_TIMER>/g, "")
                                .replace(/<SET_THEME>[\s\S]*?<\/SET_THEME>/g, "")
                                .replace(/<ADD_QUIZ>[\s\S]*?<\/ADD_QUIZ>/g, "")
                                .replace(/<ADD_PLAN>[\s\S]*?<\/ADD_PLAN>/g, "");
 
-         typingBubble.innerHTML = this.renderMarkdown(display) + '<span class="streaming-pulse"></span>';
+         // The callback fires once with the complete text (no real
+         // incremental streaming), so there's nothing left "in progress" —
+         // render the final content with no trailing cursor.
+         typingBubble.innerHTML = this.renderMarkdown(display);
          msgBox.scrollTop = msgBox.scrollHeight;
       });
 

@@ -530,13 +530,11 @@ function bindAuth() {
     if (pass.length < 8) {
       showAuthStatus("Password must be at least 8 characters long.");
       UI.setLoading("reset-btn", false);
-      resettingPass = false;
       return;
     }
     if (pass !== confirmPass) {
       showAuthStatus("Passwords do not match. Please re-enter them.");
       UI.setLoading("reset-btn", false);
-      resettingPass = false;
       return;
     }
 
@@ -546,8 +544,6 @@ function bindAuth() {
     if (ok) {
       showAuthStatus("Your password has been updated successfully. You are now logged in.", "success");
       setTimeout(() => window.location.reload(), 1500);
-    } else {
-      resettingPass = false;
     }
   });
 
@@ -721,7 +717,7 @@ function bindSettings() {
       desc.style.color = "var(--danger)";
       btn.classList.add("hidden");
     } else {
-      desc.textContent = "Checking permission status...";
+      desc.textContent = "Not enabled yet.";
       desc.style.color = "var(--text-muted)";
       btn.classList.remove("hidden");
     }
@@ -1197,43 +1193,29 @@ async function loadTasks() {
       input.focus();
     });
 
-    // Delete
-    // Delete (Bug 11: Undo)
+    // Delete (with a 4s Undo window before the DB delete actually fires)
     delBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
       li.style.display = "none";
-      
-      let undoClicked = false;
-      const toast = document.createElement("div");
-      toast.className = "toast glass-panel";
-      toast.innerHTML = `<span>Task deleted.</span> <button class="btn-primary btn-sm" style="margin-left:16px;">Undo</button>`;
-      toast.style.position = "fixed";
-      toast.style.bottom = "20px";
-      toast.style.left = "50%";
-      toast.style.transform = "translateX(-50%)";
-      toast.style.zIndex = "9999";
-      toast.style.display = "flex";
-      toast.style.alignItems = "center";
-      toast.style.padding = "12px 24px";
-      
-      document.body.appendChild(toast);
-      
-      toast.querySelector("button").addEventListener("click", () => {
-        undoClicked = true;
-        li.style.display = "";
-        toast.remove();
+
+      let undone = false;
+      UI.showToast("Task deleted.", {
+        duration: 4000,
+        actionLabel: "Undo",
+        onAction: () => {
+          undone = true;
+          li.style.display = "";
+        },
       });
-      
+
       setTimeout(async () => {
-        if (toast.parentNode) toast.remove();
-        if (!undoClicked) {
-           const ok = await Tasks.delete(t.id);
-           if (!ok) {
-             li.style.display = "";
-             UI.showPopup("Failed to delete task.", "Error");
-           } else {
-             loadTasks();
-           }
+        if (undone) return;
+        const ok = await Tasks.delete(t.id);
+        if (!ok) {
+          li.style.display = "";
+          UI.showPopup("Failed to delete task.", "Error");
+        } else {
+          loadTasks();
         }
       }, 4000);
     });
@@ -1467,7 +1449,10 @@ function openDayDetailModal(dateStr, exams) {
   if (!modal) return;
   ModalManager.open("day-detail-modal");
 
-  const formattedDate = new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  // T00:00:00 forces local-midnight parsing — bare `new Date(dateStr)`
+  // parses YYYY-MM-DD as UTC and can show the wrong day for negative-offset
+  // timezones.
+  const formattedDate = new Date(`${dateStr}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   $("modal-day-title").textContent = `Exams on ${formattedDate}`;
   
   const listEl = $("day-detail-list");
@@ -1480,16 +1465,26 @@ function openDayDetailModal(dateStr, exams) {
     item.style.background = "var(--surface-active)";
     item.style.borderRadius = "var(--r-md)";
     item.style.cursor = "pointer";
+    item.setAttribute("role", "button");
+    item.setAttribute("tabindex", "0");
+    item.setAttribute("aria-label", `Edit exam: ${exam.exam_name}`);
     item.innerHTML = `
       <div class="flex-column" style="gap: 4px; min-width: 0;">
         <span class="day-detail-exam-name">${esc(exam.exam_name)}</span>
         <span class="text-sm" style="color: var(--text-muted);">${exam.difficulty} • ${exam.status}</span>
       </div>
-      <span class="icon-btn">✎</span>
+      <span class="icon-btn" aria-hidden="true">✎</span>
     `;
-    item.addEventListener("click", () => {
+    const openForEdit = () => {
       ModalManager.close("day-detail-modal");
       openExamModal(exam, dateStr);
+    };
+    item.addEventListener("click", openForEdit);
+    item.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openForEdit();
+      }
     });
     listEl.appendChild(item);
   });
@@ -1599,7 +1594,7 @@ function renderDashboard() {
 
     if (sessions.length === 0) {
       const li = document.createElement("li");
-      li.innerHTML = "<span class='opacity-70'>No sessions yet — start a focus block to see it here.</span>";
+      li.innerHTML = "<span class='text-muted'>No sessions yet — start a focus block to see it here.</span>";
       list.appendChild(li);
     } else {
       // Only render the most recent handful; the full history stays in storage.
@@ -1613,7 +1608,7 @@ function renderDashboard() {
         }`;
 
         const right = document.createElement("span");
-        right.className = "opacity-70";
+        right.className = "text-muted";
         right.textContent = log.timestamp;
 
         li.appendChild(left);
@@ -1873,7 +1868,7 @@ async function renderAnalytics() {
       return `
         <div class="dash-folder-row flex-between">
           <span><span class="dash-folder-dot" style="background:${safeColorLocal(info.color)};"></span>${esc(info.name)}</span>
-          <span class="opacity-70">${formatFocusTime(mins)}</span>
+          <span class="text-muted">${formatFocusTime(mins)}</span>
         </div>`;
     }).join("");
 
@@ -1958,7 +1953,7 @@ async function renderWeakTopics() {
     return;
   }
   el.classList.remove("hidden");
-  el.innerHTML = `<span class="opacity-70 text-sm">Struggling with: </span>` +
+  el.innerHTML = `<span class="text-muted text-sm">Struggling with: </span>` +
     topics.map((t) => `<span class="glass-pill" style="font-size:0.75rem; padding:4px 10px; margin:2px;">${esc(t.topic)}</span>`).join("");
 }
 
@@ -1986,7 +1981,7 @@ async function maybeRenderOnboardingBanner() {
     <div class="flex-between">
       <div>
         <h3>👋 Welcome to Learnora!</h3>
-        <p class="opacity-70 mt-8">Upload your first study material or add a task to get started — Learnora AI will build notes, flashcards, and quizzes from it.</p>
+        <p class="text-muted mt-8">Upload your first study material or add a task to get started — Learnora AI will build notes, flashcards, and quizzes from it.</p>
       </div>
       <button id="btn-dismiss-onboarding" class="icon-btn" aria-label="Dismiss">✖</button>
     </div>

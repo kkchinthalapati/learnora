@@ -198,6 +198,43 @@ export const UI = {
     ModalManager.close("popup-overlay");
   },
 
+  /* ------ Toast — brief, self-dismissing, non-blocking notifications ------ */
+
+  showToast(message, { error = false, duration = 6000, actionLabel = null, onAction = null } = {}) {
+    let container = $("toast-container");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "toast-container";
+      container.className = "toast-container";
+      document.body.appendChild(container);
+    }
+    const toast = document.createElement("div");
+    toast.className = `glass-panel toast${error ? " toast-error" : ""}`;
+    toast.innerHTML = `<span>${esc(message)}</span>`;
+
+    const timer = setTimeout(() => toast.remove(), duration);
+
+    if (actionLabel && onAction) {
+      const btn = document.createElement("button");
+      btn.className = "btn-primary btn-sm";
+      btn.style.marginLeft = "16px";
+      btn.textContent = actionLabel;
+      btn.addEventListener("click", () => {
+        clearTimeout(timer);
+        toast.remove();
+        onAction();
+      });
+      toast.appendChild(btn);
+    }
+
+    container.appendChild(toast);
+    return toast;
+  },
+
+  notifyFetchError(context) {
+    this.showToast(`Couldn't load your ${context}. Check your connection.`, { error: true });
+  },
+
   /* ------ Confirm / Prompt dialogs (Promise-based, glass UI) ------ */
 
   _dialog({
