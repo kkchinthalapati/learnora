@@ -22,6 +22,22 @@ function esc(str) {
 }
 
 /* =========================================================================
+   DATES — Local-timezone-safe date helpers. Never use .toISOString() to
+   derive a calendar date: it converts to UTC and silently returns the
+   wrong day for positive-offset timezones near local midnight.
+   ========================================================================= */
+
+function localDateStr(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function mondayOfWeek(d = new Date()) {
+  const monday = new Date(d);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return monday;
+}
+
+/* =========================================================================
    STORAGE — Safe localStorage wrapper
    ========================================================================= */
 
@@ -180,6 +196,43 @@ export const UI = {
 
   hidePopup() {
     ModalManager.close("popup-overlay");
+  },
+
+  /* ------ Toast — brief, self-dismissing, non-blocking notifications ------ */
+
+  showToast(message, { error = false, duration = 6000, actionLabel = null, onAction = null } = {}) {
+    let container = $("toast-container");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "toast-container";
+      container.className = "toast-container";
+      document.body.appendChild(container);
+    }
+    const toast = document.createElement("div");
+    toast.className = `glass-panel toast${error ? " toast-error" : ""}`;
+    toast.innerHTML = `<span>${esc(message)}</span>`;
+
+    const timer = setTimeout(() => toast.remove(), duration);
+
+    if (actionLabel && onAction) {
+      const btn = document.createElement("button");
+      btn.className = "btn-primary btn-sm";
+      btn.style.marginLeft = "16px";
+      btn.textContent = actionLabel;
+      btn.addEventListener("click", () => {
+        clearTimeout(timer);
+        toast.remove();
+        onAction();
+      });
+      toast.appendChild(btn);
+    }
+
+    container.appendChild(toast);
+    return toast;
+  },
+
+  notifyFetchError(context) {
+    this.showToast(`Couldn't load your ${context}. Check your connection.`, { error: true });
   },
 
   /* ------ Confirm / Prompt dialogs (Promise-based, glass UI) ------ */
@@ -447,4 +500,4 @@ export const UI = {
    PUBLIC UTILITIES — Shared across modules
    ========================================================================= */
 
-export { $, $$, esc, Storage };
+export { $, $$, esc, Storage, localDateStr, mondayOfWeek };

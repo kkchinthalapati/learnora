@@ -97,7 +97,7 @@
 
                         <!-- Forgot Password Form -->
                         <form id="forgot-password-form" class="auth-form hidden">
-                            <p class="mb-16 opacity-70">Enter your email address and we'll send you a link to reset your password.</p>
+                            <p class="mb-16 text-muted">Enter your email address and we'll send you a link to reset your password.</p>
                             <div class="input-group">
                                 <label for="forgot-email">Email</label>
                                 <input
@@ -127,7 +127,7 @@
 
                         <!-- Reset Password Form (Triggered via link) -->
                         <form id="reset-password-form" class="auth-form hidden">
-                            <p class="mb-16 opacity-70">Create a new password for your account.</p>
+                            <p class="mb-16 text-muted">Create a new password for your account.</p>
                             <div class="input-group">
                                 <label for="reset-password">New Password</label>
                                 <div class="password-wrapper">
@@ -541,7 +541,7 @@
                         <h2 data-i18n="header_history">Recent focus sessions</h2>
                         <p
                             data-i18n="desc_history"
-                            class="opacity-70 mt-8 mb-16"
+                            class="text-muted mt-8 mb-16"
                         >
                             Every completed focus block is logged here
                             automatically.
@@ -673,7 +673,7 @@
                                         class="small-input"
                                         aria-label="Countdown Minutes"
                                 /></label>
-                                <p class="timer-type-note opacity-70">
+                                <p class="timer-type-note text-muted">
                                     A single timed block — no break cycles. It
                                     rings and logs your session when it reaches
                                     zero.
@@ -682,7 +682,7 @@
 
                             <div id="cfg-stopwatch" class="hidden">
                                 <h3>Stopwatch</h3>
-                                <p class="timer-type-note opacity-70">
+                                <p class="timer-type-note text-muted">
                                     Open-ended count-up for flow sessions. Start
                                     it and focus — “Stop &amp; log” records the
                                     minutes you studied.
@@ -691,7 +691,7 @@
 
                             <div id="cfg-flowtime" class="hidden">
                                 <h3>Flowtime</h3>
-                                <p class="timer-type-note opacity-70">
+                                <p class="timer-type-note text-muted">
                                     Focus as long as you like, then hit “Take a
                                     break”. You’ll get a break about a fifth as
                                     long, then it loops back to focus.
@@ -811,6 +811,12 @@
                             data-i18n="placeholder_task"
                             aria-label="New Task Input"
                         />
+                        <input
+                            type="date"
+                            id="todo-due-date"
+                            class="todo-due-input"
+                            aria-label="Due date (optional)"
+                        />
                         <button
                             id="btn-add-todo"
                             class="btn-primary"
@@ -847,7 +853,7 @@
                                 + Add exam
                             </button>
                         </div>
-                        <p class="calendar-hint opacity-70 mb-16">
+                        <p class="calendar-hint text-muted mb-16">
                             Tap any day to add an exam, or a colored label to edit one.
                         </p>
                         <div class="calendar-weekdays grid-7">
@@ -870,7 +876,7 @@
                 <section id="view-flashcards" class="view-section hidden">
                     <div class="glass-panel summary-card">
                         <h2 data-i18n="header_flashcards">Flashcards</h2>
-                        <p data-i18n="desc_flashcards" class="opacity-70 mt-8">
+                        <p data-i18n="desc_flashcards" class="text-muted mt-8">
                             Your AI-generated flashcards will appear here. Click
                             a card to flip it over.
                         </p>
@@ -884,7 +890,7 @@
                     <div class="glass-panel summary-card flex-between">
                         <div>
                             <h2 data-i18n="header_quizzes">Quizzes</h2>
-                            <p data-i18n="desc_quizzes" class="opacity-70 mt-8">
+                            <p data-i18n="desc_quizzes" class="text-muted mt-8">
                                 AI-generated quizzes from your materials, auto-graded
                                 with weak-topic tracking.
                             </p>
@@ -913,16 +919,14 @@
                     <div class="glass-panel summary-card flex-between">
                         <div>
                             <h2 data-i18n="header_plan">This week's plan</h2>
-                            <p data-i18n="desc_plan" class="opacity-70 mt-8">
-                                AI-generated from your exams and open tasks.
-                            </p>
+                            <p id="plan-week-range" class="text-muted mt-8"></p>
                         </div>
                         <button id="btn-regenerate-plan" class="btn-secondary">
-                            🔄 Regenerate
+                            ✨ Generate Plan
                         </button>
                     </div>
                     <div id="plan-summary" class="glass-panel mt-16"></div>
-                    <div id="plan-days" class="plan-days-grid mt-24"></div>
+                    <div id="plan-days" class="plan-week-grid mt-24"></div>
                 </section>
 
                 <!-- VIEW: Settings -->
@@ -1271,7 +1275,7 @@
                 <section id="view-folders" class="view-section hidden">
                     <div class="glass-panel summary-card">
                         <h2>Folders & Workspaces</h2>
-                        <p class="opacity-70 mt-8">Organize your study materials by course or subject.</p>
+                        <p class="text-muted mt-8">Organize your study materials by course or subject.</p>
                     </div>
                     <div id="folders-container" class="grid-list mt-24">
                         <!-- Folders will be loaded here via router -->
@@ -1283,7 +1287,7 @@
                     <div class="glass-panel" style="max-width: 600px; margin: 0 auto; padding: 40px 24px;">
                         <div class="text-center mb-32">
                             <h2>Upload & Generate</h2>
-                            <p class="opacity-70 mt-8">Turn any lecture, PDF, or video into structured notes and flashcards.</p>
+                            <p class="text-muted mt-8">Turn any lecture, PDF, or video into structured notes and flashcards.</p>
                         </div>
                         
                         <div class="input-group mb-24">
@@ -1317,7 +1321,7 @@
 
                         <div id="upload-dropzone" class="dropzone glass-panel text-center mb-24 cursor-pointer" style="border: 2px dashed rgba(255,255,255,0.2); border-radius: var(--r-lg); padding: 40px 20px; transition: all 0.3s ease;">
                             <h3 class="mb-8">Drag & Drop</h3>
-                            <p class="opacity-70 mb-16">or click to browse files</p>
+                            <p class="text-muted mb-16">or click to browse files</p>
                             <input type="file" id="hub-file-upload" hidden accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav">
                             <button class="btn-secondary" id="btn-browse-files" type="button">Browse Files</button>
                         </div>
@@ -1349,7 +1353,7 @@
                         <!-- Materials List -->
                         <div class="glass-panel">
                             <h3 class="mb-16">📄 Materials & Notes</h3>
-                            <p class="opacity-70 text-sm mb-8">Click a file to read its AI-generated notes.</p>
+                            <p class="text-muted text-sm mb-8">Click a file to read its AI-generated notes.</p>
                             <div id="workspace-materials-list" class="list-container"></div>
                         </div>
 
@@ -1358,7 +1362,7 @@
                             <div class="flex-between mb-16">
                                 <h3>🗂️ Flashcard Decks</h3>
                             </div>
-                            <p class="opacity-70 text-sm mb-8">Created automatically whenever you upload material here.</p>
+                            <p class="text-muted text-sm mb-8">Created automatically whenever you upload material here.</p>
                             <div id="workspace-decks-list" class="list-container"></div>
                         </div>
 
@@ -1368,7 +1372,7 @@
                                 <h3>❓ Quizzes</h3>
                                 <button id="btn-generate-quiz" class="btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" title="Generates a quiz from the most recently added material in this folder">+ Generate</button>
                             </div>
-                            <p class="opacity-70 text-sm mb-8">On-demand — generated from this folder's newest material. For any other topic, use the Quizzes tab.</p>
+                            <p class="text-muted text-sm mb-8">On-demand — generated from this folder's newest material. For any other topic, use the Quizzes tab.</p>
                             <div id="workspace-quizzes-list" class="list-container"></div>
                         </div>
                     </div>
@@ -1389,13 +1393,13 @@
                     <div class="text-center mb-24" style="width: 100%; max-width: 600px;">
                         <button class="btn-secondary pull-left" data-hash="flashcards">← Exit Review</button>
                         <h2 id="review-deck-title">Flashcard Review</h2>
-                        <p id="review-progress" class="opacity-70 mt-8">Card 1 of 10</p>
+                        <p id="review-progress" class="text-muted mt-8">Card 1 of 10</p>
                     </div>
 
                     <div id="flashcard-container" class="glass-panel text-center cursor-pointer flex-center flex-col" style="width: 100%; max-width: 600px; min-height: 300px; padding: 40px; font-size: 1.5rem;">
                         <div id="flashcard-front">Loading...</div>
                         <div id="flashcard-back" class="hidden mt-24 pt-24" style="border-top: 1px solid rgba(255,255,255,0.1); width: 100%; color: var(--primary);"></div>
-                        <p id="flashcard-hint" class="opacity-70 mt-32" style="font-size: 1rem;">Click to reveal answer</p>
+                        <p id="flashcard-hint" class="text-muted mt-32" style="font-size: 1rem;">Click to reveal answer</p>
                     </div>
 
                     <div id="review-controls" class="flex-gap mt-32 hidden">
@@ -1625,7 +1629,10 @@
             class="btn-primary ai-trigger-btn"
             aria-label="Open AI Chat"
         >
-            AI
+            <svg class="ai-trigger-icon" viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true">
+                <path d="M12 2l1.8 5.6L19.4 9.4 13.8 11.2 12 17l-1.8-5.8L4.6 9.4l5.6-1.8L12 2z" fill="currentColor"/>
+                <path d="M19 15l0.8 2.4L22 18l-2.2 0.8L19 21l-0.8-2.2L16 18l2.2-0.6L19 15z" fill="currentColor" opacity="0.75"/>
+            </svg>
         </button>
 
         <!-- Persistent mini-timer — visible on every view while a timer runs -->

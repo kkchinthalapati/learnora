@@ -1,5 +1,5 @@
 import { supabase } from "./supabase.js";
-import { UI, $, esc } from "./ui.js";
+import { UI, $, esc, ModalManager, localDateStr, mondayOfWeek } from "./ui.js";
 import { Tasks, Exams } from "./api.js";
 
 /* =========================================================================
@@ -288,24 +288,32 @@ export const AI = {
     try {
       const { Plans } = await import("./api.js");
       const [tasks, exams] = await Promise.all([Tasks.fetch(), Exams.fetch()]);
-      const pendingTasks = tasks.filter(t => !t.is_done).map(t => t.text).join(", ") || "None";
-      const upcomingExams = exams.map(e => `${e.exam_name} on ${e.exam_date} (difficulty: ${e.difficulty || "unspecified"})`).join(", ") || "None";
+      const todayStr = localDateStr();
+      const pendingTasks = tasks
+        .filter(t => !t.is_done)
+        .map(t => t.due_date ? `${t.text} (due ${t.due_date})` : t.text)
+        .join(", ") || "None";
+      // Only feed the AI exams that haven't already happened — an exam
+      // that's already past (or manually marked Completed) isn't "upcoming"
+      // and shouldn't shape the schedule as if it still were.
+      const upcomingExams = exams
+        .filter(e => e.status !== "Completed" && e.exam_date >= todayStr)
+        .sort((a, b) => a.exam_date.localeCompare(b.exam_date))
+        .map(e => `${e.exam_name} on ${e.exam_date} (difficulty: ${e.difficulty || "unspecified"})`)
+        .join(", ") || "None";
 
-      const now = new Date();
-      const day = now.getDay();
-      const monday = new Date(now);
-      monday.setDate(now.getDate() - ((day + 6) % 7));
-      const weekStartISO = monday.toISOString().slice(0, 10);
+      const monday = mondayOfWeek();
+      const weekStartISO = localDateStr(monday);
       const weekDates = Array.from({ length: 7 }, (_, i) => {
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
-        return d.toISOString().slice(0, 10);
+        return localDateStr(d);
       });
 
       const prompt = `Build a weekly study schedule for the week of ${weekStartISO} (days: ${weekDates.join(", ")}).
 Pending tasks: ${pendingTasks}
 Upcoming exams: ${upcomingExams}
-Prioritize subjects with closer/harder exams. Keep daily blocks realistic (30-90 minutes each, a couple of blocks per day at most). If there is no exam/task data, suggest light general review blocks.`;
+Prioritize subjects with closer/harder exams and tasks with closer due dates. Keep daily blocks realistic (30-90 minutes each, a couple of blocks per day at most). If there is no exam/task data, suggest light general review blocks.`;
 
       const data = await this._callEdgeStream({
         history: [{ role: "user", content: prompt }],
@@ -514,8 +522,18 @@ Do NOT wrap in code fences. Do NOT add any text before or after the JSON array.`
     let upcomingExams = "None";
     try {
       const [tasks, exams] = await Promise.all([Tasks.fetch(), Exams.fetch()]);
-      pendingTasks = tasks.filter(t => !t.is_done).map(t => t.text).join(", ") || "None";
-      upcomingExams = exams.map(e => `${e.exam_name} on ${e.exam_date}`).join(", ") || "None";
+      const todayStr = localDateStr();
+      pendingTasks = tasks
+        .filter(t => !t.is_done)
+        .map(t => t.due_date ? `${t.text} (due ${t.due_date})` : t.text)
+        .join(", ") || "None";
+      // Only feed the AI exams that haven't already happened — otherwise
+      // it reasons about stale/past exams as if they were still upcoming.
+      upcomingExams = exams
+        .filter(e => e.status !== "Completed" && e.exam_date >= todayStr)
+        .sort((a, b) => a.exam_date.localeCompare(b.exam_date))
+        .map(e => `${e.exam_name} on ${e.exam_date}`)
+        .join(", ") || "None";
     } catch (e) {
       console.warn("[AI.send] Failed to fetch workspace context:", e);
     }
@@ -605,7 +623,11 @@ User message: ${query}`;
       if (sendBtn) sendBtn.disabled = true;
 
       const bubbleId = 'ai-msg-' + Date.now();
-      const typingBubble = this._appendBubble('<span class="streaming-pulse"></span>', "ai-bubble", true, bubbleId);
+      // The edge function returns one complete response, not a real token
+      // stream (see learnoraedgefunctionlogic.ts) — show an honest "thinking"
+      // state rather than a typing cursor that implies text is arriving
+      // gradually.
+      const typingBubble = this._appendBubble('<span class="ai-thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>', "ai-bubble", true, bubbleId);
       const modal = $("turbo-chat");
       if (modal) modal.classList.add("streaming");
 
@@ -619,14 +641,18 @@ User message: ${query}`;
         settings: UI.loadSettings(),
       }, async (fullText) => {
          currentText = fullText;
-         // Strip tags during streaming so user doesn't see them being typed out
+         typing.classList.add("hidden");
+         // Strip tags before display so the user never sees the raw action tags
          let display = fullText.replace(/<ADD_TASK>[\s\S]*?<\/ADD_TASK>/g, "")
                                .replace(/<START_TIMER>[\s\S]*?<\/START_TIMER>/g, "")
                                .replace(/<SET_THEME>[\s\S]*?<\/SET_THEME>/g, "")
                                .replace(/<ADD_QUIZ>[\s\S]*?<\/ADD_QUIZ>/g, "")
                                .replace(/<ADD_PLAN>[\s\S]*?<\/ADD_PLAN>/g, "");
-         
-         typingBubble.innerHTML = this.renderMarkdown(display) + '<span class="streaming-pulse"></span>';
+
+         // The callback fires once with the complete text (no real
+         // incremental streaming), so there's nothing left "in progress" —
+         // render the final content with no trailing cursor.
+         typingBubble.innerHTML = this.renderMarkdown(display);
          msgBox.scrollTop = msgBox.scrollHeight;
       });
 
@@ -736,31 +762,31 @@ User message: ${query}`;
           if (addedTasks.includes(taskName)) {
             return `<div class="ai-widget"><span class="ai-widget-icon">✅</span> Added task: <strong>${esc(taskName)}</strong></div>`;
           }
-          return `<div class="ai-widget"><span class="ai-widget-icon">❌</span> Canceled adding task: <strong>${esc(taskName)}</strong></div>`;
+          return `<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled adding task: <strong>${esc(taskName)}</strong></div>`;
         })
         .replace(startTimerRegex, (_, mins) => {
           if (timerStarted) {
             return `<div class="ai-widget"><span class="ai-widget-icon">⏱️</span> Started focus timer for ${mins}m</div>`;
           }
-          return `<div class="ai-widget"><span class="ai-widget-icon">❌</span> Canceled focus timer</div>`;
+          return `<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled focus timer</div>`;
         })
         .replace(themeRegex, (_, theme) => {
           if (themeChangedTo) {
             return `<div class="ai-widget"><span class="ai-widget-icon">🎨</span> Theme changed to ${theme} mode</div>`;
           }
-          return `<div class="ai-widget"><span class="ai-widget-icon">❌</span> Canceled theme change</div>`;
+          return `<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled theme change</div>`;
         })
         .replace(quizRegex, (_, topic) => {
           if (generatedQuizTopic) {
             return `<div class="ai-widget"><span class="ai-widget-icon">❓</span> Generated quiz: <strong>${esc(topic.trim())}</strong></div>`;
           }
-          return `<div class="ai-widget"><span class="ai-widget-icon">❌</span> Canceled quiz generation</div>`;
+          return `<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled quiz generation</div>`;
         })
         .replace(planRegex, () => {
           if (generatedPlan) {
             return `<div class="ai-widget"><span class="ai-widget-icon">📅</span> Generated weekly study plan</div>`;
           }
-          return `<div class="ai-widget"><span class="ai-widget-icon">❌</span> Canceled plan generation</div>`;
+          return `<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled plan generation</div>`;
         })
         .trim();
 
@@ -877,7 +903,7 @@ User message: ${query}`;
     });
 
     UI.switchTab("flashcards");
-    $("turbo-chat")?.classList.add("hidden");
+    ModalManager.close("turbo-chat");
     UI.showPopup(`${cards.length} flashcards ready!`, "Success");
   },
 

@@ -1,4 +1,4 @@
-import { UI, $, $$, esc, Storage, ModalManager } from "./ui.js";
+import { UI, $, $$, esc, Storage, ModalManager, localDateStr, mondayOfWeek } from "./ui.js";
 import { Auth, Tasks, Exams, DataAdmin, Folders, Materials, Sessions, Flashcards, Quizzes } from "./api.js";
 import { Timer } from "./timer.js";
 import { AI } from "./ai.js";
@@ -24,6 +24,20 @@ function getGreeting(name) {
 
 function formatDateStr(y, m, d) {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+// Pending tasks with the soonest/overdue due date first, undated pending
+// tasks after (in their original order), completed tasks last.
+function sortTasksByUrgency(tasks) {
+  const pending = tasks.filter((t) => !t.is_done);
+  const done = tasks.filter((t) => t.is_done);
+  pending.sort((a, b) => {
+    if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
+    if (a.due_date) return -1;
+    if (b.due_date) return 1;
+    return 0;
+  });
+  return [...pending, ...done];
 }
 
 const MONTH_NAMES = [
@@ -516,13 +530,11 @@ function bindAuth() {
     if (pass.length < 8) {
       showAuthStatus("Password must be at least 8 characters long.");
       UI.setLoading("reset-btn", false);
-      resettingPass = false;
       return;
     }
     if (pass !== confirmPass) {
       showAuthStatus("Passwords do not match. Please re-enter them.");
       UI.setLoading("reset-btn", false);
-      resettingPass = false;
       return;
     }
 
@@ -532,8 +544,6 @@ function bindAuth() {
     if (ok) {
       showAuthStatus("Your password has been updated successfully. You are now logged in.", "success");
       setTimeout(() => window.location.reload(), 1500);
-    } else {
-      resettingPass = false;
     }
   });
 
@@ -707,7 +717,7 @@ function bindSettings() {
       desc.style.color = "var(--danger)";
       btn.classList.add("hidden");
     } else {
-      desc.textContent = "Checking permission status...";
+      desc.textContent = "Not enabled yet.";
       desc.style.color = "var(--text-muted)";
       btn.classList.remove("hidden");
     }
@@ -1001,7 +1011,7 @@ async function loadTasks() {
 
   if (select) select.innerHTML = '<option value="None">None</option>';
 
-  tasks.forEach((t) => {
+  sortTasksByUrgency(tasks).forEach((t) => {
     const li = document.createElement("li");
     li.className = `todo-item${t.is_done ? " done" : ""}`;
     li.setAttribute("role", "checkbox");
@@ -1019,6 +1029,82 @@ async function loadTasks() {
     delBtn.setAttribute("tabindex", "0");
 
     li.appendChild(span);
+
+    let dueBadge = null;
+    if (!t.is_done) {
+      dueBadge = document.createElement("span");
+      dueBadge.className = "todo-due";
+      dueBadge.setAttribute("tabindex", "0");
+      dueBadge.setAttribute("role", "button");
+      dueBadge.setAttribute("aria-label", t.due_date ? `Due date: ${t.due_date}. Click to change.` : "Set a due date");
+
+      const renderDueBadge = () => {
+        const today = formatDateStr(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+        dueBadge.classList.remove("overdue", "due-today", "unset");
+        if (t.due_date) {
+          dueBadge.textContent = `📅 ${t.due_date}`;
+          if (t.due_date < today) dueBadge.classList.add("overdue");
+          else if (t.due_date === today) dueBadge.classList.add("due-today");
+        } else {
+          dueBadge.textContent = "+ due date";
+          dueBadge.classList.add("unset");
+        }
+      };
+      renderDueBadge();
+
+      const editDueDate = (e) => {
+        e.stopPropagation();
+        const dateInput = document.createElement("input");
+        dateInput.type = "date";
+        dateInput.className = "todo-due-edit-input";
+        dateInput.value = t.due_date || "";
+
+        let hasSaved = false;
+        const saveDue = async () => {
+          if (hasSaved) return;
+          hasSaved = true;
+          const newDate = dateInput.value || null;
+          if (newDate !== t.due_date) {
+            const ok = await Tasks.updateDueDate(t.id, newDate);
+            if (ok) {
+              t.due_date = newDate;
+            } else {
+              UI.showPopup("Failed to update due date.", "Error");
+            }
+          }
+          dateInput.replaceWith(dueBadge);
+          renderDueBadge();
+          loadTasks();
+        };
+
+        dateInput.addEventListener("change", saveDue);
+        dateInput.addEventListener("blur", saveDue);
+        dateInput.addEventListener("keydown", (ev) => {
+          if (ev.key === "Escape") {
+            hasSaved = true;
+            dateInput.replaceWith(dueBadge);
+          }
+        });
+
+        dueBadge.replaceWith(dateInput);
+        dateInput.focus();
+        if (typeof dateInput.showPicker === "function") {
+          try { dateInput.showPicker(); } catch { /* not supported/allowed — input stays focused */ }
+        }
+      };
+
+      dueBadge.addEventListener("click", editDueDate);
+      dueBadge.addEventListener("keydown", (e) => {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          e.stopPropagation();
+          editDueDate(e);
+        }
+      });
+
+      li.appendChild(dueBadge);
+    }
+
     li.appendChild(delBtn);
 
     // Toggle done (Optimistic update)
@@ -1107,43 +1193,29 @@ async function loadTasks() {
       input.focus();
     });
 
-    // Delete
-    // Delete (Bug 11: Undo)
+    // Delete (with a 4s Undo window before the DB delete actually fires)
     delBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
       li.style.display = "none";
-      
-      let undoClicked = false;
-      const toast = document.createElement("div");
-      toast.className = "toast glass-panel";
-      toast.innerHTML = `<span>Task deleted.</span> <button class="btn-primary btn-sm" style="margin-left:16px;">Undo</button>`;
-      toast.style.position = "fixed";
-      toast.style.bottom = "20px";
-      toast.style.left = "50%";
-      toast.style.transform = "translateX(-50%)";
-      toast.style.zIndex = "9999";
-      toast.style.display = "flex";
-      toast.style.alignItems = "center";
-      toast.style.padding = "12px 24px";
-      
-      document.body.appendChild(toast);
-      
-      toast.querySelector("button").addEventListener("click", () => {
-        undoClicked = true;
-        li.style.display = "";
-        toast.remove();
+
+      let undone = false;
+      UI.showToast("Task deleted.", {
+        duration: 4000,
+        actionLabel: "Undo",
+        onAction: () => {
+          undone = true;
+          li.style.display = "";
+        },
       });
-      
+
       setTimeout(async () => {
-        if (toast.parentNode) toast.remove();
-        if (!undoClicked) {
-           const ok = await Tasks.delete(t.id);
-           if (!ok) {
-             li.style.display = "";
-             UI.showPopup("Failed to delete task.", "Error");
-           } else {
-             loadTasks();
-           }
+        if (undone) return;
+        const ok = await Tasks.delete(t.id);
+        if (!ok) {
+          li.style.display = "";
+          UI.showPopup("Failed to delete task.", "Error");
+        } else {
+          loadTasks();
         }
       }, 4000);
     });
@@ -1181,6 +1253,7 @@ async function loadTasks() {
 function bindTasks() {
   $("btn-add-todo")?.addEventListener("click", async () => {
     const input = $("todo-input");
+    const dueInput = $("todo-due-date");
     const text = input?.value.trim();
     if (!text) {
       if (input) {
@@ -1190,8 +1263,10 @@ function bindTasks() {
       }
       return;
     }
+    const dueDate = dueInput?.value || null;
     input.value = "";
-    await Tasks.add(text);
+    if (dueInput) dueInput.value = "";
+    await Tasks.add(text, dueDate);
     loadTasks();
   });
 
@@ -1279,9 +1354,12 @@ function renderCalendar() {
     const examsForDate = cachedExams.filter((e) => e.exam_date === dateStr);
     const maxExamsToShow = 2;
 
+    const isPastDate = dateStr < todayStr;
+
     examsForDate.slice(0, maxExamsToShow).forEach((exam) => {
       const bar = document.createElement("div");
-      bar.className = `exam-bar diff-${(exam.difficulty || "Medium").toLowerCase()} status-${(exam.status || "Scheduled").toLowerCase()}`;
+      const status = (exam.status || "Scheduled").toLowerCase();
+      bar.className = `exam-bar diff-${(exam.difficulty || "Medium").toLowerCase()} status-${status}${isPastDate && status !== "completed" ? " is-past" : ""}`;
       bar.textContent = exam.exam_name;
       bar.addEventListener("click", (evt) => {
         evt.stopPropagation();
@@ -1331,7 +1409,7 @@ function openExamModal(exam = null, dateStr = "") {
   const dateInput = $("exam-date");
   const maxDate = new Date();
   maxDate.setFullYear(maxDate.getFullYear() + 5);
-  if (dateInput) dateInput.max = maxDate.toISOString().slice(0, 10);
+  if (dateInput) dateInput.max = localDateStr(maxDate);
 
   if (exam) {
     // Editing an existing exam - show status and the delete affordance.
@@ -1350,7 +1428,7 @@ function openExamModal(exam = null, dateStr = "") {
     $("btn-delete-exam")?.classList.remove("hidden");
   } else {
     // Creating
-    if (dateInput) dateInput.min = new Date().toISOString().slice(0, 10);
+    if (dateInput) dateInput.min = localDateStr();
     $("modal-exam-title").textContent = "New exam";
     $("modal-exam-subtitle").textContent = "Add it to your calendar and we'll count down to the day.";
     $("btn-save-exam").textContent = "Add exam";
@@ -1371,7 +1449,10 @@ function openDayDetailModal(dateStr, exams) {
   if (!modal) return;
   ModalManager.open("day-detail-modal");
 
-  const formattedDate = new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  // T00:00:00 forces local-midnight parsing — bare `new Date(dateStr)`
+  // parses YYYY-MM-DD as UTC and can show the wrong day for negative-offset
+  // timezones.
+  const formattedDate = new Date(`${dateStr}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   $("modal-day-title").textContent = `Exams on ${formattedDate}`;
   
   const listEl = $("day-detail-list");
@@ -1384,16 +1465,26 @@ function openDayDetailModal(dateStr, exams) {
     item.style.background = "var(--surface-active)";
     item.style.borderRadius = "var(--r-md)";
     item.style.cursor = "pointer";
+    item.setAttribute("role", "button");
+    item.setAttribute("tabindex", "0");
+    item.setAttribute("aria-label", `Edit exam: ${exam.exam_name}`);
     item.innerHTML = `
       <div class="flex-column" style="gap: 4px; min-width: 0;">
         <span class="day-detail-exam-name">${esc(exam.exam_name)}</span>
         <span class="text-sm" style="color: var(--text-muted);">${exam.difficulty} • ${exam.status}</span>
       </div>
-      <span class="icon-btn">✎</span>
+      <span class="icon-btn" aria-hidden="true">✎</span>
     `;
-    item.addEventListener("click", () => {
+    const openForEdit = () => {
       ModalManager.close("day-detail-modal");
       openExamModal(exam, dateStr);
+    };
+    item.addEventListener("click", openForEdit);
+    item.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openForEdit();
+      }
     });
     listEl.appendChild(item);
   });
@@ -1503,7 +1594,7 @@ function renderDashboard() {
 
     if (sessions.length === 0) {
       const li = document.createElement("li");
-      li.innerHTML = "<span class='opacity-70'>No sessions yet — start a focus block to see it here.</span>";
+      li.innerHTML = "<span class='text-muted'>No sessions yet — start a focus block to see it here.</span>";
       list.appendChild(li);
     } else {
       // Only render the most recent handful; the full history stays in storage.
@@ -1517,7 +1608,7 @@ function renderDashboard() {
         }`;
 
         const right = document.createElement("span");
-        right.className = "opacity-70";
+        right.className = "text-muted";
         right.textContent = log.timestamp;
 
         li.appendChild(left);
@@ -1610,7 +1701,7 @@ function renderDashboardTasks(tasks) {
   const list = $("dash-today-tasks");
   if (!list) return;
 
-  const pending = tasks.filter((t) => !t.is_done).slice(0, 6);
+  const pending = sortTasksByUrgency(tasks.filter((t) => !t.is_done)).slice(0, 6);
   list.innerHTML = "";
 
   if (pending.length === 0) {
@@ -1777,7 +1868,7 @@ async function renderAnalytics() {
       return `
         <div class="dash-folder-row flex-between">
           <span><span class="dash-folder-dot" style="background:${safeColorLocal(info.color)};"></span>${esc(info.name)}</span>
-          <span class="opacity-70">${formatFocusTime(mins)}</span>
+          <span class="text-muted">${formatFocusTime(mins)}</span>
         </div>`;
     }).join("");
 
@@ -1862,7 +1953,7 @@ async function renderWeakTopics() {
     return;
   }
   el.classList.remove("hidden");
-  el.innerHTML = `<span class="opacity-70 text-sm">Struggling with: </span>` +
+  el.innerHTML = `<span class="text-muted text-sm">Struggling with: </span>` +
     topics.map((t) => `<span class="glass-pill" style="font-size:0.75rem; padding:4px 10px; margin:2px;">${esc(t.topic)}</span>`).join("");
 }
 
@@ -1890,7 +1981,7 @@ async function maybeRenderOnboardingBanner() {
     <div class="flex-between">
       <div>
         <h3>👋 Welcome to Learnora!</h3>
-        <p class="opacity-70 mt-8">Upload your first study material or add a task to get started — Learnora AI will build notes, flashcards, and quizzes from it.</p>
+        <p class="text-muted mt-8">Upload your first study material or add a task to get started — Learnora AI will build notes, flashcards, and quizzes from it.</p>
       </div>
       <button id="btn-dismiss-onboarding" class="icon-btn" aria-label="Dismiss">✖</button>
     </div>
@@ -1917,19 +2008,16 @@ function bindAI() {
     // Prevent the #ai hash from routing (there is no view-ai section,
     // which would hide the current view and fall back to the dashboard)
     e.preventDefault();
-    $("turbo-chat")?.classList.remove("hidden");
+    ModalManager.open("turbo-chat");
   });
 
   $("turbo-toggle")?.addEventListener("click", () => {
-    $("turbo-chat")?.classList.remove("hidden");
+    ModalManager.open("turbo-chat");
   });
 
   $("btn-ai-close")?.addEventListener("click", () => {
-    const modal = $("turbo-chat");
-    if (modal) {
-      modal.classList.add("hidden");
-      modal.classList.remove("fullscreen");
-    }
+    $("turbo-chat")?.classList.remove("fullscreen");
+    ModalManager.close("turbo-chat");
     // Bug 1 cleanup: ensure no orphaned teal ghosts
     document.querySelectorAll('.streaming-pulse, .ripple, .ai-widget, .avatar-circle').forEach(el => {
        if (el.parentNode === document.body) el.remove();
@@ -1970,7 +2058,7 @@ function bindAI() {
     btn.addEventListener("click", () => {
       const input = $("chat-input");
       if (!input) return;
-      $("turbo-chat")?.classList.remove("hidden");
+      ModalManager.open("turbo-chat");
       input.value = btn.dataset.chatPrompt;
       if (btn.dataset.chatSend) {
         $("btn-send-chat")?.click();
@@ -1984,11 +2072,7 @@ function bindAI() {
   $("dash-plan-week-btn")?.addEventListener("click", async () => {
     const btn = $("dash-plan-week-btn");
     const { Plans } = await import("./api.js");
-    const now = new Date();
-    const day = now.getDay();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - ((day + 6) % 7));
-    const weekStartISO = monday.toISOString().slice(0, 10);
+    const weekStartISO = localDateStr(mondayOfWeek());
     const existing = await Plans.fetchForWeek(weekStartISO);
     if (existing) {
       const ok = await UI.confirm(
@@ -2056,6 +2140,17 @@ function bindAI() {
   // "Regenerate" on the #plan view — upsert just overwrites this week's plan.
   $("btn-regenerate-plan")?.addEventListener("click", async () => {
     const btn = $("btn-regenerate-plan");
+    const { Plans } = await import("./api.js");
+    const weekStartISO = localDateStr(mondayOfWeek());
+    const existing = await Plans.fetchForWeek(weekStartISO);
+    if (existing) {
+      const ok = await UI.confirm(
+        "This will replace your current weekly plan. Continue?",
+        { title: "Regenerate Weekly Plan", confirmText: "Regenerate", danger: true },
+      );
+      if (!ok) return;
+    }
+
     const original = btn.textContent;
     btn.textContent = "⏳ Generating...";
     btn.disabled = true;
