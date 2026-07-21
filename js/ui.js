@@ -713,3 +713,35 @@ window.addEventListener("DOMContentLoaded", () => {
           }
       });
   }
+    // =====================================================
+  // 12. Floating AI Command Bar Execution Bridge
+  // =====================================================
+  const chatInputEl = $("chat-input");
+  const sendChatBtnEl = $("btn-send-chat");
+
+  if (chatInputEl && sendChatBtnEl) {
+      // Prevent duplicate event listeners by cloning or checking a flag
+      sendChatBtnEl.onclick = async () => {
+          const text = chatInputEl.value.trim();
+          if (!text) return;
+          chatInputEl.value = "";
+          
+          // Dynamically invoke AI.send if it exists
+          try {
+              const { AI } = await import("./ai.js");
+              if (AI && typeof AI.send === "function") {
+                  await AI.send(text);
+              }
+          } catch (err) {
+              console.error("[UI] Failed to dispatch AI message:", err);
+          }
+      };
+
+      chatInputEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendChatBtnEl.click();
+          }
+      });
+  }
+
