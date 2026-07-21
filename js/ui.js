@@ -558,4 +558,66 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+  // =====================================================
+  // 6. Turbo Button Toggle (Open & Close on Tap)
+  // =====================================================
+  const turboBtn = $("turbo-toggle");
+  const turboModal = $("turbo-chat");
+  
+  if (turboBtn && turboModal) {
+      // We use { capture: true } so this fires BEFORE your existing code does
+      turboBtn.addEventListener("click", (e) => {
+          const isCurrentlyOpen = !turboModal.classList.contains("hidden");
+          
+          if (isCurrentlyOpen) {
+              // It's open. Stop everything else and close it.
+              e.stopPropagation(); 
+              e.preventDefault();
+              turboModal.classList.add("hidden");
+              turboBtn.classList.remove("turbo-active");
+          } else {
+              // It's closed. Let the existing code open it, but add our spinning animation class
+              turboBtn.classList.add("turbo-active");
+          }
+      }, { capture: true });
+      
+      // If they close it using the 'X' inside the modal, reset the button animation
+      const closeBtn = $("btn-ai-close");
+      if (closeBtn) {
+          closeBtn.addEventListener("click", () => {
+              turboBtn.classList.remove("turbo-active");
+          });
+      }
+  }
+
+  // =====================================================
+  // 7. Personalized Splash Screen Greeting
+  // =====================================================
+  const splashScreen = $("global-loader");
+  const splashText = document.querySelector(".splash-content h2");
+  
+  if (splashScreen && splashText) {
+      try {
+          // Supabase caches the session locally. We grab it to greet the user by name instantly!
+          // The key is usually sb-[project-ref]-auth-token
+          const authStr = localStorage.getItem("sb-mlvgqwqiynpwpwzqufdf-auth-token");
+          let greeting = "Hello there!";
+          
+          if (authStr) {
+              const authData = JSON.parse(authStr);
+              const name = authData?.user?.user_metadata?.full_name;
+              if (name) {
+                  // Get just their first name
+                  greeting = `Hello, ${name.split(' ')[0]}!`; 
+              }
+          }
+          
+          // Inject the custom greeting with a beautiful sub-headline
+          splashText.innerHTML = `${greeting} <span style='display:block; font-size: 0.55em; opacity: 0.7; margin-top: 6px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase;'>Welcome to Learnora</span>`;
+          
+      } catch (e) {
+          // Safe fallback if they aren't logged in yet
+          splashText.innerHTML = `Hello! <span style='display:block; font-size: 0.55em; opacity: 0.7; margin-top: 6px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase;'>Welcome to Learnora</span>`;
+      }
+  }
 
