@@ -1817,5 +1817,25 @@
         </div>
 
         <script type="module" src="./js/main.js"></script>
+        <!-- ==========================================
+     DASHBOARD FLOATING AI COMMAND BAR
+============================================== -->
+<div id="dashboard-command-bar" class="dashboard-command-bar glass-panel">
+    <span class="command-bar-icon" aria-hidden="true">✨</span>
+    <input
+        type="text"
+        id="dashboard-command-input"
+        placeholder="Ask AI to do anything... (e.g. 'Start a 25m timer')"
+        autocomplete="off"
+        aria-label="Dashboard AI Command Bar"
+    />
+    <button id="dashboard-command-send" class="command-bar-btn" aria-label="Send AI Command">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+    </button>
+</div>
+
     </body>
 </html>
