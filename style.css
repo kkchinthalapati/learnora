@@ -3574,3 +3574,101 @@ body.dark-theme .stat-card::before {
 .pop-in {
     animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
+
+/* ==========================================================================
+   10. ANIMATION & MOBILE POLISH UPGRADES
+========================================================================== */
+
+/* --- A. Smooth View Transitions --- */
+/* Makes every section slide and fade in smoothly when switching tabs */
+@keyframes slideFadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(15px) scale(0.99); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
+}
+.view-section:not(.hidden) {
+    animation: slideFadeIn 0.45s var(--ease-spring) forwards;
+}
+
+/* --- B. Staggered Pop-ins for Lists & Grids --- */
+/* Gives a nice "pop" effect to cards and tasks as they load */
+@keyframes popInCard {
+    from { opacity: 0; transform: scale(0.92) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.grid-list > *, 
+.list-container > * {
+    animation: popInCard 0.4s var(--ease-spring) backwards;
+}
+/* Staggering the first few items */
+.grid-list > *:nth-child(1), .list-container > *:nth-child(1) { animation-delay: 0.05s; }
+.grid-list > *:nth-child(2), .list-container > *:nth-child(2) { animation-delay: 0.1s; }
+.grid-list > *:nth-child(3), .list-container > *:nth-child(3) { animation-delay: 0.15s; }
+.grid-list > *:nth-child(4), .list-container > *:nth-child(4) { animation-delay: 0.2s; }
+
+/* --- C. Interactive Element Enhancements --- */
+/* Add a subtle shine sweep to primary buttons on hover */
+.btn-primary {
+    position: relative;
+    overflow: hidden;
+}
+.btn-primary::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 50%; height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.25), transparent);
+    transform: skewX(-20deg);
+    transition: none;
+}
+.btn-primary:hover::after {
+    animation: shineSweep 0.6s ease-out forwards;
+}
+@keyframes shineSweep {
+    100% { left: 200%; }
+}
+
+/* --- D. Mobile Sidebar Backdrop --- */
+/* This darkens the rest of the app when the sidebar is open on phones */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 1, 13, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 45; /* Below sidebar, above content */
+    opacity: 0;
+    transition: opacity var(--t) ease;
+}
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* --- E. Mobile-Specific Fixes --- */
+@media (max-width: 768px) {
+    /* Prevent iOS Safari auto-zoom on inputs by forcing 16px font size */
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+    
+    /* Ensure the sidebar floats above everything when opened */
+    .sidebar {
+        z-index: 55;
+    }
+    
+    /* Give extra padding at the bottom of the main content so the floating AI button doesn't cover content */
+    .main-content {
+        padding-bottom: 100px; 
+    }
+    
+    /* Make touch targets on mobile a bit friendlier */
+    .icon-btn, .mini-timer-btn {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
