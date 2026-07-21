@@ -3670,3 +3670,130 @@ body.dark-theme .stat-card::before {
 .list-container > * {
     animation: none; 
 }
+
+/* ==========================================================================
+   11.  UX, RESPONSIVE & INTRO UPGRADES
+========================================================================== */
+
+/* --- 1. Cinematic Login Intro (No JS changes needed) --- */
+/* When the global loader appears, it reveals the logo & text FIRST, then the spinner */
+.global-loader:not(.hidden) {
+    animation: splashBackgroundIn 0.5s ease-out forwards;
+    display: flex !important;
+}
+.global-loader:not(.hidden) .splash-logo {
+    opacity: 0;
+    animation: 
+        logoReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards, 
+        logoFloat 2.5s ease-in-out infinite 0.8s;
+}
+.global-loader:not(.hidden) h2.text-gradient {
+    opacity: 0;
+    animation: textReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+}
+.global-loader:not(.hidden) .loader-wheel {
+    opacity: 0;
+    /* Waits 0.9s for the intro text animation to finish before showing the loading spinner */
+    animation: fadeInLoader 0.5s ease 0.9s forwards; 
+}
+
+@keyframes splashBackgroundIn {
+    from { backdrop-filter: blur(0px); background: transparent; }
+    to { backdrop-filter: blur(24px) saturate(150%); background: var(--bg); }
+}
+@keyframes logoReveal {
+    from { transform: scale(0.6) translateY(20px); opacity: 0; box-shadow: 0 0 0 var(--accent-glow); }
+    to { transform: scale(1) translateY(0); opacity: 1; box-shadow: 0 0 40px var(--accent-glow); }
+}
+@keyframes textReveal {
+    from { transform: translateY(15px); letter-spacing: -1px; opacity: 0; }
+    to { transform: translateY(0); letter-spacing: 4px; opacity: 1; }
+}
+@keyframes fadeInLoader {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+@keyframes logoFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+/* --- 2. Silky Smooth Turbo AI Modal Open/Close --- */
+/* We override the hard 'display: none' hidden class just for the AI chat to allow CSS transitions */
+#turbo-chat {
+    transition: transform 0.4s var(--ease-spring), opacity 0.3s ease, box-shadow 0.4s ease;
+    transform-origin: bottom right;
+}
+#turbo-chat.hidden {
+    display: flex !important; 
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: translateY(40px) scale(0.9) !important;
+}
+
+/* --- 3. Flawless Mobile Layout Adjustments --- */
+@media (max-width: 768px) {
+    /* Native iOS-style bottom sheet for AI Chat */
+    #turbo-chat {
+        width: 100vw !important;
+        height: calc(100vh - 40px) !important; /* Leave a small gap at top */
+        bottom: 0 !important;
+        right: 0 !important;
+        border-radius: 24px 24px 0 0 !important;
+        box-shadow: 0 -10px 40px rgba(0,0,0,0.5) !important;
+        transform-origin: bottom center;
+    }
+    
+    /* Instead of scaling, mobile slides completely off the bottom edge */
+    #turbo-chat.hidden {
+        transform: translateY(100%) scale(1) !important; 
+    }
+    
+    /* Make chat messages breathe on mobile */
+    .chat-feed {
+        padding: 16px 12px !important;
+    }
+    
+    /* Accommodate the iPhone home bar */
+    .chat-input-dock {
+        padding: 12px 8px !important;
+        padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
+    }
+    
+    /* Ensure action buttons wrap properly without squeezing */
+    .timer-controls {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    #btn-timer-reset {
+        grid-column: 1 / -1; /* Make reset span the bottom row */
+    }
+}
+
+/* --- 4. Interactive Micro-Enhancements (Global) --- */
+/* Give primary buttons a satisfying physical press effect */
+.btn-primary:active {
+    transform: scale(0.96) !important;
+    box-shadow: 0 2px 10px var(--accent-glow) !important;
+}
+
+/* Make glass panels feel responsive to the cursor */
+.glass-panel {
+    transition: transform 0.3s var(--ease-spring), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.glass-panel:hover {
+    border-color: var(--glass-highlight);
+    box-shadow: var(--glass-inner), 0 12px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--accent-ring);
+}
+body.dark-theme .glass-panel:hover {
+    box-shadow: var(--glass-inner), 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--accent-ring);
+}
+
+/* Inputs fluid focus jump */
+input, select, textarea {
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, background 0.3s ease;
+}
+input:focus, select:focus, textarea:focus {
+    transform: translateY(-2px);
+}
