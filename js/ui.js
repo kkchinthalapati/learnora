@@ -746,7 +746,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================================================
-  // Dashboard Command Bar Functionality
+  //  Dashboard Command Bar (Intent Parser)
   // =====================================================
   const cmdInput = $("dashboard-command-input");
   const cmdSend = $("dashboard-command-send");
@@ -759,32 +759,70 @@ window.addEventListener("DOMContentLoaded", () => {
           if (!query) return;
           cmdInput.value = "";
 
-          // 1. Open the Turbo AI chat modal if it is currently hidden
+          const lower = query.toLowerCase();
+
+          // --- 1. LOCAL INTENT PARSER (Instant Execution) ---
+          
+          // Intent: Start Timer (e.g., "start a 25m timer", "start timer")
+          if (lower.includes("timer") || lower.includes("focus session")) {
+              try {
+                  const { Timer } = await import("./timer.js");
+                  const match = query.match(/\d+/);
+                  const mins = match ? parseInt(match[0], 10) : 25;
+                  
+                  Timer.applyNow({ focus: mins }, "pomodoro");
+                  Timer.start();
+                  
+                  UI.showPopup(`Started a ${mins}-minute focus timer! ⏱️`, "Command Executed");
+                  return;
+              } catch (err) {
+                  console.warn("[Command Bar] Timer module load failed:", err);
+              }
+          }
+
+          // Intent: Add Task (e.g., "add task finish essay", "create task buy groceries")
+          if (lower.startsWith("add task") || lower.startsWith("create task")) {
+              const taskTitle = query.replace(/^(add task|create task)\s*/i, "").trim();
+              if (taskTitle) {
+                  const todos = Storage.get("todos", []);
+                  todos.unshift({ id: Date.now(), text: taskTitle, done: false, due: null });
+                  Storage.set("todos", todos);
+                  window.dispatchEvent(new Event("todosUpdated"));
+                  
+                  UI.showPopup(`Added task: "${taskTitle}" ✅`, "Task Created");
+                  return;
+              }
+          }
+
+          // Intent: Plan Week / Dashboard Shortcuts
+          if (lower.includes("plan my week") || lower.includes("weekly plan")) {
+              window.location.hash = "plan";
+              UI.showPopup("Navigated to your weekly plan! 🗓️", "Workspace Action");
+              return;
+          }
+
+          if (lower.includes("exam") || lower.includes("calendar")) {
+              window.location.hash = "exams";
+              UI.showPopup("Opened your exam calendar! 📅", "Workspace Action");
+              return;
+          }
+
+          // --- 2. FALLBACK: ROUTE TO TURBO AI CHAT ---
           if (turboModal && turboModal.classList.contains("hidden")) {
               turboModal.classList.remove("hidden");
               if (turboToggleBtn) turboToggleBtn.classList.add("turbo-active");
           }
 
-          // 2. Pass the text to the main chat input inside the modal
-          const mainChatInput = $("chat-input");
-          const mainSendBtn = $("btn-send-chat");
-          
-          if (mainChatInput) {
-              mainChatInput.value = query;
-          }
-
-          // 3. Trigger the chat submission programmatically or via AI module
-          if (mainSendBtn) {
-              mainSendBtn.click();
-          } else {
-              try {
-                  const { AI } = await import("./ai.js");
-                  if (AI && typeof AI.send === "function") {
-                      await AI.send(query);
-                  }
-              } catch (e) {
-                  console.error("[Command Bar] Error routing query to AI:", e);
+          try {
+              const { AI } = await import("./ai.js");
+              const mainChatInput = $("chat-input");
+              if (mainChatInput) mainChatInput.value = query;
+              
+              if (AI && typeof AI.send === "function") {
+                  await AI.send(query);
               }
+          } catch (e) {
+              console.error("[Command Bar] Error routing query to AI:", e);
           }
       };
 
@@ -796,4 +834,5 @@ window.addEventListener("DOMContentLoaded", () => {
           }
       });
   }
+
 
