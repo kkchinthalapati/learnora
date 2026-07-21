@@ -4036,4 +4036,84 @@ boot
     from { opacity: 0; transform: scale(0.8); }
     to { opacity: 0.4; transform: scale(1); } /* Kept at 40% opacity for elegance */
 }
+/* ==========================================================================
+   17. QUIZ & FLASHCARD CARD LAYOUT FIXES
+========================================================================== */
+
+/* 1. Force the card into a proper flex row so items don't crush each other */
+#quizzes-grid > div,
+#flashcards-grid > div,
+#workspace-quizzes-list > div,
+#workspace-decks-list > div {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 20px !important;
+    padding: 24px 20px !important;
+}
+
+/* 2. Give the text container room to breathe and align it left */
+#quizzes-grid > div > div:first-of-type,
+#flashcards-grid > div > div:first-of-type,
+#workspace-quizzes-list > div > div:first-of-type,
+#workspace-decks-list > div > div:first-of-type {
+    flex: 1 1 auto !important;
+    min-width: 0 !important; /* Prevents long titles from breaking the layout */
+    text-align: left !important;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* 3. Stop the title and icon from centering awkwardly */
+#quizzes-grid > div h3,
+#flashcards-grid > div h3,
+#workspace-quizzes-list > div h3,
+#workspace-decks-list > div h3,
+#quizzes-grid > div h4,
+#flashcards-grid > div h4 {
+    text-align: left !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin: 0 !important;
+    font-size: var(--fs-md) !important;
+    line-height: 1.3 !important;
+}
+
+/* 4. Fix the weird pink square button - force it into a premium pill */
+#quizzes-grid > div button,
+#flashcards-grid > div button,
+#workspace-quizzes-list > div button,
+#workspace-decks-list > div button {
+    flex: 0 0 auto !important; /* Strictly prevents the button from being squished */
+    padding: 10px 24px !important;
+    border-radius: var(--r-md) !important;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%) !important;
+    color: var(--accent-on) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+    font-weight: 600 !important;
+    font-size: var(--fs-sm) !important;
+    white-space: nowrap !important; /* Forces the text to stay on one line */
+    min-width: max-content !important;
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s ease !important;
+}
+
+/* 5. Add a satisfying hover/press effect to the newly styled buttons */
+#quizzes-grid > div button:hover,
+#flashcards-grid > div button:hover,
+#workspace-quizzes-list > div button:hover,
+#workspace-decks-list > div button:hover {
+    transform: translateY(-2px) scale(1.02) !important;
+    box-shadow: var(--shadow-accent), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 20px var(--accent-glow) !important;
+}
+
+#quizzes-grid > div button:active,
+#flashcards-grid > div button:active,
+#workspace-quizzes-list > div button:active,
+#workspace-decks-list > div button:active {
+    transform: scale(0.96) !important;
+}
 
