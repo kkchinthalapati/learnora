@@ -698,3 +698,18 @@ window.addEventListener("DOMContentLoaded", () => {
   if (chatInputBox) {
       chatInputBox.placeholder = "✨ Ask AI to do anything... (e.g. 'Start a 25m timer')";
   }
+  // =====================================================
+  // 11. Command Bar Enter-Key Handler & UI Vibe Sync
+  // =====================================================
+  const chatInput = $("chat-input");
+  const sendChatBtn = $("btn-send-chat");
+
+  if (chatInput && sendChatBtn) {
+      // Allow pressing 'Enter' inside the command bar to send the prompt immediately
+      chatInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendChatBtn.click();
+          }
+      });
+  }
