@@ -3899,3 +3899,25 @@ input:focus, select:focus, textarea:focus {
     color: var(--accent-on) !important;
     border-color: transparent !important;
 }
+/* ==========================================================================
+   14. TURBO ICON PLACEMENT FIX
+========================================================================== */
+
+/* Force the turbo button to stay anchored to the bottom right */
+#turbo-toggle {
+    top: auto !important; /* Clear any accidental top positioning */
+    /* Use safe-area-inset to prevent overlapping with mobile home bars */
+    bottom: max(32px, env(safe-area-inset-bottom, 32px)) !important;
+    right: max(24px, env(safe-area-inset-right, 24px)) !important;
+    position: fixed !important;
+    z-index: 990 !important;
+}
+
+/* Ensure the mini-timer doesn't overlap the turbo button on mobile */
+@media (max-width: 768px) {
+    .mini-timer {
+        bottom: max(32px, env(safe-area-inset-bottom, 32px)) !important;
+        /* Keep it on the left so it balances the Turbo button on the right */
+        left: max(20px, env(safe-area-inset-left, 20px)) !important; 
+    }
+}
