@@ -4117,3 +4117,77 @@ boot
     transform: scale(0.96) !important;
 }
 
+/* ==========================================================================
+   17.  QUIZ & FLASHCARD LAYOUT FIX
+========================================================================== */
+
+
+#quizzes-grid > *,
+#flashcards-grid > *,
+#workspace-quizzes-list > *,
+#workspace-decks-list > * {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    padding: 20px 24px !important;
+    text-align: left !important;
+}
+
+/* 2. Force the text block to expand and align left */
+#quizzes-grid > * > *:first-child,
+#flashcards-grid > * > *:first-child,
+#workspace-quizzes-list > * > *:first-child,
+#workspace-decks-list > * > *:first-child {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+}
+
+/* 3. Remove any forced centering on text */
+#quizzes-grid h3, #quizzes-grid p, #quizzes-grid span,
+#flashcards-grid h3, #flashcards-grid p, #flashcards-grid span,
+#workspace-quizzes-list h3, #workspace-quizzes-list p,
+#workspace-decks-list h3, #workspace-decks-list p {
+    text-align: left !important;
+    justify-content: flex-start !important;
+}
+
+/* 4. Destroy the square shape and force a premium pill button */
+#quizzes-grid button,
+#flashcards-grid button,
+#workspace-quizzes-list button,
+#workspace-decks-list button {
+    flex: 0 0 auto !important;
+    width: auto !important;        /* Kills the fixed square width */
+    min-width: 100px !important;
+    max-width: fit-content !important;
+    height: auto !important;       /* Kills the fixed square height */
+    aspect-ratio: auto !important; /* Kills square aspect ratio */
+    padding: 10px 24px !important;
+    border-radius: var(--r-md) !important;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%) !important;
+    color: var(--accent-on) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+    font-weight: 600 !important;
+    font-size: var(--fs-sm) !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+}
+
+/* 5. Hover state for the button */
+#quizzes-grid button:hover,
+#flashcards-grid button:hover,
+#workspace-quizzes-list button:hover,
+#workspace-decks-list button:hover {
+    transform: translateY(-2px) scale(1.02) !important;
+    box-shadow: var(--shadow-accent), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 20px var(--accent-glow) !important;
+}
+
