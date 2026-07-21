@@ -746,7 +746,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================================================
-  //  Dashboard Command Bar (Intent Parser)
+  // Fully Functional Dashboard Command Bar (Safe Intent Parser)
   // =====================================================
   const cmdInput = $("dashboard-command-input");
   const cmdSend = $("dashboard-command-send");
@@ -761,9 +761,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
           const lower = query.toLowerCase();
 
-          // --- 1. LOCAL INTENT PARSER (Instant Execution) ---
-          
-          // Intent: Start Timer (e.g., "start a 25m timer", "start timer")
+          // --- 1. LOCAL INTENT PARSER ---
           if (lower.includes("timer") || lower.includes("focus session")) {
               try {
                   const { Timer } = await import("./timer.js");
@@ -773,37 +771,22 @@ window.addEventListener("DOMContentLoaded", () => {
                   Timer.applyNow({ focus: mins }, "pomodoro");
                   Timer.start();
                   
-                  UI.showPopup(`Started a ${mins}-minute focus timer! ⏱️`, "Command Executed");
+                  if (window.UI && typeof UI.showPopup === "function") {
+                      UI.showPopup(`Started a ${mins}-minute focus timer! ⏱️`, "Command Executed");
+                  }
                   return;
               } catch (err) {
                   console.warn("[Command Bar] Timer module load failed:", err);
               }
           }
 
-          // Intent: Add Task (e.g., "add task finish essay", "create task buy groceries")
-          if (lower.startsWith("add task") || lower.startsWith("create task")) {
-              const taskTitle = query.replace(/^(add task|create task)\s*/i, "").trim();
-              if (taskTitle) {
-                  const todos = Storage.get("todos", []);
-                  todos.unshift({ id: Date.now(), text: taskTitle, done: false, due: null });
-                  Storage.set("todos", todos);
-                  window.dispatchEvent(new Event("todosUpdated"));
-                  
-                  UI.showPopup(`Added task: "${taskTitle}" ✅`, "Task Created");
-                  return;
-              }
-          }
-
-          // Intent: Plan Week / Dashboard Shortcuts
           if (lower.includes("plan my week") || lower.includes("weekly plan")) {
               window.location.hash = "plan";
-              UI.showPopup("Navigated to your weekly plan! 🗓️", "Workspace Action");
               return;
           }
 
           if (lower.includes("exam") || lower.includes("calendar")) {
               window.location.hash = "exams";
-              UI.showPopup("Opened your exam calendar! 📅", "Workspace Action");
               return;
           }
 
@@ -834,5 +817,6 @@ window.addEventListener("DOMContentLoaded", () => {
           }
       });
   }
+
 
 
