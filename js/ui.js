@@ -671,7 +671,7 @@ window.addEventListener("DOMContentLoaded", () => {
           }
       }, { capture: true });
   }
-  // =====================================================
+    // =====================================================
   // 10. Custom Theme Color Picker & Command Bar Polish
   // =====================================================
   const accentSelect = $("config-accent-color");
