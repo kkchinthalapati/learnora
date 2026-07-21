@@ -4224,3 +4224,33 @@ boot
         overflow: hidden !important;
     }
 }
+/* ==========================================================================
+   19. DROPDOWN (SELECT) REPEATING ICON FIX
+========================================================================== */
+
+/* 1. Strictly enforce no-repeat and positioning across ALL states */
+select, 
+select:focus, 
+body.dark-theme select, 
+body.dark-theme select:focus {
+    background-repeat: no-repeat !important;
+    background-position: right 14px center !important;
+}
+
+/* 2. Fix the focus state so it only changes the color, not the whole background config */
+input:not([type="radio"]):not([type="checkbox"]):not([type="file"]):focus,
+select:focus,
+textarea:focus {
+    background-color: var(--surface) !important;
+    background-image: none; /* Let the select override this below */
+}
+
+/* 3. Ensure the custom dropdown arrow remains intact during focus */
+select:focus {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235a6880' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+}
+
+body.dark-theme select:focus {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238c96aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+}
+
