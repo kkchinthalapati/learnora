@@ -620,4 +620,27 @@ window.addEventListener("DOMContentLoaded", () => {
           splashText.innerHTML = `Hello! <span style='display:block; font-size: 0.55em; opacity: 0.7; margin-top: 6px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase;'>Welcome to Learnora</span>`;
       }
   }
+  // =====================================================
+  // 8. Cinematic Boot Sequence (Minimum Load Time)
+  // =====================================================
+  
+  // Save a reference to your original function
+  const originalSetGlobalLoading = UI.setGlobalLoading;
+  let isInitialBoot = true;
+
+  // Safely overwrite the function to intercept the "hide" command
+  UI.setGlobalLoading = function(isLoading) {
+      if (!isLoading && isInitialBoot) {
+          // If the app tries to hide the loader on first boot, intercept it.
+          // Force the splash screen to stay visible for 2 seconds to play the cool animation.
+          setTimeout(() => {
+              // Now call the original function to actually hide it
+              originalSetGlobalLoading.call(UI, false);
+              isInitialBoot = false;
+          }, 2000); 
+      } else {
+          // If it's a normal loading event (like fetching a quiz), just run normally
+          originalSetGlobalLoading.call(UI, isLoading);
+      }
+  };
 
