@@ -745,8 +745,8 @@ window.addEventListener("DOMContentLoaded", () => {
       });
   }
 
-  // =====================================================
-  // Fully Functional Dashboard Command Bar (Safe Intent Parser)
+    // =====================================================
+  // Dashboard Command Bar (Direct Chat Route)
   // =====================================================
   const cmdInput = $("dashboard-command-input");
   const cmdSend = $("dashboard-command-send");
@@ -754,58 +754,28 @@ window.addEventListener("DOMContentLoaded", () => {
   const turboToggleBtn = $("turbo-toggle");
 
   if (cmdInput && cmdSend) {
-      const handleCommand = async () => {
+      const handleCommand = () => {
           const query = cmdInput.value.trim();
           if (!query) return;
           cmdInput.value = "";
 
-          const lower = query.toLowerCase();
-
-          // --- 1. LOCAL INTENT PARSER ---
-          if (lower.includes("timer") || lower.includes("focus session")) {
-              try {
-                  const { Timer } = await import("./timer.js");
-                  const match = query.match(/\d+/);
-                  const mins = match ? parseInt(match[0], 10) : 25;
-                  
-                  Timer.applyNow({ focus: mins }, "pomodoro");
-                  Timer.start();
-                  
-                  if (window.UI && typeof UI.showPopup === "function") {
-                      UI.showPopup(`Started a ${mins}-minute focus timer! ⏱️`, "Command Executed");
-                  }
-                  return;
-              } catch (err) {
-                  console.warn("[Command Bar] Timer module load failed:", err);
-              }
-          }
-
-          if (lower.includes("plan my week") || lower.includes("weekly plan")) {
-              window.location.hash = "plan";
-              return;
-          }
-
-          if (lower.includes("exam") || lower.includes("calendar")) {
-              window.location.hash = "exams";
-              return;
-          }
-
-          // --- 2. FALLBACK: ROUTE TO TURBO AI CHAT ---
+          // 1. Open the Turbo AI chat modal if it's currently hidden
           if (turboModal && turboModal.classList.contains("hidden")) {
               turboModal.classList.remove("hidden");
               if (turboToggleBtn) turboToggleBtn.classList.add("turbo-active");
           }
 
-          try {
-              const { AI } = await import("./ai.js");
-              const mainChatInput = $("chat-input");
-              if (mainChatInput) mainChatInput.value = query;
-              
-              if (AI && typeof AI.send === "function") {
-                  await AI.send(query);
-              }
-          } catch (e) {
-              console.error("[Command Bar] Error routing query to AI:", e);
+          // 2. Locate the main chat input inside the Turbo modal and set its value
+          const mainChatInput = $("chat-input");
+          const mainSendBtn = $("btn-send-chat");
+
+          if (mainChatInput) {
+              mainChatInput.value = query;
+          }
+
+          // 3. Programmatically click the main chat send button to execute the request
+          if (mainSendBtn) {
+              mainSendBtn.click();
           }
       };
 
@@ -817,6 +787,4 @@ window.addEventListener("DOMContentLoaded", () => {
           }
       });
   }
-
-
 
