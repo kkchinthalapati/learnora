@@ -3649,26 +3649,24 @@ body.dark-theme .stat-card::before {
     opacity: 1;
 }
 
-/* --- E. Mobile-Specific Fixes --- */
-@media (max-width: 768px) {
-    /* Prevent iOS Safari auto-zoom on inputs by forcing 16px font size */
-    input, select, textarea {
-        font-size: 16px !important;
+/* --- B. Refined Smooth Transitions (Less intrusive) --- */
+/* Replaces the aggressive pop-in with a gentle slide-fade for the main views only */
+@keyframes subtleFadeUp {
+    from { 
+        opacity: 0; 
+        transform: translateY(8px); 
     }
-    
-    /* Ensure the sidebar floats above everything when opened */
-    .sidebar {
-        z-index: 55;
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
     }
-    
-    /* Give extra padding at the bottom of the main content so the floating AI button doesn't cover content */
-    .main-content {
-        padding-bottom: 100px; 
-    }
-    
-    /* Make touch targets on mobile a bit friendlier */
-    .icon-btn, .mini-timer-btn {
-        min-width: 44px;
-        min-height: 44px;
-    }
+}
+.view-section:not(.hidden) {
+    animation: subtleFadeUp 0.3s var(--ease-spring) forwards;
+}
+
+/* Remove the global list item pop-in to prevent constant flashing */
+.grid-list > *, 
+.list-container > * {
+    animation: none; 
 }
