@@ -3839,3 +3839,63 @@ input:focus, select:focus, textarea:focus {
     border-color: var(--glass-border) !important;
     box-shadow: var(--glass-inner) !important;
 }
+
+/* ==========================================================================
+   13. WEEKLY PLAN HORIZONTAL SCROLL & TAP HIGHLIGHTS
+========================================================================== */
+
+/* 1. Enable buttery smooth momentum scrolling on iOS/mobile */
+.plan-week-grid {
+    -webkit-overflow-scrolling: touch !important;
+    scroll-behavior: smooth;
+    
+    /* Enable scroll snapping so cards stop perfectly in the center */
+    scroll-snap-type: x mandatory;
+    
+    /* Hide scrollbars for a cleaner UI while keeping it fully scrollable */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    
+    /* Add padding to prevent the glowing borders from clipping while scrolling */
+    padding: 16px 8px 24px 8px !important; 
+    margin: -16px -8px -24px -8px !important;
+}
+.plan-week-grid::-webkit-scrollbar {
+    display: none !important;
+}
+
+/* Make cards snap nicely into view when swiping */
+.plan-day-card {
+    scroll-snap-align: start;
+    -webkit-tap-highlight-color: transparent;
+}
+@media (max-width: 768px) {
+    .plan-day-card {
+        scroll-snap-align: center; /* Centers the card on phone screens */
+    }
+}
+
+/* 2. Add satisfying physical tap feedback (highlighting) to the tasks */
+.plan-block {
+    transition: transform 0.15s var(--ease-spring), background 0.15s ease, border-color 0.15s ease !important;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* When the user touches/taps a specific task block */
+.plan-block:active {
+    transform: scale(0.96) !important;
+    background: var(--surface-active) !important;
+    border-color: var(--accent) !important;
+}
+
+/* Make the start buttons inside feel incredibly snappy on tap */
+.plan-block button {
+    transition: transform 0.15s var(--ease-spring), background 0.15s ease !important;
+}
+.plan-block button:active {
+    transform: scale(0.88) !important;
+    background: var(--accent) !important;
+    color: var(--accent-on) !important;
+    border-color: transparent !important;
+}
