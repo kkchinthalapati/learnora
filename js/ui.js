@@ -787,3 +787,33 @@ window.addEventListener("DOMContentLoaded", () => {
       });
   }
 
+  // =====================================================
+  // 14. Failsafe Loader Clear (Prevents infinite loading)
+  // =====================================================
+  const originalSetGlobalLoading = UI.setGlobalLoading;
+  let hasBooted = false;
+
+  UI.setGlobalLoading = function(isLoading) {
+      if (!isLoading) {
+          if (hasBooted) return;
+          hasBooted = true;
+          
+          // Gracefully fade out after a smooth 1.5s visual intro
+          setTimeout(() => {
+              originalSetGlobalLoading.call(UI, false);
+          }, 1500);
+      } else {
+          originalSetGlobalLoading.call(UI, true);
+      }
+  };
+
+  // ULTIMATE FAILSAFE: If the app hasn't cleared the loader in 3.5 seconds, 
+  // force it open so you never get trapped on a black screen.
+  setTimeout(() => {
+      const loader = $("global-loader");
+      if (loader && !loader.classList.contains("hidden")) {
+          console.warn("[Failsafe] Loader took too long. Forcing app open.");
+          originalSetGlobalLoading.call(UI, false);
+          hasBooted = true;
+      }
+  }, 3500);
