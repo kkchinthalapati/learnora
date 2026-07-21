@@ -414,11 +414,34 @@ export const UI = {
     this._updateThemeIcon();
   },
 
+  setAccentTheme(themeName, customColor = null) {
+    // Remove existing theme classes
+    document.body.className = Array.from(document.body.classList).filter(c => c === 'dark-theme').join(' ');
+    
+    if (themeName !== 'default') {
+        document.body.classList.add(`theme-${themeName}`);
+    }
+
+    if (themeName === 'custom' && customColor) {
+        document.body.style.setProperty('--accent', customColor);
+    } else {
+        document.body.style.removeProperty('--accent');
+    }
+
+    Storage.set('learnora_accent_theme', { name: themeName, color: customColor });
+  },
+
   initTheme() {
     const saved = Storage.get(THEME_KEY);
     if (saved === "light") {
       document.body.classList.remove("dark-theme");
     }
+    
+    const savedAccent = Storage.get('learnora_accent_theme');
+    if (savedAccent) {
+        this.setAccentTheme(savedAccent.name, savedAccent.color);
+    }
+
     this._updateThemeIcon();
   },
 

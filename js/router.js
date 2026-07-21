@@ -421,7 +421,14 @@ export const Router = {
     if (!container) { UI.setGlobalLoading(false); return; }
 
     front.textContent = "Loading cards...";
-    back.classList.add("hidden");
+    back.innerHTML = "";
+    container.style.transform = "rotateY(0deg)";
+    $("ai-grading-pane")?.classList.remove("hidden");
+    const aiInput = $("ai-flashcard-input");
+    const aiFeedback = $("ai-grading-feedback");
+    if (aiInput) aiInput.value = "";
+    if (aiFeedback) { aiFeedback.classList.add("hidden"); aiFeedback.innerHTML = ""; }
+    
     controls.classList.add("hidden");
     hint.classList.add("hidden");
 
@@ -453,15 +460,50 @@ export const Router = {
       front.innerHTML = esc(card.front).replace(/\n/g, '<br/>');
       back.innerHTML = esc(card.back).replace(/\n/g, '<br/>');
       
-      back.classList.add("hidden");
+      container.style.transform = "rotateY(0deg)";
+      if (aiInput) {
+          aiInput.value = "";
+          aiInput.disabled = false;
+          aiInput.focus();
+      }
+      if (aiFeedback) aiFeedback.classList.add("hidden");
+
       controls.classList.add("hidden");
       hint.classList.remove("hidden");
     };
 
+    // Auto-grading binding
+    if (aiInput) {
+        // Clone to remove old listeners
+        const freshInput = aiInput.cloneNode(true);
+        aiInput.replaceWith(freshInput);
+        freshInput.addEventListener("keydown", async (e) => {
+            if (e.key === "Enter" && freshInput.value.trim()) {
+                const answer = freshInput.value.trim();
+                freshInput.disabled = true;
+                
+                // Flip the card
+                container.style.transform = "rotateY(180deg)";
+                hint.classList.add("hidden");
+                controls.classList.remove("hidden");
+                
+                const aiFeedbackPane = $("ai-grading-feedback");
+                if (aiFeedbackPane) {
+                    aiFeedbackPane.classList.remove("hidden");
+                    aiFeedbackPane.innerHTML = "<span class='ai-thinking'><span class='dot'></span><span class='dot'></span><span class='dot'></span></span> <em>Grading...</em>";
+                }
+                
+                const card = cards[currentIndex];
+                const { AI } = await import("./ai.js");
+                AI.send(`Please evaluate my flashcard answer.\nFront: ${card.front}\nBack: ${card.back}\nMy Answer: ${answer}\n\nRespond as a tutor giving me direct feedback on what I got right or wrong, and use your Agentic Action tag <GRADE_FLASHCARD>SCORE</GRADE_FLASHCARD> to autonomously score me from 1 (Again), 2 (Hard), 3 (Good), or 4 (Easy).`);
+            }
+        });
+    }
+
     container.onclick = () => {
       if (currentIndex >= cards.length) return;
-      if (back.classList.contains("hidden")) {
-        back.classList.remove("hidden");
+      if (container.style.transform !== "rotateY(180deg)") {
+        container.style.transform = "rotateY(180deg)";
         hint.classList.add("hidden");
         controls.classList.remove("hidden");
       }

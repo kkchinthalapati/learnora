@@ -588,15 +588,15 @@ GROUNDING RULES (important — follow exactly):
 - If "Pending Tasks" is "None", tell the student they have no pending tasks yet — do NOT make any up.
 - If the student mentions something you don't see in the workspace, say you don't see it rather than fabricating details.
 
-CAPABILITIES:
-- To create a task, emit the tag <ADD_TASK>the task name</ADD_TASK>. The app executes this tag and displays it to the student as the task's name, so lead into it naturally (e.g. "Done — I've added this to your tasks: <ADD_TASK>Review Chapter 3</ADD_TASK>") and do not repeat the same name elsewhere in the sentence. Only create a task when the student clearly asks you to.
-- To generate a formal interactive quiz, emit the tag <ADD_QUIZ>Topic Name</ADD_QUIZ>. The app will generate a quiz for that topic.
-- To generate a formal weekly study schedule, emit the tag <ADD_PLAN></ADD_PLAN>. The app will build a weekly plan and navigate the user there.
-- To start a focus timer, emit the tag <START_TIMER>25</START_TIMER> with the number of minutes. Only do this when the student explicitly asks to start studying/focusing for a specific duration.
-- To switch the app's theme, emit <SET_THEME>dark</SET_THEME> or <SET_THEME>light</SET_THEME> when the student asks to change the theme/appearance.
-- Answer questions about the student's current study material.
-- Help with exam prep, concept explanations, and study strategies.
-- Be conversational, supportive, and concise.
+CAPABILITIES (AGENTIC ACTION CONTROLLER):
+- To create a task, emit the tag <ADD_TASK>the task name</ADD_TASK>.
+- To generate a formal interactive quiz, emit the tag <ADD_QUIZ>Topic Name</ADD_QUIZ>.
+- To generate a formal weekly study schedule, emit the tag <ADD_PLAN></ADD_PLAN>.
+- To start a focus timer, emit the tag <START_TIMER>25</START_TIMER> with the number of minutes. The app will autonomously navigate to the timer and start it.
+- To switch the app's theme, emit <SET_THEME>theme_name</SET_THEME> (e.g. 'ocean', 'forest', 'sunset', 'rose', 'default', 'custom'). The app will autonomously apply the theme.
+- To navigate the user to a specific view, emit <NAVIGATE>view_id</NAVIGATE> (e.g., 'dashboard', 'timer', 'todo', 'plan', 'exams', 'flashcards', 'quizzes', 'settings').
+- If the user is on 'review' and types a flashcard answer, evaluate their answer, provide feedback in text, and emit <GRADE_FLASHCARD>SCORE</GRADE_FLASHCARD> where SCORE is 1 (Again), 2 (Hard), 3 (Good), or 4 (Easy).
+- Act as the central nervous system of the app. If the user asks you to do something, use your tags to execute it immediately.
 
 User message: ${query}`;
 
@@ -628,7 +628,7 @@ User message: ${query}`;
       // state rather than a typing cursor that implies text is arriving
       // gradually.
       const typingBubble = this._appendBubble('<span class="ai-thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>', "ai-bubble", true, bubbleId);
-      const modal = $("turbo-chat");
+      const modal = $("learnora-ai-chat");
       if (modal) modal.classList.add("streaming");
 
       let currentText = "";
@@ -647,13 +647,20 @@ User message: ${query}`;
                                .replace(/<START_TIMER>[\s\S]*?<\/START_TIMER>/g, "")
                                .replace(/<SET_THEME>[\s\S]*?<\/SET_THEME>/g, "")
                                .replace(/<ADD_QUIZ>[\s\S]*?<\/ADD_QUIZ>/g, "")
-                               .replace(/<ADD_PLAN>[\s\S]*?<\/ADD_PLAN>/g, "");
+                               .replace(/<ADD_PLAN>[\s\S]*?<\/ADD_PLAN>/g, "")
+                               .replace(/<NAVIGATE>[\s\S]*?<\/NAVIGATE>/g, "")
+                               .replace(/<GRADE_FLASHCARD>[\s\S]*?<\/GRADE_FLASHCARD>/g, "");
 
          // The callback fires once with the complete text (no real
          // incremental streaming), so there's nothing left "in progress" —
          // render the final content with no trailing cursor.
          typingBubble.innerHTML = this.renderMarkdown(display);
          msgBox.scrollTop = msgBox.scrollHeight;
+         
+         const aiFeedbackPane = $("ai-grading-feedback");
+         if (aiFeedbackPane && !aiFeedbackPane.classList.contains("hidden")) {
+             aiFeedbackPane.innerHTML = this.renderMarkdown(display);
+         }
       });
 
       if (modal) modal.classList.remove("streaming");
@@ -683,13 +690,12 @@ User message: ${query}`;
       if ((match = startTimerRegex.exec(currentText)) !== null) {
          const mins = parseInt(match[1]);
          if (!isNaN(mins)) {
-           if (await UI.confirm(`AI wants to start a ${mins}-minute focus timer.\n\nAllow this?`, { title: "AI Timer Start", confirmText: "Start Timer" })) {
-             // Simulate clicking the timer tab and starting it
+             // Autonomously start the timer
              const focusInput = $("config-focus");
              if (focusInput) focusInput.value = mins;
              const typeRadio = document.querySelector('input[name="timer-type"][value="countdown"]');
              if (typeRadio) typeRadio.checked = true;
-             UI.switchTab("timer");
+             window.location.hash = "timer";
              
              // If UI script can listen, great. Otherwise we manually trigger:
              const applyBtn = $("btn-apply-timer");
@@ -698,24 +704,45 @@ User message: ${query}`;
              setTimeout(() => { if (startBtn) startBtn.click(); }, 300);
              timerStarted = true;
              startedTimerMins = mins;
-           }
          }
       }
       
       let themeChangedTo = "";
       // Parse <SET_THEME>
-      const themeRegex = /<SET_THEME>(dark|light)<\/SET_THEME>/gi;
+      const themeRegex = /<SET_THEME>([\s\S]*?)<\/SET_THEME>/gi;
       if ((match = themeRegex.exec(currentText)) !== null) {
-         const theme = match[1].toLowerCase();
-         if (await UI.confirm(`AI wants to switch to ${theme} mode.\n\nAllow this?`, { title: "AI Theme Change", confirmText: "Switch Theme" })) {
-           // The app's theme system only uses "dark-theme" / no-class (light).
-           if (theme === 'light') {
-             document.body.classList.remove("dark-theme");
-           } else {
-             document.body.classList.add("dark-theme");
-           }
-           UI._updateThemeIcon();
-           themeChangedTo = theme;
+         const theme = match[1].toLowerCase().trim();
+         // Autonomously change theme
+         const themeBtns = document.querySelectorAll(".theme-btn");
+         const btn = Array.from(themeBtns).find(b => b.dataset.theme === theme);
+         if (btn) {
+             btn.click();
+             themeChangedTo = theme;
+         } else if (theme === 'dark' || theme === 'light') {
+             // Handle dark/light legacy toggle if AI still uses it
+             document.body.classList.toggle("dark-theme", theme === 'dark');
+             UI._updateThemeIcon();
+             themeChangedTo = theme;
+         }
+      }
+
+      // Parse <NAVIGATE>
+      const navRegex = /<NAVIGATE>([\s\S]*?)<\/NAVIGATE>/g;
+      if ((match = navRegex.exec(currentText)) !== null) {
+         const view = match[1].toLowerCase().trim();
+         window.location.hash = view;
+      }
+
+      // Parse <GRADE_FLASHCARD>
+      const gradeRegex = /<GRADE_FLASHCARD>(\d)<\/GRADE_FLASHCARD>/g;
+      if ((match = gradeRegex.exec(currentText)) !== null) {
+         const score = parseInt(match[1]);
+         if (!isNaN(score) && score >= 1 && score <= 4) {
+             const btnIds = ["btn-score-again", "btn-score-hard", "btn-score-good", "btn-score-easy"];
+             const btn = document.getElementById(btnIds[score - 1]);
+             if (btn && !btn.closest("#review-controls").classList.contains("hidden")) {
+                 btn.click();
+             }
          }
       }
 
@@ -903,7 +930,7 @@ User message: ${query}`;
     });
 
     UI.switchTab("flashcards");
-    ModalManager.close("turbo-chat");
+    ModalManager.close("learnora-ai-chat");
     UI.showPopup(`${cards.length} flashcards ready!`, "Success");
   },
 
@@ -912,7 +939,7 @@ User message: ${query}`;
      ========================================================================= */
 
   initDragDrop() {
-    const modal = $("turbo-chat");
+    const modal = $("learnora-ai-chat");
     const overlay = $("drag-overlay");
     const header = $("ai-chat-header");
     if (!modal) return;

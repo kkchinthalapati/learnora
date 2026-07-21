@@ -1,6 +1,6 @@
 # Learnora — Full Visual/UX Redesign Prompt
 
-Paste this whole file as your prompt to Claude Code on another machine to pick up the deferred full redesign of this app. It's self-contained — the assistant reading it has no memory of the session that produced it.
+
 
 ## Background
 
@@ -53,3 +53,8 @@ The small, mechanical design-system inconsistencies (empty states, duplicate toa
 2. Decide on a small number of core design moves (e.g. tighten the spacing scale, pick a more restrained accent-color usage, standardize card/panel treatments) rather than redesigning every screen independently — consistency matters more than any single screen looking perfect.
 3. Sequence: design-system/token cleanup first (spacing, empty states, toasts — the items listed above), then apply it view-by-view.
 4. Get sign-off on the direction (a couple of screens) before applying it everywhere.
+
+
+TL;DR
+
+Make it pretty, make it something people want to use. It should be mindblowing. go beast mode.

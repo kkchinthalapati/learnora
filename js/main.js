@@ -60,6 +60,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("auth-wall")?.classList.add("hidden");
     $("main-app")?.classList.remove("hidden");
 
+    if (user.user_metadata?.theme) {
+        UI.setAccentTheme(user.user_metadata.theme.name, user.user_metadata.theme.color);
+    }
+
     const name = user.user_metadata?.full_name?.split(" ")[0] || "Student";
     const greetingEl = $("user-greeting");
     if (greetingEl) greetingEl.textContent = getGreeting(name);
@@ -607,6 +611,50 @@ function bindSettings() {
       if (panel) panel.classList.add("active");
     });
   });
+
+  // ----- Appearance Theme Switching -----
+  const themeBtns = document.querySelectorAll(".theme-preset-btn");
+  const customColorInput = $("custom-theme-color");
+
+  const savedAccent = Storage.get('learnora_accent_theme');
+  if (savedAccent) {
+      themeBtns.forEach(b => b.classList.remove("active"));
+      if (savedAccent.name !== 'custom') {
+          const activeBtn = document.querySelector(`.theme-preset-btn[data-theme="${savedAccent.name}"]`);
+          if (activeBtn) activeBtn.classList.add("active");
+      }
+      if (savedAccent.color && customColorInput) {
+          customColorInput.value = savedAccent.color;
+      }
+  }
+
+  themeBtns.forEach(btn => {
+      btn.addEventListener("click", async () => {
+          themeBtns.forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          UI.setAccentTheme(btn.dataset.theme, null);
+          const user = await Auth.getSession();
+          if (user) {
+              Auth.updateProfile({ theme: { name: btn.dataset.theme, color: null } });
+          }
+      });
+  });
+
+  if (customColorInput) {
+      let customColorTimeout;
+      customColorInput.addEventListener("input", (e) => {
+          themeBtns.forEach(b => b.classList.remove("active"));
+          UI.setAccentTheme('custom', e.target.value);
+          
+          clearTimeout(customColorTimeout);
+          customColorTimeout = setTimeout(async () => {
+              const user = await Auth.getSession();
+              if (user) {
+                  Auth.updateProfile({ theme: { name: 'custom', color: e.target.value } });
+              }
+          }, 1000); // debounce API call
+      });
+  }
 
   // ----- Save Preferences (AI + Localization) -----
   $("btn-save-settings")?.addEventListener("click", () => UI.saveSettings());
@@ -2008,16 +2056,16 @@ function bindAI() {
     // Prevent the #ai hash from routing (there is no view-ai section,
     // which would hide the current view and fall back to the dashboard)
     e.preventDefault();
-    ModalManager.open("turbo-chat");
+    ModalManager.open("learnora-ai-chat");
   });
 
-  $("turbo-toggle")?.addEventListener("click", () => {
-    ModalManager.open("turbo-chat");
+  $("learnora-ai-toggle")?.addEventListener("click", () => {
+    ModalManager.open("learnora-ai-chat");
   });
 
   $("btn-ai-close")?.addEventListener("click", () => {
-    $("turbo-chat")?.classList.remove("fullscreen");
-    ModalManager.close("turbo-chat");
+    $("learnora-ai-chat")?.classList.remove("fullscreen");
+    ModalManager.close("learnora-ai-chat");
     // Bug 1 cleanup: ensure no orphaned teal ghosts
     document.querySelectorAll('.streaming-pulse, .ripple, .ai-widget, .avatar-circle').forEach(el => {
        if (el.parentNode === document.body) el.remove();
@@ -2025,7 +2073,7 @@ function bindAI() {
   });
 
   $("btn-ai-fullscreen")?.addEventListener("click", () => {
-    const m = $("turbo-chat");
+    const m = $("learnora-ai-chat");
     if (!m) return;
     m.classList.toggle("fullscreen");
   });
@@ -2036,6 +2084,22 @@ function bindAI() {
     if (input.value.trim() || AI.currentFile) {
       AI.send(input.value || "Analyze this.");
       input.value = "";
+    }
+  });
+
+  $("global-ai-submit")?.addEventListener("click", () => {
+    const input = $("global-ai-input");
+    if (!input) return;
+    if (input.value.trim()) {
+      AI.send(input.value);
+      input.value = "";
+    }
+  });
+
+  $("global-ai-input")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      $("global-ai-submit")?.click();
     }
   });
 
@@ -2058,7 +2122,7 @@ function bindAI() {
     btn.addEventListener("click", () => {
       const input = $("chat-input");
       if (!input) return;
-      ModalManager.open("turbo-chat");
+      ModalManager.open("learnora-ai-chat");
       input.value = btn.dataset.chatPrompt;
       if (btn.dataset.chatSend) {
         $("btn-send-chat")?.click();
