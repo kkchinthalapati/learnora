@@ -4190,4 +4190,38 @@ boot
     transform: translateY(-2px) scale(1.02) !important;
     box-shadow: var(--shadow-accent), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 20px var(--accent-glow) !important;
 }
+/* ==========================================================================
+   18. SIDEBAR DESKTOP TOGGLE & TURBO AI CLEANUP
+========================================================================== */
+
+/* 1. Hide the redundant Turbo AI tab in the sidebar */
+.sidebar .nav-links li:has(#nav-ai-trigger) {
+    display: none !important;
+}
+/* Fallback just in case the browser doesn't support :has */
+#nav-ai-trigger {
+    display: none !important;
+}
+
+/* 2. Ensure buttery smooth collapsing on Desktop */
+.sidebar {
+    /* Ensure all dimensions transition smoothly when collapsing */
+    transition: 
+        width 0.4s var(--ease-spring), 
+        padding 0.4s var(--ease-spring), 
+        opacity 0.3s ease, 
+        border 0.4s ease !important;
+}
+
+/* 3. The true "collapsed" state for desktop */
+@media (min-width: 769px) {
+    .sidebar.collapsed {
+        width: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        border-right-color: transparent !important;
+        opacity: 0 !important;
+        overflow: hidden !important;
+    }
+}
 
