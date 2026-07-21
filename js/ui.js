@@ -501,3 +501,61 @@ export const UI = {
    ========================================================================= */
 
 export { $, $$, esc, Storage, localDateStr, mondayOfWeek };
+
+/* =========================================================================
+   MOBILE SIDEBAR & UI POLISH (Appended Additions)
+   ========================================================================= */
+
+// Attach mobile behaviors without modifying existing exports.
+window.addEventListener("DOMContentLoaded", () => {
+  const sidebar = $("sidebar");
+  const menuToggle = $("menu-toggle");
+
+  if (!sidebar || !menuToggle) return;
+
+  // 1. Create and inject the dark overlay for mobile
+  const overlay = document.createElement("div");
+  overlay.id = "sidebar-overlay";
+  overlay.className = "sidebar-overlay";
+  // Insert it right before the sidebar for proper z-indexing
+  sidebar.parentNode.insertBefore(overlay, sidebar);
+
+  // 2. Handle the menu toggle click
+  menuToggle.addEventListener("click", (e) => {
+    e.stopPropagation(); // Prevent event bubbling
+    
+    // In your CSS, .collapsed triggers the mobile open state
+    sidebar.classList.toggle("collapsed");
+    
+    // Only trigger the dark overlay if we are on a mobile width
+    if (window.innerWidth <= 768) {
+      const isOpen = sidebar.classList.contains("collapsed");
+      overlay.classList.toggle("active", isOpen);
+    }
+  });
+
+  // 3. Close sidebar when clicking the dark overlay
+  overlay.addEventListener("click", () => {
+    sidebar.classList.remove("collapsed");
+    overlay.classList.remove("active");
+  });
+
+  // 4. Auto-close sidebar on mobile when a navigation link is clicked
+  const navLinks = $$(".nav-links .nav-link");
+  navLinks.forEach(link => {
+    link.addEventListener("click", () => {
+      if (window.innerWidth <= 768) {
+        sidebar.classList.remove("collapsed");
+        overlay.classList.remove("active");
+      }
+    });
+  });
+
+  // 5. Window resize listener to prevent the overlay getting stuck if rotating a tablet/resizing
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 768) {
+      overlay.classList.remove("active");
+    }
+  });
+});
+
