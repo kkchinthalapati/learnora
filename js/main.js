@@ -2046,6 +2046,40 @@ function bindAI() {
     }
   });
 
+  const handleGlobalAI = () => {
+      const globalInput = $("global-ai-input");
+      const globalSubmit = $("global-ai-submit");
+      if (!globalInput || !globalInput.value.trim()) return;
+      
+      const val = globalInput.value.trim();
+      globalInput.value = "";
+      
+      // Visual feedback
+      if (globalSubmit) {
+          globalSubmit.innerHTML = `<span class="streaming-pulse" style="width: 8px; height: 8px;"></span>`;
+      }
+      
+      // Send to AI silently
+      AI.send(val).finally(() => {
+          if (globalSubmit) {
+              globalSubmit.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
+          }
+          // Show a subtle toast that AI finished processing if the chat isn't open
+          const chatModal = $("turbo-chat");
+          if (!chatModal || chatModal.classList.contains("hidden") || chatModal.style.display === "none") {
+              UI.showPopup("Agentic Action Completed ✨", "AI");
+          }
+      });
+  };
+
+  $("global-ai-submit")?.addEventListener("click", handleGlobalAI);
+  $("global-ai-input")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          handleGlobalAI();
+      }
+  });
+
   $("file-upload")?.addEventListener("change", (e) => {
     if (e.target.files?.[0]) AI.processFile(e.target.files[0]);
   });

@@ -442,9 +442,12 @@ export const Router = {
     const showCard = () => {
       if (currentIndex >= cards.length) {
         front.innerHTML = `<div class="empty-state"><h3>Review Complete! 🧠</h3><p class="mt-16">Great job.</p></div>`;
-        back.classList.add("hidden");
+        $("flashcard-back-face")?.classList.add("hidden");
         controls.classList.add("hidden");
-        hint.classList.add("hidden");
+        $("flashcard-hint")?.classList.add("hidden");
+        $("ai-flashcard-input-group")?.classList.add("hidden");
+        $("ai-grading-feedback")?.classList.add("hidden");
+        container.style.transform = "rotateY(0deg)";
         return;
       }
       
@@ -453,19 +456,73 @@ export const Router = {
       front.innerHTML = esc(card.front).replace(/\n/g, '<br/>');
       back.innerHTML = esc(card.back).replace(/\n/g, '<br/>');
       
-      back.classList.add("hidden");
+      // Reset state for new card
+      container.style.transform = "rotateY(0deg)";
       controls.classList.add("hidden");
-      hint.classList.remove("hidden");
+      $("flashcard-hint")?.classList.remove("hidden");
+      
+      const aiFeedback = $("ai-grading-feedback");
+      const aiInput = $("ai-flashcard-input");
+      if (aiFeedback) { aiFeedback.classList.add("hidden"); aiFeedback.innerHTML = ""; }
+      if (aiInput) aiInput.value = "";
     };
 
+    // 3D Flip
     container.onclick = () => {
       if (currentIndex >= cards.length) return;
-      if (back.classList.contains("hidden")) {
-        back.classList.remove("hidden");
-        hint.classList.add("hidden");
+      if (container.style.transform === "rotateY(0deg)" || !container.style.transform) {
+        container.style.transform = "rotateY(180deg)";
+        $("flashcard-hint")?.classList.add("hidden");
         controls.classList.remove("hidden");
       }
     };
+    
+    // AI Auto-Grading Wireup
+    const gradeBtn = $("btn-grade-flashcard");
+    const aiInput = $("ai-flashcard-input");
+    const aiFeedback = $("ai-grading-feedback");
+    
+    if (gradeBtn && aiInput && aiFeedback) {
+        const handleGrade = () => {
+            const answer = aiInput.value.trim();
+            if (!answer || currentIndex >= cards.length) return;
+            const card = cards[currentIndex];
+            
+            aiFeedback.classList.remove("hidden");
+            aiFeedback.innerHTML = `<span class="streaming-pulse" style="width: 8px; height: 8px;"></span> AI is grading your answer...`;
+            
+            // Flip the card to show back while grading
+            container.style.transform = "rotateY(180deg)";
+            $("flashcard-hint")?.classList.add("hidden");
+            controls.classList.remove("hidden");
+            
+            const prompt = `Grade my flashcard answer.
+Front: ${card.front}
+Correct Back: ${card.back}
+My Answer: ${answer}
+
+Based on how close I am, issue a <GRADE_FLASHCARD>X</GRADE_FLASHCARD> command where X is:
+1 = Again (completely wrong)
+2 = Hard (partially right)
+3 = Good (mostly right)
+4 = Easy (perfect)
+Also provide a short 1-sentence feedback.`;
+            
+            import("./api.js").then(module => {
+                const AI = module.AI || window.AI;
+                if (AI) AI.send(prompt);
+            });
+        };
+        
+        // Remove old listeners by cloning
+        const newGradeBtn = gradeBtn.cloneNode(true);
+        gradeBtn.replaceWith(newGradeBtn);
+        newGradeBtn.onclick = handleGrade;
+        
+        aiInput.onkeydown = (e) => {
+            if (e.key === "Enter") handleGrade();
+        };
+    }
 
     const scoreCard = async (quality) => {
       const card = cards[currentIndex];

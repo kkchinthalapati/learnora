@@ -646,14 +646,18 @@ User message: ${query}`;
          let display = fullText.replace(/<ADD_TASK>[\s\S]*?<\/ADD_TASK>/g, "")
                                .replace(/<START_TIMER>[\s\S]*?<\/START_TIMER>/g, "")
                                .replace(/<SET_THEME>[\s\S]*?<\/SET_THEME>/g, "")
+                               .replace(/<NAVIGATE>[\s\S]*?<\/NAVIGATE>/g, "")
+                               .replace(/<GRADE_FLASHCARD>[\s\S]*?<\/GRADE_FLASHCARD>/g, "")
                                .replace(/<ADD_QUIZ>[\s\S]*?<\/ADD_QUIZ>/g, "")
                                .replace(/<ADD_PLAN>[\s\S]*?<\/ADD_PLAN>/g, "");
 
-         // The callback fires once with the complete text (no real
-         // incremental streaming), so there's nothing left "in progress" —
-         // render the final content with no trailing cursor.
          typingBubble.innerHTML = this.renderMarkdown(display);
          msgBox.scrollTop = msgBox.scrollHeight;
+         
+         const aiFeedbackPane = $("ai-grading-feedback");
+         if (aiFeedbackPane && !aiFeedbackPane.classList.contains("hidden")) {
+             aiFeedbackPane.innerHTML = this.renderMarkdown(display);
+         }
       });
 
       if (modal) modal.classList.remove("streaming");
@@ -683,40 +687,60 @@ User message: ${query}`;
       if ((match = startTimerRegex.exec(currentText)) !== null) {
          const mins = parseInt(match[1]);
          if (!isNaN(mins)) {
-           if (await UI.confirm(`AI wants to start a ${mins}-minute focus timer.\n\nAllow this?`, { title: "AI Timer Start", confirmText: "Start Timer" })) {
-             // Simulate clicking the timer tab and starting it
+             // Autonomously start the timer
              const focusInput = $("config-focus");
              if (focusInput) focusInput.value = mins;
              const typeRadio = document.querySelector('input[name="timer-type"][value="countdown"]');
              if (typeRadio) typeRadio.checked = true;
-             UI.switchTab("timer");
+             window.location.hash = "timer";
              
-             // If UI script can listen, great. Otherwise we manually trigger:
              const applyBtn = $("btn-apply-timer");
              const startBtn = $("btn-timer-start");
              if (applyBtn) applyBtn.click();
              setTimeout(() => { if (startBtn) startBtn.click(); }, 300);
              timerStarted = true;
              startedTimerMins = mins;
-           }
          }
       }
       
       let themeChangedTo = "";
       // Parse <SET_THEME>
-      const themeRegex = /<SET_THEME>(dark|light)<\/SET_THEME>/gi;
+      const themeRegex = /<SET_THEME>([\w-]+)<\/SET_THEME>/gi;
       if ((match = themeRegex.exec(currentText)) !== null) {
          const theme = match[1].toLowerCase();
-         if (await UI.confirm(`AI wants to switch to ${theme} mode.\n\nAllow this?`, { title: "AI Theme Change", confirmText: "Switch Theme" })) {
-           // The app's theme system only uses "dark-theme" / no-class (light).
-           if (theme === 'light') {
-             document.body.classList.remove("dark-theme");
-           } else {
-             document.body.classList.add("dark-theme");
-           }
-           UI._updateThemeIcon();
-           themeChangedTo = theme;
+         // Autonomous Theme Switch
+         const btn = document.querySelector(`.theme-preset-btn[data-theme="${theme}"]`);
+         if (btn) {
+             btn.click();
+             themeChangedTo = theme;
+         } else if (theme === 'dark' || theme === 'light') {
+             // Fallback for dark/light requests
+             const themeBtn = document.querySelector(`.theme-preset-btn[data-theme="default"]`);
+             if (themeBtn) themeBtn.click();
+             themeChangedTo = theme;
          }
+      }
+      
+      let navigatedTo = "";
+      // Parse <NAVIGATE>
+      const navigateRegex = /<NAVIGATE>([\w-]+)<\/NAVIGATE>/gi;
+      if ((match = navigateRegex.exec(currentText)) !== null) {
+          const view = match[1].toLowerCase();
+          window.location.hash = view;
+          navigatedTo = view;
+      }
+      
+      let flashcardGraded = "";
+      // Parse <GRADE_FLASHCARD>
+      const gradeRegex = /<GRADE_FLASHCARD>(\d)<\/GRADE_FLASHCARD>/g;
+      if ((match = gradeRegex.exec(currentText)) !== null) {
+          const score = parseInt(match[1]);
+          const btnIds = ["btn-score-again", "btn-score-hard", "btn-score-good", "btn-score-easy"];
+          if (score >= 1 && score <= 4) {
+              const btn = $(btnIds[score - 1]);
+              if (btn) btn.click();
+              flashcardGraded = score;
+          }
       }
 
       let generatedQuizTopic = "";
@@ -772,9 +796,21 @@ User message: ${query}`;
         })
         .replace(themeRegex, (_, theme) => {
           if (themeChangedTo) {
-            return `<div class="ai-widget"><span class="ai-widget-icon">🎨</span> Theme changed to ${theme} mode</div>`;
+            return `<div class="ai-widget"><span class="ai-widget-icon">🎨</span> Switched theme to ${theme}</div>`;
           }
-          return `<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled theme change</div>`;
+          return `<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Failed to switch theme</div>`;
+        })
+        .replace(navigateRegex, (_, view) => {
+          if (navigatedTo) {
+            return `<div class="ai-widget"><span class="ai-widget-icon">🧭</span> Navigated to ${view}</div>`;
+          }
+          return ``;
+        })
+        .replace(gradeRegex, (_, score) => {
+          if (flashcardGraded) {
+            return `<div class="ai-widget"><span class="ai-widget-icon">🎓</span> Flashcard Graded (Score: ${score})</div>`;
+          }
+          return ``;
         })
         .replace(quizRegex, (_, topic) => {
           if (generatedQuizTopic) {
@@ -802,8 +838,18 @@ User message: ${query}`;
         return;
       }
 
+      // Strip raw tags before saving to history
+      const cleanHistoryText = currentText
+          .replace(/<ADD_TASK>[\s\S]*?<\/ADD_TASK>/g, "")
+          .replace(/<START_TIMER>[\s\S]*?<\/START_TIMER>/g, "")
+          .replace(/<SET_THEME>[\s\S]*?<\/SET_THEME>/g, "")
+          .replace(/<NAVIGATE>[\s\S]*?<\/NAVIGATE>/g, "")
+          .replace(/<GRADE_FLASHCARD>[\s\S]*?<\/GRADE_FLASHCARD>/g, "")
+          .replace(/<ADD_QUIZ>[\s\S]*?<\/ADD_QUIZ>/g, "")
+          .replace(/<ADD_PLAN>[\s\S]*?<\/ADD_PLAN>/g, "");
+
       // Store and render final markdown (widgets are protected in renderMarkdown)
-      this.chatHistory.push({ role: "model", content: currentText });
+      this.chatHistory.push({ role: "model", content: cleanHistoryText });
       if (finalResponse.length > 0) {
         typingBubble.innerHTML = this.renderMarkdown(finalResponse);
       } else {

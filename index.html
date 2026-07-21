@@ -1181,17 +1181,94 @@
                                         </div>
                                     </div>
                                     <div class="settings-field">
-                                        <div class="field-label">
-                                            <label>Accent Color Scheme</label>
-                                            <p class="field-desc">Choose your preferred workspace vibe</p>
+                                        <div class="field-label" style="width: 100%;">
+                                            <label>Theme Presets</label>
+                                            <p class="field-desc">Choose from 10 carefully curated vibes</p>
+                                            
+                                            <div class="theme-presets-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; margin-top: 12px;">
+                                                <button class="theme-preset-btn" data-theme="default">
+                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #1e1e28, #2a2a35)"></div>
+                                                    <span>Midnight Space</span>
+                                                </button>
+                                                <button class="theme-preset-btn" data-theme="ocean">
+                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #0f172a, #0284c7)"></div>
+                                                    <span>Deep Ocean</span>
+                                                </button>
+                                                <button class="theme-preset-btn" data-theme="forest">
+                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #14532d, #16a34a)"></div>
+                                                    <span>Neon Forest</span>
+                                                </button>
+                                                <button class="theme-preset-btn" data-theme="cyberpunk">
+                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #09090b, #e11d48)"></div>
+                                                    <span>Cyberpunk</span>
+                                                </button>
+                                                <button class="theme-preset-btn" data-theme="sunset">
+                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #7c2d12, #ea580c)"></div>
+                                                    <span>Sunset Coral</span>
+                                                </button>
+                                                <button class="theme-preset-btn" data-theme="lavender">
+                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #2e1065, #7c3aed)"></div>
+                                                    <span>Lavender Dream</span>
+                                                </button>
+                                                <button class="theme-preset-btn" data-theme="monochrome">
+                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #171717, #737373)"></div>
+                                                    <span>Monochrome</span>
+                                                </button>
+                                                <button class="theme-preset-btn" data-theme="breeze">
+                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #0c4a6e, #38bdf8)"></div>
+                                                    <span>Cool Breeze</span>
+                                                </button>
+                                                <button class="theme-preset-btn" data-theme="ruby">
+                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #4c0519, #be123c)"></div>
+                                                    <span>Dark Ruby</span>
+                                                </button>
+                                                <button class="theme-preset-btn" data-theme="hacker">
+                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #052e16, #22c55e)"></div>
+                                                    <span>Hacker Terminal</span>
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div class="field-action">
-                                            <select id="config-accent-color" aria-label="Accent Color">
-                                                <option value="indigo">Vivid Indigo</option>
-                                                <option value="purple">Cyber Purple</option>
-                                                <option value="emerald">Neon Emerald</option>
-                                                <option value="sunset">Sunset Coral</option>
-                                            </select>
+                                    </div>
+                                    
+                                    <div class="settings-field">
+                                        <div class="field-label" style="width: 100%;">
+                                            <label>Sidebar Style</label>
+                                            <p class="field-desc">Choose how the sidebar looks</p>
+                                            <div class="radio-group" style="display: flex; gap: 16px; margin-top: 8px;">
+                                                <label class="radio-label">
+                                                    <input type="radio" name="sidebar-style" value="glass" checked>
+                                                    <span>Glassmorphism</span>
+                                                </label>
+                                                <label class="radio-label">
+                                                    <input type="radio" name="sidebar-style" value="solid">
+                                                    <span>Solid Dark</span>
+                                                </label>
+                                                <label class="radio-label">
+                                                    <input type="radio" name="sidebar-style" value="transparent">
+                                                    <span>Transparent</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="settings-field">
+                                        <div class="field-label" style="width: 100%;">
+                                            <label>Background Texture</label>
+                                            <p class="field-desc">Add some noise or mesh to the background</p>
+                                            <div class="radio-group" style="display: flex; gap: 16px; margin-top: 8px;">
+                                                <label class="radio-label">
+                                                    <input type="radio" name="bg-texture" value="none" checked>
+                                                    <span>Clean</span>
+                                                </label>
+                                                <label class="radio-label">
+                                                    <input type="radio" name="bg-texture" value="noise">
+                                                    <span>Subtle Noise</span>
+                                                </label>
+                                                <label class="radio-label">
+                                                    <input type="radio" name="bg-texture" value="mesh">
+                                                    <span>Mesh Gradient</span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1410,10 +1487,26 @@
                         <p id="review-progress" class="text-muted mt-8">Card 1 of 10</p>
                     </div>
 
-                    <div id="flashcard-container" class="glass-panel text-center cursor-pointer flex-center flex-col" style="width: 100%; max-width: 600px; min-height: 300px; padding: 40px; font-size: 1.5rem;">
-                        <div id="flashcard-front">Loading...</div>
-                        <div id="flashcard-back" class="hidden mt-24 pt-24" style="border-top: 1px solid rgba(255,255,255,0.1); width: 100%; color: var(--primary);"></div>
-                        <p id="flashcard-hint" class="text-muted mt-32" style="font-size: 1rem;">Click to reveal answer</p>
+                    <div id="flashcard-scene" class="cursor-pointer" style="width: 100%; max-width: 600px; perspective: 1000px; margin: 0 auto;">
+                        <div id="flashcard-container" class="glass-panel" style="width: 100%; min-height: 300px; position: relative; transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d;">
+                            
+                            <!-- Front Face -->
+                            <div id="flashcard-front-face" class="flex-center flex-col text-center" style="position: absolute; width: 100%; height: 100%; padding: 40px; font-size: 1.5rem; backface-visibility: hidden; top: 0; left: 0; border-radius: 20px;">
+                                <div id="flashcard-front">Loading...</div>
+                                <p id="flashcard-hint" class="text-muted mt-32" style="font-size: 1rem; position: absolute; bottom: 20px;">Click to flip</p>
+                            </div>
+                            
+                            <!-- Back Face -->
+                            <div id="flashcard-back-face" class="flex-center flex-col text-center" style="position: absolute; width: 100%; height: 100%; padding: 40px; font-size: 1.5rem; backface-visibility: hidden; transform: rotateY(180deg); top: 0; left: 0; border-radius: 20px;">
+                                <div id="flashcard-back" style="color: var(--primary);"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="ai-grading-feedback" class="glass-panel hidden mt-16" style="width: 100%; max-width: 600px; padding: 16px; border-left: 4px solid var(--primary); font-size: 0.9rem;"></div>
+                    <div id="ai-flashcard-input-group" style="width: 100%; max-width: 600px; display: flex; gap: 8px; margin-top: 24px;">
+                        <input type="text" id="ai-flashcard-input" class="glass-input" placeholder="Type your answer for AI to grade..." style="flex-grow: 1;" />
+                        <button class="btn-primary" id="btn-grade-flashcard">Grade</button>
                     </div>
 
                     <div id="review-controls" class="flex-gap mt-32 hidden">

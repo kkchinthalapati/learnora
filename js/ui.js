@@ -674,24 +674,51 @@ window.addEventListener("DOMContentLoaded", () => {
     // =====================================================
   // 10. Custom Theme Color Picker & Command Bar Polish
   // =====================================================
-  const accentSelect = $("config-accent-color");
+  // Apply saved theme settings on load
+  const savedThemeColor = Storage.get("learnora_accent", "default");
+  document.body.setAttribute("data-theme-color", savedThemeColor);
   
-  // Apply saved theme color on load
-  const savedThemeColor = Storage.get("learnora_accent", "purple");
-  if (savedThemeColor) {
-      document.body.setAttribute("data-theme-color", savedThemeColor);
-      if (accentSelect) accentSelect.value = savedThemeColor;
-  }
+  const savedSidebar = Storage.get("learnora_sidebar", "glass");
+  document.body.setAttribute("data-sidebar-style", savedSidebar);
+  
+  const savedBg = Storage.get("learnora_bg", "none");
+  document.body.setAttribute("data-bg-texture", savedBg);
 
-  // Listen for changes in settings
-  if (accentSelect) {
-      accentSelect.addEventListener("change", (e) => {
-          const chosenColor = e.target.value;
+  // Bind Theme Presets
+  const themeBtns = document.querySelectorAll(".theme-preset-btn");
+  themeBtns.forEach(btn => {
+      if (btn.dataset.theme === savedThemeColor) {
+          btn.classList.add("active");
+      }
+      btn.addEventListener("click", () => {
+          themeBtns.forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          const chosenColor = btn.dataset.theme;
           document.body.setAttribute("data-theme-color", chosenColor);
           Storage.set("learnora_accent", chosenColor);
-          UI.showPopup("Theme color updated successfully!", "Vibe Changed ✨");
+          UI.showPopup(`Theme updated to ${btn.querySelector('span').textContent} ✨`, "Vibe Changed");
       });
-  }
+  });
+
+  // Bind Sidebar Styles
+  const sidebarRadios = document.querySelectorAll('input[name="sidebar-style"]');
+  sidebarRadios.forEach(radio => {
+      if (radio.value === savedSidebar) radio.checked = true;
+      radio.addEventListener("change", (e) => {
+          document.body.setAttribute("data-sidebar-style", e.target.value);
+          Storage.set("learnora_sidebar", e.target.value);
+      });
+  });
+
+  // Bind Background Textures
+  const bgRadios = document.querySelectorAll('input[name="bg-texture"]');
+  bgRadios.forEach(radio => {
+      if (radio.value === savedBg) radio.checked = true;
+      radio.addEventListener("change", (e) => {
+          document.body.setAttribute("data-bg-texture", e.target.value);
+          Storage.set("learnora_bg", e.target.value);
+      });
+  });
 
 
   const chatInputBox = $("chat-input");
