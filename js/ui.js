@@ -643,4 +643,31 @@ window.addEventListener("DOMContentLoaded", () => {
           originalSetGlobalLoading.call(UI, isLoading);
       }
   };
-
+  // =====================================================
+  // 9. Bulletproof Sidebar Toggle (Desktop & Mobile)
+  // =====================================================
+  const menuBtn = document.getElementById("menu-toggle");
+  
+  if (menuBtn) {
+      // Use capture and stopImmediatePropagation to ensure this is the ONLY 
+      // event that fires when clicking the hamburger menu, preventing double-toggles.
+      menuBtn.addEventListener("click", (e) => {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          
+          const sideNav = document.getElementById("sidebar");
+          if (!sideNav) return;
+          
+          // Toggle the collapsed class to slide it in/out
+          sideNav.classList.toggle("collapsed");
+          
+          // If on mobile, also toggle the dark background overlay
+          if (window.innerWidth <= 768) {
+              const overlay = document.getElementById("sidebar-overlay");
+              if (overlay) {
+                  const isOpen = sideNav.classList.contains("collapsed");
+                  overlay.classList.toggle("active", isOpen);
+              }
+          }
+      }, { capture: true });
+  }
