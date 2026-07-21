@@ -3923,7 +3923,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ==========================================================================
-   15. AESTHETIC BOOT SEQUENCE (SMOOTH FADE OUT)
+boot
 ========================================================================== */
 
 /* Force the global loader to always maintain its flex layout so items don't shift,
@@ -3941,12 +3941,99 @@ input:focus, select:focus, textarea:focus {
     opacity: 0 !important;
     visibility: hidden !important;
     pointer-events: none !important;
-    /* Do not use display: none here, we rely on opacity and visibility for the fade */
+
 }
 
 .splash-content {
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+/* ==========================================================================
+   16. SPLASH SCREEN (Silky Smooth & Refreshing)
+========================================================================== */
+
+/* 1. The "Dive In" Fade Out */
+/* When the loader hides, it scales up slightly so you "fly through" it into the app */
+#global-loader {
+    transition: 
+        opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), 
+        visibility 0.8s, 
+        transform 0.8s cubic-bezier(0.22, 1, 0.36, 1) !important;
+    transform-origin: center center;
+}
+
+#global-loader.hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: scale(1.1) !important; /* The 3D zoom-in effect */
+}
+
+/* 2. Silky Text Reveal with Blur */
+.global-loader:not(.hidden) h2.text-gradient {
+    opacity: 0;
+    /* Adds a shimmering gradient sweep to the text */
+    background-size: 200% auto;
+    animation: 
+        ultraTextReveal 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards,
+        shineGradient 4s linear infinite;
+}
+
+/* 3. Smooth Logo Entrance with a Soft Levitation Pulse */
+.global-loader:not(.hidden) .splash-logo {
+    opacity: 0;
+    animation: 
+        ultraLogoReveal 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards, 
+        softLevitate 4s ease-in-out infinite 1.2s;
+}
+
+/* 4. Subtitle Staggered Blur-in */
+.splash-content h2 span {
+    opacity: 0;
+    animation: fadeSubtitle 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.4s forwards;
+}
+
+/* --- THE KEYFRAMES --- */
+
+@keyframes ultraTextReveal {
+    0% { transform: translateY(15px) scale(0.95); opacity: 0; filter: blur(10px); letter-spacing: 0px; }
+    100% { transform: translateY(0) scale(1); opacity: 1; filter: blur(0px); letter-spacing: 3px; }
+}
+
+@keyframes ultraLogoReveal {
+    0% { transform: scale(0.5) translateY(20px); opacity: 0; box-shadow: 0 0 0 rgba(84, 104, 231, 0); }
+    100% { transform: scale(1) translateY(0); opacity: 1; box-shadow: 0 15px 45px var(--accent-glow); }
+}
+
+@keyframes softLevitate {
+    0%, 100% { transform: translateY(0) scale(1); box-shadow: 0 15px 45px var(--accent-glow); }
+    50% { transform: translateY(-8px) scale(1.03); box-shadow: 0 25px 60px var(--accent-glow); }
+}
+
+@keyframes fadeSubtitle {
+    from { opacity: 0; transform: translateY(8px); filter: blur(6px); }
+    to { opacity: 0.7; transform: translateY(0); filter: blur(0px); }
+}
+
+@keyframes shineGradient {
+    to { background-position: 200% center; }
+}
+
+/* Soften the loader wheel so it doesn't distract from the logo and text */
+.global-loader:not(.hidden) .loader-wheel {
+    animation: beast-spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite, fadeInWheel 1s ease 0.8s forwards !important;
+    opacity: 0;
+    width: 30px !important;
+    height: 30px !important;
+    border-width: 2px !important;
+    margin-top: 32px !important;
+    border-color: rgba(255,255,255,0.05) !important;
+    border-top-color: var(--text-muted) !important; /* More subtle color */
+    box-shadow: none !important;
+}
+@keyframes fadeInWheel {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 0.4; transform: scale(1); } /* Kept at 40% opacity for elegance */
 }
 
