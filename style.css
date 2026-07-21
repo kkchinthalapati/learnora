@@ -4348,3 +4348,88 @@ body:not(.dark-theme) textarea {
 body:not(.dark-theme) input::placeholder {
     color: var(--text-faint) !important;
 }
+
+/* ==========================================================================
+   24. SEPARATE DASHBOARD FLOATING COMMAND BAR
+========================================================================== */
+.dashboard-command-bar {
+    position: fixed !important;
+    bottom: 28px !important;
+    left: calc(var(--sidebar-width) + ((100vw - var(--sidebar-width)) / 2)) !important;
+    transform: translateX(-50%) !important;
+    z-index: 850 !important; /* Stays comfortably below the Turbo AI button (z-index 990) */
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    width: min(540px, 75vw) !important;
+    padding: 10px 18px !important;
+    background: var(--glass-bg-strong) !important;
+    backdrop-filter: blur(32px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: var(--r-pill) !important;
+    box-shadow: var(--shadow-lg), 0 0 30px var(--accent-glow) !important;
+    margin-bottom: 0 !important;
+    transition: width 0.3s var(--ease-spring), left 0.3s var(--ease-spring) !important;
+}
+
+/* When the sidebar collapses, dynamically re-center the command bar */
+body:has(#sidebar.collapsed) .dashboard-command-bar {
+    left: calc(50% - 40px) !important; /* Shifts left so it doesn't get crowded by the bottom-right AI trigger */
+}
+
+.command-bar-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+#dashboard-command-input {
+    flex: 1 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 6px 0 !important;
+    font-size: var(--fs-base) !important;
+    color: var(--text) !important;
+    outline: none !important;
+}
+#dashboard-command-input::placeholder {
+    color: var(--text-faint) !important;
+}
+#dashboard-command-input:focus {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.command-bar-btn {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: var(--accent) !important;
+    color: var(--accent-on) !important;
+    border-radius: 50% !important;
+    border: none !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    box-shadow: var(--shadow-sm) !important;
+    transition: transform 0.2s var(--ease-spring), background 0.2s ease !important;
+}
+.command-bar-btn:hover {
+    transform: scale(1.08) !important;
+    box-shadow: 0 0 16px var(--accent-glow) !important;
+}
+
+/* Mobile adjustments to prevent overlapping the Turbo button */
+@media (max-width: 768px) {
+    .dashboard-command-bar {
+        left: 50% !important;
+        width: 86vw !important;
+        bottom: 24px !important;
+        transform: translateX(-50%) !important;
+    }
+}
