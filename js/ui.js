@@ -671,3 +671,30 @@ window.addEventListener("DOMContentLoaded", () => {
           }
       }, { capture: true });
   }
+  // =====================================================
+  // 10. Custom Theme Color Picker & Command Bar Polish
+  // =====================================================
+  const accentSelect = $("config-accent-color");
+  
+  // Apply saved theme color on load
+  const savedThemeColor = Storage.get("learnora_accent", "purple");
+  if (savedThemeColor) {
+      document.body.setAttribute("data-theme-color", savedThemeColor);
+      if (accentSelect) accentSelect.value = savedThemeColor;
+  }
+
+  // Listen for changes in settings
+  if (accentSelect) {
+      accentSelect.addEventListener("change", (e) => {
+          const chosenColor = e.target.value;
+          document.body.setAttribute("data-theme-color", chosenColor);
+          Storage.set("learnora_accent", chosenColor);
+          UI.showPopup("Theme color updated successfully!", "Vibe Changed ✨");
+      });
+  }
+
+  // Enhance the AI chat input placeholder with a friendly prompt hint
+  const chatInputBox = $("chat-input");
+  if (chatInputBox) {
+      chatInputBox.placeholder = "✨ Ask AI to do anything... (e.g. 'Start a 25m timer')";
+  }
