@@ -4315,3 +4315,36 @@ body[data-theme-color="sunset"] {
     --accent-hover: #ff9966;
     --accent-glow: rgba(255, 94, 98, 0.4);
 }
+/* ==========================================================================
+   23. LIGHT MODE HIGH-CONTRAST TEXT OVERRIDES
+========================================================================== */
+body:not(.dark-theme) {
+    --text: #0f172a !important;
+    --text-muted: #334155 !important;
+    --text-faint: #64748b !important;
+    --glass-bg: rgba(255, 255, 255, 0.75) !important;
+    --glass-bg-strong: rgba(255, 255, 255, 0.92) !important;
+    --surface: #ffffff !important;
+    --surface-2: #f1f5f9 !important;
+}
+
+body:not(.dark-theme) h1, 
+body:not(.dark-theme) h2, 
+body:not(.dark-theme) h3, 
+body:not(.dark-theme) h4, 
+body:not(.dark-theme) label,
+body:not(.dark-theme) span {
+    color: var(--text);
+}
+
+body:not(.dark-theme) input, 
+body:not(.dark-theme) select, 
+body:not(.dark-theme) textarea {
+    color: var(--text) !important;
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-color: rgba(15, 23, 42, 0.15) !important;
+}
+
+body:not(.dark-theme) input::placeholder {
+    color: var(--text-faint) !important;
+}
