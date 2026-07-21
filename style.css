@@ -3603,36 +3603,3 @@ select:focus {
 body.dark-theme select:focus {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238c96aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
 }
-
-/* ==========================================================================
-   20.  DROPDOWN FIX & HAMBURGER ROTATION
-========================================================================== */
-
-/* --- 1. The Nuclear Dropdown Fix --- */
-/* We lock every single background property into one line so it cannot be overridden */
-select {
-    background: var(--glass-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235a6880' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 14px center / 14px 14px !important;
-}
-select:focus {
-    background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235a6880' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 14px center / 14px 14px !important;
-}
-body.dark-theme select {
-    background: var(--glass-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238c96aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 14px center / 14px 14px !important;
-}
-body.dark-theme select:focus {
-    background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238c96aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 14px center / 14px 14px !important;
-}
-
-/* --- 2. Hamburger Menu Rotation --- */
-/* Add a smooth spring transition to the toggle button */
-#menu-toggle {
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease, color 0.3s ease !important;
-}
-
-/* When the sidebar is toggled (which applies the 'collapsed' class), spin the button 90 degrees */
-.app-container:has(#sidebar.collapsed) #menu-toggle {
-    transform: rotate(90deg) scale(0.95) !important;
-    background: var(--accent-soft) !important;
-    color: var(--accent) !important;
-    border-color: var(--accent-ring) !important;
-}
