@@ -745,4 +745,55 @@ window.addEventListener("DOMContentLoaded", () => {
       });
   }
 
+  // =====================================================
+  // Dashboard Command Bar Functionality
+  // =====================================================
+  const cmdInput = $("dashboard-command-input");
+  const cmdSend = $("dashboard-command-send");
+  const turboModal = $("turbo-chat");
+  const turboToggleBtn = $("turbo-toggle");
+
+  if (cmdInput && cmdSend) {
+      const handleCommand = async () => {
+          const query = cmdInput.value.trim();
+          if (!query) return;
+          cmdInput.value = "";
+
+          // 1. Open the Turbo AI chat modal if it is currently hidden
+          if (turboModal && turboModal.classList.contains("hidden")) {
+              turboModal.classList.remove("hidden");
+              if (turboToggleBtn) turboToggleBtn.classList.add("turbo-active");
+          }
+
+          // 2. Pass the text to the main chat input inside the modal
+          const mainChatInput = $("chat-input");
+          const mainSendBtn = $("btn-send-chat");
+          
+          if (mainChatInput) {
+              mainChatInput.value = query;
+          }
+
+          // 3. Trigger the chat submission programmatically or via AI module
+          if (mainSendBtn) {
+              mainSendBtn.click();
+          } else {
+              try {
+                  const { AI } = await import("./ai.js");
+                  if (AI && typeof AI.send === "function") {
+                      await AI.send(query);
+                  }
+              } catch (e) {
+                  console.error("[Command Bar] Error routing query to AI:", e);
+              }
+          }
+      };
+
+      cmdSend.addEventListener("click", handleCommand);
+      cmdInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleCommand();
+          }
+      });
+  }
 
