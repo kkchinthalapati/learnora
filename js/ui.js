@@ -745,46 +745,46 @@ window.addEventListener("DOMContentLoaded", () => {
       });
   }
 
-    // =====================================================
-  // Dashboard Command Bar (Direct Chat Route)
+      // =====================================================
+  // Safe Dashboard Command Bar Integration
   // =====================================================
-  const cmdInput = $("dashboard-command-input");
-  const cmdSend = $("dashboard-command-send");
-  const turboModal = $("turbo-chat");
-  const turboToggleBtn = $("turbo-toggle");
+  window.addEventListener("DOMContentLoaded", () => {
+      const cmdInput = document.getElementById("dashboard-command-input");
+      const cmdSend = document.getElementById("dashboard-command-send");
+      const turboModal = document.getElementById("turbo-chat");
+      const turboToggleBtn = document.getElementById("turbo-toggle");
 
-  if (cmdInput && cmdSend) {
-      const handleCommand = () => {
-          const query = cmdInput.value.trim();
-          if (!query) return;
-          cmdInput.value = "";
+      if (cmdInput && cmdSend) {
+          const handleCommand = () => {
+              const query = cmdInput.value.trim();
+              if (!query) return;
+              cmdInput.value = "";
 
-          // 1. Open the Turbo AI chat modal if it's currently hidden
-          if (turboModal && turboModal.classList.contains("hidden")) {
-              turboModal.classList.remove("hidden");
-              if (turboToggleBtn) turboToggleBtn.classList.add("turbo-active");
-          }
+              // Open the Turbo AI modal safely if hidden
+              if (turboModal && turboModal.classList.contains("hidden")) {
+                  turboModal.classList.remove("hidden");
+                  if (turboToggleBtn) turboToggleBtn.classList.add("turbo-active");
+              }
 
-          // 2. Locate the main chat input inside the Turbo modal and set its value
-          const mainChatInput = $("chat-input");
-          const mainSendBtn = $("btn-send-chat");
+              // Mirror the text into the main chat input and trigger submission
+              const mainChatInput = document.getElementById("chat-input");
+              const mainSendBtn = document.getElementById("btn-send-chat");
 
-          if (mainChatInput) {
-              mainChatInput.value = query;
-          }
+              if (mainChatInput) {
+                  mainChatInput.value = query;
+              }
 
-          // 3. Programmatically click the main chat send button to execute the request
-          if (mainSendBtn) {
-              mainSendBtn.click();
-          }
-      };
+              if (mainSendBtn) {
+                  mainSendBtn.click();
+              }
+          };
 
-      cmdSend.addEventListener("click", handleCommand);
-      cmdInput.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleCommand();
-          }
-      });
-  }
-
+          cmdSend.addEventListener("click", handleCommand);
+          cmdInput.addEventListener("keydown", (e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleCommand();
+              }
+          });
+      }
+  });
