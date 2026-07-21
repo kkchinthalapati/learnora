@@ -597,28 +597,32 @@ window.addEventListener("DOMContentLoaded", () => {
   const splashText = document.querySelector(".splash-content h2");
   
   if (splashScreen && splashText) {
+      let greeting = "Hello there!";
       try {
           // Supabase caches the session locally. We grab it to greet the user by name instantly!
           // The key is usually sb-[project-ref]-auth-token
           const authStr = localStorage.getItem("sb-mlvgqwqiynpwpwzqufdf-auth-token");
-          let greeting = "Hello there!";
-          
+
           if (authStr) {
               const authData = JSON.parse(authStr);
               const name = authData?.user?.user_metadata?.full_name;
               if (name) {
                   // Get just their first name
-                  greeting = `Hello, ${name.split(' ')[0]}!`; 
+                  greeting = `Hello, ${String(name).split(' ')[0]}!`;
               }
           }
-          
-          // Inject the custom greeting with a beautiful sub-headline
-          splashText.innerHTML = `${greeting} <span style='display:block; font-size: 0.55em; opacity: 0.7; margin-top: 6px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase;'>Welcome to Learnora</span>`;
-          
       } catch (e) {
           // Safe fallback if they aren't logged in yet
-          splashText.innerHTML = `Hello! <span style='display:block; font-size: 0.55em; opacity: 0.7; margin-top: 6px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase;'>Welcome to Learnora</span>`;
+          greeting = "Hello!";
       }
+
+      // full_name is user-supplied at signup — it must never reach innerHTML.
+      // Build the greeting as a text node and the sub-headline as a real element.
+      splashText.textContent = greeting + " ";
+      const sub = document.createElement("span");
+      sub.style.cssText = "display:block; font-size: 0.55em; opacity: 0.7; margin-top: 6px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase;";
+      sub.textContent = "Welcome to Learnora";
+      splashText.appendChild(sub);
   }
   // =====================================================
   // 8. Cinematic Boot Sequence (Minimum Load Time)
@@ -726,51 +730,14 @@ window.addEventListener("DOMContentLoaded", () => {
       chatInputBox.placeholder = "";
   }
   // =====================================================
-  // 11. Command Bar Enter-Key Handler & UI Vibe Sync
+  // 11/12. Chat send + Enter-to-send
   // =====================================================
-  const chatInput = $("chat-input");
-  const sendChatBtn = $("btn-send-chat");
-
-  if (chatInput && sendChatBtn) {
-      // Allow pressing 'Enter' inside the command bar to send the prompt immediately
-      chatInput.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              sendChatBtn.click();
-          }
-      });
-  }
-    // =====================================================
-  // 12. Floating AI Command Bar Execution Bridge
-  // =====================================================
-  const chatInputEl = $("chat-input");
-  const sendChatBtnEl = $("btn-send-chat");
-
-  if (chatInputEl && sendChatBtnEl) {
-      // Prevent duplicate event listeners by cloning or checking a flag
-      sendChatBtnEl.onclick = async () => {
-          const text = chatInputEl.value.trim();
-          if (!text) return;
-          chatInputEl.value = "";
-          
-          // Dynamically invoke AI.send if it exists
-          try {
-              const { AI } = await import("./ai.js");
-              if (AI && typeof AI.send === "function") {
-                  await AI.send(text);
-              }
-          } catch (err) {
-              console.error("[UI] Failed to dispatch AI message:", err);
-          }
-      };
-
-      chatInputEl.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              sendChatBtnEl.click();
-          }
-      });
-  }
+  // Intentionally NOT wired here. bindAI() in js/main.js owns the click
+  // handler for #btn-send-chat and the Enter handler for #chat-input.
+  // Two former blocks here duplicated both: the extra `onclick` swallowed
+  // the input value before main.js's listener ran, which sent a second
+  // bogus "Analyze this." message whenever a file was attached, and the
+  // duplicate keydown listeners fired .click() three times per Enter.
 
       // =====================================================
   // Safe Dashboard Command Bar Integration
