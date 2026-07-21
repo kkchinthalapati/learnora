@@ -4254,3 +4254,64 @@ body.dark-theme select:focus {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238c96aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
 }
 
+/* ==========================================================================
+   22. FLOATING AI COMMAND BAR & CUSTOM THEME ENGINE
+========================================================================== */
+
+/* 1. Transform the chat input dock into a sleek floating pill bar */
+.chat-input-dock {
+    background: var(--glass-bg-strong) !important;
+    backdrop-filter: blur(28px) saturate(180%) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: var(--r-pill) !important;
+    padding: 8px 12px !important;
+    box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    margin: 12px !important;
+}
+
+.chat-input-dock input[type="text"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 8px 12px !important;
+    font-size: var(--fs-base) !important;
+}
+.chat-input-dock input[type="text"]:focus {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Style the send button inside the bar to match the image */
+.chat-input-dock .send-btn {
+    width: 38px !important;
+    height: 38px !important;
+    background: var(--accent) !important;
+    border-radius: 50% !important;
+    box-shadow: var(--shadow-sm) !important;
+    transition: transform 0.2s var(--ease-spring), background 0.2s ease !important;
+}
+.chat-input-dock .send-btn:hover {
+    transform: scale(1.08) !important;
+}
+
+/* 2. Custom Theme Schemes */
+body[data-theme-color="indigo"] {
+    --accent: #5468e7;
+    --accent-hover: #4358d6;
+    --accent-glow: rgba(84, 104, 231, 0.35);
+}
+body[data-theme-color="purple"] {
+    --accent: #d845f8;
+    --accent-hover: #e57afc;
+    --accent-glow: rgba(216, 69, 248, 0.4);
+}
+body[data-theme-color="emerald"] {
+    --accent: #00f0ff;
+    --accent-hover: #34b88a;
+    --accent-glow: rgba(0, 240, 255, 0.35);
+}
+body[data-theme-color="sunset"] {
+    --accent: #ff5e62;
+    --accent-hover: #ff9966;
+    --accent-glow: rgba(255, 94, 98, 0.4);
+}
