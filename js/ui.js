@@ -744,4 +744,46 @@ window.addEventListener("DOMContentLoaded", () => {
           }
       });
   }
+  // =====================================================
+  // 13. Dashboard Command Bar Bridge
+  // =====================================================
+  const cmdInput = $("dashboard-command-input");
+  const cmdSend = $("dashboard-command-send");
+  const turboModal = $("turbo-chat");
+  const turboToggleBtn = $("turbo-toggle");
+
+  if (cmdInput && cmdSend) {
+      const executeCommand = async () => {
+          const query = cmdInput.value.trim();
+          if (!query) return;
+          cmdInput.value = "";
+
+          // Open the Turbo AI modal if closed
+          if (turboModal && turboModal.classList.contains("hidden")) {
+              turboModal.classList.remove("hidden");
+              if (turboToggleBtn) turboToggleBtn.classList.add("turbo-active");
+          }
+
+          // Populate and send via the AI module
+          try {
+              const { AI } = await import("./ai.js");
+              const mainChatInput = $("chat-input");
+              if (mainChatInput) mainChatInput.value = query;
+              
+              if (AI && typeof AI.send === "function") {
+                  await AI.send(query);
+              }
+          } catch (e) {
+              console.error("[Dashboard Command Bar] Error dispatching query:", e);
+          }
+      };
+
+      cmdSend.addEventListener("click", executeCommand);
+      cmdInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              executeCommand();
+          }
+      });
+  }
 
