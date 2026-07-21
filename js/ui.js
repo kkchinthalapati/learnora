@@ -693,10 +693,10 @@ window.addEventListener("DOMContentLoaded", () => {
       });
   }
 
-  // Enhance the AI chat input placeholder with a friendly prompt hint
+
   const chatInputBox = $("chat-input");
   if (chatInputBox) {
-      chatInputBox.placeholder = "✨ Ask AI to do anything... (e.g. 'Start a 25m timer')";
+      chatInputBox.placeholder = "";
   }
   // =====================================================
   // 11. Command Bar Enter-Key Handler & UI Vibe Sync
