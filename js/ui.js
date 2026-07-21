@@ -744,4 +744,46 @@ window.addEventListener("DOMContentLoaded", () => {
           }
       });
   }
+  // =====================================================
+  // Dashboard Command Bar (Safe & Seamless Integration)
+  // =====================================================
+  const cmdInput = $("dashboard-command-input");
+  const cmdSend = $("dashboard-command-send");
+  const turboModal = $("turbo-chat");
+  const turboToggleBtn = $("turbo-toggle");
+
+  if (cmdInput && cmdSend) {
+      const handleCommand = async () => {
+          const query = cmdInput.value.trim();
+          if (!query) return;
+          cmdInput.value = "";
+
+          // Open the Turbo AI modal smoothly if it's currently hidden
+          if (turboModal && turboModal.classList.contains("hidden")) {
+              turboModal.classList.remove("hidden");
+              if (turboToggleBtn) turboToggleBtn.classList.add("turbo-active");
+          }
+
+          // Pass the query straight into the AI module
+          try {
+              const { AI } = await import("./ai.js");
+              const mainChatInput = $("chat-input");
+              if (mainChatInput) mainChatInput.value = query;
+              
+              if (AI && typeof AI.send === "function") {
+                  await AI.send(query);
+              }
+          } catch (e) {
+              console.error("[Command Bar] Failed to dispatch query:", e);
+          }
+      };
+
+      cmdSend.addEventListener("click", handleCommand);
+      cmdInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleCommand();
+          }
+      });
+  }
 
