@@ -468,11 +468,11 @@ export const Timer = {
 
   _progressFraction() {
     if (this._isCountUp()) {
-      // No fixed target — fill gently across an hour so the ring still breathes.
+      // Map stopwatch/flowtime progress smoothly from 0 to 1 over a 60-minute window (3600s)
       return Math.min(1, this.state.elapsed / 3600);
     }
     return this.state.totalTime > 0
-      ? (this.state.totalTime - this.state.timeLeft) / this.state.totalTime
+      ? Math.max(0, Math.min(1, (this.state.totalTime - this.state.timeLeft) / this.state.totalTime))
       : 0;
   },
 

@@ -501,3 +501,290 @@ export const UI = {
    ========================================================================= */
 
 export { $, $$, esc, Storage, localDateStr, mondayOfWeek };
+
+/* =========================================================================
+   MOBILE SIDEBAR & UI POLISH (Appended Additions)
+   ========================================================================= */
+
+// Attach mobile behaviors without modifying existing exports.
+window.addEventListener("DOMContentLoaded", () => {
+  const sidebar = $("sidebar");
+  const menuToggle = $("menu-toggle");
+
+  if (!sidebar || !menuToggle) return;
+
+  // 1. Create and inject the dark overlay for mobile
+  const overlay = document.createElement("div");
+  overlay.id = "sidebar-overlay";
+  overlay.className = "sidebar-overlay";
+  // Insert it right before the sidebar for proper z-indexing
+  sidebar.parentNode.insertBefore(overlay, sidebar);
+
+  // 2. Handle the menu toggle click
+  menuToggle.addEventListener("click", (e) => {
+    e.stopPropagation(); // Prevent event bubbling
+    
+    // In your CSS, .collapsed triggers the mobile open state
+    sidebar.classList.toggle("collapsed");
+    
+    // Only trigger the dark overlay if we are on a mobile width
+    if (window.innerWidth <= 768) {
+      const isOpen = sidebar.classList.contains("collapsed");
+      overlay.classList.toggle("active", isOpen);
+    }
+  });
+
+  // 3. Close sidebar when clicking the dark overlay
+  overlay.addEventListener("click", () => {
+    sidebar.classList.remove("collapsed");
+    overlay.classList.remove("active");
+  });
+
+  // 4. Auto-close sidebar on mobile when a navigation link is clicked
+  const navLinks = $$(".nav-links .nav-link");
+  navLinks.forEach(link => {
+    link.addEventListener("click", () => {
+      if (window.innerWidth <= 768) {
+        sidebar.classList.remove("collapsed");
+        overlay.classList.remove("active");
+      }
+    });
+  });
+
+  // 5. Window resize listener to prevent the overlay getting stuck if rotating a tablet/resizing
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 768) {
+      overlay.classList.remove("active");
+    }
+  });
+});
+  // =====================================================
+  // 6. Turbo Button Toggle (Open & Close on Tap)
+  // =====================================================
+  const turboBtn = $("turbo-toggle");
+  const turboModal = $("turbo-chat");
+  
+  if (turboBtn && turboModal) {
+      // We use { capture: true } so this fires BEFORE your existing code does
+      turboBtn.addEventListener("click", (e) => {
+          const isCurrentlyOpen = !turboModal.classList.contains("hidden");
+          
+          if (isCurrentlyOpen) {
+              // It's open. Stop everything else and close it.
+              e.stopPropagation(); 
+              e.preventDefault();
+              turboModal.classList.add("hidden");
+              turboBtn.classList.remove("turbo-active");
+          } else {
+              // It's closed. Let the existing code open it, but add our spinning animation class
+              turboBtn.classList.add("turbo-active");
+          }
+      }, { capture: true });
+      
+      // If they close it using the 'X' inside the modal, reset the button animation
+      const closeBtn = $("btn-ai-close");
+      if (closeBtn) {
+          closeBtn.addEventListener("click", () => {
+              turboBtn.classList.remove("turbo-active");
+          });
+      }
+  }
+
+  // =====================================================
+  // 7. Personalized Splash Screen Greeting
+  // =====================================================
+  const splashScreen = $("global-loader");
+  const splashText = document.querySelector(".splash-content h2");
+  
+  if (splashScreen && splashText) {
+      try {
+          // Supabase caches the session locally. We grab it to greet the user by name instantly!
+          // The key is usually sb-[project-ref]-auth-token
+          const authStr = localStorage.getItem("sb-mlvgqwqiynpwpwzqufdf-auth-token");
+          let greeting = "Hello there!";
+          
+          if (authStr) {
+              const authData = JSON.parse(authStr);
+              const name = authData?.user?.user_metadata?.full_name;
+              if (name) {
+                  // Get just their first name
+                  greeting = `Hello, ${name.split(' ')[0]}!`; 
+              }
+          }
+          
+          // Inject the custom greeting with a beautiful sub-headline
+          splashText.innerHTML = `${greeting} <span style='display:block; font-size: 0.55em; opacity: 0.7; margin-top: 6px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase;'>Welcome to Learnora</span>`;
+          
+      } catch (e) {
+          // Safe fallback if they aren't logged in yet
+          splashText.innerHTML = `Hello! <span style='display:block; font-size: 0.55em; opacity: 0.7; margin-top: 6px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase;'>Welcome to Learnora</span>`;
+      }
+  }
+  // =====================================================
+  // 8. Cinematic Boot Sequence (Minimum Load Time)
+  // =====================================================
+  
+  // Save a reference to your original function
+  const originalSetGlobalLoading = UI.setGlobalLoading;
+  let isInitialBoot = true;
+
+  // Safely overwrite the function to intercept the "hide" command
+  UI.setGlobalLoading = function(isLoading) {
+      if (!isLoading && isInitialBoot) {
+          // If the app tries to hide the loader on first boot, intercept it.
+          // Force the splash screen to stay visible for 2 seconds to play the cool animation.
+          setTimeout(() => {
+              // Now call the original function to actually hide it
+              originalSetGlobalLoading.call(UI, false);
+              isInitialBoot = false;
+          }, 2000); 
+      } else {
+          // If it's a normal loading event (like fetching a quiz), just run normally
+          originalSetGlobalLoading.call(UI, isLoading);
+      }
+  };
+  // =====================================================
+  // 9. Bulletproof Sidebar Toggle (Desktop & Mobile)
+  // =====================================================
+  const menuBtn = document.getElementById("menu-toggle");
+  
+  if (menuBtn) {
+      // Use capture and stopImmediatePropagation to ensure this is the ONLY 
+      // event that fires when clicking the hamburger menu, preventing double-toggles.
+      menuBtn.addEventListener("click", (e) => {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          
+          const sideNav = document.getElementById("sidebar");
+          if (!sideNav) return;
+          
+          // Toggle the collapsed class to slide it in/out
+          sideNav.classList.toggle("collapsed");
+          
+          // If on mobile, also toggle the dark background overlay
+          if (window.innerWidth <= 768) {
+              const overlay = document.getElementById("sidebar-overlay");
+              if (overlay) {
+                  const isOpen = sideNav.classList.contains("collapsed");
+                  overlay.classList.toggle("active", isOpen);
+              }
+          }
+      }, { capture: true });
+  }
+    // =====================================================
+  // 10. Custom Theme Color Picker & Command Bar Polish
+  // =====================================================
+  const accentSelect = $("config-accent-color");
+  
+  // Apply saved theme color on load
+  const savedThemeColor = Storage.get("learnora_accent", "purple");
+  if (savedThemeColor) {
+      document.body.setAttribute("data-theme-color", savedThemeColor);
+      if (accentSelect) accentSelect.value = savedThemeColor;
+  }
+
+  // Listen for changes in settings
+  if (accentSelect) {
+      accentSelect.addEventListener("change", (e) => {
+          const chosenColor = e.target.value;
+          document.body.setAttribute("data-theme-color", chosenColor);
+          Storage.set("learnora_accent", chosenColor);
+          UI.showPopup("Theme color updated successfully!", "Vibe Changed ✨");
+      });
+  }
+
+
+  const chatInputBox = $("chat-input");
+  if (chatInputBox) {
+      chatInputBox.placeholder = "";
+  }
+  // =====================================================
+  // 11. Command Bar Enter-Key Handler & UI Vibe Sync
+  // =====================================================
+  const chatInput = $("chat-input");
+  const sendChatBtn = $("btn-send-chat");
+
+  if (chatInput && sendChatBtn) {
+      // Allow pressing 'Enter' inside the command bar to send the prompt immediately
+      chatInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendChatBtn.click();
+          }
+      });
+  }
+    // =====================================================
+  // 12. Floating AI Command Bar Execution Bridge
+  // =====================================================
+  const chatInputEl = $("chat-input");
+  const sendChatBtnEl = $("btn-send-chat");
+
+  if (chatInputEl && sendChatBtnEl) {
+      // Prevent duplicate event listeners by cloning or checking a flag
+      sendChatBtnEl.onclick = async () => {
+          const text = chatInputEl.value.trim();
+          if (!text) return;
+          chatInputEl.value = "";
+          
+          // Dynamically invoke AI.send if it exists
+          try {
+              const { AI } = await import("./ai.js");
+              if (AI && typeof AI.send === "function") {
+                  await AI.send(text);
+              }
+          } catch (err) {
+              console.error("[UI] Failed to dispatch AI message:", err);
+          }
+      };
+
+      chatInputEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendChatBtnEl.click();
+          }
+      });
+  }
+
+      // =====================================================
+  // Safe Dashboard Command Bar Integration
+  // =====================================================
+  window.addEventListener("DOMContentLoaded", () => {
+      const cmdInput = document.getElementById("dashboard-command-input");
+      const cmdSend = document.getElementById("dashboard-command-send");
+      const turboModal = document.getElementById("turbo-chat");
+      const turboToggleBtn = document.getElementById("turbo-toggle");
+
+      if (cmdInput && cmdSend) {
+          const handleCommand = () => {
+              const query = cmdInput.value.trim();
+              if (!query) return;
+              cmdInput.value = "";
+
+              // Open the Turbo AI modal safely if hidden
+              if (turboModal && turboModal.classList.contains("hidden")) {
+                  turboModal.classList.remove("hidden");
+                  if (turboToggleBtn) turboToggleBtn.classList.add("turbo-active");
+              }
+
+              // Mirror the text into the main chat input and trigger submission
+              const mainChatInput = document.getElementById("chat-input");
+              const mainSendBtn = document.getElementById("btn-send-chat");
+
+              if (mainChatInput) {
+                  mainChatInput.value = query;
+              }
+
+              if (mainSendBtn) {
+                  mainSendBtn.click();
+              }
+          };
+
+          cmdSend.addEventListener("click", handleCommand);
+          cmdInput.addEventListener("keydown", (e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleCommand();
+              }
+          });
+      }
+  });

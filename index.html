@@ -299,7 +299,7 @@
         <!-- ==========================================
              MAIN WORKSPACE
         ============================================== -->
-        <div id="main-app" class="app-container hidden">
+        <div id="main-app" class="app-container">
             <!-- Liquid glass background blobs -->
             <div class="liquid-blobs" aria-hidden="true">
                 <div class="liquid-blob liquid-blob--1"></div>
@@ -1180,6 +1180,20 @@
                                             </select>
                                         </div>
                                     </div>
+                                    <div class="settings-field">
+                                        <div class="field-label">
+                                            <label>Accent Color Scheme</label>
+                                            <p class="field-desc">Choose your preferred workspace vibe</p>
+                                        </div>
+                                        <div class="field-action">
+                                            <select id="config-accent-color" aria-label="Accent Color">
+                                                <option value="indigo">Vivid Indigo</option>
+                                                <option value="purple">Cyber Purple</option>
+                                                <option value="emerald">Neon Emerald</option>
+                                                <option value="sunset">Sunset Coral</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div style="display: flex; justify-content: flex-end;">
@@ -1743,8 +1757,8 @@
                     aria-label="Upload File"
                 >
                     <svg
-                        width="22"
-                        height="22"
+                        width="20"
+                        height="20"
                         fill="none"
                         stroke="currentColor"
                         stroke-width="2"
@@ -1757,24 +1771,26 @@
                     </svg>
                 </label>
                 <input type="file" id="file-upload" accept=".pdf,.txt,.docx,.png,.jpg,.jpeg" hidden />
+                
+                <span style="font-size: 1.1rem; padding-left: 4px; display: flex; align-items: center;" aria-hidden="true">✨</span>
+                
                 <input
                     type="text"
                     id="chat-input"
-                    placeholder="Ask anything or request flashcards..."
+                    placeholder="Ask AI to do anything... (e.g. 'Start a 25m timer')"
                     autocomplete="off"
                     aria-label="AI Chat Input"
                 />
+                
                 <button
                     id="btn-ai-voice"
                     class="icon-btn"
                     aria-label="Voice Input"
-                    style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; color: var(--primary); transition: all 0.3s ease;"
+                    style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; color: var(--text-muted); background: transparent; border: none;"
                 >
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
                         <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                        <line x1="12" y1="19" x2="12" y2="23"></line>
-                        <line x1="8" y1="23" x2="16" y2="23"></line>
                     </svg>
                 </button>
                 <button
@@ -1783,18 +1799,43 @@
                     aria-label="Send Message"
                 >
                     <svg
-                        width="22"
-                        height="22"
-                        fill="currentColor"
+                        width="18"
+                        height="18"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
                         viewBox="0 0 24 24"
                         aria-hidden="true"
                     >
-                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
                     </svg>
                 </button>
             </div>
         </div>
 
         <script type="module" src="./js/main.js"></script>
+        <!-- ==========================================
+     DASHBOARD FLOATING AI COMMAND BAR
+============================================== -->
+<div id="dashboard-command-bar" class="dashboard-command-bar glass-panel">
+    <span class="command-bar-icon" aria-hidden="true">✨</span>
+    <input
+        type="text"
+        id="dashboard-command-input"
+        placeholder="Ask AI to do anything... (e.g. 'Start a 25m timer')"
+        autocomplete="off"
+        aria-label="Dashboard AI Command Bar"
+    />
+    <button id="dashboard-command-send" class="command-bar-btn" aria-label="Send AI Command">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+    </button>
+</div>
+
     </body>
 </html>
