@@ -175,17 +175,24 @@ Deno.serve(async (req) => {
         }
 
     } catch (err) {
-        // Return all step-by-step failures to the UI
-        const debugMessage = `🚨 AI Pipeline Failure:\n` +
-            `- Gemini: ${debugErrors["Gemini Channel"] || "Skipped"}\n` +
-            `- Groq: ${debugErrors["Groq Channel"] || "Skipped"}\n` +
-            `- OpenRouter: ${debugErrors["OpenRouter Channel"] || "Skipped"}\n\n` +
-            `System error: ${err.message}`;
+        // Log the provider-by-provider detail server-side only. Returning it
+        // to the browser leaked upstream API error bodies (quota state, org
+        // and key metadata, raw provider JSON) to anyone who could reach the
+        // endpoint, and rendered it to the student as if it were AI output.
+        console.error("AI pipeline failure", {
+            gemini: debugErrors["Gemini Channel"] || "Skipped",
+            groq: debugErrors["Groq Channel"] || "Skipped",
+            openrouter: debugErrors["OpenRouter Channel"] || "Skipped",
+            error: err.message,
+        });
 
+        // 503, not 200: the client's retry/error handling in
+        // AI._callEdgeStream keys off response.ok, so a 200 made every
+        // outage look like a successful reply and disabled the retries.
         return new Response(JSON.stringify({
-            text: debugMessage
+            error: "AI is temporarily unavailable. Please try again in a moment."
         }), {
-            status: 200,
+            status: 503,
             headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": '*' }
         });
     }

@@ -508,10 +508,9 @@ Based on how close I am, issue a <GRADE_FLASHCARD>X</GRADE_FLASHCARD> command wh
 4 = Easy (perfect)
 Also provide a short 1-sentence feedback.`;
             
-            import("./api.js").then(module => {
-                const AI = module.AI || window.AI;
-                if (AI) AI.send(prompt);
-            });
+            // AI lives in ./ai.js — importing it from ./api.js resolved to
+            // undefined and silently made this button do nothing.
+            import("./ai.js").then(({ AI }) => AI.send(prompt));
         };
         
         // Remove old listeners by cloning

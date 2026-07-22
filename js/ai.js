@@ -68,8 +68,15 @@ export const AI = {
           body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-        
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          const err = new Error(body.error || "AI is temporarily unavailable. Please try again in a moment.");
+          // 4xx means the request itself is wrong (bad/expired token, bad
+          // payload) — retrying it just burns two more round trips and 6s.
+          err.retryable = response.status >= 500 || response.status === 429;
+          throw err;
+        }
+
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let fullText = "";
@@ -91,7 +98,7 @@ export const AI = {
         return { text: parsedText };
       } catch (err) {
         const isLast = attempt === retries;
-        if (isLast) throw err;
+        if (isLast || err.retryable === false) throw err;
         console.warn(`[AI] Retry ${attempt + 1}/${retries}: ${err.message}`);
         await new Promise(r => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
       }
@@ -148,20 +155,47 @@ export const AI = {
     // Newlines to <br> (but not inside code blocks — already handled)
     html = html.replace(/\n/g, '<br/>');
 
-    // Protect HTML widgets created during preprocessing (e.g. AI action widgets)
-    html = html.replace(/&lt;div class="ai-widget"&gt;/g, '<div class="ai-widget">')
-               .replace(/&lt;\/div&gt;/g, '</div>')
-               .replace(/&lt;span class="ai-widget-icon"&gt;/g, '<span class="ai-widget-icon">')
-               .replace(/&lt;\/span&gt;/g, '</span>')
-               .replace(/&lt;strong&gt;/g, '<strong>')
-               .replace(/&lt;\/strong&gt;/g, '</strong>');
-
+    // NOTE: this renderer deliberately does NOT un-escape any tags. A previous
+    // version selectively un-escaped <div class="ai-widget">, <span
+    // class="ai-widget-icon">, <strong> and their closers so that action
+    // widgets injected before rendering would survive. That let any model
+    // output — including text a model was fed from an uploaded document —
+    // print those literal tags and forge a convincing "✅ Added task: …"
+    // confirmation for an action that never happened. Widgets are now
+    // re-inserted after rendering via restoreWidgets(); see AI.send().
     return html;
+  },
+
+  /** Token used to reserve a spot for trusted, app-built widget HTML inside
+   *  untrusted model text. Contains no markdown/HTML-significant characters,
+   *  so it passes through renderMarkdown() untouched. */
+  _widgetToken(i) {
+    return `⟦learnora-widget:${i}⟧`;
+  },
+
+  /** Swap widget tokens back for their real HTML *after* escaping/rendering. */
+  restoreWidgets(html, widgets) {
+    return html.replace(/⟦learnora-widget:(\d+)⟧/g, (_, i) => widgets[Number(i)] ?? "");
   },
 
   /* =========================================================================
      FLASHCARD JSON EXTRACTION — hardened parser with multiple fallbacks
      ========================================================================= */
+
+  /** Action tags the app executes when it sees them in a model reply. */
+  ACTION_TAGS: ["ADD_TASK", "START_TIMER", "SET_THEME", "NAVIGATE", "GRADE_FLASHCARD", "ADD_QUIZ", "ADD_PLAN"],
+
+  /** Defang action tags inside untrusted text before it is interpolated into
+   *  the prompt. Notes and uploaded documents are attacker-influenced input:
+   *  a PDF containing "<SET_THEME>x</SET_THEME>" or "<NAVIGATE>…</NAVIGATE>"
+   *  could otherwise steer the app, and those four tags execute with no
+   *  confirmation prompt. Neutralising them at the boundary means only the
+   *  model's own reply can ever trigger an action. */
+  _stripActionTags(text) {
+    if (!text) return "";
+    const names = this.ACTION_TAGS.join("|");
+    return String(text).replace(new RegExp(`<(/?)(?:${names})>`, "gi"), "($1tag removed)");
+  },
 
   _decodeBase64UTF8(base64Str) {
     const binaryString = atob(base64Str);
@@ -255,7 +289,22 @@ export const AI = {
   _extractQuizJSON(text) {
     if (!text) return [];
     const sanitize = (str) => str.replace(/,(\s*[\]}])/g, "$1");
-    const isValid = (arr) => Array.isArray(arr) && arr.length && arr[0].question && Array.isArray(arr[0].choices);
+    // correctIndex must be validated here, not just question/choices: the
+    // quiz view grades with `i === q.correctIndex`, so a model that emits
+    // `answer` or `correct_index` instead produces a quiz where every
+    // answer — including the right one — is marked wrong, with no error.
+    const isValid = (arr) =>
+      Array.isArray(arr) &&
+      arr.length > 0 &&
+      arr.every((q) =>
+        q &&
+        typeof q.question === "string" &&
+        Array.isArray(q.choices) &&
+        q.choices.length > 1 &&
+        Number.isInteger(q.correctIndex) &&
+        q.correctIndex >= 0 &&
+        q.correctIndex < q.choices.length
+      );
 
     try {
       const parsed = JSON.parse(sanitize(text.trim()));
@@ -551,7 +600,7 @@ Do NOT wrap in code fences. Do NOT add any text before or after the JSON array.`
         const notes = await Notes.fetchByMaterial(materialId);
         if (notes?.[0]?.markdown_content) {
           // Truncate to ~3000 chars to avoid blowing token limits
-          const truncated = notes[0].markdown_content.substring(0, 3000);
+          const truncated = this._stripActionTags(notes[0].markdown_content.substring(0, 3000));
           activeContext = `User is reading study notes. Here is the content they are studying:\n"""\n${truncated}\n"""\nAct as a tutor for this specific material. Answer questions about it. Quiz them if they ask.`;
         }
       } catch {}
@@ -564,8 +613,8 @@ Do NOT wrap in code fences. Do NOT add any text before or after the JSON array.`
     let appendedFileContext = "";
     if (this.currentFile && this.currentFile.mimeType === "text/plain") {
       try {
-        const decodedText = this._decodeBase64UTF8(this.currentFile.data);
-        appendedFileContext = `\n\nThe student attached a text file "${this.currentFile.name}" with the following content:\n"""\n${decodedText}\n"""`;
+        const decodedText = this._stripActionTags(this._decodeBase64UTF8(this.currentFile.data));
+        appendedFileContext = `\n\nThe student attached a text file "${esc(this.currentFile.name)}" with the following content:\n"""\n${decodedText}\n"""`;
         filePayload = null; // Don't send as binary attachment to Edge function
       } catch (e) {
         console.error("[AI.send] Failed to decode chat text file payload:", e);
@@ -779,50 +828,59 @@ User message: ${query}`;
           }
       }
 
-      // Replace tags with beautiful action widgets
+      // Replace tags with beautiful action widgets. The widget HTML is
+      // app-built and trusted, so it is parked in `widgets[]` behind an
+      // opaque token and spliced back in *after* the model's text has been
+      // escaped and rendered — never round-tripped through the escaper.
+      const widgets = [];
+      const widget = (html) => {
+        widgets.push(html);
+        return this._widgetToken(widgets.length - 1);
+      };
+
       finalResponse = finalResponse
         .replace(addTaskRegex, (_, name) => {
           const taskName = name.trim();
           if (addedTasks.includes(taskName)) {
-            return `<div class="ai-widget"><span class="ai-widget-icon">✅</span> Added task: <strong>${esc(taskName)}</strong></div>`;
+            return widget(`<div class="ai-widget"><span class="ai-widget-icon">✅</span> Added task: <strong>${esc(taskName)}</strong></div>`);
           }
-          return `<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled adding task: <strong>${esc(taskName)}</strong></div>`;
+          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled adding task: <strong>${esc(taskName)}</strong></div>`);
         })
         .replace(startTimerRegex, (_, mins) => {
           if (timerStarted) {
-            return `<div class="ai-widget"><span class="ai-widget-icon">⏱️</span> Started focus timer for ${mins}m</div>`;
+            return widget(`<div class="ai-widget"><span class="ai-widget-icon">⏱️</span> Started focus timer for ${esc(mins)}m</div>`);
           }
-          return `<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled focus timer</div>`;
+          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled focus timer</div>`);
         })
         .replace(themeRegex, (_, theme) => {
           if (themeChangedTo) {
-            return `<div class="ai-widget"><span class="ai-widget-icon">🎨</span> Switched theme to ${theme}</div>`;
+            return widget(`<div class="ai-widget"><span class="ai-widget-icon">🎨</span> Switched theme to ${esc(theme)}</div>`);
           }
-          return `<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Failed to switch theme</div>`;
+          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Failed to switch theme</div>`);
         })
         .replace(navigateRegex, (_, view) => {
           if (navigatedTo) {
-            return `<div class="ai-widget"><span class="ai-widget-icon">🧭</span> Navigated to ${view}</div>`;
+            return widget(`<div class="ai-widget"><span class="ai-widget-icon">🧭</span> Navigated to ${esc(view)}</div>`);
           }
           return ``;
         })
         .replace(gradeRegex, (_, score) => {
           if (flashcardGraded) {
-            return `<div class="ai-widget"><span class="ai-widget-icon">🎓</span> Flashcard Graded (Score: ${score})</div>`;
+            return widget(`<div class="ai-widget"><span class="ai-widget-icon">🎓</span> Flashcard Graded (Score: ${esc(score)})</div>`);
           }
           return ``;
         })
         .replace(quizRegex, (_, topic) => {
           if (generatedQuizTopic) {
-            return `<div class="ai-widget"><span class="ai-widget-icon">❓</span> Generated quiz: <strong>${esc(topic.trim())}</strong></div>`;
+            return widget(`<div class="ai-widget"><span class="ai-widget-icon">❓</span> Generated quiz: <strong>${esc(topic.trim())}</strong></div>`);
           }
-          return `<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled quiz generation</div>`;
+          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled quiz generation</div>`);
         })
         .replace(planRegex, () => {
           if (generatedPlan) {
-            return `<div class="ai-widget"><span class="ai-widget-icon">📅</span> Generated weekly study plan</div>`;
+            return widget(`<div class="ai-widget"><span class="ai-widget-icon">📅</span> Generated weekly study plan</div>`);
           }
-          return `<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled plan generation</div>`;
+          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled plan generation</div>`);
         })
         .trim();
 
@@ -851,7 +909,7 @@ User message: ${query}`;
       // Store and render final markdown (widgets are protected in renderMarkdown)
       this.chatHistory.push({ role: "model", content: cleanHistoryText });
       if (finalResponse.length > 0) {
-        typingBubble.innerHTML = this.renderMarkdown(finalResponse);
+        typingBubble.innerHTML = this.restoreWidgets(this.renderMarkdown(finalResponse), widgets);
       } else {
         typingBubble.innerHTML = `<em>Action completed.</em>`;
       }

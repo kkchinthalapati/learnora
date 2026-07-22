@@ -613,7 +613,10 @@ export const Flashcards = {
     return true;
   },
 
-  /** Count of cards scheduled on/before now — excludes never-reviewed (null) cards. */
+  /** Count of cards due now. Never-reviewed cards have a NULL
+   *  next_review_date and are due immediately — `.lte()` alone silently
+   *  excludes them, so a brand-new deck reported "0 due" while the review
+   *  screen (which treats NULL as due) happily served the same cards. */
   async fetchDueCount() {
     const user = await getCurrentUser();
     if (!user) return 0;
@@ -621,7 +624,7 @@ export const Flashcards = {
       .from("flashcards")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .lte("next_review_date", new Date().toISOString());
+      .or(`next_review_date.is.null,next_review_date.lte.${new Date().toISOString()}`);
     if (error) {
       console.error("[Flashcards.fetchDueCount]", error.message);
       return 0;
@@ -636,8 +639,8 @@ export const Flashcards = {
       .from("flashcards")
       .select("*, flashcard_decks(title)")
       .eq("user_id", user.id)
-      .lte("next_review_date", new Date().toISOString())
-      .order("next_review_date", { ascending: true })
+      .or(`next_review_date.is.null,next_review_date.lte.${new Date().toISOString()}`)
+      .order("next_review_date", { ascending: true, nullsFirst: true })
       .limit(limit);
     if (error) {
       console.error("[Flashcards.fetchAllDue]", error.message);
@@ -1024,13 +1027,25 @@ export const DataAdmin = {
     const user = await getCurrentUser();
     if (!user) return;
     try {
-      await Promise.all([
+      // supabase-js resolves with `{ error }` instead of rejecting, so a
+      // bare Promise.all() reported "All data wiped." even when every
+      // delete was refused by RLS or dropped by the network.
+      const results = await Promise.all([
         supabase.from("tasks").delete().eq("user_id", user.id),
         supabase.from("exams").delete().eq("user_id", user.id),
         supabase.from("study_sessions").delete().eq("user_id", user.id),
         supabase.from("weekly_plans").delete().eq("user_id", user.id),
         supabase.from("quizzes").delete().eq("user_id", user.id),
       ]);
+      const failed = results.filter((r) => r?.error);
+      if (failed.length) {
+        failed.forEach((r) => console.error("[DataAdmin.wipe]", r.error.message));
+        UI.showPopup(
+          "Some data could not be deleted. Please check your connection and try again.",
+          "Wipe Incomplete",
+        );
+        return;
+      }
       // Only wipe study-session data, never auth tokens or theme prefs
       localStorage.removeItem("sessions");
       localStorage.removeItem("fav_times");

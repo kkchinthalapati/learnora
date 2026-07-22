@@ -547,7 +547,8 @@ function bindAuth() {
     }
   });
 
-  $("btn-logout")?.addEventListener("click", Auth.logout);
+  // #btn-logout no longer exists in index.html — the two live logout buttons
+  // are in the settings panel and the header.
   // Settings panel also has a logout button
   $("settings-logout-btn")?.addEventListener("click", Auth.logout);
   $("header-logout-btn")?.addEventListener("click", Auth.logout);
@@ -1513,7 +1514,10 @@ function bindCalendar() {
   });
 
   $("btn-add-exam")?.addEventListener("click", () => {
-    openExamModal(null, new Date().toISOString().slice(0, 10));
+    // localDateStr(), not toISOString(): the latter converts to UTC and
+    // returns *yesterday* for positive-offset timezones in the evening,
+    // which lands below the input's `min` and blocks submission.
+    openExamModal(null, localDateStr());
   });
 
   $("btn-cancel-exam")?.addEventListener("click", () => {
@@ -1532,7 +1536,7 @@ function bindCalendar() {
     e.preventDefault();
     const isEditing = !!$("modal-exam-id").value;
     const dateInput = $("exam-date");
-    if (!isEditing && dateInput.value < new Date().toISOString().slice(0, 10)) {
+    if (!isEditing && dateInput.value < localDateStr()) {
       dateInput.classList.remove("input-error");
       void dateInput.offsetWidth; // trigger reflow so the shake replays
       dateInput.classList.add("input-error");
@@ -1790,10 +1794,19 @@ function computeStreak(sessions) {
     const day = new Date(s.started_at).toDateString();
     dayTotals[day] = (dayTotals[day] || 0) + (s.minutes || 0);
   });
+  const MIN_MINS = 5;
   let streak = 0;
   const cursor = new Date();
   cursor.setHours(0, 0, 0, 0);
-  while ((dayTotals[cursor.toDateString()] || 0) >= 5) {
+
+  // Today is a grace day: a streak shouldn't read 0 every morning simply
+  // because the user hasn't studied *yet*. If today doesn't qualify, start
+  // counting from yesterday; only a missed full day actually breaks it.
+  if ((dayTotals[cursor.toDateString()] || 0) < MIN_MINS) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  while ((dayTotals[cursor.toDateString()] || 0) >= MIN_MINS) {
     streak++;
     cursor.setDate(cursor.getDate() - 1);
   }
@@ -2046,39 +2059,11 @@ function bindAI() {
     }
   });
 
-  const handleGlobalAI = () => {
-      const globalInput = $("global-ai-input");
-      const globalSubmit = $("global-ai-submit");
-      if (!globalInput || !globalInput.value.trim()) return;
-      
-      const val = globalInput.value.trim();
-      globalInput.value = "";
-      
-      // Visual feedback
-      if (globalSubmit) {
-          globalSubmit.innerHTML = `<span class="streaming-pulse" style="width: 8px; height: 8px;"></span>`;
-      }
-      
-      // Send to AI silently
-      AI.send(val).finally(() => {
-          if (globalSubmit) {
-              globalSubmit.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
-          }
-          // Show a subtle toast that AI finished processing if the chat isn't open
-          const chatModal = $("turbo-chat");
-          if (!chatModal || chatModal.classList.contains("hidden") || chatModal.style.display === "none") {
-              UI.showPopup("Agentic Action Completed ✨", "AI");
-          }
-      });
-  };
-
-  $("global-ai-submit")?.addEventListener("click", handleGlobalAI);
-  $("global-ai-input")?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          handleGlobalAI();
-      }
-  });
+  // Removed: handleGlobalAI() and its two bindings. #global-ai-input and
+  // #global-ai-submit do not exist anywhere in index.html, so the optional
+  // chaining made ~35 lines of dead code that never ran. The dashboard
+  // command bar (#dashboard-command-input) is the live equivalent and is
+  // wired in js/ui.js.
 
   $("file-upload")?.addEventListener("change", (e) => {
     if (e.target.files?.[0]) AI.processFile(e.target.files[0]);
