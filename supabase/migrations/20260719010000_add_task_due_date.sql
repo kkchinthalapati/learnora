@@ -4,4 +4,4 @@
 -- due_date so tasks can be sorted/highlighted by urgency the same way
 -- exams already are.
 
-ALTER TABLE "public"."tasks" ADD COLUMN "due_date" date;
+ALTER TABLE "public"."tasks" ADD COLUMN IF NOT EXISTS "due_date" date;

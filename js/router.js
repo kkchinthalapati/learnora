@@ -174,9 +174,7 @@ export const Router = {
   },
 
   async loadAllFlashcards() {
-    UI.setGlobalLoading(true);
     const decks = await Decks.fetchAll();
-    UI.setGlobalLoading(false);
     
     const container = $("flashcards-grid");
     if (!container) return;
@@ -203,9 +201,6 @@ export const Router = {
   },
 
   async loadFolders(route) {
-    if (route !== "upload") {
-      UI.setGlobalLoading(true);
-    }
     const folders = await Folders.fetch();
 
     let materialCounts = {};
@@ -215,10 +210,6 @@ export const Router = {
         acc[m.folder_id] = (acc[m.folder_id] || 0) + 1;
         return acc;
       }, {});
-    }
-
-    if (route !== "upload") {
-      UI.setGlobalLoading(false);
     }
 
     if (route === "folders") {
@@ -275,13 +266,12 @@ export const Router = {
   },
 
   async loadFolderDetail(folderId) {
-    UI.setGlobalLoading(true);
     // We need Materials and Decks imported!
     const materialsList = $("workspace-materials-list");
     const decksList = $("workspace-decks-list");
     const quizzesList = $("workspace-quizzes-list");
 
-    if (!materialsList || !decksList) { UI.setGlobalLoading(false); return; }
+    if (!materialsList || !decksList) { return; }
 
     materialsList.innerHTML = "<p>Loading...</p>";
     decksList.innerHTML = "<p>Loading...</p>";
@@ -291,7 +281,6 @@ export const Router = {
     const decks = await Decks.fetch(folderId);
     const allQuizzes = await Quizzes.fetchAll();
     const quizzes = allQuizzes.filter((q) => q.folder_id === folderId);
-    UI.setGlobalLoading(false);
 
     if (materials.length === 0) {
       materialsList.innerHTML = "<p class='empty-state-sm'>No materials yet.</p>";
@@ -348,14 +337,12 @@ export const Router = {
   },
 
   async loadNotes(materialId) {
-    UI.setGlobalLoading(true);
     const content = $("notes-content");
-    if (!content) { UI.setGlobalLoading(false); return; }
+    if (!content) { return; }
     
     content.innerHTML = "<p>Loading notes...</p>";
     
     const notes = await Notes.fetchByMaterial(materialId);
-    UI.setGlobalLoading(false);
     
     if (notes.length > 0) {
       const rawMarkdown = notes[0].markdown_content;
@@ -410,15 +397,15 @@ export const Router = {
   },
 
   async startReview(deckId) {
-    UI.setGlobalLoading(true);
     const container = $("flashcard-container");
+
     const front = $("flashcard-front");
     const back = $("flashcard-back");
     const hint = $("flashcard-hint");
     const controls = $("review-controls");
     const progress = $("review-progress");
     
-    if (!container) { UI.setGlobalLoading(false); return; }
+    if (!container) { return; }
 
     front.textContent = "Loading cards...";
     back.classList.add("hidden");
@@ -426,7 +413,6 @@ export const Router = {
     hint.classList.add("hidden");
 
     let cards = await Flashcards.fetchByDeck(deckId);
-    UI.setGlobalLoading(false);
     
     // Simple filter: Only review cards due today or earlier
     const now = new Date();
@@ -565,11 +551,10 @@ Also provide a short 1-sentence feedback.`;
   },
 
   async loadAllQuizzes() {
-    UI.setGlobalLoading(true);
     const quizzes = await Quizzes.fetchAll();
-    UI.setGlobalLoading(false);
 
     const container = $("quizzes-grid");
+
     if (!container) return;
 
     if (quizzes.length === 0) {
@@ -593,11 +578,10 @@ Also provide a short 1-sentence feedback.`;
   },
 
   async startQuiz(quizId) {
-    UI.setGlobalLoading(true);
     const quiz = await Quizzes.fetchById(quizId);
-    UI.setGlobalLoading(false);
 
     const container = $("quiz-content");
+
     const hostBubble = $("quiz-host-bubble");
     const hostText = $("quiz-host-text");
     if (!container) return;

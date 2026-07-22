@@ -364,6 +364,40 @@ export const UI = {
     }
   },
 
+  _aiLoaderInterval: null,
+
+  setAILoading(isLoading, messages = []) {
+    const loader = $("ai-loader");
+    const textEl = $("ai-loader-text");
+    if (!loader || !textEl) return;
+
+    if (isLoading) {
+      loader.classList.remove("hidden");
+      if (messages.length > 0) {
+        let msgIndex = 0;
+        textEl.textContent = messages[0];
+        
+        if (this._aiLoaderInterval) clearInterval(this._aiLoaderInterval);
+        this._aiLoaderInterval = setInterval(() => {
+          textEl.style.opacity = '0';
+          setTimeout(() => {
+            msgIndex = (msgIndex + 1) % messages.length;
+            textEl.textContent = messages[msgIndex];
+            textEl.style.opacity = '1';
+          }, 300); // Wait for fade out
+        }, 3000); // Change text every 3s
+      } else {
+        textEl.textContent = "AI is thinking...";
+      }
+    } else {
+      loader.classList.add("hidden");
+      if (this._aiLoaderInterval) {
+        clearInterval(this._aiLoaderInterval);
+        this._aiLoaderInterval = null;
+      }
+    }
+  },
+
   showQuizConfigModal(materialId, folderId, defaultTopic = "") {
     if (!$("quiz-config-modal")) return;
 

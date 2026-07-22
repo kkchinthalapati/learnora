@@ -232,35 +232,31 @@ function bindUploadHub() {
       
       // TRIGGER AI GENERATION IN THE BACKGROUND
       let container = document.getElementById("toast-container");
-      if (!container) {
-        container = document.createElement("div");
-        container.id = "toast-container";
-        container.className = "toast-container";
-        document.body.appendChild(container);
+      UI.setAILoading(true, [
+        "AI is thinking...",
+        "Analyzing your material...",
+        "Generating flashcards...",
+        "Synthesizing notes...",
+        "Almost there..."
+      ]);
+
+      try {
+        await AI.generateStudyMaterial(material, folderId, fileDataPayload);
+        UI.setAILoading(false);
+        // Reset UI
+        fileInput.value = "";
+        if (document.getElementById('upload-custom-title')) document.getElementById('upload-custom-title').value = "";
+        linkInput.querySelector('input').value = "";
+        const h3 = dropzone.querySelector('h3');
+        if (h3) h3.textContent = "Drag & Drop";
+        
+        // Redirect to folder
+        window.location.hash = `folder-${folderId}`;
+      } catch (err) {
+        UI.setAILoading(false);
+        console.error("AI Generation failed:", err);
+        UI.showPopup(err.message || "Generation failed.", "Error");
       }
-
-      const toast = document.createElement("div");
-      toast.className = "glass-panel toast";
-      toast.innerHTML = `<span>⏳ Generating notes and flashcards for ${esc(material.title || "material")}...</span>`;
-      container.appendChild(toast);
-
-      AI.generateStudyMaterial(material, folderId, fileDataPayload).then(() => {
-        toast.innerHTML = `<span>✅ Generation complete for ${esc(material.title || "material")}! <a href="#folders" style="color: var(--accent); text-decoration: underline;">View folder</a></span>`;
-        setTimeout(() => toast.remove(), 10000);
-      }).catch(e => {
-        console.error("AI Generation failed:", e);
-        toast.classList.add("toast-error");
-        toast.innerHTML = `<span>❌ Generation failed for ${esc(material.title || "material")}.</span>`;
-        setTimeout(() => toast.remove(), 10000);
-      });
-      
-      UI.showPopup("Material successfully uploaded. Generation is running in the background.", "Success");
-      // Reset UI
-      fileInput.value = "";
-      if (document.getElementById('upload-custom-title')) document.getElementById('upload-custom-title').value = "";
-      linkInput.querySelector('input').value = "";
-      const h3 = dropzone.querySelector('h3');
-      if (h3) h3.textContent = "Drag & Drop";
     } catch (err) {
       UI.showPopup(err.message, "Upload Failed");
     } finally {
@@ -2185,38 +2181,58 @@ function bindAI() {
       length: parseInt(document.querySelector('input[name="quiz-length"]:checked')?.value) || 10
     };
 
-    ModalManager.close("quiz-config-modal");
-    UI.setGlobalLoading(true);
-    
-    const quiz = await AI.generateQuiz(materialId, folderId, config);
-    UI.setGlobalLoading(false);
-    
-    if (quiz) {
-      window.location.hash = `quiz-${quiz.id}`;
+    UI.setAILoading(true, [
+      "AI is thinking...",
+      "Analyzing material context...",
+      "Formulating quiz questions...",
+      "Validating answers...",
+      "Almost ready..."
+    ]);
+
+    try {
+      const quiz = await AI.generateQuiz(materialId, folderId, config);
+      UI.setAILoading(false);
+      if (quiz) {
+        ModalManager.close("quiz-config-modal");
+        window.location.hash = `quiz-${quiz.id}`;
+      }
+    } catch (e) {
+      UI.setAILoading(false);
+      console.error(e);
+      UI.showPopup(e.message || "Failed to generate quiz.", "Error");
     }
   });
 
   // "Regenerate" on the #plan view — upsert just overwrites this week's plan.
   $("btn-regenerate-plan")?.addEventListener("click", async () => {
     const btn = $("btn-regenerate-plan");
-    const { Plans } = await import("./api.js");
-    const weekStartISO = localDateStr(mondayOfWeek());
-    const existing = await Plans.fetchForWeek(weekStartISO);
-    if (existing) {
-      const ok = await UI.confirm(
-        "This will replace your current weekly plan. Continue?",
-        { title: "Regenerate Weekly Plan", confirmText: "Regenerate", danger: true },
-      );
-      if (!ok) return;
-    }
+    const ok = await UI.promptConfirm(
+      "This will overwrite your current weekly plan. Are you sure you want to regenerate it?",
+      { title: "Regenerate Weekly Plan", confirmText: "Regenerate", danger: true },
+    );
+    if (!ok) return;
 
-    const original = btn.textContent;
-    btn.textContent = "⏳ Generating...";
-    btn.disabled = true;
-    const plan = await AI.generateWeeklyPlan();
-    btn.textContent = original;
-    btn.disabled = false;
-    if (plan) Router.loadPlanView();
+    UI.setAILoading(true, [
+      "AI is thinking...",
+      "Analyzing your tasks...",
+      "Balancing your study load...",
+      "Drafting a weekly schedule...",
+      "Finalizing plan..."
+    ]);
+
+    try {
+      const plan = await AI.generateWeeklyPlan();
+      UI.setAILoading(false);
+      if (plan) {
+        // Force refresh
+        const { router } = await import("./router.js");
+        router.loadPlanView();
+      }
+    } catch (err) {
+      UI.setAILoading(false);
+      console.error(err);
+      UI.showPopup("Could not generate a weekly plan.", "Error");
+    }
   });
 }
 
