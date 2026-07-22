@@ -748,15 +748,31 @@ Also provide a short 1-sentence feedback.`;
 
     if (!plan) {
       summaryEl.innerHTML = "";
+      summaryEl.style.display = "none";
+      daysEl.classList.add("is-empty");
       daysEl.innerHTML = `
         <div class="plan-empty-state glass-panel">
           <div class="plan-empty-icon">🗓️</div>
           <h3>No plan yet for this week</h3>
           <p class="text-muted">Learnora AI can build one from your open tasks and upcoming exams.</p>
+          <button class="btn-primary mt-20" id="btn-generate-plan-empty" style="padding: 12px 28px; font-size: var(--fs-md); font-weight: 600;">
+            ✨ Generate Weekly Plan with AI
+          </button>
         </div>
       `;
+      $("btn-generate-plan-empty")?.addEventListener("click", async () => {
+        const btn = $("btn-generate-plan-empty");
+        btn.textContent = "⏳ Generating Plan...";
+        btn.disabled = true;
+        const { AI } = await import("./ai.js");
+        const newPlan = await AI.generateWeeklyPlan();
+        if (newPlan) Router.loadPlanView();
+      });
       return;
     }
+
+    summaryEl.style.display = "";
+    daysEl.classList.remove("is-empty");
 
     const planJson = plan.plan_json || {};
     const lastGenerated = plan.created_at ? formatRelativeTime(plan.created_at) : "";

@@ -405,21 +405,129 @@ export const UI = {
     titleEl.textContent = rawText;
   },
 
-  /* ------ Theme ------ */
+  /* ------ Theme & Appearance System ------ */
 
   toggleTheme() {
-    document.body.classList.toggle("dark-theme");
     const isDark = document.body.classList.contains("dark-theme");
-    Storage.set(THEME_KEY, isDark ? "dark" : "light");
-    this._updateThemeIcon();
+    const newMode = isDark ? "light" : "dark";
+    this.applyAppearance({ mode: newMode });
+    Storage.set("learnora_mode", newMode);
+    Storage.set(THEME_KEY, newMode);
   },
 
   initTheme() {
-    const saved = Storage.get(THEME_KEY);
-    if (saved === "light") {
-      document.body.classList.remove("dark-theme");
+    this.applyAppearance();
+    
+    // Listen for system theme changes if mode is system
+    if (window.matchMedia) {
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+        if (Storage.get("learnora_mode") === "system") {
+          this.applyAppearance({ mode: "system" });
+        }
+      });
     }
+  },
+
+  applyAppearance(override = {}) {
+    const mode = override.mode || this._activeAppearanceState?.mode || Storage.get("learnora_mode") || Storage.get(THEME_KEY, "dark");
+    const accent = override.accent || this._activeAppearanceState?.accent || Storage.get("learnora_accent", "default");
+    const sidebar = override.sidebar || this._activeAppearanceState?.sidebar || Storage.get("learnora_sidebar", "glass");
+    const bg = override.bg || this._activeAppearanceState?.bg || Storage.get("learnora_bg", "none");
+    const font = override.font || this._activeAppearanceState?.font || Storage.get("learnora_font", "jakarta");
+    const size = override.size || this._activeAppearanceState?.size || Storage.get("learnora_size", "md");
+
+    // Mode
+    if (mode === "system") {
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.body.classList.toggle("dark-theme", prefersDark);
+    } else {
+      document.body.classList.toggle("dark-theme", mode === "dark");
+    }
+
+    // Attributes
+    document.body.setAttribute("data-theme-color", accent);
+    document.body.setAttribute("data-sidebar-style", sidebar);
+    document.body.setAttribute("data-bg-texture", bg);
+    document.body.setAttribute("data-font-family", font);
+    document.body.setAttribute("data-font-size", size);
+
+    this._activeAppearanceState = { mode, accent, sidebar, bg, font, size };
     this._updateThemeIcon();
+    this.syncAppearanceUI();
+  },
+
+  syncAppearanceUI() {
+    const s = this._activeAppearanceState || {
+      mode: Storage.get("learnora_mode", "dark"),
+      accent: Storage.get("learnora_accent", "default"),
+      sidebar: Storage.get("learnora_sidebar", "glass"),
+      bg: Storage.get("learnora_bg", "none"),
+      font: Storage.get("learnora_font", "jakarta"),
+      size: Storage.get("learnora_size", "md")
+    };
+
+    // Mode options
+    $$(".mode-option").forEach(el => {
+      el.classList.toggle("active", el.dataset.mode === s.mode);
+    });
+
+    // Theme preset swatches
+    $$(".theme-preset-btn").forEach(el => {
+      el.classList.toggle("active", el.dataset.theme === s.accent);
+    });
+
+    // Font family options
+    $$(".font-option").forEach(el => {
+      el.classList.toggle("active", el.dataset.font === s.font);
+    });
+
+    // Font size options
+    $$(".size-option").forEach(el => {
+      el.classList.toggle("active", el.dataset.size === s.size);
+    });
+
+    // Sidebar options
+    $$(".sidebar-option").forEach(el => {
+      el.classList.toggle("active", el.dataset.sidebar === s.sidebar);
+    });
+
+    // Background options
+    $$(".bg-option").forEach(el => {
+      el.classList.toggle("active", el.dataset.bg === s.bg);
+    });
+
+    // Live preview badge
+    const badge = $("preview-theme-badge");
+    if (badge) {
+      const activeThemeBtn = document.querySelector(`.theme-preset-btn[data-theme="${s.accent}"] .theme-swatch-name`);
+      badge.textContent = activeThemeBtn ? activeThemeBtn.textContent : s.accent;
+    }
+  },
+
+  saveAppearance() {
+    const s = this._activeAppearanceState || {};
+    if (s.mode) Storage.set("learnora_mode", s.mode);
+    if (s.mode) Storage.set(THEME_KEY, s.mode === "system" ? (document.body.classList.contains("dark-theme") ? "dark" : "light") : s.mode);
+    if (s.accent) Storage.set("learnora_accent", s.accent);
+    if (s.sidebar) Storage.set("learnora_sidebar", s.sidebar);
+    if (s.bg) Storage.set("learnora_bg", s.bg);
+    if (s.font) Storage.set("learnora_font", s.font);
+    if (s.size) Storage.set("learnora_size", s.size);
+
+    this.showPopup("Your appearance & theme preferences have been saved! ✨", "Appearance Saved");
+  },
+
+  resetAppearance() {
+    const defaults = { mode: "dark", accent: "default", sidebar: "glass", bg: "none", font: "jakarta", size: "md" };
+    Storage.set("learnora_mode", defaults.mode);
+    Storage.set(THEME_KEY, defaults.mode);
+    Storage.set("learnora_accent", defaults.accent);
+    Storage.set("learnora_sidebar", defaults.sidebar);
+    Storage.set("learnora_bg", defaults.bg);
+    Storage.set("learnora_font", defaults.font);
+    Storage.set("learnora_size", defaults.size);
+    this.applyAppearance(defaults);
+    this.showPopup("Appearance settings reset to defaults ✨", "Theme Reset");
   },
 
   _updateThemeIcon() {
@@ -678,51 +786,8 @@ window.addEventListener("DOMContentLoaded", () => {
     // =====================================================
   // 10. Custom Theme Color Picker & Command Bar Polish
   // =====================================================
-  // Apply saved theme settings on load
-  const savedThemeColor = Storage.get("learnora_accent", "default");
-  document.body.setAttribute("data-theme-color", savedThemeColor);
-  
-  const savedSidebar = Storage.get("learnora_sidebar", "glass");
-  document.body.setAttribute("data-sidebar-style", savedSidebar);
-  
-  const savedBg = Storage.get("learnora_bg", "none");
-  document.body.setAttribute("data-bg-texture", savedBg);
-
-  // Bind Theme Presets
-  const themeBtns = document.querySelectorAll(".theme-preset-btn");
-  themeBtns.forEach(btn => {
-      if (btn.dataset.theme === savedThemeColor) {
-          btn.classList.add("active");
-      }
-      btn.addEventListener("click", () => {
-          themeBtns.forEach(b => b.classList.remove("active"));
-          btn.classList.add("active");
-          const chosenColor = btn.dataset.theme;
-          document.body.setAttribute("data-theme-color", chosenColor);
-          Storage.set("learnora_accent", chosenColor);
-          UI.showPopup(`Theme updated to ${btn.querySelector('span').textContent} ✨`, "Vibe Changed");
-      });
-  });
-
-  // Bind Sidebar Styles
-  const sidebarRadios = document.querySelectorAll('input[name="sidebar-style"]');
-  sidebarRadios.forEach(radio => {
-      if (radio.value === savedSidebar) radio.checked = true;
-      radio.addEventListener("change", (e) => {
-          document.body.setAttribute("data-sidebar-style", e.target.value);
-          Storage.set("learnora_sidebar", e.target.value);
-      });
-  });
-
-  // Bind Background Textures
-  const bgRadios = document.querySelectorAll('input[name="bg-texture"]');
-  bgRadios.forEach(radio => {
-      if (radio.value === savedBg) radio.checked = true;
-      radio.addEventListener("change", (e) => {
-          document.body.setAttribute("data-bg-texture", e.target.value);
-          Storage.set("learnora_bg", e.target.value);
-      });
-  });
+  // Apply saved theme & appearance settings on load
+  UI.applyAppearance();
 
 
   const chatInputBox = $("chat-input");

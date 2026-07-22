@@ -612,6 +612,46 @@ function bindSettings() {
   // ----- Save Preferences (AI + Localization) -----
   $("btn-save-settings")?.addEventListener("click", () => UI.saveSettings());
 
+  // ----- Appearance Controls -----
+  document.querySelectorAll(".mode-option").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      UI.applyAppearance({ mode: btn.dataset.mode });
+    });
+  });
+
+  document.querySelectorAll(".theme-preset-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      UI.applyAppearance({ accent: btn.dataset.theme });
+    });
+  });
+
+  document.querySelectorAll(".font-option").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      UI.applyAppearance({ font: btn.dataset.font });
+    });
+  });
+
+  document.querySelectorAll(".size-option").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      UI.applyAppearance({ size: btn.dataset.size });
+    });
+  });
+
+  document.querySelectorAll(".sidebar-option").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      UI.applyAppearance({ sidebar: btn.dataset.sidebar });
+    });
+  });
+
+  document.querySelectorAll(".bg-option").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      UI.applyAppearance({ bg: btn.dataset.bg });
+    });
+  });
+
+  $("btn-save-appearance")?.addEventListener("click", () => UI.saveAppearance());
+  $("btn-reset-appearance")?.addEventListener("click", () => UI.resetAppearance());
+
   // ----- Export Data -----
   $("btn-export-data")?.addEventListener("click", async () => {
     const ok = await UI.confirm(

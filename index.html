@@ -24,15 +24,18 @@
             </div>
         </div>
 
+        <!-- GLOBAL ATMOSPHERIC LIQUID BLOBS FOR GLASSMORPHISM -->
+        <div class="liquid-blobs" aria-hidden="true">
+            <div class="liquid-blob liquid-blob--1"></div>
+            <div class="liquid-blob liquid-blob--2"></div>
+            <div class="liquid-blob liquid-blob--3"></div>
+            <div class="liquid-blob liquid-blob--4"></div>
+        </div>
+
         <!-- ==========================================
              AUTH WALL
         ============================================== -->
         <div id="auth-wall" class="auth-wrapper hidden">
-            <div class="liquid-blobs" aria-hidden="true">
-                <div class="liquid-blob liquid-blob--1"></div>
-                <div class="liquid-blob liquid-blob--2"></div>
-                <div class="liquid-blob liquid-blob--3"></div>
-            </div>
             <div class="auth-layout">
                 <div class="auth-card glass-panel">
                     <div class="brand-header text-center">
@@ -937,6 +940,9 @@
                             <button class="settings-tab-btn active" data-settings-tab="account" id="settings-tab-account">
                                 <span class="tab-icon">👤</span> Account
                             </button>
+                            <button class="settings-tab-btn" data-settings-tab="appearance" id="settings-tab-appearance">
+                                <span class="tab-icon">🎨</span> Appearance
+                            </button>
                             <button class="settings-tab-btn" data-settings-tab="security" id="settings-tab-security">
                                 <span class="tab-icon">🔒</span> Security
                             </button>
@@ -1103,6 +1109,281 @@
                                 </div>
                             </div>
 
+                            <!-- ===== APPEARANCE TAB ===== -->
+                            <div class="settings-panel" id="settings-panel-appearance">
+                                <div class="settings-card">
+                                    <div class="settings-card-header">
+                                        <span class="card-icon">🎨</span>
+                                        <div>
+                                            <h3>Workspace Appearance & Theme</h3>
+                                            <p>Personalize your visual experience, color scheme, typography, and atmospheric effects.</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- 1. Interface Theme Mode -->
+                                    <div class="settings-field" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                                        <div class="field-label">
+                                            <label>Interface Mode</label>
+                                            <p class="field-desc">Choose between dark mode, light mode, or system automatic sync</p>
+                                        </div>
+                                        <div class="appearance-grid" style="width: 100%;">
+                                            <div class="appearance-card-option mode-option active" data-mode="dark">
+                                                <span class="option-icon">🌙</span>
+                                                <span class="option-title">Dark Mode</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                            <div class="appearance-card-option mode-option" data-mode="light">
+                                                <span class="option-icon">☀️</span>
+                                                <span class="option-title">Light Mode</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                            <div class="appearance-card-option mode-option" data-mode="system">
+                                                <span class="option-icon">💻</span>
+                                                <span class="option-title">System Sync</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 2. Theme Presets (10 Vibes) -->
+                                    <div class="settings-field" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                                        <div class="field-label">
+                                            <label>Color Vibe Presets</label>
+                                            <p class="field-desc">Select a curated accent gradient and ambient glow scheme</p>
+                                        </div>
+                                        <div class="theme-swatches-grid" style="width: 100%;">
+                                            <div class="theme-swatch-card theme-preset-btn active" data-theme="default">
+                                                <div class="theme-swatch-preview" style="background: linear-gradient(135deg, #1e1e2d, #6366f1)">
+                                                    <div class="theme-swatch-dot" style="background: #6366f1"></div>
+                                                </div>
+                                                <div class="theme-swatch-info">
+                                                    <span class="theme-swatch-name">Midnight Space</span>
+                                                    <span class="theme-swatch-active-icon">✓</span>
+                                                </div>
+                                            </div>
+                                            <div class="theme-swatch-card theme-preset-btn" data-theme="ocean">
+                                                <div class="theme-swatch-preview" style="background: linear-gradient(135deg, #0f172a, #0284c7)">
+                                                    <div class="theme-swatch-dot" style="background: #0284c7"></div>
+                                                </div>
+                                                <div class="theme-swatch-info">
+                                                    <span class="theme-swatch-name">Deep Ocean</span>
+                                                    <span class="theme-swatch-active-icon">✓</span>
+                                                </div>
+                                            </div>
+                                            <div class="theme-swatch-card theme-preset-btn" data-theme="forest">
+                                                <div class="theme-swatch-preview" style="background: linear-gradient(135deg, #064e3b, #10b981)">
+                                                    <div class="theme-swatch-dot" style="background: #10b981"></div>
+                                                </div>
+                                                <div class="theme-swatch-info">
+                                                    <span class="theme-swatch-name">Neon Forest</span>
+                                                    <span class="theme-swatch-active-icon">✓</span>
+                                                </div>
+                                            </div>
+                                            <div class="theme-swatch-card theme-preset-btn" data-theme="cyberpunk">
+                                                <div class="theme-swatch-preview" style="background: linear-gradient(135deg, #180816, #ec4899)">
+                                                    <div class="theme-swatch-dot" style="background: #ec4899"></div>
+                                                </div>
+                                                <div class="theme-swatch-info">
+                                                    <span class="theme-swatch-name">Cyberpunk</span>
+                                                    <span class="theme-swatch-active-icon">✓</span>
+                                                </div>
+                                            </div>
+                                            <div class="theme-swatch-card theme-preset-btn" data-theme="sunset">
+                                                <div class="theme-swatch-preview" style="background: linear-gradient(135deg, #431407, #f97316)">
+                                                    <div class="theme-swatch-dot" style="background: #f97316"></div>
+                                                </div>
+                                                <div class="theme-swatch-info">
+                                                    <span class="theme-swatch-name">Sunset Coral</span>
+                                                    <span class="theme-swatch-active-icon">✓</span>
+                                                </div>
+                                            </div>
+                                            <div class="theme-swatch-card theme-preset-btn" data-theme="lavender">
+                                                <div class="theme-swatch-preview" style="background: linear-gradient(135deg, #2e1065, #8b5cf6)">
+                                                    <div class="theme-swatch-dot" style="background: #8b5cf6"></div>
+                                                </div>
+                                                <div class="theme-swatch-info">
+                                                    <span class="theme-swatch-name">Lavender Dream</span>
+                                                    <span class="theme-swatch-active-icon">✓</span>
+                                                </div>
+                                            </div>
+                                            <div class="theme-swatch-card theme-preset-btn" data-theme="monochrome">
+                                                <div class="theme-swatch-preview" style="background: linear-gradient(135deg, #0f172a, #64748b)">
+                                                    <div class="theme-swatch-dot" style="background: #64748b"></div>
+                                                </div>
+                                                <div class="theme-swatch-info">
+                                                    <span class="theme-swatch-name">Monochrome</span>
+                                                    <span class="theme-swatch-active-icon">✓</span>
+                                                </div>
+                                            </div>
+                                            <div class="theme-swatch-card theme-preset-btn" data-theme="breeze">
+                                                <div class="theme-swatch-preview" style="background: linear-gradient(135deg, #083344, #06b6d4)">
+                                                    <div class="theme-swatch-dot" style="background: #06b6d4"></div>
+                                                </div>
+                                                <div class="theme-swatch-info">
+                                                    <span class="theme-swatch-name">Cool Breeze</span>
+                                                    <span class="theme-swatch-active-icon">✓</span>
+                                                </div>
+                                            </div>
+                                            <div class="theme-swatch-card theme-preset-btn" data-theme="ruby">
+                                                <div class="theme-swatch-preview" style="background: linear-gradient(135deg, #4c0519, #f43f5e)">
+                                                    <div class="theme-swatch-dot" style="background: #f43f5e"></div>
+                                                </div>
+                                                <div class="theme-swatch-info">
+                                                    <span class="theme-swatch-name">Dark Ruby</span>
+                                                    <span class="theme-swatch-active-icon">✓</span>
+                                                </div>
+                                            </div>
+                                            <div class="theme-swatch-card theme-preset-btn" data-theme="hacker">
+                                                <div class="theme-swatch-preview" style="background: linear-gradient(135deg, #052e16, #22c55e)">
+                                                    <div class="theme-swatch-dot" style="background: #22c55e"></div>
+                                                </div>
+                                                <div class="theme-swatch-info">
+                                                    <span class="theme-swatch-name">Hacker Terminal</span>
+                                                    <span class="theme-swatch-active-icon">✓</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 3. Typography & Font Family -->
+                                    <div class="settings-field" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                                        <div class="field-label">
+                                            <label>Font Family</label>
+                                            <p class="field-desc">Choose a typeface style for the entire workspace</p>
+                                        </div>
+                                        <div class="appearance-grid" style="width: 100%; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+                                            <div class="appearance-card-option font-option active" data-font="jakarta" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+                                                <span class="option-icon" style="font-size: 1.2rem; font-weight: 700;">Aa</span>
+                                                <span class="option-title">Plus Jakarta</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                            <div class="appearance-card-option font-option" data-font="outfit" style="font-family: 'Outfit', sans-serif;">
+                                                <span class="option-icon" style="font-size: 1.2rem; font-weight: 700;">Aa</span>
+                                                <span class="option-title">Outfit</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                            <div class="appearance-card-option font-option" data-font="inter" style="font-family: 'Inter', sans-serif;">
+                                                <span class="option-icon" style="font-size: 1.2rem; font-weight: 700;">Aa</span>
+                                                <span class="option-title">Inter UI</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                            <div class="appearance-card-option font-option" data-font="mono" style="font-family: monospace;">
+                                                <span class="option-icon" style="font-size: 1.2rem; font-weight: 700;">{ }</span>
+                                                <span class="option-title">JetBrains Mono</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 4. Interface Scale -->
+                                    <div class="settings-field" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                                        <div class="field-label">
+                                            <label>Interface Font Scaling</label>
+                                            <p class="field-desc">Adjust baseline text size and element spacing</p>
+                                        </div>
+                                        <div class="appearance-grid" style="width: 100%;">
+                                            <div class="appearance-card-option size-option" data-size="sm">
+                                                <span class="option-icon" style="font-size: 1.1rem;">S</span>
+                                                <span class="option-title">Compact (13.5px)</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                            <div class="appearance-card-option size-option active" data-size="md">
+                                                <span class="option-icon" style="font-size: 1.3rem;">M</span>
+                                                <span class="option-title">Standard (15px)</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                            <div class="appearance-card-option size-option" data-size="lg">
+                                                <span class="option-icon" style="font-size: 1.5rem;">L</span>
+                                                <span class="option-title">Large (16.5px)</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 5. Sidebar & Backdrop -->
+                                    <div class="settings-field" style="flex-direction: column; align-items: flex-start; gap: 12px;">
+                                        <div class="field-label">
+                                            <label>Sidebar Framing Style</label>
+                                            <p class="field-desc">Choose sidebar transparency and background blur</p>
+                                        </div>
+                                        <div class="appearance-grid" style="width: 100%;">
+                                            <div class="appearance-card-option sidebar-option active" data-sidebar="glass">
+                                                <span class="option-icon">✨</span>
+                                                <span class="option-title">Glassmorphism</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                            <div class="appearance-card-option sidebar-option" data-sidebar="solid">
+                                                <span class="option-icon">🔳</span>
+                                                <span class="option-title">Solid Canvas</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                            <div class="appearance-card-option sidebar-option" data-sidebar="transparent">
+                                                <span class="option-icon">🔲</span>
+                                                <span class="option-title">Minimal</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="field-label" style="margin-top: 8px;">
+                                            <label>Atmospheric Background Effect</label>
+                                            <p class="field-desc">Add texture or animated glowing mesh to background</p>
+                                        </div>
+                                        <div class="appearance-grid" style="width: 100%;">
+                                            <div class="appearance-card-option bg-option active" data-bg="none">
+                                                <span class="option-icon">🌌</span>
+                                                <span class="option-title">Clean Canvas</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                            <div class="appearance-card-option bg-option" data-bg="noise">
+                                                <span class="option-icon">📺</span>
+                                                <span class="option-title">Grain Noise</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                            <div class="appearance-card-option bg-option" data-bg="mesh">
+                                                <span class="option-icon">🫧</span>
+                                                <span class="option-title">Liquid Mesh</span>
+                                                <span class="option-badge">ACTIVE</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 6. Live Interactive Preview Widget -->
+                                    <div class="settings-field" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                                        <div class="field-label">
+                                            <label>Live Workspace Preview</label>
+                                            <p class="field-desc">Instant real-time preview of your active theme &amp; typography</p>
+                                        </div>
+                                        <div class="appearance-live-preview" style="width: 100%;">
+                                            <div class="live-preview-header">
+                                                <div class="live-preview-title">
+                                                    <span>✨ Live Interface Preview</span>
+                                                </div>
+                                                <span class="live-preview-badge" id="preview-theme-badge">Midnight Space</span>
+                                            </div>
+                                            <div class="live-preview-body">
+                                                <div class="live-preview-card-mini">
+                                                    <h5>Focus Block Complete</h5>
+                                                    <p>45 mins of Deep Study logged automatically.</p>
+                                                </div>
+                                                <button class="btn-primary" style="padding: 8px 18px; pointer-events: none;">
+                                                    Primary Action →
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+                                    <button id="btn-reset-appearance" class="btn-secondary" style="padding: 10px 20px;">
+                                        Reset Defaults
+                                    </button>
+                                    <button id="btn-save-appearance" class="btn-primary" style="padding: 10px 28px;">
+                                        Save Appearance ✨
+                                    </button>
+                                </div>
+                            </div>
+
                             <!-- ===== PREFERENCES TAB ===== -->
                             <div class="settings-panel" id="settings-panel-preferences">
 
@@ -1178,97 +1459,6 @@
                                                 <option value="French">Français (French)</option>
                                                 <option value="Hindi">हिन्दी (Hindi)</option>
                                             </select>
-                                        </div>
-                                    </div>
-                                    <div class="settings-field">
-                                        <div class="field-label" style="width: 100%;">
-                                            <label>Theme Presets</label>
-                                            <p class="field-desc">Choose from 10 carefully curated vibes</p>
-                                            
-                                            <div class="theme-presets-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; margin-top: 12px;">
-                                                <button class="theme-preset-btn" data-theme="default">
-                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #1e1e28, #2a2a35)"></div>
-                                                    <span>Midnight Space</span>
-                                                </button>
-                                                <button class="theme-preset-btn" data-theme="ocean">
-                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #0f172a, #0284c7)"></div>
-                                                    <span>Deep Ocean</span>
-                                                </button>
-                                                <button class="theme-preset-btn" data-theme="forest">
-                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #14532d, #16a34a)"></div>
-                                                    <span>Neon Forest</span>
-                                                </button>
-                                                <button class="theme-preset-btn" data-theme="cyberpunk">
-                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #09090b, #e11d48)"></div>
-                                                    <span>Cyberpunk</span>
-                                                </button>
-                                                <button class="theme-preset-btn" data-theme="sunset">
-                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #7c2d12, #ea580c)"></div>
-                                                    <span>Sunset Coral</span>
-                                                </button>
-                                                <button class="theme-preset-btn" data-theme="lavender">
-                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #2e1065, #7c3aed)"></div>
-                                                    <span>Lavender Dream</span>
-                                                </button>
-                                                <button class="theme-preset-btn" data-theme="monochrome">
-                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #171717, #737373)"></div>
-                                                    <span>Monochrome</span>
-                                                </button>
-                                                <button class="theme-preset-btn" data-theme="breeze">
-                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #0c4a6e, #38bdf8)"></div>
-                                                    <span>Cool Breeze</span>
-                                                </button>
-                                                <button class="theme-preset-btn" data-theme="ruby">
-                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #4c0519, #be123c)"></div>
-                                                    <span>Dark Ruby</span>
-                                                </button>
-                                                <button class="theme-preset-btn" data-theme="hacker">
-                                                    <div class="theme-preview" style="background: linear-gradient(135deg, #052e16, #22c55e)"></div>
-                                                    <span>Hacker Terminal</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="settings-field">
-                                        <div class="field-label" style="width: 100%;">
-                                            <label>Sidebar Style</label>
-                                            <p class="field-desc">Choose how the sidebar looks</p>
-                                            <div class="radio-group" style="display: flex; gap: 16px; margin-top: 8px;">
-                                                <label class="radio-label">
-                                                    <input type="radio" name="sidebar-style" value="glass" checked>
-                                                    <span>Glassmorphism</span>
-                                                </label>
-                                                <label class="radio-label">
-                                                    <input type="radio" name="sidebar-style" value="solid">
-                                                    <span>Solid Dark</span>
-                                                </label>
-                                                <label class="radio-label">
-                                                    <input type="radio" name="sidebar-style" value="transparent">
-                                                    <span>Transparent</span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="settings-field">
-                                        <div class="field-label" style="width: 100%;">
-                                            <label>Background Texture</label>
-                                            <p class="field-desc">Add some noise or mesh to the background</p>
-                                            <div class="radio-group" style="display: flex; gap: 16px; margin-top: 8px;">
-                                                <label class="radio-label">
-                                                    <input type="radio" name="bg-texture" value="none" checked>
-                                                    <span>Clean</span>
-                                                </label>
-                                                <label class="radio-label">
-                                                    <input type="radio" name="bg-texture" value="noise">
-                                                    <span>Subtle Noise</span>
-                                                </label>
-                                                <label class="radio-label">
-                                                    <input type="radio" name="bg-texture" value="mesh">
-                                                    <span>Mesh Gradient</span>
-                                                </label>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
