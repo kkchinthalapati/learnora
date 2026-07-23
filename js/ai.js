@@ -56,6 +56,7 @@ export const AI = {
     const edgeUrl = "https://mlvgqwqiynpwpwzqufdf.supabase.co/functions/v1/learnora-ai";
     const session = await supabase.auth.getSession();
     const token = session.data.session?.access_token;
+    const bodyPayload = JSON.stringify(payload);
     
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
@@ -65,7 +66,7 @@ export const AI = {
         const response = await fetch(edgeUrl, {
           method: "POST",
           headers,
-          body: JSON.stringify(payload)
+          body: bodyPayload
         });
 
         if (!response.ok) {
