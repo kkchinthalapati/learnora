@@ -22,9 +22,7 @@ function esc(str) {
 }
 
 /* =========================================================================
-   DATES — Local-timezone-safe date helpers. Never use .toISOString() to
-   derive a calendar date: it converts to UTC and silently returns the
-   wrong day for positive-offset timezones near local midnight.
+   DATES — Local-timezone-safe date helpers.
    ========================================================================= */
 
 function localDateStr(d = new Date()) {
@@ -77,13 +75,7 @@ const DEFAULT_SETTINGS = Object.freeze({
 });
 
 /* =========================================================================
-   MODAL MANAGER — single source of truth for which modal is "on top".
-   Coordinates Escape-key routing, body scroll locking, focus trapping,
-   and focus restoration for the plain show/hide modals (popup, exam,
-   day-detail, quiz-config). `UI._dialog()` (the app-dialog confirm/prompt)
-   stays self-contained — it already manages its own Escape/focus
-   lifecycle — but shares the same scroll-lock counter and focus-trap
-   helper, and the global Escape handler below defers to it when open.
+   MODAL MANAGER
    ========================================================================= */
 
 const _modalStack = [];
@@ -161,10 +153,6 @@ export const ModalManager = {
   },
 };
 
-// Single global Escape handler for all ModalManager-tracked modals. Bails
-// if app-dialog (UI._dialog, Promise-based) is open — it owns its own
-// Escape handling — so Escape only ever closes one layer, top-most
-// first, instead of every open modal firing independently at once.
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   if (!$("app-dialog")?.classList.contains("hidden")) return;
@@ -176,15 +164,8 @@ document.addEventListener("keydown", (e) => {
    ========================================================================= */
 
 export const UI = {
-
-  /* Alias so `UI.escapeHTML(...)` also works — `esc()` is the canonical
-     standalone export, this just guards against the naming mismatch. */
   escapeHTML: esc,
-
-  /* ------ Active tab tracking ------ */
   _activeTab: "dashboard",
-
-  /* ------ Popup ------ */
 
   showPopup(message, title = "Learnora") {
     const titleEl = $("popup-title");
@@ -197,8 +178,6 @@ export const UI = {
   hidePopup() {
     ModalManager.close("popup-overlay");
   },
-
-  /* ------ Toast — brief, self-dismissing, non-blocking notifications ------ */
 
   showToast(message, { error = false, duration = 6000, actionLabel = null, onAction = null } = {}) {
     let container = $("toast-container");
@@ -234,8 +213,6 @@ export const UI = {
   notifyFetchError(context) {
     this.showToast(`Couldn't load your ${context}. Check your connection.`, { error: true });
   },
-
-  /* ------ Confirm / Prompt dialogs (Promise-based, glass UI) ------ */
 
   _dialog({
     title = "Are you sure?",
@@ -293,7 +270,7 @@ export const UI = {
       const onConfirm = () => {
         if (isPrompt && !input.value.trim()) {
           input.classList.remove("input-error");
-          void input.offsetWidth; // trigger reflow
+          void input.offsetWidth;
           input.classList.add("input-error");
           return;
         }
@@ -339,8 +316,6 @@ export const UI = {
     });
   },
 
-  /* ------ Loading state ------ */
-
   setLoading(btnId, isLoading) {
     const btn = $(btnId);
     if (!btn) return;
@@ -384,8 +359,8 @@ export const UI = {
             msgIndex = (msgIndex + 1) % messages.length;
             textEl.textContent = messages[msgIndex];
             textEl.style.opacity = '1';
-          }, 300); // Wait for fade out
-        }, 3000); // Change text every 3s
+          }, 300);
+        }, 3000);
       } else {
         textEl.textContent = "AI is thinking...";
       }
@@ -422,8 +397,6 @@ export const UI = {
     if (select && desc) desc.textContent = this.QUIZ_PERSONALITY_DESC[select.value] || "";
   },
 
-  /* ------ Tab navigation ------ */
-
   switchTab(targetRoute) {
     if (!targetRoute) return;
     this._activeTab = targetRoute;
@@ -439,8 +412,6 @@ export const UI = {
     titleEl.textContent = rawText;
   },
 
-  /* ------ Theme & Appearance System ------ */
-
   toggleTheme() {
     const isDark = document.body.classList.contains("dark-theme");
     const newMode = isDark ? "light" : "dark";
@@ -451,8 +422,6 @@ export const UI = {
 
   initTheme() {
     this.applyAppearance();
-    
-    // Listen for system theme changes if mode is system
     if (window.matchMedia) {
       window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
         if (Storage.get("learnora_mode") === "system") {
@@ -470,7 +439,6 @@ export const UI = {
     const font = override.font || this._activeAppearanceState?.font || Storage.get("learnora_font", "jakarta");
     const size = override.size || this._activeAppearanceState?.size || Storage.get("learnora_size", "md");
 
-    // Mode
     if (mode === "system") {
       const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
       document.body.classList.toggle("dark-theme", prefersDark);
@@ -478,7 +446,6 @@ export const UI = {
       document.body.classList.toggle("dark-theme", mode === "dark");
     }
 
-    // Attributes
     document.body.setAttribute("data-theme-color", accent);
     document.body.setAttribute("data-sidebar-style", sidebar);
     document.body.setAttribute("data-bg-texture", bg);
@@ -500,37 +467,30 @@ export const UI = {
       size: Storage.get("learnora_size", "md")
     };
 
-    // Mode options
     $$(".mode-option").forEach(el => {
       el.classList.toggle("active", el.dataset.mode === s.mode);
     });
 
-    // Theme preset swatches
     $$(".theme-preset-btn").forEach(el => {
       el.classList.toggle("active", el.dataset.theme === s.accent);
     });
 
-    // Font family options
     $$(".font-option").forEach(el => {
       el.classList.toggle("active", el.dataset.font === s.font);
     });
 
-    // Font size options
     $$(".size-option").forEach(el => {
       el.classList.toggle("active", el.dataset.size === s.size);
     });
 
-    // Sidebar options
     $$(".sidebar-option").forEach(el => {
       el.classList.toggle("active", el.dataset.sidebar === s.sidebar);
     });
 
-    // Background options
     $$(".bg-option").forEach(el => {
       el.classList.toggle("active", el.dataset.bg === s.bg);
     });
 
-    // Live preview badge
     const badge = $("preview-theme-badge");
     if (badge) {
       const activeThemeBtn = document.querySelector(`.theme-preset-btn[data-theme="${s.accent}"] .theme-swatch-name`);
@@ -573,8 +533,6 @@ export const UI = {
       : '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>';
   },
 
-  /* ------ Settings ------ */
-
   loadSettings() {
     return { ...DEFAULT_SETTINGS, ...Storage.get(SETTINGS_KEY, {}) };
   },
@@ -610,8 +568,6 @@ export const UI = {
     if ($("notif-timer-alerts")) $("notif-timer-alerts").checked = s.notifyTimerAlerts;
   },
 
-  /* ------ Translations ------ */
-
   applyTranslations() {
     const lang = this.loadSettings().uiLanguage;
     const dict = translations[lang] || translations.en;
@@ -621,7 +577,6 @@ export const UI = {
       const key = el.getAttribute("data-i18n");
       if (!dict[key]) return;
 
-      // Skip the active page title — it's managed by switchTab
       if (el.id === "page-title") return;
 
       if (el.tagName === "INPUT" && el.hasAttribute("placeholder")) {
@@ -638,246 +593,172 @@ export const UI = {
   },
 };
 
-/* =========================================================================
-   PUBLIC UTILITIES — Shared across modules
-   ========================================================================= */
-
 export { $, $$, esc, Storage, localDateStr, mondayOfWeek };
 
 /* =========================================================================
-   MOBILE SIDEBAR & UI POLISH (Appended Additions)
+   DOM INITIALIZATION & EVENT LISTENERS
    ========================================================================= */
 
-// Attach mobile behaviors without modifying existing exports.
 window.addEventListener("DOMContentLoaded", () => {
+  // 1. Mobile Sidebar Logic
   const sidebar = $("sidebar");
   const menuToggle = $("menu-toggle");
 
-  if (!sidebar || !menuToggle) return;
+  if (sidebar && menuToggle) {
+    const overlay = document.createElement("div");
+    overlay.id = "sidebar-overlay";
+    overlay.className = "sidebar-overlay";
+    sidebar.parentNode.insertBefore(overlay, sidebar);
 
-  // 1. Create and inject the dark overlay for mobile
-  const overlay = document.createElement("div");
-  overlay.id = "sidebar-overlay";
-  overlay.className = "sidebar-overlay";
-  // Insert it right before the sidebar for proper z-indexing
-  sidebar.parentNode.insertBefore(overlay, sidebar);
-
-  // 2. Handle the menu toggle click
-  menuToggle.addEventListener("click", (e) => {
-    e.stopPropagation(); // Prevent event bubbling
-    
-    // In your CSS, .collapsed triggers the mobile open state
-    sidebar.classList.toggle("collapsed");
-    
-    // Only trigger the dark overlay if we are on a mobile width
-    if (window.innerWidth <= 768) {
-      const isOpen = sidebar.classList.contains("collapsed");
-      overlay.classList.toggle("active", isOpen);
-    }
-  });
-
-  // 3. Close sidebar when clicking the dark overlay
-  overlay.addEventListener("click", () => {
-    sidebar.classList.remove("collapsed");
-    overlay.classList.remove("active");
-  });
-
-  // 4. Auto-close sidebar on mobile when a navigation link is clicked
-  const navLinks = $$(".nav-links .nav-link");
-  navLinks.forEach(link => {
-    link.addEventListener("click", () => {
+    menuToggle.addEventListener("click", (e) => {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      sidebar.classList.toggle("collapsed");
       if (window.innerWidth <= 768) {
-        sidebar.classList.remove("collapsed");
+        const isOpen = sidebar.classList.contains("collapsed");
+        overlay.classList.toggle("active", isOpen);
+      }
+    }, { capture: true });
+
+    overlay.addEventListener("click", () => {
+      sidebar.classList.remove("collapsed");
+      overlay.classList.remove("active");
+    });
+
+    $$(".nav-links .nav-link").forEach(link => {
+      link.addEventListener("click", () => {
+        if (window.innerWidth <= 768) {
+          sidebar.classList.remove("collapsed");
+          overlay.classList.remove("active");
+        }
+      });
+    });
+
+    window.addEventListener("resize", () => {
+      if (window.innerWidth > 768) {
         overlay.classList.remove("active");
       }
     });
-  });
+  }
 
-  // 5. Window resize listener to prevent the overlay getting stuck if rotating a tablet/resizing
-  window.addEventListener("resize", () => {
-    if (window.innerWidth > 768) {
-      overlay.classList.remove("active");
-    }
-  });
-});
-  // =====================================================
-  // 6. Turbo Button Toggle (Open & Close on Tap)
-  // =====================================================
+  // 2. Turbo Button Toggle
   const turboBtn = $("turbo-toggle");
   const turboModal = $("turbo-chat");
   
   if (turboBtn && turboModal) {
-      // We use { capture: true } so this fires BEFORE your existing code does
-      turboBtn.addEventListener("click", (e) => {
-          const isCurrentlyOpen = !turboModal.classList.contains("hidden");
-          
-          if (isCurrentlyOpen) {
-              // It's open. Stop everything else and close it.
-              e.stopPropagation(); 
-              e.preventDefault();
-              turboModal.classList.add("hidden");
-              turboBtn.classList.remove("turbo-active");
-          } else {
-              // It's closed. Let the existing code open it, but add our spinning animation class
-              turboBtn.classList.add("turbo-active");
-          }
-      }, { capture: true });
-      
-      // If they close it using the 'X' inside the modal, reset the button animation
-      const closeBtn = $("btn-ai-close");
-      if (closeBtn) {
-          closeBtn.addEventListener("click", () => {
-              turboBtn.classList.remove("turbo-active");
-          });
+    turboBtn.addEventListener("click", (e) => {
+      const isCurrentlyOpen = !turboModal.classList.contains("hidden");
+      if (isCurrentlyOpen) {
+        e.stopPropagation();
+        e.preventDefault();
+        turboModal.classList.add("hidden");
+        turboBtn.classList.remove("turbo-active");
+      } else {
+        turboBtn.classList.add("turbo-active");
       }
+    }, { capture: true });
+    
+    const closeBtn = $("btn-ai-close");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => {
+        turboBtn.classList.remove("turbo-active");
+      });
+    }
   }
 
-  // =====================================================
-  // 7. Personalized Splash Screen Greeting
-  // =====================================================
+  // 3. Personalized Splash Screen Greeting
   const splashScreen = $("global-loader");
   const splashText = document.querySelector(".splash-content h2");
   
   if (splashScreen && splashText) {
-      let greeting = "Hello there!";
-      try {
-          // Supabase caches the session locally. We grab it to greet the user by name instantly!
-          // The key is usually sb-[project-ref]-auth-token
-          const authStr = localStorage.getItem("sb-mlvgqwqiynpwpwzqufdf-auth-token");
-
-          if (authStr) {
-              const authData = JSON.parse(authStr);
-              const name = authData?.user?.user_metadata?.full_name;
-              if (name) {
-                  // Get just their first name
-                  greeting = `Hello, ${String(name).split(' ')[0]}!`;
-              }
-          }
-      } catch (e) {
-          // Safe fallback if they aren't logged in yet
-          greeting = "Hello!";
+    let greeting = "Hello there!";
+    try {
+      const authStr = localStorage.getItem("sb-mlvgqwqiynpwpwzqufdf-auth-token");
+      if (authStr) {
+        const authData = JSON.parse(authStr);
+        const name = authData?.user?.user_metadata?.full_name;
+        if (name) {
+          greeting = `Hello, ${String(name).split(' ')[0]}!`;
+        }
       }
+    } catch {
+      greeting = "Hello!";
+    }
 
-      // full_name is user-supplied at signup — it must never reach innerHTML.
-      // Build the greeting as a text node and the sub-headline as a real element.
-      splashText.textContent = greeting + " ";
-      const sub = document.createElement("span");
-      sub.style.cssText = "display:block; font-size: 0.55em; opacity: 0.7; margin-top: 6px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase;";
-      sub.textContent = "Welcome to Learnora";
-      splashText.appendChild(sub);
+    splashText.textContent = greeting + " ";
+    const sub = document.createElement("span");
+    sub.style.cssText = "display:block; font-size: 0.55em; opacity: 0.7; margin-top: 6px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase;";
+    sub.textContent = "Welcome to Learnora";
+    splashText.appendChild(sub);
   }
-  // =====================================================
-  // 8. Cinematic Boot Sequence (Minimum Load Time)
-  // =====================================================
-  
-  // Save a reference to your original function
+
+  // 4. Cinematic Boot Sequence
   const originalSetGlobalLoading = UI.setGlobalLoading;
   let isInitialBoot = true;
 
-  // Safely overwrite the function to intercept the "hide" command
   UI.setGlobalLoading = function(isLoading) {
-      if (!isLoading && isInitialBoot) {
-          // If the app tries to hide the loader on first boot, intercept it.
-          // Force the splash screen to stay visible for 2 seconds to play the cool animation.
-          setTimeout(() => {
-              // Now call the original function to actually hide it
-              originalSetGlobalLoading.call(UI, false);
-              isInitialBoot = false;
-          }, 2000); 
-      } else {
-          // If it's a normal loading event (like fetching a quiz), just run normally
-          originalSetGlobalLoading.call(UI, isLoading);
-      }
+    if (!isLoading && isInitialBoot) {
+      setTimeout(() => {
+        originalSetGlobalLoading.call(UI, false);
+        isInitialBoot = false;
+      }, 2000);
+    } else {
+      originalSetGlobalLoading.call(UI, isLoading);
+    }
   };
-  // =====================================================
-  // 9. Bulletproof Sidebar Toggle (Desktop & Mobile)
-  // =====================================================
-  const menuBtn = document.getElementById("menu-toggle");
-  
-  if (menuBtn) {
-      // Use capture and stopImmediatePropagation to ensure this is the ONLY 
-      // event that fires when clicking the hamburger menu, preventing double-toggles.
-      menuBtn.addEventListener("click", (e) => {
-          e.stopImmediatePropagation();
-          e.preventDefault();
-          
-          const sideNav = document.getElementById("sidebar");
-          if (!sideNav) return;
-          
-          // Toggle the collapsed class to slide it in/out
-          sideNav.classList.toggle("collapsed");
-          
-          // If on mobile, also toggle the dark background overlay
-          if (window.innerWidth <= 768) {
-              const overlay = document.getElementById("sidebar-overlay");
-              if (overlay) {
-                  const isOpen = sideNav.classList.contains("collapsed");
-                  overlay.classList.toggle("active", isOpen);
-              }
-          }
-      }, { capture: true });
-  }
-    // =====================================================
-  // 10. Custom Theme Color Picker & Command Bar Polish
-  // =====================================================
-  // Apply saved theme & appearance settings on load
-  UI.applyAppearance();
 
+  // 5. Initialize Theme
+  UI.applyAppearance();
 
   const chatInputBox = $("chat-input");
   if (chatInputBox) {
-      chatInputBox.placeholder = "";
+    chatInputBox.placeholder = "";
   }
-  // =====================================================
-  // 11/12. Chat send + Enter-to-send
-  // =====================================================
-  // Intentionally NOT wired here. bindAI() in js/main.js owns the click
-  // handler for #btn-send-chat and the Enter handler for #chat-input.
-  // Two former blocks here duplicated both: the extra `onclick` swallowed
-  // the input value before main.js's listener ran, which sent a second
-  // bogus "Analyze this." message whenever a file was attached, and the
-  // duplicate keydown listeners fired .click() three times per Enter.
 
-      // =====================================================
-  // Safe Dashboard Command Bar Integration
-  // =====================================================
-  window.addEventListener("DOMContentLoaded", () => {
-      const cmdInput = document.getElementById("dashboard-command-input");
-      const cmdSend = document.getElementById("dashboard-command-send");
-      const turboModal = document.getElementById("turbo-chat");
-      const turboToggleBtn = document.getElementById("turbo-toggle");
+  // 6. Dashboard Command Bar Integration (Fully working route to AI)
+  const cmdInput = $("dashboard-command-input");
+  const cmdSend = $("dashboard-command-send");
 
-      if (cmdInput && cmdSend) {
-          const handleCommand = () => {
-              const query = cmdInput.value.trim();
-              if (!query) return;
-              cmdInput.value = "";
+  if (cmdInput && cmdSend) {
+    const handleCommand = async () => {
+      const query = cmdInput.value.trim();
+      if (!query) return;
+      cmdInput.value = "";
 
-              // Open the Turbo AI modal safely if hidden
-              if (turboModal && turboModal.classList.contains("hidden")) {
-                  turboModal.classList.remove("hidden");
-                  if (turboToggleBtn) turboToggleBtn.classList.add("turbo-active");
-              }
-
-              // Mirror the text into the main chat input and trigger submission
-              const mainChatInput = document.getElementById("chat-input");
-              const mainSendBtn = document.getElementById("btn-send-chat");
-
-              if (mainChatInput) {
-                  mainChatInput.value = query;
-              }
-
-              if (mainSendBtn) {
-                  mainSendBtn.click();
-              }
-          };
-
-          cmdSend.addEventListener("click", handleCommand);
-          cmdInput.addEventListener("keydown", (e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleCommand();
-              }
-          });
+      // Open the Turbo AI modal if hidden
+      if (turboModal && turboModal.classList.contains("hidden")) {
+        turboModal.classList.remove("hidden");
+        if (turboBtn) turboBtn.classList.add("turbo-active");
       }
-  });
+
+      // Mirror the query into the main chat window and trigger send
+      const mainChatInput = $("chat-input");
+      const mainSendBtn = $("btn-send-chat");
+
+      if (mainChatInput) {
+        mainChatInput.value = query;
+      }
+
+      if (mainSendBtn) {
+        mainSendBtn.click();
+      } else {
+        try {
+          const { AI } = await import("./ai.js");
+          if (AI && typeof AI.send === "function") {
+            await AI.send(query);
+          }
+        } catch (e) {
+          console.error("[Command Bar] Error dispatching to AI:", e);
+        }
+      }
+    };
+
+    cmdSend.addEventListener("click", handleCommand);
+    cmdInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleCommand();
+      }
+    });
+  }
+});
