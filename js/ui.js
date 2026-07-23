@@ -789,29 +789,22 @@ export const UI = {
       size: Storage.get("learnora_size", "md")
     };
 
-    $$(".mode-option").forEach(el => {
-      el.classList.toggle("active", el.dataset.mode === s.mode);
-    });
+    // The cards are <button>s, so selection has to reach assistive tech via
+    // aria-pressed — the highlight and the "ACTIVE" pill are visual only.
+    const markSelected = (selector, key, value) => {
+      $$(selector).forEach(el => {
+        const on = el.dataset[key] === value;
+        el.classList.toggle("active", on);
+        el.setAttribute("aria-pressed", String(on));
+      });
+    };
 
-    $$(".theme-preset-btn").forEach(el => {
-      el.classList.toggle("active", el.dataset.theme === s.accent);
-    });
-
-    $$(".font-option").forEach(el => {
-      el.classList.toggle("active", el.dataset.font === s.font);
-    });
-
-    $$(".size-option").forEach(el => {
-      el.classList.toggle("active", el.dataset.size === s.size);
-    });
-
-    $$(".sidebar-option").forEach(el => {
-      el.classList.toggle("active", el.dataset.sidebar === s.sidebar);
-    });
-
-    $$(".bg-option").forEach(el => {
-      el.classList.toggle("active", el.dataset.bg === s.bg);
-    });
+    markSelected(".mode-option", "mode", s.mode);
+    markSelected(".theme-preset-btn", "theme", s.accent);
+    markSelected(".font-option", "font", s.font);
+    markSelected(".size-option", "size", s.size);
+    markSelected(".sidebar-option", "sidebar", s.sidebar);
+    markSelected(".bg-option", "bg", s.bg);
 
     const badge = $("preview-theme-badge");
     if (badge) {

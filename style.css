@@ -16,6 +16,9 @@
 ========================================================================== */
 :root {
     /* --- Accent (vivid indigo) --- */
+    /* Channel triplet backing the derived soft/ring/glow tints. Presets
+       override it; this value is the fallback for an unknown accent. */
+    --accent-rgb: 84, 104, 231;
     --accent: #5468e7;
     --accent-hover: #4358d6;
     --accent-press: #3a4ec4;
@@ -4326,106 +4329,136 @@ body.dark-theme select:focus {
     transform: scale(1.08) !important;
 }
 
-/* 2. Custom Theme Schemes */
+/* 2. Theme Schemes
+   Each preset declares only what makes it distinct: an --accent-rgb triplet,
+   the accent ramp, and optionally a second hue for the ambient backdrop. The
+   shared rule below derives soft/ring/glow and the page tints from that
+   triplet, so a theme's focus rings and tinted fills follow its own accent
+   instead of staying on the :root indigo the way they used to. */
+body[data-theme-color] {
+    --accent-soft: rgba(var(--accent-rgb), 0.12);
+    --accent-ring: rgba(var(--accent-rgb), 0.32);
+    --accent-glow: rgba(var(--accent-rgb), 0.4);
+    --bg-tint-1: rgba(var(--accent-rgb), 0.1);
+    --bg-tint-2: rgba(var(--accent-rgb-2, var(--accent-rgb)), 0.07);
+    --primary: var(--accent);
+    --primary-hover: var(--accent-hover);
+}
+
 body[data-theme-color="default"] {
+    --accent-rgb: 99, 102, 241;
+    --accent-rgb-2: 168, 85, 247;
     --accent: #6366f1;
     --accent-hover: #4f46e5;
     --accent-press: #4338ca;
-    --accent-glow: rgba(99, 102, 241, 0.4);
-    --primary: var(--accent);
-    --primary-hover: var(--accent-hover);
-    --bg-tint-1: rgba(99, 102, 241, 0.08);
-    --bg-tint-2: rgba(168, 85, 247, 0.06);
 }
+
+/* The accent Learnora shipped with before the theme system existed. */
+body[data-theme-color="original"] {
+    --accent-rgb: 84, 104, 231;
+    --accent-rgb-2: 52, 184, 138;
+    --accent: #5468e7;
+    --accent-hover: #4358d6;
+    --accent-press: #3a4ec4;
+    --accent-glow: rgba(84, 104, 231, 0.35);
+    --bg-tint-1: rgba(84, 104, 231, 0.05);
+    --bg-tint-2: rgba(52, 184, 138, 0.04);
+}
+
+/* Near-achromatic and deliberately quiet: barely-there glow and page tint so
+   the UI reads as paper rather than neon. */
+body[data-theme-color="minimal"] {
+    --accent-rgb: 138, 138, 143;
+    --accent: #8a8a8f;
+    --accent-hover: #6e6e73;
+    --accent-press: #58585c;
+    --accent-glow: rgba(138, 138, 143, 0.18);
+    --bg-tint-1: rgba(138, 138, 143, 0.04);
+    --bg-tint-2: rgba(138, 138, 143, 0.03);
+}
+
+/* Honey amber with a terracotta backdrop — cosier and less saturated than
+   Sunset Coral, which sits further round towards red. */
+body[data-theme-color="warm"] {
+    --accent-rgb: 217, 142, 63;
+    --accent-rgb-2: 200, 106, 78;
+    --accent: #d98e3f;
+    --accent-hover: #bc7629;
+    --accent-press: #9a5f1d;
+}
+
 body[data-theme-color="ocean"] {
+    --accent-rgb: 2, 132, 199;
+    --accent-rgb-2: 56, 189, 248;
     --accent: #0284c7;
     --accent-hover: #0369a1;
     --accent-press: #075985;
-    --accent-glow: rgba(2, 132, 199, 0.4);
-    --primary: var(--accent);
-    --primary-hover: var(--accent-hover);
-    --bg-tint-1: rgba(2, 132, 199, 0.1);
-    --bg-tint-2: rgba(56, 189, 248, 0.08);
 }
+
 body[data-theme-color="forest"] {
+    --accent-rgb: 16, 185, 129;
+    --accent-rgb-2: 52, 211, 153;
     --accent: #10b981;
     --accent-hover: #059669;
     --accent-press: #047857;
-    --accent-glow: rgba(16, 185, 129, 0.4);
-    --primary: var(--accent);
-    --primary-hover: var(--accent-hover);
-    --bg-tint-1: rgba(16, 185, 129, 0.1);
-    --bg-tint-2: rgba(52, 211, 153, 0.08);
 }
+
 body[data-theme-color="cyberpunk"] {
+    --accent-rgb: 236, 72, 153;
+    --accent-rgb-2: 234, 179, 8;
     --accent: #ec4899;
     --accent-hover: #db2777;
     --accent-press: #be185d;
     --accent-glow: rgba(236, 72, 153, 0.45);
-    --primary: var(--accent);
-    --primary-hover: var(--accent-hover);
-    --bg-tint-1: rgba(236, 72, 153, 0.12);
-    --bg-tint-2: rgba(234, 179, 8, 0.08);
 }
+
 body[data-theme-color="sunset"] {
+    --accent-rgb: 249, 115, 22;
+    --accent-rgb-2: 239, 68, 68;
     --accent: #f97316;
     --accent-hover: #ea580c;
     --accent-press: #c2410c;
-    --accent-glow: rgba(249, 115, 22, 0.4);
-    --primary: var(--accent);
-    --primary-hover: var(--accent-hover);
-    --bg-tint-1: rgba(249, 115, 22, 0.1);
-    --bg-tint-2: rgba(239, 68, 68, 0.08);
 }
+
 body[data-theme-color="lavender"] {
+    --accent-rgb: 139, 92, 246;
+    --accent-rgb-2: 217, 70, 239;
     --accent: #8b5cf6;
     --accent-hover: #7c3aed;
     --accent-press: #6d28d9;
-    --accent-glow: rgba(139, 92, 246, 0.4);
-    --primary: var(--accent);
-    --primary-hover: var(--accent-hover);
-    --bg-tint-1: rgba(139, 92, 246, 0.1);
-    --bg-tint-2: rgba(217, 70, 239, 0.08);
 }
+
 body[data-theme-color="monochrome"] {
+    --accent-rgb: 100, 116, 139;
+    --accent-rgb-2: 148, 163, 184;
     --accent: #64748b;
     --accent-hover: #475569;
     --accent-press: #334155;
     --accent-glow: rgba(100, 116, 139, 0.35);
-    --primary: var(--accent);
-    --primary-hover: var(--accent-hover);
-    --bg-tint-1: rgba(100, 116, 139, 0.08);
-    --bg-tint-2: rgba(148, 163, 184, 0.06);
 }
+
 body[data-theme-color="breeze"] {
+    --accent-rgb: 6, 182, 212;
+    --accent-rgb-2: 20, 184, 166;
     --accent: #06b6d4;
     --accent-hover: #0891b2;
     --accent-press: #0e7490;
-    --accent-glow: rgba(6, 182, 212, 0.4);
-    --primary: var(--accent);
-    --primary-hover: var(--accent-hover);
-    --bg-tint-1: rgba(6, 182, 212, 0.1);
-    --bg-tint-2: rgba(20, 184, 166, 0.08);
 }
+
 body[data-theme-color="ruby"] {
+    --accent-rgb: 244, 63, 94;
+    --accent-rgb-2: 225, 29, 72;
     --accent: #f43f5e;
     --accent-hover: #e11d48;
     --accent-press: #be123c;
-    --accent-glow: rgba(244, 63, 94, 0.4);
-    --primary: var(--accent);
-    --primary-hover: var(--accent-hover);
-    --bg-tint-1: rgba(244, 63, 94, 0.1);
-    --bg-tint-2: rgba(225, 29, 72, 0.08);
 }
+
 body[data-theme-color="hacker"] {
+    --accent-rgb: 34, 197, 94;
+    --accent-rgb-2: 74, 222, 128;
     --accent: #22c55e;
     --accent-hover: #16a34a;
     --accent-press: #15803d;
-    --accent-glow: rgba(34, 197, 94, 0.4);
-    --primary: var(--accent);
-    --primary-hover: var(--accent-hover);
-    --bg-tint-1: rgba(34, 197, 94, 0.1);
-    --bg-tint-2: rgba(74, 222, 128, 0.08);
 }
 
 /* User-built accent. Every --custom-* property is written to body.style by
@@ -5013,11 +5046,21 @@ body[data-font-size="lg"] {
 }
 
 /* --- Appearance Tab Visual Choice Cards --- */
+/* --- Appearance option cards ---
+   These are <button>s, not divs: they were click-only before, so keyboard and
+   screen-reader users could not reach them at all. Selected state lives on
+   aria-pressed; the "ACTIVE" pill and ✓ are aria-hidden decoration, since an
+   opacity-0 element is still announced. */
 .appearance-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 12px;
-    margin-top: 14px;
+    gap: var(--s-3);
+    width: 100%;
+    margin-top: var(--s-3);
+}
+
+.appearance-grid-wide {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
 .appearance-card-option {
@@ -5026,14 +5069,21 @@ body[data-font-size="lg"] {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    width: 100%;
     padding: 14px 12px;
     background: var(--surface-2);
     border: 2px solid var(--line);
     border-radius: var(--r-md);
+    color: inherit;
+    font: inherit;
     cursor: pointer;
-    transition: all 0.22s var(--ease-spring);
     user-select: none;
     text-align: center;
+    transition:
+        transform var(--t) var(--ease-spring),
+        border-color var(--t) var(--ease-spring),
+        background var(--t) var(--ease-spring),
+        box-shadow var(--t) var(--ease-spring);
 }
 
 .appearance-card-option:hover {
@@ -5042,16 +5092,38 @@ body[data-font-size="lg"] {
     box-shadow: var(--shadow-sm);
 }
 
+.appearance-card-option:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
 .appearance-card-option.active {
-    border-color: var(--accent) !important;
-    background: var(--accent-soft) !important;
-    box-shadow: 0 0 16px var(--accent-glow) !important;
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: 0 0 16px var(--accent-glow);
 }
 
 .appearance-card-option .option-icon {
     font-size: 1.5rem;
+    line-height: 1;
     margin-bottom: 6px;
 }
+
+/* Font and scale cards preview themselves, so their glyph is sized and set
+   in the face the card actually selects. */
+.appearance-card-option .option-icon-type {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.font-option[data-font="jakarta"] { font-family: "Plus Jakarta Sans", sans-serif; }
+.font-option[data-font="outfit"] { font-family: "Outfit", sans-serif; }
+.font-option[data-font="inter"] { font-family: "Inter", system-ui, sans-serif; }
+.font-option[data-font="mono"] { font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+.size-option[data-size="sm"] .option-icon-scale { font-size: 1.1rem; }
+.size-option[data-size="md"] .option-icon-scale { font-size: 1.3rem; }
+.size-option[data-size="lg"] .option-icon-scale { font-size: 1.5rem; }
 
 .appearance-card-option .option-title {
     font-size: var(--fs-sm);
@@ -5063,15 +5135,15 @@ body[data-font-size="lg"] {
     position: absolute;
     top: 6px;
     right: 6px;
-    font-size: 10px;
     padding: 2px 6px;
     border-radius: var(--r-pill);
     background: var(--accent);
-    color: #fff;
+    color: var(--accent-on);
+    font-size: 10px;
     font-weight: 700;
     opacity: 0;
     transform: scale(0.8);
-    transition: all 0.2s var(--ease);
+    transition: opacity var(--t) var(--ease), transform var(--t) var(--ease);
 }
 
 .appearance-card-option.active .option-badge {
@@ -5083,8 +5155,22 @@ body[data-font-size="lg"] {
 .theme-swatches-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
-    margin-top: 14px;
+    gap: var(--s-3);
+    width: 100%;
+    margin-top: var(--s-3);
+}
+
+/* On a phone the 140px track plus the gap overshoots a ~280px column by a
+   few pixels, collapsing all 13 presets into one per row — a very long
+   scroll. Trim the track so two fit, and shorten the swatch to match. */
+@media (max-width: 560px) {
+    .theme-swatches-grid {
+        grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+    }
+
+    .theme-swatch-preview {
+        height: 34px;
+    }
 }
 
 .theme-swatch-card {
@@ -5092,13 +5178,21 @@ body[data-font-size="lg"] {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    width: 100%;
     padding: 12px;
     background: var(--surface-2);
     border: 2px solid var(--line);
     border-radius: var(--r-md);
+    color: inherit;
+    font: inherit;
+    text-align: left;
     cursor: pointer;
-    transition: all 0.22s var(--ease-spring);
     user-select: none;
+    transition:
+        transform var(--t) var(--ease-spring),
+        border-color var(--t) var(--ease-spring),
+        background var(--t) var(--ease-spring),
+        box-shadow var(--t) var(--ease-spring);
 }
 
 .theme-swatch-card:hover {
@@ -5107,35 +5201,71 @@ body[data-font-size="lg"] {
     box-shadow: var(--shadow-md);
 }
 
+.theme-swatch-card:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
 .theme-swatch-card.active {
-    border-color: var(--accent) !important;
-    box-shadow: 0 0 20px var(--accent-glow) !important;
+    border-color: var(--accent);
+    box-shadow: 0 0 20px var(--accent-glow);
     background: var(--glass-bg-strong);
 }
 
 .theme-swatch-preview {
-    height: 42px;
-    width: 100%;
-    border-radius: var(--r-sm);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    height: 42px;
+    width: 100%;
     padding-right: 8px;
+    border-radius: var(--r-sm);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
 }
 
 .theme-swatch-dot {
+    display: block;
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    box-shadow: 0 0 8px rgba(0,0,0,0.3);
     border: 2px solid #fff;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
 }
+
+/* Each preset's swatch is painted from its own palette here rather than from
+   an inline style, so a theme's colours are defined in exactly one place. */
+.theme-preset-btn[data-theme="default"] .theme-swatch-preview { background: linear-gradient(135deg, #1e1e2d, #6366f1); }
+.theme-preset-btn[data-theme="default"] .theme-swatch-dot { background: #6366f1; }
+.theme-preset-btn[data-theme="original"] .theme-swatch-preview { background: linear-gradient(135deg, #1a2030, #5468e7); }
+.theme-preset-btn[data-theme="original"] .theme-swatch-dot { background: #5468e7; }
+.theme-preset-btn[data-theme="minimal"] .theme-swatch-preview { background: linear-gradient(135deg, #1c1c1e, #8a8a8f); }
+.theme-preset-btn[data-theme="minimal"] .theme-swatch-dot { background: #8a8a8f; }
+.theme-preset-btn[data-theme="monochrome"] .theme-swatch-preview { background: linear-gradient(135deg, #0f172a, #64748b); }
+.theme-preset-btn[data-theme="monochrome"] .theme-swatch-dot { background: #64748b; }
+.theme-preset-btn[data-theme="ocean"] .theme-swatch-preview { background: linear-gradient(135deg, #0f172a, #0284c7); }
+.theme-preset-btn[data-theme="ocean"] .theme-swatch-dot { background: #0284c7; }
+.theme-preset-btn[data-theme="breeze"] .theme-swatch-preview { background: linear-gradient(135deg, #083344, #06b6d4); }
+.theme-preset-btn[data-theme="breeze"] .theme-swatch-dot { background: #06b6d4; }
+.theme-preset-btn[data-theme="forest"] .theme-swatch-preview { background: linear-gradient(135deg, #064e3b, #10b981); }
+.theme-preset-btn[data-theme="forest"] .theme-swatch-dot { background: #10b981; }
+.theme-preset-btn[data-theme="hacker"] .theme-swatch-preview { background: linear-gradient(135deg, #052e16, #22c55e); }
+.theme-preset-btn[data-theme="hacker"] .theme-swatch-dot { background: #22c55e; }
+.theme-preset-btn[data-theme="lavender"] .theme-swatch-preview { background: linear-gradient(135deg, #2e1065, #8b5cf6); }
+.theme-preset-btn[data-theme="lavender"] .theme-swatch-dot { background: #8b5cf6; }
+.theme-preset-btn[data-theme="cyberpunk"] .theme-swatch-preview { background: linear-gradient(135deg, #180816, #ec4899); }
+.theme-preset-btn[data-theme="cyberpunk"] .theme-swatch-dot { background: #ec4899; }
+.theme-preset-btn[data-theme="ruby"] .theme-swatch-preview { background: linear-gradient(135deg, #4c0519, #f43f5e); }
+.theme-preset-btn[data-theme="ruby"] .theme-swatch-dot { background: #f43f5e; }
+.theme-preset-btn[data-theme="warm"] .theme-swatch-preview { background: linear-gradient(135deg, #3b2410, #d98e3f); }
+.theme-preset-btn[data-theme="warm"] .theme-swatch-dot { background: #d98e3f; }
+.theme-preset-btn[data-theme="sunset"] .theme-swatch-preview { background: linear-gradient(135deg, #431407, #f97316); }
+.theme-preset-btn[data-theme="sunset"] .theme-swatch-dot { background: #f97316; }
 
 .theme-swatch-info {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: var(--s-2);
 }
 
 .theme-swatch-name {
@@ -5148,11 +5278,47 @@ body[data-font-size="lg"] {
     font-size: 12px;
     color: var(--accent);
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: opacity var(--t) var(--ease);
 }
 
 .theme-swatch-card.active .theme-swatch-active-icon {
     opacity: 1;
+}
+
+/* --- Appearance tab layout helpers ---
+   Replaces the per-element inline styles these fields used to carry. */
+.settings-field-stack {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s-3);
+}
+
+.appearance-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    margin-top: var(--s-4);
+}
+
+.appearance-actions .btn-secondary {
+    padding: 10px 20px;
+}
+
+.appearance-actions .btn-primary {
+    padding: 10px 28px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .appearance-card-option,
+    .theme-swatch-card {
+        transition: none;
+    }
+
+    .appearance-card-option:hover,
+    .theme-swatch-card:hover {
+        transform: none;
+    }
 }
 
 /* --- Live Workspace Interactive Preview Box --- */
@@ -5166,7 +5332,17 @@ body[data-font-size="lg"] {
     display: flex;
     flex-direction: column;
     gap: 14px;
-    transition: all 0.3s ease;
+    width: 100%;
+    transition: background var(--t-slow) ease, box-shadow var(--t-slow) ease;
+}
+
+/* Decorative only — a real <button> here was a tab stop that did nothing. */
+.live-preview-btn {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    padding: 8px 18px;
+    pointer-events: none;
 }
 
 .live-preview-header {
