@@ -1,5 +1,5 @@
 import { supabase } from "./supabase.js";
-import { UI, $ } from "./ui.js";
+import { $, UI } from "./ui.js";
 
 /* =========================================================================
    CONSTANTS
@@ -19,7 +19,10 @@ async function getCurrentUser() {
   if (_cachedUser) return _cachedUser;
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
-    if (error || !user) { _cachedUser = null; return null; }
+    if (error || !user) {
+      _cachedUser = null;
+      return null;
+    }
     _cachedUser = user;
     return user;
   } catch {
@@ -58,7 +61,10 @@ function friendlyAuthError(error) {
   if (msg.includes("email not confirmed")) {
     return "Please confirm your email before logging in. Check your inbox.";
   }
-  if (msg.includes("user already registered") || msg.includes("already been registered")) {
+  if (
+    msg.includes("user already registered") ||
+    msg.includes("already been registered")
+  ) {
     return "An account with this email already exists. Try logging in instead.";
   }
   if (msg.includes("signup is disabled")) {
@@ -80,7 +86,10 @@ function friendlyAuthError(error) {
 export const Auth = {
   async login(email, password, silent = false) {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error) {
         if (!silent) {
           UI.showPopup(friendlyAuthError(error), "Login Failed");
@@ -103,7 +112,10 @@ export const Auth = {
       return false;
     }
     if (calculateAge(dob) < MIN_SIGNUP_AGE) {
-      UI.showPopup(`You must be at least ${MIN_SIGNUP_AGE} years old.`, "Age Restriction");
+      UI.showPopup(
+        `You must be at least ${MIN_SIGNUP_AGE} years old.`,
+        "Age Restriction",
+      );
       return false;
     }
 
@@ -178,7 +190,9 @@ export const Auth = {
       const user = await getCurrentUser();
       if (!user) {
         // Session is stale — sign out silently
-        try { await supabase.auth.signOut(); } catch { /* ignore */ }
+        try {
+          await supabase.auth.signOut();
+        } catch { /* ignore */ }
         return null;
       }
       return user;
@@ -205,7 +219,9 @@ export const Auth = {
 
   async updatePassword(newPassword) {
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
       if (error) {
         UI.showPopup(friendlyAuthError(error), "Update Failed");
         return false;
@@ -248,12 +264,18 @@ export const Auth = {
   /** Change password from the settings page, then invalidate other sessions */
   async changePassword(newPassword) {
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
       if (error) {
         // Supabase rejects reuse of the same password — provide a friendly message
         const msg = error?.message?.toLowerCase() || "";
         if (msg.includes("same") || msg.includes("different")) {
-          return { ok: false, message: "New password must be different from your current password." };
+          return {
+            ok: false,
+            message:
+              "New password must be different from your current password.",
+          };
         }
         return { ok: false, message: friendlyAuthError(error) };
       }
@@ -288,7 +310,10 @@ export const Auth = {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        return { ok: false, message: "No active session. Please log in again." };
+        return {
+          ok: false,
+          message: "No active session. Please log in again.",
+        };
       }
       const res = await fetch(
         `${supabase.supabaseUrl}/functions/v1/delete-account`,
@@ -298,18 +323,24 @@ export const Auth = {
             "Authorization": `Bearer ${session.access_token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        return { ok: false, message: body.error || "Failed to delete account. Please try again." };
+        return {
+          ok: false,
+          message: body.error || "Failed to delete account. Please try again.",
+        };
       }
       // Sign out locally after account deletion
       _cachedUser = null;
       await supabase.auth.signOut();
       return { ok: true };
     } catch (e) {
-      return { ok: false, message: "Failed to delete account. Please try again." };
+      return {
+        ok: false,
+        message: "Failed to delete account. Please try again.",
+      };
     }
   },
 };
@@ -364,11 +395,15 @@ export const Folders = {
     }
 
     if (paths.length) {
-      const { error: storageError } = await supabase.storage.from("materials").remove(paths);
+      const { error: storageError } = await supabase.storage.from("materials")
+        .remove(paths);
       if (storageError) {
         // The folder is already gone and the DB is consistent — a storage
         // cleanup miss here is recoverable later, not worth failing on.
-        console.error("[Folders.delete] storage cleanup failed", storageError.message);
+        console.error(
+          "[Folders.delete] storage cleanup failed",
+          storageError.message,
+        );
       }
     }
 
@@ -376,7 +411,10 @@ export const Folders = {
   },
 
   async rename(id, name) {
-    const { error } = await supabase.from("folders").update({ name }).eq("id", id);
+    const { error } = await supabase.from("folders").update({ name }).eq(
+      "id",
+      id,
+    );
     if (error) {
       console.error("[Folders.rename]", error.message);
       return false;
@@ -393,10 +431,11 @@ export const Materials = {
   async fetch(folderId = null) {
     const user = await getCurrentUser();
     if (!user) return [];
-    let query = supabase.from("materials").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    
+    let query = supabase.from("materials").select("*").eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
     if (folderId) query = query.eq("folder_id", folderId);
-    
+
     const { data, error } = await query;
     if (error) {
       console.error("[Materials.fetch]", error.message);
@@ -411,12 +450,14 @@ export const Materials = {
     if (!user) throw new Error("Not logged in");
 
     // 1. Upload to Supabase Storage
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${
+      Math.random().toString(36).substring(2)
+    }_${Date.now()}.${fileExt}`;
     const filePath = `${user.id}/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('materials')
+      .from("materials")
       .upload(filePath, file);
 
     if (uploadError) {
@@ -432,7 +473,7 @@ export const Materials = {
         folder_id: folderId,
         title: customTitle || file.name,
         type: type,
-        storage_path: filePath
+        storage_path: filePath,
       }])
       .select()
       .single();
@@ -449,7 +490,9 @@ export const Materials = {
     const user = await getCurrentUser();
     if (!user) throw new Error("Not logged in");
 
-    const defaultTitle = url.includes("youtube.com") || url.includes("youtu.be") ? "YouTube Link" : "Web Link";
+    const defaultTitle = url.includes("youtube.com") || url.includes("youtu.be")
+      ? "YouTube Link"
+      : "Web Link";
 
     const { data, error } = await supabase
       .from("materials")
@@ -457,8 +500,10 @@ export const Materials = {
         user_id: user.id,
         folder_id: folderId,
         title: customTitle || defaultTitle,
-        type: url.includes("youtube.com") || url.includes("youtu.be") ? "youtube" : "text",
-        raw_content: url
+        type: url.includes("youtube.com") || url.includes("youtu.be")
+          ? "youtube"
+          : "text",
+        raw_content: url,
       }])
       .select()
       .single();
@@ -469,7 +514,7 @@ export const Materials = {
 
   async getSignedUrl(storagePath) {
     const { data, error } = await supabase.storage
-      .from('materials')
+      .from("materials")
       .createSignedUrl(storagePath, 3600); // 1 hour expiration
 
     if (error) {
@@ -494,7 +539,7 @@ export const Materials = {
       return null;
     }
     return data;
-  }
+  },
 };
 
 /* =========================================================================
@@ -520,12 +565,16 @@ export const Notes = {
     if (!user) return null;
     const { data, error } = await supabase
       .from("notes")
-      .insert([{ user_id: user.id, material_id: materialId, markdown_content: markdownContent }])
+      .insert([{
+        user_id: user.id,
+        material_id: materialId,
+        markdown_content: markdownContent,
+      }])
       .select()
       .single();
     if (error) throw new Error(error.message);
     return data;
-  }
+  },
 };
 
 export const Decks = {
@@ -569,7 +618,7 @@ export const Decks = {
       .single();
     if (error) throw new Error(error.message);
     return data;
-  }
+  },
 };
 
 export const Flashcards = {
@@ -589,24 +638,25 @@ export const Flashcards = {
   async addBatch(deckId, cardsArray) {
     const user = await getCurrentUser();
     if (!user) return null;
-    const inserts = cardsArray.map(c => ({
+    const inserts = cardsArray.map((c) => ({
       user_id: user.id,
       deck_id: deckId,
       front: c.front,
-      back: c.back
+      back: c.back,
     }));
-    const { data, error } = await supabase.from("flashcards").insert(inserts).select();
+    const { data, error } = await supabase.from("flashcards").insert(inserts)
+      .select();
     if (error) throw new Error(error.message);
     return data;
   },
-  
+
   async updateReview(cardId, nextReviewDate, interval, ease) {
     const { error } = await supabase
       .from("flashcards")
       .update({
         next_review_date: nextReviewDate,
         srs_interval: interval,
-        ease_factor: ease
+        ease_factor: ease,
       })
       .eq("id", cardId);
     if (error) throw new Error(error.message);
@@ -624,7 +674,11 @@ export const Flashcards = {
       .from("flashcards")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .or(`next_review_date.is.null,next_review_date.lte.${new Date().toISOString()}`);
+      .or(
+        `next_review_date.is.null,next_review_date.lte.${
+          new Date().toISOString()
+        }`,
+      );
     if (error) {
       console.error("[Flashcards.fetchDueCount]", error.message);
       return 0;
@@ -639,7 +693,11 @@ export const Flashcards = {
       .from("flashcards")
       .select("*, flashcard_decks(title)")
       .eq("user_id", user.id)
-      .or(`next_review_date.is.null,next_review_date.lte.${new Date().toISOString()}`)
+      .or(
+        `next_review_date.is.null,next_review_date.lte.${
+          new Date().toISOString()
+        }`,
+      )
       .order("next_review_date", { ascending: true, nullsFirst: true })
       .limit(limit);
     if (error) {
@@ -647,7 +705,7 @@ export const Flashcards = {
       return [];
     }
     return data || [];
-  }
+  },
 };
 
 /* =========================================================================
@@ -676,7 +734,12 @@ export const Tasks = {
     if (!user) return false;
     const { error } = await supabase
       .from("tasks")
-      .insert([{ text, is_done: false, user_id: user.id, due_date: dueDate || null }]);
+      .insert([{
+        text,
+        is_done: false,
+        user_id: user.id,
+        due_date: dueDate || null,
+      }]);
     if (error) {
       UI.showPopup(error.message, "Error Adding Task");
       return false;
@@ -846,7 +909,11 @@ export const Plans = {
     if (!user) return null;
     const { data, error } = await supabase
       .from("weekly_plans")
-      .upsert([{ user_id: user.id, week_start: weekStartISO, plan_json: planJson }], {
+      .upsert([{
+        user_id: user.id,
+        week_start: weekStartISO,
+        plan_json: planJson,
+      }], {
         onConflict: "user_id,week_start",
       })
       .select()
@@ -949,9 +1016,11 @@ export const Quizzes = {
       .limit(30);
     if (error) return [];
     const counts = {};
-    (data || []).forEach((a) => (a.weak_topics || []).forEach((t) => {
-      counts[t] = (counts[t] || 0) + 1;
-    }));
+    (data || []).forEach((a) =>
+      (a.weak_topics || []).forEach((t) => {
+        counts[t] = (counts[t] || 0) + 1;
+      })
+    );
     return Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, limit)
@@ -980,31 +1049,30 @@ export const DataAdmin = {
         Sessions.fetchSince(3650),
       ]);
 
-      const rows = [["Type", "Name", "Status", "Date"]];
-      tasks.forEach((t) =>
-        rows.push(["Task", t.text, t.is_done ? "Done" : "Pending", ""]),
-      );
-      exams.forEach((e) =>
-        rows.push(["Exam", e.exam_name, e.status, e.exam_date]),
-      );
-
-      if (dbSessions.length) {
-        dbSessions.forEach((s) =>
-          rows.push(["Focus Session", `${s.minutes}m Focus on ${s.task || "General Study"}`, "Completed", s.started_at]),
-        );
-      } else {
+      let localSessions = [];
+      if (!dbSessions.length) {
         // Fall back to localStorage history predating the study_sessions table.
-        let localSessions = [];
         try {
           const raw = localStorage.getItem("sessions");
           localSessions = raw ? JSON.parse(raw) : [];
         } catch (err) {
           console.error("Failed to parse sessions for export", err);
         }
-        localSessions.forEach((s) =>
-          rows.push(["Focus Session", `${s.minutes}m Focus on ${s.task || "General Study"}`, "Completed", s.timestamp]),
-        );
       }
+
+      const activeSessions = dbSessions.length ? dbSessions : localSessions;
+      const rows = [["Type", "Name", "Status", "Date"]].concat(
+        tasks.map((t) => ["Task", t.text, t.is_done ? "Done" : "Pending", ""]),
+        exams.map((e) => ["Exam", e.exam_name, e.status, e.exam_date]),
+        activeSessions.map((
+          s,
+        ) => [
+          "Focus Session",
+          `${s.minutes}m Focus on ${s.task || "General Study"}`,
+          "Completed",
+          dbSessions.length ? s.started_at : s.timestamp,
+        ]),
+      );
 
       const csv = rows.map((r) => r.map(escapeCSVField).join(",")).join("\n");
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -1012,7 +1080,9 @@ export const DataAdmin = {
 
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Learnora_Export_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download = `Learnora_Export_${
+        new Date().toISOString().slice(0, 10)
+      }.csv`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -1039,7 +1109,9 @@ export const DataAdmin = {
       ]);
       const failed = results.filter((r) => r?.error);
       if (failed.length) {
-        failed.forEach((r) => console.error("[DataAdmin.wipe]", r.error.message));
+        failed.forEach((r) =>
+          console.error("[DataAdmin.wipe]", r.error.message)
+        );
         UI.showPopup(
           "Some data could not be deleted. Please check your connection and try again.",
           "Wipe Incomplete",
