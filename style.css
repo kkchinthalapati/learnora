@@ -4427,6 +4427,397 @@ body[data-theme-color="hacker"] {
     --bg-tint-1: rgba(34, 197, 94, 0.1);
     --bg-tint-2: rgba(74, 222, 128, 0.08);
 }
+
+/* User-built accent. Every --custom-* property is written to body.style by
+   UI.applyCustomTheme(); the fallbacks keep the app usable if a stop is
+   missing or localStorage was cleared mid-session. */
+body[data-theme-color="custom"] {
+    --accent: var(--custom-accent, #6366f1);
+    --accent-hover: var(--custom-accent-hover, #4f46e5);
+    --accent-press: var(--custom-accent-press, #4338ca);
+    --accent-soft: var(--custom-accent-soft, rgba(99, 102, 241, 0.12));
+    --accent-ring: var(--custom-accent-ring, rgba(99, 102, 241, 0.32));
+    --accent-glow: var(--custom-accent-glow, rgba(99, 102, 241, 0.4));
+    --accent-on: var(--custom-accent-on, #ffffff);
+    --text-on-accent: var(--custom-accent-on, #ffffff);
+    --primary: var(--accent);
+    --primary-hover: var(--accent-hover);
+    --gradient-primary: var(--custom-gradient, linear-gradient(135deg, var(--accent), var(--accent-hover)));
+    --bg-tint-1: var(--custom-tint-1, rgba(99, 102, 241, 0.08));
+    --bg-tint-2: var(--custom-tint-2, rgba(168, 85, 247, 0.06));
+}
+
+/* ==========================================================================
+   22b. CUSTOM COLOUR STUDIO (Appearance tab)
+========================================================================== */
+.custom-theme-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--s-3);
+    width: 100%;
+}
+
+.custom-theme-badge {
+    flex-shrink: 0;
+    padding: 3px 10px;
+    border-radius: var(--r-pill);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-ring);
+    color: var(--accent);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity var(--t) var(--ease), transform var(--t) var(--ease-spring);
+}
+
+/* Only advertise "ACTIVE" while the custom accent is the one in use. */
+body[data-theme-color="custom"] .custom-theme-badge {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.custom-theme-studio {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+    width: 100%;
+    max-width: 520px;
+    padding: var(--s-4);
+    border: var(--border);
+    border-radius: var(--r-lg);
+    background: var(--surface-2);
+}
+
+/* --- Saturation / brightness field --- */
+.custom-sv-field {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    min-height: 140px;
+    border-radius: var(--r-sm);
+    border: var(--border);
+    cursor: crosshair;
+    touch-action: none;
+    /* Hue supplied by JS as --custom-sv-hue; white wash across, black wash down. */
+    background:
+        linear-gradient(to top, #000, transparent),
+        linear-gradient(to right, #fff, transparent),
+        hsl(var(--custom-sv-hue, 235), 100%, 50%);
+}
+
+.custom-sv-field:focus-visible,
+.custom-hue-track:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+.custom-sv-handle,
+.custom-hue-handle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), var(--shadow-sm);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.custom-sv-handle {
+    top: 5%;
+    left: 100%;
+    background: transparent;
+}
+
+/* --- Hue slider --- */
+.custom-hue-track {
+    position: relative;
+    width: 100%;
+    height: 20px;
+    border-radius: var(--r-pill);
+    border: var(--border);
+    cursor: pointer;
+    touch-action: none;
+    background: linear-gradient(
+        to right,
+        #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%
+    );
+}
+
+.custom-hue-handle {
+    top: 50%;
+    left: 65%;
+    background: hsl(var(--custom-sv-hue, 235), 100%, 50%);
+}
+
+/* --- Hex entry --- */
+.custom-hex-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: var(--s-2);
+    border-radius: var(--r-sm);
+    border: var(--border);
+    background: var(--surface);
+}
+
+.custom-hex-swatch {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--r-xs);
+    border: 1px solid var(--glass-border-subtle);
+    /* Overwritten inline by syncCustomThemeUI() with the raw selected stop. */
+    background: #5865f2;
+}
+
+/* The global field reset (`input:not(...):not(...):not(...)`, ~line 554) scores
+   0,3,1 and would otherwise repaint these two controls with the standard glass
+   chrome — padding, border, backdrop blur. Both selectors below are deliberately
+   shaped to score 0,4,1 so they win outright rather than by source order. */
+.settings-panel .custom-theme-studio input.custom-hex-input:not([type="file"]) {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.custom-hex-input:focus {
+    outline: none;
+}
+
+.custom-hex-input.is-invalid {
+    color: var(--danger);
+}
+
+.custom-eyedropper-btn {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: none;
+    border-radius: var(--r-xs);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.custom-eyedropper-btn:hover {
+    background: var(--surface-hover);
+    color: var(--accent);
+}
+
+.custom-eyedropper-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* --- Colour stops --- */
+.custom-swatch-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+}
+
+.custom-swatch {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: var(--r-xs);
+    border: 2px solid transparent;
+    box-shadow: inset 0 0 0 1px var(--glass-border-subtle);
+    cursor: pointer;
+    transition: transform var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.custom-swatch:hover {
+    transform: translateY(-2px);
+}
+
+.custom-swatch.active {
+    border-color: var(--text);
+}
+
+.custom-swatch-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--danger);
+    color: #fff;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--t-fast) var(--ease);
+}
+
+.custom-swatch:hover .custom-swatch-remove,
+.custom-swatch-remove:focus-visible {
+    opacity: 1;
+}
+
+.custom-add-colour-btn {
+    width: 100%;
+    padding: 10px;
+    border: 1px dashed var(--glass-border-subtle);
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.custom-add-colour-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.custom-add-colour-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.custom-add-plus {
+    font-size: var(--fs-md);
+    font-weight: 700;
+}
+
+/* --- Controls --- */
+.custom-controls-title {
+    margin-top: var(--s-2);
+    color: var(--text-faint);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.custom-intensity-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-3);
+}
+
+.custom-intensity-row label {
+    color: var(--text);
+    font-size: var(--fs-base);
+    font-weight: 600;
+}
+
+.custom-intensity-value {
+    color: var(--text-muted);
+    font-size: var(--fs-base);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.settings-panel .custom-theme-studio input.custom-intensity-slider:not([type="file"]) {
+    width: 100%;
+    height: 6px;
+    padding: 0;
+    border: none;
+    border-radius: var(--r-pill);
+    background: var(--surface-active);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+.custom-intensity-slider::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: none;
+    background: #fff;
+    box-shadow: 0 0 0 1px var(--glass-border-subtle), var(--shadow-sm);
+    cursor: pointer;
+}
+
+.custom-intensity-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: none;
+    background: #fff;
+    box-shadow: 0 0 0 1px var(--glass-border-subtle), var(--shadow-sm);
+    cursor: pointer;
+}
+
+.custom-intensity-slider:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+}
+
+.custom-action-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    margin-top: var(--s-2);
+}
+
+.custom-action-btn {
+    width: 100%;
+    padding: 11px;
+    border: var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: var(--fs-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+
+.custom-action-btn:hover {
+    background: var(--surface-hover);
+}
+
+.custom-action-btn:active {
+    transform: scale(0.985);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .custom-theme-badge,
+    .custom-swatch,
+    .custom-action-btn {
+        transition: none;
+    }
+}
 /* ==========================================================================
    23. LIGHT MODE HIGH-CONTRAST TEXT OVERRIDES
 ========================================================================== */

@@ -645,6 +645,116 @@ function bindSettings() {
     });
   });
 
+  // ----- Custom Colour Studio -----
+
+  // Pointer capture keeps the drag alive when the cursor leaves the element,
+  // and makes the same code path work for mouse, touch and pen.
+  const bindDragArea = (el, onMove) => {
+    if (!el) return;
+    const emit = (e) => {
+      const r = el.getBoundingClientRect();
+      onMove(
+        r.width ? (e.clientX - r.left) / r.width : 0,
+        r.height ? (e.clientY - r.top) / r.height : 0
+      );
+    };
+    let dragging = false;
+    el.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      dragging = true;
+      // Capture can throw if the pointer is already gone; the flag above is
+      // the real drag state so the gesture still works without it.
+      try { el.setPointerCapture(e.pointerId); } catch { /* no capture */ }
+      emit(e);
+    });
+    el.addEventListener("pointermove", (e) => {
+      if (dragging) emit(e);
+    });
+    const endDrag = (e) => {
+      if (!dragging) return;
+      dragging = false;
+      try { el.releasePointerCapture(e.pointerId); } catch { /* already released */ }
+    };
+    el.addEventListener("pointerup", endDrag);
+    // Touch drags get cancelled when the browser claims the gesture — without
+    // this the control would stay latched to the pointer.
+    el.addEventListener("pointercancel", endDrag);
+  };
+
+  bindDragArea($("custom-sv-field"), (x, y) => UI.setPickerHsv({ s: x, v: 1 - y }));
+  bindDragArea($("custom-hue-track"), (x) => UI.setPickerHsv({ h: x * 360 }));
+
+  $("custom-sv-field")?.addEventListener("keydown", (e) => {
+    const step = e.shiftKey ? 0.1 : 0.02;
+    const moves = {
+      ArrowLeft: { s: -step }, ArrowRight: { s: step },
+      ArrowUp: { v: step }, ArrowDown: { v: -step },
+    };
+    const move = moves[e.key];
+    if (!move) return;
+    e.preventDefault();
+    const cur = UI._pickerHsv();
+    UI.setPickerHsv({
+      s: move.s != null ? cur.s + move.s : cur.s,
+      v: move.v != null ? cur.v + move.v : cur.v,
+    });
+  });
+
+  $("custom-hue-track")?.addEventListener("keydown", (e) => {
+    const step = e.shiftKey ? 15 : 3;
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    UI.setPickerHsv({ h: UI._pickerHsv().h + (e.key === "ArrowRight" ? step : -step) });
+  });
+
+  const hexInput = $("custom-hex-input");
+  hexInput?.addEventListener("input", () => {
+    hexInput.classList.toggle("is-invalid", !UI.setCustomColourHex(hexInput.value));
+  });
+  hexInput?.addEventListener("blur", () => {
+    // Discard a half-typed value rather than leaving the field out of sync.
+    hexInput.classList.remove("is-invalid");
+    UI.syncCustomThemeUI({ force: true });
+  });
+  hexInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") hexInput.blur();
+  });
+
+  // EyeDropper is Chromium-only — the button stays hidden everywhere else.
+  const eyedropperBtn = $("custom-eyedropper-btn");
+  if (eyedropperBtn && "EyeDropper" in window) {
+    eyedropperBtn.classList.remove("hidden");
+    eyedropperBtn.addEventListener("click", async () => {
+      try {
+        const { sRGBHex } = await new window.EyeDropper().open();
+        UI.setCustomColourHex(sRGBHex);
+      } catch {
+        /* user pressed Escape — nothing to do */
+      }
+    });
+  }
+
+  // Swatch chips are re-rendered on every change, so delegate from the row.
+  $("custom-swatch-row")?.addEventListener("click", (e) => {
+    const removeBtn = e.target.closest("[data-remove-swatch]");
+    if (removeBtn) {
+      e.stopPropagation();
+      UI.removeCustomColour(Number(removeBtn.dataset.removeSwatch));
+      return;
+    }
+    const chip = e.target.closest("[data-swatch-index]");
+    if (chip) UI.updateCustomTheme({ activeIndex: Number(chip.dataset.swatchIndex) });
+  });
+
+  $("custom-add-colour-btn")?.addEventListener("click", () => UI.addCustomColour());
+
+  $("custom-intensity")?.addEventListener("input", (e) => {
+    UI.updateCustomTheme({ intensity: e.target.value });
+  });
+
+  $("custom-surprise-btn")?.addEventListener("click", () => UI.surpriseCustomTheme());
+  $("custom-reset-btn")?.addEventListener("click", () => UI.resetCustomTheme());
+
   $("btn-save-appearance")?.addEventListener("click", () => UI.saveAppearance());
   $("btn-reset-appearance")?.addEventListener("click", () => UI.resetAppearance());
 
