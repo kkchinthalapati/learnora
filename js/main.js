@@ -2067,7 +2067,7 @@ function bindAI() {
   $("btn-ai-close")?.addEventListener("click", () => {
     $("turbo-chat")?.classList.remove("fullscreen");
     ModalManager.close("turbo-chat");
-    // Bug 1 cleanup: ensure no orphaned teal ghosts
+    // Ensure no orphaned teal ghosts
     document.querySelectorAll('.streaming-pulse, .ripple, .ai-widget, .avatar-circle').forEach(el => {
        if (el.parentNode === document.body) el.remove();
     });
