@@ -2705,6 +2705,14 @@ label {
     display: flex;
     gap: var(--s-2);
 }
+
+/* The drag handle next to this group is width:100%, which squeezes the group
+   below its content width; .flex-gap's wrap then stacked the fullscreen and
+   close buttons on top of each other instead of in a row. */
+.chat-header .header-controls {
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+}
 .header-controls .icon-btn {
     width: 34px;
     height: 34px;

@@ -2053,15 +2053,22 @@ async function maybeRenderOnboardingBanner() {
    ========================================================================= */
 
 function bindAI() {
+  const openAIChat = () => {
+    ModalManager.open("turbo-chat");
+    // Recover a panel that a previous drag + resize left off-screen, so
+    // reopening is always enough to get the close button back.
+    AI.clampWindowIntoView();
+  };
+
   $("nav-ai-trigger")?.addEventListener("click", (e) => {
     // Prevent the #ai hash from routing (there is no view-ai section,
     // which would hide the current view and fall back to the dashboard)
     e.preventDefault();
-    ModalManager.open("turbo-chat");
+    openAIChat();
   });
 
   $("turbo-toggle")?.addEventListener("click", () => {
-    ModalManager.open("turbo-chat");
+    openAIChat();
   });
 
   $("btn-ai-close")?.addEventListener("click", () => {
@@ -2077,6 +2084,9 @@ function bindAI() {
     const m = $("turbo-chat");
     if (!m) return;
     m.classList.toggle("fullscreen");
+    // Leaving fullscreen restores any pre-drag inline position, which may no
+    // longer fit the current viewport.
+    if (!m.classList.contains("fullscreen")) AI.clampWindowIntoView();
   });
 
   $("btn-send-chat")?.addEventListener("click", () => {
