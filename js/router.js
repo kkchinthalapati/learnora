@@ -41,6 +41,16 @@ export const Router = {
         this.deleteFolder(actionEl.dataset.folderId, actionEl.dataset.folderName);
         return;
       }
+      // Must also short-circuit before the [data-hash] handler — the delete
+      // button sits beside the row that opens the file's notes.
+      if (actionEl?.dataset.action === "delete-material") {
+        this.deleteMaterial(
+          actionEl.dataset.materialId,
+          actionEl.dataset.materialTitle,
+          actionEl.dataset.storagePath,
+        );
+        return;
+      }
 
       const navEl = e.target.closest("[data-hash]");
       if (navEl) {
@@ -104,6 +114,14 @@ export const Router = {
       const deckId = route.replace("review-", "");
       $(`view-review`)?.classList.remove("hidden");
       this.startReview(deckId);
+      return;
+    }
+
+    // Checked before "quiz-" so the more specific prefix wins.
+    if (route.startsWith("quizreview-")) {
+      const quizId = route.replace("quizreview-", "");
+      $(`view-quiz`)?.classList.remove("hidden");
+      this.reviewQuiz(decodeURIComponent(quizId));
       return;
     }
 
@@ -292,9 +310,21 @@ export const Router = {
         else if (m.type === "text") icon = "📝";
         
         return `
-          <div class="todo-item cursor-pointer hover-bright" data-hash="notes-${encodeURIComponent(m.id)}" style="display:flex; align-items:center; gap:12px; margin-bottom:8px; padding:12px; border-radius:var(--r-md); background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);">
-            <span style="font-size:1.5rem;">${icon}</span>
-            <span class="todo-text" style="font-weight:500;">${esc(m.title)}</span>
+          <div class="material-row">
+            <div class="material-open cursor-pointer hover-bright" data-hash="notes-${encodeURIComponent(m.id)}">
+              <span class="material-icon">${icon}</span>
+              <span class="todo-text material-title">${esc(m.title)}</span>
+            </div>
+            <button
+              type="button"
+              class="material-delete"
+              data-action="delete-material"
+              data-material-id="${esc(m.id)}"
+              data-material-title="${esc(m.title)}"
+              data-storage-path="${esc(m.storage_path || "")}"
+              aria-label="Delete ${esc(m.title)}"
+              title="Delete this file"
+            >✕</button>
           </div>
         `;
       }).join("");
@@ -394,6 +424,27 @@ export const Router = {
     if (!ok) return;
     const deleted = await Folders.delete(id);
     if (deleted) this.loadFolders("folders");
+  },
+
+  /* Deletes a single material, so removing one file no longer means deleting
+     the folder around it. */
+  async deleteMaterial(id, title, storagePath) {
+    if (!id) return;
+    const ok = await UI.confirm(
+      `"${title}" will be permanently deleted, along with the notes, flashcards and quizzes generated from it.`,
+      { title: "Delete file?", confirmText: "Delete", danger: true },
+    );
+    if (!ok) return;
+
+    const deleted = await Materials.delete(id, storagePath || null);
+    if (!deleted) {
+      UI.showPopup("Couldn't delete that file. Please try again.", "Delete failed");
+      return;
+    }
+    UI.showToast(`Deleted "${title}".`);
+    // Re-render the folder the user is still looking at.
+    const currentFolder = (window.location.hash.replace("#", "").match(/^folder-(.+)$/) || [])[1];
+    if (currentFolder) this.loadFolderDetail(decodeURIComponent(currentFolder));
   },
 
   async startReview(deckId) {
@@ -566,12 +617,15 @@ Also provide a short 1-sentence feedback.`;
       `;
     } else {
       container.innerHTML = quizzes.map(q => `
-        <div class="glass-panel stat-card cursor-pointer hover-lift flex-between" data-hash="quiz-${encodeURIComponent(q.id)}">
-          <div>
+        <div class="glass-panel stat-card hover-lift flex-between">
+          <div class="cursor-pointer" data-hash="quiz-${encodeURIComponent(q.id)}">
             <h3>❓ ${esc(q.title)}</h3>
             <p class="text-muted mt-4 text-sm">${(q.questions_json || []).length} questions · Created: ${new Date(q.created_at).toLocaleDateString()}</p>
           </div>
-          <span class="btn-primary" style="padding: 6px 12px; font-size: 0.8rem;">Take Quiz</span>
+          <div class="flex-gap">
+            <span class="btn-secondary cursor-pointer" style="padding: 6px 12px; font-size: 0.8rem;" data-hash="quizreview-${encodeURIComponent(q.id)}">Review</span>
+            <span class="btn-primary cursor-pointer" style="padding: 6px 12px; font-size: 0.8rem;" data-hash="quiz-${encodeURIComponent(q.id)}">Take Quiz</span>
+          </div>
         </div>
       `).join("");
     }
@@ -629,7 +683,10 @@ Also provide a short 1-sentence feedback.`;
           <h2>Quiz Complete! 🎉</h2>
           <p class="mt-8" style="font-size: 1.5rem;">${score} / ${total} correct</p>
           ${weakTopics.length ? `<p class="text-muted mt-16">Topics to review: ${weakTopics.map(esc).join(", ")}</p>` : ""}
-          <button class="btn-primary mt-24" data-hash="quizzes">Back to Quizzes</button>
+          <div class="flex-gap mt-24">
+            <button class="btn-primary" data-hash="quizreview-${encodeURIComponent(quiz.id)}">📋 Review answers</button>
+            <button class="btn-secondary" data-hash="quizzes">Back to Quizzes</button>
+          </div>
         `;
         showHost(`Finished! You got ${score} out of ${total}. Check your weak topics and keep studying!`);
         return;
@@ -696,6 +753,101 @@ Also provide a short 1-sentence feedback.`;
     };
 
     renderQuestion();
+  },
+
+  /* Read-only walkthrough of the last attempt: every question with the option
+     the student picked, the correct one, and the host's explanation. Before
+     this the only way to see a correct answer was to sit the quiz again. */
+  async reviewQuiz(quizId) {
+    const container = $("quiz-content");
+    if (!container) return;
+
+    const hostBubble = $("quiz-host-bubble");
+    if (hostBubble) hostBubble.classList.add("hidden");
+
+    container.innerHTML = `<p class="text-muted">Loading your answers…</p>`;
+
+    const [quiz, attempt] = await Promise.all([
+      Quizzes.fetchById(quizId),
+      Quizzes.fetchLatestAttempt(quizId),
+    ]);
+
+    if (!quiz) {
+      container.innerHTML = `<h3>Quiz not found.</h3>`;
+      return;
+    }
+
+    const questions = quiz.questions_json || [];
+
+    if (!attempt) {
+      container.innerHTML = `
+        <button class="btn-secondary mb-24" data-hash="quizzes">← Exit</button>
+        <h2>${esc(quiz.title || "Quiz")}</h2>
+        <p class="text-muted mt-16">You haven't taken this quiz yet, so there are no answers to review.</p>
+        <button class="btn-primary mt-24" data-hash="quiz-${encodeURIComponent(quiz.id)}">Take the quiz</button>
+      `;
+      return;
+    }
+
+    const answers = attempt.answers_json || [];
+    // Attempts are stored in question order, so position is the reliable link
+    // back — `questionId` falls back to the index when the model omits an id.
+    const answerFor = (index) =>
+      answers.find((a) => a.questionId === (questions[index]?.id ?? index)) || answers[index] || null;
+
+    const taken = attempt.created_at
+      ? new Date(attempt.created_at).toLocaleDateString(undefined, {
+          day: "numeric", month: "short", year: "numeric",
+        })
+      : null;
+
+    const body = questions.map((q, index) => {
+      const given = answerFor(index);
+      const chosenIndex = given ? given.chosenIndex : null;
+      const wasCorrect = !!given?.correct;
+
+      const choices = (q.choices || []).map((choice, i) => {
+        const isCorrect = i === q.correctIndex;
+        const isChosen = i === chosenIndex;
+        let cls = "review-choice";
+        if (isCorrect) cls += " correct-choice";
+        else if (isChosen) cls += " wrong-choice";
+
+        let tag = "";
+        if (isCorrect && isChosen) tag = `<span class="review-tag">Your answer · correct</span>`;
+        else if (isCorrect) tag = `<span class="review-tag">Correct answer</span>`;
+        else if (isChosen) tag = `<span class="review-tag">Your answer</span>`;
+
+        return `<li class="${cls}"><span>${esc(choice)}</span>${tag}</li>`;
+      }).join("");
+
+      return `
+        <article class="review-question glass-panel">
+          <header class="review-question-head">
+            <span class="text-muted">Question ${index + 1} of ${questions.length}</span>
+            <span class="review-verdict ${wasCorrect ? "is-correct" : "is-wrong"}">
+              ${given ? (wasCorrect ? "✓ Correct" : "✕ Incorrect") : "Not answered"}
+            </span>
+          </header>
+          <h3 class="mt-8 mb-16">${esc(q.question)}</h3>
+          <ul class="review-choices">${choices}</ul>
+          ${q.feedback ? `<p class="review-feedback">${esc(q.feedback)}</p>` : ""}
+        </article>
+      `;
+    }).join("");
+
+    container.innerHTML = `
+      <button class="btn-secondary mb-24" data-hash="quizzes">← Exit</button>
+      <h2>${esc(quiz.title || "Quiz")} — your answers</h2>
+      <p class="mt-8" style="font-size: 1.25rem;">
+        ${esc(attempt.score)} / ${esc(attempt.total)} correct${taken ? ` <span class="text-muted">· ${esc(taken)}</span>` : ""}
+      </p>
+      <div class="review-list mt-24">${body}</div>
+      <div class="flex-gap mt-24">
+        <button class="btn-primary" data-hash="quiz-${encodeURIComponent(quiz.id)}">Retake quiz</button>
+        <button class="btn-secondary" data-hash="quizzes">Back to Quizzes</button>
+      </div>
+    `;
   },
 
   async loadPlanView() {

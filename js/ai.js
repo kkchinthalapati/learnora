@@ -75,6 +75,9 @@ export const AI = {
           // 4xx means the request itself is wrong (bad/expired token, bad
           // payload) — retrying it just burns two more round trips and 6s.
           err.retryable = response.status >= 500 || response.status === 429;
+          // A content refusal carries its own explanation and must be shown
+          // verbatim rather than flattened into "generation failed".
+          err.refused = body.refused === true;
           throw err;
         }
 
@@ -481,7 +484,11 @@ ${sourceText}
       return quiz;
     } catch (err) {
       console.error("[AI.generateQuiz]", err);
-      UI.showPopup("Failed to generate quiz. Please try again.", "Quiz Generation");
+      if (err?.refused) {
+        UI.showPopup(err.message, "Topic not supported");
+      } else {
+        UI.showPopup("Failed to generate quiz. Please try again.", "Quiz Generation");
+      }
       return null;
     }
   },
@@ -657,6 +664,12 @@ Do NOT wrap in code fences. Do NOT add any text before or after the JSON array.`
     const systemContext = `[SYSTEM — Learnora AI Workspace Assistant]
 You are Learnora AI, an expert study assistant embedded in the student's workspace.
 
+VOICE:
+- Speak in the first person. "I can help with that" — never "Learnora can help with that", and never describe yourself in the third person.
+- "Learnora" names the app and its features (the Timer tab, the Task Manager). It is not a substitute for "I".
+
+TODAY IS: ${localDateStr()}
+
 WORKSPACE STATE:
 - Pending Tasks: ${pendingTasks}
 - Upcoming Exams: ${upcomingExams}
@@ -668,12 +681,13 @@ GROUNDING RULES (important — follow exactly):
 - Only reference tasks and exams that appear in WORKSPACE STATE above. Never invent, assume, or hallucinate tasks, chapters, sections, or deadlines that are not listed there.
 - If "Pending Tasks" is "None", tell the student they have no pending tasks yet — do NOT make any up.
 - If the student mentions something you don't see in the workspace, say you don't see it rather than fabricating details.
+- A task listed as "(due YYYY-MM-DD)" carries that deadline; a task listed with no "(due …)" simply has no due date set. When asked to summarise, order or prioritise tasks, sort by due date — soonest first — using TODAY IS above to work out what is overdue, due today, or due this week, and put undated tasks last. If every task is undated, say so plainly and offer to help set due dates.
 
 CAPABILITIES:
 - To create a task, emit the tag <ADD_TASK>the task name</ADD_TASK>. The app executes this tag and displays it to the student as the task's name, so lead into it naturally (e.g. "Done — I've added this to your tasks: <ADD_TASK>Review Chapter 3</ADD_TASK>") and do not repeat the same name elsewhere in the sentence. Only create a task when the student clearly asks you to.
 - To generate a formal interactive quiz, emit the tag <ADD_QUIZ>Topic Name</ADD_QUIZ>. The app will generate a quiz for that topic.
 - To generate a formal weekly study schedule, emit the tag <ADD_PLAN></ADD_PLAN>. The app will build a weekly plan and navigate the user there.
-- To start a focus timer, emit the tag <START_TIMER>25</START_TIMER> with the number of minutes. Only do this when the student explicitly asks to start studying/focusing for a specific duration.
+- To start a focus timer, emit the tag <START_TIMER>25</START_TIMER> with the number of minutes. Only emit it once the student has named a duration. If they ask for a timer without saying how long (e.g. "start a timer"), do NOT pick one for them and do NOT emit the tag — ask how many minutes they want, suggesting 25, 45 or 60 as options, and start it on their next reply.
 - To switch the app's theme, emit <SET_THEME>dark</SET_THEME> or <SET_THEME>light</SET_THEME> when the student asks to change the theme/appearance.
 - Answer questions about the student's current study material.
 - Help with exam prep, concept explanations, and study strategies.

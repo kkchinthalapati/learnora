@@ -211,7 +211,13 @@ export const ModalManager = {
 
   close(id) {
     const idx = id ? _modalStack.findIndex((m) => m.id === id) : _modalStack.length - 1;
-    if (idx === -1) return;
+    if (idx === -1) {
+      // Not on the stack — something showed this modal without going through
+      // open(). Still hide it: a close button that silently does nothing is
+      // worse than a slightly inconsistent stack.
+      if (id) $(id)?.classList.add("hidden");
+      return;
+    }
     const entry = _modalStack[idx];
     $(entry.id)?.classList.add("hidden");
     entry.untrap();
@@ -983,13 +989,18 @@ window.addEventListener("DOMContentLoaded", () => {
       if (isCurrentlyOpen) {
         e.stopPropagation();
         e.preventDefault();
-        turboModal.classList.add("hidden");
+        // Close through ModalManager, not `classList.add("hidden")`. Hiding
+        // the panel directly left its entry on the modal stack and its scroll
+        // lock held: every reopen pushed another entry and another lock, so
+        // the ✖ button popped only one of them and the page stayed
+        // unscrollable with the panel apparently refusing to close.
+        ModalManager.close("turbo-chat");
         turboBtn.classList.remove("turbo-active");
       } else {
         turboBtn.classList.add("turbo-active");
       }
     }, { capture: true });
-    
+
     const closeBtn = $("btn-ai-close");
     if (closeBtn) {
       closeBtn.addEventListener("click", () => {

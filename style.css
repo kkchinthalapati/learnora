@@ -15,6 +15,10 @@
    1. TOKENS
 ========================================================================== */
 :root {
+    /* Vertical room the fixed "Ask AI" command bar needs at the end of a
+       scrolling view: its 28px bottom offset + ~56px height + breathing room. */
+    --command-bar-clearance: 104px;
+
     /* --- Accent (vivid indigo) --- */
     /* Channel triplet backing the derived soft/ring/glow tints. Presets
        override it; this value is the fallback for an unknown accent. */
@@ -317,6 +321,11 @@ a {
     overflow-y: auto;
     overflow-x: hidden;
     padding: clamp(20px, 4vw, 40px) clamp(20px, 5vw, 56px);
+    /* The floating "Ask AI" command bar is position:fixed above this scroller,
+       so without extra room at the end the last cards on a view (the weekly
+       plan's day columns especially) stayed permanently trapped underneath it
+       with nothing left to scroll. */
+    padding-bottom: calc(clamp(20px, 4vw, 40px) + var(--command-bar-clearance));
 }
 
 header {
@@ -615,8 +624,11 @@ label {
     display: flex;
     gap: var(--s-3);
     flex-wrap: wrap;
+    /* The due-date field carries a label above it; aligning on the baseline of
+       the controls keeps the text box, date box and button on one line. */
+    align-items: flex-end;
 }
-.input-card input {
+.input-card > input {
     flex: 1;
     min-width: 220px;
 }
@@ -1016,11 +1028,285 @@ label {
 .todo-due-input,
 .todo-due-edit-input {
     font: inherit;
-    padding: 6px 10px;
+    padding: 10px 12px;
     border-radius: var(--r-sm);
     border: 1px solid var(--glass-border);
     background: var(--surface);
     color: var(--text);
+    cursor: pointer;
+}
+
+/* --- Quiz answer review --- */
+.review-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-4);
+}
+.review-question {
+    padding: clamp(16px, 2vw, 24px);
+    text-align: left;
+}
+.review-question-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    flex-wrap: wrap;
+}
+.review-verdict {
+    font-size: var(--fs-sm);
+    font-weight: 700;
+}
+.review-verdict.is-correct {
+    color: var(--success);
+}
+.review-verdict.is-wrong {
+    color: var(--danger);
+}
+.review-choices {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.review-choice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    padding: 12px 16px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-md);
+    background: var(--surface);
+}
+.review-tag {
+    flex-shrink: 0;
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.85;
+}
+/* The in-quiz answer reveal pops and shakes to react to a live choice. Replayed
+   down a list of past answers that would be noise, so the colours are kept and
+   the motion dropped. */
+.review-choice.correct-choice {
+    transform: none;
+    box-shadow: none;
+}
+.review-choice.wrong-choice {
+    animation: none;
+}
+.review-feedback {
+    margin-top: var(--s-4);
+    padding: 12px 16px;
+    border-radius: var(--r-md);
+    background: var(--accent-soft);
+    color: var(--text);
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+}
+
+/* --- Folder workspace material rows (open + delete) --- */
+.material-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding: 4px 4px 4px 12px;
+    border-radius: var(--r-md);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.material-open {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+}
+.material-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+.material-title {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.material-delete {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--text-faint);
+    font-size: var(--fs-md);
+    line-height: 1;
+    cursor: pointer;
+    transition: background var(--t) ease, color var(--t) ease;
+}
+.material-delete:hover,
+.material-delete:focus-visible {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+
+/* Labelled due-date field in the "add a task" row. */
+.todo-due-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.todo-due-label {
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+}
+
+/* --- Custom date picker popover (js/datepicker.js) --- */
+.datepicker-popover {
+    position: fixed;
+    z-index: 1200;
+    /* A fixed width rather than one derived from 100vw: the popover is
+       positioned by script, which already clamps it inside the viewport, and a
+       viewport-unit max-width collapses the panel to nothing in any context
+       that reports a zero-width viewport. */
+    width: 320px;
+    padding: 16px;
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-lg);
+}
+@media (max-width: 380px) {
+    .datepicker-popover {
+        width: 288px;
+        padding: 12px;
+    }
+}
+.datepicker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2);
+    margin-bottom: 12px;
+}
+.datepicker-title {
+    font-size: var(--fs-md);
+    font-weight: 700;
+    color: var(--text);
+}
+.datepicker-nav {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    line-height: 1;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: background var(--t) ease, color var(--t) ease;
+}
+.datepicker-nav:hover {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+.datepicker-weekdays,
+.datepicker-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+.datepicker-weekdays {
+    margin-bottom: 6px;
+}
+.datepicker-weekdays span {
+    text-align: center;
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.datepicker-day {
+    /* 40px targets — the whole point of replacing the native picker. */
+    min-height: 40px;
+    /* The app's base button style adds 12px/20px padding, which becomes each
+       grid item's min-content width and pushes the seven `1fr` tracks well past
+       the popover's edge. Zeroing both lets the columns divide the row evenly. */
+    padding: 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    border: 1px solid transparent;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: background var(--t) ease, color var(--t) ease;
+}
+.datepicker-day.is-empty {
+    cursor: default;
+    pointer-events: none;
+}
+.datepicker-day:hover:not(.is-empty) {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+.datepicker-day:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+.datepicker-day.is-today {
+    border-color: var(--accent);
+    font-weight: 700;
+}
+.datepicker-day.is-selected {
+    background: var(--accent);
+    color: var(--accent-on);
+    font-weight: 700;
+}
+.datepicker-footer {
+    display: flex;
+    gap: var(--s-2);
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--glass-border);
+}
+.datepicker-action {
+    flex: 1;
+    min-height: 40px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--text);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--t) ease, color var(--t) ease;
+}
+.datepicker-action:hover {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+.datepicker-action-muted {
+    color: var(--text-muted);
 }
 
 /* Stat & summary cards */
@@ -2015,14 +2301,20 @@ label {
     align-items: center;
 }
 .password-wrapper input {
-    padding-right: 60px;
+    /* Clears the enlarged toggle (min-width 56px + 6px offset). */
+    padding-right: 70px;
 }
 .password-toggle {
     position: absolute;
-    right: 10px;
+    right: 6px;
     background: none;
     border: none;
-    padding: 4px 6px;
+    /* Roomy enough to hit on the first tap — the old 4px/6px padding made the
+       target ~20px tall, below the 44px minimum, so clicks regularly missed
+       and the button felt unresponsive. */
+    padding: 0 10px;
+    min-height: 40px;
+    min-width: 56px;
     margin: 0;
     cursor: pointer;
     color: var(--text-muted);
@@ -2034,9 +2326,14 @@ label {
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: var(--r-sm);
 }
 .password-toggle:hover {
     color: var(--accent);
+}
+.password-toggle:active {
+    color: var(--accent);
+    background: var(--glass-bg);
 }
 
 .password-strength-container {
@@ -3377,6 +3674,10 @@ body.dark-theme .stat-card::before {
 
     .main-content {
         padding: var(--s-5);
+        /* The shorthand above would otherwise drop the clearance set on the
+           base rule, putting the command bar back on top of the last cards —
+           and it floats on mobile too. */
+        padding-bottom: calc(var(--s-5) + var(--command-bar-clearance));
     }
     header {
         flex-direction: column;

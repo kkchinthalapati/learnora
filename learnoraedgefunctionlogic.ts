@@ -26,6 +26,90 @@ function cleanJsonResponse(text: string): string {
   return cleaned.trim();
 }
 
+/* =========================================================================
+   CONTENT SAFETY
+
+   Learnora is a study tool used by students from age 13. Two gaps let it
+   generate a quiz on bomb-making and one on recreational drug identification:
+   the system prompt said nothing about acceptable subject matter, and a
+   Gemini safety refusal was caught as a generic error and silently retried
+   against Groq/OpenRouter, which are far less filtered. So a blocked request
+   didn't fail — it got downgraded to a provider that would answer it.
+
+   The screen below is deliberately narrow. It targets operational
+   "how to make/obtain" framing rather than subject areas, because banning
+   topics outright would break legitimate coursework: pharmacology, the
+   chemistry of energetic materials, military history, and toxicology are all
+   things a student may properly be studying. The system-prompt policy and the
+   provider filters cover the grey zone; this catches the blatant cases before
+   a single token is spent.
+   ========================================================================= */
+
+const SAFETY_REFUSAL =
+  "I can't help with that topic. Learnora is a study assistant — I can't create quizzes or study material about making weapons or explosives, obtaining or producing illegal drugs, or harming yourself or others. Ask me about a subject you're studying and I'll gladly help.";
+
+const UNSAFE_PATTERNS: RegExp[] = [
+  // Weapons and explosives — construction/acquisition framing only.
+  /\b(?:make|making|build|building|construct|constructing|create|creating|assemble|assembling|manufacture|manufacturing|diy|homemade|improvised)\b[^.?!]{0,40}\b(?:bomb|explosive|ied|grenade|landmine|napalm|thermite|pipe\s*bomb|molotov|detonator|silencer|suppressor|ghost\s*gun|untraceable\s*(?:gun|firearm))/i,
+  /\b(?:bomb|explosive|grenade|napalm|thermite|detonator)[\s-]*(?:making|building|construction|recipe|blueprint)\b/i,
+  /\b(?:3d[\s-]?print|print)\w*\b[^.?!]{0,30}\b(?:gun|firearm|receiver|lower)\b/i,
+  /\bconvert\w*\b[^.?!]{0,30}\bfull[\s-]?auto\b/i,
+
+  // Illegal drug synthesis or acquisition.
+  /\b(?:synthes\w+|cook|cooking|manufactur\w+|produc\w+|extract\w+|grow\w+|make|making)\b[^.?!]{0,40}\b(?:meth|methamphetamine|crystal\s*meth|cocaine|crack|heroin|fentanyl|mdma|ecstasy|lsd|ghb|psilocybin|magic\s*mushrooms)\b/i,
+  /\b(?:how|where)\b[^.?!]{0,30}\b(?:buy|score|obtain|get)\b[^.?!]{0,30}\b(?:meth|cocaine|heroin|fentanyl|mdma|ecstasy|lsd|illegal\s*drugs|drugs\s*online)\b/i,
+  /\bdark\s*(?:web|net)\b[^.?!]{0,30}\b(?:drug|gun|weapon)/i,
+
+  // Self-harm and suicide methods.
+  /\b(?:how\s*to|best\s*way|method[s]?\s*(?:to|for|of))\b[^.?!]{0,30}\b(?:kill\s*(?:myself|yourself)|commit\s*suicide|suicide|self[\s-]?harm|end\s*my\s*life|overdose)\b/i,
+  /\b(?:lethal|fatal)\s*dose\b[^.?!]{0,30}\b(?:of|for)\b/i,
+
+  // Poisons/toxins framed as untraceable harm to a person.
+  /\b(?:poison|toxin|nerve\s*agent|ricin|sarin|anthrax)\b[^.?!]{0,40}\b(?:someone|a\s*person|undetect\w+|untraceab\w+|without\s*(?:being\s*)?(?:caught|detected))/i,
+
+  // Sexual content involving minors — no legitimate study framing.
+  /\b(?:child|minor|underage|teen|preteen|loli)\w*\b[^.?!]{0,25}\b(?:porn|sexual|erotic|nude|nudes|nsfw)\b/i,
+  /\b(?:porn|sexual|erotic|nude|nsfw)\w*\b[^.?!]{0,25}\b(?:child|minor|underage|preteen)\b/i,
+];
+
+function screenForUnsafeContent(text: string): boolean {
+  if (!text) return false;
+  // Collapse separators used to slip past word matching ("b-o-m-b making").
+  const normalized = text.replace(/[_*~`]+/g, "").replace(/\s{2,}/g, " ");
+  return UNSAFE_PATTERNS.some((re) => re.test(normalized));
+}
+
+/* True when a Gemini response was withheld by its safety filters rather than
+   failing for an operational reason. Those must NOT fall through to the other
+   providers — that is precisely how the unsafe quizzes got generated. */
+function isGeminiSafetyBlock(response: any): boolean {
+  const blockReason = response?.promptFeedback?.blockReason;
+  if (blockReason && blockReason !== "OTHER") return true;
+  const finish = response?.candidates?.[0]?.finishReason;
+  return finish === "SAFETY" || finish === "PROHIBITED_CONTENT" || finish === "BLOCKLIST";
+}
+
+function isSafetyError(err: any): boolean {
+  const msg = (err?.message || String(err || "")).toLowerCase();
+  return msg.includes("safety") || msg.includes("blocked") || msg.includes("prohibited_content");
+}
+
+function safetyRefusalResponse(mode: string | undefined, headers: Record<string, string>): Response {
+  // Quiz/plan callers parse the body as JSON and would render a refusal
+  // sentence as a broken quiz, so give them a shape they can reject cleanly
+  // and surface the message through the `error` field instead.
+  if (mode === "quiz" || mode === "plan") {
+    return new Response(
+      JSON.stringify({ error: SAFETY_REFUSAL, refused: true }),
+      { status: 422, headers },
+    );
+  }
+  return new Response(
+    JSON.stringify({ text: SAFETY_REFUSAL, refused: true, modelUsed: "safety-filter" }),
+    { headers },
+  );
+}
+
 Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
@@ -75,9 +159,29 @@ Deno.serve(async (req) => {
 
         const systemInstruction = `You are Learnora AI. Act as ${personaMap[s.aiPersona] || personaMap.tutor}.
     Keep response ${s.aiConciseness === 'short' ? 'brief' : 'detailed'}. Use ${s.aiLanguage || 'English'}.
+
+    VOICE — refer to yourself in the first person, always. Say "I can help you with that", never "Learnora can help you with that" or "Learnora AI thinks". Use the name "Learnora" only for the product itself (its tabs, features and screens), never as a stand-in for "I", and never describe yourself in the third person. Stay in this voice for the whole conversation, including the first message.
+
+    CONTENT POLICY — Learnora is a study tool used by students aged 13 and up. Refuse, in any mode including quiz and flashcard generation, to produce content that:
+    - explains how to make, acquire, modify or deploy weapons, explosives, or incendiary devices;
+    - explains how to synthesise, cultivate, obtain or conceal illegal drugs, or presents recreational drug use as harmless or aspirational;
+    - describes methods of suicide, self-harm, or harming another person, or how to poison someone;
+    - is sexual content, or any sexual content involving minors;
+    - promotes hatred or violence against a group, or helps someone evade law enforcement.
+    Academic study of these subjects is fine at the level a syllabus would cover — the pharmacology of addiction, the chemistry of combustion, the history of a conflict, public-health harm reduction. What you must never provide is operational instruction, a recipe, or anything that reads as encouragement.
+    When a request crosses that line, refuse briefly and warmly, say why in one sentence, and offer a legitimate study angle instead. Do not produce a partial answer, and do not hide the refusal inside a quiz question. If you are generating JSON and must refuse, return an empty array [] rather than unsafe questions.
+
     If asked for flashcards, output ONLY raw JSON: [{"front":"...", "back":"..."}].${modeInstructions}`;
 
         const currentMsg = history && history.length > 0 ? history[history.length - 1].content : "";
+
+        // Screen before spending a token. `history` carries the workspace
+        // context prelude, so only the newest turn is checked here.
+        const jsonHeaders = { "Content-Type": "application/json", ...corsHeaders };
+        if (screenForUnsafeContent(currentMsg)) {
+            console.warn("[safety] Request refused by pre-flight topic screen", { mode, userId: user.id });
+            return safetyRefusalResponse(mode, jsonHeaders);
+        }
 
         // =========================================================================
         // CHANNEL 1: GEMINI (Sequential: 2.0 Flash -> 1.5 Flash)
@@ -87,14 +191,14 @@ Deno.serve(async (req) => {
             const geminiModels = ["gemini-2.0-flash", "gemini-1.5-flash"];
             const genAI = new GoogleGenerativeAI(geminiKey);
 
+            const chatHistory = (history || []).slice(0, -1).map((m: any) => ({
+                role: m.role === 'user' ? 'user' : 'model',
+                parts: [{ text: m.content }]
+            }));
+
             for (const modelName of geminiModels) {
                 try {
                     const model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
-
-                    const chatHistory = (history || []).slice(0, -1).map((m: any) => ({
-                        role: m.role === 'user' ? 'user' : 'model',
-                        parts: [{ text: m.content }]
-                    }));
 
                     const chat = model.startChat({ history: chatHistory });
 
@@ -104,6 +208,16 @@ Deno.serve(async (req) => {
                     ] : currentMsg;
 
                     const result = await chat.sendMessage(payload);
+
+                    // A safety block is a verdict, not an outage. Returning it
+                    // here stops the fallback chain: previously this threw,
+                    // was swallowed as a generic error, and the same prompt was
+                    // replayed against Groq and OpenRouter until one answered.
+                    if (isGeminiSafetyBlock(result.response)) {
+                        console.warn(`[safety] ${modelName} blocked the request`, { mode, userId: user.id });
+                        return safetyRefusalResponse(mode, jsonHeaders);
+                    }
+
                     let text = result.response.text();
                     if (mode === "quiz" || mode === "plan") {
                         text = cleanJsonResponse(text);
@@ -116,6 +230,12 @@ Deno.serve(async (req) => {
                         headers: { "Content-Type": "application/json", ...corsHeaders }
                     });
                 } catch (err: any) {
+                    // `.text()` throws on a blocked candidate — same verdict,
+                    // so it must not fall through to another provider either.
+                    if (isSafetyError(err)) {
+                        console.warn(`[safety] ${modelName} refused the request`, { mode, userId: user.id });
+                        return safetyRefusalResponse(mode, jsonHeaders);
+                    }
                     debugErrors[`Gemini (${modelName})`] = err.message || String(err);
                     console.error(`Gemini (${modelName}) Error:`, err);
                 }
@@ -176,6 +296,13 @@ Deno.serve(async (req) => {
                 text = cleanJsonResponse(text);
             }
 
+            // Groq and OpenRouter have no comparable safety layer of their own,
+            // so what they return is screened as well as what goes in.
+            if (screenForUnsafeContent(text)) {
+                console.warn("[safety] Groq output refused by screen", { mode, userId: user.id });
+                return safetyRefusalResponse(mode, jsonHeaders);
+            }
+
             return new Response(JSON.stringify({
                 text: text,
                 modelUsed: "groq/llama-3.3"
@@ -231,6 +358,11 @@ Deno.serve(async (req) => {
             let text = data.choices[0].message.content;
             if (mode === "quiz" || mode === "plan") {
                 text = cleanJsonResponse(text);
+            }
+
+            if (screenForUnsafeContent(text)) {
+                console.warn("[safety] OpenRouter output refused by screen", { mode, userId: user.id });
+                return safetyRefusalResponse(mode, jsonHeaders);
             }
 
             return new Response(JSON.stringify({
