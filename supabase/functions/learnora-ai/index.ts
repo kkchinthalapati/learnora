@@ -31,6 +31,30 @@ Deno.serve(async (req) => {
         return new Response('ok', { headers: corsHeaders });
     }
 
+    // ── AUTH GATE ──────────────────────────────────────────
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+        return new Response(
+            JSON.stringify({ error: 'Missing or invalid authorization token.' }),
+            { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+    }
+
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const supabase = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!,
+        { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+        return new Response(
+            JSON.stringify({ error: 'Unauthorized. Please log in.' }),
+            { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+    }
+    // ── END AUTH GATE ──────────────────────────────────────
+
     const debugErrors: Record<string, string> = {};
 
     try {

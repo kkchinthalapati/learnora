@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'" />
+    <title>Learnora | We are upgrading</title>
+    <link rel="icon" href="learnora.jpg" type="image/jpeg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        /* Beautiful Coming Soon Overrides */
+        body {
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .liquid-blobs {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .liquid-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            pointer-events: none;
+        }
+
+        .cs-wrapper {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+            padding: 20px;
+            box-sizing: border-box;
+            animation: fade-in 1s ease-out forwards;
+        }
+
+        .cs-card {
+            max-width: 560px;
+            width: 100%;
+            padding: 56px 40px;
+            margin: 0 auto;
+            border-radius: var(--r-xl);
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transform: translateY(20px);
+            opacity: 0;
+            animation: slide-up 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+        }
+
+        .cs-logo-container {
+            position: relative;
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 32px;
+            cursor: default;
+            /* Discrete interaction */
+        }
+
+        .cs-logo {
+            width: 100%;
+            height: 100%;
+            border-radius: 28px;
+            box-shadow: 0 0 40px var(--accent-glow);
+            position: relative;
+            z-index: 2;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .cs-logo:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 60px var(--accent-glow);
+        }
+
+        .cs-logo-glow {
+            content: '';
+            position: absolute;
+            inset: -20px;
+            background: var(--accent);
+            filter: blur(40px);
+            opacity: 0.4;
+            border-radius: 50%;
+            z-index: 1;
+            animation: pulse 3s infinite alternate ease-in-out;
+        }
+
+        .cs-title {
+            font-family: var(--font-head);
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .cs-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 40px;
+            font-weight: 400;
+        }
+
+        .cs-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            border-radius: var(--r-pill);
+            background: rgba(84, 104, 231, 0.1);
+            border: 1px solid rgba(84, 104, 231, 0.2);
+            color: var(--accent-on);
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 40px;
+        }
+
+        .cs-status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+            animation: blink 2s infinite ease-in-out;
+        }
+
+        .cs-footer {
+            font-size: 0.85rem;
+            color: var(--text-faint);
+            letter-spacing: 0.5px;
+        }
+
+        @keyframes slide-up {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fade-in {
+            0% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.9);
+                opacity: 0.3;
+            }
+
+            100% {
+                transform: scale(1.1);
+                opacity: 0.5;
+            }
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        /* Enhanced blobs for this page */
+        .liquid-blob--1 {
+            background: radial-gradient(circle, var(--accent) 0%, rgba(84, 104, 231, 0) 70%);
+            top: -10%;
+            left: -10%;
+            width: 60vw;
+            height: 60vw;
+            opacity: 0.15;
+        }
+
+        .liquid-blob--2 {
+            background: radial-gradient(circle, #8338ec 0%, rgba(131, 56, 236, 0) 70%);
+            bottom: -20%;
+            right: -10%;
+            width: 70vw;
+            height: 70vw;
+            opacity: 0.15;
+        }
+
+        .liquid-blob--3 {
+            background: radial-gradient(circle, #3a86ff 0%, rgba(58, 134, 255, 0) 70%);
+            top: 30%;
+            right: 20%;
+            width: 40vw;
+            height: 40vw;
+            opacity: 0.1;
+        }
+
+        @media (max-width: 640px) {
+            .cs-card {
+                padding: 40px 24px;
+            }
+
+            .cs-title {
+                font-size: 2.25rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="dark-theme">
+    <!-- Background Orbs -->
+    <div class="liquid-blobs" aria-hidden="true">
+        <div class="liquid-blob liquid-blob--1"></div>
+        <div class="liquid-blob liquid-blob--2"></div>
+        <div class="liquid-blob liquid-blob--3"></div>
+    </div>
+
+    <div class="cs-wrapper">
+        <div class="cs-card">
+            <div class="cs-logo-container">
+                <div class="cs-logo-glow"></div>
+                <img src="learnora.jpg" class="cs-logo" id="cs-logo" alt="Learnora Logo" title="Learnora" />
+            </div>
+
+            <div class="cs-status">
+                <div class="cs-status-dot"></div>
+                System Upgrade in Progress
+            </div>
+
+            <h1 class="cs-title">We're upgrading Learnora</h1>
+
+            <p class="cs-subtitle">
+                Our AI models and infrastructure are getting a major boost to provide you with an even better study
+                experience. We'll be back online shortly.
+            </p>
+
+            <div class="cs-footer">
+                &copy; 2026 Learnora AI Study Planner. All rights reserved.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Discreet access gate (Secret Knock)
+        const logo = document.getElementById('cs-logo');
+
+        function promptAccess() {
+            const code = prompt("Access Code:");
+            if (!code) return;
+            const clean = code.trim();
+            if (clean === "l3rn0ra!" || clean === "l3arn0ra!") {
+                localStorage.setItem("learnora_invite_access", "granted");
+                sessionStorage.setItem("learnora_invite_access", "granted");
+                window.location.replace("index.html");
+            } else {
+                alert("Invalid access code. Please try again.");
+            }
+        }
+
+        // 1. Five rapid clicks/taps on the logo (within 1.5 seconds)
+        let tapCount = 0;
+        let tapTimeout;
+        logo.addEventListener('click', () => {
+            tapCount++;
+            if (tapCount >= 5) {
+                clearTimeout(tapTimeout);
+                tapCount = 0;
+                promptAccess();
+            } else {
+                clearTimeout(tapTimeout);
+                tapTimeout = setTimeout(() => { tapCount = 0; }, 1500);
+            }
+        });
+
+        // 2. Long press on logo (press and hold continuously for 3 seconds)
+        let holdTimeout;
+        function startHold() {
+            holdTimeout = setTimeout(() => {
+                promptAccess();
+            }, 3000);
+        }
+        function cancelHold() {
+            clearTimeout(holdTimeout);
+        }
+        logo.addEventListener('mousedown', startHold);
+        logo.addEventListener('mouseup', cancelHold);
+        logo.addEventListener('mouseleave', cancelHold);
+        logo.addEventListener('touchstart', startHold);
+        logo.addEventListener('touchend', cancelHold);
+        logo.addEventListener('touchcancel', cancelHold);
+
+        // 3. Secret keyboard combination: Ctrl + Alt + Shift + L
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.altKey && e.shiftKey && e.key.toLowerCase() === 'l') {
+                promptAccess();
+            }
+        });
+    </script>
+</body>
+
+</html>

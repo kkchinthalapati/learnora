@@ -50,6 +50,11 @@ const MONTH_NAMES = [
    ========================================================================= */
 
 document.addEventListener("DOMContentLoaded", async () => {
+  if (!localStorage.getItem("learnora_invite_access")) {
+    window.location.replace("coming-soon.html");
+    return;
+  }
+
   UI.initTheme();
   UI.populateSettingsUI();
   UI.applyTranslations();

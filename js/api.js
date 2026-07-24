@@ -170,6 +170,8 @@ export const Auth = {
       // Force clear even if signOut API fails
       _cachedUser = null;
     }
+    localStorage.removeItem("learnora_invite_access");
+    sessionStorage.removeItem("learnora_invite_access");
     window.location.reload();
   },
 
