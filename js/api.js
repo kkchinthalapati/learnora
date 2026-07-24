@@ -355,7 +355,11 @@ export const Folders = {
     // uploaded files themselves — collect their storage paths before the
     // folder (and the rows referencing them) are gone.
     const materials = await Materials.fetch(id);
-    const paths = materials.map((m) => m.storage_path).filter(Boolean);
+
+    const paths = materials.reduce((acc, m) => {
+      if (m.storage_path) acc.push(m.storage_path);
+      return acc;
+    }, []);
 
     const { error } = await supabase.from("folders").delete().eq("id", id);
     if (error) {
