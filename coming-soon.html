@@ -280,6 +280,8 @@
     <script>
         // Discreet access gate (Secret Knock)
         const logo = document.getElementById('cs-logo');
+        const logoContainer = document.querySelector('.cs-logo-container');
+        const statusBadge = document.querySelector('.cs-status');
 
         function promptAccess() {
             const code = prompt("Access Code:");
@@ -294,41 +296,45 @@
             }
         }
 
-        // 1. Five rapid clicks/taps on the logo (within 1.5 seconds)
+        // 1. Double-click on logo or logo container
+        if (logoContainer) {
+            logoContainer.style.cursor = 'pointer';
+            logoContainer.addEventListener('dblclick', promptAccess);
+        }
+
+        // 2. Click directly on the "System Upgrade in Progress" badge
+        if (statusBadge) {
+            statusBadge.style.cursor = 'pointer';
+            statusBadge.title = 'Click to enter access code';
+            statusBadge.addEventListener('click', promptAccess);
+        }
+
+        // 3. 3 rapid clicks on logo or logo container (within 2 seconds)
         let tapCount = 0;
         let tapTimeout;
-        logo.addEventListener('click', () => {
-            tapCount++;
-            if (tapCount >= 5) {
-                clearTimeout(tapTimeout);
-                tapCount = 0;
-                promptAccess();
-            } else {
-                clearTimeout(tapTimeout);
-                tapTimeout = setTimeout(() => { tapCount = 0; }, 1500);
-            }
+        const triggerElements = [logo, logoContainer].filter(Boolean);
+        triggerElements.forEach(el => {
+            el.addEventListener('click', () => {
+                tapCount++;
+                if (tapCount >= 3) {
+                    clearTimeout(tapTimeout);
+                    tapCount = 0;
+                    promptAccess();
+                } else {
+                    clearTimeout(tapTimeout);
+                    tapTimeout = setTimeout(() => { tapCount = 0; }, 2000);
+                }
+            });
         });
 
-        // 2. Long press on logo (press and hold continuously for 3 seconds)
-        let holdTimeout;
-        function startHold() {
-            holdTimeout = setTimeout(() => {
-                promptAccess();
-            }, 3000);
-        }
-        function cancelHold() {
-            clearTimeout(holdTimeout);
-        }
-        logo.addEventListener('mousedown', startHold);
-        logo.addEventListener('mouseup', cancelHold);
-        logo.addEventListener('mouseleave', cancelHold);
-        logo.addEventListener('touchstart', startHold);
-        logo.addEventListener('touchend', cancelHold);
-        logo.addEventListener('touchcancel', cancelHold);
-
-        // 3. Secret keyboard combination: Ctrl + Alt + Shift + L
+        // 4. Keyboard shortcuts (Mac & Windows):
+        // - Cmd/Ctrl + L
+        // - Cmd/Ctrl + Shift + L
+        // - Cmd/Ctrl + Alt + Shift + L
         window.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.altKey && e.shiftKey && e.key.toLowerCase() === 'l') {
+            const isModifier = (e.ctrlKey || e.metaKey);
+            if (isModifier && e.key.toLowerCase() === 'l') {
+                e.preventDefault();
                 promptAccess();
             }
         });
