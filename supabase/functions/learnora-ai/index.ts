@@ -94,6 +94,174 @@ function isSafetyError(err: any): boolean {
   return msg.includes("safety") || msg.includes("blocked") || msg.includes("prohibited_content");
 }
 
+/* =========================================================================
+   PROVIDER CHAIN
+
+   Every provider below speaks the OpenAI /chat/completions dialect, so they
+   share one caller. Gemini is handled separately: it is the only one that
+   takes an image/PDF attachment inline, so it stays first whenever a file is
+   involved.
+
+   Model IDs are read from the environment with the constants here as
+   fallbacks. Free-tier model names change often, and re-deploying an edge
+   function to rename a model is a bad trade — set e.g. CEREBRAS_MODEL to
+   override without touching this file.
+
+   Adding a provider is one entry here plus its key in Supabase secrets. A
+   provider with no key configured is skipped silently, so the chain works
+   with however many are set up.
+   ========================================================================= */
+
+type OpenAIProvider = {
+  id: string;
+  keyEnv: string;
+  modelEnv: string;
+  defaultModel: string;
+  url: string;
+  extraHeaders?: Record<string, string>;
+  /* Whether the provider honours response_format:json_object. Used only for
+     quiz/plan generation, where a stray sentence around the JSON is the single
+     most common cause of a failed generation. */
+  jsonMode: boolean;
+};
+
+const OPENAI_PROVIDERS: OpenAIProvider[] = [
+  {
+    id: "cerebras",
+    keyEnv: "CEREBRAS_API_KEY",
+    modelEnv: "CEREBRAS_MODEL",
+    defaultModel: "gpt-oss-120b",
+    url: "https://api.cerebras.ai/v1/chat/completions",
+    jsonMode: true,
+  },
+  {
+    id: "groq",
+    keyEnv: "GROQ_API_KEY",
+    modelEnv: "GROQ_MODEL",
+    defaultModel: "llama-3.3-70b-versatile",
+    url: "https://api.groq.com/openai/v1/chat/completions",
+    jsonMode: true,
+  },
+  {
+    id: "mistral",
+    keyEnv: "MISTRAL_API_KEY",
+    modelEnv: "MISTRAL_MODEL",
+    defaultModel: "mistral-small-latest",
+    url: "https://api.mistral.ai/v1/chat/completions",
+    jsonMode: true,
+  },
+  {
+    id: "github-models",
+    keyEnv: "GITHUB_MODELS_TOKEN",
+    modelEnv: "GITHUB_MODELS_MODEL",
+    defaultModel: "openai/gpt-4.1-mini",
+    url: "https://models.github.ai/inference/chat/completions",
+    extraHeaders: { "X-GitHub-Api-Version": "2026-03-10" },
+    jsonMode: true,
+  },
+  {
+    id: "openrouter",
+    keyEnv: "OPENROUTER_API_KEY",
+    modelEnv: "OPENROUTER_MODEL",
+    // Kept as the last resort: the free aggregator models are the weakest in
+    // the chain, so they only run when everything else is exhausted.
+    defaultModel: "meta-llama/llama-3-8b-instruct:free",
+    url: "https://openrouter.ai/api/v1/chat/completions",
+    extraHeaders: { "HTTP-Referer": "https://learnora.app", "X-Title": "Learnora" },
+    jsonMode: false,
+  },
+];
+
+/* Structured JSON takes noticeably longer than a chat turn — a ten-question
+   quiz with per-question feedback is a lot of tokens — and the old flat 15s
+   abort was cutting those off mid-generation, which surfaced as the
+   intermittent "couldn't generate a quiz" failures. */
+const TIMEOUT_MS = { chat: 20_000, json: 35_000 };
+
+/* Ceiling for the whole request, so a slow chain returns an honest error
+   instead of running until the platform kills it and the client sees a
+   connection drop. */
+const TOTAL_BUDGET_MS = 55_000;
+
+function timeoutFor(mode: string | undefined): number {
+  return mode === "quiz" || mode === "plan" ? TIMEOUT_MS.json : TIMEOUT_MS.chat;
+}
+
+/* A response is only usable if it actually carries text. An empty string from
+   a provider that returned HTTP 200 used to be passed straight back to the
+   client as a successful-but-blank reply; treating it as a failure lets the
+   next provider have a go. */
+function extractContent(data: any): string | null {
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content !== "string" || content.trim() === "") return null;
+  return content;
+}
+
+async function callOpenAICompatible(
+  provider: OpenAIProvider,
+  opts: {
+    systemInstruction: string;
+    history: any[];
+    userContent: string;
+    mode?: string;
+    signal?: AbortSignal;
+  },
+): Promise<string> {
+  const key = Deno.env.get(provider.keyEnv);
+  if (!key) throw new Error(`${provider.keyEnv} is not set in Supabase secrets.`);
+
+  const model = Deno.env.get(provider.modelEnv) || provider.defaultModel;
+  const wantsJson = opts.mode === "quiz" || opts.mode === "plan";
+
+  const messages = [
+    { role: "system", content: opts.systemInstruction },
+    ...(opts.history || []).slice(0, -1).map((m: any) => ({
+      role: m.role === "model" ? "assistant" : "user",
+      content: m.content,
+    })),
+    { role: "user", content: opts.userContent },
+  ];
+
+  const body: Record<string, unknown> = { model, messages };
+  if (wantsJson && provider.jsonMode) {
+    body.response_format = { type: "json_object" };
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutFor(opts.mode));
+  const onParentAbort = () => controller.abort();
+  opts.signal?.addEventListener("abort", onParentAbort);
+
+  try {
+    const response = await fetch(provider.url, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        ...(provider.extraHeaders || {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(
+        `${provider.id} returned ${response.status}: ${JSON.stringify(data?.error ?? data ?? {})}`,
+      );
+    }
+    // Some gateways report failures in the body with a 200 status.
+    if (data?.error) throw new Error(`${provider.id} error: ${JSON.stringify(data.error)}`);
+
+    const content = extractContent(data);
+    if (content === null) throw new Error(`${provider.id} returned an empty completion.`);
+    return content;
+  } finally {
+    clearTimeout(timeoutId);
+    opts.signal?.removeEventListener("abort", onParentAbort);
+  }
+}
+
 function safetyRefusalResponse(mode: string | undefined, headers: Record<string, string>): Response {
   // Quiz/plan callers parse the body as JSON and would render a refusal
   // sentence as a broken quiz, so give them a shape they can reject cleanly
@@ -154,7 +322,10 @@ Deno.serve(async (req) => {
         const modeInstructions = mode === "plan"
             ? `\nYou are generating a weekly study schedule. Output ONLY raw JSON (no prose, no code fences) matching this shape: {"days":[{"date":"YYYY-MM-DD","blocks":[{"startHint":"morning|afternoon|evening","durationMins":45,"subject":"string","reason":"string","examId":null,"taskId":null}]}],"summary":"one-sentence summary of the week's priorities"}.`
             : mode === "quiz"
-            ? `\nYou are generating a high-quality multiple-choice quiz. Ensure every question covers a completely unique concept, logical sub-step, or angle with NO back-to-back repetitive questions. Match the requested difficulty level precisely (Hard = multi-step deduction, error spotting, edge cases, subtle fallacies; Easy = direct recall; Medium = conceptual understanding). Output ONLY raw JSON (no prose, no code fences): [{"question":"string","choices":["a","b","c","d"],"correctIndex":0,"topic":"short topic label","feedback":"string"}].`
+            // Wrapped in an object rather than a bare array so the request can
+            // use response_format:json_object, which only permits an object at
+            // the top level. The client accepts either shape.
+            ? `\nYou are generating a high-quality multiple-choice quiz. Ensure every question covers a completely unique concept, logical sub-step, or angle with NO back-to-back repetitive questions. Match the requested difficulty level precisely (Hard = multi-step deduction, error spotting, edge cases, subtle fallacies; Easy = direct recall; Medium = conceptual understanding). Output ONLY raw JSON (no prose, no code fences) matching this shape: {"questions":[{"question":"string","choices":["a","b","c","d"],"correctIndex":0,"topic":"short topic label","feedback":"string"}]}. "correctIndex" is REQUIRED on every question and must be the 0-based index of the correct entry in that question's "choices" array.`
             : "";
 
         const systemInstruction = `You are Learnora AI. Act as ${personaMap[s.aiPersona] || personaMap.tutor}.
@@ -183,12 +354,20 @@ Deno.serve(async (req) => {
             return safetyRefusalResponse(mode, jsonHeaders);
         }
 
+        // Bounds the whole chain. Without it a run of slow providers keeps the
+        // function alive until the platform kills it, which reaches the client
+        // as a dropped connection rather than a usable error.
+        const deadline = AbortSignal.timeout(TOTAL_BUDGET_MS);
+        const budgetExhausted = () => deadline.aborted;
+
         // =========================================================================
-        // CHANNEL 1: GEMINI (Sequential: 2.0 Flash -> 1.5 Flash)
+        // CHANNEL 1: GEMINI — first because it is the only provider in the chain
+        // that reads an image/PDF attachment inline.
         // =========================================================================
         const geminiKey = Deno.env.get('GEMINI_API_KEY');
         if (geminiKey) {
-            const geminiModels = ["gemini-2.0-flash", "gemini-1.5-flash"];
+            const geminiModels = (Deno.env.get('GEMINI_MODELS') || "gemini-2.0-flash,gemini-1.5-flash")
+                .split(",").map((m) => m.trim()).filter(Boolean);
             const genAI = new GoogleGenerativeAI(geminiKey);
 
             const chatHistory = (history || []).slice(0, -1).map((m: any) => ({
@@ -197,6 +376,7 @@ Deno.serve(async (req) => {
             }));
 
             for (const modelName of geminiModels) {
+                if (budgetExhausted()) break;
                 try {
                     const model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
 
@@ -207,12 +387,24 @@ Deno.serve(async (req) => {
                         { inlineData: { data: file.data, mimeType: file.mimeType } }
                     ] : currentMsg;
 
-                    const result = await chat.sendMessage(payload);
+                    // The SDK takes no abort signal, so the timeout is imposed
+                    // from outside. Previously this call had no timeout at all
+                    // while every other provider had one — a hung Gemini
+                    // request stalled the entire function.
+                    const result: any = await Promise.race([
+                        chat.sendMessage(payload),
+                        new Promise((_, reject) =>
+                            setTimeout(
+                                () => reject(new Error(`Gemini (${modelName}) timed out`)),
+                                timeoutFor(mode),
+                            )
+                        ),
+                    ]);
 
                     // A safety block is a verdict, not an outage. Returning it
                     // here stops the fallback chain: previously this threw,
                     // was swallowed as a generic error, and the same prompt was
-                    // replayed against Groq and OpenRouter until one answered.
+                    // replayed against the other providers until one answered.
                     if (isGeminiSafetyBlock(result.response)) {
                         console.warn(`[safety] ${modelName} blocked the request`, { mode, userId: user.id });
                         return safetyRefusalResponse(mode, jsonHeaders);
@@ -222,12 +414,13 @@ Deno.serve(async (req) => {
                     if (mode === "quiz" || mode === "plan") {
                         text = cleanJsonResponse(text);
                     }
+                    if (!text || !text.trim()) throw new Error(`Gemini (${modelName}) returned empty text`);
 
                     return new Response(JSON.stringify({
                         text: text,
                         modelUsed: modelName
                     }), {
-                        headers: { "Content-Type": "application/json", ...corsHeaders }
+                        headers: jsonHeaders
                     });
                 } catch (err: any) {
                     // `.text()` throws on a blocked candidate — same verdict,
@@ -236,15 +429,16 @@ Deno.serve(async (req) => {
                         console.warn(`[safety] ${modelName} refused the request`, { mode, userId: user.id });
                         return safetyRefusalResponse(mode, jsonHeaders);
                     }
-                    debugErrors[`Gemini (${modelName})`] = err.message || String(err);
+                    debugErrors[`gemini (${modelName})`] = err.message || String(err);
                     console.error(`Gemini (${modelName}) Error:`, err);
                 }
             }
         } else {
-            debugErrors["Gemini"] = "GEMINI_API_KEY secret is not set in Supabase.";
+            debugErrors["gemini"] = "GEMINI_API_KEY secret is not set in Supabase.";
         }
 
-        // Prepare fallback text for non-multimodal providers
+        // Text-only providers can't take the attachment inline, so its decoded
+        // contents are folded into the prompt instead.
         let fallbackMsg = currentMsg;
         if (file && file.data) {
             try {
@@ -254,127 +448,50 @@ Deno.serve(async (req) => {
         }
 
         // =========================================================================
-        // CHANNEL 2: GROQ (Llama 3.3 70B)
+        // CHANNELS 2..N: every configured OpenAI-compatible provider, in order.
+        // Each is tried until one returns usable text; unconfigured ones are
+        // skipped without being treated as failures.
         // =========================================================================
-        try {
-            const groqKey = Deno.env.get('GROQ_API_KEY');
-            if (!groqKey) throw new Error("GROQ_API_KEY secret is not set in Supabase.");
-
-            const groqHistory = (history || []).slice(0, -1).map((m: any) => ({
-                role: m.role === 'model' ? 'assistant' : 'user',
-                content: m.content
-            }));
-
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-            const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: "POST",
-                signal: controller.signal,
-                headers: {
-                    "Authorization": `Bearer ${groqKey}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    model: "llama-3.3-70b-versatile",
-                    messages: [
-                        { role: "system", content: systemInstruction },
-                        ...groqHistory,
-                        { role: "user", content: fallbackMsg }
-                    ]
-                })
-            });
-            clearTimeout(timeoutId);
-
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(`Groq API returned status ${response.status}: ${JSON.stringify(data)}`);
+        for (const provider of OPENAI_PROVIDERS) {
+            if (!Deno.env.get(provider.keyEnv)) {
+                debugErrors[provider.id] = `${provider.keyEnv} is not set in Supabase.`;
+                continue;
+            }
+            if (budgetExhausted()) {
+                debugErrors[provider.id] = "Skipped — request budget exhausted.";
+                continue;
             }
 
-            let text = data.choices[0].message.content;
-            if (mode === "quiz" || mode === "plan") {
-                text = cleanJsonResponse(text);
+            try {
+                let text = await callOpenAICompatible(provider, {
+                    systemInstruction,
+                    history,
+                    userContent: fallbackMsg,
+                    mode,
+                    signal: deadline,
+                });
+
+                if (mode === "quiz" || mode === "plan") {
+                    text = cleanJsonResponse(text);
+                }
+
+                // None of these providers has a safety layer comparable to
+                // Gemini's, so their output is screened before it is returned.
+                if (screenForUnsafeContent(text)) {
+                    console.warn(`[safety] ${provider.id} output refused by screen`, { mode, userId: user.id });
+                    return safetyRefusalResponse(mode, jsonHeaders);
+                }
+
+                return new Response(JSON.stringify({
+                    text,
+                    modelUsed: `${provider.id}/${Deno.env.get(provider.modelEnv) || provider.defaultModel}`
+                }), {
+                    headers: jsonHeaders
+                });
+            } catch (err: any) {
+                debugErrors[provider.id] = err.message || String(err);
+                console.error(`${provider.id} Error:`, err);
             }
-
-            // Groq and OpenRouter have no comparable safety layer of their own,
-            // so what they return is screened as well as what goes in.
-            if (screenForUnsafeContent(text)) {
-                console.warn("[safety] Groq output refused by screen", { mode, userId: user.id });
-                return safetyRefusalResponse(mode, jsonHeaders);
-            }
-
-            return new Response(JSON.stringify({
-                text: text,
-                modelUsed: "groq/llama-3.3"
-            }), {
-                headers: { "Content-Type": "application/json", ...corsHeaders }
-            });
-
-        } catch (groqError: any) {
-            debugErrors["Groq Channel"] = groqError.message || String(groqError);
-            console.error("Groq Error:", groqError);
-        }
-
-        // =========================================================================
-        // CHANNEL 3: OPENROUTER (Llama 3 Free)
-        // =========================================================================
-        try {
-            const orApiKey = Deno.env.get('OPENROUTER_API_KEY');
-            if (!orApiKey) throw new Error("OPENROUTER_API_KEY secret is not set in Supabase.");
-
-            const orHistory = (history || []).slice(0, -1).map((m: any) => ({
-                role: m.role === 'model' ? 'assistant' : 'user',
-                content: m.content
-            }));
-
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                method: "POST",
-                signal: controller.signal,
-                headers: {
-                    "Authorization": `Bearer ${orApiKey}`,
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://learnora.app",
-                    "X-Title": "Learnora"
-                },
-                body: JSON.stringify({
-                    model: "meta-llama/llama-3-8b-instruct:free",
-                    messages: [
-                        { role: "system", content: systemInstruction },
-                        ...orHistory,
-                        { role: "user", content: fallbackMsg }
-                    ]
-                })
-            });
-            clearTimeout(timeoutId);
-
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(`OpenRouter API returned status ${response.status}: ${JSON.stringify(data)}`);
-            }
-
-            let text = data.choices[0].message.content;
-            if (mode === "quiz" || mode === "plan") {
-                text = cleanJsonResponse(text);
-            }
-
-            if (screenForUnsafeContent(text)) {
-                console.warn("[safety] OpenRouter output refused by screen", { mode, userId: user.id });
-                return safetyRefusalResponse(mode, jsonHeaders);
-            }
-
-            return new Response(JSON.stringify({
-                text: text,
-                modelUsed: "openrouter/llama-3"
-            }), {
-                headers: { "Content-Type": "application/json", ...corsHeaders }
-            });
-
-        } catch (orError: any) {
-            debugErrors["OpenRouter Channel"] = orError.message || String(orError);
-            console.error("OpenRouter Error:", orError);
         }
 
         throw new Error("All AI channels offline.");
