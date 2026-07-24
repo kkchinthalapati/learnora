@@ -59,11 +59,88 @@ const Storage = {
 };
 
 /* =========================================================================
+   COLOUR — Conversion helpers for the custom theme studio.
+   All inputs are clamped; every parse returns a usable value or null so a
+   malformed hex from localStorage can never poison a CSS variable.
+   ========================================================================= */
+
+const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
+
+const HEX_RE = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+function parseHex(str) {
+  if (typeof str !== "string") return null;
+  const m = HEX_RE.exec(str.trim());
+  if (!m) return null;
+  let h = m[1];
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  const int = parseInt(h, 16);
+  return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
+}
+
+function rgbToHex({ r, g, b }) {
+  const to2 = (n) => clamp(Math.round(n), 0, 255).toString(16).padStart(2, "0");
+  return `#${to2(r)}${to2(g)}${to2(b)}`.toUpperCase();
+}
+
+function rgbToHsv({ r, g, b }) {
+  const rn = r / 255, gn = g / 255, bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const d = max - min;
+  let h = 0;
+  if (d !== 0) {
+    if (max === rn) h = ((gn - bn) / d) % 6;
+    else if (max === gn) h = (bn - rn) / d + 2;
+    else h = (rn - gn) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  return { h, s: max === 0 ? 0 : d / max, v: max };
+}
+
+function hsvToRgb(h, s, v) {
+  const hh = ((h % 360) + 360) % 360;
+  const c = v * s;
+  const x = c * (1 - Math.abs(((hh / 60) % 2) - 1));
+  const m = v - c;
+  const seg = Math.floor(hh / 60);
+  const [r1, g1, b1] = [
+    [c, x, 0], [x, c, 0], [0, c, x], [0, x, c], [x, 0, c], [c, 0, x],
+  ][seg] || [c, x, 0];
+  return { r: (r1 + m) * 255, g: (g1 + m) * 255, b: (b1 + m) * 255 };
+}
+
+const hsvToHex = (h, s, v) => rgbToHex(hsvToRgb(h, clamp(s, 0, 1), clamp(v, 0, 1)));
+
+function rgbaStr({ r, g, b }, alpha) {
+  return `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}, ${Number(alpha.toFixed(3))})`;
+}
+
+/* Perceptual luminance (WCAG relative luminance) — decides whether text sitting
+   on the accent should be near-black or white, so a pale custom colour never
+   ends up with unreadable white labels on top of it. */
+function luminance({ r, g, b }) {
+  const ch = (v) => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
+}
+
+/* =========================================================================
    SETTINGS — Centralized settings state
    ========================================================================= */
 
 const SETTINGS_KEY = "learnora_settings";
 const THEME_KEY = "learnora_theme";
+const CUSTOM_THEME_KEY = "learnora_custom_theme";
+
+const CUSTOM_THEME_MAX_COLORS = 3;
+const CUSTOM_THEME_DEFAULTS = Object.freeze({
+  colors: ["#5865F2"],
+  intensity: 74,
+});
 
 const DEFAULT_SETTINGS = Object.freeze({
   aiPersona: "tutor",
@@ -453,8 +530,253 @@ export const UI = {
     document.body.setAttribute("data-font-size", size);
 
     this._activeAppearanceState = { mode, accent, sidebar, bg, font, size };
+    if (accent === "custom") this.applyCustomTheme();
     this._updateThemeIcon();
     this.syncAppearanceUI();
+  },
+
+  /* ---------------------------------------------------------------------
+     CUSTOM THEME STUDIO
+     --------------------------------------------------------------------- */
+
+  loadCustomTheme() {
+    if (this._customTheme) return this._customTheme;
+
+    const stored = Storage.get(CUSTOM_THEME_KEY, null);
+    const colors = Array.isArray(stored?.colors)
+      ? stored.colors.filter((c) => parseHex(c)).slice(0, CUSTOM_THEME_MAX_COLORS)
+      : [];
+    const intensity = Number(stored?.intensity);
+
+    this._customTheme = {
+      colors: colors.length ? colors.map((c) => rgbToHex(parseHex(c))) : [...CUSTOM_THEME_DEFAULTS.colors],
+      intensity: Number.isFinite(intensity) ? clamp(Math.round(intensity), 0, 100) : CUSTOM_THEME_DEFAULTS.intensity,
+      activeIndex: 0,
+    };
+    return this._customTheme;
+  },
+
+  /* Writes the derived --custom-* properties onto <body>. The CSS in
+     body[data-theme-color="custom"] maps them onto the real accent tokens. */
+  applyCustomTheme() {
+    const t = this.loadCustomTheme();
+    const base = parseHex(t.colors[0]) || parseHex(CUSTOM_THEME_DEFAULTS.colors[0]);
+    const k = t.intensity / 100;
+
+    // Intensity mostly scales chroma, with a light touch on brightness so 0%
+    // settles into a muted tone of the same hue. Dropping saturation alone
+    // washes a vivid colour out to near-white; both curves reach exactly
+    // 1 at k=1, so 100% reproduces the picked hex untouched.
+    const { h, s, v } = rgbToHsv(base);
+    const sat = s * (0.15 + 0.85 * k);
+    const val = v * (0.8 + 0.2 * k);
+    const accentRgb = hsvToRgb(h, sat, val);
+
+    const style = document.body.style;
+    style.setProperty("--custom-accent", rgbToHex(accentRgb));
+    style.setProperty("--custom-accent-hover", hsvToHex(h, sat, val * 0.86));
+    style.setProperty("--custom-accent-press", hsvToHex(h, sat, val * 0.74));
+    style.setProperty("--custom-accent-soft", rgbaStr(accentRgb, 0.06 + 0.12 * k));
+    style.setProperty("--custom-accent-ring", rgbaStr(accentRgb, 0.16 + 0.24 * k));
+    style.setProperty("--custom-accent-glow", rgbaStr(accentRgb, 0.18 + 0.32 * k));
+    style.setProperty("--custom-accent-on", luminance(accentRgb) > 0.5 ? "#10151f" : "#ffffff");
+
+    // Ambient page tints: second stop when the user added one, otherwise a
+    // hue-shifted echo of the first so the backdrop keeps some depth.
+    const secondRgb = parseHex(t.colors[1]) || hsvToRgb(h + 40, sat, val);
+    style.setProperty("--custom-tint-1", rgbaStr(accentRgb, 0.04 + 0.08 * k));
+    style.setProperty("--custom-tint-2", rgbaStr(secondRgb, 0.03 + 0.06 * k));
+
+    const stops = t.colors.length > 1
+      ? t.colors.map((hex) => {
+          const c = rgbToHsv(parseHex(hex));
+          return hsvToHex(c.h, c.s * (0.15 + 0.85 * k), c.v * (0.8 + 0.2 * k));
+        })
+      : [rgbToHex(accentRgb), hsvToHex(h, sat, val * 0.86)];
+    style.setProperty("--custom-gradient", `linear-gradient(135deg, ${stops.join(", ")})`);
+  },
+
+  /* Single entry point for every studio control: mutates state, repaints the
+     app, then repaints the studio's own widgets. */
+  updateCustomTheme(patch = {}) {
+    const t = this.loadCustomTheme();
+    if (Array.isArray(patch.colors) && patch.colors.length) {
+      t.colors = patch.colors
+        .map((c) => (parseHex(c) ? rgbToHex(parseHex(c)) : null))
+        .filter(Boolean)
+        .slice(0, CUSTOM_THEME_MAX_COLORS);
+      if (!t.colors.length) t.colors = [...CUSTOM_THEME_DEFAULTS.colors];
+    }
+    if (patch.intensity != null && Number.isFinite(Number(patch.intensity))) {
+      t.intensity = clamp(Math.round(Number(patch.intensity)), 0, 100);
+    }
+    if (patch.activeIndex != null) {
+      t.activeIndex = clamp(patch.activeIndex, 0, t.colors.length - 1);
+    }
+    t.activeIndex = clamp(t.activeIndex, 0, t.colors.length - 1);
+
+    // Any edit in the studio implies "use my colours".
+    // applyAppearance → syncAppearanceUI → syncCustomThemeUI repaints the studio.
+    this.applyAppearance({ accent: "custom" });
+  },
+
+  /* The picker's HSV is held separately from the hex list: converting a hex
+     back to HSV loses the hue whenever saturation or value hits 0, which would
+     make the handle jump to red as you drag into a corner. */
+  _pickerHsv() {
+    const t = this.loadCustomTheme();
+    const hex = t.colors[t.activeIndex] || t.colors[0];
+    if (!this._pickerState || this._pickerState.hex !== hex) {
+      this._pickerState = { hex, ...rgbToHsv(parseHex(hex)) };
+    }
+    return this._pickerState;
+  },
+
+  setPickerHsv({ h, s, v }) {
+    const cur = this._pickerHsv();
+    const next = {
+      h: h != null ? ((h % 360) + 360) % 360 : cur.h,
+      s: s != null ? clamp(s, 0, 1) : cur.s,
+      v: v != null ? clamp(v, 0, 1) : cur.v,
+    };
+    const t = this.loadCustomTheme();
+    const colors = [...t.colors];
+    colors[t.activeIndex] = hsvToHex(next.h, next.s, next.v);
+    this._pickerState = { hex: colors[t.activeIndex], ...next };
+    this.updateCustomTheme({ colors });
+  },
+
+  /* force: rewrite the hex field even while it holds focus — used on blur to
+     throw away a half-typed or invalid value. */
+  syncCustomThemeUI({ force = false } = {}) {
+    const t = this.loadCustomTheme();
+    const activeHex = t.colors[t.activeIndex] || t.colors[0];
+    const { h, s, v } = this._pickerHsv();
+
+    document.body.style.setProperty("--custom-sv-hue", String(Math.round(h)));
+
+    const svField = $("custom-sv-field");
+    const svHandle = $("custom-sv-handle");
+    if (svHandle) {
+      svHandle.style.left = `${s * 100}%`;
+      svHandle.style.top = `${(1 - v) * 100}%`;
+      svHandle.style.background = activeHex;
+    }
+    if (svField) {
+      svField.setAttribute(
+        "aria-valuetext",
+        `Saturation ${Math.round(s * 100)}%, brightness ${Math.round(v * 100)}%`
+      );
+    }
+
+    const hueTrack = $("custom-hue-track");
+    const hueHandle = $("custom-hue-handle");
+    if (hueHandle) hueHandle.style.left = `${(h / 360) * 100}%`;
+    if (hueTrack) hueTrack.setAttribute("aria-valuenow", String(Math.round(h)));
+
+    const swatch = $("custom-hex-swatch");
+    if (swatch) swatch.style.backgroundColor = activeHex;
+
+    const input = $("custom-hex-input");
+    // Don't fight the user mid-keystroke; only rewrite when unfocused.
+    if (input && (force || document.activeElement !== input)) {
+      input.value = activeHex;
+      input.classList.remove("is-invalid");
+    }
+
+    const row = $("custom-swatch-row");
+    if (row) {
+      row.textContent = "";
+      t.colors.forEach((hex, i) => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = `custom-swatch${i === t.activeIndex ? " active" : ""}`;
+        chip.style.backgroundColor = hex;
+        chip.dataset.swatchIndex = String(i);
+        chip.setAttribute("aria-label", `Edit colour ${i + 1}, ${hex}`);
+        chip.setAttribute("aria-pressed", String(i === t.activeIndex));
+
+        if (t.colors.length > 1) {
+          const rm = document.createElement("button");
+          rm.type = "button";
+          rm.className = "custom-swatch-remove";
+          rm.dataset.removeSwatch = String(i);
+          rm.textContent = "×";
+          rm.setAttribute("aria-label", `Remove colour ${i + 1}`);
+          chip.appendChild(rm);
+        }
+        row.appendChild(chip);
+      });
+    }
+
+    const addBtn = $("custom-add-colour-btn");
+    if (addBtn) addBtn.disabled = t.colors.length >= CUSTOM_THEME_MAX_COLORS;
+
+    const slider = $("custom-intensity");
+    if (slider && document.activeElement !== slider) slider.value = String(t.intensity);
+    const intensityLabel = $("custom-intensity-value");
+    if (intensityLabel) intensityLabel.textContent = `${t.intensity}%`;
+  },
+
+  /* Applies a hex to the currently selected stop. Returns false for anything
+     unparseable so callers can flag the input instead of writing junk. */
+  setCustomColourHex(hex) {
+    const rgb = parseHex(hex);
+    if (!rgb) return false;
+    const t = this.loadCustomTheme();
+    const colors = [...t.colors];
+    colors[t.activeIndex] = rgbToHex(rgb);
+    this.updateCustomTheme({ colors });
+    return true;
+  },
+
+  addCustomColour() {
+    const t = this.loadCustomTheme();
+    if (t.colors.length >= CUSTOM_THEME_MAX_COLORS) return;
+    const { h, s, v } = rgbToHsv(parseHex(t.colors[t.colors.length - 1]));
+    const colors = [...t.colors, hsvToHex(h + 45, Math.max(s, 0.55), Math.max(v, 0.6))];
+    this._pickerState = null;
+    this.updateCustomTheme({ colors, activeIndex: colors.length - 1 });
+  },
+
+  removeCustomColour(index) {
+    const t = this.loadCustomTheme();
+    if (t.colors.length <= 1) return;
+    const colors = t.colors.filter((_, i) => i !== index);
+    this._pickerState = null;
+    this.updateCustomTheme({ colors, activeIndex: Math.min(t.activeIndex, colors.length - 1) });
+  },
+
+  surpriseCustomTheme() {
+    const count = 1 + Math.floor(Math.random() * CUSTOM_THEME_MAX_COLORS);
+    const baseHue = Math.random() * 360;
+    const colors = Array.from({ length: count }, (_, i) =>
+      // Spread the extra stops around the wheel so pairings stay legible
+      // instead of collapsing into two near-identical colours.
+      hsvToHex(baseHue + i * (35 + Math.random() * 55), 0.55 + Math.random() * 0.4, 0.72 + Math.random() * 0.25)
+    );
+    this._pickerState = null;
+    this.updateCustomTheme({
+      colors,
+      activeIndex: 0,
+      intensity: 55 + Math.round(Math.random() * 45),
+    });
+  },
+
+  resetCustomTheme() {
+    this._customTheme = {
+      colors: [...CUSTOM_THEME_DEFAULTS.colors],
+      intensity: CUSTOM_THEME_DEFAULTS.intensity,
+      activeIndex: 0,
+    };
+    this._pickerState = null;
+    Storage.set(CUSTOM_THEME_KEY, {
+      colors: this._customTheme.colors,
+      intensity: this._customTheme.intensity,
+    });
+    this.applyCustomTheme();
+    this.syncCustomThemeUI();
+    this.showPopup("Custom colours reset to the Learnora default ✨", "Colours Reset");
   },
 
   syncAppearanceUI() {
@@ -467,35 +789,34 @@ export const UI = {
       size: Storage.get("learnora_size", "md")
     };
 
-    $$(".mode-option").forEach(el => {
-      el.classList.toggle("active", el.dataset.mode === s.mode);
-    });
+    // The cards are <button>s, so selection has to reach assistive tech via
+    // aria-pressed — the highlight and the "ACTIVE" pill are visual only.
+    const markSelected = (selector, key, value) => {
+      $$(selector).forEach(el => {
+        const on = el.dataset[key] === value;
+        el.classList.toggle("active", on);
+        el.setAttribute("aria-pressed", String(on));
+      });
+    };
 
-    $$(".theme-preset-btn").forEach(el => {
-      el.classList.toggle("active", el.dataset.theme === s.accent);
-    });
-
-    $$(".font-option").forEach(el => {
-      el.classList.toggle("active", el.dataset.font === s.font);
-    });
-
-    $$(".size-option").forEach(el => {
-      el.classList.toggle("active", el.dataset.size === s.size);
-    });
-
-    $$(".sidebar-option").forEach(el => {
-      el.classList.toggle("active", el.dataset.sidebar === s.sidebar);
-    });
-
-    $$(".bg-option").forEach(el => {
-      el.classList.toggle("active", el.dataset.bg === s.bg);
-    });
+    markSelected(".mode-option", "mode", s.mode);
+    markSelected(".theme-preset-btn", "theme", s.accent);
+    markSelected(".font-option", "font", s.font);
+    markSelected(".size-option", "size", s.size);
+    markSelected(".sidebar-option", "sidebar", s.sidebar);
+    markSelected(".bg-option", "bg", s.bg);
 
     const badge = $("preview-theme-badge");
     if (badge) {
-      const activeThemeBtn = document.querySelector(`.theme-preset-btn[data-theme="${s.accent}"] .theme-swatch-name`);
-      badge.textContent = activeThemeBtn ? activeThemeBtn.textContent : s.accent;
+      if (s.accent === "custom") {
+        badge.textContent = "Custom Colours";
+      } else {
+        const activeThemeBtn = document.querySelector(`.theme-preset-btn[data-theme="${s.accent}"] .theme-swatch-name`);
+        badge.textContent = activeThemeBtn ? activeThemeBtn.textContent : s.accent;
+      }
     }
+
+    this.syncCustomThemeUI();
   },
 
   saveAppearance() {
@@ -508,11 +829,22 @@ export const UI = {
     if (s.font) Storage.set("learnora_font", s.font);
     if (s.size) Storage.set("learnora_size", s.size);
 
+    const t = this._customTheme;
+    if (t) Storage.set(CUSTOM_THEME_KEY, { colors: t.colors, intensity: t.intensity });
+
     this.showPopup("Your appearance & theme preferences have been saved! ✨", "Appearance Saved");
   },
 
   resetAppearance() {
     const defaults = { mode: "dark", accent: "default", sidebar: "glass", bg: "none", font: "jakarta", size: "md" };
+    Storage.remove(CUSTOM_THEME_KEY);
+    this._customTheme = null;
+    this._pickerState = null;
+    [
+      "--custom-accent", "--custom-accent-hover", "--custom-accent-press",
+      "--custom-accent-soft", "--custom-accent-ring", "--custom-accent-glow",
+      "--custom-accent-on", "--custom-tint-1", "--custom-tint-2", "--custom-gradient",
+    ].forEach((prop) => document.body.style.removeProperty(prop));
     Storage.set("learnora_mode", defaults.mode);
     Storage.set(THEME_KEY, defaults.mode);
     Storage.set("learnora_accent", defaults.accent);
