@@ -63,14 +63,14 @@ Deno.serve(async (req) => {
             const geminiModels = ["gemini-2.0-flash", "gemini-1.5-flash"];
             const genAI = new GoogleGenerativeAI(geminiKey);
 
+            const chatHistory = (history || []).slice(0, -1).map((m: any) => ({
+                role: m.role === 'user' ? 'user' : 'model',
+                parts: [{ text: m.content }]
+            }));
+
             for (const modelName of geminiModels) {
                 try {
                     const model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
-
-                    const chatHistory = (history || []).slice(0, -1).map((m: any) => ({
-                        role: m.role === 'user' ? 'user' : 'model',
-                        parts: [{ text: m.content }]
-                    }));
 
                     const chat = model.startChat({ history: chatHistory });
 
