@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+        />
+        <title>Terms of Service | Learnora</title>
+        <link rel="icon" href="learnora.jpg" type="image/jpeg" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="style.css" />
+        <style>
+            body {
+                overflow-x: hidden;
+                overflow-y: auto;
+                min-height: 100vh;
+                background-color: var(--bg);
+                color: var(--text);
+                padding: 40px 20px 80px;
+                display: block;
+            }
+            .tos-container {
+                max-width: 860px;
+                margin: 0 auto;
+                position: relative;
+                z-index: 10;
+            }
+            .tos-header {
+                margin-bottom: 40px;
+                padding-bottom: 24px;
+                border-bottom: 1px solid var(--line);
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+            .tos-nav {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .back-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 16px;
+                border-radius: var(--r-pill);
+                background: var(--glass-bg);
+                border: 1px solid var(--glass-border-subtle);
+                color: var(--text);
+                font-weight: 600;
+                font-size: 0.9rem;
+                transition: all 0.2s ease;
+            }
+            .back-btn:hover {
+                background: var(--surface-hover);
+                transform: translateX(-2px);
+            }
+            .tos-brand {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            .tos-brand img {
+                width: 40px;
+                height: 40px;
+                border-radius: 12px;
+                box-shadow: 0 0 20px var(--accent-glow);
+            }
+            .tos-brand span {
+                font-family: var(--font-head);
+                font-weight: 800;
+                font-size: 1.5rem;
+                letter-spacing: -0.5px;
+                background: linear-gradient(135deg, var(--accent) 0%, #8b9bf5 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .tos-title {
+                font-size: 2.5rem;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+            }
+            .tos-meta {
+                color: var(--text-muted);
+                font-size: 0.95rem;
+            }
+            .tos-card {
+                padding: 48px;
+                border-radius: var(--r-xl);
+                background: var(--glass-bg-strong);
+                backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+                -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+                border: 1px solid var(--glass-border-subtle);
+                box-shadow: var(--shadow-lg), var(--glass-inner);
+            }
+            .toc-box {
+                background: var(--accent-soft);
+                border: 1px solid var(--accent-ring);
+                border-radius: var(--r-md);
+                padding: 24px;
+                margin-bottom: 40px;
+            }
+            .toc-title {
+                font-size: 1.1rem;
+                font-weight: 700;
+                margin-bottom: 12px;
+                color: var(--accent-on);
+            }
+            .toc-list {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+                gap: 10px;
+                list-style: none;
+                padding: 0;
+            }
+            .toc-list a {
+                color: var(--accent);
+                font-size: 0.95rem;
+                font-weight: 500;
+                text-decoration: none;
+                transition: color 0.2s ease;
+            }
+            .toc-list a:hover {
+                text-decoration: underline;
+                color: var(--accent-hover);
+            }
+            .tos-section {
+                margin-bottom: 36px;
+                scroll-margin-top: 40px;
+            }
+            .tos-section h2 {
+                font-size: 1.4rem;
+                font-weight: 700;
+                margin-bottom: 14px;
+                color: var(--text);
+                border-left: 4px solid var(--accent);
+                padding-left: 12px;
+            }
+            .tos-section p, .tos-section ul {
+                color: var(--text-muted);
+                line-height: 1.7;
+                font-size: 1rem;
+                margin-bottom: 14px;
+            }
+            .tos-section ul {
+                padding-left: 24px;
+            }
+            .tos-section li {
+                margin-bottom: 8px;
+            }
+            .tos-footer {
+                margin-top: 48px;
+                padding-top: 24px;
+                border-top: 1px solid var(--line);
+                text-align: center;
+                color: var(--text-faint);
+                font-size: 0.9rem;
+            }
+            @media (max-width: 640px) {
+                body { padding: 20px 12px 40px; }
+                .tos-card { padding: 24px 18px; }
+                .tos-title { font-size: 1.8rem; }
+            }
+        </style>
+    </head>
+    <body class="dark-theme">
+        <!-- Background Orbs -->
+        <div class="liquid-blobs" aria-hidden="true">
+            <div class="liquid-blob liquid-blob--1"></div>
+            <div class="liquid-blob liquid-blob--2"></div>
+            <div class="liquid-blob liquid-blob--3"></div>
+        </div>
+
+        <div class="tos-container">
+            <header class="tos-header">
+                <div class="tos-nav">
+                    <a href="index.html" class="back-btn">
+                        &larr; Back to Learnora
+                    </a>
+                    <div class="tos-brand">
+                        <img src="learnora.jpg" alt="Learnora Logo" />
+                        <span>Learnora</span>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="tos-title">Terms of Service</h1>
+                    <p class="tos-meta">Effective Date: July 25, 2026 &bull; Last Updated: July 2026</p>
+                </div>
+            </header>
+
+            <main class="tos-card">
+                <!-- Table of Contents -->
+                <div class="toc-box">
+                    <div class="toc-title">Table of Contents</div>
+                    <ul class="toc-list">
+                        <li><a href="#section-1">1. Acceptance of Terms</a></li>
+                        <li><a href="#section-2">2. Description of Service</a></li>
+                        <li><a href="#section-3">3. Eligibility & User Accounts</a></li>
+                        <li><a href="#section-4">4. Acceptable Use & Conduct</a></li>
+                        <li><a href="#section-5">5. AI Services & Content Disclaimer</a></li>
+                        <li><a href="#section-6">6. Intellectual Property Rights</a></li>
+                        <li><a href="#section-7">7. User Content & Privacy</a></li>
+                        <li><a href="#section-8">8. Subscriptions & Payments</a></li>
+                        <li><a href="#section-9">9. Limitation of Liability</a></li>
+                        <li><a href="#section-10">10. Termination & Modifications</a></li>
+                        <li><a href="#section-11">11. Governing Law & Dispute Resolution</a></li>
+                        <li><a href="#section-12">12. Contact Information</a></li>
+                    </ul>
+                </div>
+
+                <!-- Section 1 -->
+                <section id="section-1" class="tos-section">
+                    <h2>1. Acceptance of Terms</h2>
+                    <p>
+                        Welcome to <strong>Learnora</strong> ("Company," "we," "us," or "our"). These Terms of Service ("Terms") govern your access to and use of the Learnora website, application, AI study workspace, mobile applications, services, and related tools (collectively, the "Service").
+                    </p>
+                    <p>
+                        By accessing, registering for, or using Learnora, you explicitly agree to be bound by these Terms and our Privacy Policy. If you do not agree to these Terms, you must not access or use the Service.
+                    </p>
+                </section>
+
+                <!-- Section 2 -->
+                <section id="section-2" class="tos-section">
+                    <h2>2. Description of Service</h2>
+                    <p>
+                        Learnora provides an intelligent study workspace and planning platform designed to assist students and learners with:
+                    </p>
+                    <ul>
+                        <li>AI-powered study scheduling, task management, and exam countdowns.</li>
+                        <li>Automated study plan generation, flashcard creation, and quiz generation from uploaded study notes or files.</li>
+                        <li>Interactive focus session timers (Pomodoro) and learning analytics.</li>
+                        <li>AI study assistant tutoring and educational query resolution.</li>
+                    </ul>
+                    <p>
+                        We continuously improve and evolve the Service. Features may be updated, modified, or temporarily suspended for maintenance without prior notice.
+                    </p>
+                </section>
+
+                <!-- Section 3 -->
+                <section id="section-3" class="tos-section">
+                    <h2>3. Eligibility & User Accounts</h2>
+                    <p>
+                        <strong>Age Requirement:</strong> You must be at least 13 years old (or the minimum legal age of digital consent in your jurisdiction) to create an account or use Learnora. Users under 18 years of age must have the permission and supervision of a parent or legal guardian.
+                    </p>
+                    <p>
+                        <strong>Account Security:</strong> You are responsible for maintaining the confidentiality of your login credentials (email and password) and for all activities that occur under your account. You agree to immediately notify Learnora of any unauthorized access or security breach.
+                    </p>
+                </section>
+
+                <!-- Section 4 -->
+                <section id="section-4" class="tos-section">
+                    <h2>4. Acceptable Use & Conduct</h2>
+                    <p>You agree to use Learnora exclusively for lawful, personal, non-commercial educational purposes. You agree NOT to:</p>
+                    <ul>
+                        <li>Use the Service for academic dishonesty, cheating, fraud, or violation of institutional academic integrity codes.</li>
+                        <li>Upload, post, or transmit content that is unlawful, harmful, abusive, harassing, defamatory, or infringing on intellectual property.</li>
+                        <li>Attempt to reverse-engineer, decompile, scrape, or extract source code or underlying AI models of the Service.</li>
+                        <li>Interfere with, disrupt, or overload the servers, network infrastructure, or security systems of Learnora.</li>
+                        <li>Bypass, disable, or tamper with security filters, access codes, or authentication mechanisms.</li>
+                        <li>Use automated scripts, bots, or spiders to access or harvest data from the Service.</li>
+                    </ul>
+                </section>
+
+                <!-- Section 5 -->
+                <section id="section-5" class="tos-section">
+                    <h2>5. AI Services & Content Disclaimer</h2>
+                    <p>
+                        <strong>Educational Tool Only:</strong> Learnora utilizes artificial intelligence and machine learning models to assist in generating study schedules, summaries, flashcards, and answers. While we strive for accuracy, AI-generated outputs may occasionally contain errors, hallucinated facts, or inaccuracies.
+                    </p>
+                    <p>
+                        <strong>User Verification:</strong> AI recommendations, summaries, and explanations are provided strictly for educational assistance and supplemental learning. Learnora does not guarantee academic performance or exam results. You are encouraged to verify critical information against authoritative textbooks and course materials.
+                    </p>
+                </section>
+
+                <!-- Section 6 -->
+                <section id="section-6" class="tos-section">
+                    <h2>6. Intellectual Property Rights</h2>
+                    <p>
+                        <strong>Learnora Property:</strong> The Service, including its software code, design system, user interfaces, branding, logos, graphics, and underlying architecture, is protected by copyright, trademark, and other intellectual property laws. You are granted a limited, non-exclusive, non-transferable license to use Learnora for personal study.
+                    </p>
+                    <p>
+                        <strong>User Ownership:</strong> You retain ownership of all study materials, notes, and documents you upload to Learnora ("User Content"). By uploading content, you grant Learnora a limited, worldwide license to process and display your content solely for the purpose of operating and providing the Service to you.
+                    </p>
+                </section>
+
+                <!-- Section 7 -->
+                <section id="section-7" class="tos-section">
+                    <h2>7. User Content & Privacy</h2>
+                    <p>
+                        Your privacy is fundamental to us. Personal data collected during registration and usage is processed securely in accordance with our system security protocols and Supabase backend architecture. We do not sell your personal study content or notes to third parties.
+                    </p>
+                </section>
+
+                <!-- Section 8 -->
+                <section id="section-8" class="tos-section">
+                    <h2>8. Subscriptions & Payments</h2>
+                    <p>
+                        Certain premium features or tiers of Learnora may require subscription payments. If applicable:
+                    </p>
+                    <ul>
+                        <li>Pricing and payment terms will be clearly specified prior to purchase.</li>
+                        <li>Subscriptions automatically renew unless cancelled prior to the billing date.</li>
+                        <li>Learnora reserves the right to modify pricing with reasonable advance notice.</li>
+                    </ul>
+                </section>
+
+                <!-- Section 9 -->
+                <section id="section-9" class="tos-section">
+                    <h2>9. Disclaimers & Limitation of Liability</h2>
+                    <p>
+                        THE SERVICE IS PROVIDED ON AN <strong>"AS IS"</strong> AND <strong>"AS AVAILABLE"</strong> BASIS WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
+                    </p>
+                    <p>
+                        TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, LEARNORA AND ITS OPERATORS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR LOSS OF DATA, STUDY NOTES, OR REVENUE ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF THE SERVICE.
+                    </p>
+                </section>
+
+                <!-- Section 10 -->
+                <section id="section-10" class="tos-section">
+                    <h2>10. Termination & Service Modifications</h2>
+                    <p>
+                        We reserve the right to suspend or terminate your account or access to the Service at our sole discretion, without notice, for conduct that violates these Terms or is harmful to other users or our infrastructure. You may discontinue your use of Learnora at any time.
+                    </p>
+                </section>
+
+                <!-- Section 11 -->
+                <section id="section-11" class="tos-section">
+                    <h2>11. Governing Law & Dispute Resolution</h2>
+                    <p>
+                        These Terms shall be governed by and construed in accordance with applicable laws, without regard to its conflict of law principles. Any legal action or dispute arising out of these Terms shall be resolved through good-faith informal negotiation or binding arbitration.
+                    </p>
+                </section>
+
+                <!-- Section 12 -->
+                <section id="section-12" class="tos-section">
+                    <h2>12. Contact Information & Updates</h2>
+                    <p>
+                        We may revise these Terms from time to time. The most current version will always be posted on this page. Continued use of the Service after updates constitutes acceptance of the modified Terms.
+                    </p>
+                    <p>
+                        If you have any questions or concerns regarding these Terms, please contact us at:
+                    </p>
+                    <p>
+                        <strong>Email:</strong> <a href="mailto:support@learnora.app" style="color: var(--accent);">support@learnora.app</a><br />
+                        <strong>Learnora AI Study Planner Team</strong>
+                    </p>
+                </section>
+
+                <footer class="tos-footer">
+                    &copy; 2026 Learnora AI Study Planner. All rights reserved.
+                </footer>
+            </main>
+        </div>
+    </body>
+</html>
