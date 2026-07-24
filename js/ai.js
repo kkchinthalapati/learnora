@@ -1047,6 +1047,25 @@ User message: ${query}`;
      DRAG & DROP + DRAGGABLE WINDOW
      ========================================================================= */
 
+  /* Pulls a dragged panel back inside the viewport.
+     Dragging pins the panel with inline top/left. Those survive a window
+     resize and leaving fullscreen, either of which can put the header — and
+     the only close button — outside the viewport, leaving the panel
+     impossible to close by clicking. Safe to call at any time: it no-ops
+     when the panel has never been dragged. */
+  clampWindowIntoView() {
+    const modal = $("turbo-chat");
+    if (!modal || modal.classList.contains("fullscreen")) return;
+    if (!modal.style.top && !modal.style.left) return;
+
+    const maxLeft = Math.max(0, window.innerWidth - modal.offsetWidth);
+    const maxTop = Math.max(0, window.innerHeight - modal.offsetHeight);
+    const left = parseFloat(modal.style.left) || 0;
+    const top = parseFloat(modal.style.top) || 0;
+    modal.style.left = `${Math.max(0, Math.min(left, maxLeft))}px`;
+    modal.style.top = `${Math.max(0, Math.min(top, maxTop))}px`;
+  },
+
   initDragDrop() {
     const modal = $("turbo-chat");
     const overlay = $("drag-overlay");
@@ -1091,6 +1110,15 @@ User message: ${query}`;
     let isDragging = false;
     let startX, startY, initX, initY;
 
+    const moveTo = (left, top) => {
+      const maxLeft = Math.max(0, window.innerWidth - modal.offsetWidth);
+      const maxTop = Math.max(0, window.innerHeight - modal.offsetHeight);
+      modal.style.left = `${Math.max(0, Math.min(left, maxLeft))}px`;
+      modal.style.top = `${Math.max(0, Math.min(top, maxTop))}px`;
+      modal.style.bottom = "auto";
+      modal.style.right = "auto";
+    };
+
     const onMouseDown = (e) => {
       if (modal.classList.contains("fullscreen") || e.target.closest(".header-controls")) return;
       isDragging = true;
@@ -1104,17 +1132,14 @@ User message: ${query}`;
 
     const onMouseMove = (e) => {
       if (!isDragging) return;
-      let newLeft = initX + (e.clientX - startX);
-      let newTop = initY + (e.clientY - startY);
-      const maxLeft = window.innerWidth - modal.offsetWidth;
-      const maxTop = window.innerHeight - modal.offsetHeight;
-      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
-      newTop = Math.max(0, Math.min(newTop, maxTop));
-      modal.style.left = `${newLeft}px`;
-      modal.style.top = `${newTop}px`;
-      modal.style.bottom = "auto";
-      modal.style.right = "auto";
+      moveTo(initX + (e.clientX - startX), initY + (e.clientY - startY));
     };
+
+    // A dragged panel keeps its position in inline top/left, which nothing
+    // re-checked against the viewport. Shrinking the window left the header —
+    // and with it the close button — stranded off-screen, so the panel could
+    // not be closed by clicking at all.
+    window.addEventListener("resize", () => this.clampWindowIntoView());
 
     const onMouseUp = () => {
       isDragging = false;
@@ -1138,16 +1163,7 @@ User message: ${query}`;
     header.addEventListener("touchmove", (e) => {
       if (!isDragging) return;
       const touch = e.touches[0];
-      let newLeft = initX + (touch.clientX - startX);
-      let newTop = initY + (touch.clientY - startY);
-      const maxLeft = window.innerWidth - modal.offsetWidth;
-      const maxTop = window.innerHeight - modal.offsetHeight;
-      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
-      newTop = Math.max(0, Math.min(newTop, maxTop));
-      modal.style.left = `${newLeft}px`;
-      modal.style.top = `${newTop}px`;
-      modal.style.bottom = "auto";
-      modal.style.right = "auto";
+      moveTo(initX + (touch.clientX - startX), initY + (touch.clientY - startY));
     }, { passive: true });
 
     header.addEventListener("touchend", () => {
