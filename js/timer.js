@@ -107,8 +107,12 @@ export const Timer = {
       if (this._isCountUp()) {
         if (saved.isRunning && this.state.startedAt) {
           // Resume a running stopwatch — elapsed keeps accruing across the gap.
-          this.state.elapsed = this._currentCountUpSeconds();
+          // isRunning has to be set first: _currentCountUpSeconds() only adds
+          // the time since startedAt when the timer is marked running, so
+          // computing it beforehand just echoed the stale saved value and the
+          // display showed the pre-reload time until the first tick landed.
           this.state.isRunning = true;
+          this.state.elapsed = this._currentCountUpSeconds();
           this._startInterval();
         } else {
           this.state.isRunning = false;
@@ -183,6 +187,12 @@ export const Timer = {
 
   // Commit settings immediately and reset to a fresh timer of `type`.
   applyNow(partial = {}, type = null) {
+    // Bank the outgoing session BEFORE the type changes. reset() decides
+    // whether there is anything to log by asking _isCountUp(), which reads
+    // state.type — so switching first made a stopwatch or flow session look
+    // like a countdown, and the minutes the user had already banked were
+    // dropped without a trace.
+    this._flushCountUpSession();
     this.state.stagedType = null;
     if (type && TYPES.includes(type)) this.state.type = type;
     this.state.config = { ...this.state.config, ...this._sanitize(partial) };
@@ -259,10 +269,7 @@ export const Timer = {
 
   reset() {
     // A count-up session with real time on the clock is worth logging.
-    if (this._isCountUp()) {
-      const secs = this._currentCountUpSeconds();
-      if (secs >= 60) this._logSession(Math.round(secs / 60));
-    }
+    this._flushCountUpSession();
 
     this._stopInterval();
     this.state.isRunning = false;
@@ -401,6 +408,32 @@ export const Timer = {
   },
 
   /* ------ Session logging ------ */
+
+  /* Logs whatever count-up time is on the clock and zeroes the counters.
+     Reads state.type via _isCountUp(), so it has to run BEFORE any type
+     switch. Clearing the counters is what makes it safe to call twice —
+     applyNow() flushes and then calls reset(), which flushes again — because
+     the second call finds nothing left to log. Returns the minutes banked. */
+  _flushCountUpSession() {
+    let mins = 0;
+    // Only bank it when the CURRENT type is the one that counted it up. Read
+    // while isRunning/startedAt are still intact so a live stopwatch is
+    // measured to the moment of the flush, not to its last tick.
+    if (this._isCountUp()) {
+      const secs = this._currentCountUpSeconds();
+      if (secs >= 60) mins = Math.round(secs / 60);
+    }
+    if (mins) this._logSession(mins);
+
+    // Clear unconditionally. Whatever sits on the count-up counters belongs to
+    // the phase that just ended, and leaving it behind let a type switch read
+    // a pomodoro's stale `elapsed` as a brand-new stopwatch session and log
+    // time nobody actually spent.
+    this.state.elapsed = 0;
+    this.state.countUpBase = 0;
+    this.state.startedAt = null;
+    return mins;
+  },
 
   _logSession(mins) {
     if (!mins || mins < 1) return;
