@@ -518,6 +518,32 @@ export const Materials = {
     return data;
   },
 
+  /* Removes one file from a folder. Until this existed the only way to get rid
+     of a single material was to delete the whole folder with everything in it.
+
+     The stored object goes first, then the row: a failed storage delete leaves
+     the material still listed and retryable, whereas dropping the row first
+     would orphan the object with nothing left pointing at it. Rows in
+     dependent tables (notes, decks, quizzes) are removed by the FK cascade. */
+  async delete(materialId, storagePath = null) {
+    if (storagePath) {
+      const { error: storageError } = await supabase.storage
+        .from("materials")
+        .remove([storagePath]);
+      if (storageError) {
+        console.error("[Materials.delete] storage", storageError.message);
+        return false;
+      }
+    }
+
+    const { error } = await supabase.from("materials").delete().eq("id", materialId);
+    if (error) {
+      console.error("[Materials.delete]", error.message);
+      return false;
+    }
+    return true;
+  },
+
   async getSignedUrl(storagePath) {
     const { data, error } = await supabase.storage
       .from("materials")
@@ -1009,6 +1035,27 @@ export const Quizzes = {
       return false;
     }
     return true;
+  },
+
+  /* The most recent attempt at one quiz, for the review screen — reading back
+     which option was chosen per question beats re-sitting the whole quiz just
+     to find out what the right answer was. */
+  async fetchLatestAttempt(quizId) {
+    const user = await getCurrentUser();
+    if (!user) return null;
+    const { data, error } = await supabase
+      .from("quiz_attempts")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("quiz_id", quizId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      console.error("[Quizzes.fetchLatestAttempt]", error.message);
+      return null;
+    }
+    return data;
   },
 
   async fetchWeakTopics(limit = 5) {

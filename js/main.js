@@ -4,6 +4,7 @@ import { Timer } from "./timer.js";
 import { AI } from "./ai.js";
 import { Router } from "./router.js";
 import { supabase } from "./supabase.js";
+import { DatePicker } from "./datepicker.js";
 
 /* =========================================================================
    STATE
@@ -275,6 +276,27 @@ function bindUploadHub() {
    AUTH BINDINGS
    ========================================================================= */
 
+/* Wires every password Show/Hide button in the document.
+   Safe to call more than once: each button is marked once bound, so a second
+   call skips it. Without that guard the Security tab's toggles ended up with
+   two listeners (bindAuth binds document-wide, bindSettings re-bound the same
+   nodes), and the pair flipped `type` back and forth within one click — the
+   field never changed and the button looked broken. */
+function bindPasswordToggles() {
+  $$(".password-toggle").forEach((btn) => {
+    if (btn.dataset.toggleBound === "1") return;
+    btn.dataset.toggleBound = "1";
+    btn.addEventListener("click", (e) => {
+      const input = e.currentTarget.parentElement.querySelector("input");
+      if (!input) return;
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      e.currentTarget.textContent = show ? "Hide" : "Show";
+      e.currentTarget.setAttribute("aria-pressed", show ? "true" : "false");
+    });
+  });
+}
+
 function bindAuth() {
   let signingUp = false;
   let loggingIn = false;
@@ -324,18 +346,7 @@ function bindAuth() {
   });
 
   // Toggle password visibility
-  $$(".password-toggle").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-      const input = e.currentTarget.parentElement.querySelector("input");
-      if (input.type === "password") {
-        input.type = "text";
-        e.currentTarget.textContent = "Hide";
-      } else {
-        input.type = "password";
-        e.currentTarget.textContent = "Show";
-      }
-    });
-  });
+  bindPasswordToggles();
 
   // Password strength logic
   const bindStrengthMeter = (inputId, containerId, textId) => {
@@ -924,19 +935,11 @@ function bindSettings() {
   };
   bindSettingsStrength();
 
-  // Bind password toggle buttons added in the settings Security tab
-  document.querySelectorAll("#settings-panel-security .password-toggle").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const input = e.currentTarget.parentElement.querySelector("input");
-      if (input.type === "password") {
-        input.type = "text";
-        e.currentTarget.textContent = "Hide";
-      } else {
-        input.type = "password";
-        e.currentTarget.textContent = "Show";
-      }
-    });
-  });
+  // The Security tab's toggles live in the static markup, so bindAuth() has
+  // already bound them. Re-run the idempotent binder rather than adding a
+  // second listener — two listeners flip `type` twice per click, which reads
+  // to the user as a dead button.
+  bindPasswordToggles();
 
   $("btn-change-password")?.addEventListener("click", async () => {
     const newPass = $("settings-new-password")?.value;
@@ -1121,6 +1124,14 @@ function bindTimer() {
     if (pendingMins) {
       const focusInput = $("config-focus");
       if (focusInput) focusInput.value = pendingMins;
+      // Filling the config box alone left the clock reading the previous
+      // duration (usually 25:00) until the user found "Apply & Reset". Arriving
+      // from a plan block's "Start" should leave the timer already showing that
+      // block's length so Start is the only thing left to press. An in-flight
+      // timer is never torn down without asking, so only apply when idle.
+      if (!Timer.isRunning()) {
+        Timer.applyNow(Timer.readInputs(), Timer.currentType());
+      }
     }
     if (pendingTask) {
       const taskSelect = $("active-task-select");
@@ -1230,19 +1241,25 @@ async function loadTasks() {
         };
 
         dateInput.addEventListener("change", saveDue);
-        dateInput.addEventListener("blur", saveDue);
+        dateInput.addEventListener("blur", (ev) => {
+          // Focus moving into the date picker isn't the user leaving the
+          // field — saving here would commit the old value and tear the input
+          // down before they had picked anything.
+          if (ev.relatedTarget?.closest?.(".datepicker-popover")) return;
+          saveDue();
+        });
         dateInput.addEventListener("keydown", (ev) => {
           if (ev.key === "Escape") {
             hasSaved = true;
+            DatePicker.close();
             dateInput.replaceWith(dueBadge);
           }
         });
 
         dueBadge.replaceWith(dateInput);
+        DatePicker.attach(dateInput);
         dateInput.focus();
-        if (typeof dateInput.showPicker === "function") {
-          try { dateInput.showPicker(); } catch { /* not supported/allowed — input stays focused */ }
-        }
+        DatePicker.open(dateInput);
       };
 
       dueBadge.addEventListener("click", editDueDate);
@@ -1403,6 +1420,8 @@ async function loadTasks() {
 }
 
 function bindTasks() {
+  DatePicker.attach($("todo-due-date"));
+
   $("btn-add-todo")?.addEventListener("click", async () => {
     const input = $("todo-input");
     const dueInput = $("todo-due-date");
@@ -2244,6 +2263,10 @@ function bindAI() {
         $("btn-send-chat")?.click();
       } else {
         input.focus();
+        // Park the caret at the end so a chip that deliberately leaves the
+        // prompt unfinished ("Start a focus timer for …") can be completed by
+        // typing straight away.
+        input.setSelectionRange(input.value.length, input.value.length);
       }
     });
   });
@@ -2294,11 +2317,19 @@ function bindAI() {
 
   $("quiz-personality")?.addEventListener("change", () => UI.syncQuizPersonalityDesc());
 
+  // Guards against a second submit landing while the first is still in
+  // flight. Two overlapping generations produced the reported "Couldn't
+  // generate a quiz" popup from the run whose JSON failed to parse, followed
+  // by the other run succeeding and navigating to a quiz — an error message
+  // and a working quiz from one click.
+  let quizGenerating = false;
+
   $("quiz-config-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (quizGenerating) return;
     const materialId = $("quiz-material-id").value || null;
     const folderId = $("quiz-folder-id").value || null;
-    
+
     const config = {
       topic: $("quiz-topic").value.trim(),
       difficulty: document.querySelector('input[name="quiz-difficulty"]:checked')?.value || "Medium",
@@ -2314,6 +2345,9 @@ function bindAI() {
       "Almost ready..."
     ]);
 
+    quizGenerating = true;
+    const submitBtn = $("quiz-config-form")?.querySelector('[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
     try {
       const quiz = await AI.generateQuiz(materialId, folderId, config);
       UI.setAILoading(false);
@@ -2325,6 +2359,9 @@ function bindAI() {
       UI.setAILoading(false);
       console.error(e);
       UI.showPopup(e.message || "Failed to generate quiz.", "Error");
+    } finally {
+      quizGenerating = false;
+      if (submitBtn) submitBtn.disabled = false;
     }
   });
 
@@ -2345,18 +2382,23 @@ function bindAI() {
       "Finalizing plan..."
     ]);
 
+    if (btn) btn.disabled = true;
     try {
       const plan = await AI.generateWeeklyPlan();
       UI.setAILoading(false);
       if (plan) {
-        // Force refresh
-        const { router } = await import("./router.js");
-        router.loadPlanView();
+        // Router, not router — the lowercase binding was undefined, so this
+        // threw and the catch below reported "Could not generate a weekly
+        // plan" on a plan that had in fact just been saved, while the view
+        // kept showing the old one.
+        Router.loadPlanView();
       }
     } catch (err) {
       UI.setAILoading(false);
       console.error(err);
       UI.showPopup("Could not generate a weekly plan.", "Error");
+    } finally {
+      if (btn) btn.disabled = false;
     }
   });
 }

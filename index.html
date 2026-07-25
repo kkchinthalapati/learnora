@@ -836,12 +836,18 @@
                             data-i18n="placeholder_task"
                             aria-label="New Task Input"
                         />
-                        <input
-                            type="date"
-                            id="todo-due-date"
-                            class="todo-due-input"
-                            aria-label="Due date (optional)"
-                        />
+                        <!-- The bare date box read as ambiguous ("is this the
+                             due date or the date I'm adding the task?"), so the
+                             field now says what it sets. -->
+                        <div class="todo-due-field">
+                            <label for="todo-due-date" class="todo-due-label">Due date <span class="text-faint">(optional)</span></label>
+                            <input
+                                type="date"
+                                id="todo-due-date"
+                                class="todo-due-input"
+                                aria-label="Due date (optional)"
+                            />
+                        </div>
                         <button
                             id="btn-add-todo"
                             class="btn-primary"
@@ -2135,7 +2141,11 @@
                 <button class="glass-pill cursor-pointer" data-chat-prompt="What are my pending tasks?" data-chat-send="true" style="font-size: var(--fs-xs); padding: 6px 12px;">📝 What are my tasks?</button>
                 <button class="glass-pill cursor-pointer" data-chat-prompt="Create a task to study for my next exam" style="font-size: var(--fs-xs); padding: 6px 12px;">✨ Plan my study</button>
                 <button class="glass-pill cursor-pointer" data-chat-prompt="Generate flashcards from my notes" style="font-size: var(--fs-xs); padding: 6px 12px;">🗂️ Create flashcards</button>
-                <button class="glass-pill cursor-pointer" data-chat-prompt="Start a 25-minute focus timer" data-chat-send="true" style="font-size: var(--fs-xs); padding: 6px 12px;">⏱️ Start a timer</button>
+                <!-- No data-chat-send: the chip used to fire "Start a 25-minute
+                     focus timer" immediately, so tapping "Start a timer" silently
+                     committed the user to 25 minutes. It now drops the prompt into
+                     the input so they can say how long before sending. -->
+                <button class="glass-pill cursor-pointer" data-chat-prompt="Start a focus timer for " style="font-size: var(--fs-xs); padding: 6px 12px;">⏱️ Start a timer</button>
             </div>
 
             <div
