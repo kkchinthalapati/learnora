@@ -1,9 +1,50 @@
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://learnora.app',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+/* Origins allowed to call this function from a browser.
+
+   This was a single hard-coded 'https://learnora.app', which no longer serves
+   the app — production is on the Vercel domain below. Allow-Origin is matched
+   as an exact string, so every browser call was being rejected before the
+   response was exposed, and the app saw a bare "Failed to fetch". CORS is not
+   the security boundary here (the JWT gate below is), but a mismatch still
+   takes the whole AI offline.
+
+   Set ALLOWED_ORIGINS (comma-separated) to add a domain without a code change,
+   e.g. when a custom domain is attached. */
+const DEFAULT_ALLOWED_ORIGINS = [
+  "https://learnora-app.vercel.app",
+  "https://study-planner-delta-six.vercel.app",
+  "https://learnora.app",
+  "https://www.learnora.app",
+  "http://localhost:3000",
+];
+
+function allowedOrigins(): string[] {
+  const configured = Deno.env.get("ALLOWED_ORIGINS");
+  if (!configured) return DEFAULT_ALLOWED_ORIGINS;
+  return configured.split(",").map((o) => o.trim()).filter(Boolean);
+}
+
+/* Echoes the caller's origin when it is on the list. Vercel preview
+   deployments get a fresh subdomain per build, so those are matched by
+   pattern rather than needing to be enumerated. */
+function corsHeadersFor(req: Request): Record<string, string> {
+  const origin = req.headers.get("Origin") || "";
+  const list = allowedOrigins();
+  const isPreview = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin) &&
+    /learnora|study-planner/i.test(origin);
+  const allow = list.includes(origin) || isPreview ? origin : list[0];
+
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Max-Age": "86400",
+    // The response body varies by request origin, so it must not be cached
+    // under one origin and replayed to another.
+    "Vary": "Origin",
+  };
+}
 
 function decodeBase64UTF8(b64: string): string {
   try {
@@ -279,6 +320,9 @@ function safetyRefusalResponse(mode: string | undefined, headers: Record<string,
 }
 
 Deno.serve(async (req) => {
+    // Resolved per request now that the allowed origin is echoed back.
+    const corsHeaders = corsHeadersFor(req);
+
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
     }

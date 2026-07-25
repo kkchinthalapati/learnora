@@ -1,1 +1,4 @@
 supabase/migrations/20260719020000_auth_user_trigger.sql
+
+# macOS
+.DS_Store
