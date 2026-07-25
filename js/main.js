@@ -1642,7 +1642,7 @@ function openDayDetailModal(dateStr, exams) {
     item.innerHTML = `
       <div class="flex-column" style="gap: 4px; min-width: 0;">
         <span class="day-detail-exam-name">${esc(exam.exam_name)}</span>
-        <span class="text-sm" style="color: var(--text-muted);">${exam.difficulty} • ${exam.status}</span>
+        <span class="text-sm" style="color: var(--text-muted);">${esc(exam.difficulty)} • ${esc(exam.status)}</span>
       </div>
       <span class="icon-btn" aria-hidden="true">✎</span>
     `;

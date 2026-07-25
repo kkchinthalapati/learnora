@@ -263,16 +263,24 @@ export const UI = {
   },
 
   showToast(message, { error = false, duration = 6000, actionLabel = null, onAction = null } = {}) {
+    // index.html ships the container so the live region is already being
+    // observed; this only covers pages that don't include it.
     let container = $("toast-container");
     if (!container) {
       container = document.createElement("div");
       container.id = "toast-container";
       container.className = "toast-container";
+      container.setAttribute("role", "status");
+      container.setAttribute("aria-live", "polite");
       document.body.appendChild(container);
     }
     const toast = document.createElement("div");
     toast.className = `glass-panel toast${error ? " toast-error" : ""}`;
-    toast.innerHTML = `<span>${esc(message)}</span>`;
+    // Failures interrupt; routine confirmations wait their turn.
+    toast.setAttribute("role", error ? "alert" : "status");
+    const text = document.createElement("span");
+    text.textContent = message;
+    toast.appendChild(text);
 
     const timer = setTimeout(() => toast.remove(), duration);
 
@@ -948,34 +956,55 @@ window.addEventListener("DOMContentLoaded", () => {
     overlay.className = "sidebar-overlay";
     sidebar.parentNode.insertBefore(overlay, sidebar);
 
+    // `collapsed` means opposite things per breakpoint — off-canvas-open on
+    // mobile, zero-width-closed on desktop (see .sidebar.collapsed in
+    // style.css). Only the mobile drawer is a disclosure worth announcing.
+    const isMobile = () => window.innerWidth <= 768;
+    const syncToggleState = () => {
+      menuToggle.setAttribute(
+        "aria-expanded",
+        String(isMobile() ? sidebar.classList.contains("collapsed") : true)
+      );
+    };
+    const closeDrawer = () => {
+      sidebar.classList.remove("collapsed");
+      overlay.classList.remove("active");
+      syncToggleState();
+    };
+
+    menuToggle.setAttribute("aria-controls", "sidebar");
+    syncToggleState();
+
     menuToggle.addEventListener("click", (e) => {
       e.stopImmediatePropagation();
       e.preventDefault();
       sidebar.classList.toggle("collapsed");
-      if (window.innerWidth <= 768) {
-        const isOpen = sidebar.classList.contains("collapsed");
-        overlay.classList.toggle("active", isOpen);
+      if (isMobile()) {
+        overlay.classList.toggle("active", sidebar.classList.contains("collapsed"));
       }
+      syncToggleState();
     }, { capture: true });
 
-    overlay.addEventListener("click", () => {
-      sidebar.classList.remove("collapsed");
-      overlay.classList.remove("active");
+    overlay.addEventListener("click", closeDrawer);
+
+    // The drawer dims the page behind it, so Escape has to get out of it —
+    // previously the only way back was to hit the hamburger or the backdrop.
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if (!isMobile() || !overlay.classList.contains("active")) return;
+      closeDrawer();
+      menuToggle.focus();
     });
 
     $$(".nav-links .nav-link").forEach(link => {
       link.addEventListener("click", () => {
-        if (window.innerWidth <= 768) {
-          sidebar.classList.remove("collapsed");
-          overlay.classList.remove("active");
-        }
+        if (isMobile()) closeDrawer();
       });
     });
 
     window.addEventListener("resize", () => {
-      if (window.innerWidth > 768) {
-        overlay.classList.remove("active");
-      }
+      if (!isMobile()) overlay.classList.remove("active");
+      syncToggleState();
     });
   }
 
