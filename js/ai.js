@@ -8,8 +8,15 @@ import { Tasks, Exams } from "./api.js";
    ========================================================================= */
 
 const MAX_HISTORY = 20;       // Keep last 20 messages to avoid token overflow
-const MAX_RETRIES = 2;        // Retry edge function on transient errors
+/* One retry, not two. The edge function now walks its own chain of providers
+   before giving up, so by the time it returns an error every configured model
+   has already been tried — a second client-side replay mostly just adds another
+   minute to the spinner. This still covers a dropped connection. */
+const MAX_RETRIES = 1;
 const RETRY_DELAY_MS = 2000;  // Wait 2s between retries
+/* Slightly above the edge function's own budget, so the server gets to return
+   a real error message rather than the client giving up on it first. */
+const REQUEST_TIMEOUT_MS = 60000;
 
 export const AI = {
   chatHistory: [],
@@ -63,10 +70,13 @@ export const AI = {
         const headers = { "Content-Type": "application/json" };
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
+        // Without a deadline a stalled connection leaves the UI on its
+        // loading spinner indefinitely, with no error and no way back.
         const response = await fetch(edgeUrl, {
           method: "POST",
           headers,
-          body: bodyPayload
+          body: bodyPayload,
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
         });
 
         if (!response.ok) {
@@ -101,6 +111,16 @@ export const AI = {
         if (onChunk) onChunk(parsedText, parsedText);
         return { text: parsedText };
       } catch (err) {
+        // Hitting our own deadline means the server already spent its whole
+        // budget walking the provider chain. Replaying that costs another
+        // minute of spinner to almost certainly time out again.
+        if (err?.name === "TimeoutError" || err?.name === "AbortError") {
+          const timeoutErr = new Error(
+            "That took longer than expected and timed out. Please try again in a moment."
+          );
+          timeoutErr.retryable = false;
+          throw timeoutErr;
+        }
         const isLast = attempt === retries;
         if (isLast || err.retryable === false) throw err;
         console.warn(`[AI] Retry ${attempt + 1}/${retries}: ${err.message}`);
@@ -310,14 +330,28 @@ export const AI = {
         q.correctIndex < q.choices.length
       );
 
+    // JSON mode (response_format:json_object) only permits an object at the
+    // top level, so providers that support it return {"questions":[...]}.
+    // Older responses — and Gemini, which isn't sent a response_format — may
+    // still send a bare array, so both shapes are unwrapped here.
+    const unwrap = (parsed) => {
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === "object") {
+        for (const key of ["questions", "quiz", "items", "data"]) {
+          if (Array.isArray(parsed[key])) return parsed[key];
+        }
+      }
+      return parsed;
+    };
+
     try {
-      const parsed = JSON.parse(sanitize(text.trim()));
+      const parsed = unwrap(JSON.parse(sanitize(text.trim())));
       if (isValid(parsed)) return parsed;
     } catch {}
 
     try {
       const cleaned = sanitize(text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim());
-      const parsed = JSON.parse(cleaned);
+      const parsed = unwrap(JSON.parse(cleaned));
       if (isValid(parsed)) return parsed;
     } catch {}
 
