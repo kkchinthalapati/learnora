@@ -2069,6 +2069,18 @@
             </svg>
         </button>
 
+        <!-- Toast host. Present from page load on purpose: a live region has to
+             already be in the DOM and observed before content lands in it, and
+             creating it lazily on the first toast meant the first announcement
+             was routinely swallowed by screen readers. -->
+        <div
+            id="toast-container"
+            class="toast-container"
+            role="status"
+            aria-live="polite"
+            aria-atomic="false"
+        ></div>
+
         <!-- Persistent mini-timer — visible on every view while a timer runs -->
         <div
             id="mini-timer"
