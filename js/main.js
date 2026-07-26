@@ -104,7 +104,31 @@ function bindUploadHub() {
 
   if (!dropzone) return;
 
-  $("btn-browse-files")?.addEventListener("click", () => fileInput.click());
+  const linkField = document.getElementById('youtube-link');
+  const textField = document.getElementById('upload-raw-text');
+  const linkLabel = document.getElementById('upload-link-label');
+
+  // The field the current material type actually reads from.
+  const activeTextEntry = () =>
+    (document.querySelector('input[name="material-type"]:checked')?.value === 'text'
+      ? textField
+      : linkField);
+
+  const openFilePicker = () => fileInput.click();
+
+  $("btn-browse-files")?.addEventListener("click", (e) => {
+    // The dropzone is a button too — without this the click bubbles up and
+    // opens the picker a second time.
+    e.stopPropagation();
+    openFilePicker();
+  });
+
+  // The dropzone reads "or click to browse files" and is styled cursor-pointer,
+  // but nothing was ever bound to it: only the Browse button worked. This makes
+  // the affordance real for mouse users. Keyboard and screen-reader users go on
+  // using the Browse Files button nested inside it, which is why the dropzone
+  // itself deliberately stays a plain region — see the comment in index.html.
+  dropzone.addEventListener('click', openFilePicker);
 
   // Friction fix: brand-new users with zero folders would otherwise hit a
   // dead end here, forced to detour to #folders before they can upload anything.
@@ -127,27 +151,26 @@ function bindUploadHub() {
     }
   });
 
-  // Toggle UI based on material type
+  // Toggle UI based on material type.
+  const syncTypeUI = (type) => {
+    const needsTextEntry = type === 'youtube' || type === 'text';
+    dropzone.classList.toggle('hidden', needsTextEntry);
+    linkInput.classList.toggle('hidden', !needsTextEntry);
+    if (!needsTextEntry) return;
+
+    const isText = type === 'text';
+    // Raw Text writes into a textarea; a YouTube link stays a one-line url
+    // field so the browser still validates it.
+    if (textField) textField.classList.toggle('hidden', !isText);
+    if (linkField) linkField.classList.toggle('hidden', isText);
+    if (linkLabel) {
+      linkLabel.textContent = isText ? "Paste Text Content" : "YouTube URL";
+      linkLabel.setAttribute('for', isText ? 'upload-raw-text' : 'youtube-link');
+    }
+  };
+
   typeRadios.forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      const type = e.target.value;
-      if (type === 'youtube' || type === 'text') {
-        dropzone.classList.add('hidden');
-        linkInput.classList.remove('hidden');
-        if (type === 'text') {
-          linkInput.querySelector('label').textContent = "Paste Text Content";
-          linkInput.querySelector('input').type = "text";
-          linkInput.querySelector('input').placeholder = "Paste your notes or text here...";
-        } else {
-          linkInput.querySelector('label').textContent = "YouTube URL";
-          linkInput.querySelector('input').type = "url";
-          linkInput.querySelector('input').placeholder = "https://youtube.com/watch?v=...";
-        }
-      } else {
-        dropzone.classList.remove('hidden');
-        linkInput.classList.add('hidden');
-      }
-    });
+    radio.addEventListener('change', (e) => syncTypeUI(e.target.value));
   });
 
   // Handle Drag & Drop styling
@@ -163,32 +186,43 @@ function bindUploadHub() {
     dropzone.style.backgroundColor = 'transparent';
   });
 
+  const AUDIO_EXTS = ['mp3', 'mp4', 'wav', 'm4a', 'aac', 'ogg'];
+
+  // Reflect a chosen file in the dropzone and pick the matching material type.
+  // Setting `.checked` in JS does not fire `change`, so the dependent UI has to
+  // be re-synced by hand — otherwise picking a file while "Raw Text" was
+  // selected left the text box on screen and the dropzone hidden.
+  const adoptSelectedFile = (file) => {
+    if (!file) return;
+    const h3 = dropzone.querySelector('h3');
+    if (h3) h3.textContent = file.name;
+    const ext = file.name.split('.').pop().toLowerCase();
+    const type = AUDIO_EXTS.includes(ext) ? 'audio' : 'pdf';
+    const radio = document.querySelector(`input[name="material-type"][value="${type}"]`);
+    if (radio) radio.checked = true;
+    syncTypeUI(type);
+  };
+
   dropzone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropzone.style.borderColor = 'rgba(255,255,255,0.2)';
     dropzone.style.backgroundColor = 'transparent';
     if (e.dataTransfer.files.length) {
       fileInput.files = e.dataTransfer.files;
-      const h3 = dropzone.querySelector('h3');
-      if (h3) h3.textContent = e.dataTransfer.files[0].name;
-      const ext = e.dataTransfer.files[0].name.split('.').pop().toLowerCase();
-      const isAudio = ['mp3', 'mp4', 'wav', 'm4a', 'aac', 'ogg'].includes(ext);
-      document.querySelector(`input[name="material-type"][value="${isAudio ? 'audio' : 'pdf'}"]`).checked = true;
+      adoptSelectedFile(e.dataTransfer.files[0]);
     }
   });
 
-  fileInput.addEventListener('change', (e) => {
-    if (fileInput.files.length) {
-      const h3 = dropzone.querySelector('h3');
-      if (h3) h3.textContent = fileInput.files[0].name;
-      const ext = fileInput.files[0].name.split('.').pop().toLowerCase();
-      const isAudio = ['mp3', 'mp4', 'wav', 'm4a', 'aac', 'ogg'].includes(ext);
-      document.querySelector(`input[name="material-type"][value="${isAudio ? 'audio' : 'pdf'}"]`).checked = true;
-    }
+  fileInput.addEventListener('change', () => {
+    adoptSelectedFile(fileInput.files[0]);
   });
 
   processBtn.addEventListener('click', async () => {
-    const type = document.querySelector('input[name="material-type"]:checked').value;
+    const type = document.querySelector('input[name="material-type"]:checked')?.value;
+    if (!type) {
+      UI.showPopup("Pick what kind of material you're adding first.", "Material Type Required");
+      return;
+    }
     const folderId = folderSelect.value;
     const customTitle = document.getElementById('upload-custom-title')?.value.trim() || "";
     
@@ -228,8 +262,12 @@ function bindUploadHub() {
         });
 
       } else {
-        const urlOrText = linkInput.querySelector('input').value;
-        if (!urlOrText) throw new Error("Please provide a link or text.");
+        // Trim before validating: a field holding only spaces used to sail
+        // through the check and create an empty material the AI then failed on.
+        const urlOrText = (activeTextEntry()?.value || "").trim();
+        if (!urlOrText) {
+          throw new Error(type === 'text' ? "Please paste some text first." : "Please provide a link.");
+        }
         material = await Materials.addLink(urlOrText, folderId, customTitle);
         
         // Pass the raw text or link directly
@@ -237,7 +275,6 @@ function bindUploadHub() {
       }
       
       // TRIGGER AI GENERATION IN THE BACKGROUND
-      let container = document.getElementById("toast-container");
       UI.setAILoading(true, [
         "AI is thinking...",
         "Analyzing your material...",
@@ -249,10 +286,13 @@ function bindUploadHub() {
       try {
         await AI.generateStudyMaterial(material, folderId, fileDataPayload);
         UI.setAILoading(false);
-        // Reset UI
+        // Reset UI — clear both entry fields, not just the link one, or the
+        // pasted text stayed behind and got re-submitted on the next upload.
         fileInput.value = "";
-        if (document.getElementById('upload-custom-title')) document.getElementById('upload-custom-title').value = "";
-        linkInput.querySelector('input').value = "";
+        const titleEl = document.getElementById('upload-custom-title');
+        if (titleEl) titleEl.value = "";
+        if (linkField) linkField.value = "";
+        if (textField) textField.value = "";
         const h3 = dropzone.querySelector('h3');
         if (h3) h3.textContent = "Drag & Drop";
         

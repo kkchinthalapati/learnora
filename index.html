@@ -1728,16 +1728,25 @@
                             </div>
                         </div>
 
+                        <!-- Deliberately not role="button": it already contains the real
+                             Browse Files button, and nesting one interactive role inside
+                             another hides the inner control from assistive tech. The click
+                             handler is a mouse convenience; keyboard users get the button. -->
                         <div id="upload-dropzone" class="dropzone glass-panel text-center mb-24 cursor-pointer" style="border: 2px dashed rgba(255,255,255,0.2); border-radius: var(--r-lg); padding: 40px 20px; transition: all 0.3s ease;">
                             <h3 class="mb-8">Drag & Drop</h3>
                             <p class="text-muted mb-16">or click to browse files</p>
-                            <input type="file" id="hub-file-upload" hidden accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav">
+                            <!-- Keep in step with AUDIO_EXTS in js/main.js: the picker used to
+                                 filter out .m4a/.aac/.ogg that the upload path already handled. -->
+                            <input type="file" id="hub-file-upload" hidden accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg">
                             <button class="btn-secondary" id="btn-browse-files" type="button">Browse Files</button>
                         </div>
 
                         <div id="upload-link-input" class="input-group mb-24 hidden">
-                            <label for="youtube-link">YouTube URL</label>
+                            <label id="upload-link-label" for="youtube-link">YouTube URL</label>
                             <input type="url" id="youtube-link" placeholder="https://youtube.com/watch?v=..." class="full-width">
+                            <!-- Raw Text gets its own multi-line field: notes pasted into a
+                                 single-line input are all but impossible to read back or edit. -->
+                            <textarea id="upload-raw-text" class="full-width hidden" rows="8" placeholder="Paste your notes or text here..."></textarea>
                         </div>
 
                         <div class="input-group mb-32">
