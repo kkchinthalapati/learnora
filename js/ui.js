@@ -21,6 +21,19 @@ function esc(str) {
     .replace(/'/g, "&#39;");
 }
 
+/* Re-labels an element without destroying the elements nested inside it.
+   Several nav links carry live children — the flashcards due-count badge and
+   the AI status dot — and writing the translated string straight into
+   innerHTML deleted them on the very first applyTranslations() at boot, so
+   those indicators could never appear again for the rest of the session.
+   Translations are plain strings (i18n.js holds no markup), so the label is
+   set as text and the child elements are re-attached after it. */
+function setLabelText(el, text) {
+  const children = Array.from(el.children);
+  el.textContent = text;
+  children.forEach((child) => el.appendChild(child));
+}
+
 /* =========================================================================
    DATES — Local-timezone-safe date helpers.
    ========================================================================= */
@@ -920,7 +933,7 @@ export const UI = {
       if (el.tagName === "INPUT" && el.hasAttribute("placeholder")) {
         el.placeholder = dict[key];
       } else {
-        el.innerHTML = dict[key];
+        setLabelText(el, dict[key]);
       }
     });
 
@@ -931,7 +944,7 @@ export const UI = {
   },
 };
 
-export { $, $$, esc, Storage, localDateStr, mondayOfWeek };
+export { $, $$, esc, Storage, localDateStr, mondayOfWeek, setLabelText };
 
 /* =========================================================================
    DOM INITIALIZATION & EVENT LISTENERS
