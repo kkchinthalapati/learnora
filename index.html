@@ -12,6 +12,7 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css" rel="stylesheet">
         <link rel="stylesheet" href="style.css?v=3" />
     </head>
     <body class="dark-theme">
@@ -1816,12 +1817,116 @@
                     </div>
                 </section>
 
-                <!-- VIEW: Notes Reader -->
+                <!-- VIEW: Notes Editor (Turbo-style) -->
                 <section id="view-notes" class="view-section hidden">
-                    <div class="glass-panel">
-                        <button class="btn-secondary mb-24" data-hash="folders">← Back</button>
-                        <div id="notes-content" class="markdown-body" style="font-size: 1.1rem; line-height: 1.6;">
-                            Loading notes...
+                    <div id="notes-toolbar" class="notes-toolbar glass-panel mb-16 flex-between">
+                        <div class="flex-gap" style="align-items: center;">
+                            <button class="btn-secondary btn-sm" data-action="history-back">← Back</button>
+                            <span id="notes-doc-title" class="notes-doc-title" style="font-weight: 600; color: var(--primary);">Document Notes</span>
+                        </div>
+                        <div class="notes-toolbar-actions flex-gap" style="align-items: center;">
+                            <span id="notes-save-status" class="notes-save-status text-sm text-muted"></span>
+                            <button id="btn-save-notes" class="btn-primary btn-sm">Save</button>
+                        </div>
+                    </div>
+
+                    <div class="notes-split-layout">
+                        <!-- LEFT: Editor pane -->
+                        <div class="notes-editor-pane glass-panel p-0">
+                            <!-- Quill formatting toolbar -->
+                            <div id="notes-quill-toolbar" style="border: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding: 12px 16px;">
+                                <span class="ql-formats">
+                                    <select class="ql-font"></select>
+                                    <select class="ql-size"></select>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-bold"></button>
+                                    <button class="ql-italic"></button>
+                                    <button class="ql-underline"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <select class="ql-color"></select>
+                                    <select class="ql-background"></select>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-script" value="sub"></button>
+                                    <button class="ql-script" value="super"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-header" value="1"></button>
+                                    <button class="ql-header" value="2"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-list" value="ordered"></button>
+                                    <button class="ql-list" value="bullet"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-formula"></button>
+                                    <button class="ql-code-block"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-clean"></button>
+                                </span>
+                            </div>
+                            <div id="notes-quill-editor" style="border: none;"></div>
+                        </div>
+
+                        <!-- RIGHT: AI side panel -->
+                        <div class="notes-ai-panel">
+                            <!-- Quick action cards -->
+                            <div class="notes-ai-cards grid-list" style="gap: 12px;">
+                                <div class="notes-ai-card glass-panel cursor-pointer flex-gap p-16" id="notes-action-quiz" role="button" tabindex="0">
+                                    <span class="notes-ai-card-icon" style="font-size: 1.5rem;">❓</span>
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <strong style="color: var(--primary);">Quizzes</strong>
+                                            <span class="badge badge-popular" style="background: var(--success); color: #fff; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px;">Popular</span>
+                                        </div>
+                                        <p class="text-sm text-muted mt-4">Test your knowledge</p>
+                                    </div>
+                                </div>
+                                <div class="notes-ai-card glass-panel cursor-pointer flex-gap p-16" id="notes-action-flashcards" role="button" tabindex="0">
+                                    <span class="notes-ai-card-icon" style="font-size: 1.5rem;">🃏</span>
+                                    <div>
+                                        <strong style="color: var(--primary);">Flashcards</strong>
+                                        <p class="text-sm text-muted mt-4">Study with active recall</p>
+                                    </div>
+                                </div>
+                                <div class="notes-ai-card glass-panel cursor-pointer flex-gap p-16 opacity-70" id="notes-action-podcast" role="button" tabindex="0">
+                                    <span class="notes-ai-card-icon" style="font-size: 1.5rem;">🎙️</span>
+                                    <div>
+                                        <strong style="color: var(--primary);">Podcast</strong>
+                                        <p class="text-sm text-muted mt-4">Listen & learn (coming soon)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- AI Chat section -->
+                            <div class="notes-ai-chat glass-panel mt-16 p-24" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;">
+                                <div class="text-center mb-16" style="flex-shrink: 0;">
+                                    <h3 class="notes-ai-greeting" style="font-size: 1.5rem; color: var(--primary); font-weight: 600;">Hey, I'm Learnora AI</h3>
+                                    <p class="notes-ai-subtext text-muted text-sm mt-8">I can work with you on your notes and answer any questions!</p>
+                                </div>
+                                
+                                <div id="notes-chat-messages" class="chat-messages" style="flex: 1; overflow-y: auto; padding-right: 8px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 16px;"></div>
+                                
+                                <div class="notes-chat-input-row" style="position: relative; flex-shrink: 0;">
+                                    <div id="notes-typing-indicator" class="hidden mb-8"><span class="ai-thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>
+                                    <div class="chat-input-container">
+                                        <label for="notes-chat-file" class="chat-icon-btn notes-chat-icon" title="Attach file" aria-label="Attach file">
+                                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                                            <input type="file" id="notes-chat-file" hidden accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg">
+                                        </label>
+                                        <textarea id="notes-chat-input" class="chat-input notes-chat-input" placeholder="Ask Learnora AI about your notes..." rows="1"></textarea>
+                                        <button id="notes-btn-voice" class="chat-icon-btn notes-chat-icon" title="Voice input" aria-label="Voice input">
+                                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                                        </button>
+                                        <button id="notes-btn-send" class="btn-primary notes-send-btn" title="Send" aria-label="Send">
+                                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -2272,6 +2377,7 @@
             </div>
         </div>
 
+        <script src="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.js"></script>
         <script type="module" src="./js/main.js"></script>
         <!-- ==========================================
      DASHBOARD FLOATING AI COMMAND BAR

@@ -1,7 +1,7 @@
-/* Fonts loaded via <link> preconnect in index.html — no @import needed here. */
+/* Fonts loaded via <link> preconnect in index.html â€” no @import needed here. */
 
 /* ==========================================================================
-   LEARNORA — LIQUID GLASS DESIGN SYSTEM
+   LEARNORA â€” LIQUID GLASS DESIGN SYSTEM
    Premium study workspace with dense glassmorphism, specular highlights,
    animated liquid backgrounds, and refined micro-interactions.
    --------------------------------------------------------------------------
@@ -205,7 +205,7 @@ img {
     scrollbar-color: var(--line) transparent;
 }
 
-/* Inline SVG icon set (see js/icons.js) — replaces emoji used as functional
+/* Inline SVG icon set (see js/icons.js) â€” replaces emoji used as functional
    icons. flex-shrink prevents squashing inside nav/button flex rows;
    vertical-align keeps it level with text when not inside a flex parent. */
 .icon {
@@ -645,7 +645,7 @@ label {
     padding: 10px;
     text-align: center;
 }
-/* These two hold option text ("Unassigned", task names), not short numbers —
+/* These two hold option text ("Unassigned", task names), not short numbers â€”
    96px clipped "Unassigned" to "Unassigne". */
 #active-folder-select,
 #active-task-select {
@@ -818,7 +818,7 @@ label {
     justify-content: center;
 }
 
-/* Timer-type selector — 4-way segmented control.
+/* Timer-type selector â€” 4-way segmented control.
    Compound selector so the 4-col grid beats the base `.segmented` (3-col)
    rule regardless of source order. */
 .segmented.timer-type-seg {
@@ -1258,7 +1258,7 @@ label {
     letter-spacing: 0.04em;
 }
 .datepicker-day {
-    /* 40px targets — the whole point of replacing the native picker. */
+    /* 40px targets â€” the whole point of replacing the native picker. */
     min-height: 40px;
     /* The app's base button style adds 12px/20px padding, which becomes each
        grid item's min-content width and pushes the seven `1fr` tracks well past
@@ -1392,7 +1392,7 @@ label {
 }
 
 /* ==========================================================================
-   5.x DASHBOARD — Study command center
+   5.x DASHBOARD â€” Study command center
 ========================================================================== */
 .dashboard-grid {
     display: grid;
@@ -2220,7 +2220,7 @@ label {
     transform: translateY(-2px);
 }
 
-/* Ghost danger — de-emphasized destructive action so Save stays primary */
+/* Ghost danger â€” de-emphasized destructive action so Save stays primary */
 .btn-ghost-danger {
     background: transparent;
     color: var(--danger);
@@ -2349,7 +2349,7 @@ label {
     right: 6px;
     background: none;
     border: none;
-    /* Roomy enough to hit on the first tap — the old 4px/6px padding made the
+    /* Roomy enough to hit on the first tap â€” the old 4px/6px padding made the
        target ~20px tall, below the 44px minimum, so clicks regularly missed
        and the button felt unresponsive. */
     padding: 0 10px;
@@ -3166,7 +3166,7 @@ label {
     animation-delay: 0.3s;
 }
 
-/* In-bubble "thinking" state — the AI's response arrives in one shot, not
+/* In-bubble "thinking" state â€” the AI's response arrives in one shot, not
    incrementally, so this signals "waiting," not "typing." */
 .ai-thinking {
     display: inline-flex;
@@ -3405,7 +3405,7 @@ label {
 .fade-in { animation: fade-in 0.3s ease-out; }
 
 /* AI-generated markdown content (notes reader) can contain long unbroken
-   tokens/URLs and wide code blocks — contain it inside its panel. */
+   tokens/URLs and wide code blocks â€” contain it inside its panel. */
 .markdown-body {
     overflow-wrap: break-word;
     word-break: break-word;
@@ -3719,7 +3719,7 @@ body.dark-theme .stat-card::before {
     .main-content {
         padding: var(--s-5);
         /* The shorthand above would otherwise drop the clearance set on the
-           base rule, putting the command bar back on top of the last cards —
+           base rule, putting the command bar back on top of the last cards â€”
            and it floats on mobile too. */
         padding-bottom: calc(var(--s-5) + var(--command-bar-clearance));
     }
@@ -3749,7 +3749,7 @@ body.dark-theme .stat-card::before {
         min-width: 0;
     }
 
-    /* Settings tabbed layout → stacked on mobile */
+    /* Settings tabbed layout â†’ stacked on mobile */
     .settings-layout {
         grid-template-columns: 1fr;
         gap: var(--s-4);
@@ -3815,7 +3815,7 @@ body.dark-theme .stat-card::before {
     }
 }
 
-/* Hover utilities — replace inline onmouseover/onmouseout handlers (CSP-safe) */
+/* Hover utilities â€” replace inline onmouseover/onmouseout handlers (CSP-safe) */
 .hover-lift {
     transition: transform 0.2s ease;
 }
@@ -4214,7 +4214,7 @@ input:focus, select:focus, textarea:focus {
     border-color: var(--accent-ring);
 }
 /* The auth panel's feature list reads as a plain inline glyph, not a boxed
-   app icon — it's a one-off marketing aside, not a repeated UI affordance. */
+   app icon â€” it's a one-off marketing aside, not a repeated UI affordance. */
 .visual-feature .feature-icon {
     width: 20px;
     height: auto;
@@ -4739,7 +4739,7 @@ body[data-theme-color="minimal"] {
     --bg-tint-2: rgba(138, 138, 143, 0.03);
 }
 
-/* Honey amber with a terracotta backdrop — cosier and less saturated than
+/* Honey amber with a terracotta backdrop â€” cosier and less saturated than
    Sunset Coral, which sits further round towards red. */
 body[data-theme-color="warm"] {
     --accent-rgb: 217, 142, 63;
@@ -4971,7 +4971,7 @@ body[data-theme-color="custom"] .custom-theme-badge {
 
 /* The global field reset (`input:not(...):not(...):not(...)`, ~line 554) scores
    0,3,1 and would otherwise repaint these two controls with the standard glass
-   chrome — padding, border, backdrop blur. Both selectors below are deliberately
+   chrome â€” padding, border, backdrop blur. Both selectors below are deliberately
    shaped to score 0,4,1 so they win outright rather than by source order. */
 .settings-panel .custom-theme-studio input.custom-hex-input:not([type="file"]) {
     flex: 1;
@@ -5411,7 +5411,7 @@ body[data-font-size="lg"] {
 /* --- Appearance option cards ---
    These are <button>s, not divs: they were click-only before, so keyboard and
    screen-reader users could not reach them at all. Selected state lives on
-   aria-pressed; the "ACTIVE" pill and ✓ are aria-hidden decoration, since an
+   aria-pressed; the "ACTIVE" pill and âœ“ are aria-hidden decoration, since an
    opacity-0 element is still announced. */
 .appearance-grid {
     display: grid;
@@ -5523,7 +5523,7 @@ body[data-font-size="lg"] {
 }
 
 /* On a phone the 140px track plus the gap overshoots a ~280px column by a
-   few pixels, collapsing all 13 presets into one per row — a very long
+   few pixels, collapsing all 13 presets into one per row â€” a very long
    scroll. Trim the track so two fit, and shorten the swatch to match. */
 @media (max-width: 560px) {
     .theme-swatches-grid {
@@ -5698,7 +5698,7 @@ body[data-font-size="lg"] {
     transition: background var(--t-slow) ease, box-shadow var(--t-slow) ease;
 }
 
-/* Decorative only — a real <button> here was a tab stop that did nothing. */
+/* Decorative only â€” a real <button> here was a tab stop that did nothing. */
 .live-preview-btn {
     display: inline-flex;
     align-items: center;
@@ -5848,4 +5848,255 @@ body[data-font-size="lg"] {
     from { text-shadow: 0 0 5px transparent; }
     to { text-shadow: 0 0 10px var(--accent-glow); color: var(--accent); }
 }
+
+
+/* =============================================
+   NOTES EDITOR   Turbo-style split workspace
+   ============================================= */
+
+.notes-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 12px 24px;
+    border-radius: var(--r-md);
+    background: rgba(20, 20, 25, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.notes-split-layout {
+    display: flex;
+    gap: 24px;
+    height: calc(100vh - 160px);
+    margin-top: 16px;
+}
+
+.notes-editor-pane {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Quill has its own scroll */
+}
+
+.notes-ai-panel {
+    width: 380px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+@media (max-width: 1024px) {
+    .notes-split-layout {
+        flex-direction: column;
+        height: auto;
+    }
+    .notes-ai-panel {
+        width: 100%;
+    }
+}
+
+/* AI Cards */
+.notes-ai-card {
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.notes-ai-card:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.badge-popular {
+    background: var(--success);
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+/* Quill Overrides for minimal seamless aesthetic */
+.ql-toolbar.ql-snow {
+    border: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: transparent !important;
+    padding: 12px 16px !important;
+    font-family: var(--font-primary) !important;
+}
+
+.ql-container.ql-snow {
+    border: none !important;
+    font-family: var(--font-primary) !important;
+    font-size: 1.1rem !important;
+    background: transparent !important;
+    height: 100%;
+}
+
+.ql-editor {
+    padding: 32px 40px !important;
+    line-height: 1.7 !important;
+    color: var(--text) !important;
+    min-height: 100%;
+}
+
+/* Fix Quill dropdown and button colors for dark mode */
+.ql-snow .ql-stroke {
+    stroke: var(--text-muted) !important;
+}
+.ql-snow .ql-fill {
+    fill: var(--text-muted) !important;
+}
+.ql-snow .ql-picker {
+    color: var(--text-muted) !important;
+}
+.ql-snow .ql-picker-options {
+    background-color: var(--bg-card) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+}
+.ql-snow.ql-toolbar button:hover .ql-stroke,
+.ql-snow .ql-toolbar button:hover .ql-stroke,
+.ql-snow.ql-toolbar button.ql-active .ql-stroke,
+.ql-snow .ql-toolbar button.ql-active .ql-stroke,
+.ql-snow.ql-toolbar .ql-picker-label:hover .ql-stroke,
+.ql-snow .ql-toolbar .ql-picker-label:hover .ql-stroke,
+.ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-stroke,
+.ql-snow .ql-toolbar .ql-picker-label.ql-active .ql-stroke {
+    stroke: var(--primary) !important;
+}
+
+.ql-snow.ql-toolbar button:hover .ql-fill,
+.ql-snow .ql-toolbar button:hover .ql-fill,
+.ql-snow.ql-toolbar button.ql-active .ql-fill,
+.ql-snow .ql-toolbar button.ql-active .ql-fill,
+.ql-snow.ql-toolbar .ql-picker-label:hover .ql-fill,
+.ql-snow .ql-toolbar .ql-picker-label:hover .ql-fill,
+.ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-fill,
+.ql-snow .ql-toolbar .ql-picker-label.ql-active .ql-fill {
+    fill: var(--primary) !important;
+}
+
+.ql-snow.ql-toolbar button:hover,
+.ql-snow .ql-toolbar button:hover,
+.ql-snow.ql-toolbar .ql-picker-label:hover,
+.ql-snow .ql-toolbar .ql-picker-label:hover {
+    color: var(--primary) !important;
+}
+
+/* ==========================================================================
+   NOTES AI CHAT PILL & PANEL (Turbo Aesthetic)
+========================================================================== */
+
+/* Fix the right panel width and flow */
+.notes-ai-panel {
+    width: 420px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Let inner elements scroll */
+}
+
+/* Chat Input Container Pill */
+.chat-input-container {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 28px;
+    padding: 6px 12px;
+    width: 100%;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.chat-input-container:focus-within {
+    border-color: rgba(66, 211, 146, 0.5); /* var(--primary) glow */
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 15px rgba(66, 211, 146, 0.15), 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Input text area inside the pill */
+.chat-input.notes-chat-input {
+    flex: 1;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: var(--text);
+    font-size: 1rem;
+    padding: 8px 12px;
+    resize: none;
+    outline: none !important;
+    min-height: 24px;
+    line-height: 1.5;
+}
+
+.chat-input.notes-chat-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* Icons inside the pill */
+.chat-icon-btn.notes-chat-icon {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.chat-icon-btn.notes-chat-icon:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Primary Send Button inside the pill */
+.btn-primary.notes-send-btn {
+    border-radius: 50%;
+    padding: 8px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    background: var(--primary);
+    color: var(--bg-dark);
+    border: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary.notes-send-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(66, 211, 146, 0.4);
+}
+
+/* Action Cards styling */
+.notes-ai-card {
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--r-md);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.notes-ai-card:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Adjust layout on small screens */
+@media (max-width: 1024px) {
+    .notes-ai-panel {
+        width: 100%;
+        height: auto;
+    }
+}
+
 

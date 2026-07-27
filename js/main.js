@@ -96,6 +96,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindCalendar();
   bindAI();
   bindUploadHub();
+  bindNotesEditor();
 });
 
 /* =========================================================================
@@ -2470,6 +2471,50 @@ function bindAI() {
       if (btn) btn.disabled = false;
     }
   });
+}
+
+/* =========================================================================
+   NOTES EDITOR BINDINGS
+   ========================================================================= */
+
+function bindNotesEditor() {
+  const sendBtn = document.getElementById("notes-btn-send");
+  const input = document.getElementById("notes-chat-input");
+  
+  if (sendBtn && input) {
+    sendBtn.addEventListener("click", async () => {
+      const { AI } = await import("./ai.js");
+      if (input.value.trim() || AI.notesFile) {
+        AI.sendNotesChat(input.value || "Analyze this document.");
+        input.value = "";
+      }
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendBtn.click();
+      }
+    });
+  }
+
+  const saveBtn = document.getElementById("btn-save-notes");
+  if (saveBtn) {
+    saveBtn.addEventListener("click", async () => {
+      const { Editor } = await import("./editor.js");
+      Editor.save();
+    });
+  }
+
+  const fileInput = document.getElementById("notes-chat-file");
+  if (fileInput) {
+    fileInput.addEventListener("change", async (e) => {
+      if (e.target.files?.[0]) {
+        const { AI } = await import("./ai.js");
+        AI.processFileForNotes(e.target.files[0]);
+      }
+    });
+  }
 }
 
 /* =========================================================================

@@ -579,6 +579,22 @@ export const Materials = {
    ========================================================================= */
 
 export const Notes = {
+  async updateHtml(id, htmlContent) {
+    if (!id) return null;
+    const { data, error } = await supabase
+      .from("notes")
+      .update({ html_content: htmlContent })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("[Notes.updateHtml] error:", error);
+      return null;
+    }
+    return data;
+  },
+
   async fetchByMaterial(materialId) {
     const { data, error } = await supabase
       .from("notes")

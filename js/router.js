@@ -424,25 +424,72 @@ export const Router = {
   },
 
   async loadNotes(materialId) {
-    const content = $("notes-content");
-    if (!content) { return; }
+    if (!materialId) {
+      window.location.hash = "folders";
+      return;
+    }
     
-    content.innerHTML = "<p>Loading notes...</p>";
-    
+    // We need UI from ui.js for modals
+    const { UI } = await import("./ui.js");
+    const { Notes } = await import("./api.js");
     const notes = await Notes.fetchByMaterial(materialId);
+
+    const contentEl = document.getElementById("notes-quill-editor");
+    if (!contentEl) return;
+
+    if (!notes || notes.length === 0) {
+      // Setup empty editor
+      const { Editor } = await import("./editor.js");
+      Editor.init(materialId, null, "<p>No notes generated yet.</p>", "", "Notes");
+      return;
+    }
+
+    const note = notes[0]; // Currently 1:1 mapping
     
-    if (notes.length > 0) {
-      const rawMarkdown = notes[0].markdown_content;
-      // Use AI module's hardened markdown renderer for consistency
-      const { AI } = await import("./ai.js");
-      content.innerHTML = AI.renderMarkdown(rawMarkdown);
-    } else {
-      content.innerHTML = `
-        <div class="empty-state">
-          <h3>No notes available for this material yet.</h3>
-          <p class="mt-8">The AI is likely still processing it. Refresh in a minute.</p>
-        </div>
-      `;
+    // Lazy-load editor to avoid blocking router
+    const { Editor } = await import("./editor.js");
+    
+    let title = "Document Notes";
+    try {
+      const { Materials } = await import("./api.js");
+      const currentMat = await Materials.fetchMostRecent(); // Not perfectly robust but good enough
+      if (currentMat && currentMat.id === materialId) {
+        title = currentMat.title;
+      }
+    } catch(e) {}
+    
+    // init takes: materialId, noteId, initialHtml, fallbackMarkdown, title
+    Editor.init(materialId, note.id, note.html_content, note.markdown_content, title);
+    
+    // Set up quick action cards with closure state
+    const quizCard = document.getElementById("notes-action-quiz");
+    if (quizCard) {
+      const newQuizCard = quizCard.cloneNode(true);
+      quizCard.parentNode.replaceChild(newQuizCard, quizCard);
+      newQuizCard.addEventListener("click", () => {
+        // Need to pass folderId if we have it, null is ok it will prompt user
+        UI.showQuizConfigModal(materialId, null, "Quiz on this document");
+      });
+    }
+    
+    const fcCard = document.getElementById("notes-action-flashcards");
+    if (fcCard) {
+      const newFcCard = fcCard.cloneNode(true);
+      fcCard.parentNode.replaceChild(newFcCard, fcCard);
+      newFcCard.addEventListener("click", async () => {
+         UI.showToast("Generating flashcards...");
+         const { AI } = await import("./ai.js");
+         AI.sendNotesChat("Please generate flashcards from this document.");
+      });
+    }
+    
+    const podCard = document.getElementById("notes-action-podcast");
+    if (podCard) {
+      const newPodCard = podCard.cloneNode(true);
+      podCard.parentNode.replaceChild(newPodCard, podCard);
+      newPodCard.addEventListener("click", () => {
+         UI.showToast("Podcast generation coming soon!");
+      });
     }
   },
 

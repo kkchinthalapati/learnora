@@ -1141,6 +1141,184 @@ User message: ${query}`;
   },
 
   /* =========================================================================
+     NOTES EDITOR CHAT — Document-aware side panel
+     ========================================================================= */
+
+  notesFile: null,
+
+  processFileForNotes(file) {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      UI.showPopup("File too large. Maximum size is 10MB.", "Upload Error");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => UI.showPopup("Failed to read file.", "Upload Error");
+    reader.onload = (e) => {
+      this.notesFile = {
+        name: file.name,
+        mimeType: file.type,
+        data: e.target.result.split(",")[1],
+      };
+      UI.showToast(`Attached ${file.name} to chat`);
+    };
+    reader.readAsDataURL(file);
+  },
+
+  async sendNotesChat(query) {
+    const msgBox = $("notes-chat-messages");
+    const typing = $("notes-typing-indicator");
+    if (!msgBox || !typing) return;
+
+    if (this.chatHistory.length > MAX_HISTORY) {
+      this.chatHistory = this.chatHistory.slice(-MAX_HISTORY);
+    }
+
+    // Get plain text from the Quill editor for context
+    let documentContext = "";
+    try {
+      const { Editor } = await import("./editor.js");
+      documentContext = Editor.getPlainText();
+      if (documentContext.length > 5000) {
+        documentContext = documentContext.substring(0, 5000) + "... (truncated)";
+      }
+    } catch (e) {
+      console.warn("Could not get editor context", e);
+    }
+
+    let filePayload = this.notesFile;
+    let appendedFileContext = "";
+    if (this.notesFile && this.notesFile.mimeType === "text/plain") {
+      try {
+        const decodedText = this._stripActionTags(this._decodeBase64UTF8(this.notesFile.data));
+        appendedFileContext = `\n\nThe student attached a text file "${esc(this.notesFile.name)}" with the following content:\n"""\n${decodedText}\n"""`;
+        filePayload = null; 
+      } catch (e) {
+        console.error("Failed to decode text file payload:", e);
+      }
+    }
+
+    const systemContext = `[SYSTEM — Learnora AI Notes Assistant]
+You are Turbo (Learnora AI), an expert study assistant embedded next to the student's document.
+
+VOICE:
+- Speak in the first person. Be concise, friendly, and helpful.
+
+CURRENT DOCUMENT:
+"""
+${documentContext}
+"""${appendedFileContext}
+
+GROUNDING RULES:
+- You are looking at the same document the student is. Answer their questions based primarily on this document.
+- If they ask for flashcards or a quiz, you can emit <ADD_QUIZ>Topic</ADD_QUIZ> or <GRADE_FLASHCARD> etc.
+
+User message: ${query}`;
+
+    this.chatHistory.push({ role: "user", content: query });
+
+    const userContent = this.notesFile
+      ? `${Icons.svg("paperclip", { size: 13 })} <em>${esc(this.notesFile.name)}</em><br/><br/>${esc(query)}`
+      : esc(query);
+    
+    // Create a user bubble in the notes chat
+    this._appendBubbleNotes(userContent, "user-bubble", true);
+    
+    typing.classList.remove("hidden");
+    msgBox.scrollTop = msgBox.scrollHeight;
+
+    const requestHistory = [
+      ...this.chatHistory.slice(0, -1),
+      { role: "user", content: systemContext }
+    ];
+
+    try {
+      const sendBtn = $("notes-btn-send");
+      if (sendBtn) sendBtn.disabled = true;
+
+      const bubbleId = 'ai-notes-msg-' + Date.now();
+      const typingBubble = this._appendBubbleNotes('<span class="ai-thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>', "ai-bubble", true, bubbleId);
+      
+      let currentText = "";
+      const addedTasks = [];
+
+      const data = await this._callEdgeStream({
+        history: requestHistory,
+        file: filePayload,
+        settings: UI.loadSettings(),
+      }, async (fullText) => {
+         currentText = fullText;
+         typing.classList.add("hidden");
+         
+         let display = fullText.replace(/<ADD_TASK>[\s\S]*?<\/ADD_TASK>/g, "")
+                               .replace(/<START_TIMER>[\s\S]*?<\/START_TIMER>/g, "")
+                               .replace(/<SET_THEME>[\s\S]*?<\/SET_THEME>/g, "")
+                               .replace(/<NAVIGATE>[\s\S]*?<\/NAVIGATE>/g, "")
+                               .replace(/<GRADE_FLASHCARD>[\s\S]*?<\/GRADE_FLASHCARD>/g, "")
+                               .replace(/<ADD_QUIZ>[\s\S]*?<\/ADD_QUIZ>/g, "")
+                               .replace(/<ADD_PLAN>[\s\S]*?<\/ADD_PLAN>/g, "");
+
+         typingBubble.innerHTML = this.renderMarkdown(display);
+         msgBox.scrollTop = msgBox.scrollHeight;
+      });
+
+      typing.classList.add("hidden");
+
+      const cleanHistoryText = currentText
+          .replace(/<ADD_TASK>[\s\S]*?<\/ADD_TASK>/g, "")
+          .replace(/<START_TIMER>[\s\S]*?<\/START_TIMER>/g, "")
+          .replace(/<SET_THEME>[\s\S]*?<\/SET_THEME>/g, "")
+          .replace(/<NAVIGATE>[\s\S]*?<\/NAVIGATE>/g, "")
+          .replace(/<GRADE_FLASHCARD>[\s\S]*?<\/GRADE_FLASHCARD>/g, "")
+          .replace(/<ADD_QUIZ>[\s\S]*?<\/ADD_QUIZ>/g, "")
+          .replace(/<ADD_PLAN>[\s\S]*?<\/ADD_PLAN>/g, "");
+
+      this.chatHistory.push({ role: "model", content: cleanHistoryText });
+      if (currentText.length > 0) {
+        typingBubble.innerHTML = this.renderMarkdown(cleanHistoryText);
+      } else {
+        typingBubble.innerHTML = `<em>Action completed.</em>`;
+      }
+      
+      msgBox.scrollTop = msgBox.scrollHeight;
+    } catch (err) {
+      typing.classList.add("hidden");
+      this._appendBubbleNotes(
+        esc(err.message || "Something went wrong. Please try again."),
+        "ai-bubble ai-bubble-error",
+        true
+      );
+      this.chatHistory.pop();
+    } finally {
+      const sendBtn = $("notes-btn-send");
+      if (sendBtn) sendBtn.disabled = false;
+      this.notesFile = null;
+    }
+  },
+
+  _appendBubbleNotes(content, className, isHTML = false, id = null) {
+    const msgBox = $("notes-chat-messages");
+    if (!msgBox) return;
+
+    const bubble = document.createElement("div");
+    bubble.className = `chat-bubble ${className}`;
+    bubble.setAttribute("role", "log");
+    if (id) bubble.id = id;
+
+    if (isHTML) {
+      bubble.innerHTML = content;
+    } else {
+      bubble.textContent = content;
+    }
+
+    msgBox.appendChild(bubble);
+    requestAnimationFrame(() => {
+      msgBox.scrollTop = msgBox.scrollHeight;
+    });
+    return bubble;
+  },
+
+  /* =========================================================================
      DRAG & DROP + DRAGGABLE WINDOW
      ========================================================================= */
 
