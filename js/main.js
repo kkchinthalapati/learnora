@@ -2515,6 +2515,86 @@ function bindNotesEditor() {
       }
     });
   }
+
+  bindNotesQuickActions();
+  bindNotesSuggestions();
+}
+
+/* Quick-action cards. Bound once here rather than re-bound (via cloneNode) on
+   every visit to the notes view; they read the active material from Editor
+   state at click time. */
+function bindNotesQuickActions() {
+  const activeMaterial = async () => {
+    const { Editor } = await import("./editor.js");
+    return Editor.materialId;
+  };
+
+  const onActivate = (id, handler) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", handler);
+    // The cards are role="button" divs, so Enter/Space need wiring by hand.
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handler();
+      }
+    });
+  };
+
+  onActivate("notes-action-quiz", async () => {
+    const materialId = await activeMaterial();
+    if (!materialId) return;
+    const { UI } = await import("./ui.js");
+    UI.showQuizConfigModal(materialId, null, "Quiz on this document");
+  });
+
+  onActivate("notes-action-flashcards", async () => {
+    const materialId = await activeMaterial();
+    if (!materialId) return;
+    const { UI } = await import("./ui.js");
+    const { AI } = await import("./ai.js");
+
+    // Previously this asked the chat panel to "generate flashcards", but the
+    // notes chat has no action-tag executor — the model emitted <ADD_QUIZ>-style
+    // tags, they were stripped before display, and no deck was ever created.
+    // Call the real generator instead.
+    const card = document.getElementById("notes-action-flashcards");
+    if (card?.dataset.busy === "1") return;
+    if (card) card.dataset.busy = "1";
+    UI.showToast("Generating flashcards…");
+    try {
+      // generateFlashcards() resolves the material (and so the deck title)
+      // through folderId, and files the deck into the same folder.
+      const { Materials } = await import("./api.js");
+      const material = await Materials.fetchById(materialId);
+      const deck = await AI.generateFlashcards(materialId, material?.folder_id ?? null);
+      if (deck) {
+        UI.showToast("Flashcards ready");
+        window.location.hash = "flashcards";
+      }
+    } finally {
+      if (card) delete card.dataset.busy;
+    }
+  });
+
+  onActivate("notes-action-podcast", async () => {
+    const { UI } = await import("./ui.js");
+    UI.showToast("Podcast generation coming soon");
+  });
+}
+
+/* Suggested-prompt chips in the AI panel — send their prompt straight to the
+   notes chat so an empty panel has an obvious first move. */
+function bindNotesSuggestions() {
+  const wrap = document.getElementById("notes-suggestions");
+  if (!wrap) return;
+  wrap.addEventListener("click", async (e) => {
+    const chip = e.target.closest("[data-prompt]");
+    if (!chip) return;
+    const { AI } = await import("./ai.js");
+    AI.sendNotesChat(chip.dataset.prompt);
+  });
 }
 
 /* =========================================================================

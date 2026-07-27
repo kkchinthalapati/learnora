@@ -5880,34 +5880,197 @@ body[data-font-size="lg"] {
     overflow: hidden; /* Quill has its own scroll */
 }
 
+/* The study sidebar. Sized in ch so it holds a readable chat column, and
+   allowed to shrink before it is dropped below the document — the panel is
+   the point of this view, so it stays a sidebar for as long as the two panes
+   can sit side by side. Single source of truth: a second .notes-ai-panel
+   block further down this file used to re-declare the width and silently win,
+   which is why the mobile override never applied. */
 .notes-ai-panel {
-    width: 380px;
-    flex-shrink: 0;
+    flex: 0 1 clamp(320px, 30vw, 420px);
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
+    gap: 16px;
+    overflow: hidden; /* inner sections scroll */
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 900px) {
     .notes-split-layout {
         flex-direction: column;
         height: auto;
     }
     .notes-ai-panel {
+        flex: 1 1 auto;
         width: 100%;
+        min-height: 60vh;
+    }
+    .notes-editor-pane {
+        min-height: 55vh;
     }
 }
 
-/* AI Cards */
+/* AI Cards — a compact study rail rather than three stacked panels, so the
+   chat (the part students actually use) keeps the vertical space. */
+.notes-ai-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    flex-shrink: 0;
+}
+
 .notes-ai-card {
-    transition: all 0.2s ease;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 12px;
+    border-radius: var(--r-md);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 
 .notes-ai-card:hover {
     transform: translateY(-2px);
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.15);
+}
+
+.notes-ai-card:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.notes-ai-card-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--primary) 16%, transparent);
+    color: var(--primary);
+}
+
+.notes-ai-card-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.notes-ai-card-head strong {
+    color: var(--text);
+    font-size: 0.92rem;
+}
+
+.notes-ai-card-body p {
+    margin-top: 2px;
+    line-height: 1.35;
+}
+
+.notes-ai-card.is-soon {
+    opacity: 0.6;
+}
+
+/* Chat column */
+.notes-ai-chat {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    border-radius: var(--r-lg, var(--r-md));
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.notes-ai-intro {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    flex-shrink: 0;
+}
+
+.notes-ai-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--primary) 18%, transparent);
+    color: var(--primary);
+}
+
+.notes-ai-greeting {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.notes-ai-subtext {
+    margin-top: 2px;
+    line-height: 1.4;
+}
+
+/* Suggested openers — give an empty panel an obvious first move. */
+.notes-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+    flex-shrink: 0;
+}
+
+.notes-suggestion {
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-family: inherit;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.notes-suggestion:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+}
+
+.notes-ai-chat .chat-messages {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 8px;
+    margin: 16px 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.notes-chat-input-row {
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* Read-only state — notes that have no row yet cannot be saved. */
+#notes-quill-toolbar.is-disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+/* The global command bar is position:fixed on every view, so on the notes
+   workspace it sat directly on top of the sidebar's own chat input — two
+   competing AI inputs, one covering the other. The sidebar chat is
+   document-aware, so it wins here. */
+body:has(#view-notes:not(.hidden)) .dashboard-command-bar {
+    display: none !important;
 }
 
 .badge-popular {
@@ -5989,15 +6152,6 @@ body[data-font-size="lg"] {
 /* ==========================================================================
    NOTES AI CHAT PILL & PANEL (Turbo Aesthetic)
 ========================================================================== */
-
-/* Fix the right panel width and flow */
-.notes-ai-panel {
-    width: 420px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* Let inner elements scroll */
-}
 
 /* Chat Input Container Pill */
 .chat-input-container {
@@ -6091,12 +6245,5 @@ body[data-font-size="lg"] {
     border-color: rgba(255, 255, 255, 0.15);
 }
 
-/* Adjust layout on small screens */
-@media (max-width: 1024px) {
-    .notes-ai-panel {
-        width: 100%;
-        height: auto;
-    }
-}
 
 

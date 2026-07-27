@@ -572,6 +572,20 @@ export const Materials = {
     }
     return data;
   },
+
+  async fetchById(id) {
+    if (!id) return null;
+    const { data, error } = await supabase
+      .from("materials")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) {
+      console.error("[Materials.fetchById]", error.message);
+      return null;
+    }
+    return data;
+  },
 };
 
 /* =========================================================================
