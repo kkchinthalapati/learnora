@@ -1,6 +1,7 @@
 import { supabase } from "./supabase.js";
 import { UI, $, esc, ModalManager, localDateStr, mondayOfWeek } from "./ui.js";
 import { Tasks, Exams } from "./api.js";
+import { Icons } from "./icons.js";
 
 /* =========================================================================
    AI MODULE — Chat, Ingestion, File Handling, Flashcard Generation
@@ -782,7 +783,7 @@ User message: ${query}`;
 
     // Render user bubble
     const userContent = this.currentFile
-      ? `📎 <em>${esc(this.currentFile.name)}</em><br/><br/>${esc(query)}`
+      ? `${Icons.svg("paperclip", { size: 13 })} <em>${esc(this.currentFile.name)}</em><br/><br/>${esc(query)}`
       : esc(query);
     this._appendBubble(userContent, "user-bubble", true);
 
@@ -970,45 +971,45 @@ User message: ${query}`;
         .replace(addTaskRegex, (_, name) => {
           const taskName = name.trim();
           if (addedTasks.includes(taskName)) {
-            return widget(`<div class="ai-widget"><span class="ai-widget-icon">✅</span> Added task: <strong>${esc(taskName)}</strong></div>`);
+            return widget(`<div class="ai-widget"><span class="ai-widget-icon">${Icons.svg("check", { size: 14 })}</span> Added task: <strong>${esc(taskName)}</strong></div>`);
           }
-          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled adding task: <strong>${esc(taskName)}</strong></div>`);
+          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">${Icons.svg("x", { size: 14 })}</span> Canceled adding task: <strong>${esc(taskName)}</strong></div>`);
         })
         .replace(startTimerRegex, (_, mins) => {
           if (timerStarted) {
-            return widget(`<div class="ai-widget"><span class="ai-widget-icon">⏱️</span> Started focus timer for ${esc(mins)}m</div>`);
+            return widget(`<div class="ai-widget"><span class="ai-widget-icon">${Icons.svg("clock", { size: 14 })}</span> Started focus timer for ${esc(mins)}m</div>`);
           }
-          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled focus timer</div>`);
+          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">${Icons.svg("x", { size: 14 })}</span> Canceled focus timer</div>`);
         })
         .replace(themeRegex, (_, theme) => {
           if (themeChangedTo) {
-            return widget(`<div class="ai-widget"><span class="ai-widget-icon">🎨</span> Switched theme to ${esc(theme)}</div>`);
+            return widget(`<div class="ai-widget"><span class="ai-widget-icon">${Icons.svg("palette", { size: 14 })}</span> Switched theme to ${esc(theme)}</div>`);
           }
-          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Failed to switch theme</div>`);
+          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">${Icons.svg("x", { size: 14 })}</span> Failed to switch theme</div>`);
         })
         .replace(navigateRegex, (_, view) => {
           if (navigatedTo) {
-            return widget(`<div class="ai-widget"><span class="ai-widget-icon">🧭</span> Navigated to ${esc(view)}</div>`);
+            return widget(`<div class="ai-widget"><span class="ai-widget-icon">${Icons.svg("compass", { size: 14 })}</span> Navigated to ${esc(view)}</div>`);
           }
           return ``;
         })
         .replace(gradeRegex, (_, score) => {
           if (flashcardGraded) {
-            return widget(`<div class="ai-widget"><span class="ai-widget-icon">🎓</span> Flashcard Graded (Score: ${esc(score)})</div>`);
+            return widget(`<div class="ai-widget"><span class="ai-widget-icon">${Icons.svg("graduation-cap", { size: 14 })}</span> Flashcard Graded (Score: ${esc(score)})</div>`);
           }
           return ``;
         })
         .replace(quizRegex, (_, topic) => {
           if (generatedQuizTopic) {
-            return widget(`<div class="ai-widget"><span class="ai-widget-icon">❓</span> Generated quiz: <strong>${esc(topic.trim())}</strong></div>`);
+            return widget(`<div class="ai-widget"><span class="ai-widget-icon">${Icons.svg("help-circle", { size: 14 })}</span> Generated quiz: <strong>${esc(topic.trim())}</strong></div>`);
           }
-          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled quiz generation</div>`);
+          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">${Icons.svg("x", { size: 14 })}</span> Canceled quiz generation</div>`);
         })
         .replace(planRegex, () => {
           if (generatedPlan) {
-            return widget(`<div class="ai-widget"><span class="ai-widget-icon">📅</span> Generated weekly study plan</div>`);
+            return widget(`<div class="ai-widget"><span class="ai-widget-icon">${Icons.svg("calendar", { size: 14 })}</span> Generated weekly study plan</div>`);
           }
-          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">❌</span> Canceled plan generation</div>`);
+          return widget(`<div class="ai-widget canceled"><span class="ai-widget-icon">${Icons.svg("x", { size: 14 })}</span> Canceled plan generation</div>`);
         })
         .trim();
 

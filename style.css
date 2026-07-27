@@ -19,58 +19,58 @@
        scrolling view: its 28px bottom offset + ~56px height + breathing room. */
     --command-bar-clearance: 104px;
 
-    /* --- Accent (vivid indigo) --- */
+    /* --- Accent (deep teal) --- */
     /* Channel triplet backing the derived soft/ring/glow tints. Presets
        override it; this value is the fallback for an unknown accent. */
-    --accent-rgb: 84, 104, 231;
-    --accent: #5468e7;
-    --accent-hover: #4358d6;
-    --accent-press: #3a4ec4;
-    --accent-soft: rgba(84, 104, 231, 0.12);
-    --accent-ring: rgba(84, 104, 231, 0.32);
+    --accent-rgb: 15, 118, 110;
+    --accent: #0f766e;
+    --accent-hover: #0c5f59;
+    --accent-press: #094943;
+    --accent-soft: rgba(15, 118, 110, 0.12);
+    --accent-ring: rgba(15, 118, 110, 0.32);
     --accent-on: #ffffff;
-    --accent-glow: rgba(84, 104, 231, 0.35);
+    --accent-glow: rgba(15, 118, 110, 0.35);
     --primary: var(--accent);
     --primary-hover: var(--accent-hover);
     --gradient-primary: linear-gradient(135deg, var(--accent), var(--accent-hover));
 
     /* --- Semantic --- */
-    --success: #34b88a;
-    --success-soft: rgba(52, 184, 138, 0.12);
-    --warning: #d49a38;
-    --warning-soft: rgba(212, 154, 56, 0.14);
-    --danger: #e05a4e;
-    --danger-soft: rgba(224, 90, 78, 0.12);
+    --success: #1e8e6b;
+    --success-soft: rgba(30, 142, 107, 0.12);
+    --warning: #c98a2e;
+    --warning-soft: rgba(201, 138, 46, 0.14);
+    --danger: #c2453a;
+    --danger-soft: rgba(194, 69, 58, 0.12);
 
     /* --- Page surfaces --- */
-    --bg: #eef0f4;
-    --bg-tint-1: rgba(84, 104, 231, 0.05);
-    --bg-tint-2: rgba(52, 184, 138, 0.04);
+    --bg: #f6f5f2;
+    --bg-tint-1: rgba(15, 118, 110, 0.05);
+    --bg-tint-2: rgba(180, 140, 60, 0.035);
     --surface: #ffffff;
-    --surface-2: #f5f6fa;
-    --surface-hover: #edeff6;
-    --surface-active: #e5e8f2;
+    --surface-2: #f1efe9;
+    --surface-hover: #eae7df;
+    --surface-active: #e2ded3;
 
     /* --- Glass --- */
-    --glass-bg: rgba(255, 255, 255, 0.58);
-    --glass-bg-strong: rgba(255, 255, 255, 0.82);
-    --glass-border: rgba(255, 255, 255, 0.65);
-    --glass-border-subtle: rgba(20, 28, 46, 0.08);
-    --glass-highlight: rgba(255, 255, 255, 0.95);
-    --glass-inner: inset 0 1.5px 0 rgba(255, 255, 255, 0.85);
-    --glass-inner-bottom: inset 0 -1.5px 0 rgba(20, 28, 46, 0.06);
-    --glass-blur: 28px;
-    --glass-saturate: saturate(180%);
+    --glass-bg: rgba(255, 255, 255, 0.66);
+    --glass-bg-strong: rgba(255, 255, 255, 0.88);
+    --glass-border: rgba(255, 255, 255, 0.7);
+    --glass-border-subtle: rgba(28, 24, 18, 0.08);
+    --glass-highlight: rgba(255, 255, 255, 0.9);
+    --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    --glass-inner-bottom: inset 0 -1px 0 rgba(28, 24, 18, 0.05);
+    --glass-blur: 18px;
+    --glass-saturate: saturate(150%);
 
     /* --- Text --- */
-    --text: #1a2030;
-    --text-muted: #5a6880;
-    --text-faint: #8694a8;
+    --text: #1c1b18;
+    --text-muted: #6b6558;
+    --text-faint: #9a9384;
     --text-on-accent: #ffffff;
 
     /* --- Borders & lines --- */
     --border: 1px solid var(--glass-border-subtle);
-    --line: rgba(20, 28, 46, 0.06);
+    --line: rgba(28, 24, 18, 0.06);
 
     /* --- Radius --- */
     --r-xs: 8px;
@@ -94,12 +94,12 @@
     --s-16: 64px;
 
     /* --- Shadows (premium, layered) --- */
-    --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04),
-        0 2px 4px rgba(16, 24, 40, 0.04);
-    --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.06),
-        0 12px 28px rgba(16, 24, 40, 0.06);
-    --shadow-lg: 0 8px 24px rgba(16, 24, 40, 0.08),
-        0 24px 56px rgba(16, 24, 40, 0.1);
+    --shadow-sm: 0 1px 2px rgba(24, 20, 14, 0.04),
+        0 2px 4px rgba(24, 20, 14, 0.04);
+    --shadow-md: 0 4px 12px rgba(24, 20, 14, 0.06),
+        0 12px 28px rgba(24, 20, 14, 0.06);
+    --shadow-lg: 0 8px 24px rgba(24, 20, 14, 0.08),
+        0 24px 56px rgba(24, 20, 14, 0.1);
     --shadow-accent: 0 4px 16px var(--accent-glow);
 
     /* --- Typography --- */
@@ -205,6 +205,14 @@ img {
     scrollbar-color: var(--line) transparent;
 }
 
+/* Inline SVG icon set (see js/icons.js) — replaces emoji used as functional
+   icons. flex-shrink prevents squashing inside nav/button flex rows;
+   vertical-align keeps it level with text when not inside a flex parent. */
+.icon {
+    flex-shrink: 0;
+    vertical-align: -3px;
+}
+
 /* ==========================================================================
    3. TYPOGRAPHY
 ========================================================================== */
@@ -300,7 +308,7 @@ a {
     font-size: var(--fs-xl);
     font-weight: 800;
     letter-spacing: -0.03em;
-    background: linear-gradient(135deg, var(--accent) 0%, #8b9bf5 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -428,7 +436,7 @@ header {
 .nav-links a.nav-link:hover {
     background: var(--accent-soft);
     color: var(--text);
-    border-color: rgba(84, 104, 231, 0.08);
+    border-color: var(--accent-ring);
 }
 .nav-links a.nav-link.active {
     background: var(--accent);
@@ -694,7 +702,7 @@ label {
     inset: 0;
     background:
         radial-gradient(ellipse 50% 40% at 30% 20%, var(--accent-soft) 0%, transparent 70%),
-        radial-gradient(ellipse 40% 50% at 70% 80%, rgba(139, 155, 245, 0.06) 0%, transparent 70%);
+        radial-gradient(ellipse 40% 50% at 70% 80%, var(--accent-soft) 0%, transparent 70%);
     opacity: 0.6;
     pointer-events: none;
     z-index: 0;
@@ -799,7 +807,7 @@ label {
     height: 100%;
     width: 0%;
     border-radius: inherit;
-    background: linear-gradient(90deg, var(--accent), #8b9bf5);
+    background: linear-gradient(90deg, var(--accent), var(--accent-hover));
     box-shadow: 0 0 12px var(--accent-glow);
     transition: width 1s linear;
 }
@@ -1902,7 +1910,7 @@ label {
 }
 .card-back {
     transform: rotateY(180deg);
-    background: linear-gradient(135deg, var(--accent) 0%, #7b8ef0 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
     color: var(--accent-on);
     box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
@@ -2413,7 +2421,7 @@ label {
     overflow: hidden;
     background:
         radial-gradient(120% 120% at 15% 0%, var(--accent-glow) 0%, transparent 50%),
-        linear-gradient(165deg, #1c2033 0%, #0d0f1a 100%);
+        linear-gradient(165deg, #1b1e1c 0%, #0a0c0a 100%);
 }
 .auth-visual::before {
     content: "";
@@ -2749,7 +2757,7 @@ label {
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent) 0%, #8b9bf5 60%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 60%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3001,8 +3009,8 @@ label {
         border var(--t) var(--ease);
 }
 .ai-modal.streaming {
-    border: 1px solid rgba(139, 92, 246, 0.6);
-    box-shadow: 0 0 30px rgba(139, 92, 246, 0.2), 0 20px 40px rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--accent-ring);
+    box-shadow: 0 0 30px var(--accent-glow), 0 20px 40px rgba(0, 0, 0, 0.6);
 }
 .ai-modal.fullscreen {
     top: 0 !important;
@@ -3032,7 +3040,7 @@ label {
 .chat-header h3 {
     font-size: var(--fs-md);
     color: var(--text);
-    background: linear-gradient(135deg, var(--accent), #8b9bf5);
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -3278,8 +3286,8 @@ label {
 .liquid-blob {
     position: absolute;
     border-radius: 50%;
-    filter: blur(110px) saturate(140%);
-    opacity: 0.14;
+    filter: blur(130px) saturate(120%);
+    opacity: 0.1;
     animation: liquid-drift 32s ease-in-out infinite alternate;
 }
 .liquid-blob--1 {
@@ -3311,12 +3319,12 @@ label {
 .liquid-blob--4 {
     width: 450px;
     height: 450px;
-    background: radial-gradient(circle, var(--danger) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
     bottom: 10%;
     left: 20%;
     animation-delay: -16s;
     animation-duration: 22s;
-    opacity: 0.30;
+    opacity: 0.08;
 }
 
 /* ==========================================================================
@@ -3579,47 +3587,47 @@ label {
    8. DARK MODE
 ========================================================================== */
 body.dark-theme {
-    --accent: #d845f8;
-    --accent-hover: #e57afc;
-    --accent-press: #b429d2;
-    --accent-soft: rgba(216, 69, 248, 0.15);
-    --accent-ring: rgba(216, 69, 248, 0.4);
+    --accent: #2dd4bf;
+    --accent-hover: #5eead4;
+    --accent-press: #14b8a6;
+    --accent-soft: rgba(45, 212, 191, 0.15);
+    --accent-ring: rgba(45, 212, 191, 0.4);
     --accent-on: #ffffff;
-    --accent-glow: rgba(216, 69, 248, 0.5);
+    --accent-glow: rgba(45, 212, 191, 0.45);
 
-    --success: #00f0ff;
-    --success-soft: rgba(0, 240, 255, 0.15);
-    --warning: #ffb800;
-    --warning-soft: rgba(255, 184, 0, 0.15);
-    --danger: #ff2a5f;
-    --danger-soft: rgba(255, 42, 95, 0.15);
+    --success: #2fbf88;
+    --success-soft: rgba(47, 191, 136, 0.15);
+    --warning: #e0a53e;
+    --warning-soft: rgba(224, 165, 62, 0.15);
+    --danger: #e2564a;
+    --danger-soft: rgba(226, 86, 74, 0.15);
 
-    --bg: #05010d;
-    --bg-tint-1: rgba(216, 69, 248, 0.08);
-    --bg-tint-2: rgba(0, 240, 255, 0.06);
-    --surface: #0a0414;
-    --surface-2: #110722;
-    --surface-hover: #180a30;
-    --surface-active: #1f0d3e;
+    --bg: #0a0e0d;
+    --bg-tint-1: rgba(45, 212, 191, 0.07);
+    --bg-tint-2: rgba(224, 165, 62, 0.05);
+    --surface: #131615;
+    --surface-2: #191d1c;
+    --surface-hover: #202524;
+    --surface-active: #272d2b;
 
-    --glass-bg: rgba(18, 12, 38, 0.48);
-    --glass-bg-strong: rgba(24, 16, 48, 0.72);
-    --glass-border: rgba(255, 255, 255, 0.18);
-    --glass-border-subtle: rgba(255, 255, 255, 0.08);
-    --glass-highlight: rgba(255, 255, 255, 0.35);
-    --glass-inner: inset 0 1.5px 0 rgba(255, 255, 255, 0.22);
-    --glass-inner-bottom: inset 0 -1.5px 0 rgba(0, 0, 0, 0.5);
+    --glass-bg: rgba(19, 22, 21, 0.55);
+    --glass-bg-strong: rgba(25, 29, 28, 0.78);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-border-subtle: rgba(255, 255, 255, 0.07);
+    --glass-highlight: rgba(255, 255, 255, 0.14);
+    --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    --glass-inner-bottom: inset 0 -1px 0 rgba(0, 0, 0, 0.35);
 
-    --text: #ffffff;
-    --text-muted: #a698ba;
-    --text-faint: #6e6082;
+    --text: #f2f1ee;
+    --text-muted: #9a9c9a;
+    --text-faint: #666a68;
 
     --line: rgba(255, 255, 255, 0.08);
 
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
-    --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.7);
-    --shadow-accent: 0 0 24px var(--accent-glow);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
+    --shadow-accent: 0 0 20px var(--accent-glow);
 }
 
 /* Dark mode specific overrides */
@@ -3636,8 +3644,8 @@ body.dark-theme select {
 }
 
 body.dark-theme .liquid-blob {
-    opacity: 0.16;
-    filter: blur(130px) saturate(120%);
+    opacity: 0.1;
+    filter: blur(140px) saturate(110%);
 }
 body.dark-theme .liquid-blob--1 {
     background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
@@ -3646,7 +3654,7 @@ body.dark-theme .liquid-blob--2 {
     background: radial-gradient(circle, var(--success) 0%, transparent 70%);
 }
 body.dark-theme .liquid-blob--3 {
-    opacity: 0.12;
+    opacity: 0.07;
     background: radial-gradient(circle, var(--danger) 0%, transparent 70%);
 }
 
@@ -3845,8 +3853,8 @@ body.dark-theme .stat-card::before {
 .ai-widget {
     margin: 12px 0;
     padding: 12px 16px;
-    background: rgba(139, 92, 246, 0.1);
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-ring);
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -4700,11 +4708,11 @@ body[data-theme-color] {
 }
 
 body[data-theme-color="default"] {
-    --accent-rgb: 99, 102, 241;
-    --accent-rgb-2: 168, 85, 247;
-    --accent: #6366f1;
-    --accent-hover: #4f46e5;
-    --accent-press: #4338ca;
+    --accent-rgb: 15, 118, 110;
+    --accent-rgb-2: 180, 140, 60;
+    --accent: #0f766e;
+    --accent-hover: #0c5f59;
+    --accent-press: #094943;
 }
 
 /* The accent Learnora shipped with before the theme system existed. */
@@ -5588,8 +5596,8 @@ body[data-font-size="lg"] {
 
 /* Each preset's swatch is painted from its own palette here rather than from
    an inline style, so a theme's colours are defined in exactly one place. */
-.theme-preset-btn[data-theme="default"] .theme-swatch-preview { background: linear-gradient(135deg, #1e1e2d, #6366f1); }
-.theme-preset-btn[data-theme="default"] .theme-swatch-dot { background: #6366f1; }
+.theme-preset-btn[data-theme="default"] .theme-swatch-preview { background: linear-gradient(135deg, #142523, #0f766e); }
+.theme-preset-btn[data-theme="default"] .theme-swatch-dot { background: #0f766e; }
 .theme-preset-btn[data-theme="original"] .theme-swatch-preview { background: linear-gradient(135deg, #1a2030, #5468e7); }
 .theme-preset-btn[data-theme="original"] .theme-swatch-dot { background: #5468e7; }
 .theme-preset-btn[data-theme="minimal"] .theme-swatch-preview { background: linear-gradient(135deg, #1c1c1e, #8a8a8f); }

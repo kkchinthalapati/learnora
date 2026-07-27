@@ -803,7 +803,7 @@ export const UI = {
     });
     this.applyCustomTheme();
     this.syncCustomThemeUI();
-    this.showPopup("Custom colours reset to the Learnora default ✨", "Colours Reset");
+    this.showPopup("Custom colours reset to the Learnora default.", "Colours Reset");
   },
 
   syncAppearanceUI() {
@@ -859,7 +859,7 @@ export const UI = {
     const t = this._customTheme;
     if (t) Storage.set(CUSTOM_THEME_KEY, { colors: t.colors, intensity: t.intensity });
 
-    this.showPopup("Your appearance & theme preferences have been saved! ✨", "Appearance Saved");
+    this.showPopup("Your appearance & theme preferences have been saved!", "Appearance Saved");
   },
 
   resetAppearance() {
@@ -880,7 +880,7 @@ export const UI = {
     Storage.set("learnora_font", defaults.font);
     Storage.set("learnora_size", defaults.size);
     this.applyAppearance(defaults);
-    this.showPopup("Appearance settings reset to defaults ✨", "Theme Reset");
+    this.showPopup("Appearance settings reset to defaults.", "Theme Reset");
   },
 
   _updateThemeIcon() {

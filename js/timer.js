@@ -1,5 +1,6 @@
 import { UI, $, Storage } from "./ui.js";
 import { Sessions } from "./api.js";
+import { Icons } from "./icons.js";
 
 /* =========================================================================
    CONSTANTS
@@ -597,7 +598,7 @@ export const Timer = {
     if (labelEl) labelEl.textContent = this._modeLabel();
     if (barEl) barEl.style.width = `${this._progressFraction() * 100}%`;
     if (toggleEl) {
-      toggleEl.textContent = this.state.isRunning ? "⏸" : "▶";
+      toggleEl.innerHTML = this.state.isRunning ? Icons.svg("pause", { size: 20 }) : Icons.svg("play", { size: 20 });
       toggleEl.setAttribute("aria-label", this.state.isRunning ? "Pause timer" : "Resume timer");
     }
     mini.classList.toggle("mini-timer-running", this.state.isRunning);
@@ -700,7 +701,7 @@ export const Timer = {
     const saveBtn = document.createElement("button");
     saveBtn.className = "btn-secondary full-width mt-16";
     saveBtn.id = "btn-save-fav";
-    saveBtn.textContent = "⭐ Save Current as Preset";
+    saveBtn.innerHTML = `${Icons.svg("star", { size: 15 })} Save Current as Preset`;
     saveBtn.addEventListener("click", () => this.saveFav());
     container.appendChild(saveBtn);
 
@@ -717,7 +718,7 @@ export const Timer = {
       const dur = type === "countdown" ? f.config?.countdown : f.focus;
       const durStr = dur ? ` (${dur}m)` : "";
       
-      btn.textContent = `⭐ ${f.name} [${typeLabel}]${durStr}`;
+      btn.innerHTML = `${Icons.svg("star", { size: 14 })} ${f.name} [${typeLabel}]${durStr}`;
       btn.addEventListener("click", () => {
         const partial = f.config ? f.config : { focus: f.focus, short: f.short, long: f.long, maxCycles: f.cycles };
         // Never cancel a running timer — stage it instead.

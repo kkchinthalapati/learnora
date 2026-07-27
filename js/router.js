@@ -1,5 +1,6 @@
 import { UI, $, esc, localDateStr, mondayOfWeek } from "./ui.js";
 import { Folders, Materials, Decks, Notes, Flashcards, Quizzes } from "./api.js";
+import { Icons } from "./icons.js";
 
 /** Only allow safe hex colors into inline style attributes */
 function safeColor(color, fallback = "#4A90E2") {
@@ -213,17 +214,17 @@ export const Router = {
         <div class="glass-panel empty-state">
             <h3>No flashcards yet.</h3>
             <p class="mt-8 mb-16">Generate flashcards from your study materials using Learnora AI.</p>
-            <button class="btn-primary" data-hash="upload">📤 Upload a material →</button>
+            <button class="btn-primary" data-hash="upload">${Icons.svg("upload-cloud", { size: 16 })} Upload a material →</button>
         </div>
       `;
     } else {
       container.innerHTML = decks.map(d => `
         <div class="glass-panel stat-card cursor-pointer hover-lift flex-between" style="position: relative;" data-hash="review-${encodeURIComponent(d.id)}">
           <div class="folder-card-actions">
-            <button type="button" class="icon-btn" data-action="delete-deck" data-deck-id="${d.id}" data-deck-title="${esc(d.title)}" aria-label="Delete deck" title="Delete deck">🗑</button>
+            <button type="button" class="icon-btn" data-action="delete-deck" data-deck-id="${d.id}" data-deck-title="${esc(d.title)}" aria-label="Delete deck" title="Delete deck">${Icons.svg("trash", { size: 16 })}</button>
           </div>
           <div>
-            <h3>🗂️ ${esc(d.title)}</h3>
+            <h3 style="display: inline-flex; align-items: center; gap: 8px;">${Icons.svg("layers", { size: 18 })} ${esc(d.title)}</h3>
             <p class="text-muted mt-4 text-sm">Created: ${new Date(d.created_at).toLocaleDateString()}</p>
           </div>
           <span class="btn-primary" style="padding: 6px 12px; font-size: 0.8rem;">Review</span>
@@ -269,10 +270,10 @@ export const Router = {
           return `
           <div class="glass-panel stat-card cursor-pointer hover-lift" style="border-top: 4px solid ${safeColor(f.color)}; position: relative;" data-hash="folder-${encodeURIComponent(f.id)}">
             <div class="folder-card-actions">
-              <button type="button" class="icon-btn" data-action="rename-folder" data-folder-id="${f.id}" data-folder-name="${esc(f.name)}" aria-label="Rename folder" title="Rename folder">✎</button>
-              <button type="button" class="icon-btn" data-action="delete-folder" data-folder-id="${f.id}" data-folder-name="${esc(f.name)}" aria-label="Delete folder" title="Delete folder">🗑</button>
+              <button type="button" class="icon-btn" data-action="rename-folder" data-folder-id="${f.id}" data-folder-name="${esc(f.name)}" aria-label="Rename folder" title="Rename folder">${Icons.svg("pencil", { size: 16 })}</button>
+              <button type="button" class="icon-btn" data-action="delete-folder" data-folder-id="${f.id}" data-folder-name="${esc(f.name)}" aria-label="Delete folder" title="Delete folder">${Icons.svg("trash", { size: 16 })}</button>
             </div>
-            <h3>📁 ${esc(f.name)}</h3>
+            <h3 style="display: inline-flex; align-items: center; gap: 8px;">${Icons.svg("folder", { size: 18 })} ${esc(f.name)}</h3>
             <p class="text-muted mt-8">${count} material${count === 1 ? "" : "s"}${created ? ` • Created ${created}` : ""}</p>
           </div>
         `;
@@ -318,10 +319,10 @@ export const Router = {
       materialsList.innerHTML = "<p class='empty-state-sm'>No materials yet.</p>";
     } else {
       materialsList.innerHTML = materials.map(m => {
-        let icon = "📄";
-        if (m.type === "youtube") icon = "📺";
-        else if (m.type === "audio") icon = "🎤";
-        else if (m.type === "text") icon = "📝";
+        let icon = Icons.svg("file-text", { size: 16 });
+        if (m.type === "youtube") icon = Icons.svg("play", { size: 16 });
+        else if (m.type === "audio") icon = Icons.svg("mic", { size: 16 });
+        else if (m.type === "text") icon = Icons.svg("list-checks", { size: 16 });
         
         return `
           <div class="material-row">
@@ -350,7 +351,7 @@ export const Router = {
       decksList.innerHTML = decks.map(d => `
         <div class="material-row">
           <div class="material-open cursor-pointer hover-bright" data-hash="review-${encodeURIComponent(d.id)}">
-            <span class="todo-text material-title">🗂️ ${esc(d.title)}</span>
+            <span class="todo-text material-title" style="display: inline-flex; align-items: center; gap: 6px;">${Icons.svg("layers", { size: 15 })} ${esc(d.title)}</span>
           </div>
           <button
             type="button"
@@ -392,7 +393,7 @@ export const Router = {
         quizzesList.innerHTML = quizzes.map(q => `
           <div class="material-row">
             <div class="material-open cursor-pointer hover-bright" data-hash="quiz-${encodeURIComponent(q.id)}">
-              <span class="todo-text material-title">❓ ${esc(q.title)}</span>
+              <span class="todo-text material-title" style="display: inline-flex; align-items: center; gap: 6px;">${Icons.svg("help-circle", { size: 15 })} ${esc(q.title)}</span>
             </div>
             <button
               type="button"
@@ -717,10 +718,10 @@ Also provide a short 1-sentence feedback.`;
       container.innerHTML = quizzes.map(q => `
         <div class="glass-panel stat-card hover-lift flex-between" style="position: relative;">
           <div class="folder-card-actions">
-            <button type="button" class="icon-btn" data-action="delete-quiz" data-quiz-id="${q.id}" data-quiz-title="${esc(q.title)}" aria-label="Delete quiz" title="Delete quiz">🗑</button>
+            <button type="button" class="icon-btn" data-action="delete-quiz" data-quiz-id="${q.id}" data-quiz-title="${esc(q.title)}" aria-label="Delete quiz" title="Delete quiz">${Icons.svg("trash", { size: 16 })}</button>
           </div>
           <div class="cursor-pointer" data-hash="quiz-${encodeURIComponent(q.id)}">
-            <h3>❓ ${esc(q.title)}</h3>
+            <h3 style="display: inline-flex; align-items: center; gap: 8px;">${Icons.svg("help-circle", { size: 18 })} ${esc(q.title)}</h3>
             <p class="text-muted mt-4 text-sm">${(q.questions_json || []).length} questions · Created: ${new Date(q.created_at).toLocaleDateString()}</p>
           </div>
           <div class="flex-gap">
@@ -785,7 +786,7 @@ Also provide a short 1-sentence feedback.`;
           <p class="mt-8" style="font-size: 1.5rem;">${score} / ${total} correct</p>
           ${weakTopics.length ? `<p class="text-muted mt-16">Topics to review: ${weakTopics.map(esc).join(", ")}</p>` : ""}
           <div class="flex-gap mt-24">
-            <button class="btn-primary" data-hash="quizreview-${encodeURIComponent(quiz.id)}">📋 Review answers</button>
+            <button class="btn-primary" data-hash="quizreview-${encodeURIComponent(quiz.id)}">${Icons.svg("list-checks", { size: 16 })} Review answers</button>
             <button class="btn-secondary" data-hash="quizzes">Back to Quizzes</button>
           </div>
         `;
@@ -981,7 +982,7 @@ Also provide a short 1-sentence feedback.`;
 
     const plan = await Plans.fetchForWeek(weekStartISO);
 
-    if (regenBtn) regenBtn.textContent = plan ? "🔄 Regenerate" : "✨ Generate Plan";
+    if (regenBtn) regenBtn.innerHTML = plan ? `${Icons.svg("refresh-cw", { size: 15 })} Regenerate` : `${Icons.svg("bot", { size: 15 })} Generate Plan`;
 
     if (!plan) {
       summaryEl.innerHTML = "";
@@ -989,11 +990,11 @@ Also provide a short 1-sentence feedback.`;
       daysEl.classList.add("is-empty");
       daysEl.innerHTML = `
         <div class="plan-empty-state glass-panel">
-          <div class="plan-empty-icon">🗓️</div>
+          <div class="plan-empty-icon">${Icons.svg("calendar-week", { size: 44 })}</div>
           <h3>No plan yet for this week</h3>
           <p class="text-muted">Learnora AI can build one from your open tasks and upcoming exams.</p>
           <button class="btn-primary mt-20" id="btn-generate-plan-empty" style="padding: 12px 28px; font-size: var(--fs-md); font-weight: 600;">
-            ✨ Generate Weekly Plan with AI
+            ${Icons.svg("bot", { size: 17 })} Generate Weekly Plan with AI
           </button>
         </div>
       `;

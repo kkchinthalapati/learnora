@@ -5,6 +5,7 @@ import { AI } from "./ai.js";
 import { Router } from "./router.js";
 import { supabase } from "./supabase.js";
 import { DatePicker } from "./datepicker.js";
+import { Icons } from "./icons.js";
 
 /* =========================================================================
    STATE
@@ -1273,7 +1274,7 @@ async function loadTasks() {
         const today = formatDateStr(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
         dueBadge.classList.remove("overdue", "due-today", "unset");
         if (t.due_date) {
-          dueBadge.textContent = `📅 ${t.due_date}`;
+          dueBadge.innerHTML = `${Icons.svg("calendar", { size: 13 })} ${t.due_date}`;
           if (t.due_date < today) dueBadge.classList.add("overdue");
           else if (t.due_date === today) dueBadge.classList.add("due-today");
         } else {
@@ -1712,7 +1713,7 @@ function openDayDetailModal(dateStr, exams) {
         <span class="day-detail-exam-name">${esc(exam.exam_name)}</span>
         <span class="text-sm" style="color: var(--text-muted);">${esc(exam.difficulty)} • ${esc(exam.status)}</span>
       </div>
-      <span class="icon-btn" aria-hidden="true">✎</span>
+      <span class="icon-btn" aria-hidden="true">${Icons.svg("pencil", { size: 16 })}</span>
     `;
     const openForEdit = () => {
       ModalManager.close("day-detail-modal");
@@ -1931,7 +1932,7 @@ function renderNextExam() {
     <div>
       <div class="dash-exam-name">${esc(next.exam_name)}</div>
       <div class="dash-exam-meta mt-8">
-        <span>📅 ${esc(prettyDate)}</span>
+        <span style="display: inline-flex; align-items: center; gap: 5px;">${Icons.svg("calendar", { size: 14 })} ${esc(prettyDate)}</span>
         <span class="dash-pill diff-${esc(diff.toLowerCase())}">${esc(diff)}</span>
       </div>
     </div>
@@ -2167,7 +2168,7 @@ async function renderDueCards() {
       dueEl.classList.remove("hidden");
       dueEl.innerHTML = `
         <div class="flex-between">
-          <span>🗂️ ${count} card${count === 1 ? "" : "s"} due today</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px;">${Icons.svg("layers", { size: 15 })} ${count} card${count === 1 ? "" : "s"} due today</span>
           <a href="#flashcards" class="dash-link">Review now →</a>
         </div>`;
     } else {
@@ -2180,7 +2181,7 @@ async function renderDueCards() {
   if (banner) {
     if (count > 0) {
       banner.classList.remove("hidden");
-      banner.innerHTML = `🗂️ <strong>${count}</strong> card${count === 1 ? "" : "s"} due for review today.`;
+      banner.innerHTML = `${Icons.svg("layers", { size: 15 })} <strong>${count}</strong> card${count === 1 ? "" : "s"} due for review today.`;
     } else {
       banner.classList.add("hidden");
       banner.innerHTML = "";
@@ -2237,8 +2238,8 @@ async function maybeRenderOnboardingBanner() {
       <button id="btn-dismiss-onboarding" class="icon-btn" aria-label="Dismiss">✖</button>
     </div>
     <div class="flex-gap mt-16">
-      <button class="btn-primary" data-hash="upload">📤 Upload material</button>
-      <button class="btn-secondary" id="btn-onboarding-add-task">📝 Add a task</button>
+      <button class="btn-primary" data-hash="upload">${Icons.svg("upload-cloud", { size: 15 })} Upload material</button>
+      <button class="btn-secondary" id="btn-onboarding-add-task">${Icons.svg("list-checks", { size: 15 })} Add a task</button>
     </div>
   `;
   $("btn-dismiss-onboarding")?.addEventListener("click", () => {
@@ -2354,7 +2355,7 @@ function bindAI() {
     }
 
     const original = btn.innerHTML;
-    btn.innerHTML = '<span class="dash-ai-icon">🗓️</span> Generating…';
+    btn.innerHTML = `<span class="dash-ai-icon">${Icons.svg("calendar-week", { size: 18 })}</span> Generating…`;
     btn.disabled = true;
     const plan = await AI.generateWeeklyPlan();
     btn.innerHTML = original;
