@@ -51,6 +51,17 @@ export const Router = {
         );
         return;
       }
+      // Deck/quiz delete buttons sit inside cards that also carry a
+      // [data-hash] (or a data-hash on a sibling), so — same as above —
+      // this must short-circuit before that handler runs.
+      if (actionEl?.dataset.action === "delete-deck") {
+        this.deleteDeck(actionEl.dataset.deckId, actionEl.dataset.deckTitle);
+        return;
+      }
+      if (actionEl?.dataset.action === "delete-quiz") {
+        this.deleteQuiz(actionEl.dataset.quizId, actionEl.dataset.quizTitle);
+        return;
+      }
 
       const navEl = e.target.closest("[data-hash]");
       if (navEl) {
@@ -207,7 +218,10 @@ export const Router = {
       `;
     } else {
       container.innerHTML = decks.map(d => `
-        <div class="glass-panel stat-card cursor-pointer hover-lift flex-between" data-hash="review-${encodeURIComponent(d.id)}">
+        <div class="glass-panel stat-card cursor-pointer hover-lift flex-between" style="position: relative;" data-hash="review-${encodeURIComponent(d.id)}">
+          <div class="folder-card-actions">
+            <button type="button" class="icon-btn" data-action="delete-deck" data-deck-id="${d.id}" data-deck-title="${esc(d.title)}" aria-label="Delete deck" title="Delete deck">🗑</button>
+          </div>
           <div>
             <h3>🗂️ ${esc(d.title)}</h3>
             <p class="text-muted mt-4 text-sm">Created: ${new Date(d.created_at).toLocaleDateString()}</p>
@@ -334,10 +348,41 @@ export const Router = {
       decksList.innerHTML = "<p class='empty-state-sm'>No flashcard decks yet.</p>";
     } else {
       decksList.innerHTML = decks.map(d => `
-        <div class="todo-item cursor-pointer" data-hash="review-${encodeURIComponent(d.id)}">
-          <span class="todo-text">🗂️ ${esc(d.title)}</span>
+        <div class="material-row">
+          <div class="material-open cursor-pointer hover-bright" data-hash="review-${encodeURIComponent(d.id)}">
+            <span class="todo-text material-title">🗂️ ${esc(d.title)}</span>
+          </div>
+          <button
+            type="button"
+            class="material-delete"
+            data-action="delete-deck"
+            data-deck-id="${d.id}"
+            data-deck-title="${esc(d.title)}"
+            aria-label="Delete ${esc(d.title)}"
+            title="Delete this deck"
+          >✕</button>
         </div>
       `).join("");
+    }
+
+    const deckGenBtn = $("btn-generate-deck");
+    if (deckGenBtn) {
+      const freshDeckBtn = deckGenBtn.cloneNode(true);
+      deckGenBtn.replaceWith(freshDeckBtn);
+      freshDeckBtn.addEventListener("click", async () => {
+        if (materials.length === 0) {
+          UI.showPopup("Upload a material into this folder first, then generate flashcards from it.", "No materials yet");
+          return;
+        }
+        const original = freshDeckBtn.textContent;
+        freshDeckBtn.textContent = "Generating…";
+        freshDeckBtn.disabled = true;
+        const { AI } = await import("./ai.js");
+        const deck = await AI.generateFlashcards(materials[0].id, folderId);
+        freshDeckBtn.textContent = original;
+        freshDeckBtn.disabled = false;
+        if (deck) this.loadFolderDetail(folderId);
+      });
     }
 
     if (quizzesList) {
@@ -345,8 +390,19 @@ export const Router = {
         quizzesList.innerHTML = "<p class='empty-state-sm'>No quizzes yet.</p>";
       } else {
         quizzesList.innerHTML = quizzes.map(q => `
-          <div class="todo-item cursor-pointer" data-hash="quiz-${encodeURIComponent(q.id)}">
-            <span class="todo-text">❓ ${esc(q.title)}</span>
+          <div class="material-row">
+            <div class="material-open cursor-pointer hover-bright" data-hash="quiz-${encodeURIComponent(q.id)}">
+              <span class="todo-text material-title">❓ ${esc(q.title)}</span>
+            </div>
+            <button
+              type="button"
+              class="material-delete"
+              data-action="delete-quiz"
+              data-quiz-id="${q.id}"
+              data-quiz-title="${esc(q.title)}"
+              aria-label="Delete ${esc(q.title)}"
+              title="Delete this quiz"
+            >✕</button>
           </div>
         `).join("");
       }
@@ -445,6 +501,48 @@ export const Router = {
     // Re-render the folder the user is still looking at.
     const currentFolder = (window.location.hash.replace("#", "").match(/^folder-(.+)$/) || [])[1];
     if (currentFolder) this.loadFolderDetail(decodeURIComponent(currentFolder));
+  },
+
+  /* Called from both the main Flashcards tab and a folder's workspace view,
+     so it re-renders whichever of those the user is currently looking at. */
+  async deleteDeck(id, title) {
+    if (!id) return;
+    const ok = await UI.confirm(
+      `"${title}" and all its flashcards will be permanently deleted.`,
+      { title: "Delete deck?", confirmText: "Delete", danger: true },
+    );
+    if (!ok) return;
+
+    const deleted = await Decks.delete(id);
+    if (!deleted) {
+      UI.showPopup("Couldn't delete that deck. Please try again.", "Delete failed");
+      return;
+    }
+    UI.showToast(`Deleted "${title}".`);
+
+    const currentFolder = (window.location.hash.replace("#", "").match(/^folder-(.+)$/) || [])[1];
+    if (currentFolder) this.loadFolderDetail(decodeURIComponent(currentFolder));
+    else this.loadAllFlashcards();
+  },
+
+  async deleteQuiz(id, title) {
+    if (!id) return;
+    const ok = await UI.confirm(
+      `"${title}" and its attempt history will be permanently deleted.`,
+      { title: "Delete quiz?", confirmText: "Delete", danger: true },
+    );
+    if (!ok) return;
+
+    const deleted = await Quizzes.delete(id);
+    if (!deleted) {
+      UI.showPopup("Couldn't delete that quiz. Please try again.", "Delete failed");
+      return;
+    }
+    UI.showToast(`Deleted "${title}".`);
+
+    const currentFolder = (window.location.hash.replace("#", "").match(/^folder-(.+)$/) || [])[1];
+    if (currentFolder) this.loadFolderDetail(decodeURIComponent(currentFolder));
+    else this.loadAllQuizzes();
   },
 
   async startReview(deckId) {
@@ -617,7 +715,10 @@ Also provide a short 1-sentence feedback.`;
       `;
     } else {
       container.innerHTML = quizzes.map(q => `
-        <div class="glass-panel stat-card hover-lift flex-between">
+        <div class="glass-panel stat-card hover-lift flex-between" style="position: relative;">
+          <div class="folder-card-actions">
+            <button type="button" class="icon-btn" data-action="delete-quiz" data-quiz-id="${q.id}" data-quiz-title="${esc(q.title)}" aria-label="Delete quiz" title="Delete quiz">🗑</button>
+          </div>
           <div class="cursor-pointer" data-hash="quiz-${encodeURIComponent(q.id)}">
             <h3>❓ ${esc(q.title)}</h3>
             <p class="text-muted mt-4 text-sm">${(q.questions_json || []).length} questions · Created: ${new Date(q.created_at).toLocaleDateString()}</p>

@@ -637,6 +637,14 @@ label {
     padding: 10px;
     text-align: center;
 }
+/* These two hold option text ("Unassigned", task names), not short numbers —
+   96px clipped "Unassigned" to "Unassigne". */
+#active-folder-select,
+#active-task-select {
+    width: auto;
+    min-width: 140px;
+    text-align: left;
+}
 
 .todo-edit-input {
     flex: 1;
@@ -1506,6 +1514,30 @@ label {
 }
 .dash-focus {
     justify-content: flex-start;
+}
+.dash-focus-presets {
+    display: flex;
+    gap: var(--s-2);
+    margin-top: var(--s-4);
+}
+.btn-focus-preset {
+    flex: 1;
+    padding: var(--s-2) 0;
+    border: var(--border);
+    border-radius: var(--r-pill);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.btn-focus-preset:hover,
+.btn-focus-preset:focus-visible {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent);
 }
 
 /* --- Today's tasks --- */
@@ -2380,8 +2412,8 @@ label {
     position: relative;
     overflow: hidden;
     background:
-        radial-gradient(120% 120% at 20% 10%, #3a4ec4 0%, transparent 55%),
-        linear-gradient(160deg, #2a3570 0%, #121830 100%);
+        radial-gradient(120% 120% at 15% 0%, var(--accent-glow) 0%, transparent 50%),
+        linear-gradient(165deg, #1c2033 0%, #0d0f1a 100%);
 }
 .auth-visual::before {
     content: "";
@@ -2392,7 +2424,7 @@ label {
     left: -50%;
     background: radial-gradient(
         circle,
-        rgba(255, 255, 255, 0.08) 0%,
+        rgba(255, 255, 255, 0.05) 0%,
         transparent 55%
     );
     animation: drift 32s linear infinite;
@@ -2400,23 +2432,24 @@ label {
 .visual-content {
     position: relative;
     z-index: 2;
-    text-align: center;
-    padding: 0 var(--s-8);
+    text-align: left;
+    padding: 0 var(--s-10);
+    max-width: 460px;
 }
 .visual-content h2 {
-    font-size: clamp(26px, 3.4vw, 38px);
+    font-size: clamp(26px, 3.4vw, 36px);
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.22;
     letter-spacing: -0.02em;
     color: #fff;
     margin-bottom: var(--s-4);
 }
 .visual-subtitle {
-    color: rgba(255, 255, 255, 0.72);
+    color: rgba(255, 255, 255, 0.68);
     font-size: var(--fs-md);
     line-height: 1.5;
     max-width: 380px;
-    margin: 0 auto var(--s-8);
+    margin: 0 0 var(--s-8);
 }
 
 /* Auth status message */
@@ -2447,28 +2480,29 @@ label {
 
 /* Visual feature highlights */
 .visual-features {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: var(--s-3);
-    max-width: 320px;
-    margin: 0 auto;
 }
 .visual-feature {
     display: flex;
     align-items: center;
     gap: var(--s-3);
-    padding: 12px 16px;
-    border-radius: var(--r-md);
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.9);
+    padding: var(--s-2) 0;
+    color: rgba(255, 255, 255, 0.85);
     font-size: var(--fs-sm);
     font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.visual-feature:last-child {
+    border-bottom: none;
 }
 .feature-icon {
-    font-size: var(--fs-lg);
+    font-size: var(--fs-md);
     line-height: 1;
+    width: 20px;
+    flex-shrink: 0;
+    opacity: 0.9;
 }
 
 /* Floating study decorations */
@@ -2908,28 +2942,30 @@ label {
     bottom: clamp(20px, 4vw, 36px);
     right: clamp(20px, 4vw, 36px);
     z-index: 990;
-    width: 60px;
-    height: 60px;
+    width: 54px;
+    height: 54px;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: var(--fs-md);
     font-weight: 700;
-    border-radius: 50%;
+    border-radius: var(--r-lg);
     color: var(--accent-on);
-    background: linear-gradient(135deg, var(--accent), #7b8ef0);
-    box-shadow: var(--shadow-accent), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    background: var(--accent);
+    box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.15);
 }
 .ai-trigger-btn:hover {
-    background: linear-gradient(135deg, var(--accent-hover), var(--accent));
-    transform: translateY(-2px) scale(1.06);
-    box-shadow: 0 8px 28px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 .ai-trigger-icon {
     color: var(--accent-on);
-    animation: ring-glow 3s ease-in-out infinite;
+}
+.ai-trigger-btn:hover .ai-trigger-icon {
+    animation: ring-glow 1.6s ease-in-out infinite;
 }
 
 .ai-nav-dot {
@@ -3242,9 +3278,9 @@ label {
 .liquid-blob {
     position: absolute;
     border-radius: 50%;
-    filter: blur(90px) saturate(180%);
-    opacity: 0.35;
-    animation: liquid-drift 20s ease-in-out infinite alternate;
+    filter: blur(110px) saturate(140%);
+    opacity: 0.14;
+    animation: liquid-drift 32s ease-in-out infinite alternate;
 }
 .liquid-blob--1 {
     width: 650px;
@@ -3260,7 +3296,7 @@ label {
     bottom: -10%;
     right: -8%;
     animation-delay: -6s;
-    animation-duration: 24s;
+    animation-duration: 36s;
 }
 .liquid-blob--3 {
     width: 480px;
@@ -3269,13 +3305,13 @@ label {
     top: 30%;
     right: 10%;
     animation-delay: -12s;
-    animation-duration: 28s;
-    opacity: 0.28;
+    animation-duration: 40s;
+    opacity: 0.1;
 }
 .liquid-blob--4 {
     width: 450px;
     height: 450px;
-    background: radial-gradient(circle, #d845f8 0%, transparent 70%);
+    background: radial-gradient(circle, var(--danger) 0%, transparent 70%);
     bottom: 10%;
     left: 20%;
     animation-delay: -16s;
@@ -3600,8 +3636,8 @@ body.dark-theme select {
 }
 
 body.dark-theme .liquid-blob {
-    opacity: 0.4;
-    filter: blur(120px) saturate(150%);
+    opacity: 0.16;
+    filter: blur(130px) saturate(120%);
 }
 body.dark-theme .liquid-blob--1 {
     background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
@@ -3610,7 +3646,7 @@ body.dark-theme .liquid-blob--2 {
     background: radial-gradient(circle, var(--success) 0%, transparent 70%);
 }
 body.dark-theme .liquid-blob--3 {
-    opacity: 0.3;
+    opacity: 0.12;
     background: radial-gradient(circle, var(--danger) 0%, transparent 70%);
 }
 
@@ -4163,12 +4199,21 @@ input:focus, select:focus, textarea:focus {
     transition: transform 0.3s var(--ease-spring), box-shadow 0.3s ease;
 }
 /* Make them pop when you hover their parent container */
-.dash-ai-btn:hover .dash-ai-icon, 
-.visual-feature:hover .feature-icon,
+.dash-ai-btn:hover .dash-ai-icon,
 .settings-tab-btn:hover .tab-icon {
     transform: scale(1.1) rotate(-5deg);
     box-shadow: 0 4px 12px var(--accent-glow);
     border-color: var(--accent-ring);
+}
+/* The auth panel's feature list reads as a plain inline glyph, not a boxed
+   app icon — it's a one-off marketing aside, not a repeated UI affordance. */
+.visual-feature .feature-icon {
+    width: 20px;
+    height: auto;
+    background: none;
+    border: none;
+    box-shadow: none;
+    margin-right: 0;
 }
 
 /* --- B. Turbo AI Button Active State --- */

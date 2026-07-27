@@ -651,6 +651,17 @@ export const Decks = {
     if (error) throw new Error(error.message);
     return data;
   },
+
+  // flashcards.deck_id -> flashcard_decks.id is ON DELETE CASCADE, so the
+  // deck's cards are removed automatically.
+  async delete(id) {
+    const { error } = await supabase.from("flashcard_decks").delete().eq("id", id);
+    if (error) {
+      console.error("[Decks.delete]", error.message);
+      return false;
+    }
+    return true;
+  },
 };
 
 export const Flashcards = {

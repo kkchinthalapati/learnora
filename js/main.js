@@ -13,6 +13,13 @@ import { DatePicker } from "./datepicker.js";
 let displayDate = new Date();
 let cachedExams = [];
 
+// Shared with the dashboard's quick-start focus presets.
+const WORKFLOW_PRESETS = {
+  deep: { focus: 90, short: 15, long: 30, maxCycles: 4 },
+  cram: { focus: 45, short: 10, long: 20, maxCycles: 4 },
+  light: { focus: 20, short: 5, long: 15, maxCycles: 4 },
+};
+
 /* =========================================================================
    HELPERS
    ========================================================================= */
@@ -1121,12 +1128,7 @@ function bindTimer() {
   document.querySelector(".preset-buttons")?.addEventListener("click", (e) => {
     const btn = e.target.closest(".btn-preset");
     if (!btn) return;
-    const presets = {
-      deep: { focus: 90, short: 15, long: 30, maxCycles: 4 },
-      cram: { focus: 45, short: 10, long: 20, maxCycles: 4 },
-      light: { focus: 20, short: 5, long: 15, maxCycles: 4 },
-    };
-    const p = presets[btn.dataset.preset];
+    const p = WORKFLOW_PRESETS[btn.dataset.preset];
     if (!p) return;
     
     // Bug 9: Only change the config inputs
@@ -1142,6 +1144,32 @@ function bindTimer() {
         radio.checked = true;
         radio.dispatchEvent(new Event("change"));
     }
+  });
+
+  // Dashboard "Focus Session" quick-start presets — the plain "Start a focus
+  // session" button deliberately just resumes whatever mode/duration was last
+  // active, but these jump straight into a running pomodoro of a fixed length
+  // instead of requiring a trip through the timer's config panel + Start.
+  document.querySelector(".dash-focus-presets")?.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".btn-focus-preset");
+    if (!btn) return;
+    const p = WORKFLOW_PRESETS[btn.dataset.preset];
+    if (!p) return;
+
+    if (Timer.isRunning()) {
+      const ok = await UI.confirm(
+        "A timer is currently running. Start a new focus session and reset it now?",
+        { title: "Timer running", confirmText: "Start new session", cancelText: "Keep running", danger: true },
+      );
+      if (!ok) return;
+    }
+
+    const radio = document.querySelector('input[name="timer-type"][value="pomodoro"]');
+    if (radio) radio.checked = true;
+
+    Timer.applyNow(p, "pomodoro");
+    Timer.start();
+    window.location.hash = "timer";
   });
 
   // Persistent mini-timer controls.

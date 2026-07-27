@@ -625,6 +625,54 @@ Do NOT wrap in code fences. Do NOT add any text before or after the JSON array.`
     }
   },
 
+  /* On-demand deck generation for a material that already has one (or had its
+     original deck deleted). Mirrors generateQuiz(): reuses the notes already
+     saved during ingestion instead of re-uploading the source file. */
+  async generateFlashcards(materialId, folderId) {
+    try {
+      const { Notes, Materials, Decks, Flashcards } = await import("./api.js");
+
+      const notes = await Notes.fetchByMaterial(materialId);
+      const sourceText = notes?.[0]?.markdown_content?.substring(0, 6000);
+      if (!sourceText) {
+        UI.showPopup("No notes are available for this material yet — wait for AI processing to finish, then try again.", "Flashcard Generation");
+        return null;
+      }
+
+      const materials = await Materials.fetch(folderId);
+      const material = materials.find(m => m.id === materialId);
+      const title = material ? `${material.title} Flashcards` : "Flashcards";
+
+      const prompt = `Generate a fresh set of 8-15 flashcards from the study material below. Each card must test a distinct concept.
+Output a raw JSON array only: [{"front": "What is X?", "back": "X is..."}]
+Do NOT wrap in code fences. Do NOT add any text before or after the JSON array.
+
+Study Material:
+"""
+${sourceText}
+"""`;
+
+      const data = await this._callEdgeStream({
+        history: [{ role: "user", content: prompt }],
+        settings: UI.loadSettings(),
+      }, null);
+
+      const flashcards = this._extractFlashcardJSON(data.text);
+      if (flashcards.length === 0) {
+        UI.showPopup("Couldn't generate flashcards this time. Please try again.", "Flashcard Generation");
+        return null;
+      }
+
+      const deck = await Decks.add(folderId, title);
+      await Flashcards.addBatch(deck.id, flashcards);
+      return deck;
+    } catch (err) {
+      console.error("[AI.generateFlashcards]", err);
+      UI.showPopup("Failed to generate flashcards. Please try again.", "Flashcard Generation");
+      return null;
+    }
+  },
+
   /* =========================================================================
      CHAT — Context-aware workspace assistant
      ========================================================================= */

@@ -475,6 +475,11 @@
                                 <strong id="dash-today-focus">0m</strong>
                                 logged today
                             </p>
+                            <div class="dash-focus-presets" role="group" aria-label="Quick-start a focus session">
+                                <button type="button" class="btn-focus-preset" data-preset="light">20m</button>
+                                <button type="button" class="btn-focus-preset" data-preset="cram">45m</button>
+                                <button type="button" class="btn-focus-preset" data-preset="deep">90m</button>
+                            </div>
                             <button
                                 class="btn-primary full-width mt-16"
                                 data-hash="timer"
@@ -1779,8 +1784,9 @@
                         <div class="glass-panel">
                             <div class="flex-between mb-16">
                                 <h3>🗂️ Flashcard Decks</h3>
+                                <button id="btn-generate-deck" class="btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" title="Generates a fresh flashcard deck from the most recently added material in this folder">+ New Deck</button>
                             </div>
-                            <p class="text-muted text-sm mb-8">Created automatically whenever you upload material here.</p>
+                            <p class="text-muted text-sm mb-8">Created automatically whenever you upload material here — or generate a fresh set anytime.</p>
                             <div id="workspace-decks-list" class="list-container"></div>
                         </div>
 
