@@ -12,7 +12,12 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <link href="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css" rel="stylesheet">
+        <!-- Quill's stylesheet is served from this origin. Loading it from
+             cdn.jsdelivr.net tripped style-src and the whole editor chrome
+             rendered unstyled (toolbar pickers blew up to ~400px). Vendored
+             rather than adding the CDN to style-src. Pinned copy of
+             quill@2.0.3 — update alongside the script tag below. -->
+        <link href="vendor/quill.snow.css" rel="stylesheet">
         <link rel="stylesheet" href="style.css?v=3" />
     </head>
     <body class="dark-theme">
@@ -1871,46 +1876,55 @@
                             <div id="notes-quill-editor" style="border: none;"></div>
                         </div>
 
-                        <!-- RIGHT: AI side panel -->
-                        <div class="notes-ai-panel">
+                        <!-- RIGHT: AI study sidebar -->
+                        <aside class="notes-ai-panel" aria-label="Study assistant">
                             <!-- Quick action cards -->
-                            <div class="notes-ai-cards grid-list" style="gap: 12px;">
-                                <div class="notes-ai-card glass-panel cursor-pointer flex-gap p-16" id="notes-action-quiz" role="button" tabindex="0">
-                                    <span class="notes-ai-card-icon" style="font-size: 1.5rem;">❓</span>
-                                    <div>
-                                        <div style="display: flex; align-items: center; gap: 8px;">
-                                            <strong style="color: var(--primary);">Quizzes</strong>
-                                            <span class="badge badge-popular" style="background: var(--success); color: #fff; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px;">Popular</span>
+                            <div class="notes-ai-cards">
+                                <div class="notes-ai-card" id="notes-action-quiz" role="button" tabindex="0">
+                                    <span class="notes-ai-card-icon"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.5 2.5 0 0 1 4.9.8c0 1.7-2.4 1.9-2.4 3.5"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+                                    <div class="notes-ai-card-body">
+                                        <div class="notes-ai-card-head">
+                                            <strong>Quiz me</strong>
+                                            <span class="badge badge-popular">Popular</span>
                                         </div>
-                                        <p class="text-sm text-muted mt-4">Test your knowledge</p>
+                                        <p class="text-sm text-muted">Check what stuck</p>
                                     </div>
                                 </div>
-                                <div class="notes-ai-card glass-panel cursor-pointer flex-gap p-16" id="notes-action-flashcards" role="button" tabindex="0">
-                                    <span class="notes-ai-card-icon" style="font-size: 1.5rem;">🃏</span>
-                                    <div>
-                                        <strong style="color: var(--primary);">Flashcards</strong>
-                                        <p class="text-sm text-muted mt-4">Study with active recall</p>
+                                <div class="notes-ai-card" id="notes-action-flashcards" role="button" tabindex="0">
+                                    <span class="notes-ai-card-icon"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2.5 2.5 7.5 12 12.5 21.5 7.5 12 2.5"/><polyline points="2.5 12.5 12 17.5 21.5 12.5"/><polyline points="2.5 17.5 12 22.5 21.5 17.5"/></svg></span>
+                                    <div class="notes-ai-card-body">
+                                        <div class="notes-ai-card-head"><strong>Flashcards</strong></div>
+                                        <p class="text-sm text-muted">Active recall drill</p>
                                     </div>
                                 </div>
-                                <div class="notes-ai-card glass-panel cursor-pointer flex-gap p-16 opacity-70" id="notes-action-podcast" role="button" tabindex="0">
-                                    <span class="notes-ai-card-icon" style="font-size: 1.5rem;">🎙️</span>
-                                    <div>
-                                        <strong style="color: var(--primary);">Podcast</strong>
-                                        <p class="text-sm text-muted mt-4">Listen & learn (coming soon)</p>
+                                <div class="notes-ai-card is-soon" id="notes-action-podcast" role="button" tabindex="0">
+                                    <span class="notes-ai-card-icon"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="9" y1="21" x2="15" y2="21"/></svg></span>
+                                    <div class="notes-ai-card-body">
+                                        <div class="notes-ai-card-head"><strong>Podcast</strong></div>
+                                        <p class="text-sm text-muted">Listen &amp; learn — soon</p>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- AI Chat section -->
-                            <div class="notes-ai-chat glass-panel mt-16 p-24" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;">
-                                <div class="text-center mb-16" style="flex-shrink: 0;">
-                                    <h3 class="notes-ai-greeting" style="font-size: 1.5rem; color: var(--primary); font-weight: 600;">Hey, I'm Learnora AI</h3>
-                                    <p class="notes-ai-subtext text-muted text-sm mt-8">I can work with you on your notes and answer any questions!</p>
+                            <div class="notes-ai-chat">
+                                <div class="notes-ai-intro">
+                                    <span class="notes-ai-avatar"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5a3 3 0 0 0-3 3v1a3 3 0 0 0-1.5 5.6A3 3 0 0 0 7 19.5a3 3 0 0 0 2-.8"/><path d="M15 4.5a3 3 0 0 1 3 3v1a3 3 0 0 1 1.5 5.6A3 3 0 0 1 17 19.5a3 3 0 0 1-2-.8"/><path d="M9 4.5a3 3 0 0 1 3 2.7v9.3a3 3 0 0 1-2 2.8"/><path d="M15 4.5a3 3 0 0 0-3 2.7v9.3a3 3 0 0 0 2 2.8"/></svg></span>
+                                    <div>
+                                        <h3 class="notes-ai-greeting">Study with me</h3>
+                                        <p class="notes-ai-subtext text-muted text-sm">I'm reading this document alongside you — ask me anything about it.</p>
+                                    </div>
                                 </div>
-                                
-                                <div id="notes-chat-messages" class="chat-messages" style="flex: 1; overflow-y: auto; padding-right: 8px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 16px;"></div>
-                                
-                                <div class="notes-chat-input-row" style="position: relative; flex-shrink: 0;">
+
+                                <div id="notes-suggestions" class="notes-suggestions">
+                                    <button type="button" class="notes-suggestion" data-prompt="Explain the key ideas in this document in plain language.">Explain the key ideas</button>
+                                    <button type="button" class="notes-suggestion" data-prompt="Summarise this document into a short revision sheet.">Make a revision sheet</button>
+                                    <button type="button" class="notes-suggestion" data-prompt="Ask me three questions about this document, one at a time, and wait for my answer before giving the next.">Test me on it</button>
+                                </div>
+
+                                <div id="notes-chat-messages" class="chat-messages"></div>
+
+                                <div class="notes-chat-input-row">
                                     <div id="notes-typing-indicator" class="hidden mb-8"><span class="ai-thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>
                                     <div class="chat-input-container">
                                         <label for="notes-chat-file" class="chat-icon-btn notes-chat-icon" title="Attach file" aria-label="Attach file">
@@ -1927,7 +1941,7 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </aside>
                     </div>
                 </section>
 
@@ -2377,7 +2391,13 @@
             </div>
         </div>
 
-        <script src="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.js"></script>
+        <!-- Pinned to an exact version with an integrity hash. The floating
+             `quill@2` tag meant jsdelivr could serve any future 2.x build into
+             a page that already has database access. -->
+        <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"
+                integrity="sha384-utBUCeG4SYaCm4m7GQZYr8Hy8Fpy3V4KGjBZaf4WTKOcwhCYpt/0PfeEe3HNlwx8"
+                crossorigin="anonymous"
+                referrerpolicy="no-referrer"></script>
         <script type="module" src="./js/main.js"></script>
         <!-- ==========================================
      DASHBOARD FLOATING AI COMMAND BAR

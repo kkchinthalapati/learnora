@@ -429,68 +429,38 @@ export const Router = {
       return;
     }
     
-    // We need UI from ui.js for modals
-    const { UI } = await import("./ui.js");
-    const { Notes } = await import("./api.js");
-    const notes = await Notes.fetchByMaterial(materialId);
+    const { Notes, Materials } = await import("./api.js");
+    const { Editor } = await import("./editor.js");
 
     const contentEl = document.getElementById("notes-quill-editor");
     if (!contentEl) return;
 
+    // Resolve the real material rather than guessing from the most recent
+    // upload — opening notes for anything other than the newest material
+    // showed the wrong title (or fell back to "Document Notes").
+    const [notes, material] = await Promise.all([
+      Notes.fetchByMaterial(materialId),
+      Materials.fetchById(materialId),
+    ]);
+    const title = material?.title || "Document Notes";
+
+    // The quick-action cards are static markup bound once at startup; they read
+    // the current material from Editor state. The previous cloneNode/replaceChild
+    // dance re-created them on every visit purely to shed stale listeners, which
+    // also silently dropped any other listener bound to them.
     if (!notes || notes.length === 0) {
-      // Setup empty editor
-      const { Editor } = await import("./editor.js");
-      Editor.init(materialId, null, "<p>No notes generated yet.</p>", "", "Notes");
+      Editor.init(
+        materialId,
+        null,
+        "<p>No notes yet — Learnora is still processing this material.</p>",
+        "",
+        title
+      );
       return;
     }
 
     const note = notes[0]; // Currently 1:1 mapping
-    
-    // Lazy-load editor to avoid blocking router
-    const { Editor } = await import("./editor.js");
-    
-    let title = "Document Notes";
-    try {
-      const { Materials } = await import("./api.js");
-      const currentMat = await Materials.fetchMostRecent(); // Not perfectly robust but good enough
-      if (currentMat && currentMat.id === materialId) {
-        title = currentMat.title;
-      }
-    } catch(e) {}
-    
-    // init takes: materialId, noteId, initialHtml, fallbackMarkdown, title
     Editor.init(materialId, note.id, note.html_content, note.markdown_content, title);
-    
-    // Set up quick action cards with closure state
-    const quizCard = document.getElementById("notes-action-quiz");
-    if (quizCard) {
-      const newQuizCard = quizCard.cloneNode(true);
-      quizCard.parentNode.replaceChild(newQuizCard, quizCard);
-      newQuizCard.addEventListener("click", () => {
-        // Need to pass folderId if we have it, null is ok it will prompt user
-        UI.showQuizConfigModal(materialId, null, "Quiz on this document");
-      });
-    }
-    
-    const fcCard = document.getElementById("notes-action-flashcards");
-    if (fcCard) {
-      const newFcCard = fcCard.cloneNode(true);
-      fcCard.parentNode.replaceChild(newFcCard, fcCard);
-      newFcCard.addEventListener("click", async () => {
-         UI.showToast("Generating flashcards...");
-         const { AI } = await import("./ai.js");
-         AI.sendNotesChat("Please generate flashcards from this document.");
-      });
-    }
-    
-    const podCard = document.getElementById("notes-action-podcast");
-    if (podCard) {
-      const newPodCard = podCard.cloneNode(true);
-      podCard.parentNode.replaceChild(newPodCard, podCard);
-      newPodCard.addEventListener("click", () => {
-         UI.showToast("Podcast generation coming soon!");
-      });
-    }
   },
 
   async createNewFolder() {
