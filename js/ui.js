@@ -477,15 +477,144 @@ export const UI = {
     }
   },
 
-  showQuizConfigModal(materialId, folderId, defaultTopic = "") {
-    if (!$("quiz-config-modal")) return;
+  /* The context the currently-open Create dialog was launched with. main.js's
+     submit handler reads it so the dialog stays a dumb form and the caller
+     decides what happens afterwards (refresh a folder, navigate, nothing). */
+  _createContext: null,
 
-    $("quiz-material-id").value = materialId || "";
-    $("quiz-folder-id").value = folderId || "";
-    $("quiz-topic").value = defaultTopic;
+  /* Opens the one creation dialog.
+
+     ctx = {
+       source,     // "file" | "text" | "link" | "material" | "topic"
+       folderId,   // pre-selected folder
+       materialId, // pre-selected saved material — implies source "material"
+       topic,      // pre-filled topic — implies source "topic"
+       outputs,    // { notes, flashcards, quiz } to pre-tick
+       title,      // dialog heading override
+       onDone,     // callback(result) after a successful create
+     }
+
+     Every argument is optional: `showCreateModal()` with nothing opens the
+     dialog in its default state, which is what the sidebar's Create button
+     does. */
+  async showCreateModal(ctx = {}) {
+    if (!$("create-modal")) return;
+    this._createContext = ctx;
+
+    const heading = $("create-title");
+    if (heading) heading.textContent = ctx.title || "Create study material";
+
+    // Reset to defaults so a second open never inherits the last run's state.
+    const err = $("create-error");
+    if (err) { err.textContent = ""; err.classList.add("hidden"); }
+    const fileInput = $("create-file");
+    if (fileInput) fileInput.value = "";
+    const dropTitle = $("create-dropzone-title");
+    if (dropTitle) dropTitle.textContent = "Drag & drop a file";
+    ["create-text", "create-link", "create-topic", "create-title-input"].forEach(id => {
+      const el = $(id);
+      if (el) el.value = "";
+    });
+    const details = document.querySelector(".create-options");
+    if (details) details.open = false;
+
+    const outputs = ctx.outputs || {};
+    const setChecked = (id, on) => { const el = $(id); if (el) el.checked = !!on; };
+    // Default: notes + flashcards, the pair the old upload page always made.
+    setChecked("create-want-notes", outputs.notes ?? true);
+    setChecked("create-want-flashcards", outputs.flashcards ?? true);
+    setChecked("create-want-quiz", outputs.quiz ?? false);
+
+    const cards = $("create-card-count");
+    if (cards) { cards.value = 12; }
+    const qs = $("create-question-count");
+    if (qs) { qs.value = 10; }
+    const med = document.querySelector('input[name="create-difficulty"][value="Medium"]');
+    if (med) med.checked = true;
+    const persona = $("create-personality");
+    if (persona) persona.value = "Friendly Tutor";
+    this.syncCreateRangeOutputs();
     this.syncQuizPersonalityDesc();
 
-    ModalManager.open("quiz-config-modal");
+    if (ctx.topic) { const t = $("create-topic"); if (t) t.value = ctx.topic; }
+
+    // Pick the starting source from whatever context the caller supplied.
+    const source = ctx.source || (ctx.topic ? "topic" : ctx.materialId ? "material" : "file");
+    const radio = document.querySelector(`input[name="create-source"][value="${source}"]`);
+    if (radio) radio.checked = true;
+    this.syncCreateSourcePanels();
+
+    ModalManager.open("create-modal");
+
+    // Populate the two selects after opening so the dialog appears instantly
+    // rather than waiting on the network.
+    const { Folders, Materials } = await import("./api.js");
+
+    const folderSel = $("create-folder");
+    if (folderSel) {
+      const folders = await Folders.fetch();
+      folderSel.innerHTML = folders.length
+        ? folders.map(f => `<option value="${esc(f.id)}">${esc(f.name)}</option>`).join("")
+        : `<option value="" disabled selected>No folders yet — create one →</option>`;
+      if (ctx.folderId) folderSel.value = ctx.folderId;
+      else if (folders.length) folderSel.selectedIndex = 0;
+    }
+
+    const matSel = $("create-material");
+    if (matSel) {
+      const materials = await Materials.fetch();
+      matSel.innerHTML = materials.length
+        ? materials.map(m => `<option value="${esc(m.id)}">${esc(m.title)}</option>`).join("")
+        : `<option value="" disabled selected>No saved materials yet</option>`;
+      if (ctx.materialId) matSel.value = ctx.materialId;
+      // With nothing saved there is nothing to build from, so hide the option
+      // rather than offering a dead end.
+      const opt = $("create-source-material-opt");
+      if (opt) opt.classList.toggle("hidden", materials.length === 0);
+    }
+  },
+
+  /* Shows the panel for the selected source and hides the rest. Also drives
+     which parts of the form are relevant: a topic-only run files nothing into
+     a folder and has no notes document to write. */
+  syncCreateSourcePanels() {
+    const source = document.querySelector('input[name="create-source"]:checked')?.value || "file";
+
+    document.querySelectorAll("[data-source-panel]").forEach(panel => {
+      panel.classList.toggle("hidden", panel.dataset.sourcePanel !== source);
+    });
+
+    const isNewMaterial = source === "file" || source === "text" || source === "link";
+
+    // A folder only matters when something is being filed into one.
+    const folderGroup = $("create-folder-group");
+    if (folderGroup) folderGroup.classList.toggle("hidden", source === "topic");
+
+    /* Notes are the text every deck and quiz is built from, so a brand-new
+       source always produces them — the checkbox is shown ticked and locked
+       rather than silently ignored. An existing material already has notes,
+       and a bare topic has no document to write, so in both cases the row is
+       hidden entirely. */
+    const notesRow = $("create-row-notes");
+    const notesBox = $("create-want-notes");
+    const notesDesc = $("create-notes-desc");
+    if (notesRow && notesBox) {
+      notesRow.classList.toggle("hidden", !isNewMaterial);
+      notesBox.checked = isNewMaterial;
+      notesBox.disabled = isNewMaterial;
+      if (notesDesc) {
+        notesDesc.textContent = "Always created — flashcards and quizzes are built from them";
+      }
+    }
+  },
+
+  syncCreateRangeOutputs() {
+    const pair = (input, out) => {
+      const i = $(input), o = $(out);
+      if (i && o) o.textContent = i.value;
+    };
+    pair("create-card-count", "create-card-count-out");
+    pair("create-question-count", "create-question-count-out");
   },
 
   QUIZ_PERSONALITY_DESC: {
@@ -496,8 +625,8 @@ export const UI = {
   },
 
   syncQuizPersonalityDesc() {
-    const select = $("quiz-personality");
-    const desc = $("quiz-personality-desc");
+    const select = $("create-personality");
+    const desc = $("create-personality-desc");
     if (select && desc) desc.textContent = this.QUIZ_PERSONALITY_DESC[select.value] || "";
   },
 

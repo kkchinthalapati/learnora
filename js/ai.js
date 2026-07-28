@@ -262,37 +262,60 @@ export const AI = {
       return str.replace(/,(\s*[\]}])/g, '$1');
     };
 
+    /* mode:"flashcards" requests go out with response_format:json_object,
+       which only permits an object at the top level, so those providers
+       return {"cards":[...]}. Gemini isn't sent a response_format and still
+       replies with a bare array, so both shapes are unwrapped here — the same
+       arrangement _extractQuizJSON uses for {"questions":[...]}. */
+    const unwrap = (parsed) => {
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === "object") {
+        for (const key of ["cards", "flashcards", "items", "data"]) {
+          if (Array.isArray(parsed[key])) return parsed[key];
+        }
+      }
+      return parsed;
+    };
+
+    const isValid = (arr) =>
+      Array.isArray(arr) && arr.length > 0 && arr[0] && typeof arr[0].front === "string";
+
     // Strategy 1: Direct JSON.parse of trimmed text
     try {
-      const trimmed = sanitizeJSON(text.trim());
-      if (trimmed.startsWith("[")) {
-        const parsed = JSON.parse(trimmed);
-        if (Array.isArray(parsed) && parsed.length && parsed[0].front) return parsed;
-      }
+      const parsed = unwrap(JSON.parse(sanitizeJSON(text.trim())));
+      if (isValid(parsed)) return parsed;
     } catch {}
 
     // Strategy 2: Strip markdown code fences
     try {
       let cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-      cleaned = sanitizeJSON(cleaned);
-      if (cleaned.startsWith("[")) {
-        const parsed = JSON.parse(cleaned);
-        if (Array.isArray(parsed) && parsed.length && parsed[0].front) return parsed;
+      const parsed = unwrap(JSON.parse(sanitizeJSON(cleaned)));
+      if (isValid(parsed)) return parsed;
+    } catch {}
+
+    // Strategy 3: Find the first { ... } block, for an object-wrapped reply
+    // that arrived with prose around it.
+    try {
+      const start = text.indexOf("{");
+      const end = text.lastIndexOf("}");
+      if (start !== -1 && end > start) {
+        const parsed = unwrap(JSON.parse(sanitizeJSON(text.substring(start, end + 1))));
+        if (isValid(parsed)) return parsed;
       }
     } catch {}
 
-    // Strategy 3: Find the first [ ... ] block via bracket matching
+    // Strategy 4: Find the first [ ... ] block via bracket matching
     try {
       const start = text.indexOf("[");
       const end = text.lastIndexOf("]");
       if (start !== -1 && end > start) {
         const cleaned = sanitizeJSON(text.substring(start, end + 1));
         const parsed = JSON.parse(cleaned);
-        if (Array.isArray(parsed) && parsed.length && parsed[0].front) return parsed;
+        if (isValid(parsed)) return parsed;
       }
     } catch {}
 
-    // Strategy 4: Regex extraction of individual card objects
+    // Strategy 5: Regex extraction of individual card objects
     try {
       const regex = /\{\s*"front"\s*:\s*"([^"]+)"\s*,\s*"back"\s*:\s*"([^"]+)"\s*\}/g;
       const cards = [];
@@ -447,59 +470,158 @@ Prioritize subjects with closer/harder exams and tasks with closer due dates. Ke
   },
 
   /* =========================================================================
-     QUIZ GENERATION — distinct from flashcards, auto-graded MCQ
+     UNIFIED CREATION PIPELINE
+
+     Every notes document, flashcard deck and quiz in the app is produced by
+     createStudyPackage(). It used to be three unrelated code paths reached
+     from eight different buttons — the folder view and the dashboard each
+     blind-picked `materials[0]`, quizzes got a config modal while decks got
+     nothing, and ingestion asked one model call for Markdown and a JSON array
+     at once, split on a "---FLASHCARDS---" token that the model was free not
+     to emit. The primitives below are the only places that talk to the model,
+     and each one asks for exactly one kind of output in the matching edge
+     mode, so the response shape is never ambiguous.
      ========================================================================= */
 
-  async generateQuiz(materialId, folderId, config = null) {
-    try {
-      const { Notes, Materials, Quizzes } = await import("./api.js");
+  /* Applied whenever the caller omits a value. The Create modal shows these as
+     its initial state, so what the form submits and what a scripted call
+     produces cannot drift apart. */
+  CREATE_DEFAULTS: Object.freeze({
+    cardCount: 12,
+    questionCount: 10,
+    difficulty: "Medium",
+    personality: "Friendly Tutor",
+  }),
 
-      let sourceText = "";
-      let title = "Quiz";
-      let topic = config?.topic || "";
+  /* How much of a notes document is fed back into a follow-up generation.
+     Shared by decks and quizzes so both see the same slice of the material. */
+  MAX_SOURCE_CHARS: 6000,
 
-      if (materialId) {
-        const notes = await Notes.fetchByMaterial(materialId);
-        if (notes?.[0]?.markdown_content) {
-          sourceText = this._fenceUntrusted(notes[0].markdown_content.substring(0, 6000));
+  /* -------------------------------------------------------------------------
+     Primitive 1 — notes.
+
+     Notes are the canonical text form of a material: decks and quizzes are
+     always built from them rather than from the original file, so a 40-page
+     PDF is uploaded once and never re-sent. That is why a brand-new material
+     always gets notes even if the student only asked for flashcards.
+     ------------------------------------------------------------------------- */
+  async _generateNotes(material, filePayload) {
+    const { Notes } = await import("./api.js");
+
+    let prompt = `You are a premium AI study guide creator and personal tutor for a student.
+
+Analyze the provided study material and write comprehensive, well-structured Markdown study notes:
+- Start with a welcoming title using ## and a brief intro addressing the student directly ("Let's break down...", "Here's your guide to...")
+- Use ### for main topics and #### for subtopics
+- Bold **key terms** when first introduced
+- Use bullet lists for related concepts
+- Include code blocks with \`\`\`language syntax if the material involves programming
+- Use > blockquotes for important definitions or formulas
+- Keep the tone conversational and encouraging — like a friendly tutor, not a textbook
+- Be thorough — cover all major concepts from the material
+
+Output the Markdown notes only. Do not add any preamble or closing commentary.`;
+
+    let payload = filePayload;
+
+    // Gemini rejects text/plain as inlineData, so text sources are folded into
+    // the prompt instead of being sent as an attachment.
+    if (filePayload && filePayload.mimeType === "text/plain") {
+      try {
+        const decoded = this._decodeBase64UTF8(filePayload.data);
+        if (decoded.match(/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//)) {
+          prompt += `\n\nThe student provided a YouTube video link: ${decoded}\nYou cannot watch the video, but based on the URL and any context in the title, generate useful study notes about the likely topic. Be transparent that these notes are based on the video's topic, not its exact transcript. If you can identify the topic from the URL, focus your notes on that subject.`;
+        } else {
+          prompt += `\n\nStudy Material Content:\n"""\n${decoded}\n"""`;
         }
-        const materials = await Materials.fetch(folderId);
-        const material = materials.find(m => m.id === materialId);
-        if (material) {
-           title = `${material.title} Quiz`;
-           if (!topic) topic = material.title;
-        }
-      } else if (topic) {
-        sourceText = `Topic: ${topic}`;
-        title = `${topic} Quiz`;
+        payload = null;
+      } catch (e) {
+        console.error("[AI._generateNotes] Failed to decode text payload:", e);
       }
+    }
 
-      if (!sourceText) {
-        UI.showPopup("No notes are available for this material yet — wait for AI processing to finish, then try again.", "Quiz Generation");
-        return null;
-      }
+    const data = await this._callEdgeStream({
+      history: [{ role: "user", content: prompt }],
+      file: payload,
+      mode: "notes",
+      settings: UI.loadSettings(),
+    }, null);
 
-      const difficulty = config?.difficulty || "Medium";
-      const personality = config?.personality || "Friendly Tutor";
-      const count = config?.length || 10;
+    const markdown = (data.text || "").trim();
+    // A handful of characters back is a truncated or refused response, not a
+    // study guide — saving it would leave a material that looks processed but
+    // yields nothing for decks and quizzes to build on.
+    if (markdown.length < 50) return null;
 
-      let difficultyGuidance = "";
-      if (difficulty === "Easy") {
-        difficultyGuidance = `Target Difficulty: EASY
+    await Notes.add(material.id, markdown);
+    return markdown;
+  },
+
+  /* Notes for an existing material, fenced so the model treats them as data.
+     Every downstream generator reads its source through here. */
+  async _loadSourceText(materialId) {
+    const { Notes } = await import("./api.js");
+    const notes = await Notes.fetchByMaterial(materialId);
+    const markdown = notes?.[0]?.markdown_content;
+    if (!markdown) return "";
+    return this._fenceUntrusted(markdown.substring(0, this.MAX_SOURCE_CHARS));
+  },
+
+  /* -------------------------------------------------------------------------
+     Primitive 2 — flashcard deck.
+     ------------------------------------------------------------------------- */
+  async _generateDeck({ sourceText, folderId, title, count }) {
+    const { Decks, Flashcards } = await import("./api.js");
+    const n = count || this.CREATE_DEFAULTS.cardCount;
+
+    const prompt = `Generate exactly ${n} flashcards from the study material below. Each card must test a distinct concept — no two cards may restate the same fact.
+
+Study Material:
+"""
+${sourceText}
+"""`;
+
+    const data = await this._callEdgeStream({
+      history: [{ role: "user", content: prompt }],
+      mode: "flashcards",
+      settings: UI.loadSettings(),
+    }, null);
+
+    const cards = this._extractFlashcardJSON(data.text);
+    if (cards.length === 0) return null;
+
+    const deck = await Decks.add(folderId, title);
+    await Flashcards.addBatch(deck.id, cards);
+    return deck;
+  },
+
+  /* -------------------------------------------------------------------------
+     Primitive 3 — quiz.
+     ------------------------------------------------------------------------- */
+  async _generateQuizFrom({ sourceText, topic, title, materialId, folderId, options }) {
+    const { Quizzes } = await import("./api.js");
+    const opts = { ...this.CREATE_DEFAULTS, ...(options || {}) };
+    const difficulty = opts.difficulty;
+    const personality = opts.personality;
+    const count = opts.questionCount;
+
+    let difficultyGuidance = "";
+    if (difficulty === "Easy") {
+      difficultyGuidance = `Target Difficulty: EASY
 - Test core definitions, primary facts, fundamental terminology, and basic concepts.
 - Questions should be direct, assessing basic comprehension and clear recognition.`;
-      } else if (difficulty === "Hard") {
-        difficultyGuidance = `Target Difficulty: HARD / ADVANCED
+    } else if (difficulty === "Hard") {
+      difficultyGuidance = `Target Difficulty: HARD / ADVANCED
 - Questions must demand deep critical thinking, multi-step logical deduction, error spotting in subtle/flawed proofs, edge case analysis, counter-examples, or synthesizing multiple principles.
 - Avoid superficial recall. For mathematical, scientific, or logical topics, test exact preconditions, subtle logical fallacies, edge cases (e.g. why logic holds or breaks under altered conditions), and higher generalizations.
 - Distractors (incorrect choices) must be highly plausible, non-trivial, and reflect common advanced fallacies or subtle misconceptions.`;
-      } else {
-        difficultyGuidance = `Target Difficulty: MEDIUM
+    } else {
+      difficultyGuidance = `Target Difficulty: MEDIUM
 - Test conceptual understanding, mechanisms, cause-and-effect, step-by-step applications, and relationships between key ideas.
 - Distractors should reflect typical student misunderstandings.`;
-      }
+    }
 
-      let prompt = `Generate a high-quality, non-repetitive multiple-choice quiz based on the provided material or topic.
+    const prompt = `Generate a high-quality, non-repetitive multiple-choice quiz based on the provided material or topic.
 
 Configuration:
 - Topic: ${topic}
@@ -525,173 +647,231 @@ Material / Topic Content:
 ${sourceText}
 """`;
 
-      const data = await this._callEdgeStream({
-        history: [{ role: "user", content: prompt }],
-        mode: "quiz",
-        settings: UI.loadSettings(),
-      }, null);
+    const data = await this._callEdgeStream({
+      history: [{ role: "user", content: prompt }],
+      mode: "quiz",
+      settings: UI.loadSettings(),
+    }, null);
 
-      const questions = this._extractQuizJSON(data.text);
-      if (questions.length === 0) {
-        UI.showPopup("Couldn't generate a quiz this time. Please try again.", "Quiz Generation");
-        return null;
+    const questions = this._extractQuizJSON(data.text);
+    if (questions.length === 0) return null;
+
+    return await Quizzes.add(materialId, folderId, title, questions);
+  },
+
+  /* -------------------------------------------------------------------------
+     THE ONE ENTRY POINT.
+
+     request = {
+       source:  { kind: "file"|"text"|"link"|"material"|"topic",
+                  file?, text?, url?, materialId?, topic? },
+       folderId,
+       title,                                  // optional custom title
+       outputs: { notes, flashcards, quiz },   // booleans
+       options: { cardCount, questionCount, difficulty, personality },
+     }
+
+     Resolves to { material, notes, deck, quiz, errors }. Partial success is
+     normal and is reported rather than thrown: a deck that generated plus a
+     quiz that failed must not lose the deck, which is what the old all-or-
+     nothing try/catch around ingestion did.
+     ------------------------------------------------------------------------- */
+  async createStudyPackage(request) {
+    const { Materials } = await import("./api.js");
+    const src = request.source || {};
+    const outputs = request.outputs || {};
+    const options = { ...this.CREATE_DEFAULTS, ...(request.options || {}) };
+    const result = { material: null, notes: null, deck: null, quiz: null, errors: [] };
+
+    let folderId = request.folderId || null;
+    let sourceText = "";
+    let baseTitle = (request.title || "").trim();
+    let topic = (src.topic || "").trim();
+
+    /* ---- Step 1: resolve the source into a material + its notes ---------- */
+    if (src.kind === "file" || src.kind === "text" || src.kind === "link") {
+      let filePayload;
+
+      if (src.kind === "file") {
+        const file = src.file;
+        if (!file) throw new Error("Please choose a file first.");
+        // Matches the chat uploader: base64-encoding a huge file freezes the
+        // tab, and the edge function rejects it anyway.
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error("File too large. Maximum size is 10MB.");
+        }
+        const isAudio = /\.(mp3|mp4|wav|m4a|aac|ogg)$/i.test(file.name);
+        result.material = await Materials.uploadFile(
+          file, folderId, isAudio ? "audio" : "pdf", baseTitle
+        );
+        filePayload = await this._fileToPayload(file);
+      } else {
+        const raw = (src.kind === "link" ? src.url : src.text || "").trim();
+        if (!raw) {
+          throw new Error(src.kind === "link" ? "Please provide a link." : "Please paste some text first.");
+        }
+        result.material = await Materials.addLink(raw, folderId, baseTitle);
+        filePayload = {
+          name: src.kind === "link" ? "Link" : "Raw Text",
+          mimeType: "text/plain",
+          data: btoa(unescape(encodeURIComponent(raw))),
+        };
       }
 
-      const quiz = await Quizzes.add(materialId, folderId, title, questions);
+      baseTitle = result.material.title;
+      if (!topic) topic = baseTitle;
+
+      // Always generated for new material — see _generateNotes().
+      const markdown = await this._generateNotes(result.material, filePayload);
+      if (!markdown) {
+        // Without notes there is nothing for a deck or quiz to read, so stop
+        // here rather than firing two more calls that are certain to fail.
+        result.errors.push("notes");
+        return result;
+      }
+      result.notes = markdown;
+      sourceText = this._fenceUntrusted(markdown.substring(0, this.MAX_SOURCE_CHARS));
+
+    } else if (src.kind === "material") {
+      const material = await Materials.fetchById(src.materialId);
+      if (!material) throw new Error("That material could not be found.");
+      result.material = material;
+      folderId = folderId || material.folder_id || null;
+      baseTitle = baseTitle || material.title;
+      if (!topic) topic = material.title;
+
+      sourceText = await this._loadSourceText(material.id);
+      if (!sourceText) {
+        throw new Error("No notes are available for this material yet — wait for AI processing to finish, then try again.");
+      }
+
+    } else if (src.kind === "topic") {
+      if (!topic) throw new Error("Please enter a topic.");
+      baseTitle = baseTitle || topic;
+      sourceText = `Topic: ${topic}`;
+
+    } else {
+      throw new Error("Pick something to create from first.");
+    }
+
+    /* ---- Step 2: derive the requested outputs ---------------------------- */
+    // A topic-only source has no notes document to build a deck from, so the
+    // deck is generated straight from the topic line.
+    if (outputs.flashcards) {
+      try {
+        result.deck = await this._generateDeck({
+          sourceText,
+          folderId,
+          title: `${baseTitle} Flashcards`,
+          count: options.cardCount,
+        });
+        if (!result.deck) result.errors.push("flashcards");
+      } catch (err) {
+        console.error("[AI.createStudyPackage] flashcards", err);
+        result.errors.push("flashcards");
+        if (err?.refused) throw err;
+      }
+    }
+
+    if (outputs.quiz) {
+      try {
+        result.quiz = await this._generateQuizFrom({
+          sourceText,
+          topic,
+          title: `${baseTitle} Quiz`,
+          materialId: result.material?.id || null,
+          folderId,
+          options,
+        });
+        if (!result.quiz) result.errors.push("quiz");
+      } catch (err) {
+        console.error("[AI.createStudyPackage] quiz", err);
+        result.errors.push("quiz");
+        if (err?.refused) throw err;
+      }
+    }
+
+    return result;
+  },
+
+  /* Reads a File into the base64 shape the edge function expects. */
+  _fileToPayload(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve({
+        name: file.name,
+        mimeType: file.type,
+        data: e.target.result.split(",")[1],
+      });
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsDataURL(file);
+    });
+  },
+
+  /* =========================================================================
+     BACK-COMPAT WRAPPERS
+
+     The AI chat's <ADD_QUIZ> action tag and the flashcard-review screen still
+     call these by name. They delegate to createStudyPackage() so there is
+     genuinely one implementation, and keep the old "return the thing or null,
+     having already shown a popup" contract their callers expect.
+     ========================================================================= */
+
+  async generateQuiz(materialId, folderId, config = null) {
+    try {
+      const source = materialId
+        ? { kind: "material", materialId }
+        : { kind: "topic", topic: config?.topic || "" };
+
+      const { quiz, errors } = await this.createStudyPackage({
+        source,
+        folderId,
+        outputs: { quiz: true },
+        options: {
+          difficulty: config?.difficulty,
+          personality: config?.personality,
+          questionCount: config?.length,
+        },
+      });
+
+      if (!quiz) {
+        if (errors.includes("quiz")) {
+          UI.showPopup("Couldn't generate a quiz this time. Please try again.", "Quiz Generation");
+        }
+        return null;
+      }
       return quiz;
     } catch (err) {
       console.error("[AI.generateQuiz]", err);
-      if (err?.refused) {
-        UI.showPopup(err.message, "Topic not supported");
-      } else {
-        UI.showPopup("Failed to generate quiz. Please try again.", "Quiz Generation");
-      }
+      UI.showPopup(
+        err?.refused ? err.message : (err?.message || "Failed to generate quiz. Please try again."),
+        err?.refused ? "Topic not supported" : "Quiz Generation"
+      );
       return null;
     }
   },
 
-  /* =========================================================================
-     INGESTION PIPELINE — Process uploaded materials into notes + flashcards
-     ========================================================================= */
-
-  async generateStudyMaterial(material, folderId, fileDataPayload) {
-    try {
-      const { Notes, Decks, Flashcards } = await import("./api.js");
-
-      // Build the ingestion prompt
-      let prompt = `You are a premium AI study guide creator and personal tutor for a student.
-
-Analyze the provided study material and produce a high-quality study package.
-
-OUTPUT FORMAT — You MUST produce exactly two sections separated by the exact token "---FLASHCARDS---":
-
-=== SECTION 1: STUDY NOTES ===
-Write comprehensive, well-structured Markdown notes:
-- Start with a welcoming title using ## and a brief intro addressing the student directly ("Let's break down...", "Here's your guide to...")
-- Use ### for main topics and #### for subtopics
-- Bold **key terms** when first introduced
-- Use bullet lists for related concepts
-- Include code blocks with \`\`\`language syntax if the material involves programming
-- Use > blockquotes for important definitions or formulas
-- Keep the tone conversational and encouraging — like a friendly tutor, not a textbook
-- Be thorough — cover all major concepts from the material
-
----FLASHCARDS---
-
-=== SECTION 2: FLASHCARDS ===
-Output a raw JSON array of 8-15 flashcards. Each card must test a distinct concept.
-Format: [{"front": "What is X?", "back": "X is..."}]
-Do NOT wrap in code fences. Do NOT add any text before or after the JSON array.`;
-
-      let filePayload = fileDataPayload;
-
-      // Handle text/plain content (URLs, raw text) — Gemini rejects text/plain as inlineData
-      if (fileDataPayload && fileDataPayload.mimeType === "text/plain") {
-        try {
-          const decoded = this._decodeBase64UTF8(fileDataPayload.data);
-
-          // Detect YouTube URLs — be honest about limitations
-          if (decoded.match(/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//)) {
-            prompt += `\n\nThe student provided a YouTube video link: ${decoded}\nYou cannot watch the video, but based on the URL and any context in the title, generate useful study notes about the likely topic. Be transparent that these notes are based on the video's topic, not its exact transcript. If you can identify the topic from the URL, focus your notes on that subject.`;
-          } else {
-            prompt += `\n\nStudy Material Content:\n"""\n${decoded}\n"""`;
-          }
-          filePayload = null; // Don't send as binary attachment
-        } catch (e) {
-          console.error("[AI.ingest] Failed to decode text payload:", e);
-        }
-      }
-
-      const data = await this._callEdgeStream({
-        history: [{ role: "user", content: prompt }],
-        file: filePayload,
-        settings: UI.loadSettings(),
-      }, null);
-
-      const responseText = data.text;
-
-      // Split on separator
-      const separatorIndex = responseText.indexOf("---FLASHCARDS---");
-      let markdownNotes, flashcardRaw;
-
-      if (separatorIndex !== -1) {
-        markdownNotes = responseText.substring(0, separatorIndex).trim();
-        flashcardRaw = responseText.substring(separatorIndex + "---FLASHCARDS---".length).trim();
-      } else {
-        // No separator found — treat entire response as notes, attempt flashcard extraction anyway
-        markdownNotes = responseText.trim();
-        flashcardRaw = responseText;
-      }
-
-      // Save notes
-      if (markdownNotes && markdownNotes.length > 50) {
-        await Notes.add(material.id, markdownNotes);
-        console.log("✅ Notes saved successfully");
-      }
-
-      // Extract and save flashcards
-      const flashcards = this._extractFlashcardJSON(flashcardRaw);
-      if (flashcards.length > 0) {
-        const deck = await Decks.add(folderId, material.title + " Flashcards");
-        await Flashcards.addBatch(deck.id, flashcards);
-        console.log(`✅ ${flashcards.length} flashcards saved successfully`);
-      }
-
-      console.log("✅ Ingestion pipeline complete");
-    } catch (err) {
-      console.error("🚨 Ingestion Pipeline Error:", err);
-      // Surface the error to the user instead of silently failing
-      UI.showPopup(
-        "AI processing encountered an issue. Your file was uploaded but notes/flashcards may not have been generated. Try again from the folder view.",
-        "Processing Notice"
-      );
-    }
-  },
-
-  /* On-demand deck generation for a material that already has one (or had its
-     original deck deleted). Mirrors generateQuiz(): reuses the notes already
-     saved during ingestion instead of re-uploading the source file. */
   async generateFlashcards(materialId, folderId) {
     try {
-      const { Notes, Materials, Decks, Flashcards } = await import("./api.js");
+      const { deck, errors } = await this.createStudyPackage({
+        source: { kind: "material", materialId },
+        folderId,
+        outputs: { flashcards: true },
+      });
 
-      const notes = await Notes.fetchByMaterial(materialId);
-      const sourceText = this._fenceUntrusted(notes?.[0]?.markdown_content?.substring(0, 6000));
-      if (!sourceText) {
-        UI.showPopup("No notes are available for this material yet — wait for AI processing to finish, then try again.", "Flashcard Generation");
+      if (!deck) {
+        if (errors.includes("flashcards")) {
+          UI.showPopup("Couldn't generate flashcards this time. Please try again.", "Flashcard Generation");
+        }
         return null;
       }
-
-      const materials = await Materials.fetch(folderId);
-      const material = materials.find(m => m.id === materialId);
-      const title = material ? `${material.title} Flashcards` : "Flashcards";
-
-      const prompt = `Generate a fresh set of 8-15 flashcards from the study material below. Each card must test a distinct concept.
-Output a raw JSON array only: [{"front": "What is X?", "back": "X is..."}]
-Do NOT wrap in code fences. Do NOT add any text before or after the JSON array.
-
-Study Material:
-"""
-${sourceText}
-"""`;
-
-      const data = await this._callEdgeStream({
-        history: [{ role: "user", content: prompt }],
-        settings: UI.loadSettings(),
-      }, null);
-
-      const flashcards = this._extractFlashcardJSON(data.text);
-      if (flashcards.length === 0) {
-        UI.showPopup("Couldn't generate flashcards this time. Please try again.", "Flashcard Generation");
-        return null;
-      }
-
-      const deck = await Decks.add(folderId, title);
-      await Flashcards.addBatch(deck.id, flashcards);
       return deck;
     } catch (err) {
       console.error("[AI.generateFlashcards]", err);
-      UI.showPopup("Failed to generate flashcards. Please try again.", "Flashcard Generation");
+      UI.showPopup(
+        err?.refused ? err.message : (err?.message || "Failed to generate flashcards. Please try again."),
+        err?.refused ? "Topic not supported" : "Flashcard Generation"
+      );
       return null;
     }
   },
@@ -773,6 +953,10 @@ VOICE:
 - Speak in the first person. "I can help with that" — never "Learnora can help with that", and never describe yourself in the third person.
 - "Learnora" names the app and its features (the Timer tab, the Task Manager). It is not a substitute for "I".
 
+APP LAYOUT (describe it accurately if the student asks where something is):
+- Everything the student has made lives under the Library tab, which has four sections: Folders, Materials, Flashcards and Quizzes.
+- Anything new — notes, flashcards, or a quiz, from a file, pasted text, a link, a saved material, or just a topic — is made with the Create button in the sidebar. There is no separate upload page; do not tell students to "go to the Upload tab" or "the Quizzes tab" to generate something.
+
 TODAY IS: ${localDateStr()}
 
 WORKSPACE STATE:
@@ -824,7 +1008,7 @@ User message: ${query}`;
 
       const bubbleId = 'ai-msg-' + Date.now();
       // The edge function returns one complete response, not a real token
-      // stream (see learnoraedgefunctionlogic.ts) — show an honest "thinking"
+      // stream (see supabase/functions/learnora-ai/index.ts) — show an honest "thinking"
       // state rather than a typing cursor that implies text is arriving
       // gradually.
       const typingBubble = this._appendBubble('<span class="ai-thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>', "ai-bubble", true, bubbleId);
@@ -1144,7 +1328,7 @@ User message: ${query}`;
       grid.appendChild(container);
     });
 
-    UI.switchTab("flashcards");
+    UI.switchTab("library-flashcards");
     ModalManager.close("turbo-chat");
     UI.showPopup(`${cards.length} flashcards ready!`, "Success");
   },

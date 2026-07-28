@@ -8,7 +8,7 @@ The user explicitly wants a **clarity and correctness pass, not a visual redesig
 
 **Verified already fixed by a prior session (do not re-fix):** the `<ADD_PLAN>` hash bug (`"planner"` → `"plan"`) and the missing `.text-sm`/`.mt-4`/`.mb-8` utility classes are both already corrected in the current code (commit `19af4e4`).
 
-**Verified: no edge-function redeployment needed anywhere in this plan.** The AI system prompt (including the `CAPABILITIES` list) is built entirely client-side in `js/ai.js` and sent as chat history content — `learnoraedgefunctionlogic.ts` just forwards it verbatim to the LLM providers.
+**Verified: no edge-function redeployment needed anywhere in this plan.** The AI system prompt (including the `CAPABILITIES` list) is built entirely client-side in `js/ai.js` and sent as chat history content — `supabase/functions/learnora-ai/index.ts` just forwards it verbatim to the LLM providers.
 
 ---
 

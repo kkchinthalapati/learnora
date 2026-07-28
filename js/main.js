@@ -95,53 +95,88 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindTasks();
   bindCalendar();
   bindAI();
-  bindUploadHub();
+  bindCreate();
   bindNotesEditor();
 });
 
 /* =========================================================================
-   UPLOAD HUB (Phase 2)
+   CREATE — the single creation flow.
+
+   Replaces bindUploadHub() (the Upload & Generate page) and the quiz-config
+   modal's handlers. One dialog, one submit path, one call into
+   AI.createStudyPackage(); every button that used to generate something now
+   just opens this with different context.
    ========================================================================= */
 
-function bindUploadHub() {
-  const typeRadios = document.querySelectorAll('input[name="material-type"]');
-  const dropzone = document.getElementById('upload-dropzone');
-  const linkInput = document.getElementById('upload-link-input');
-  const fileInput = document.getElementById('hub-file-upload');
-  const folderSelect = document.getElementById('upload-folder');
-  const processBtn = document.getElementById('btn-process-material');
+function bindCreate() {
+  const modal = document.getElementById("create-modal");
+  if (!modal) return;
 
-  if (!dropzone) return;
-
-  const linkField = document.getElementById('youtube-link');
-  const textField = document.getElementById('upload-raw-text');
-  const linkLabel = document.getElementById('upload-link-label');
-
-  // The field the current material type actually reads from.
-  const activeTextEntry = () =>
-    (document.querySelector('input[name="material-type"]:checked')?.value === 'text'
-      ? textField
-      : linkField);
-
-  const openFilePicker = () => fileInput.click();
-
-  $("btn-browse-files")?.addEventListener("click", (e) => {
-    // The dropzone is a button too — without this the click bubbles up and
-    // opens the picker a second time.
-    e.stopPropagation();
-    openFilePicker();
+  /* ---- Opening it ------------------------------------------------------ */
+  $("nav-create-btn")?.addEventListener("click", () => UI.showCreateModal());
+  $("btn-library-create")?.addEventListener("click", () => {
+    UI.showCreateModal({ onDone: () => Router.showLibraryTab("folders") });
   });
 
-  // The dropzone reads "or click to browse files" and is styled cursor-pointer,
-  // but nothing was ever bound to it: only the Browse button worked. This makes
-  // the affordance real for mouse users. Keyboard and screen-reader users go on
-  // using the Browse Files button nested inside it, which is why the dropzone
-  // itself deliberately stays a plain region — see the comment in index.html.
-  dropzone.addEventListener('click', openFilePicker);
+  /* ---- Library tabs ----------------------------------------------------
+     Each tab drives the hash rather than swapping panels directly, so the
+     router stays the only thing that decides what is on screen and every tab
+     is linkable and survives a refresh. */
+  document.querySelectorAll("[data-library-tab]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.libraryTab;
+      window.location.hash = tab === "folders" ? "library" : `library-${tab}`;
+    });
+  });
 
-  // Friction fix: brand-new users with zero folders would otherwise hit a
-  // dead end here, forced to detour to #folders before they can upload anything.
-  $("btn-upload-new-folder")?.addEventListener("click", async () => {
+  /* ---- Source switching ------------------------------------------------ */
+  document.querySelectorAll('input[name="create-source"]').forEach(radio => {
+    radio.addEventListener("change", () => UI.syncCreateSourcePanels());
+  });
+
+  /* ---- File picking ---------------------------------------------------- */
+  const dropzone = $("create-dropzone");
+  const fileInput = $("create-file");
+
+  const showChosenFile = (file) => {
+    if (!file) return;
+    const title = $("create-dropzone-title");
+    if (title) title.textContent = file.name;
+  };
+
+  // The dropzone is styled cursor-pointer and says "drag & drop", so a click
+  // has to work too. Keyboard users get the real Browse button nested inside
+  // it, which is why the dropzone itself stays a plain region rather than
+  // taking role="button" around another button.
+  dropzone?.addEventListener("click", () => fileInput?.click());
+  $("create-browse")?.addEventListener("click", (e) => {
+    // Without this the click bubbles to the dropzone and opens the picker twice.
+    e.stopPropagation();
+    fileInput?.click();
+  });
+
+  dropzone?.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropzone.classList.add("is-dragging");
+  });
+  dropzone?.addEventListener("dragleave", () => dropzone.classList.remove("is-dragging"));
+  dropzone?.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropzone.classList.remove("is-dragging");
+    if (e.dataTransfer.files.length && fileInput) {
+      fileInput.files = e.dataTransfer.files;
+      showChosenFile(e.dataTransfer.files[0]);
+    }
+  });
+  fileInput?.addEventListener("change", () => showChosenFile(fileInput.files[0]));
+
+  /* ---- Options --------------------------------------------------------- */
+  $("create-card-count")?.addEventListener("input", () => UI.syncCreateRangeOutputs());
+  $("create-question-count")?.addEventListener("input", () => UI.syncCreateRangeOutputs());
+  $("create-personality")?.addEventListener("change", () => UI.syncQuizPersonalityDesc());
+
+  /* ---- New folder without leaving the dialog --------------------------- */
+  $("create-new-folder")?.addEventListener("click", async () => {
     const name = await UI.promptText("Give it a name so it's easy to find later.", {
       title: "New folder",
       placeholder: "e.g. CS101, Biology",
@@ -149,174 +184,143 @@ function bindUploadHub() {
     });
     if (!name) return;
     const colors = ["#4A90E2", "#E24A4A", "#4AE283", "#E2A84A", "#9B4AE2"];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    const newFolder = await Folders.add(name, randomColor);
-    if (newFolder && folderSelect) {
+    const folder = await Folders.add(name, colors[Math.floor(Math.random() * colors.length)]);
+    const select = $("create-folder");
+    if (folder && select) {
       const opt = document.createElement("option");
-      opt.value = newFolder.id;
-      opt.textContent = newFolder.name;
-      folderSelect.appendChild(opt);
-      folderSelect.value = newFolder.id;
+      opt.value = folder.id;
+      opt.textContent = folder.name;
+      select.appendChild(opt);
+      select.value = folder.id;
     }
   });
 
-  // Toggle UI based on material type.
-  const syncTypeUI = (type) => {
-    const needsTextEntry = type === 'youtube' || type === 'text';
-    dropzone.classList.toggle('hidden', needsTextEntry);
-    linkInput.classList.toggle('hidden', !needsTextEntry);
-    if (!needsTextEntry) return;
+  /* ---- Cancel ---------------------------------------------------------- */
+  $("create-cancel")?.addEventListener("click", () => ModalManager.close("create-modal"));
 
-    const isText = type === 'text';
-    // Raw Text writes into a textarea; a YouTube link stays a one-line url
-    // field so the browser still validates it.
-    if (textField) textField.classList.toggle('hidden', !isText);
-    if (linkField) linkField.classList.toggle('hidden', isText);
-    if (linkLabel) {
-      linkLabel.textContent = isText ? "Paste Text Content" : "YouTube URL";
-      linkLabel.setAttribute('for', isText ? 'upload-raw-text' : 'youtube-link');
-    }
+  /* ---- Submit ---------------------------------------------------------- */
+  const showError = (msg) => {
+    const el = $("create-error");
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove("hidden");
   };
 
-  typeRadios.forEach(radio => {
-    radio.addEventListener('change', (e) => syncTypeUI(e.target.value));
-  });
+  // Guards a second submit landing while the first is in flight. Two
+  // overlapping generations used to produce an error popup from the run that
+  // failed to parse plus a working quiz from the one that succeeded — both
+  // from a single click.
+  let creating = false;
 
-  // Handle Drag & Drop styling
-  dropzone.addEventListener('dragover', (e) => {
+  $("create-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    dropzone.style.borderColor = 'var(--primary)';
-    dropzone.style.backgroundColor = 'rgba(74, 144, 226, 0.1)';
-  });
+    if (creating) return;
 
-  dropzone.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-    dropzone.style.borderColor = 'rgba(255,255,255,0.2)';
-    dropzone.style.backgroundColor = 'transparent';
-  });
+    const ctx = UI._createContext || {};
+    const kind = document.querySelector('input[name="create-source"]:checked')?.value || "file";
 
-  const AUDIO_EXTS = ['mp3', 'mp4', 'wav', 'm4a', 'aac', 'ogg'];
+    const outputs = {
+      notes: $("create-want-notes")?.checked ?? false,
+      flashcards: $("create-want-flashcards")?.checked ?? false,
+      quiz: $("create-want-quiz")?.checked ?? false,
+    };
 
-  // Reflect a chosen file in the dropzone and pick the matching material type.
-  // Setting `.checked` in JS does not fire `change`, so the dependent UI has to
-  // be re-synced by hand — otherwise picking a file while "Raw Text" was
-  // selected left the text box on screen and the dropzone hidden.
-  const adoptSelectedFile = (file) => {
-    if (!file) return;
-    const h3 = dropzone.querySelector('h3');
-    if (h3) h3.textContent = file.name;
-    const ext = file.name.split('.').pop().toLowerCase();
-    const type = AUDIO_EXTS.includes(ext) ? 'audio' : 'pdf';
-    const radio = document.querySelector(`input[name="material-type"][value="${type}"]`);
-    if (radio) radio.checked = true;
-    syncTypeUI(type);
-  };
-
-  dropzone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropzone.style.borderColor = 'rgba(255,255,255,0.2)';
-    dropzone.style.backgroundColor = 'transparent';
-    if (e.dataTransfer.files.length) {
-      fileInput.files = e.dataTransfer.files;
-      adoptSelectedFile(e.dataTransfer.files[0]);
-    }
-  });
-
-  fileInput.addEventListener('change', () => {
-    adoptSelectedFile(fileInput.files[0]);
-  });
-
-  processBtn.addEventListener('click', async () => {
-    const type = document.querySelector('input[name="material-type"]:checked')?.value;
-    if (!type) {
-      UI.showPopup("Pick what kind of material you're adding first.", "Material Type Required");
-      return;
-    }
-    const folderId = folderSelect.value;
-    const customTitle = document.getElementById('upload-custom-title')?.value.trim() || "";
-    
-    if (!folderId) {
-      UI.showPopup("Please select or create a folder first.", "Folder Required");
+    const isNewMaterial = kind === "file" || kind === "text" || kind === "link";
+    // Notes are implicit for a new material, so "nothing selected" only really
+    // applies when no notes are being written either.
+    if (!outputs.flashcards && !outputs.quiz && !isNewMaterial) {
+      showError("Pick at least one thing to create.");
       return;
     }
 
-    const originalBtnText = processBtn.innerHTML;
-    processBtn.innerHTML = "⏳ Processing Material (This may take a minute)...";
-    processBtn.disabled = true;
+    // A topic-only run files nothing, and its folder picker is hidden — so
+    // don't quietly attach the quiz to whichever folder happened to be
+    // selected in the dropdown the student never saw.
+    const folderId = kind === "topic" ? null : ($("create-folder")?.value || null);
+    if (isNewMaterial && !folderId) {
+      showError("Choose a folder to save this into, or create one.");
+      return;
+    }
+
+    const source = { kind };
+    if (kind === "file") source.file = $("create-file")?.files?.[0] || null;
+    else if (kind === "text") source.text = $("create-text")?.value || "";
+    else if (kind === "link") source.url = $("create-link")?.value || "";
+    else if (kind === "material") source.materialId = $("create-material")?.value || null;
+    else if (kind === "topic") source.topic = $("create-topic")?.value || "";
+
+    const request = {
+      source,
+      folderId,
+      title: $("create-title-input")?.value || "",
+      outputs,
+      options: {
+        cardCount: parseInt($("create-card-count")?.value, 10) || undefined,
+        questionCount: parseInt($("create-question-count")?.value, 10) || undefined,
+        difficulty: document.querySelector('input[name="create-difficulty"]:checked')?.value,
+        personality: $("create-personality")?.value,
+      },
+    };
+
+    creating = true;
+    const submitBtn = $("create-submit");
+    if (submitBtn) submitBtn.disabled = true;
+    $("create-error")?.classList.add("hidden");
+    ModalManager.close("create-modal");
+
+    UI.setAILoading(true, [
+      "Reading your material...",
+      "Writing your notes...",
+      "Building your flashcards...",
+      "Writing quiz questions...",
+      "Almost ready...",
+    ]);
 
     try {
-      let material;
-      let fileDataPayload = null;
+      const result = await AI.createStudyPackage(request);
+      UI.setAILoading(false);
 
-      if (type === 'pdf' || type === 'audio') {
-        if (!fileInput.files.length) throw new Error("Please select a file.");
-        const file = fileInput.files[0];
-        // Same limit as the chat uploader — reading a huge file into base64
-        // freezes the tab, and the edge function rejects it anyway
-        if (file.size > 10 * 1024 * 1024) {
-          throw new Error("File too large. Maximum size is 10MB.");
-        }
-        material = await Materials.uploadFile(file, folderId, type, customTitle);
-        
-        // Read file into base64 to send to edge function
-        fileDataPayload = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve({
-            name: file.name,
-            mimeType: file.type,
-            data: e.target.result.split(',')[1]
-          });
-          reader.onerror = () => reject(new Error("Failed to read file"));
-          reader.readAsDataURL(file);
-        });
+      const made = [];
+      if (result.notes) made.push("notes");
+      if (result.deck) made.push("flashcards");
+      if (result.quiz) made.push("a quiz");
 
+      if (made.length === 0) {
+        UI.showPopup(
+          "Nothing could be generated this time. Please try again in a moment.",
+          "Create"
+        );
       } else {
-        // Trim before validating: a field holding only spaces used to sail
-        // through the check and create an empty material the AI then failed on.
-        const urlOrText = (activeTextEntry()?.value || "").trim();
-        if (!urlOrText) {
-          throw new Error(type === 'text' ? "Please paste some text first." : "Please provide a link.");
-        }
-        material = await Materials.addLink(urlOrText, folderId, customTitle);
-        
-        // Pass the raw text or link directly
-        fileDataPayload = { name: (type === 'youtube' ? "YouTube Link" : "Raw Text"), mimeType: "text/plain", data: btoa(unescape(encodeURIComponent(urlOrText))) };
+        // Partial success is reported honestly rather than as a plain success.
+        const failed = result.errors.filter(x => x !== "notes");
+        UI.showToast(
+          failed.length
+            ? `Created ${made.join(", ")} — ${failed.join(" and ")} didn't generate.`
+            : `Created ${made.join(", ")}.`
+        );
       }
-      
-      // TRIGGER AI GENERATION IN THE BACKGROUND
-      UI.setAILoading(true, [
-        "AI is thinking...",
-        "Analyzing your material...",
-        "Generating flashcards...",
-        "Synthesizing notes...",
-        "Almost there..."
-      ]);
 
-      try {
-        await AI.generateStudyMaterial(material, folderId, fileDataPayload);
-        UI.setAILoading(false);
-        // Reset UI — clear both entry fields, not just the link one, or the
-        // pasted text stayed behind and got re-submitted on the next upload.
-        fileInput.value = "";
-        const titleEl = document.getElementById('upload-custom-title');
-        if (titleEl) titleEl.value = "";
-        if (linkField) linkField.value = "";
-        if (textField) textField.value = "";
-        const h3 = dropzone.querySelector('h3');
-        if (h3) h3.textContent = "Drag & Drop";
-        
-        // Redirect to folder
-        window.location.hash = `folder-${folderId}`;
-      } catch (err) {
-        UI.setAILoading(false);
-        console.error("AI Generation failed:", err);
-        UI.showPopup(err.message || "Generation failed.", "Error");
-      }
+      if (ctx.onDone) ctx.onDone(result);
+
+      /* Land the student on whatever was just made. A quiz is the most
+         specific outcome, then freshly written notes (result.notes is only set
+         when they were generated in this run, so building a deck from an
+         existing material doesn't dump you back into notes you already had),
+         then the new deck. */
+      if (result.quiz) window.location.hash = `quiz-${encodeURIComponent(result.quiz.id)}`;
+      else if (result.notes && result.material) window.location.hash = `notes-${encodeURIComponent(result.material.id)}`;
+      else if (result.deck) window.location.hash = "library-flashcards";
+      else if (result.material) window.location.hash = `notes-${encodeURIComponent(result.material.id)}`;
     } catch (err) {
-      UI.showPopup(err.message, "Upload Failed");
+      UI.setAILoading(false);
+      console.error("[create]", err);
+      UI.showPopup(
+        err?.message || "Something went wrong. Please try again.",
+        err?.refused ? "Topic not supported" : "Create failed"
+      );
     } finally {
-      processBtn.innerHTML = originalBtnText;
-      processBtn.disabled = false;
+      creating = false;
+      if (submitBtn) submitBtn.disabled = false;
     }
   });
 }
@@ -2170,7 +2174,7 @@ async function renderDueCards() {
       dueEl.innerHTML = `
         <div class="flex-between">
           <span style="display: inline-flex; align-items: center; gap: 6px;">${Icons.svg("layers", { size: 15 })} ${count} card${count === 1 ? "" : "s"} due today</span>
-          <a href="#flashcards" class="dash-link">Review now →</a>
+          <a href="#library-flashcards" class="dash-link">Review now →</a>
         </div>`;
     } else {
       dueEl.classList.add("hidden");
@@ -2239,7 +2243,7 @@ async function maybeRenderOnboardingBanner() {
       <button id="btn-dismiss-onboarding" class="icon-btn" aria-label="Dismiss">✖</button>
     </div>
     <div class="flex-gap mt-16">
-      <button class="btn-primary" data-hash="upload">${Icons.svg("upload-cloud", { size: 15 })} Upload material</button>
+      <button class="btn-primary" data-action="open-create">${Icons.svg("upload-cloud", { size: 15 })} Create study material</button>
       <button class="btn-secondary" id="btn-onboarding-add-task">${Icons.svg("list-checks", { size: 15 })} Add a task</button>
     </div>
   `;
@@ -2364,75 +2368,21 @@ function bindAI() {
     if (plan) window.location.hash = "plan";
   });
 
+  /* "Quiz me" on the dashboard. It used to silently quiz you on whatever
+     material you happened to add last, with no way to see or change that
+     choice; now it opens the one Create dialog with that material merely
+     pre-selected in a dropdown. */
   $("dash-quiz-me-btn")?.addEventListener("click", async () => {
-    const btn = $("dash-quiz-me-btn");
     const material = await Materials.fetchMostRecent();
-    if (!material) {
-      UI.showPopup("Upload a study material first, then Learnora AI can quiz you on it.", "No materials yet");
-      return;
-    }
-    UI.showQuizConfigModal(material.id, material.folder_id, material.title);
-  });
-
-  // Standalone "Quizzes" tab — the main entry point for creating a quiz on
-  // any topic, with no folder/material required (materialId/folderId null
-  // means AI.generateQuiz() falls back to topic-only generation).
-  $("btn-generate-quiz-standalone")?.addEventListener("click", () => {
-    UI.showQuizConfigModal(null, null, "");
-  });
-
-  $("btn-cancel-quiz-config")?.addEventListener("click", () => {
-    ModalManager.close("quiz-config-modal");
-  });
-
-  $("quiz-personality")?.addEventListener("change", () => UI.syncQuizPersonalityDesc());
-
-  // Guards against a second submit landing while the first is still in
-  // flight. Two overlapping generations produced the reported "Couldn't
-  // generate a quiz" popup from the run whose JSON failed to parse, followed
-  // by the other run succeeding and navigating to a quiz — an error message
-  // and a working quiz from one click.
-  let quizGenerating = false;
-
-  $("quiz-config-form")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (quizGenerating) return;
-    const materialId = $("quiz-material-id").value || null;
-    const folderId = $("quiz-folder-id").value || null;
-
-    const config = {
-      topic: $("quiz-topic").value.trim(),
-      difficulty: document.querySelector('input[name="quiz-difficulty"]:checked')?.value || "Medium",
-      personality: $("quiz-personality").value,
-      length: parseInt(document.querySelector('input[name="quiz-length"]:checked')?.value) || 10
-    };
-
-    UI.setAILoading(true, [
-      "AI is thinking...",
-      "Analyzing material context...",
-      "Formulating quiz questions...",
-      "Validating answers...",
-      "Almost ready..."
-    ]);
-
-    quizGenerating = true;
-    const submitBtn = $("quiz-config-form")?.querySelector('[type="submit"]');
-    if (submitBtn) submitBtn.disabled = true;
-    try {
-      const quiz = await AI.generateQuiz(materialId, folderId, config);
-      UI.setAILoading(false);
-      if (quiz) {
-        ModalManager.close("quiz-config-modal");
-        window.location.hash = `quiz-${quiz.id}`;
-      }
-    } catch (e) {
-      UI.setAILoading(false);
-      console.error(e);
-      UI.showPopup(e.message || "Failed to generate quiz.", "Error");
-    } finally {
-      quizGenerating = false;
-      if (submitBtn) submitBtn.disabled = false;
-    }
+    UI.showCreateModal({
+      title: "Quiz me",
+      // Falls back to a topic-only quiz when there is nothing saved yet,
+      // instead of the old dead-end "upload a material first" popup.
+      source: material ? "material" : "topic",
+      materialId: material?.id || null,
+      folderId: material?.folder_id || null,
+      outputs: { flashcards: false, quiz: true },
+    });
   });
 
   // "Regenerate" on the #plan view — upsert just overwrites this week's plan.
@@ -2542,41 +2492,32 @@ function bindNotesQuickActions() {
     });
   };
 
-  onActivate("notes-action-quiz", async () => {
+  /* Both cards open the same Create dialog, scoped to the document on screen
+     and with the matching output pre-ticked. They used to behave completely
+     differently — Quiz opened a four-field config modal, Flashcards fired a
+     generation immediately with no options at all. */
+  const openCreateForDocument = async (outputs, title) => {
     const materialId = await activeMaterial();
     if (!materialId) return;
     const { UI } = await import("./ui.js");
-    UI.showQuizConfigModal(materialId, null, "Quiz on this document");
-  });
+    const { Materials } = await import("./api.js");
+    const material = await Materials.fetchById(materialId);
+    UI.showCreateModal({
+      title,
+      source: "material",
+      materialId,
+      folderId: material?.folder_id ?? null,
+      outputs,
+    });
+  };
 
-  onActivate("notes-action-flashcards", async () => {
-    const materialId = await activeMaterial();
-    if (!materialId) return;
-    const { UI } = await import("./ui.js");
-    const { AI } = await import("./ai.js");
+  onActivate("notes-action-quiz", () =>
+    openCreateForDocument({ flashcards: false, quiz: true }, "Quiz on this document")
+  );
 
-    // Previously this asked the chat panel to "generate flashcards", but the
-    // notes chat has no action-tag executor — the model emitted <ADD_QUIZ>-style
-    // tags, they were stripped before display, and no deck was ever created.
-    // Call the real generator instead.
-    const card = document.getElementById("notes-action-flashcards");
-    if (card?.dataset.busy === "1") return;
-    if (card) card.dataset.busy = "1";
-    UI.showToast("Generating flashcards…");
-    try {
-      // generateFlashcards() resolves the material (and so the deck title)
-      // through folderId, and files the deck into the same folder.
-      const { Materials } = await import("./api.js");
-      const material = await Materials.fetchById(materialId);
-      const deck = await AI.generateFlashcards(materialId, material?.folder_id ?? null);
-      if (deck) {
-        UI.showToast("Flashcards ready");
-        window.location.hash = "flashcards";
-      }
-    } finally {
-      if (card) delete card.dataset.busy;
-    }
-  });
+  onActivate("notes-action-flashcards", () =>
+    openCreateForDocument({ flashcards: true, quiz: false }, "Flashcards from this document")
+  );
 
   onActivate("notes-action-podcast", async () => {
     const { UI } = await import("./ui.js");

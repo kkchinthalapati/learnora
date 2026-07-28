@@ -70,6 +70,13 @@ export const Router = {
         return;
       }
       if (!actionEl) return;
+      // Every empty state and dynamically-rendered "make something" button
+      // routes through this one action rather than each rendering its own
+      // handler or linking to a page that no longer exists.
+      if (actionEl.dataset.action === "open-create") {
+        UI.showCreateModal({ onDone: () => this.handleHashChange() });
+        return;
+      }
       if (actionEl.dataset.action === "new-folder") this.createNewFolder();
       else if (actionEl.dataset.action === "history-back") window.history.back();
       else if (actionEl.dataset.action === "start-plan-block") {
@@ -83,19 +90,50 @@ export const Router = {
     this.handleHashChange();
   },
 
+  /* Folders, Upload, Flashcards and Quizzes were four top-level views before
+     they were merged into #view-library. Bookmarks, the browser history of
+     anyone mid-session, and any link still pointing at the old hashes are
+     rewritten here rather than falling through to the dashboard. "upload" has
+     no tab of its own — creating is a dialog now — so it lands on the Library
+     and opens it. */
+  LEGACY_ROUTES: {
+    folders: "library",
+    upload: "library",
+    flashcards: "library-flashcards",
+    quizzes: "library-quizzes",
+  },
+
   handleHashChange() {
     let hash = window.location.hash.replace("#", "");
     if (!hash) hash = "dashboard";
+
+    const legacy = this.LEGACY_ROUTES[hash];
+    if (legacy) {
+      const openCreate = hash === "upload";
+      // replaceState keeps the dead hash out of the back stack, so Back from
+      // the Library doesn't bounce through a redirect loop.
+      history.replaceState(null, "", `#${legacy}`);
+      this.navigate(legacy);
+      if (openCreate) {
+        import("./ui.js").then(({ UI }) => UI.showCreateModal());
+      }
+      return;
+    }
 
     this.navigate(hash);
   },
 
   navigate(route) {
     this.currentRoute = route;
-    
+
+    // Every library tab is one nav entry, so "library-quizzes" has to light up
+    // the "#library" link rather than matching nothing and leaving the sidebar
+    // with no active item.
+    const navRoute = route.startsWith("library") ? "library" : route;
+
     document.querySelectorAll(".nav-link").forEach(link => {
       link.classList.remove("active");
-      if (link.getAttribute("href") === `#${route}` && route !== "ai") {
+      if (link.getAttribute("href") === `#${navRoute}` && route !== "ai") {
         link.classList.add("active");
         UI._activeTab = route;
         UI._updatePageTitle(link);
@@ -144,6 +182,15 @@ export const Router = {
       return;
     }
 
+    // The Library is one view with four tab panels, addressed as
+    // #library (folders), #library-materials, #library-flashcards and
+    // #library-quizzes so each tab stays linkable and survives a refresh.
+    if (route === "library" || route.startsWith("library-")) {
+      $("view-library")?.classList.remove("hidden");
+      this.showLibraryTab(route === "library" ? "folders" : route.slice("library-".length));
+      return;
+    }
+
     // Show target view
     const targetView = $(`view-${route}`);
     if (targetView) {
@@ -154,15 +201,6 @@ export const Router = {
     }
 
     // specific routing logic
-    if (route === "folders" || route === "upload") {
-      this.loadFolders(route);
-    }
-    if (route === "flashcards") {
-      this.loadAllFlashcards();
-    }
-    if (route === "quizzes") {
-      this.loadAllQuizzes();
-    }
     if (route === "plan") {
       this.loadPlanView();
     }
@@ -203,9 +241,61 @@ export const Router = {
     if (nameInput) nameInput.value = name;
   },
 
+  /* Shows one Library tab and loads only that tab's data. Called by navigate()
+     on every #library* route, and by the tab buttons (which set the hash, so
+     both paths land here and the tab is bookmarkable). */
+  showLibraryTab(tab) {
+    const known = ["folders", "materials", "flashcards", "quizzes"];
+    const active = known.includes(tab) ? tab : "folders";
+
+    document.querySelectorAll("[data-library-panel]").forEach(panel => {
+      panel.classList.toggle("hidden", panel.dataset.libraryPanel !== active);
+    });
+    document.querySelectorAll("[data-library-tab]").forEach(btn => {
+      const on = btn.dataset.libraryTab === active;
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-selected", on ? "true" : "false");
+    });
+
+    if (active === "folders") this.loadFolders();
+    else if (active === "materials") this.loadAllMaterials();
+    else if (active === "flashcards") this.loadAllFlashcards();
+    else if (active === "quizzes") this.loadAllQuizzes();
+  },
+
+  /* The Materials tab — every uploaded material across all folders, each one a
+     link into its notes. Before the Library merge there was no way to see this
+     list at all: materials were only reachable by opening a folder first. */
+  async loadAllMaterials() {
+    const materials = await Materials.fetch();
+    const container = $("materials-grid");
+    if (!container) return;
+
+    if (materials.length === 0) {
+      container.innerHTML = `
+        <div class="glass-panel empty-state">
+            <h3>No materials yet.</h3>
+            <p class="mt-8 mb-16">Add a file, some text, a link, or just a topic — Learnora AI turns it into notes you can study from.</p>
+            <button class="btn-primary" data-action="open-create">+ Create</button>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = materials.map(m => `
+      <div class="glass-panel stat-card cursor-pointer hover-lift flex-between" style="position: relative;" data-hash="notes-${encodeURIComponent(m.id)}">
+        <div>
+          <h3 style="display: inline-flex; align-items: center; gap: 8px;">${Icons.svg("file-text", { size: 18 })} ${esc(m.title)}</h3>
+          <p class="text-muted mt-4 text-sm">Added ${new Date(m.created_at).toLocaleDateString()}</p>
+        </div>
+        <span class="btn-primary" style="padding: 6px 12px; font-size: 0.8rem;">Open notes</span>
+      </div>
+    `).join("");
+  },
+
   async loadAllFlashcards() {
     const decks = await Decks.fetchAll();
-    
+
     const container = $("flashcards-grid");
     if (!container) return;
     
@@ -214,7 +304,7 @@ export const Router = {
         <div class="glass-panel empty-state">
             <h3>No flashcards yet.</h3>
             <p class="mt-8 mb-16">Generate flashcards from your study materials using Learnora AI.</p>
-            <button class="btn-primary" data-hash="upload">${Icons.svg("upload-cloud", { size: 16 })} Upload a material →</button>
+            <button class="btn-primary" data-action="open-create">${Icons.svg("upload-cloud", { size: 16 })} Create flashcards →</button>
         </div>
       `;
     } else {
@@ -233,11 +323,15 @@ export const Router = {
     }
   },
 
-  async loadFolders(route) {
+  /* Renders the Library's Folders tab. It used to take a `route` and, for
+     "upload", populate the Upload page's folder <select> instead of drawing
+     anything — that page is gone, and the Create dialog fills its own select
+     when it opens, so this only ever draws folders now. */
+  async loadFolders() {
     const folders = await Folders.fetch();
 
     let materialCounts = {};
-    if (route === "folders" && folders.length > 0) {
+    if (folders.length > 0) {
       const allMaterials = await Materials.fetch();
       materialCounts = allMaterials.reduce((acc, m) => {
         acc[m.folder_id] = (acc[m.folder_id] || 0) + 1;
@@ -245,7 +339,7 @@ export const Router = {
       }, {});
     }
 
-    if (route === "folders") {
+    {
       const container = $("folders-container");
       if (!container) return;
 
@@ -255,7 +349,7 @@ export const Router = {
               <h3>No folders yet.</h3>
               <p class="mt-8 mb-16">
                 1. Create a folder for a course or subject &nbsp;→&nbsp;
-                2. Upload a PDF, link, or notes into it &nbsp;→&nbsp;
+                2. Add a PDF, link, or notes to it &nbsp;→&nbsp;
                 3. Learnora AI builds notes, flashcards, and quizzes for you.
               </p>
               <button class="btn-primary" data-action="new-folder">+ Create Folder</button>
@@ -283,18 +377,6 @@ export const Router = {
           </div>
         `;
       }
-    }
-    
-    if (route === "upload") {
-      const select = $("upload-folder");
-      if (!select) return;
-      select.innerHTML = '<option value="" disabled selected>Select a folder...</option>';
-      folders.forEach(f => {
-        const opt = document.createElement("option");
-        opt.value = f.id;
-        opt.textContent = f.name;
-        select.appendChild(opt);
-      });
     }
   },
 
@@ -366,23 +448,23 @@ export const Router = {
       `).join("");
     }
 
-    const deckGenBtn = $("btn-generate-deck");
-    if (deckGenBtn) {
-      const freshDeckBtn = deckGenBtn.cloneNode(true);
-      deckGenBtn.replaceWith(freshDeckBtn);
-      freshDeckBtn.addEventListener("click", async () => {
-        if (materials.length === 0) {
-          UI.showPopup("Upload a material into this folder first, then generate flashcards from it.", "No materials yet");
-          return;
-        }
-        const original = freshDeckBtn.textContent;
-        freshDeckBtn.textContent = "Generating…";
-        freshDeckBtn.disabled = true;
-        const { AI } = await import("./ai.js");
-        const deck = await AI.generateFlashcards(materials[0].id, folderId);
-        freshDeckBtn.textContent = original;
-        freshDeckBtn.disabled = false;
-        if (deck) this.loadFolderDetail(folderId);
+    /* One Create button for the whole workspace, replacing the separate
+       "+ New Deck" and "+ Generate" buttons. Both of those silently generated
+       from `materials[0]` — the most recently added item — with no indication
+       of which material they had picked, so a folder with six materials gave
+       you a deck for whichever one you happened to add last. The dialog asks. */
+    const createBtn = $("btn-workspace-create");
+    if (createBtn) {
+      const fresh = createBtn.cloneNode(true);
+      createBtn.replaceWith(fresh);
+      fresh.addEventListener("click", () => {
+        UI.showCreateModal({
+          folderId,
+          // Pre-select the folder's newest material when there is one, but as a
+          // visible default in a dropdown the student can change.
+          materialId: materials[0]?.id || null,
+          onDone: () => this.loadFolderDetail(folderId),
+        });
       });
     }
 
@@ -408,24 +490,12 @@ export const Router = {
         `).join("");
       }
 
-      const genBtn = $("btn-generate-quiz");
-      if (genBtn) {
-        const fresh = genBtn.cloneNode(true);
-        genBtn.replaceWith(fresh);
-        fresh.addEventListener("click", async () => {
-          if (materials.length === 0) {
-            UI.showPopup("Upload a material into this folder first, then generate a quiz from it.", "No materials yet");
-            return;
-          }
-          UI.showQuizConfigModal(materials[0].id, folderId, materials[0].title);
-        });
-      }
     }
   },
 
   async loadNotes(materialId) {
     if (!materialId) {
-      window.location.hash = "folders";
+      window.location.hash = "library";
       return;
     }
     
@@ -798,13 +868,13 @@ Also provide a short 1-sentence feedback.`;
         });
 
         container.innerHTML = `
-          <button class="btn-secondary mb-24" data-hash="quizzes">← Exit</button>
+          <button class="btn-secondary mb-24" data-hash="library-quizzes">← Exit</button>
           <h2>Quiz Complete! 🎉</h2>
           <p class="mt-8" style="font-size: 1.5rem;">${score} / ${total} correct</p>
           ${weakTopics.length ? `<p class="text-muted mt-16">Topics to review: ${weakTopics.map(esc).join(", ")}</p>` : ""}
           <div class="flex-gap mt-24">
             <button class="btn-primary" data-hash="quizreview-${encodeURIComponent(quiz.id)}">${Icons.svg("list-checks", { size: 16 })} Review answers</button>
-            <button class="btn-secondary" data-hash="quizzes">Back to Quizzes</button>
+            <button class="btn-secondary" data-hash="library-quizzes">Back to Quizzes</button>
           </div>
         `;
         showHost(`Finished! You got ${score} out of ${total}. Check your weak topics and keep studying!`);
@@ -813,7 +883,7 @@ Also provide a short 1-sentence feedback.`;
 
       const q = questions[currentIndex];
       container.innerHTML = `
-        <button class="btn-secondary mb-24" data-hash="quizzes">← Exit</button>
+        <button class="btn-secondary mb-24" data-hash="library-quizzes">← Exit</button>
         <p class="text-muted">Question ${currentIndex + 1} of ${questions.length}</p>
         <h3 class="mt-8 mb-16">${esc(q.question)}</h3>
         <div id="quiz-choices" class="flex-col flex-gap"></div>
@@ -900,7 +970,7 @@ Also provide a short 1-sentence feedback.`;
 
     if (!attempt) {
       container.innerHTML = `
-        <button class="btn-secondary mb-24" data-hash="quizzes">← Exit</button>
+        <button class="btn-secondary mb-24" data-hash="library-quizzes">← Exit</button>
         <h2>${esc(quiz.title || "Quiz")}</h2>
         <p class="text-muted mt-16">You haven't taken this quiz yet, so there are no answers to review.</p>
         <button class="btn-primary mt-24" data-hash="quiz-${encodeURIComponent(quiz.id)}">Take the quiz</button>
@@ -956,7 +1026,7 @@ Also provide a short 1-sentence feedback.`;
     }).join("");
 
     container.innerHTML = `
-      <button class="btn-secondary mb-24" data-hash="quizzes">← Exit</button>
+      <button class="btn-secondary mb-24" data-hash="library-quizzes">← Exit</button>
       <h2>${esc(quiz.title || "Quiz")} — your answers</h2>
       <p class="mt-8" style="font-size: 1.25rem;">
         ${esc(attempt.score)} / ${esc(attempt.total)} correct${taken ? ` <span class="text-muted">· ${esc(taken)}</span>` : ""}
@@ -964,7 +1034,7 @@ Also provide a short 1-sentence feedback.`;
       <div class="review-list mt-24">${body}</div>
       <div class="flex-gap mt-24">
         <button class="btn-primary" data-hash="quiz-${encodeURIComponent(quiz.id)}">Retake quiz</button>
-        <button class="btn-secondary" data-hash="quizzes">Back to Quizzes</button>
+        <button class="btn-secondary" data-hash="library-quizzes">Back to Quizzes</button>
       </div>
     `;
   },

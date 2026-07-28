@@ -224,8 +224,25 @@ const TIMEOUT_MS = { chat: 20_000, json: 35_000 };
    connection drop. */
 const TOTAL_BUDGET_MS = 55_000;
 
+/* Modes whose body is parsed as JSON by the client. Keep this as the single
+   source of truth: `flashcards` used to be sent with no mode at all, so deck
+   generation silently ran on the 20s chat budget with no fence-stripping —
+   long decks were cut off mid-array and surfaced as "couldn't generate
+   flashcards". Anything added here must also emit a JSON-only instruction in
+   `modeInstructions` below, and be unwrappable by the matching client parser. */
+const JSON_MODES = new Set(["quiz", "plan", "flashcards"]);
+
+/* `notes` is long-form Markdown, not JSON — it must not get response_format,
+   but a full study-notes document is easily as slow as a quiz, so it shares
+   the longer budget. */
+const SLOW_MODES = new Set([...JSON_MODES, "notes"]);
+
+function isJsonMode(mode: string | undefined): boolean {
+  return mode !== undefined && JSON_MODES.has(mode);
+}
+
 function timeoutFor(mode: string | undefined): number {
-  return mode === "quiz" || mode === "plan" ? TIMEOUT_MS.json : TIMEOUT_MS.chat;
+  return mode !== undefined && SLOW_MODES.has(mode) ? TIMEOUT_MS.json : TIMEOUT_MS.chat;
 }
 
 /* A response is only usable if it actually carries text. An empty string from
@@ -252,7 +269,7 @@ async function callOpenAICompatible(
   if (!key) throw new Error(`${provider.keyEnv} is not set in Supabase secrets.`);
 
   const model = Deno.env.get(provider.modelEnv) || provider.defaultModel;
-  const wantsJson = opts.mode === "quiz" || opts.mode === "plan";
+  const wantsJson = isJsonMode(opts.mode);
 
   const messages = [
     { role: "system", content: opts.systemInstruction },
@@ -304,10 +321,10 @@ async function callOpenAICompatible(
 }
 
 function safetyRefusalResponse(mode: string | undefined, headers: Record<string, string>): Response {
-  // Quiz/plan callers parse the body as JSON and would render a refusal
+  // JSON-mode callers parse the body as JSON and would render a refusal
   // sentence as a broken quiz, so give them a shape they can reject cleanly
   // and surface the message through the `error` field instead.
-  if (mode === "quiz" || mode === "plan") {
+  if (isJsonMode(mode)) {
     return new Response(
       JSON.stringify({ error: SAFETY_REFUSAL, refused: true }),
       { status: 422, headers },
@@ -370,6 +387,13 @@ Deno.serve(async (req) => {
             // use response_format:json_object, which only permits an object at
             // the top level. The client accepts either shape.
             ? `\nYou are generating a high-quality multiple-choice quiz. Ensure every question covers a completely unique concept, logical sub-step, or angle with NO back-to-back repetitive questions. Match the requested difficulty level precisely (Hard = multi-step deduction, error spotting, edge cases, subtle fallacies; Easy = direct recall; Medium = conceptual understanding). Output ONLY raw JSON (no prose, no code fences) matching this shape: {"questions":[{"question":"string","choices":["a","b","c","d"],"correctIndex":0,"topic":"short topic label","feedback":"string"}]}. "correctIndex" is REQUIRED on every question and must be the 0-based index of the correct entry in that question's "choices" array.`
+            : mode === "flashcards"
+            // Object-wrapped for the same response_format:json_object reason as
+            // quiz above. The client unwraps {"cards":[...]} or a bare array.
+            ? `\nYou are generating flashcards. Every card must test a distinct concept — no two cards may restate the same fact. Keep "front" a single question or prompt and "back" a complete but concise answer. Output ONLY raw JSON (no prose, no code fences) matching this shape: {"cards":[{"front":"string","back":"string"}]}.`
+            : mode === "notes"
+            // Deliberately NOT a JSON mode: this returns long-form Markdown.
+            ? `\nYou are generating study notes as long-form Markdown. Output the notes only — no JSON, no preamble, no closing commentary.`
             : "";
 
         const systemInstruction = `You are Learnora AI. Act as ${personaMap[s.aiPersona] || personaMap.tutor}.
@@ -455,7 +479,7 @@ Deno.serve(async (req) => {
                     }
 
                     let text = result.response.text();
-                    if (mode === "quiz" || mode === "plan") {
+                    if (isJsonMode(mode)) {
                         text = cleanJsonResponse(text);
                     }
                     if (!text || !text.trim()) throw new Error(`Gemini (${modelName}) returned empty text`);
@@ -515,7 +539,7 @@ Deno.serve(async (req) => {
                     signal: deadline,
                 });
 
-                if (mode === "quiz" || mode === "plan") {
+                if (isJsonMode(mode)) {
                     text = cleanJsonResponse(text);
                 }
 

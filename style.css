@@ -6247,3 +6247,224 @@ body:has(#view-notes:not(.hidden)) .dashboard-command-bar {
 
 
 
+
+/* =========================================================================
+   CREATE DIALOG + LIBRARY
+   The single creation flow and the merged Library view. Everything here is
+   built from the shared tokens, so light/dark come along for free.
+   ========================================================================= */
+
+/* ---- Sidebar "Create" button -------------------------------------------
+   Deliberately not a .nav-link: it opens a dialog rather than routing, so it
+   must never pick up the active/current-page treatment. */
+.nav-create-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    width: 100%;
+    padding: 11px var(--s-4);
+    margin-bottom: var(--s-1);
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--r-sm);
+    font: inherit;
+    font-weight: 650;
+    text-align: left;
+    cursor: pointer;
+    transition: filter var(--t-fast) ease, transform var(--t-fast) ease;
+}
+.nav-create-btn:hover {
+    filter: brightness(1.08);
+}
+.nav-create-btn:active {
+    transform: translateY(1px);
+}
+.nav-create-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+.nav-create-btn .icon {
+    flex-shrink: 0;
+}
+
+/* ---- Library tabs ------------------------------------------------------ */
+.library-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1);
+    margin-top: var(--s-4);
+    padding: var(--s-1);
+    background: var(--surface-2);
+    border: 1px solid var(--glass-border-subtle);
+    border-radius: var(--r-md);
+}
+.library-tab {
+    flex: 1 1 auto;
+    padding: 9px var(--s-4);
+    background: none;
+    border: none;
+    border-radius: var(--r-sm);
+    font: inherit;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background var(--t-fast) ease, color var(--t-fast) ease;
+}
+.library-tab:hover {
+    color: var(--text);
+}
+.library-tab.active {
+    background: var(--surface);
+    color: var(--accent);
+    box-shadow: var(--shadow-sm);
+}
+.library-tab:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* ---- Create dialog ----------------------------------------------------- */
+.create-modal-content {
+    max-width: 560px;
+    /* The dialog can get tall with Options expanded — scroll inside it rather
+       than letting the page behind it scroll. */
+    max-height: min(88vh, 900px);
+    overflow-y: auto;
+}
+
+/* Five sources, not the three the base .segmented grid assumes. */
+.create-source-picker {
+    grid-template-columns: repeat(5, 1fr);
+}
+@media (max-width: 520px) {
+    .create-source-picker {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.create-source-panel {
+    margin-bottom: var(--s-4);
+}
+
+#create-dropzone {
+    border: 2px dashed var(--glass-border-subtle);
+    border-radius: var(--r-lg);
+    padding: 32px 20px;
+    transition: border-color var(--t-fast) ease, background var(--t-fast) ease;
+}
+#create-dropzone.is-dragging {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.create-dropzone-title {
+    font-weight: 650;
+    margin-bottom: var(--s-1);
+}
+
+/* ---- Output checkboxes ------------------------------------------------- */
+.create-outputs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+}
+.create-output-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    background: var(--surface-2);
+    border: 1px solid var(--glass-border-subtle);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: border-color var(--t-fast) ease, background var(--t-fast) ease;
+}
+.create-output-row:hover {
+    border-color: var(--accent);
+}
+.create-output-row:has(input:checked) {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
+}
+/* Notes are forced on for a new material. Keep it legible but clearly not
+   something you can toggle. */
+.create-output-row:has(input:disabled) {
+    cursor: default;
+    opacity: 0.75;
+}
+.create-output-row:has(input:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+.create-output-row input[type="checkbox"] {
+    margin-top: 3px;
+    width: 17px;
+    height: 17px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+    cursor: inherit;
+}
+.create-output-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.create-output-name {
+    font-weight: 650;
+}
+.create-output-desc {
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+}
+
+/* ---- Collapsed options ------------------------------------------------- */
+.create-options {
+    margin-top: var(--s-4);
+    border-top: 1px solid var(--glass-border-subtle);
+    padding-top: var(--s-3);
+}
+.create-options > summary {
+    font-size: var(--fs-sm);
+    font-weight: 650;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: var(--s-2) 0;
+    list-style: none;
+}
+.create-options > summary::-webkit-details-marker {
+    display: none;
+}
+.create-options > summary::before {
+    content: "▸";
+    display: inline-block;
+    margin-right: var(--s-2);
+    transition: transform var(--t-fast) ease;
+}
+.create-options[open] > summary::before {
+    transform: rotate(90deg);
+}
+.create-options > summary:hover {
+    color: var(--text);
+}
+.create-options > summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--r-sm);
+}
+.create-options-body {
+    padding-top: var(--s-2);
+}
+.create-options-body input[type="range"] {
+    accent-color: var(--accent);
+}
+
+.create-error {
+    margin-top: var(--s-4);
+    padding: var(--s-3) var(--s-4);
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+    border-left: 3px solid var(--danger);
+    border-radius: var(--r-sm);
+    color: var(--danger);
+    font-size: var(--fs-sm);
+}
