@@ -175,6 +175,22 @@ function bindCreate() {
   $("create-question-count")?.addEventListener("input", () => UI.syncCreateRangeOutputs());
   $("create-personality")?.addEventListener("change", () => UI.syncQuizPersonalityDesc());
 
+  /* Ticking an output reveals its tuning fields, so Options only ever shows
+     controls that can change the result. */
+  ["create-want-flashcards", "create-want-quiz"].forEach(id => {
+    $(id)?.addEventListener("change", () => UI.syncCreateOptionVisibility());
+  });
+
+  /* Submit from anywhere in the form. The dialog is tall enough that reaching
+     Create otherwise means scrolling past Options, and Enter inside the
+     textarea has to keep inserting newlines. */
+  $("create-form")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      $("create-submit")?.click();
+    }
+  });
+
   /* ---- New folder without leaving the dialog --------------------------- */
   $("create-new-folder")?.addEventListener("click", async () => {
     const name = await UI.promptText("Give it a name so it's easy to find later.", {
@@ -199,11 +215,85 @@ function bindCreate() {
   $("create-cancel")?.addEventListener("click", () => ModalManager.close("create-modal"));
 
   /* ---- Submit ---------------------------------------------------------- */
-  const showError = (msg) => {
+  /* Sends focus to whatever the student has to fix. The message is in a
+     role="alert", so it is announced either way, but without the focus move a
+     keyboard user has to hunt for the field the error is about. */
+  const showError = (msg, focusId) => {
     const el = $("create-error");
     if (!el) return;
     el.textContent = msg;
     el.classList.remove("hidden");
+    const target = focusId && $(focusId);
+    if (target) {
+      target.focus();
+      target.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  };
+
+  const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+  /* Everything that can be known without calling the model is checked here,
+     while the dialog is still open and every field is still on screen.
+     These same conditions are re-thrown inside AI.createStudyPackage() as a
+     backstop for scripted callers, but reaching them through the form used to
+     mean the dialog closed, a full-screen spinner appeared, and the student got
+     a popup reading "Please choose a file first." — for a mistake the dialog
+     could have caught before any of that happened.
+
+     Returns an error string, or null when the source is good to send. */
+  const validateSource = (kind) => {
+    if (kind === "file") {
+      const file = $("create-file")?.files?.[0];
+      if (!file) return ["Choose a file to create from.", "create-browse"];
+      if (file.size > MAX_UPLOAD_BYTES) {
+        const mb = (file.size / (1024 * 1024)).toFixed(1);
+        return [`"${file.name}" is ${mb}MB — the limit is 10MB. Try a smaller file.`, "create-browse"];
+      }
+      return null;
+    }
+
+    if (kind === "text") {
+      const text = ($("create-text")?.value || "").trim();
+      if (!text) return ["Paste the text you want to study from.", "create-text"];
+      // Below this there is nothing for the model to work from, and the run
+      // burns a request to come back empty.
+      if (text.length < 40) {
+        return ["That's a bit short to study from — paste at least a paragraph.", "create-text"];
+      }
+      return null;
+    }
+
+    if (kind === "link") {
+      const raw = ($("create-link")?.value || "").trim();
+      if (!raw) return ["Add a link to create from.", "create-link"];
+      let parsed;
+      try {
+        parsed = new URL(raw);
+      } catch {
+        return ["That doesn't look like a link. Include the https:// prefix.", "create-link"];
+      }
+      // javascript:/data: URLs are not fetchable sources, and echoing one back
+      // into the page is not something to hand to the model either.
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return ["Links have to start with http:// or https://.", "create-link"];
+      }
+      return null;
+    }
+
+    if (kind === "material") {
+      if (!$("create-material")?.value) {
+        return ["Choose which saved material to build from.", "create-material"];
+      }
+      return null;
+    }
+
+    if (kind === "topic") {
+      const topic = ($("create-topic")?.value || "").trim();
+      if (!topic) return ["Enter a topic to create from.", "create-topic"];
+      return null;
+    }
+
+    return null;
   };
 
   // Guards a second submit landing while the first is in flight. Two
@@ -229,7 +319,14 @@ function bindCreate() {
     // Notes are implicit for a new material, so "nothing selected" only really
     // applies when no notes are being written either.
     if (!outputs.flashcards && !outputs.quiz && !isNewMaterial) {
-      showError("Pick at least one thing to create.");
+      showError("Pick at least one thing to create.", "create-want-flashcards");
+      return;
+    }
+
+    // Check the source itself before anything closes or spins.
+    const sourceProblem = validateSource(kind);
+    if (sourceProblem) {
+      showError(sourceProblem[0], sourceProblem[1]);
       return;
     }
 
@@ -238,7 +335,7 @@ function bindCreate() {
     // selected in the dropdown the student never saw.
     const folderId = kind === "topic" ? null : ($("create-folder")?.value || null);
     if (isNewMaterial && !folderId) {
-      showError("Choose a folder to save this into, or create one.");
+      showError("Choose a folder to save this into, or create one.", "create-folder");
       return;
     }
 
@@ -260,6 +357,8 @@ function bindCreate() {
         difficulty: document.querySelector('input[name="create-difficulty"]:checked')?.value,
         personality: $("create-personality")?.value,
       },
+      // Swaps the loader's guessed script for the stage actually running.
+      onProgress: (msg) => UI.setAIProgress(msg),
     };
 
     creating = true;
@@ -268,13 +367,11 @@ function bindCreate() {
     $("create-error")?.classList.add("hidden");
     ModalManager.close("create-modal");
 
-    UI.setAILoading(true, [
-      "Reading your material...",
-      "Writing your notes...",
-      "Building your flashcards...",
-      "Writing quiz questions...",
-      "Almost ready...",
-    ]);
+    /* A single honest caption. The pipeline replaces it with the real stage
+       within a moment via onProgress, so there is nothing to rotate through —
+       the old five-message loop promised quiz questions on runs that were
+       never going to make a quiz. */
+    UI.setAILoading(true, ["Getting started…"]);
 
     try {
       const result = await AI.createStudyPackage(request);

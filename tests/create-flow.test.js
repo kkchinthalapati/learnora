@@ -294,3 +294,154 @@ test("the Library replaces four views without breaking links", async (t) => {
     );
   });
 });
+
+/* =========================================================================
+   Polish pass — each block below pins a defect found by driving the dialog in
+   a real browser, not a refactor invariant. Naming the symptom in the message
+   keeps a future edit from "cleaning up" the fix and silently restoring it.
+   ========================================================================= */
+
+test("the dialog cannot fail silently", async (t) => {
+  await t.test("the form opts out of native validation", () => {
+    // The source panels show one at a time. A bare domain left in the hidden
+    // type=url Link field made the browser refuse to submit a control it could
+    // not focus: no submit event, no message, Create simply did nothing.
+    const form = html.match(/<form id="create-form"[^>]*>/)?.[0] ?? "";
+    assert.ok(form, "#create-form not found");
+    assert.ok(
+      /\bnovalidate\b/.test(form),
+      "create-form lost novalidate — a stale value in a hidden panel will " +
+      "block submit again with no feedback"
+    );
+  });
+
+  await t.test("every source is checked before the dialog closes", () => {
+    // These used to throw from inside the pipeline, which meant the dialog had
+    // already closed and a full-screen spinner had already appeared.
+    assert.ok(
+      /const validateSource = \(kind\) =>/.test(bindCreate),
+      "validateSource is gone — source errors would surface behind a spinner"
+    );
+    for (const kind of ["file", "text", "link", "material", "topic"]) {
+      assert.ok(
+        new RegExp(`kind === "${kind}"`).test(bindCreate),
+        `the "${kind}" source is no longer validated up front`
+      );
+    }
+    // Scoped to the submit listener: bindCreate also closes the dialog from the
+    // Cancel handler, which sits above this and would satisfy a whole-function
+    // ordering check no matter where validation ended up.
+    const submitStart = bindCreate.indexOf('$("create-form")?.addEventListener("submit"');
+    assert.ok(submitStart !== -1, "the submit listener was not found");
+    const submitHandler = bindCreate.slice(submitStart);
+    const validateIdx = submitHandler.indexOf("validateSource(kind)");
+    const closeIdx = submitHandler.indexOf('ModalManager.close("create-modal")');
+    assert.ok(validateIdx !== -1, "the submit handler never calls validateSource");
+    assert.ok(closeIdx !== -1, "the submit handler no longer closes the dialog");
+    assert.ok(
+      validateIdx < closeIdx,
+      "the source is validated after the dialog closes — the error would land " +
+      "on a popup over a spinner instead of next to the field"
+    );
+  });
+
+  await t.test("the size limit is enforced before the upload starts", () => {
+    assert.ok(
+      /MAX_UPLOAD_BYTES/.test(bindCreate),
+      "the 10MB check no longer runs in the dialog"
+    );
+  });
+
+  await t.test("links are restricted to http(s)", () => {
+    assert.ok(
+      /parsed\.protocol !== "http:" && parsed\.protocol !== "https:"/.test(bindCreate),
+      "a javascript:/data: link would be accepted as a study source"
+    );
+  });
+
+  await t.test("an error moves focus to the field it is about", () => {
+    assert.ok(
+      /const showError = \(msg, focusId\)/.test(bindCreate),
+      "showError no longer takes a field to focus — a keyboard user has to " +
+      "hunt for what the message refers to"
+    );
+  });
+});
+
+test("the loader tells the truth", async (t) => {
+  await t.test("the pipeline reports real stages", () => {
+    assert.ok(/onProgress/.test(ai), "createStudyPackage no longer reports progress");
+    assert.ok(
+      /const step = \(message\)/.test(ai),
+      "the step() reporter is gone — the loader falls back to guessing"
+    );
+  });
+
+  await t.test("the guessed script is not reinstated", () => {
+    // The old list rotated on a 3s timer regardless of the run, so a
+    // notes-only generation still announced that it was writing quiz questions.
+    assert.ok(
+      !/"Writing quiz questions\.\.\."/.test(main),
+      "the hardcoded rotating message list is back"
+    );
+  });
+
+  await t.test("progress overrides the rotation rather than racing it", () => {
+    const setProgress = functionBody(ui, "setAIProgress(message)");
+    assert.ok(
+      /clearInterval/.test(setProgress),
+      "setAIProgress must stop the rotation, or the timer overwrites the real stage"
+    );
+  });
+
+  await t.test("the overlay is announced and takes the app out of the tab order", () => {
+    const loader = html.match(/<div id="ai-loader"[^>]*>/)?.[0] ?? "";
+    assert.ok(/role="status"/.test(loader), "the loader is silent to screen readers");
+    assert.ok(/aria-live="polite"/.test(loader), "stage changes would not be announced");
+    const setLoading = functionBody(ui, "setAILoading(isLoading, messages = [])");
+    assert.ok(
+      /setAttribute\("inert"/.test(setLoading) && /removeAttribute\("inert"/.test(setLoading),
+      "Tab still walks into the page behind the blocking overlay"
+    );
+  });
+});
+
+test("Options only offers controls that can change the result", async (t) => {
+  await t.test("the data-option-for hooks are actually read", () => {
+    // They shipped in the markup but nothing consumed them, so a flashcards-only
+    // run still showed quiz difficulty, quiz host and a question count.
+    assert.ok(
+      /\[data-option-for\]/.test(ui),
+      "nothing reads data-option-for — the tuning fields are unconditional again"
+    );
+    assert.ok(
+      /syncCreateOptionVisibility/.test(main),
+      "toggling an output no longer updates which options are shown"
+    );
+  });
+
+  await t.test("hidden options leave the tab order", () => {
+    // Trailing brace keeps this off showCreateModal's earlier call site.
+    const sync = functionBody(ui, "syncCreateOptionVisibility() {");
+    assert.ok(
+      /tabindex/.test(sync),
+      "Tab still lands on sliders that are not visible"
+    );
+  });
+});
+
+test("the hash cannot reach Object.prototype", () => {
+  // #constructor / #toString / #__proto__ all resolved to inherited members,
+  // came back truthy, and sent the router to a stringified function.
+  assert.ok(
+    /Object\.hasOwn\(this\.LEGACY_ROUTES, hash\)/.test(router),
+    "the legacy-route lookup walks the prototype chain again"
+  );
+});
+
+test("dead markup stays gone", () => {
+  assert.ok(
+    !html.includes('id="create-material-id"'),
+    "the unused create-material-id input is back — nothing ever read or wrote it"
+  );
+});

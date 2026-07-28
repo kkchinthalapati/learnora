@@ -452,10 +452,15 @@ export const UI = {
 
     if (isLoading) {
       loader.classList.remove("hidden");
+      loader.setAttribute("aria-busy", "true");
+      /* The overlay covers the page but is not a dialog, so nothing stopped Tab
+         from walking into the controls behind it. inert takes the whole app
+         shell out of the tab order and the accessibility tree for the duration. */
+      $("main-app")?.setAttribute("inert", "");
       if (messages.length > 0) {
         let msgIndex = 0;
         textEl.textContent = messages[0];
-        
+
         if (this._aiLoaderInterval) clearInterval(this._aiLoaderInterval);
         this._aiLoaderInterval = setInterval(() => {
           textEl.style.opacity = '0';
@@ -470,11 +475,29 @@ export const UI = {
       }
     } else {
       loader.classList.add("hidden");
+      loader.setAttribute("aria-busy", "false");
+      $("main-app")?.removeAttribute("inert");
       if (this._aiLoaderInterval) {
         clearInterval(this._aiLoaderInterval);
         this._aiLoaderInterval = null;
       }
     }
+  },
+
+  /* Replaces the loader's caption with what the pipeline is actually doing.
+     setAILoading()'s rotating list is a guess on a 3s timer — it happily
+     announced "Writing quiz questions..." on a notes-only run. Calling this
+     stops the rotation, so from the first real stage onwards the caption is
+     always true. aria-live on the loader announces each change. */
+  setAIProgress(message) {
+    const textEl = $("ai-loader-text");
+    if (!textEl || !message) return;
+    if (this._aiLoaderInterval) {
+      clearInterval(this._aiLoaderInterval);
+      this._aiLoaderInterval = null;
+    }
+    textEl.style.opacity = "1";
+    textEl.textContent = message;
   },
 
   /* The context the currently-open Create dialog was launched with. main.js's
@@ -535,6 +558,7 @@ export const UI = {
     if (persona) persona.value = "Friendly Tutor";
     this.syncCreateRangeOutputs();
     this.syncQuizPersonalityDesc();
+    this.syncCreateOptionVisibility();
 
     if (ctx.topic) { const t = $("create-topic"); if (t) t.value = ctx.topic; }
 
@@ -615,6 +639,32 @@ export const UI = {
     };
     pair("create-card-count", "create-card-count-out");
     pair("create-question-count", "create-question-count-out");
+  },
+
+  /* Shows each tuning field only when the output it configures is ticked.
+     The [data-option-for] hooks were in the markup from the start but nothing
+     ever read them, so Options offered quiz difficulty, quiz host and a
+     question count on a flashcards-only run — three controls that could not
+     affect the result. */
+  syncCreateOptionVisibility() {
+    const on = {
+      flashcards: !!$("create-want-flashcards")?.checked,
+      quiz: !!$("create-want-quiz")?.checked,
+    };
+    document.querySelectorAll("[data-option-for]").forEach(group => {
+      // hasOwn for the same reason the router uses it: a bare lookup on an
+      // attribute value resolves inherited members, so data-option-for="toString"
+      // would read as "wanted".
+      const key = group.dataset.optionFor;
+      const wanted = Object.hasOwn(on, key) && on[key];
+      group.classList.toggle("hidden", !wanted);
+      /* Hidden controls stay in the DOM, so take them out of the tab order too
+         — otherwise Tab still lands on a slider nobody can see. */
+      group.querySelectorAll("input, select, button").forEach(el => {
+        if (wanted) el.removeAttribute("tabindex");
+        else el.setAttribute("tabindex", "-1");
+      });
+    });
   },
 
   QUIZ_PERSONALITY_DESC: {
