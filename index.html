@@ -31,9 +31,12 @@
         </div>
 
         <!-- CUSTOM AI LOADER -->
-        <div id="ai-loader" class="ai-loader hidden">
+        <!-- role="status" + aria-live: generation runs 20-40s behind a blocking
+             overlay. Without these a screen-reader user got silence for the whole
+             wait, with no way to tell a working run from a hung one. -->
+        <div id="ai-loader" class="ai-loader hidden" role="status" aria-live="polite" aria-busy="false">
             <div class="ai-loader-content">
-                <div class="ai-spinner-container">
+                <div class="ai-spinner-container" aria-hidden="true">
                     <div class="ai-spinner-ring"></div>
                     <div class="ai-spinner-core"></div>
                 </div>
@@ -2061,9 +2064,14 @@
                     <p class="modal-subtitle" id="create-subtitle">Turn anything into notes, flashcards, and quizzes.</p>
                 </div>
 
-                <form id="create-form">
-                    <input type="hidden" id="create-material-id" />
-
+                <!-- novalidate: the source panels are shown one at a time, so a
+                     leftover value in a hidden field (a bare domain typed into
+                     Link, then switching to Topic) made the browser block submit
+                     on a control it could not focus — the button silently did
+                     nothing. Every field is validated in JS instead, which also
+                     lets the messages name the field the student can actually
+                     see. -->
+                <form id="create-form" novalidate>
                     <!-- ---- Step 1: where the content comes from ---- -->
                     <div class="input-group">
                         <label id="create-source-label">Start from</label>
@@ -2226,7 +2234,14 @@
 
                     <p class="create-error hidden" id="create-error" role="alert"></p>
 
-                    <div class="modal-actions flex-end mt-32">
+                    <!-- Pinned to the bottom of the dialog's scroll area: the form
+                         is tall enough that Create otherwise sits below the fold,
+                         behind the whole Options block. -->
+                    <div class="modal-actions flex-end mt-32 create-actions">
+                        <p class="create-hint text-muted text-sm">
+                            <kbd>&#8984;</kbd><span aria-hidden="true">/</span><kbd>Ctrl</kbd>
+                            + <kbd>Enter</kbd> to create
+                        </p>
                         <button type="button" id="create-cancel" class="btn-secondary">Cancel</button>
                         <button type="submit" class="btn-primary" id="create-submit">Create</button>
                     </div>

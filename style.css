@@ -6332,6 +6332,10 @@ body:has(#view-notes:not(.hidden)) .dashboard-command-bar {
        than letting the page behind it scroll. */
     max-height: min(88vh, 900px);
     overflow-y: auto;
+    /* The sticky action bar supplies the bottom spacing itself. Leaving the
+       inherited padding here parks the bar that many pixels above the dialog's
+       real bottom edge, with a strip of form scrolling past underneath it. */
+    padding-bottom: 0;
 }
 
 /* Five sources, not the three the base .segmented grid assumes. */
@@ -6416,6 +6420,48 @@ body:has(#view-notes:not(.hidden)) .dashboard-command-bar {
 .create-output-desc {
     font-size: var(--fs-sm);
     color: var(--text-muted);
+}
+
+/* ---- Actions ----------------------------------------------------------- */
+/* The dialog scrolls internally, so on a short viewport Create sat below the
+   fold behind the whole Options block. Pinning the row to the bottom of the
+   scroll container keeps it reachable without hiding any of the form. */
+.create-actions {
+    position: sticky;
+    bottom: 0;
+    /* Mirrors .modal-content's own clamp() padding so the bar bleeds to both
+       edges of the scroll container instead of floating inside it. */
+    margin-inline: calc(clamp(24px, 4vw, 36px) * -1);
+    padding: var(--s-4) clamp(24px, 4vw, 36px);
+    /* The dialog is translucent glass, so a transparent bar would let the form
+       scroll visibly through the buttons. Same treatment as the dialog itself,
+       which reads as one surface while still occluding what passes under it. */
+    background: var(--glass-bg-strong);
+    backdrop-filter: blur(24px) var(--glass-saturate);
+    -webkit-backdrop-filter: blur(24px) var(--glass-saturate);
+    border-top: 1px solid var(--glass-border-subtle);
+    z-index: 1;
+}
+
+/* Sits at the left of the action bar, pushing the buttons to the right. */
+.create-hint {
+    margin: 0 auto 0 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+/* Touch devices have no modifier keys, and the bar is tight at 375px — the
+   buttons need the room more than the hint does. */
+@media (hover: none), (max-width: 480px) {
+    .create-hint { display: none; }
+}
+.create-hint kbd {
+    font-family: inherit;
+    font-size: 0.9em;
+    padding: 1px 5px;
+    border: 1px solid var(--glass-border-subtle);
+    border-radius: 4px;
+    background: var(--surface-2);
 }
 
 /* ---- Collapsed options ------------------------------------------------- */

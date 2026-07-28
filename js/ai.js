@@ -669,6 +669,7 @@ ${sourceText}
        title,                                  // optional custom title
        outputs: { notes, flashcards, quiz },   // booleans
        options: { cardCount, questionCount, difficulty, personality },
+       onProgress,                             // optional (message) => void
      }
 
      Resolves to { material, notes, deck, quiz, errors }. Partial success is
@@ -682,6 +683,13 @@ ${sourceText}
     const outputs = request.outputs || {};
     const options = { ...this.CREATE_DEFAULTS, ...(request.options || {}) };
     const result = { material: null, notes: null, deck: null, quiz: null, errors: [] };
+
+    /* Each stage announces itself so the loader reflects the run actually in
+       flight instead of cycling a fixed script. Never let a reporting error
+       take down a generation that is otherwise fine. */
+    const step = (message) => {
+      try { request.onProgress?.(message); } catch (e) { console.error("[AI] onProgress", e); }
+    };
 
     let folderId = request.folderId || null;
     let sourceText = "";
@@ -701,6 +709,7 @@ ${sourceText}
           throw new Error("File too large. Maximum size is 10MB.");
         }
         const isAudio = /\.(mp3|mp4|wav|m4a|aac|ogg)$/i.test(file.name);
+        step(`Uploading ${file.name}…`);
         result.material = await Materials.uploadFile(
           file, folderId, isAudio ? "audio" : "pdf", baseTitle
         );
@@ -722,6 +731,7 @@ ${sourceText}
       if (!topic) topic = baseTitle;
 
       // Always generated for new material — see _generateNotes().
+      step("Reading your material and writing notes…");
       const markdown = await this._generateNotes(result.material, filePayload);
       if (!markdown) {
         // Without notes there is nothing for a deck or quiz to read, so stop
@@ -740,6 +750,7 @@ ${sourceText}
       baseTitle = baseTitle || material.title;
       if (!topic) topic = material.title;
 
+      step("Loading your saved notes…");
       sourceText = await this._loadSourceText(material.id);
       if (!sourceText) {
         throw new Error("No notes are available for this material yet — wait for AI processing to finish, then try again.");
@@ -759,6 +770,7 @@ ${sourceText}
     // deck is generated straight from the topic line.
     if (outputs.flashcards) {
       try {
+        step(`Building ${options.cardCount} flashcards…`);
         result.deck = await this._generateDeck({
           sourceText,
           folderId,
@@ -775,6 +787,7 @@ ${sourceText}
 
     if (outputs.quiz) {
       try {
+        step(`Writing ${options.questionCount} quiz questions…`);
         result.quiz = await this._generateQuizFrom({
           sourceText,
           topic,
@@ -791,6 +804,10 @@ ${sourceText}
       }
     }
 
+    /* No closing "Saving…" stage: each primitive persists its own output before
+       resolving, so by here there is nothing left to do and the caption would
+       be describing work that already finished. The last real stage stays up
+       until the loader hides. */
     return result;
   },
 

@@ -107,7 +107,11 @@ export const Router = {
     let hash = window.location.hash.replace("#", "");
     if (!hash) hash = "dashboard";
 
-    const legacy = this.LEGACY_ROUTES[hash];
+    /* hasOwn, not a bare lookup: the hash is attacker-controllable via the URL,
+       and `#constructor` / `#toString` / `#__proto__` all resolve to inherited
+       members of Object.prototype. Those came back truthy, so the router
+       rewrote the URL to a stringified function and tried to navigate to it. */
+    const legacy = Object.hasOwn(this.LEGACY_ROUTES, hash) ? this.LEGACY_ROUTES[hash] : null;
     if (legacy) {
       const openCreate = hash === "upload";
       // replaceState keeps the dead hash out of the back stack, so Back from
