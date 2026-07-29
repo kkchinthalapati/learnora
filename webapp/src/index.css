@@ -1,0 +1,12 @@
+/* Global stylesheet. Design tokens land in Step 2 (tokens.css / themes.css),
+ * ported 1:1 from the vanilla app's style.css :root block. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
