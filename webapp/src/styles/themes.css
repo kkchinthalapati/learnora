@@ -1,0 +1,202 @@
+/* Theme token overrides, ported 1:1 from style.css (dark mode block + accent
+ * presets). Selectors kept identical to the vanilla app — body.dark-theme and
+ * body[data-theme-color] — because both apps share the same persisted theme
+ * settings, and the React theme engine (later step) applies the same classes
+ * and attributes to <body>. No visual redesign. */
+
+body.dark-theme {
+  --accent: #2dd4bf;
+  --accent-hover: #5eead4;
+  --accent-press: #14b8a6;
+  --accent-soft: rgba(45, 212, 191, 0.15);
+  --accent-ring: rgba(45, 212, 191, 0.4);
+  --accent-on: #ffffff;
+  --accent-glow: rgba(45, 212, 191, 0.45);
+
+  --success: #2fbf88;
+  --success-soft: rgba(47, 191, 136, 0.15);
+  --warning: #e0a53e;
+  --warning-soft: rgba(224, 165, 62, 0.15);
+  --danger: #e2564a;
+  --danger-soft: rgba(226, 86, 74, 0.15);
+
+  --bg: #0a0e0d;
+  --bg-tint-1: rgba(45, 212, 191, 0.07);
+  --bg-tint-2: rgba(224, 165, 62, 0.05);
+  --surface: #131615;
+  --surface-2: #191d1c;
+  --surface-hover: #202524;
+  --surface-active: #272d2b;
+
+  --glass-bg: rgba(19, 22, 21, 0.55);
+  --glass-bg-strong: rgba(25, 29, 28, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border-subtle: rgba(255, 255, 255, 0.07);
+  --glass-highlight: rgba(255, 255, 255, 0.14);
+  --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --glass-inner-bottom: inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+
+  --text: #f2f1ee;
+  --text-muted: #9a9c9a;
+  --text-faint: #666a68;
+
+  --line: rgba(255, 255, 255, 0.08);
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-accent: 0 0 20px var(--accent-glow);
+}
+
+/* Theme schemes.
+   Each preset declares only what makes it distinct: an --accent-rgb triplet,
+   the accent ramp, and optionally a second hue for the ambient backdrop. The
+   shared rule below derives soft/ring/glow and the page tints from that
+   triplet, so a theme's focus rings and tinted fills follow its own accent. */
+body[data-theme-color] {
+  --accent-soft: rgba(var(--accent-rgb), 0.12);
+  --accent-ring: rgba(var(--accent-rgb), 0.32);
+  --accent-glow: rgba(var(--accent-rgb), 0.4);
+  --bg-tint-1: rgba(var(--accent-rgb), 0.1);
+  --bg-tint-2: rgba(var(--accent-rgb-2, var(--accent-rgb)), 0.07);
+  --primary: var(--accent);
+  --primary-hover: var(--accent-hover);
+}
+
+body[data-theme-color="default"] {
+  --accent-rgb: 15, 118, 110;
+  --accent-rgb-2: 180, 140, 60;
+  --accent: #0f766e;
+  --accent-hover: #0c5f59;
+  --accent-press: #094943;
+}
+
+/* The accent Learnora shipped with before the theme system existed. */
+body[data-theme-color="original"] {
+  --accent-rgb: 84, 104, 231;
+  --accent-rgb-2: 52, 184, 138;
+  --accent: #5468e7;
+  --accent-hover: #4358d6;
+  --accent-press: #3a4ec4;
+  --accent-glow: rgba(84, 104, 231, 0.35);
+  --bg-tint-1: rgba(84, 104, 231, 0.05);
+  --bg-tint-2: rgba(52, 184, 138, 0.04);
+}
+
+/* Near-achromatic and deliberately quiet: barely-there glow and page tint so
+   the UI reads as paper rather than neon. */
+body[data-theme-color="minimal"] {
+  --accent-rgb: 138, 138, 143;
+  --accent: #8a8a8f;
+  --accent-hover: #6e6e73;
+  --accent-press: #58585c;
+  --accent-glow: rgba(138, 138, 143, 0.18);
+  --bg-tint-1: rgba(138, 138, 143, 0.04);
+  --bg-tint-2: rgba(138, 138, 143, 0.03);
+}
+
+/* Honey amber with a terracotta backdrop — cosier and less saturated than
+   Sunset Coral, which sits further round towards red. */
+body[data-theme-color="warm"] {
+  --accent-rgb: 217, 142, 63;
+  --accent-rgb-2: 200, 106, 78;
+  --accent: #d98e3f;
+  --accent-hover: #bc7629;
+  --accent-press: #9a5f1d;
+}
+
+body[data-theme-color="ocean"] {
+  --accent-rgb: 2, 132, 199;
+  --accent-rgb-2: 56, 189, 248;
+  --accent: #0284c7;
+  --accent-hover: #0369a1;
+  --accent-press: #075985;
+}
+
+body[data-theme-color="forest"] {
+  --accent-rgb: 16, 185, 129;
+  --accent-rgb-2: 52, 211, 153;
+  --accent: #10b981;
+  --accent-hover: #059669;
+  --accent-press: #047857;
+}
+
+body[data-theme-color="cyberpunk"] {
+  --accent-rgb: 236, 72, 153;
+  --accent-rgb-2: 234, 179, 8;
+  --accent: #ec4899;
+  --accent-hover: #db2777;
+  --accent-press: #be185d;
+  --accent-glow: rgba(236, 72, 153, 0.45);
+}
+
+body[data-theme-color="sunset"] {
+  --accent-rgb: 249, 115, 22;
+  --accent-rgb-2: 239, 68, 68;
+  --accent: #f97316;
+  --accent-hover: #ea580c;
+  --accent-press: #c2410c;
+}
+
+body[data-theme-color="lavender"] {
+  --accent-rgb: 139, 92, 246;
+  --accent-rgb-2: 217, 70, 239;
+  --accent: #8b5cf6;
+  --accent-hover: #7c3aed;
+  --accent-press: #6d28d9;
+}
+
+body[data-theme-color="monochrome"] {
+  --accent-rgb: 100, 116, 139;
+  --accent-rgb-2: 148, 163, 184;
+  --accent: #64748b;
+  --accent-hover: #475569;
+  --accent-press: #334155;
+  --accent-glow: rgba(100, 116, 139, 0.35);
+}
+
+body[data-theme-color="breeze"] {
+  --accent-rgb: 6, 182, 212;
+  --accent-rgb-2: 20, 184, 166;
+  --accent: #06b6d4;
+  --accent-hover: #0891b2;
+  --accent-press: #0e7490;
+}
+
+body[data-theme-color="ruby"] {
+  --accent-rgb: 244, 63, 94;
+  --accent-rgb-2: 225, 29, 72;
+  --accent: #f43f5e;
+  --accent-hover: #e11d48;
+  --accent-press: #be123c;
+}
+
+body[data-theme-color="hacker"] {
+  --accent-rgb: 34, 197, 94;
+  --accent-rgb-2: 74, 222, 128;
+  --accent: #22c55e;
+  --accent-hover: #16a34a;
+  --accent-press: #15803d;
+}
+
+/* User-built accent. Every --custom-* property is written to body.style by
+   the theme engine; the fallbacks keep the app usable if a stop is missing
+   or localStorage was cleared mid-session. */
+body[data-theme-color="custom"] {
+  --accent: var(--custom-accent, #6366f1);
+  --accent-hover: var(--custom-accent-hover, #4f46e5);
+  --accent-press: var(--custom-accent-press, #4338ca);
+  --accent-soft: var(--custom-accent-soft, rgba(99, 102, 241, 0.12));
+  --accent-ring: var(--custom-accent-ring, rgba(99, 102, 241, 0.32));
+  --accent-glow: var(--custom-accent-glow, rgba(99, 102, 241, 0.4));
+  --accent-on: var(--custom-accent-on, #ffffff);
+  --text-on-accent: var(--custom-accent-on, #ffffff);
+  --primary: var(--accent);
+  --primary-hover: var(--accent-hover);
+  --gradient-primary: var(
+    --custom-gradient,
+    linear-gradient(135deg, var(--accent), var(--accent-hover))
+  );
+  --bg-tint-1: var(--custom-tint-1, rgba(99, 102, 241, 0.08));
+  --bg-tint-2: var(--custom-tint-2, rgba(168, 85, 247, 0.06));
+}

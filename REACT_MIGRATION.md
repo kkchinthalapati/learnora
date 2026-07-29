@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 14/14 passing
-- **Last verified:** 2026-07-29 (Step 1 — tests green, `npm run build` green, dev server click-through)
+- **Tests:** `npm --prefix webapp run test` — expect 18/18 passing
+- **Last verified:** 2026-07-29 (Step 2 — tests green, `npm run build` green, tokens verified in browser)
 
 ---
 
@@ -15,7 +15,7 @@ session, or agent can resume without any conversation history.
 | # | Step | Phase | Status |
 |---|------|-------|--------|
 | 1 | Scaffold `webapp/` (Vite+React+TS, lint/format, empty routes) | Foundation | ✅ |
-| 2 | Port design tokens (`tokens.css`, `themes.css`) | Foundation | ☐ |
+| 2 | Port design tokens (`tokens.css`, `themes.css`) | Foundation | ✅ |
 | 3 | Shared primitives: Modal, ConfirmDialog, Toast, Icon, Button, EmptyState, Skeleton | Foundation | ☐ |
 | 4 | Supabase client + AuthContext + protected-route shell | Foundation | ☐ |
 | 5 | API layer + TanStack Query hooks (all 11 entities, thin scaffold) | Foundation | ☐ |
@@ -105,6 +105,23 @@ hash route (`js/router.js`): `/`, `/tasks`, `/exams`, `/timer`, `/library(/:tab)
 `/review/:deckId`, `/settings`, plus a `*` catch-all — each rendering a named
 placeholder. Tests: 14 route-rendering assertions via `MemoryRouter`. Verified in
 the browser: `/` and deep link `/quiz/q-1/review` render, console clean.
+
+### Step 2 — Port design tokens (2026-07-29)
+
+Ported `style.css`'s `:root` token block 1:1 into `webapp/src/styles/tokens.css`
+and the theme layer (dark-mode overrides + all 13 `data-theme-color` accent
+presets + the shared derivation rule + custom-theme hooks) into
+`webapp/src/styles/themes.css`, keeping the vanilla selectors (`body.dark-theme`,
+`body[data-theme-color]`) since both apps share persisted theme settings.
+`index.css` now applies the base body typography/surface from tokens, and
+`index.html` loads the same Google-Fonts stylesheet (Outfit + Plus Jakarta Sans)
+as the vanilla app. Tests: `tokens.test.ts` is a parity guard that reads the real
+`style.css` and asserts every `:root` token name **and value**, every dark-theme
+override, and every accent preset exists in the port — so drift between the two
+apps fails CI until the last vanilla route is deleted. Browser-verified computed
+styles for light, `dark-theme`, and a preset (lavender, including its derived
+`--accent-ring`). Also gave test files their own `tsconfig.test.json` (node types)
+so `tsc -b` stays strict for app code.
 
 **Deviation from Decision #4 (deliberate):** installed `react-router@8.3.0` and
 import from `"react-router"` instead of `react-router-dom@7.x` — the entire

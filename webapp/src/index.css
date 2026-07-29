@@ -1,12 +1,22 @@
-/* Global stylesheet. Design tokens land in Step 2 (tokens.css / themes.css),
- * ported 1:1 from the vanilla app's style.css :root block. */
+@import "./styles/tokens.css";
+@import "./styles/themes.css";
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  margin: 0;
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  line-height: var(--lh);
+  color: var(--text);
+  background: var(--bg);
 }
