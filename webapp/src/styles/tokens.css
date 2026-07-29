@@ -1,0 +1,122 @@
+/* Design tokens, ported 1:1 from the vanilla app's style.css :root block
+ * (REACT_MIGRATION.md decision #3 — no visual redesign). Keep in lockstep
+ * with style.css until the last vanilla route is cut over; the parity test
+ * in tokens.test.ts enforces this. */
+
+:root {
+  /* Vertical room the fixed "Ask AI" command bar needs at the end of a
+     scrolling view: its 28px bottom offset + ~56px height + breathing room. */
+  --command-bar-clearance: 104px;
+
+  /* --- Accent (deep teal) --- */
+  /* Channel triplet backing the derived soft/ring/glow tints. Presets
+     override it; this value is the fallback for an unknown accent. */
+  --accent-rgb: 15, 118, 110;
+  --accent: #0f766e;
+  --accent-hover: #0c5f59;
+  --accent-press: #094943;
+  --accent-soft: rgba(15, 118, 110, 0.12);
+  --accent-ring: rgba(15, 118, 110, 0.32);
+  --accent-on: #ffffff;
+  --accent-glow: rgba(15, 118, 110, 0.35);
+  --primary: var(--accent);
+  --primary-hover: var(--accent-hover);
+  --gradient-primary: linear-gradient(
+    135deg,
+    var(--accent),
+    var(--accent-hover)
+  );
+
+  /* --- Semantic --- */
+  --success: #1e8e6b;
+  --success-soft: rgba(30, 142, 107, 0.12);
+  --warning: #c98a2e;
+  --warning-soft: rgba(201, 138, 46, 0.14);
+  --danger: #c2453a;
+  --danger-soft: rgba(194, 69, 58, 0.12);
+
+  /* --- Page surfaces --- */
+  --bg: #f6f5f2;
+  --bg-tint-1: rgba(15, 118, 110, 0.05);
+  --bg-tint-2: rgba(180, 140, 60, 0.035);
+  --surface: #ffffff;
+  --surface-2: #f1efe9;
+  --surface-hover: #eae7df;
+  --surface-active: #e2ded3;
+
+  /* --- Glass --- */
+  --glass-bg: rgba(255, 255, 255, 0.66);
+  --glass-bg-strong: rgba(255, 255, 255, 0.88);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-border-subtle: rgba(28, 24, 18, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+  --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --glass-inner-bottom: inset 0 -1px 0 rgba(28, 24, 18, 0.05);
+  --glass-blur: 18px;
+  --glass-saturate: saturate(150%);
+
+  /* --- Text --- */
+  --text: #1c1b18;
+  --text-muted: #6b6558;
+  --text-faint: #9a9384;
+  --text-on-accent: #ffffff;
+
+  /* --- Borders & lines --- */
+  --border: 1px solid var(--glass-border-subtle);
+  --line: rgba(28, 24, 18, 0.06);
+
+  /* --- Radius --- */
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 20px;
+  --r-xl: 24px;
+  --r-2xl: 32px;
+  --r-pill: 999px;
+
+  /* --- Spacing scale (4px base) --- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+
+  /* --- Shadows (premium, layered) --- */
+  --shadow-sm:
+    0 1px 2px rgba(24, 20, 14, 0.04), 0 2px 4px rgba(24, 20, 14, 0.04);
+  --shadow-md:
+    0 4px 12px rgba(24, 20, 14, 0.06), 0 12px 28px rgba(24, 20, 14, 0.06);
+  --shadow-lg:
+    0 8px 24px rgba(24, 20, 14, 0.08), 0 24px 56px rgba(24, 20, 14, 0.1);
+  --shadow-accent: 0 4px 16px var(--accent-glow);
+
+  /* --- Typography --- */
+  --font:
+    "Plus Jakarta Sans", "Inter", system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+  --font-head: "Outfit", system-ui, sans-serif;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 15px;
+  --fs-md: 16px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-2xl: 28px;
+  --lh: 1.6;
+  --measure: 68ch;
+
+  /* --- Motion --- */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --t-fast: 140ms;
+  --t: 260ms;
+  --t-slow: 400ms;
+
+  /* --- Structure --- */
+  --sidebar-width: 264px;
+}
