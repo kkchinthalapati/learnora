@@ -10,9 +10,9 @@ The project is associated with the Learnora name across product and web presence
 
 ## Stack
 
-- Vanilla HTML, CSS, and JavaScript.[1]
-- Supabase backend.[1]
-- Vercel deployment for the live app.[2]
+- Vanilla HTML, CSS, and JavaScript.
+- Supabase backend.
+- Vercel deployment for the live app.
 
 ## Development workflow
 
