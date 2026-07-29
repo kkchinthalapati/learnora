@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 231/231 passing
-- **Last verified:** 2026-07-29 (Step 7 — tests green, `npm run build` green, `npm run lint` clean, browser-verified)
+- **Tests:** `npm --prefix webapp run test` — expect 285/285 passing
+- **Last verified:** 2026-07-29 (Step 9 — tests green, `npm run build` green, `npm run lint` clean, browser-verified)
 
 ---
 
@@ -21,8 +21,8 @@ session, or agent can resume without any conversation history.
 | 5 | API layer + TanStack Query hooks (all 11 entities, thin scaffold) | Foundation | ✅ |
 | 6 | Universal CreateModal (Material/Subject/Exam/Task panels) | Foundation | ✅ |
 | 7 | Settings (first cutover — lowest external dependency, all 6 tabs) | Views | ✅ |
-| 8 | Tasks (+ dashboard quick-add widget) | Views | ☐ |
-| 9 | Exams (calendar + ExamModal + DayDetailModal) | Views | ☐ |
+| 8 | Tasks (+ dashboard quick-add widget) | Views | ✅ |
+| 9 | Exams (calendar + ExamModal + DayDetailModal) | Views | ✅ |
 | 10 | Timer | Views | ☐ |
 | 11 | Library shell (4 tabs) + Subject detail page | Views | ☐ |
 | 12 | Dashboard (aggregates Tasks/Exams/Timer/Library data) | Views | ☐ |
@@ -409,6 +409,107 @@ one — noted in loose ends. `Button` gained a `warning` variant so
 "Sign Out Others" keeps its exact vanilla colour rather than being recoloured
 to `danger`.
 
+### Steps 8 & 9 — Tasks and Exams (2026-07-29)
+
+**Step 8 — Tasks** (`/tasks`). Ports index.html:846-877 + js/main.js:1329-1645
+into `webapp/src/views/tasks/`: `TasksView`, `TaskItem` (one row, and most of
+the interaction), `DashboardTasksWidget`, `useTaskActions` (the mutations both
+entry points share) and `sortTasks.ts`. New `lib/date.ts` carries
+`localDateStr`/`formatDateStr`/`MONTH_NAMES`/`WEEKDAY_NAMES` — both views build
+plain YYYY-MM-DD from *local* calendar fields rather than
+`toISOString().slice(0,10)`, which converts to UTC first and would report a
+task due today as overdue for most of the evening west of Greenwich.
+
+The vanilla re-ran `loadTasks()` by hand after every mutation and kept a 300ms
+debounce so a burst of toggles didn't thrash the network; cache invalidation
+replaces all of it, which is Decision #5's whole point. The dashboard widget
+reads the same query as the full list, so the vanilla's `tasksUpdated` window
+event and its "loadTasks() re-renders both" coupling both disappear: one cache,
+two subscribers. There's a test that completes a task in the widget and asserts
+the full list updates.
+
+`useToggleTask` gained an optimistic update with rollback, because the vanilla
+was optimistic too — it flipped the row's class on click and only reverted if
+the write failed. Waiting for the round trip would make every checkbox feel
+broken on a slow connection.
+
+**Two bugs found and fixed while porting.** (1) *Escape didn't cancel a rename.*
+Removing a focused input fires blur, and blur committed the edit — so abandoning
+a rename saved it anyway. The vanilla dodged this with a `hasSaved` latch; the
+same idea survives as a `cancelled` ref, with a regression test. (2) *Double-
+clicking the task text toggled it.* The row's click handler ran twice on the way
+to the dblclick, so opening the rename editor also flipped the task done and
+back — and the `if (t.is_done) return` guard then read whatever `is_done` had
+raced to. Clicks on the text are now held for one double-click interval
+(`DOUBLE_CLICK_MS`) so only one of the two intents wins; clicks elsewhere on the
+row still toggle immediately.
+
+The deferred delete keeps the vanilla's 4s Undo window, but deliberately does
+**not** go through `useDeleteTask`: a mutation observer is torn down with its
+component, so a delete armed just before the user navigated away could be
+dropped — silently resurrecting a task they watched disappear. It calls the api
+module directly and invalidates through the QueryClient (which outlives any
+component), and the unmount cleanup flushes rather than cancels, for the same
+reason.
+
+**Step 9 — Exams** (`/exams`). Ports index.html:877-916 + js/main.js:1651-1915
+into `webapp/src/views/exams/`: `ExamsView` (the month grid), `ExamModal`,
+`DayDetailModal` and `examMeta.ts`. The grid is derived from a `{year, month}`
+pair on each render rather than rebuilt imperatively into `#calendar-days`,
+which incidentally fixes a real vanilla bug: it mutated a shared `Date` with
+`setMonth()`, and from the 31st that overflows (31 Jan + 1 month is 3 Mar), so
+"next month" silently skipped February. There's a test that steps twelve months
+and asserts twelve distinct months, landing exactly one year on. Exams are
+bucketed by date in one pass instead of the vanilla's `filter()` per cell (28-31
+times per render).
+
+`DayDetailModal` needed none of the vanilla's machinery: that built each row
+with `innerHTML` (hence `esc()` around every field) and `cloneNode`d the "+ Add
+exam" button on every open to shed the previous open's listener. JSX escapes by
+construction and React re-renders instead of re-binding. Each row is a real
+`<button>` rather than a div with `role="button"` and a hand-rolled Enter/Space
+handler. `ExamModal` likewise stops reconfiguring one dialog field by field on
+open — "editing" versus "creating" is just whether an `exam` was passed.
+
+**A shared visual bug found in the browser and fixed for all three views.**
+Every plain `<input>`/`<select>` was rendering with browser-default chrome — a
+white box on a dark surface — because Step 2 ported only the `:root` token
+block, never `style.css`'s BASE layer. `components/create/formShared.module.css`
+had worked around it locally with a `.field` class, which is why Step 6 looked
+fine. `index.css` now carries the global form rule (style.css:574-620 plus the
+select-arrow fixes at :4620-4655). The negations sit inside `:where()` so the
+selector scores (0,0,1) and any CSS-Module class beats it — the vanilla's
+version scored (0,4,1) and had to be fought off with deliberately over-specific
+selectors and a run of `!important`s. Verified that the custom-theme studio's
+hex input and intensity slider still win.
+
+**Testing: 54 new tests (285 total).** `TasksView` (19) covers urgency
+ordering, add/validate/clear, optimistic toggle *and* its rollback, rename via
+double-click with Enter/Escape, due-date editing, the three due-badge states,
+and both halves of the undo window. `DashboardTasksWidget` (5) covers the
+six-item cap, "all caught up" vs "no tasks", quick-add, and the shared-cache
+assertion. `ExamsView` (18) covers the grid, month stepping in both directions
+across year boundaries, exam bars, the overflow badge, difficulty styling,
+past-dimming vs Completed, and which overlay each activation opens.
+`ExamModal` (13) is rendered directly rather than through the calendar, so the
+date rules don't depend on what today happens to be.
+
+**Two test-infrastructure notes worth keeping.** (1) `vi.useFakeTimers` is not
+usable in these files. TanStack Query and MSW both pace themselves off
+`Date.now()`, so a frozen clock means the query never resolves and the grid
+never renders; `toFake: ["Date"]` alone also breaks `userEvent`, which paces
+itself the same way. `shouldAdvanceTime` "works" only by burning real time on an
+interval, which slowed the suite from 7s to 120s and timed out unrelated files
+in parallel. Both files now derive expectations from the real clock instead.
+(2) `vite.config.ts` raises `testTimeout` to 20s. Several pre-existing tests
+already sit near 600ms on an idle machine, and under parallel load the 5s
+default was failing tests for no reason but contention. It's a ceiling for
+hangs, not a target.
+
+**Cutover still not performed**, for the reasons written up under Step 7 — the
+vanilla app is hash-routed, so no path rewrite can intercept `#todo` or
+`#exams` either. `index.html` and `js/*` remain untouched.
+
 ---
 
 ## Known loose ends
@@ -432,7 +533,24 @@ the port)
   honours it), but the React UI stays English until someone schedules the port.
 - No React sign-in flow exists, so manual verification of any protected route
   needs a locally stubbed session in `sb-<ref>-auth-token` (see Step 7). Worth
-  replacing with a real login the moment auth is cut over.
+  replacing with a real login the moment auth is cut over. A stub token is
+  rejected by the real Supabase, so verifying a data-backed view also needs
+  `window.fetch` patched in the page and the route remounted client-side (no
+  reload, or the patch dies) — done for Steps 8-9. A real login would replace
+  the whole dance.
+- **`vi.useFakeTimers` is unusable in view tests** (found in Step 9). TanStack
+  Query, MSW and userEvent all pace themselves off `Date.now()`, so a frozen
+  clock hangs the query; `shouldAdvanceTime` fixes that only by burning real
+  time and slowed the suite ~17x. Derive from the real clock, or render the
+  component under test directly to avoid depending on today's date.
+- **No `DatePicker` primitive still.** The vanilla attached `js/datepicker.js`
+  to the Tasks due-date field and the exam date input; both use a plain
+  `<input type="date">` here, as `ExamPanel`/`TaskPanel` already did in Step 6.
+  Consistent across the app, but still a deviation from the vanilla's custom
+  calendar overlay.
+- The Tasks list has no pagination or virtualisation, matching the vanilla — the
+  whole table is fetched and rendered. Fine at a student's task count; worth
+  revisiting only if someone turns up with thousands.
 - `webapp/public/favicon.svg` is still the Vite template favicon; swap for Learnora
   branding whenever convenient (cosmetic only).
 - **CSP for the React app is not set yet.** The vanilla app ships a strict policy as
