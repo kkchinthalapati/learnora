@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 118/118 passing
-- **Last verified:** 2026-07-29 (Step 6 — tests green, `npm run build` green, `npm run lint` clean)
+- **Tests:** `npm --prefix webapp run test` — expect 231/231 passing
+- **Last verified:** 2026-07-29 (Step 7 — tests green, `npm run build` green, `npm run lint` clean, browser-verified)
 
 ---
 
@@ -20,7 +20,7 @@ session, or agent can resume without any conversation history.
 | 4 | Supabase client + AuthContext + protected-route shell | Foundation | ✅ |
 | 5 | API layer + TanStack Query hooks (all 11 entities, thin scaffold) | Foundation | ✅ |
 | 6 | Universal CreateModal (Material/Subject/Exam/Task panels) | Foundation | ✅ |
-| 7 | Settings (first cutover — lowest external dependency, all 6 tabs) | Views | ☐ |
+| 7 | Settings (first cutover — lowest external dependency, all 6 tabs) | Views | ✅ |
 | 8 | Tasks (+ dashboard quick-add widget) | Views | ☐ |
 | 9 | Exams (calendar + ExamModal + DayDetailModal) | Views | ☐ |
 | 10 | Timer | Views | ☐ |
@@ -316,6 +316,99 @@ through from — same reasoning as Step 5. Nothing in this step needs a real
 browser to verify (no Quill, no 3D transforms, no streaming); the RTL/MSW
 suite already drives real typing, clicking, and network requests.
 
+### Step 7 — Settings, all six tabs (2026-07-29)
+
+The whole Settings view is ported: Account, Appearance, Security, Preferences,
+Notifications and Danger Zone, at `/settings`. New files live under
+`webapp/src/views/settings/` (`SettingsView` shell + one component per tab,
+plus `CustomThemeStudio`, `passwordStrength.ts` and `profile.ts` for the two
+bits of pure logic worth testing on their own), over a new shared layer in
+`webapp/src/lib/`: `storage.ts` (the vanilla's `Storage` wrapper),
+`color.ts` (hex/HSV/luminance helpers), `appearance.ts` (the theme engine's
+state, derivation and DOM application) and `settings.ts` (the
+`learnora_settings` object). Two new providers — `AppearanceProvider` and
+`SettingsProvider` — sit above the router in `App.tsx`, and
+`ToggleSwitch`/`InlineFeedback` join the shared primitives. 113 new tests
+(231 total).
+
+**Storage stays byte-compatible with the vanilla app.** Same keys, same JSON,
+same body attributes (`dark-theme`, `data-theme-color`, `data-sidebar-style`,
+`data-bg-texture`, `data-font-family`, `data-font-size`). While both apps are
+live a theme picked in one has to survive a navigation into the other, so
+this is a compatibility contract, not an implementation detail. The one
+deliberate hardening: every value read back out of storage is now checked
+against the allowed set, where the vanilla spread `{...DEFAULTS, ...stored}`
+straight through — a hand-edited `learnora_settings` could previously put an
+unknown AI persona into every prompt.
+
+**Two-tier appearance state is preserved.** Every appearance control repaints
+`<body>` immediately but only writes to localStorage on "Save Appearance", so
+a user can still audition a theme and walk away without keeping it
+(`js/ui.js` did this with `_activeAppearanceState`; here it's React state vs
+localStorage, with `dirty` a comparison of the two). The studio's Reset keeps
+its odd-one-out behaviour of persisting immediately.
+
+**Accessibility carried over and, in four places, fixed.** (1) The tab strip
+is a real ARIA tablist with `aria-selected`, `aria-controls`, roving
+`tabIndex` and Arrow/Home/End navigation — the vanilla's six buttons toggled
+a `.active` class and nothing else, so neither the tab semantics nor the
+selection reached assistive tech and arrow keys did nothing. (2) Only the
+selected panel is rendered, rather than all six kept in the DOM behind
+`display:none`, so the Danger Zone's delete button is no longer a tab stop
+from page load. (3) The notification toggles get accessible names — the
+vanilla wrapped each checkbox in an empty `<label class="toggle-switch">`, so
+both were anonymous to a screen reader. (4) Selection state is expressed once
+as `aria-pressed` instead of a duplicated `.active` class plus `aria-pressed`
+pair, so the highlight cannot drift from what is announced. The password
+strength meter also gained a `role="status"`, and inline feedback is
+`alert` for errors / `status` for successes; both were silent before.
+
+**Picker HSV is still held apart from the hex list**, for the reason the
+vanilla documented: converting a hex back to HSV loses the hue whenever
+saturation or value hits 0, so the handle would snap to red as you dragged
+into a corner. The vanilla cached it in `_pickerState` and invalidated by
+hand; here the local state carries the hex it was derived from and is
+recomputed during render when the active stop changes — same effect, no
+cache to forget to clear. There is a regression test for the corner case.
+
+**Browser-verified** (the one step so far where that was worth doing — CSS
+gradients, a drag surface and derived custom properties are exactly what
+jsdom cannot prove). Dragging on the saturation/brightness field produced
+`Saturation 15%, brightness 20%` → hex `#2B2C33` → `data-theme-color="custom"`
+→ `--custom-accent: #2A2B30` → the real `--accent` token resolving to that
+value, which also confirms Step 2's `themes.css` custom-accent mapping works
+end to end. Console clean. Verified against a locally stubbed session, since
+there is still no React login flow; the stub and every key it wrote were
+cleared afterwards.
+
+**Cutover deliberately not performed — the ledger's mechanism does not work
+as specified, and this is the step that discovered it.** Decision #12 and the
+Definition of Done both say "vanilla route deleted + rewrite rule added" per
+step. A Vercel rewrite matches *paths*, but the vanilla app is hash-routed:
+Settings is `index.html#settings`, and a URL fragment is never sent to the
+server, so no rewrite can intercept it. Nothing about `/settings` is
+reachable by rewriting until the vanilla nav links themselves change from
+`#settings` to `/settings` — which turns in-app tab switches into full page
+loads between two separate apps, a UX change nobody has signed off on.
+
+A second problem sits behind it: `webapp/dist/index.html` references its
+assets at `/assets/*` (Vite's default `base`), so serving it from a path
+prefix needs `base` set at build time and the output placed where Vercel can
+find it, or every asset 404s. `vercel.json` is therefore still **not** added
+— an untested routing config that only takes effect on merge to `main` could
+break the live site silently, which is worse than not having one. The
+cutover wants its own PR, by someone who can sign in and exercise the
+two-app navigation. Everything above ships as additive React routes; the
+vanilla app is untouched and still owns every route in production.
+
+**Other deferrals.** `saveSettings()` in the vanilla also called
+`applyTranslations()`, which walks every `[data-i18n]` node. No i18n layer
+exists in the React app and none is on the ledger, so the UI-language choice
+is persisted (and honoured by the vanilla app) but does not re-render this
+one — noted in loose ends. `Button` gained a `warning` variant so
+"Sign Out Others" keeps its exact vanilla colour rather than being recoloured
+to `danger`.
+
 ---
 
 ## Known loose ends
@@ -327,8 +420,19 @@ the port)
   Kept — it satisfies the lint requirement — but if anyone wants ESLint-specific
   plugins later (e.g. eslint-plugin-react-hooks rules beyond what oxlint covers),
   that's a separate decision.
-- `vercel.json` SPA-fallback + first path-prefix rewrite intentionally deferred to
-  Step 7 (first cutover) — nothing to route to `webapp/dist` until then.
+- **`vercel.json` still not added, and the cutover mechanism needs rethinking**
+  (found in Step 7 — see that section for the full analysis). Two blockers: the
+  vanilla app is hash-routed, so a path rewrite cannot intercept `#settings`;
+  and `webapp/dist/index.html` asks for `/assets/*`, so a path-prefix deploy
+  needs Vite's `base` set and the output placed accordingly. Wants its own PR
+  from someone who can sign in and test navigation across the two apps.
+- **i18n is not ported.** `UI.saveSettings()` called `applyTranslations()` over
+  every `[data-i18n]` node; the React app has no translation layer and none is
+  on the ledger. The Preferences tab persists `uiLanguage` (and the vanilla app
+  honours it), but the React UI stays English until someone schedules the port.
+- No React sign-in flow exists, so manual verification of any protected route
+  needs a locally stubbed session in `sb-<ref>-auth-token` (see Step 7). Worth
+  replacing with a real login the moment auth is cut over.
 - `webapp/public/favicon.svg` is still the Vite template favicon; swap for Learnora
   branding whenever convenient (cosmetic only).
 - **CSP for the React app is not set yet.** The vanilla app ships a strict policy as

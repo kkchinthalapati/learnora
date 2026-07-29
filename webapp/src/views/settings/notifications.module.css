@@ -1,0 +1,25 @@
+/* The vanilla carried this row's framing as an inline `style` attribute
+ * (index.html:1608) and set the status colour with `desc.style.color` in JS
+ * (js/main.js:1024-1035). Both move into the stylesheet here — the colour
+ * follows the permission state as a class rather than an imperative write. */
+
+.permissionRow {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--r-md);
+  padding: 16px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+}
+
+.granted {
+  color: var(--success);
+}
+
+.denied {
+  color: var(--danger);
+}
+
+.default,
+.unsupported {
+  color: var(--text-muted);
+}

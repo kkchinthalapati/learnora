@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { render } from "@testing-library/react";
-import { AuthContext, type AuthState } from "../context/auth";
+import { type AuthState } from "../context/auth";
+import { renderWithProviders } from "./render";
 
 /* A session shaped like the real one but built locally, so route and guard
  * tests never touch supabase-js. AuthProvider's own tests mock the client
@@ -35,8 +35,10 @@ export function authValue(partial: Partial<AuthState> = {}): AuthState {
   };
 }
 
+/* Renders inside the full App provider stack with a canned auth state. Views
+ * reach for toasts, dialogs and the query cache as soon as they stop being
+ * placeholders, so the guard tests and the view tests share one composition
+ * rather than drifting apart. */
 export function renderWithAuth(ui: ReactNode, state: Partial<AuthState> = {}) {
-  return render(
-    <AuthContext.Provider value={authValue(state)}>{ui}</AuthContext.Provider>,
-  );
+  return renderWithProviders(ui, authValue(state));
 }
