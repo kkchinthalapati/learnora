@@ -20,3 +20,105 @@ body {
   color: var(--text);
   background: var(--bg);
 }
+
+/* ------------------------------------------------------------------------ *
+ * Form controls — ported from style.css's global rule (:574-620) plus the
+ * select-arrow fixes from section 19 (:4620-4655).
+ *
+ * Step 2 ported only the `:root` token block, so until now every plain
+ * `<input>`/`<select>` in the React app rendered with browser-default chrome —
+ * a white box on a dark surface. `components/create/formShared.module.css`
+ * worked around it with a local `.field` class, but a global base rule is what
+ * the vanilla actually has, and every view added since needs it.
+ *
+ * The negations sit inside `:where()`, which contributes no specificity, so
+ * this whole selector scores (0,0,1) — a single CSS-Module class beats it.
+ * The vanilla's version scored (0,4,1) and had to be fought off with
+ * deliberately over-specific selectors (`.settings-panel .custom-theme-studio
+ * input.custom-hex-input:not([type="file"])`) and a run of `!important`s;
+ * none of that is needed here. Radio/checkbox/file/range inputs stay excluded
+ * so the segmented controls, toggles and sliders keep their own styling.
+ * ------------------------------------------------------------------------ */
+
+input:where(
+  :not([type="radio"]):not([type="checkbox"]):not([type="file"]):not(
+      [type="range"]
+    )
+),
+select,
+textarea {
+  width: 100%;
+  max-width: 100%;
+  font-family: inherit;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  color: var(--text);
+  padding: 12px 16px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+  outline: none;
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom);
+  transition:
+    border-color var(--t) var(--ease-spring),
+    box-shadow var(--t) var(--ease-spring),
+    transform var(--t) var(--ease-spring),
+    background var(--t) ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-faint);
+}
+
+input:where(
+    :not([type="radio"]):not([type="checkbox"]):not([type="file"]):not(
+        [type="range"]
+      )
+  ):focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 4px var(--accent-ring),
+    var(--glass-inner),
+    0 0 16px var(--accent-glow);
+  background-color: var(--surface);
+  transform: translateY(-1px);
+}
+
+select {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235a6880' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+}
+
+body.dark-theme select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238c96aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+/* The date input's own picker button inherits `color`, which is otherwise
+   invisible against the dark surface in Chromium. */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  input,
+  select,
+  textarea {
+    transition: none;
+  }
+  input:focus,
+  select:focus,
+  textarea:focus {
+    transform: none;
+  }
+}

@@ -2,6 +2,8 @@ import { Route, Routes } from "react-router";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { SignInRequired } from "./components/SignInRequired";
 import { SettingsView } from "./views/settings/SettingsView";
+import { TasksView } from "./views/tasks/TasksView";
+import { ExamsView } from "./views/exams/ExamsView";
 
 /*
  * Route table mirroring the vanilla app's hash router (js/router.js):
@@ -27,8 +29,8 @@ export function AppRoutes() {
       <Route path="/login" element={<SignInRequired />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<Placeholder title="Dashboard" />} />
-        <Route path="/tasks" element={<Placeholder title="Tasks" />} />
-        <Route path="/exams" element={<Placeholder title="Exams" />} />
+        <Route path="/tasks" element={<TasksView />} />
+        <Route path="/exams" element={<ExamsView />} />
         <Route path="/timer" element={<Placeholder title="Timer" />} />
         <Route path="/library" element={<Placeholder title="Library" />} />
         <Route path="/library/:tab" element={<Placeholder title="Library" />} />
