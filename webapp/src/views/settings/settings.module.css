@@ -1,0 +1,522 @@
+/* Settings shell — ported 1:1 from style.css's "5.11 Settings (Tabbed SaaS
+ * layout)" block plus the `.card-icon` rule from section 12 and the
+ * max-width:768px overrides from section 9.
+ *
+ * Two mechanical differences from the source, both because React renders
+ * only the selected panel instead of keeping all six in the DOM behind
+ * `display:none`:
+ *   - `.settings-panel { display: none }` / `.active { display: block }` is
+ *     gone; the fade-in keyframe it carried is kept on `.panel`.
+ *   - `.inline-form`/`.inline-feedback`'s `display:none` + `.open`/`.show`
+ *     pairs likewise collapse to "render it or don't".
+ * The `#settings-tab-danger` id selector becomes `.tabBtnDanger`, since a
+ * CSS Module can't scope an id. */
+
+.view {
+  display: block;
+  padding: var(--s-6) var(--s-6) var(--s-8);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: var(--s-8);
+  min-height: 70vh;
+}
+
+/* -- Sidebar nav -- */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+
+/* The vanilla put an <hr class="settings-sidebar-divider"> between the
+   Notifications and Danger Zone buttons. A tablist may only own tabs, so
+   that rule is nothing but a separator now drawn by the Danger tab itself
+   — same 1px var(--line) line in the same place, one fewer element in the
+   accessibility tree. */
+.tablist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.tabBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 11px 16px;
+  border-radius: var(--r-sm);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition:
+    background var(--t-fast) ease,
+    color var(--t-fast) ease,
+    border-color var(--t-fast) ease,
+    box-shadow var(--t-fast) ease;
+}
+
+.tabBtn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.tabBtn[aria-selected="true"] {
+  background: var(--surface-active);
+  color: var(--text);
+  border-color: var(--surface-active);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.tabBtnDanger {
+  position: relative;
+  margin-top: var(--s-4);
+  color: var(--danger);
+  border-color: transparent;
+}
+
+.tabBtnDanger::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--s-4) / -2);
+  height: 1px;
+  background: var(--line);
+}
+
+.tabBtnDanger:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.tabBtnDanger[aria-selected="true"] {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: var(--danger-soft);
+  box-shadow: inset 3px 0 0 var(--danger);
+}
+
+.tabIcon {
+  font-size: 1.1rem;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tabBtn:hover .tabIcon {
+  transform: scale(1.1) rotate(-5deg);
+  box-shadow: 0 4px 12px var(--accent-glow);
+  border-color: var(--accent-ring);
+}
+
+.divider {
+  height: 1px;
+  background: var(--line);
+  margin: var(--s-3) 0;
+  border: none;
+}
+
+.logoutBtn {
+  margin-top: auto;
+  padding: 11px 16px;
+  border-radius: var(--r-sm);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--danger);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  transition: background var(--t-fast) ease;
+}
+
+.logoutBtn:hover {
+  background: var(--danger-soft);
+}
+
+/* -- Content area -- */
+.content {
+  min-width: 0;
+}
+
+.panel {
+  animation: settings-fade-in var(--t) var(--ease) both;
+}
+
+@keyframes settings-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* -- Card -- */
+.card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-6);
+  margin-bottom: var(--s-5);
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-sm);
+  transition:
+    box-shadow var(--t) var(--ease),
+    border-color var(--t) var(--ease);
+}
+
+.card:hover {
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.cardHeader h3 {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  margin: 0;
+}
+
+.cardHeader p {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+.cardIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: 10px;
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 2px 4px rgba(255, 255, 255, 0.05);
+  font-size: 1.1rem;
+  margin-right: 8px;
+  flex-shrink: 0;
+  transition:
+    transform 0.3s var(--ease-spring),
+    box-shadow 0.3s ease;
+}
+
+/* -- Field rows -- */
+.field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.field:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.field:first-child {
+  padding-top: 0;
+}
+
+.fieldStack {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+
+.fieldLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldLabel label,
+.fieldLabel .labelText {
+  display: block;
+  font-weight: 600;
+  font-size: var(--fs-base);
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.fieldDesc {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.fieldAction {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.fieldAction select {
+  min-width: 180px;
+  width: auto;
+}
+
+.fieldValue {
+  font-size: var(--fs-base);
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-right: var(--s-3);
+}
+
+/* -- Avatar -- */
+.avatar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  padding: var(--s-4) 0;
+}
+
+.avatarCircle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    var(--accent-hover) 60%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  box-shadow:
+    var(--shadow-sm),
+    0 0 0 3px rgba(255, 255, 255, 0.15);
+  transition:
+    box-shadow var(--t) ease,
+    transform var(--t) var(--ease-spring);
+}
+
+.avatarCircle:hover {
+  box-shadow:
+    var(--shadow-md),
+    0 0 0 3px var(--accent-ring);
+  transform: scale(1.05);
+}
+
+.avatarInfo h4 {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  margin: 0;
+}
+
+.avatarInfo p {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+/* -- Inline expandable form -- */
+.inlineForm {
+  margin-top: var(--s-4);
+  padding: var(--s-4);
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  animation: settings-fade-in var(--t-fast) ease both;
+}
+
+.inputRow {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-end;
+}
+
+.inputRow input {
+  flex: 1;
+}
+
+.inputRow button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* -- Danger Zone card -- */
+.dangerCard {
+  border-color: var(--danger-soft);
+  border-left: 3px solid var(--danger);
+}
+
+.dangerCard .cardHeader {
+  border-bottom-color: var(--danger-soft);
+}
+
+.dangerCard .cardHeader h3 {
+  color: var(--danger);
+}
+
+.dangerItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.dangerItem:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.dangerItemInfo h4 {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  margin: 0 0 2px;
+}
+
+.dangerItemInfo p {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* -- Page heading -- */
+.pageHeader {
+  margin-bottom: var(--s-6);
+}
+
+.pageHeader h1 {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  margin: 0;
+}
+
+.actionsRight {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: var(--s-4);
+  }
+
+  .view {
+    padding: var(--s-4);
+  }
+
+  .sidebar {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: var(--s-2);
+    padding-bottom: var(--s-3);
+    border-bottom: 1px solid var(--line);
+    position: static;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tablist {
+    flex-direction: row;
+    gap: var(--s-2);
+  }
+
+  .tabBtnDanger {
+    margin-top: 0;
+  }
+
+  .tabBtnDanger::before {
+    display: none;
+  }
+
+  .tabBtn {
+    padding: 8px 14px;
+    font-size: var(--fs-sm);
+    white-space: nowrap;
+    border-radius: var(--r-pill);
+  }
+
+  .tabBtn[aria-selected="true"] {
+    box-shadow: none;
+    background: var(--accent);
+    color: var(--accent-on);
+  }
+
+  .divider {
+    display: none;
+  }
+
+  .logoutBtn {
+    margin-top: 0;
+    font-size: var(--fs-xs);
+    white-space: nowrap;
+  }
+
+  .field {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fieldAction {
+    width: 100%;
+  }
+
+  .fieldAction select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .dangerItem {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-3);
+  }
+
+  .dangerItem button {
+    width: 100%;
+  }
+
+  .inputRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
