@@ -39,6 +39,10 @@ export function authValue(partial: Partial<AuthState> = {}): AuthState {
  * reach for toasts, dialogs and the query cache as soon as they stop being
  * placeholders, so the guard tests and the view tests share one composition
  * rather than drifting apart. */
-export function renderWithAuth(ui: ReactNode, state: Partial<AuthState> = {}) {
-  return renderWithProviders(ui, authValue(state));
+export function renderWithAuth(
+  ui: ReactNode,
+  state: Partial<AuthState> = {},
+  options: { withTimer?: boolean } = {},
+) {
+  return renderWithProviders(ui, authValue(state), options);
 }
