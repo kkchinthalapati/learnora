@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { AppRoutes } from "./routes";
+import { fakeSession, renderWithAuth } from "./test/auth";
 
 function renderAt(path: string) {
-  return render(
+  return renderWithAuth(
     <MemoryRouter initialEntries={[path]}>
       <AppRoutes />
     </MemoryRouter>,
+    { session: fakeSession() },
   );
 }
 
@@ -26,7 +28,7 @@ describe("route skeleton", () => {
     ["/quiz/q-1/review", "Quiz Review"],
     ["/review/d-1", "Flashcard Review"],
     ["/settings", "Settings"],
-  ])("%s renders the %s view", (path, heading) => {
+  ])("%s renders the %s view for a signed-in user", (path, heading) => {
     renderAt(path);
     expect(
       screen.getByRole("heading", { level: 1, name: heading }),

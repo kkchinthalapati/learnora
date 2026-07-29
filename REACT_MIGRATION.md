@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 46/46 passing
-- **Last verified:** 2026-07-29 (Step 3 — tests green, `npm run build` green, primitives click-tested in browser)
+- **Tests:** `npm --prefix webapp run test` — expect 59/59 passing
+- **Last verified:** 2026-07-29 (Step 4 — tests green, `npm run build` green, guard verified in browser against the real Supabase client)
 
 ---
 
@@ -17,7 +17,7 @@ session, or agent can resume without any conversation history.
 | 1 | Scaffold `webapp/` (Vite+React+TS, lint/format, empty routes) | Foundation | ✅ |
 | 2 | Port design tokens (`tokens.css`, `themes.css`) | Foundation | ✅ |
 | 3 | Shared primitives: Modal, ConfirmDialog, Toast, Icon, Button, EmptyState, Skeleton | Foundation | ✅ |
-| 4 | Supabase client + AuthContext + protected-route shell | Foundation | ☐ |
+| 4 | Supabase client + AuthContext + protected-route shell | Foundation | ✅ |
 | 5 | API layer + TanStack Query hooks (all 11 entities, thin scaffold) | Foundation | ☐ |
 | 6 | Universal CreateModal (Material/Subject/Exam/Task panels) | Foundation | ☐ |
 | 7 | Settings (first cutover — lowest external dependency, all 6 tabs) | Views | ☐ |
@@ -164,6 +164,39 @@ replay moved to `element.animate()`, which restarts by definition and needs no
 reflow hack. The regression test asserts the error state without `waitFor`, so
 re-deferring it fails the suite.
 
+### Step 4 — Supabase client + auth + protected routes (2026-07-29)
+
+`lib/supabase.ts` creates the client with the same project, publishable key and
+auth options as `js/supabase.js`, from the npm package rather than the CDN so the
+bundle is pinned and self-contained. The storage key is left at the default on
+purpose: it's how both apps share one session while they run side by side.
+`context/AuthProvider.tsx` ports `Auth.getSession`/`Auth.logout` — `getSession()`
+first (local, no network), then `onAuthStateChange` as the running source of
+truth, with `_cachedUser` replaced by provider state. `signOut` clears the
+`learnora_invite_access` keys from both storages and drops the session even when
+the API call fails, as the vanilla logout does; it does **not** reload the page,
+since React re-renders from the state change.
+
+`components/ProtectedRoute.tsx` is a layout route wrapping every view; `/login` is
+the only public route. While the stored session is still resolving it renders a
+skeleton rather than redirecting — bouncing on first paint would kick out anyone
+who simply reloaded — and a resolved "no session" redirects with the attempted
+location in `state.from`, ready for a real post-sign-in return.
+
+13 new tests. AuthProvider's use `vi.mock` on the client module rather than MSW:
+supabase-js resolves sessions from storage without a network call, so there is no
+request for MSW to intercept — MSW starts earning its keep with the data queries
+in Step 5. One test-infra note worth keeping: mocks are cleared in `beforeEach`,
+not `afterEach`, because RTL's automatic cleanup unmounts *after* `afterEach`, so
+one test's unsubscribe was being counted against the next.
+
+**Design change found in the browser.** The first cut auto-redirected
+unauthenticated users with `window.location.replace("/index.html")`. That loops
+forever anywhere the React app itself serves that path — immediately reproducible
+on the dev server, and a live risk in production if a rewrite ever routes `/` to
+the SPA. Replaced with a plain `SignInRequired` page and a real link. Worth
+revisiting at Step 7 when the path-prefix rewrites make `/` unambiguous.
+
 ---
 
 ## Known loose ends
@@ -188,6 +221,13 @@ the port)
 - Modal enter animation is CSS; the exit animation is dropped because React
   unmounts on close (the vanilla kept the node and faded `.hidden`). Revisit only
   if the missing fade-out is noticeable in review.
+- `ProtectedRoute` records `state.from`, but nothing consumes it yet — the
+  post-sign-in return trip needs the vanilla app to hand control back, which
+  belongs to whichever step cuts auth over.
+- Sign-in, sign-up, password reset and the invite-access gate all still live in
+  the vanilla app. `AuthProvider` only reads sessions; it deliberately doesn't
+  port `signInWithPassword`, `friendlyAuthError` and friends until there's a
+  React view that needs them.
 
 ---
 
