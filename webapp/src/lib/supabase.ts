@@ -10,7 +10,7 @@ import { createClient } from "@supabase/supabase-js";
  * vanilla app loads supabase-js from a CDN; here it's an npm dependency so the
  * bundle is self-contained and pinned. */
 
-const SUPABASE_URL = "https://mlvgqwqiynpwpwzqufdf.supabase.co";
+export const SUPABASE_URL = "https://mlvgqwqiynpwpwzqufdf.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_mN1UvxPjHhn6L583LjrSFw_FWY8kRrt";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {

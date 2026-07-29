@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 59/59 passing
-- **Last verified:** 2026-07-29 (Step 4 — tests green, `npm run build` green, guard verified in browser against the real Supabase client)
+- **Tests:** `npm --prefix webapp run test` — expect 95/95 passing
+- **Last verified:** 2026-07-29 (Step 5 — tests green, `npm run build` green, `npm run lint` clean)
 
 ---
 
@@ -18,7 +18,7 @@ session, or agent can resume without any conversation history.
 | 2 | Port design tokens (`tokens.css`, `themes.css`) | Foundation | ✅ |
 | 3 | Shared primitives: Modal, ConfirmDialog, Toast, Icon, Button, EmptyState, Skeleton | Foundation | ✅ |
 | 4 | Supabase client + AuthContext + protected-route shell | Foundation | ✅ |
-| 5 | API layer + TanStack Query hooks (all 11 entities, thin scaffold) | Foundation | ☐ |
+| 5 | API layer + TanStack Query hooks (all 11 entities, thin scaffold) | Foundation | ✅ |
 | 6 | Universal CreateModal (Material/Subject/Exam/Task panels) | Foundation | ☐ |
 | 7 | Settings (first cutover — lowest external dependency, all 6 tabs) | Views | ☐ |
 | 8 | Tasks (+ dashboard quick-add widget) | Views | ☐ |
@@ -197,6 +197,58 @@ on the dev server, and a live risk in production if a rewrite ever routes `/` to
 the SPA. Replaced with a plain `SignInRequired` page and a real link. Worth
 revisiting at Step 7 when the path-prefix rewrites make `/` unambiguous.
 
+### Step 5 — API layer + TanStack Query hooks (2026-07-29)
+
+Ported all twelve `js/api.js` entity objects (Tasks, Folders, Materials, Notes,
+Decks, Flashcards, Exams, Sessions, Plans, Quizzes, DataAdmin, Auth) into
+`webapp/src/api/*.ts`, one file per entity plus `types.ts` (row shapes checked
+against the live schema via the Supabase MCP `list_tables` tool — the project
+has no `supabase gen types` step) and `session.ts` (a `requireUserId()`
+helper). Every module throws on failure per Decision #6, replacing the
+vanilla's `UI.showPopup`/`console.error` + `false`/`null`/`[]` returns. One
+`hooks/use<Entity>.ts` per entity wraps each with `useQuery`/`useMutation`,
+invalidating the relevant query key(s) on mutation success — `useAuthActions.ts`
+covers `Auth`'s one-shot actions (login, signup, password/email/profile
+changes, account deletion) separately from `useAuth()` in `context/auth.ts`,
+which stays the reactive session read Step 4 already built.
+`@tanstack/react-query` is wired into `App.tsx` via a shared `QueryClient`
+(`lib/queryClient.ts`), and into `test/render.tsx`'s provider stack with a
+fresh per-call client so tests don't leak cache between each other.
+
+**Deviation from the plan's example (deliberate):** the plan's Section 4
+example showed `tasksApi.fetch(): Promise<Task[]>` reading the current user
+via a vanilla-style `getCurrentUser()` cache. Since Step 4 already built
+`AuthProvider` as the one reactive session source, duplicating a second
+network-verifying cache (the vanilla's `auth.getUser()`) would just be two
+sources of truth doing the same job. `session.ts`'s `requireUserId()` keeps
+the same call-site signature (no `userId` param, throws if signed out) but
+resolves it via `auth.getSession()` — local/cached, the same primitive
+`AuthProvider` itself uses — instead of a second cache.
+
+**Testing:** MSW infra lives in `src/test/mocks/` (`handlers.ts` + `server.ts`,
+wired into `test/setup.ts`'s `beforeAll`/`afterEach`/`afterAll`), and
+`test/mockSession.ts` spies on `supabase.auth.getSession()` per test so
+`requireUserId()` resolves without real storage. Rather than exhaustively
+testing every method on all twelve entities (this is a Foundation "thin
+scaffold" step, not a view), coverage is representative of every *query
+shape* the layer has to support: full CRUD + user-scoping + error-throwing on
+`tasksApi` (the canonical example, plus its `useTasks`/`useAddTask` hook pair
+proving the cache-invalidation wiring), `foldersApi.delete`'s
+cross-entity compose-then-cleanup ordering (materials fetch → row delete →
+storage removal), `examsApi.save`'s insert-vs-update branch, `flashcardsApi`'s
+count/`HEAD` query and join-with-title query, `quizzesApi.fetchWeakTopics`'s
+client-side aggregation logic, `dataAdminApi.wipe`'s partial-failure handling
+(`Promise.all` resolves with `{error}` rather than rejecting), and
+`authApi.signup`/`login`'s validation and GoTrue response-shape handling
+(discovered along the way: `/signup`'s auto-confirmed response is flat —
+session fields at the top level beside `user`, not nested under a `session`
+key — confirmed by reading `@supabase/auth-js`'s `_sessionResponse`
+transform, not guessed). 95/95 tests pass.
+
+**Manual verification deferred:** these are pure data-layer modules with no
+UI yet — nothing to click through until Step 6 (CreateModal) and Step 7
+(Settings) put a screen in front of them.
+
 ---
 
 ## Known loose ends
@@ -225,9 +277,20 @@ the port)
   post-sign-in return trip needs the vanilla app to hand control back, which
   belongs to whichever step cuts auth over.
 - Sign-in, sign-up, password reset and the invite-access gate all still live in
-  the vanilla app. `AuthProvider` only reads sessions; it deliberately doesn't
-  port `signInWithPassword`, `friendlyAuthError` and friends until there's a
-  React view that needs them.
+  the vanilla app. Step 5 ported `signInWithPassword`/`signUp`/`friendlyAuthError`
+  and friends into `api/auth.ts` + `hooks/useAuthActions.ts`, but nothing calls
+  them yet — no React view exists for login/signup/settings until Steps 6–7.
+- **`npm run format:check` reports all 67 tracked files as unformatted on a
+  Windows checkout, unrelated to any step's content.** `core.autocrlf true`
+  checks files out with CRLF while Prettier's default `endOfLine` expects LF;
+  confirmed by stashing every Step 5 change and seeing the same failure count
+  beforehand. Not fixed here — fixing it means picking a repo-wide convention
+  (`.gitattributes` forcing LF, or Prettier's `endOfLine: "auto"`) which is a
+  separate decision, not a Step 5 side effect.
+- `api/dataAdmin.ts`'s `exportCSV` (Blob + anchor-click download) has no test —
+  it's a real-browser DOM interaction with nothing meaningful to assert on
+  under jsdom. Worth a manual click-through once Settings (Step 7) puts a
+  button in front of it.
 
 ---
 
