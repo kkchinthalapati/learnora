@@ -5,6 +5,7 @@ import { OverlayStackProvider } from "./context/OverlayStackProvider";
 import { ToastProvider } from "./context/ToastProvider";
 import { DialogProvider } from "./context/DialogProvider";
 import { AuthProvider } from "./context/AuthProvider";
+import { CreateModalProvider } from "./context/CreateModalProvider";
 import { AppRoutes } from "./routes";
 
 export default function App() {
@@ -14,9 +15,11 @@ export default function App() {
         <ToastProvider>
           <DialogProvider>
             <AuthProvider>
-              <BrowserRouter>
-                <AppRoutes />
-              </BrowserRouter>
+              <CreateModalProvider>
+                <BrowserRouter>
+                  <AppRoutes />
+                </BrowserRouter>
+              </CreateModalProvider>
             </AuthProvider>
           </DialogProvider>
         </ToastProvider>

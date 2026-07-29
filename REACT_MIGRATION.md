@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 95/95 passing
-- **Last verified:** 2026-07-29 (Step 5 — tests green, `npm run build` green, `npm run lint` clean)
+- **Tests:** `npm --prefix webapp run test` — expect 118/118 passing
+- **Last verified:** 2026-07-29 (Step 6 — tests green, `npm run build` green, `npm run lint` clean)
 
 ---
 
@@ -19,7 +19,7 @@ session, or agent can resume without any conversation history.
 | 3 | Shared primitives: Modal, ConfirmDialog, Toast, Icon, Button, EmptyState, Skeleton | Foundation | ✅ |
 | 4 | Supabase client + AuthContext + protected-route shell | Foundation | ✅ |
 | 5 | API layer + TanStack Query hooks (all 11 entities, thin scaffold) | Foundation | ✅ |
-| 6 | Universal CreateModal (Material/Subject/Exam/Task panels) | Foundation | ☐ |
+| 6 | Universal CreateModal (Material/Subject/Exam/Task panels) | Foundation | ✅ |
 | 7 | Settings (first cutover — lowest external dependency, all 6 tabs) | Views | ☐ |
 | 8 | Tasks (+ dashboard quick-add widget) | Views | ☐ |
 | 9 | Exams (calendar + ExamModal + DayDetailModal) | Views | ☐ |
@@ -249,6 +249,73 @@ transform, not guessed). 95/95 tests pass.
 UI yet — nothing to click through until Step 6 (CreateModal) and Step 7
 (Settings) put a screen in front of them.
 
+### Step 6 — Universal CreateModal (2026-07-29)
+
+**Scoping correction before any code was written:** the vanilla app does not
+actually have one Material/Subject/Exam/Task dialog to port. It has four
+unrelated things — a rich Material-creation dialog (`#create-modal`,
+`index.html:2060-2250` + `js/main.js:111-422` + `js/ui.js:508-681`), folders
+created ad hoc via a bare `UI.promptText()` (`js/main.js:195-212`), a fully
+separate `#exam-modal` that's Step 9's territory, and a plain inline input
+for tasks with no modal at all. "Universal CreateModal" was always a *new*
+consolidation decision, not a straight port — confirmed with the user before
+writing anything, along with two scoping calls this forced:
+
+- **The Material panel's submit is a real, fully-validated form wired to a
+  clearly-labeled stub**, not a fake success or a disabled button. Every
+  vanilla validation rule is ported exactly (same messages, same per-source
+  checks) so the only thing that doesn't happen yet is the actual model
+  call — because `AI.createStudyPackage()` has no non-AI path in the vanilla
+  app at all (every new material unconditionally gets AI-generated notes;
+  see `js/ai.js:680-812`), and that layer doesn't exist until Step 14.
+  Submitting a fully valid form shows: *"AI-powered generation isn't
+  connected yet — Step 14 wires this form up to real notes, flashcards, and
+  quizzes."* — and leaves the dialog open, unlike a real submit (which closes
+  immediately in the vanilla flow).
+- **The Exam panel is quick-create only** (name, date, difficulty) — mirrors
+  Task's simplicity, not the vanilla exam modal's edit/delete/status surface.
+  Editing, deleting, and status changes stay Step 9's job on the calendar's
+  own `ExamModal`/`DayDetailModal`. New exams always save with
+  `status: "Scheduled"`, matching the vanilla create form's hidden-but-still-
+  submitted default (`js/main.js:1781`).
+
+**Files:** `context/createModal.ts` + `CreateModalProvider.tsx` (the
+`useCreateModal().openCreateModal(options)` entry point every future "+"
+button will call), `components/create/CreateModal.tsx` (the shell: a
+type-picker segmented control switching between the four panels) and one
+component per panel (`MaterialPanel`, `SubjectPanel`, `ExamPanel`,
+`TaskPanel`), each owning its own form state, validation, and submit —
+`formShared.module.css` carries the input/segmented/error styling every
+panel reuses. Wired into `App.tsx` between `AuthProvider` and
+`BrowserRouter`, and into `test/render.tsx`'s provider stack.
+
+**Two implementation notes worth keeping:** (1) `CreateModal` remounts via a
+`key={sessionId}` bumped on every `openCreateModal()` call, so every field
+resets to defaults on open the same way vanilla's `showCreateModal()` did by
+hand — for free, via React's own remount semantics instead of an imperative
+reset function. (2) `MaterialPanel`'s and `ExamPanel`'s `<form>` need
+`noValidate` — native browser constraint validation (the date input's `min`,
+the link input's `type="url"`) blocks the `submit` event entirely before any
+JS runs once a value is out of range, which is exactly why the vanilla
+`#create-form` already carries `novalidate` (index.html:2074) and every rule
+is enforced in JS instead.
+
+**Testing:** 33 new tests (`components/create/CreateModal.test.tsx` for the
+shell + Subject/Exam/Task, `components/create/MaterialPanel.test.tsx` for
+the more involved panel) cover: default panel/reset-on-reopen, every
+per-source validation message, the implicit-vs-optional Notes output
+depending on source, the Saved-materials tab appearing/disappearing, the
+inline "+ New folder" flow selecting its own result immediately (not waiting
+on a background refetch — see loose end below), quiz-tuning options only
+rendering once Quiz is checked, and the Material stub message leaving the
+dialog open. 118/118 total.
+
+**Manual verification deferred.** Every route sits behind `ProtectedRoute`
+with no real login flow yet, so there's no authenticated page to click
+through from — same reasoning as Step 5. Nothing in this step needs a real
+browser to verify (no Quill, no 3D transforms, no streaming); the RTL/MSW
+suite already drives real typing, clicking, and network requests.
+
 ---
 
 ## Known loose ends
@@ -291,6 +358,21 @@ the port)
   it's a real-browser DOM interaction with nothing meaningful to assert on
   under jsdom. Worth a manual click-through once Settings (Step 7) puts a
   button in front of it.
+- **No real entry point calls `useCreateModal()` yet.** Step 6 built the
+  provider, the modal, and all four panels, but every route is still a
+  placeholder (no sidebar, no dashboard, no per-view "+" button) — the first
+  view step to build real navigation should call `openCreateModal()` from
+  wherever the vanilla app's "+ Create" affordances lived (`js/main.js:116-119`).
+- `MaterialPanel`'s inline "+ New folder" selects the new folder immediately
+  via local state (`extraFolder`) merged into the fetched list, rather than
+  waiting for `useAddFolder`'s cache invalidation to refetch — intentional
+  (matches the vanilla's `select.appendChild()`, and avoids a flash where the
+  just-created folder is briefly unselectable), but worth knowing about if a
+  future entity's "create inline from a select" pattern needs the same trick.
+- No `DatePicker` primitive exists yet — `ExamPanel`/`TaskPanel` use plain
+  `<input type="date">` rather than the vanilla's custom calendar overlay
+  (`js/datepicker.js`). Functionally equivalent and fully accessible; revisit
+  only if a future step needs the vanilla's exact visual calendar widget.
 
 ---
 
