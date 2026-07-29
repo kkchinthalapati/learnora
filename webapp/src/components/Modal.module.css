@@ -1,0 +1,98 @@
+/* Ported from style.css .modal-overlay / .modal-content / .modal-head /
+ * .modal-actions. The vanilla markup keeps overlays mounted and toggles
+ * `.hidden` for the fade; React mounts on open instead, so the enter
+ * transition is expressed as an animation here. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-5);
+  background: rgba(10, 14, 24, 0.5);
+  backdrop-filter: blur(12px) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(12px) var(--glass-saturate);
+  animation: overlay-in var(--t) ease;
+}
+
+.content {
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: clamp(24px, 4vw, 36px);
+  border-radius: var(--r-xl);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(36px) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(36px) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-inner), var(--shadow-lg);
+  animation: content-in var(--t) var(--ease);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-6);
+}
+
+.title {
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin-top: var(--s-1);
+}
+
+.close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    color var(--t-fast) ease;
+}
+.close:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-3);
+  margin-top: var(--s-6);
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes content-in {
+  from {
+    transform: translateY(24px) scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .content {
+    animation: none;
+  }
+}

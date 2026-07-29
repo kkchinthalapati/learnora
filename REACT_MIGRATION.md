@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 18/18 passing
-- **Last verified:** 2026-07-29 (Step 2 — tests green, `npm run build` green, tokens verified in browser)
+- **Tests:** `npm --prefix webapp run test` — expect 46/46 passing
+- **Last verified:** 2026-07-29 (Step 3 — tests green, `npm run build` green, primitives click-tested in browser)
 
 ---
 
@@ -16,7 +16,7 @@ session, or agent can resume without any conversation history.
 |---|------|-------|--------|
 | 1 | Scaffold `webapp/` (Vite+React+TS, lint/format, empty routes) | Foundation | ✅ |
 | 2 | Port design tokens (`tokens.css`, `themes.css`) | Foundation | ✅ |
-| 3 | Shared primitives: Modal, ConfirmDialog, Toast, Icon, Button, EmptyState, Skeleton | Foundation | ☐ |
+| 3 | Shared primitives: Modal, ConfirmDialog, Toast, Icon, Button, EmptyState, Skeleton | Foundation | ✅ |
 | 4 | Supabase client + AuthContext + protected-route shell | Foundation | ☐ |
 | 5 | API layer + TanStack Query hooks (all 11 entities, thin scaffold) | Foundation | ☐ |
 | 6 | Universal CreateModal (Material/Subject/Exam/Task panels) | Foundation | ☐ |
@@ -131,6 +131,39 @@ is only a re-export shim anyway. Same library, same `BrowserRouter` API, browser
 router not hash — the substance of the decision is unchanged. `npm audit`: 0
 vulnerabilities.
 
+### Step 3 — Shared primitives (2026-07-29)
+
+Ported `ModalManager`, `UI.showToast` and `UI._dialog` from `js/ui.js` into React
+context + portals, and `js/icons.js` into `<Icon name="…" />`. Files:
+`context/overlayStack.ts` + `OverlayStackProvider.tsx` (stack, ref-counted scroll
+lock, single Escape listener), `context/ToastProvider.tsx`, `context/DialogProvider.tsx`,
+`hooks/useFocusTrap.ts`, and `components/` — `Modal`, `Button`, `Icon`, `icons`,
+`EmptyState`, `Skeleton` — each with a CSS Module carrying the matching rules from
+`style.css`. 28 new tests cover the a11y invariants the Definition of Done calls
+for: focus moves in on open and back to the trigger on close, Tab wraps at both
+ends, Escape closes, toast `role="alert"` vs `"status"`, and the promise contracts
+of `confirm`/`promptText`.
+
+Three deliberate divergences, all documented in-file: **(1)** dialogs register on
+the same overlay stack as modals, so "top-most wins" replaces the vanilla's
+`if (!$("app-dialog").classList.contains("hidden")) return;` special case — same
+user-visible behaviour, one less rule; **(2)** icons are JSX rather than the
+vanilla's raw-markup-plus-`innerHTML`, so no `dangerouslySetInnerHTML` exists
+anywhere in the React app; **(3)** `getFocusable` tests computed
+`display`/`visibility` instead of `offsetParent !== null`, because jsdom never
+lays out and every control would otherwise look hidden.
+
+**Bug found and fixed during browser verification.** The first cut deferred both
+the dialog's invalid-state and the modal's initial focus to `requestAnimationFrame`
+(mirroring the vanilla). rAF never fires in a hidden or background tab, so an
+empty prompt submit silently did nothing there — and jsdom fires rAF regardless of
+visibility, so the tests were green. Both now apply synchronously: React has
+already committed the overlay to the DOM by the time effects run, so the vanilla's
+reason for deferring (focusing a `display:none` node) doesn't apply. The shake
+replay moved to `element.animate()`, which restarts by definition and needs no
+reflow hack. The regression test asserts the error state without `waitFor`, so
+re-deferring it fails the suite.
+
 ---
 
 ## Known loose ends
@@ -146,6 +179,15 @@ the port)
   Step 7 (first cutover) — nothing to route to `webapp/dist` until then.
 - `webapp/public/favicon.svg` is still the Vite template favicon; swap for Learnora
   branding whenever convenient (cosmetic only).
+- **CSP for the React app is not set yet.** The vanilla app ships a strict policy as
+  a `<meta>` tag in `index.html`; the same tag in `webapp/index.html` would break
+  Vite's dev server, which injects inline scripts for HMR. Set it as a response
+  header in `vercel.json` alongside the first path-prefix rewrite in Step 7 —
+  production needs `style-src 'unsafe-inline'` (React inline `style` attributes)
+  and the same Supabase `connect-src` origins the vanilla policy lists.
+- Modal enter animation is CSS; the exit animation is dropped because React
+  unmounts on close (the vanilla kept the node and faded `.hidden`). Revisit only
+  if the missing fade-out is noticeable in review.
 
 ---
 

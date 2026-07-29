@@ -1,0 +1,34 @@
+/* Ported from style.css .empty-state / .empty-state-sm */
+
+.emptyState {
+  grid-column: 1 / -1;
+  padding: var(--s-10) var(--s-5);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.sm {
+  padding: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin: auto 0;
+}
+
+.icon {
+  color: var(--text-faint);
+  margin-bottom: var(--s-3);
+}
+
+.title {
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  color: var(--text);
+  margin-bottom: var(--s-2);
+}
+
+.actions {
+  margin-top: var(--s-5);
+  display: flex;
+  gap: var(--s-3);
+  justify-content: center;
+}

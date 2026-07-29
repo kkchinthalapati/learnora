@@ -1,0 +1,27 @@
+.message {
+  color: var(--text-muted);
+  margin-bottom: var(--s-4);
+}
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: var(--fs-base);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+}
+.input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+/* Empty-submit feedback. The accompanying shake is driven imperatively from
+ * DialogProvider so it can restart on every failed attempt; this class only
+ * carries the persistent error styling. */
+.invalid {
+  border-color: var(--danger);
+}
