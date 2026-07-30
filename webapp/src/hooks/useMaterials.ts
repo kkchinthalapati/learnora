@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { materialsApi } from "../api/materials";
+import { notesKeys } from "./useNotes";
+import { quizzesKeys } from "./useQuizzes";
 import type { MaterialType } from "../api/types";
 
 export const materialsKeys = {
@@ -65,6 +67,9 @@ export function useAddMaterialLink() {
   });
 }
 
+/* `notes.material_id` and `quizzes.material_id` both reference the row being
+ * deleted, so the notes and quizzes generated from a material go with it —
+ * exactly what the delete confirmation promises the user. */
 export function useDeleteMaterial() {
   const qc = useQueryClient();
   return useMutation({
@@ -75,7 +80,11 @@ export function useDeleteMaterial() {
       id: string;
       storagePath?: string | null;
     }) => materialsApi.delete(id, storagePath),
-    onSuccess: () => qc.invalidateQueries({ queryKey: materialsKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: materialsKeys.all });
+      qc.invalidateQueries({ queryKey: notesKeys.all });
+      qc.invalidateQueries({ queryKey: quizzesKeys.all });
+    },
   });
 }
 

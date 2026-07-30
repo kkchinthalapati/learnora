@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 285/285 passing
-- **Last verified:** 2026-07-29 (Step 9 — tests green, `npm run build` green, `npm run lint` clean, browser-verified)
+- **Tests:** `npm --prefix webapp run test` — expect 321/321 passing
+- **Last verified:** 2026-07-30 (Step 11 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; browser pass still owed, see that step's entry)
 
 ---
 
@@ -24,7 +24,7 @@ session, or agent can resume without any conversation history.
 | 8 | Tasks (+ dashboard quick-add widget) | Views | ✅ |
 | 9 | Exams (calendar + ExamModal + DayDetailModal) | Views | ✅ |
 | 10 | Timer | Views | ☐ |
-| 11 | Library shell (4 tabs) + Subject detail page | Views | ☐ |
+| 11 | Library shell (4 tabs) + Subject detail page | Views | ✅ |
 | 12 | Dashboard (aggregates Tasks/Exams/Timer/Library data) | Views | ☐ |
 | 13 | Notes editor (Quill wrapper) | Views | ☐ |
 | 14 | AI layer port (streaming calls, `renderMarkdown`, action-tag parser) | Foundation | ☐ |
@@ -510,6 +510,95 @@ hangs, not a target.
 vanilla app is hash-routed, so no path rewrite can intercept `#todo` or
 `#exams` either. `index.html` and `js/*` remain untouched.
 
+### Step 11 — Library shell + subject workspace (2026-07-30)
+
+**Built on Steps 8-9, not on Step 10** — the Timer sits unmerged on
+`feat/react-step-10-timer` and nothing in the Library depends on it. Step 12
+(Dashboard) is the first step that needs both.
+
+The Library's four tabs (`/library`, `/library/materials|flashcards|quizzes`)
+and a subject's workspace (`/folders/:folderId`) are ported into
+`webapp/src/views/library/`: `LibraryView` (the shell), one component per tab
+(`FoldersPanel`, `MaterialsPanel`, `FlashcardsPanel`, `QuizzesPanel`),
+`SubjectDetailPage`, `useLibraryActions` (the confirm-then-delete flows both
+surfaces share) and `libraryMeta.ts` (tab list, `safeColor`, the two date
+formats). Sources: index.html:1684-1748 + js/router.js:251-498 and :794-825.
+36 new tests (321 total).
+
+**The active tab lives in the URL**, as it did in the vanilla (`#library`,
+`#library-materials`, …), so tabs stay linkable and survive a refresh. An
+unknown tab now redirects to `/library` instead of rendering Folders under a
+URL that says `#library-nonsense`, which is what `known.includes(tab) ?
+tab : "folders"` did. Only the selected panel is mounted, which is also how the
+vanilla's "load only this tab's data" behaviour falls out for free — an
+unmounted panel's queries never run.
+
+**The delegated-click ordering hack is gone.** The vanilla made each folder
+card a `[data-hash]` div with the rename/delete buttons *inside* it, so
+clicking Delete also navigated into the folder; `js/router.js:32-65` defused
+that with five `[data-action]` checks that had to run before the `[data-hash]`
+handler. Here the card is a real `<Link>` and the buttons are siblings layered
+over it, so neither can trigger the other and there is no ordering to get
+right. Quiz cards, which have two destinations (take it / review the last
+attempt), keep the title and both actions as separate links rather than nesting
+anything inside a card-wide link.
+
+**Card quick-actions are reachable without a mouse.** `.folder-card-actions`
+was `opacity: 0` until `:hover`, so on a touch device rename and delete were
+invisible and unreachable. `:focus-within` was already there for keyboards; the
+port adds a `@media (hover: none)` rule that keeps them visible where hover
+isn't a real input.
+
+**Two bugs found while porting.**
+
+1. *Every subject's workspace was titled "Workspace".* The markup has
+   `<h2 id="workspace-title">Workspace</h2>` and nothing in `js/` ever assigns
+   to it, so the page never named the folder you had opened. It shows the
+   subject's name now, and a folder id that doesn't resolve says so instead of
+   rendering three empty lists that look like a real but empty subject.
+2. *Deletes left the rest of the Library showing rows that no longer existed.*
+   `useDeleteFolder` invalidated only the folder list, but folder deletion
+   cascades to materials, quizzes and decks in the database (migration
+   20260719000000), and a deck takes its flashcards with it. Same gap in
+   `useDeleteDeck` (the due-count banner sits directly above the deck it just
+   removed) and `useDeleteMaterial` (`notes.material_id` and
+   `quizzes.material_id` both point at the deleted row — FKs re-checked against
+   the live schema via the Supabase MCP `list_tables` tool). All three now
+   invalidate what the cascade actually touches; `notesKeys` gained an `all`
+   prefix for it.
+
+**Creation goes through Step 6's CreateModal**, so "+ Create", "+ New Folder"
+and every empty-state button open the one dialog on the right panel — this is
+the "first view step to build real navigation should call `openCreateModal()`"
+loose end from Step 6, now closed. The vanilla created folders from a bare
+`UI.promptText()` with a random colour; the Subject panel asks for the colour
+instead. Renaming a folder still uses `promptText`, matching the vanilla.
+Failures report through an error toast rather than `UI.showPopup`, which has no
+React equivalent, and a successful folder delete now toasts like the other
+three did.
+
+**Nothing re-renders a view by hand.** The vanilla's four delete handlers each
+parsed `window.location.hash` for `folder-<id>` to decide whether to call
+`loadFolderDetail(id)` or `loadAllX()`; cache invalidation reaches every
+subscriber regardless of which is mounted, so deleting a deck inside a subject
+updates the Flashcards tab too. The subject page filters decks and quizzes out
+of the all-entities queries the Library tabs already load, so opening a subject
+from the Library costs no new requests.
+
+**Browser verification not done — it is owed before this merges.** There is no
+browser driver in this environment (no Playwright/Puppeteer installed, no
+browser tool available), and the visual surface here is exactly the kind jsdom
+cannot prove: hover-revealed card actions, `backdrop-filter` glass cards, the
+`auto-fill minmax` grid, and the folder colour written as an inline
+`border-top`. The dev server was smoke-tested instead (`/` and
+`/library/quizzes` both 200, the CSS module compiles and serves), and
+`npm run build` is green. Worth a click-through of all four tabs plus one
+subject against a stubbed session, per the recipe in the loose ends below.
+
+**Cutover still not performed**, for the reasons under Step 7 — the vanilla app
+is hash-routed, so no path rewrite can intercept `#library`. `index.html` and
+`js/*` remain untouched.
+
 ---
 
 ## Known loose ends
@@ -517,6 +606,21 @@ vanilla app is hash-routed, so no path rewrite can intercept `#todo` or
 (carried forward from `REVAMP_PROGRESS.md` where relevant, plus new ones found during
 the port)
 
+- **Step 11's browser pass is owed** (see that section). Everything else about
+  the step is verified; only the real-browser look at the four tabs and a
+  subject workspace is outstanding.
+- **The material-delete confirmation overstates what goes with it.** It says
+  "along with the notes, flashcards and quizzes generated from it", but
+  `flashcard_decks` has no `material_id` at all — decks reference a folder
+  only, so a deck outlives the material it was generated from. Notes and
+  quizzes really are deleted. The wording is the vanilla's and is left
+  unchanged here (it's a copy decision, not a port bug); worth fixing in
+  whichever step owns deck provenance.
+- **A subject's "+ Create" no longer pre-selects the folder's newest
+  material.** The vanilla passed `materialId: materials[0]?.id` so the dialog
+  could seed "generate a deck/quiz from this material" — a flow that is AI-
+  driven and doesn't exist until Step 14. The folder pre-selection, which does
+  exist today, is passed.
 - Vite's react-ts template now ships **oxlint** instead of ESLint (`npm run lint`).
   Kept — it satisfies the lint requirement — but if anyone wants ESLint-specific
   plugins later (e.g. eslint-plugin-react-hooks rules beyond what oxlint covers),
@@ -580,11 +684,10 @@ the port)
   it's a real-browser DOM interaction with nothing meaningful to assert on
   under jsdom. Worth a manual click-through once Settings (Step 7) puts a
   button in front of it.
-- **No real entry point calls `useCreateModal()` yet.** Step 6 built the
-  provider, the modal, and all four panels, but every route is still a
-  placeholder (no sidebar, no dashboard, no per-view "+" button) — the first
-  view step to build real navigation should call `openCreateModal()` from
-  wherever the vanilla app's "+ Create" affordances lived (`js/main.js:116-119`).
+- ~~**No real entry point calls `useCreateModal()` yet.**~~ Closed in Step 11:
+  the Library header, the "+ New Folder" card, a subject's "+ Create" and every
+  empty state now open it (`js/main.js:116-119`'s affordances). The dashboard's
+  own "+" arrives with the shell in Step 12.
 - `MaterialPanel`'s inline "+ New folder" selects the new folder immediately
   via local state (`extraFolder`) merged into the fetched list, rather than
   waiting for `useAddFolder`'s cache invalidation to refetch — intentional
