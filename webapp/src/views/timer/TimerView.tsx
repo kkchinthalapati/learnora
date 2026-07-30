@@ -85,6 +85,13 @@ export function TimerView() {
   const taskId = useId();
   const folderId = useId();
 
+  /* A bound task that isn't one of the fetched rows — see the note on the
+     select below. Also covers a task renamed or completed since it was bound. */
+  const unlistedTask =
+    activeTask !== "None" && !(tasks ?? []).some((t) => t.text === activeTask)
+      ? activeTask
+      : null;
+
   const countUp = isCountUp(state);
   const seconds = countUp ? state.elapsed : state.timeLeft;
   const fraction = progressFraction(state);
@@ -281,6 +288,15 @@ export function TimerView() {
               onChange={(e) => setActiveTask(e.target.value)}
             >
               <option value="None">None</option>
+              {/* The Weekly Plan hands off a *subject*, which is usually not
+                  one of the student's tasks. Without an option to match it the
+                  select falls back to showing "None" while the provider still
+                  logs the session against the subject — the display would be
+                  lying about where the time went. The vanilla appended the
+                  option by hand for the same reason (js/main.js:1307-1318). */}
+              {unlistedTask ? (
+                <option value={unlistedTask}>{unlistedTask}</option>
+              ) : null}
               {(tasks ?? [])
                 .filter((t) => !t.is_done)
                 .map((t) => (

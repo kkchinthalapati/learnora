@@ -7,7 +7,7 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
-import { localDateStr } from "../../lib/date";
+import { localDateStr, mondayOfWeek } from "../../lib/date";
 import { TIMER_END_KEY, TIMER_STATE_KEY } from "../../lib/timer";
 import { Storage } from "../../lib/storage";
 import type { Exam, Folder, StudySession, Task } from "../../api/types";
@@ -103,6 +103,7 @@ function renderDashboard() {
         <Route path="/tasks" element={<h1>Tasks</h1>} />
         <Route path="/exams" element={<h1>Exams</h1>} />
         <Route path="/library/flashcards" element={<h1>Flashcards</h1>} />
+        <Route path="/plan" element={<h1>Weekly plan</h1>} />
       </Routes>
     </MemoryRouter>,
     { session: fakeSession() },
@@ -146,9 +147,7 @@ describe("DashboardView", () => {
       serveDashboard({ exams: [] });
       renderDashboard();
 
-      expect(
-        await screen.findByText(/No exams scheduled/),
-      ).toBeInTheDocument();
+      expect(await screen.findByText(/No exams scheduled/)).toBeInTheDocument();
     });
 
     it("links to the calendar", async () => {
@@ -156,8 +155,12 @@ describe("DashboardView", () => {
       serveDashboard({ exams: [exam()] });
       renderDashboard();
 
-      await user.click(await screen.findByRole("link", { name: "Open calendar →" }));
-      expect(await screen.findByRole("heading", { name: "Exams" })).toBeInTheDocument();
+      await user.click(
+        await screen.findByRole("link", { name: "Open calendar →" }),
+      );
+      expect(
+        await screen.findByRole("heading", { name: "Exams" }),
+      ).toBeInTheDocument();
     });
   });
 
@@ -183,7 +186,12 @@ describe("DashboardView", () => {
 
     it("paints instantly from the local session log while the network total loads", () => {
       Storage.set("sessions", [
-        { id: Date.now(), timestamp: "just now", minutes: 15, task: "General Study" },
+        {
+          id: Date.now(),
+          timestamp: "just now",
+          minutes: 15,
+          task: "General Study",
+        },
       ]);
       serveDashboard();
       renderDashboard();
@@ -202,7 +210,9 @@ describe("DashboardView", () => {
 
       await user.click(await screen.findByRole("button", { name: "45m" }));
 
-      expect(await screen.findByRole("heading", { name: "Timer" })).toBeInTheDocument();
+      expect(
+        await screen.findByRole("heading", { name: "Timer" }),
+      ).toBeInTheDocument();
     });
 
     it("confirms before restarting an already-running timer", async () => {
@@ -228,7 +238,9 @@ describe("DashboardView", () => {
       ).toBeInTheDocument();
       // Declining keeps the dashboard, not the timer route.
       await user.click(screen.getByRole("button", { name: "Keep running" }));
-      expect(screen.queryByRole("heading", { name: "Timer" })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", { name: "Timer" }),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -236,9 +248,7 @@ describe("DashboardView", () => {
     it("shows the streak, sparkline and folder breakdown", async () => {
       serveDashboard({
         folders: [folder()],
-        sessions: [
-          studySession({ minutes: 30, folder_id: "folder-1" }),
-        ],
+        sessions: [studySession({ minutes: 30, folder_id: "folder-1" })],
       });
       renderDashboard();
 
@@ -266,7 +276,9 @@ describe("DashboardView", () => {
 
       expect(await screen.findByText("Read chapter 4")).toBeInTheDocument();
       await user.click(screen.getByRole("link", { name: "View all →" }));
-      expect(await screen.findByRole("heading", { name: "Tasks" })).toBeInTheDocument();
+      expect(
+        await screen.findByRole("heading", { name: "Tasks" }),
+      ).toBeInTheDocument();
     });
 
     it("banners due flashcards and links to the Library", async () => {
@@ -291,18 +303,87 @@ describe("DashboardView", () => {
   });
 
   describe("AI actions card", () => {
-    it("tells the truth about not being wired up yet", async () => {
+    /* Ports js/main.js:2445-2466. This is the one dashboard AI action that
+       does real work rather than opening the chat, so it is the one that
+       generates and then hands the student to /plan. */
+    it("generates this week's plan and navigates to it", async () => {
+      const user = userEvent.setup();
+      serveDashboard();
+      const planJson = { summary: "A calm week", days: [] };
+      server.use(
+        http.get(rest("weekly_plans"), () => HttpResponse.json([])),
+        http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () =>
+          HttpResponse.json({ text: JSON.stringify(planJson) }),
+        ),
+        http.post(rest("weekly_plans"), () =>
+          HttpResponse.json({
+            id: "plan-1",
+            week_start: localDateStr(mondayOfWeek()),
+            plan_json: planJson,
+          }),
+        ),
+      );
+      renderDashboard();
+
+      await user.click(
+        await screen.findByRole("button", { name: "Plan my week" }),
+      );
+
+      expect(
+        await screen.findByRole("heading", { name: "Weekly plan" }),
+      ).toBeInTheDocument();
+    });
+
+    /* Only "Plan my week" is wired: the other three are chat prompts, and the
+       chat surface is step 17. They say so rather than dead-ending. */
+    it("tells the truth about the three chat actions not being wired up", async () => {
       const user = userEvent.setup();
       serveDashboard();
       renderDashboard();
 
-      await user.click(await screen.findByRole("button", { name: "Plan my week" }));
+      await user.click(
+        await screen.findByRole("button", { name: "What next?" }),
+      );
 
       expect(
         await screen.findByText(
-          "AI features aren't connected yet — Step 14 wires this up.",
+          "AI chat isn't connected yet — Step 17 wires this up.",
         ),
       ).toBeInTheDocument();
+    });
+
+    it("asks before replacing a plan that already exists", async () => {
+      const user = userEvent.setup();
+      serveDashboard();
+      let generated = false;
+      server.use(
+        http.get(rest("weekly_plans"), () =>
+          HttpResponse.json([
+            {
+              id: "plan-1",
+              week_start: localDateStr(mondayOfWeek()),
+              plan_json: { days: [] },
+            },
+          ]),
+        ),
+        http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () => {
+          generated = true;
+          return HttpResponse.json({ text: '{"days":[]}' });
+        }),
+      );
+      renderDashboard();
+
+      await user.click(
+        await screen.findByRole("button", { name: "Plan my week" }),
+      );
+
+      const dialog = await screen.findByRole("alertdialog");
+      expect(
+        within(dialog).getByText(/replace your current weekly plan/),
+      ).toBeInTheDocument();
+      await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+      expect(generated).toBe(false);
     });
 
     it("still surfaces real weak topics, which need no AI call", async () => {
@@ -378,7 +459,9 @@ describe("DashboardView", () => {
       serveDashboard();
       renderDashboard();
 
-      await user.click(await screen.findByRole("button", { name: /Add a task/ }));
+      await user.click(
+        await screen.findByRole("button", { name: /Add a task/ }),
+      );
       expect(screen.getByLabelText("Quick add task")).toHaveFocus();
     });
   });
@@ -386,15 +469,18 @@ describe("DashboardView", () => {
   describe("Recent focus sessions", () => {
     it("shows the local session log", async () => {
       Storage.set("sessions", [
-        { id: Date.now(), timestamp: "Jul 30, 2:00 PM", minutes: 45, task: "Biology" },
+        {
+          id: Date.now(),
+          timestamp: "Jul 30, 2:00 PM",
+          minutes: 45,
+          task: "Biology",
+        },
       ]);
       serveDashboard();
       renderDashboard();
 
       await screen.findByText("Recent focus sessions");
-      const history = screen
-        .getByText("Recent focus sessions")
-        .closest("div")!;
+      const history = screen.getByText("Recent focus sessions").closest("div")!;
       expect(within(history).getByRole("listitem")).toHaveTextContent(
         "45m Focus on Biology",
       );
@@ -404,9 +490,7 @@ describe("DashboardView", () => {
       serveDashboard();
       renderDashboard();
 
-      expect(
-        await screen.findByText(/No sessions yet/),
-      ).toBeInTheDocument();
+      expect(await screen.findByText(/No sessions yet/)).toBeInTheDocument();
     });
 
     it("refreshes live when a session is logged elsewhere on the page", async () => {
@@ -415,7 +499,12 @@ describe("DashboardView", () => {
       await screen.findByText(/No sessions yet/);
 
       Storage.set("sessions", [
-        { id: Date.now(), timestamp: "just now", minutes: 10, task: "General Study" },
+        {
+          id: Date.now(),
+          timestamp: "just now",
+          minutes: 10,
+          task: "General Study",
+        },
       ]);
       window.dispatchEvent(new Event("learnora:sessionLogged"));
 

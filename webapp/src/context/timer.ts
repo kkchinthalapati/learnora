@@ -33,6 +33,9 @@ export interface TimerApi {
   applyAndReset: () => void;
   /** Apply a preset and start it running, for the dashboard quick-starts. */
   startPreset: (partial: Partial<TimerConfig>, type?: TimerType) => void;
+  /** Pre-stage a duration (and optionally the task) without starting, for the
+   *  Weekly Plan's per-block "Start →" handoff to /timer. */
+  prepareFocus: (mins: number, task?: string) => void;
 
   /** Task this session is bound to; "None" logs as General Study. */
   activeTask: string;
