@@ -1,0 +1,272 @@
+/* Weekly plan — ported 1:1 from style.css's "Weekly plan view" block
+ * (:1730-1870) plus the mobile overrides at :4245-4295 and the `.summary-card`
+ * / `.glass-panel` surface the header and summary sit on.
+ *
+ * The `!important` run on `.plan-week-grid.is-empty` is dropped: it existed to
+ * beat the base `.plan-week-grid` grid rules from a class applied to the same
+ * element, and a CSS Module lets the empty state simply be its own element
+ * instead of the same one wearing two hats. */
+
+.view {
+  padding: var(--s-6) var(--s-6) var(--s-8);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.summaryCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  padding: var(--s-5) var(--s-6);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+}
+
+.summaryCard h1 {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  margin: 0;
+}
+
+.weekRange {
+  color: var(--text-muted);
+  margin-top: var(--s-2);
+}
+
+.summary {
+  margin-top: var(--s-4);
+  padding: var(--s-5) var(--s-6);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+}
+
+.lastGenerated {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin-top: var(--s-2);
+}
+
+.loadError {
+  margin-top: var(--s-4);
+  color: var(--danger);
+}
+
+.weekGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(180px, 1fr));
+  gap: var(--s-3);
+  overflow-x: auto;
+  padding-bottom: var(--s-2);
+  margin-top: var(--s-6);
+  list-style: none;
+}
+
+@media (max-width: 900px) {
+  .weekGrid {
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    grid-auto-columns: minmax(200px, 1fr);
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+.dayCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+  transition:
+    opacity var(--t-fast) ease,
+    box-shadow var(--t-fast) ease;
+}
+
+@media (max-width: 900px) {
+  .dayCard {
+    scroll-snap-align: start;
+  }
+}
+
+.isToday {
+  border-color: var(--accent);
+  box-shadow:
+    var(--glass-inner),
+    0 0 0 1px var(--accent-ring),
+    0 0 16px var(--accent-glow);
+}
+
+.isPast {
+  opacity: 0.55;
+}
+
+.dayHeader {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.isToday .dayHeader {
+  color: var(--accent);
+}
+
+.dayBlocks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.dayEmpty {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  padding: var(--s-2) 0;
+  margin: 0;
+}
+
+.block {
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--glass-border-subtle);
+}
+
+.blockHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.blockSubject {
+  font-weight: 600;
+  font-size: var(--fs-sm);
+}
+
+.blockMeta {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.blockReason {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  margin: var(--s-2) 0 0;
+}
+
+.blockStart {
+  padding: 4px 10px;
+  font-size: var(--fs-xs);
+  flex-shrink: 0;
+}
+
+/* --- Loading skeleton --- */
+
+.skeleton {
+  min-height: 140px;
+  animation: plan-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton .dayHeader,
+.skeleton .block {
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  min-height: 16px;
+}
+
+.skeleton .dayHeader {
+  width: 60%;
+  min-height: 14px;
+}
+
+.skeleton .block {
+  min-height: 44px;
+  border: none;
+}
+
+@keyframes plan-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+/* --- Empty state --- */
+
+.emptyWrap {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--s-6);
+}
+
+.emptyState {
+  width: 100%;
+  max-width: 640px;
+  box-sizing: border-box;
+  text-align: center;
+  padding: clamp(36px, 6vw, 56px) 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+}
+
+.emptyIcon {
+  color: var(--accent);
+  margin-bottom: var(--s-3);
+  line-height: 0;
+}
+
+.emptyState h2 {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 var(--s-2);
+}
+
+.emptyMessage {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.emptyCta {
+  margin-top: var(--s-5);
+  padding: 12px 28px;
+  font-size: var(--fs-md);
+  font-weight: 600;
+}

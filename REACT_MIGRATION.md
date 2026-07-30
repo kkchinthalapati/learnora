@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 480/480 passing
-- **Last verified:** 2026-07-30 (Step 13 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Steps 11 & 12's browser passes still owed, see those steps' entries)
+- **Tests:** `npm --prefix webapp run test` — expect 570/570 passing
+- **Last verified:** 2026-07-30 (Step 15 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -27,8 +27,8 @@ session, or agent can resume without any conversation history.
 | 11 | Library shell (4 tabs) + Subject detail page | Views | ✅ |
 | 12 | Dashboard (aggregates Tasks/Exams/Timer/Library data) | Views | ✅ |
 | 13 | Notes editor (Quill wrapper) | Views | ✅ |
-| 14 | AI layer port (streaming calls, `renderMarkdown`, action-tag parser) | Foundation | ☐ |
-| 15 | Weekly Plan | Views | ☐ |
+| 14 | AI layer port (streaming calls, `renderMarkdown`, action-tag parser) | Foundation | ✅ |
+| 15 | Weekly Plan | Views | ✅ |
 | 16 | Quiz runner + review | Views | ☐ |
 | 17 | Turbo chat + dashboard command bar | Views | ☐ |
 | 18 | Flashcard Review (SRS flip-card, most complex) | Views | ☐ |
@@ -857,12 +857,149 @@ dark-theme colors — wants a real click-through before this merges.
 **Cutover still not performed**, same hash-routing reason as every prior
 step. `index.html` and `js/*` remain untouched.
 
+### Steps 14 & 15 — AI layer + Weekly Plan (2026-07-30)
+
+Shipped together because 15 cannot exist without 14: the ledger's own
+Decision #13 puts the AI layer before Plan/Quiz/Chat, and the Weekly Plan is
+the first screen that needs it.
+
+**Step 14 — the AI layer**, split by concern rather than transcribed as one
+`AI` object:
+
+- **`api/ai.ts`** — the edge-function caller (`js/ai.js:62-136`). Raw `fetch`
+  rather than `supabase.functions.invoke`, matching the vanilla, so the body
+  can be read as a stream if the edge function ever becomes one. The retry
+  rules are preserved exactly and are now pinned by tests: one retry, 4xx
+  never retried, 429/5xx retried, and our own 60s deadline never replayed
+  (the server has already spent its whole budget walking the provider chain
+  by then, so a replay costs another minute to fail identically). Errors are
+  an `AiError` carrying `retryable` and `refused`, so a content refusal —
+  which arrives with its own explanation written for the student — can be
+  shown verbatim instead of flattened into "generation failed".
+- **`lib/actionTags.ts`** — the three separate jobs the vanilla's tag helpers
+  do, kept separate on purpose because conflating them is how this becomes a
+  prompt-injection hole: `fenceUntrusted` for attacker-influenced text going
+  *into* a prompt (a PDF containing `<SET_THEME>x</SET_THEME>` must not be
+  able to steer the app), `stripActionTagBlocks` for model output coming
+  *out* before it is displayed or written to history, and
+  `widgetToken`/`restoreWidgets` so app-built HTML is spliced back in *after*
+  the model's text has been escaped, never round-tripped through the escaper.
+  There is a test asserting the token survives `renderMarkdown` untouched —
+  that is the property the whole scheme rests on.
+- **`lib/aiJson.ts`** — the hardened extractors (`js/ai.js:257-418`). The
+  ladder of strategies exists because the edge function walks a chain of
+  providers and only some honour `response_format: json_object`, so one
+  request comes back as `{"questions":[…]}` from Groq and a bare `[…]` from
+  Gemini, with or without prose and fences around it. `correctIndex` is
+  validated rather than assumed, for the reason the vanilla documents: the
+  runner grades with `i === q.correctIndex`, so a reply naming its answer
+  field `answer` yields a quiz where every option is marked wrong, silently.
+- **`api/aiPlan.ts`** — `generateWeeklyPlan` plus `loadWorkspaceContext`,
+  which step 17 will reuse for the chat's workspace summary. The prompt is
+  carried over verbatim: it is what the edge function's `mode: "plan"`
+  instructions were tuned against, and rewording it would change what every
+  existing user gets. `settings` is a parameter rather than a global read, so
+  the caller passes whatever `SettingsProvider` holds — including unsaved
+  edits, which is what `UI.loadSettings()` did too.
+
+`renderMarkdown` was already ported early, in Step 13. **`createStudyPackage`
+is deliberately not ported** — see loose ends.
+
+**Step 15 — the Weekly Plan** at `/plan` (`index.html:942-955` +
+`js/router.js:1046-1141`). `views/plan/` holds `PlanView`, `planMeta.ts` and
+the CSS module. The week comes from `mondayOfWeek()` on each render rather
+than state: there is one plan per user per week and no week-stepping UI in
+the vanilla, so holding it would be inventing a feature.
+
+**`plan_json` is narrowed at the boundary** (`planMeta.parseStoredPlan`).
+It is model output round-tripped through the database, so nothing about its
+shape survives the trip — the vanilla read it optimistically
+(`String(b.durationMins)`) and rendered "undefinedm" when a row predated a
+field or a provider drifted. Blocks with no subject are dropped, durations
+are coerced and defaulted to the vanilla's 25, and a plan with no `days`
+falls back to the empty state rather than a broken grid.
+
+**Regeneration asks first.** `Plans.upsert` is keyed on user + week_start, so
+regenerating destroys the plan on screen; both entry points (the view's
+button and the dashboard card) confirm, as the vanilla did. Generating the
+*first* plan of a week destroys nothing and goes straight through.
+
+**`TimerProvider` gained `prepareFocus`** for the vanilla's `start-plan-block`
+handoff (`js/router.js:82-85` + `js/main.js:1288-1319`): a block's duration
+and subject are pre-staged and the student lands on /timer with only Start
+left to press. It deliberately does not auto-start, and never tears down a
+running timer — it stages for the next Apply & Reset instead, the same rule
+`selectType` follows. One deviation: the vanilla wrote only `#config-focus`,
+so a student on the Countdown type saw the duration not change at all; both
+`focus` and `countdown` are written here, since which one the clock reads
+depends on the type (`lib/timer.ts` `focusSeconds`).
+
+**A bug found in the browser and fixed.** After the handoff, the timer's
+"Current Task" select read *None* while the provider was holding "Biology" —
+a plan subject is usually not one of the student's tasks, so the `<select>`
+had no option matching the bound value and fell back to the first one. The
+display was lying about where the logged time would go. `TimerView` now
+renders an option for a bound-but-unlisted task, which is exactly why the
+vanilla appended one by hand; the fix also covers a task renamed or completed
+since it was bound. Regression test in `PlanView.test.tsx`.
+
+**The dashboard's "Plan my week" is now real** (`js/main.js:2445-2466`) —
+generate, then navigate to /plan. The other three AI buttons still say they
+aren't connected, but now name step 17 rather than 14, because what they need
+is the chat surface.
+
+**Testing: 91 new tests (570 total).** 15 on the action-tag sanitizers
+(every tag defanged, opener/closer marked distinctly, a tag only ever paired
+with its own closer, tokens surviving `renderMarkdown`), 25 on the JSON
+extractors (every provider shape, fences, prose, trailing commas, and each
+rejection rule), 18 on `callEdge` and `aiPlan` (bearer token, mode, retry
+matrix, refusal flag, timeout, workspace filtering, upsert payload), 9 on
+`parseStoredPlan`, and 24 on the view (empty state, generate, both failure
+messages, the summary and grid, today's `aria-current`, the confirm-on-
+regenerate in both directions, the timer handoff and its task binding, and
+the unusable-`plan_json` fallback).
+
+**Browser-verified.** With a stubbed session, `/plan` rendered the header,
+week range (27 Jul – 2 Aug), summary panel with "Last generated 3h ago", and
+all seven day cards: today (Thu 30 Jul) carrying the accent border and glow,
+past days dimmed, free days showing their message, and each block its
+subject, duration, hint and reason. Clicking "Start →" on the 90-minute
+Biology block landed on /timer showing Focus 90 / 1:30:00, unstarted — which
+is how the task-select bug above was found. Console clean.
+
+One environment note for whoever verifies next: the query sat in TanStack
+Query's `fetchStatus: "paused"` state on first paint in this browser, which
+is its offline pause — nothing to do with the view. Seeding the cache through
+`queryClient.setQueryData` from the console is the quickest way past it.
+
+**Cutover still not performed**, same hash-routing reason as every prior
+step. `index.html` and `js/*` remain untouched.
+
 ---
 
 ## Known loose ends
 
 (carried forward from `REVAMP_PROGRESS.md` where relevant, plus new ones found during
 the port)
+
+- **`createStudyPackage` is not ported** (js/ai.js:680-836, plus its
+  `_generateNotes` / `_generateDeck` / `_loadSourceText` / `_fileToPayload`
+  helpers). Step 14 ported the AI layer the ledger names — streaming calls,
+  `renderMarkdown`, action-tag parser — plus the generation entry point step
+  15 needs. The Create-modal pipeline that turns a file/link/topic into a
+  material + notes + deck + quiz is a separate, larger piece of work and none
+  of steps 15-17 depend on it. Until it lands, `MaterialPanel`'s submit keeps
+  the Step 6 stub message, which still names step 14; whoever ports the
+  pipeline should update that string too.
+- **The AI edge function's CORS allow-list does not include the Vite dev
+  server.** `DEFAULT_ALLOWED_ORIGINS` in
+  `supabase/functions/learnora-ai/index.ts` lists `http://localhost:3000` (the
+  vanilla app's static server) but not `http://localhost:5173`, so any real
+  model call from `npm run dev` is blocked before it reaches the function.
+  Fixable without a redeploy by setting the `ALLOWED_ORIGINS` env var on the
+  function, but that is a production config change, so it is left for whoever
+  needs to exercise a live generation locally. The test suite intercepts the
+  call at the network layer (MSW) and is unaffected.
 
 - **Steps 11, 12 and 13's browser passes are all owed** (see those
   sections) — no browser driver is available in this environment. Everything
