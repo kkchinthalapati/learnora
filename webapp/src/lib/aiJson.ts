@@ -1,0 +1,209 @@
+/* Ports the hardened JSON extractors from js/ai.js (:257-418).
+ *
+ * The edge function walks a chain of providers (Cerebras, Groq, Mistral,
+ * GitHub Models, OpenRouter, Gemini — see supabase/functions/learnora-ai).
+ * Only some of them honour `response_format: json_object`, which permits an
+ * object at the top level, so the same request can come back as
+ * `{"questions":[…]}` from one provider and a bare `[…]` from another, with or
+ * without prose and markdown fences around it. Each extractor therefore tries
+ * a ladder of strategies and validates the shape it actually needs rather
+ * than trusting the first successful `JSON.parse`.
+ */
+
+export interface QuizQuestion {
+  id?: string | number;
+  question: string;
+  choices: string[];
+  correctIndex: number;
+  topic?: string;
+  feedback?: string;
+}
+
+export interface FlashcardDraft {
+  front: string;
+  back: string;
+}
+
+export interface PlanBlock {
+  subject: string;
+  durationMins?: number;
+  startHint?: string;
+  reason?: string;
+}
+
+export interface PlanDay {
+  date: string;
+  blocks?: PlanBlock[];
+}
+
+export interface WeeklyPlanJson {
+  summary?: string;
+  days: PlanDay[];
+}
+
+/** Trailing commas are the single most common way a model's JSON fails to
+ *  parse, and the cheapest to forgive. */
+function sanitizeJSON(str: string): string {
+  return str.replace(/,(\s*[\]}])/g, "$1");
+}
+
+function stripFences(text: string): string {
+  return text
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+}
+
+function tryParse(text: string): unknown {
+  try {
+    return JSON.parse(sanitizeJSON(text));
+  } catch {
+    return undefined;
+  }
+}
+
+/** Slice out the first `open` … last `close` block, for a reply that arrived
+ *  with prose wrapped around its JSON. */
+function sliceBlock(
+  text: string,
+  open: string,
+  close: string,
+): string | undefined {
+  const start = text.indexOf(open);
+  const end = text.lastIndexOf(close);
+  if (start === -1 || end <= start) return undefined;
+  return text.substring(start, end + 1);
+}
+
+/** Unwrap `{"<key>": [...]}` for providers sent a `json_object` response
+ *  format, which cannot return a bare array at the top level. */
+function unwrap(parsed: unknown, keys: readonly string[]): unknown {
+  if (Array.isArray(parsed)) return parsed;
+  if (parsed && typeof parsed === "object") {
+    const obj = parsed as Record<string, unknown>;
+    for (const key of keys) {
+      if (Array.isArray(obj[key])) return obj[key];
+    }
+  }
+  return parsed;
+}
+
+const FLASHCARD_KEYS = ["cards", "flashcards", "items", "data"] as const;
+
+function isFlashcardArray(value: unknown): value is FlashcardDraft[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    !!value[0] &&
+    typeof (value[0] as FlashcardDraft).front === "string"
+  );
+}
+
+export function extractFlashcardJSON(
+  text: string | null | undefined,
+): FlashcardDraft[] {
+  if (!text) return [];
+
+  const candidates = [
+    text.trim(),
+    stripFences(text),
+    sliceBlock(text, "{", "}"),
+    sliceBlock(text, "[", "]"),
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const parsed = unwrap(tryParse(candidate), FLASHCARD_KEYS);
+    if (isFlashcardArray(parsed)) return parsed;
+  }
+
+  /* Last resort: pull individual card objects out with a regex, for a reply
+   * whose surrounding structure is unsalvageable but whose cards are intact. */
+  const regex =
+    /\{\s*"front"\s*:\s*"([^"]+)"\s*,\s*"back"\s*:\s*"([^"]+)"\s*\}/g;
+  const cards: FlashcardDraft[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    cards.push({ front: match[1], back: match[2] });
+  }
+  return cards;
+}
+
+export function extractPlanJSON(
+  text: string | null | undefined,
+): WeeklyPlanJson | null {
+  if (!text) return null;
+
+  const candidates = [
+    text.trim(),
+    stripFences(text),
+    sliceBlock(text, "{", "}"),
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const parsed = tryParse(candidate);
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      Array.isArray((parsed as WeeklyPlanJson).days)
+    ) {
+      return parsed as WeeklyPlanJson;
+    }
+  }
+  return null;
+}
+
+const QUIZ_KEYS = ["questions", "quiz", "items", "data"] as const;
+
+/* `correctIndex` is validated here, not just question/choices: the quiz view
+ * grades with `i === q.correctIndex`, so a model that emits `answer` or
+ * `correct_index` instead produces a quiz where every answer — including the
+ * right one — is marked wrong, with no error anywhere. */
+function isQuizArray(value: unknown): value is QuizQuestion[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((q) => {
+      const question = q as QuizQuestion;
+      return (
+        !!q &&
+        typeof question.question === "string" &&
+        Array.isArray(question.choices) &&
+        question.choices.length > 1 &&
+        Number.isInteger(question.correctIndex) &&
+        question.correctIndex >= 0 &&
+        question.correctIndex < question.choices.length
+      );
+    })
+  );
+}
+
+export function extractQuizJSON(
+  text: string | null | undefined,
+): QuizQuestion[] {
+  if (!text) return [];
+
+  const candidates = [
+    text.trim(),
+    stripFences(text),
+    sliceBlock(text, "[", "]"),
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const parsed = unwrap(tryParse(candidate), QUIZ_KEYS);
+    if (isQuizArray(parsed)) return parsed;
+  }
+  return [];
+}
+
+/** Ports `_decodeBase64UTF8` (js/ai.js:246-254). `atob` yields one byte per
+ *  char, so a multi-byte UTF-8 file has to be decoded through TextDecoder
+ *  rather than read as a string directly. */
+export function decodeBase64UTF8(base64Str: string): string {
+  const binary = atob(base64Str);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}

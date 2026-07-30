@@ -33,7 +33,7 @@ describe("route skeleton", () => {
     ["/timer", "Timer"],
     ["/library", "Library"],
     ["/library/notes", "Library"],
-    ["/plan", "Weekly Plan"],
+    ["/plan", "This week's plan"],
     ["/quiz/q-1", "Quiz"],
     ["/quiz/q-1/review", "Quiz Review"],
     ["/review/d-1", "Flashcard Review"],

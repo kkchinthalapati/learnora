@@ -252,6 +252,33 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     setDraft((prev) => ({ ...prev, ...patch }));
   }, []);
 
+  /* Ports the plan-block handoff (js/router.js:82-85 + js/main.js:1288-1319):
+     "Start →" on a Weekly Plan block fills in the block's duration and subject
+     and drops the student on /timer with only the Start press left. It
+     deliberately does not start the clock — the vanilla didn't either, and
+     auto-starting a 90-minute block from a card tap is not something to do
+     without a confirmation.
+
+     A running timer is never torn down: its values are staged for the next
+     Apply & Reset instead, which is the same rule `selectType` follows.
+
+     One deviation from the vanilla, which set only `#config-focus`: both
+     `focus` and `countdown` are written, because which one the clock reads
+     depends on the current timer type (lib/timer.ts `focusSeconds`) — setting
+     only `focus` left a student on the Countdown type staring at an unchanged
+     duration with no indication the button had done anything. */
+  const prepareFocus = useCallback((mins: number, task?: string) => {
+    const partial: Partial<TimerConfig> = { focus: mins, countdown: mins };
+    setDraft((prev) => ({ ...prev, ...partial }));
+    setState((s) => {
+      if (s.isRunning) return stagePresetT(s, partial, s.stagedType ?? s.type);
+      const { state: next, effects } = applyNowT(s, partial, s.type);
+      queueMicrotask(() => effectsRef.current(effects));
+      return next;
+    });
+    if (task) setActiveTask(task);
+  }, []);
+
   const saveFav = useCallback(
     (name: string) => {
       const next = [
@@ -315,6 +342,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       selectType,
       applyAndReset,
       startPreset,
+      prepareFocus,
       activeTask,
       setActiveTask,
       activeFolderId,
@@ -341,6 +369,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       selectType,
       applyAndReset,
       startPreset,
+      prepareFocus,
       favs,
       saveFav,
       deleteFav,
