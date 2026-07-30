@@ -1,0 +1,98 @@
+/* Chat markdown — the rules `renderMarkdown` wrote as inline `style`
+ * attributes (js/ai.js:138-192), moved into a stylesheet and onto tokens.
+ *
+ * The vanilla hard-coded a dark palette (`#4AE283` for code, white-alpha
+ * backgrounds) which reads as low-contrast noise in light mode; those become
+ * `--success` and `--surface-2`. Sizes, margins and weights are unchanged. */
+
+.paragraph {
+  margin: 0 0 12px;
+  line-height: 1.6;
+}
+
+.paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.h1 {
+  font-size: 2rem;
+  margin: 32px 0 16px;
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.h2 {
+  font-size: 1.6rem;
+  margin: 28px 0 12px;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.h3 {
+  font-size: 1.3rem;
+  margin: 24px 0 10px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.h4 {
+  font-size: 1.15rem;
+  margin: 20px 0 8px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.h1:first-child,
+.h2:first-child,
+.h3:first-child,
+.h4:first-child {
+  margin-top: 0;
+}
+
+.code {
+  font-family: monospace;
+  background: var(--surface-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--primary);
+}
+
+.pre {
+  padding: 16px;
+  margin: 16px 0;
+  overflow-x: auto;
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+}
+
+.pre code {
+  font-family: "Fira Code", monospace;
+  color: var(--success);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.blockquote {
+  border-left: 3px solid var(--primary);
+  padding: 8px 16px;
+  margin: 12px 0;
+  opacity: 0.85;
+  font-style: italic;
+}
+
+.list {
+  margin: 12px 0;
+  padding-left: 20px;
+}
+
+.list li {
+  margin-bottom: 6px;
+}
+
+.hr {
+  border: none;
+  border-top: 1px solid var(--glass-border);
+  margin: 24px 0;
+}

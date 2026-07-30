@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router";
 import { server } from "./test/mocks/server";
 import { SUPABASE_URL } from "./lib/supabase";
 import { AppRoutes } from "./routes";
+import { ChatProvider } from "./context/ChatProvider";
 import { fakeSession, renderWithAuth } from "./test/auth";
 import { mockAuthSession } from "./test/mockSession";
 
@@ -13,7 +14,11 @@ const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 function renderAt(path: string) {
   return renderWithAuth(
     <MemoryRouter initialEntries={[path]}>
-      <AppRoutes />
+      {/* The dashboard's command bar and AI card read the chat context, which
+          App.tsx provides inside the router. */}
+      <ChatProvider>
+        <AppRoutes />
+      </ChatProvider>
     </MemoryRouter>,
     { session: fakeSession() },
     /* /timer renders TimerView, which reads the timer context. */

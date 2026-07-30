@@ -24,7 +24,12 @@ import { AuthContext, type AuthState } from "../context/auth";
  * live interval and localStorage-backed state that it restores and re-persists
  * on every mount. Including it unconditionally made the whole suite about
  * eight times slower (12s to 99s) for the benefit of the ~25 tests that
- * actually need a timer, so those ask for it. */
+ * actually need a timer, so those ask for it.
+ *
+ * ChatProvider is not here at all, and can't be: it calls `useNavigate`, so it
+ * has to sit *below* a router, and the router in these tests is part of the
+ * `ui` a caller passes in. Tests that need the chat wrap it themselves, inside
+ * their own MemoryRouter — the same nesting App.tsx uses. */
 
 export function newTestQueryClient() {
   return new QueryClient({

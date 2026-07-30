@@ -45,10 +45,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
-  box-shadow:
-    var(--glass-inner),
-    var(--glass-inner-bottom),
-    var(--shadow-md);
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
   padding: clamp(20px, 3vw, 28px);
 }
 
@@ -419,10 +416,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
-  box-shadow:
-    var(--glass-inner),
-    var(--glass-inner-bottom),
-    var(--shadow-md);
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
 }
 
 .onboardingHead {
@@ -472,10 +466,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
-  box-shadow:
-    var(--glass-inner),
-    var(--glass-inner-bottom),
-    var(--shadow-md);
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
   padding: clamp(20px, 3vw, 28px);
 }
 

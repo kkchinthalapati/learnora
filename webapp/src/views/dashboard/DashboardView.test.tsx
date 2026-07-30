@@ -11,6 +11,8 @@ import { localDateStr, mondayOfWeek } from "../../lib/date";
 import { TIMER_END_KEY, TIMER_STATE_KEY } from "../../lib/timer";
 import { Storage } from "../../lib/storage";
 import type { Exam, Folder, StudySession, Task } from "../../api/types";
+import { ChatProvider } from "../../context/ChatProvider";
+import { TurboChat } from "../../components/chat/TurboChat";
 import { DashboardView } from "./DashboardView";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -97,14 +99,20 @@ function serveDashboard({
 function renderDashboard() {
   return renderWithAuth(
     <MemoryRouter initialEntries={["/"]}>
-      <Routes>
-        <Route path="/" element={<DashboardView />} />
-        <Route path="/timer" element={<h1>Timer</h1>} />
-        <Route path="/tasks" element={<h1>Tasks</h1>} />
-        <Route path="/exams" element={<h1>Exams</h1>} />
-        <Route path="/library/flashcards" element={<h1>Flashcards</h1>} />
-        <Route path="/plan" element={<h1>Weekly plan</h1>} />
-      </Routes>
+      {/* The dashboard's command bar and AI card both talk to the chat, and
+          ChatProvider has to sit inside the router (it navigates). */}
+      <ChatProvider>
+        <Routes>
+          <Route path="/" element={<DashboardView />} />
+          <Route path="/timer" element={<h1>Timer</h1>} />
+          <Route path="/tasks" element={<h1>Tasks</h1>} />
+          <Route path="/exams" element={<h1>Exams</h1>} />
+          <Route path="/library/flashcards" element={<h1>Flashcards</h1>} />
+          <Route path="/plan" element={<h1>Weekly plan</h1>} />
+        </Routes>
+        {/* App.tsx renders the panel beside the routes, not inside a view. */}
+        <TurboChat />
+      </ChatProvider>
     </MemoryRouter>,
     { session: fakeSession() },
     { withTimer: true },
@@ -334,11 +342,14 @@ describe("DashboardView", () => {
       ).toBeInTheDocument();
     });
 
-    /* Only "Plan my week" is wired: the other three are chat prompts, and the
-       chat surface is step 17. They say so rather than dead-ending. */
-    it("tells the truth about the three chat actions not being wired up", async () => {
+    it("asks the chat the What next? question and shows the reply", async () => {
       const user = userEvent.setup();
       serveDashboard();
+      server.use(
+        http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () =>
+          HttpResponse.json({ text: "Start with the Biology revision." }),
+        ),
+      );
       renderDashboard();
 
       await user.click(
@@ -346,10 +357,45 @@ describe("DashboardView", () => {
       );
 
       expect(
-        await screen.findByText(
-          "AI chat isn't connected yet — Step 17 wires this up.",
-        ),
+        await screen.findByText("Start with the Biology revision."),
       ).toBeInTheDocument();
+    });
+
+    /* "Quiz me" opened a pre-filled Create dialog in the vanilla, so firing a
+       quiz on a topic nobody named would be a downgrade — it drops an
+       unfinished prompt in the composer instead. */
+    it("opens the chat with an unfinished prompt for Quiz me", async () => {
+      const user = userEvent.setup();
+      serveDashboard();
+      renderDashboard();
+
+      await user.click(await screen.findByRole("button", { name: "Quiz me" }));
+
+      expect(
+        await screen.findByRole("textbox", { name: "AI chat input" }),
+      ).toHaveValue("Quiz me on ");
+    });
+
+    it("sends the command bar's question into the same conversation", async () => {
+      const user = userEvent.setup();
+      serveDashboard();
+      server.use(
+        http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () =>
+          HttpResponse.json({ text: "Two tasks are due this week." }),
+        ),
+      );
+      renderDashboard();
+
+      const bar = await screen.findByRole("textbox", {
+        name: "Ask Learnora AI",
+      });
+      await user.type(bar, "what is due?");
+      await user.click(screen.getByRole("button", { name: "Send AI command" }));
+
+      expect(
+        await screen.findByText("Two tasks are due this week."),
+      ).toBeInTheDocument();
+      expect(bar).toHaveValue("");
     });
 
     it("asks before replacing a plan that already exists", async () => {

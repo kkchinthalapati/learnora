@@ -5,6 +5,7 @@ import { TasksCard } from "./TasksCard";
 import { AIActionsCard } from "./AIActionsCard";
 import { OnboardingBanner } from "./OnboardingBanner";
 import { SessionHistoryCard } from "./SessionHistoryCard";
+import { CommandBar } from "./CommandBar";
 import styles from "./dashboard.module.css";
 
 /* The dashboard — ports index.html:470-593. Aggregates the four views this
@@ -30,6 +31,10 @@ export function DashboardView() {
       <OnboardingBanner />
 
       <SessionHistoryCard />
+
+      {/* Floating, and dashboard-only — the vanilla shows it on #dashboard
+          alone (index.html:2459-2475). */}
+      <CommandBar />
     </main>
   );
 }

@@ -10,9 +10,14 @@
  *  2. `stripActionTagBlocks` — applied to model output *coming out*, before
  *     it is displayed or written into chat history. A leftover tag reads to
  *     the student as a confirmed action.
- *  3. `widgetToken`/`restoreWidgets` — app-built HTML is parked behind an
- *     opaque token so it can be spliced back in *after* the model's text has
- *     been escaped and rendered, never round-tripped through the escaper.
+ *
+ * A third pair, `widgetToken`/`restoreWidgets`, was ported alongside these in
+ * step 14 and removed again in step 17. They existed only because the vanilla
+ * renders a reply by assigning an HTML *string* to `innerHTML`, so app-built
+ * widget markup had to hide behind an opaque placeholder to survive the
+ * escaper. The React chat builds elements instead (lib/markdownToReact.tsx),
+ * so a widget is a React node sitting between two text nodes and there is no
+ * string for it to be smuggled through.
  */
 
 /** Action tags the app executes when it sees them in a model reply. */
@@ -58,20 +63,5 @@ export function stripActionTagBlocks(text: string | null | undefined): string {
   return String(text).replace(
     new RegExp(`<(${TAG_NAMES})>[\\s\\S]*?</\\1>`, "g"),
     "",
-  );
-}
-
-/** Opaque placeholder standing in for a piece of app-built (trusted) HTML in
- *  untrusted model text. Contains no markdown/HTML-significant characters, so
- *  it passes through renderMarkdown() untouched. */
-export function widgetToken(i: number): string {
-  return `⟦learnora-widget:${i}⟧`;
-}
-
-/** Swap widget tokens back for their real HTML *after* escaping/rendering. */
-export function restoreWidgets(html: string, widgets: string[]): string {
-  return html.replace(
-    /⟦learnora-widget:(\d+)⟧/g,
-    (_, i: string) => widgets[Number(i)] ?? "",
   );
 }

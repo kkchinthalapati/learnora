@@ -23,7 +23,8 @@ export function OnboardingBanner() {
   const { data: exams } = useExams();
   const { openCreateModal } = useCreateModal();
 
-  const loaded = folders !== undefined && tasks !== undefined && exams !== undefined;
+  const loaded =
+    folders !== undefined && tasks !== undefined && exams !== undefined;
   const hasData =
     (folders?.length ?? 0) > 0 ||
     (tasks?.length ?? 0) > 0 ||

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
+import { useChat } from "../../context/chat";
 import { useDialog } from "../../context/dialog";
 import { useToast } from "../../context/toast";
 import { useGenerateWeeklyPlan, usePlanForWeek } from "../../hooks/usePlans";
@@ -10,31 +11,57 @@ import { PlanShapeError } from "../../api/aiPlan";
 import { localDateStr, mondayOfWeek } from "../../lib/date";
 import styles from "./dashboard.module.css";
 
-/* "Ask Learnora AI" card — ports index.html:533-573.
+/* "Ask Learnora AI" card — ports index.html:533-573 and its wiring in
+ * js/main.js (:2445-2482).
  *
- * "Plan my week" is wired for real (js/main.js:2445-2466): it generates and
- * persists this week's plan, then lands the student on /plan. The other three
- * still open with a "not connected yet" message — the same honest affordance
- * Step 6's MaterialPanel established — because "What next?" and "Summarize
- * notes" are chat prompts (step 17) and "Quiz me" needs the Create pipeline's
- * generation path, which is not ported yet.
+ * "Plan my week" generates and persists this week's plan, then lands the
+ * student on /plan. The other three are chat prompts: the vanilla put two of
+ * them on `data-chat-prompt` + `data-chat-send`, and "Quiz me" opened the
+ * Create dialog pre-filled. That last one needs the Create pipeline's
+ * generation path, which is not ported (see REACT_MIGRATION.md loose ends),
+ * so it asks the chat for a quiz instead — the chat's `<ADD_QUIZ>` tag reaches
+ * the same generator, with the same confirmation in front of it.
  *
- * The weak-topics chips beneath them are NOT AI-gated — `fetchWeakTopics`
- * only aggregates `quiz_attempts.weak_topics`, a plain read that has existed
- * since Step 5 — so they're wired for real. */
+ * The weak-topic chips beneath are not AI-gated: `fetchWeakTopics` only
+ * aggregates `quiz_attempts.weak_topics`, a plain read. */
 
-const NOT_CONNECTED_MESSAGE =
-  "AI chat isn't connected yet — Step 17 wires this up.";
+interface ChatAction {
+  icon: IconName;
+  label: string;
+  prompt: string;
+  /** False drops the prompt into the composer instead of sending it. */
+  autoSend: boolean;
+}
 
-const CHAT_ACTIONS: { icon: IconName; label: string }[] = [
-  { icon: "target", label: "What next?" },
-  { icon: "brain", label: "Quiz me" },
-  { icon: "file-text", label: "Summarize notes" },
+const CHAT_ACTIONS: ChatAction[] = [
+  {
+    icon: "target",
+    label: "What next?",
+    prompt:
+      "What should I focus on right now given my next exam and open tasks?",
+    autoSend: true,
+  },
+  {
+    icon: "brain",
+    label: "Quiz me",
+    /* Left unsent on purpose: the vanilla's version pre-selected a material
+       in a dialog the student could still change, so firing a quiz on a topic
+       nobody named would be a downgrade. */
+    prompt: "Quiz me on ",
+    autoSend: false,
+  },
+  {
+    icon: "file-text",
+    label: "Summarize notes",
+    prompt: "Summarize the notes I uploaded most recently into key points.",
+    autoSend: true,
+  },
 ];
 
 export function AIActionsCard() {
   const { showToast } = useToast();
   const { confirm } = useDialog();
+  const { open, compose, send } = useChat();
   const navigate = useNavigate();
   const { data: weakTopics } = useWeakTopics(3);
 
@@ -68,6 +95,15 @@ export function AIActionsCard() {
     });
   };
 
+  const runChatAction = (action: ChatAction) => {
+    if (!action.autoSend) {
+      compose(action.prompt);
+      return;
+    }
+    open();
+    void send(action.prompt);
+  };
+
   return (
     <div className={`${styles.card} ${styles.aiCard}`}>
       <span className={styles.eyebrow}>Ask Learnora AI</span>
@@ -84,17 +120,17 @@ export function AIActionsCard() {
           </span>
           {generate.isPending ? "Generating…" : "Plan my week"}
         </button>
-        {CHAT_ACTIONS.map((a) => (
+        {CHAT_ACTIONS.map((action) => (
           <button
-            key={a.label}
+            key={action.label}
             type="button"
             className={styles.aiBtn}
-            onClick={() => showToast(NOT_CONNECTED_MESSAGE)}
+            onClick={() => runChatAction(action)}
           >
             <span className={styles.aiIcon}>
-              <Icon name={a.icon} size={18} />
+              <Icon name={action.icon} size={18} />
             </span>
-            {a.label}
+            {action.label}
           </button>
         ))}
       </div>

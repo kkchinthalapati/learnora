@@ -149,7 +149,9 @@ describe("computeStreak", () => {
   });
 
   it("does not count a day under the 5-minute floor", () => {
-    const sessions = [session({ minutes: 3, started_at: "2026-07-30T09:00:00" })];
+    const sessions = [
+      session({ minutes: 3, started_at: "2026-07-30T09:00:00" }),
+    ];
     expect(computeStreak(sessions)).toBe(0);
   });
 });

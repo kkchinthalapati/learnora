@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 617/617 passing
-- **Last verified:** 2026-07-30 (Step 16 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
+- **Tests:** `npm --prefix webapp run test` — expect 691/691 passing
+- **Last verified:** 2026-07-30 (Step 17 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -30,7 +30,7 @@ session, or agent can resume without any conversation history.
 | 14 | AI layer port (streaming calls, `renderMarkdown`, action-tag parser) | Foundation | ✅ |
 | 15 | Weekly Plan | Views | ✅ |
 | 16 | Quiz runner + review | Views | ✅ |
-| 17 | Turbo chat + dashboard command bar | Views | ☐ |
+| 17 | Turbo chat + dashboard command bar | Views | ✅ |
 | 18 | Flashcard Review (SRS flip-card, most complex) | Views | ☐ |
 
 ---
@@ -1052,6 +1052,131 @@ rows. Console clean.
 **Cutover still not performed**, same hash-routing reason as every prior
 step. `index.html` and `js/*` remain untouched.
 
+### Step 17 — Turbo chat + dashboard command bar (2026-07-30)
+
+Ports `AI.send` (js/ai.js:900-1275), the panel at index.html:2314-2455 with
+its `bindAI` wiring (js/main.js:2359-2440), and the command bar at
+index.html:2459-2475. New: `context/chat.ts` + `ChatProvider`,
+`components/chat/` (`TurboChat`, `ChatMessage`, the CSS module),
+`views/dashboard/CommandBar`, `lib/chatPrompt.ts`, `lib/chatActions.ts`,
+`lib/markdownToReact.tsx` and `api/aiQuiz.ts`.
+
+**The chat renders React elements, not an HTML string — and that is the
+biggest decision in this step.** The vanilla builds each bubble by assigning
+`renderMarkdown(...)`'s output to `innerHTML`. Doing the same here means
+`dangerouslySetInnerHTML`, and Step 3 established, deliberately, that this
+app contains none. The vanilla's version is safe *today* only because it
+escapes `& < >` before any other transform — one careless reordering in a
+pile of regexes away from being an XSS hole on a surface whose entire input
+is untrusted model output. `lib/markdownToReact.tsx` renders the same
+markdown subset to elements instead, so escaping is structural: a `<script>`
+in a reply is a text node and there is no code path where it could be
+anything else. There is a test for exactly that, in the renderer and again
+through the real chat.
+
+Two improvements fell out of it: consecutive list items are wrapped in a real
+`<ul>`/`<ol>` (the vanilla emitted bare `<li>`s with an inline
+`list-style-type` and no list parent — invalid HTML, and a screen reader
+announces no list at all), and the inline `style` attribute the vanilla wrote
+on every element becomes a CSS module on tokens, which also fixes a
+hard-coded dark palette (`#4AE283`, white-alpha backgrounds) that was
+low-contrast noise in light mode.
+
+**`widgetToken`/`restoreWidgets` are removed from `lib/actionTags.ts`.**
+Step 14 ported them because the vanilla needs an opaque placeholder to sneak
+app-built widget markup past its own escaper. Once a widget is a React node
+sitting between two text nodes there is no string for it to be smuggled
+through, so they were dead code. Their tests went with them; the two
+sanitizers that do real work (`fenceUntrusted`, `stripActionTagBlocks`) are
+untouched and still tested.
+
+**`lib/chatActions.ts` is the action contract, isolated and I/O-free.** The
+vanilla executed every tag and then ran seven `.replace()` passes over the
+original string. One pass over the matches produces the same result and,
+because handlers are injected, the whole contract — what runs, what asks
+first, what a declined action looks like — is testable without rendering a
+chat. Three behaviours are worth calling out:
+
+- **One vanilla bug is fixed.** It executed only the *first* occurrence of
+  every tag except `ADD_TASK`, but its replace pass then rendered a success
+  widget for *every* occurrence — so a reply with two `<START_TIMER>` blocks
+  told the student two timers had started when one had. Repeats are marked
+  cancelled here, which is what actually happened.
+- **`<GRADE_FLASHCARD>` is parsed but not executed.** The vanilla clicked the
+  review screen's score buttons; there is no React flashcard review until
+  step 18. Parsing it still matters — the tag must never survive into the
+  visible reply — and rendering nothing is what the vanilla did when the
+  click target was missing.
+- **`<NAVIGATE>` maps hash names to paths** and ignores a destination the app
+  has no route for, rather than pushing the student onto the not-found page.
+
+**`<SET_THEME>` now does what it says.** The vanilla looked for
+`.theme-preset-btn[data-theme="dark"]`, which does not exist — the presets
+are named `default`, `lavender`, … — so "switch to dark mode" silently
+applied the *default accent* and then reported success. Light/dark/system set
+the appearance `mode` here and a preset name sets the accent, and the change
+is persisted, because a student asking for dark mode means it to stick.
+
+**The prompt is carried over verbatim** (`lib/chatPrompt.ts`). It is the
+thing the action-tag contract is written in — "emit `<ADD_TASK>…`" is what
+makes the model produce tags this app executes, and the GROUNDING RULES are
+what stop it inventing deadlines a student would act on. Rewording it changes
+behaviour for every user with nothing in a diff to show it. The per-route
+context is mapped by path instead of hash; a note body still goes through
+`fenceUntrusted` before interpolation, because it is student- and
+model-authored content the app is about to put inside its own prompt.
+
+**A flashcard reply is listed rather than hijacking the Library.** The
+vanilla wrote *unsaved* cards straight into `#flashcards-grid` and switched
+tabs, so they vanished on the next refetch; the React Library tab is
+data-driven and cannot be written into like that. The detection and its guard
+(a conversational reply quoting fewer than three cards is left alone) are
+kept exactly, and the cards render in the bubble with a line pointing at
+Create for saving them.
+
+**`api/aiQuiz.ts` ports only the topic path** of `generateQuiz` →
+`createStudyPackage` → `_generateQuizFrom`, which is all `<ADD_QUIZ>` needs:
+the vanilla's own code reduces to `sourceText = "Topic: <topic>"` for a topic
+source. The file/link/material sources stay with the unported Create
+pipeline. The quiz prompt, like the plan prompt, is verbatim.
+
+**Dragging and the viewport clamp are ported**, including the fix PR #19
+shipped: a dragged panel pinned with inline left/top could be stranded
+off-screen by a window resize or by leaving fullscreen, taking the only close
+button with it.
+
+**Deliberately not ported:** the panel does not register with
+`OverlayStackProvider`. Focus-trapping and scroll-locking are right for a
+dialog and wrong for a floating assistant the student reads the page around —
+and the vanilla's own Escape/backdrop behaviour never applied to it either.
+The Notes AI study sidebar also stays out (see Step 13's entry); the Turbo
+chat *is* context-aware on `/notes/:materialId`, so it tutors on the open
+material, which is most of what the sidebar was for.
+
+**Testing: 74 new tests (691 total).** 16 on the markdown renderer (every
+block and inline form, fences kept literal, real list wrappers, and that no
+model text can become markup), 23 on the action executor (each tag's happy
+path, its declined path, the confirmation copy, the task cap, the repeat
+rule, the unclosed-tag case, and the route map), 13 on the prompt builder
+(workspace state, grounding rules, every declared tag, note truncation, and
+the tag/fence defanging), 24 through the real panel (send, markdown in a
+reply, injection, error reporting, history carried forward and *not* carried
+forward after a failure, the confirm-then-create flow in both directions,
+chips, attachments including the text-file inlining, and flashcard replies)
+and 3 on the dashboard's chat entry points.
+
+**Browser-verified.** Typed into the dashboard command bar; the panel opened
+with the question, then a reply rendering real bullets, bold, and inline
+code, then the "AI Task Creation" confirmation with the vanilla's exact
+wording, and on approval the tag became an "✓ Added task: **Read chapter 4
+summary**" widget in place — with no raw `<ADD_TASK>` anywhere in the DOM.
+Dragging the header repositioned the panel and pinned it; shrinking the
+window pulled it back inside the viewport with the close button reachable.
+Console clean.
+
+**Cutover still not performed**, same hash-routing reason as every prior
+step. `index.html` and `js/*` remain untouched.
+
 ---
 
 ## Known loose ends
@@ -1075,6 +1200,16 @@ the port)
   985` (style.css:848-853) and the vanilla quiz screen put its buttons in the
   same place. Worth solving once, app-wide (a bottom-left safe area, or
   docking away from the pointer), rather than per view.
+- **The Notes AI study sidebar is still not ported.** Step 13 deferred it to
+  17 and 17 scoped it out: the sidebar is `sendNotesChat` (js/ai.js:1378-1503)
+  plus its quiz-me/flashcards quick actions and the split-pane layout, which
+  is its own piece of work. The Turbo chat is context-aware on
+  `/notes/:materialId` — it reads the note and tutors on it — so the capability
+  exists, just not docked beside the editor.
+- **`<GRADE_FLASHCARD>` is parsed but never executed** until step 18 builds
+  the flashcard review screen. Whoever lands that step should wire it into
+  `ChatProvider`'s handlers and drop the `return null` in
+  `lib/chatActions.ts`.
 - **The AI edge function's CORS allow-list does not include the Vite dev
   server.** `DEFAULT_ALLOWED_ORIGINS` in
   `supabase/functions/learnora-ai/index.ts` lists `http://localhost:3000` (the

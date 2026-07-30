@@ -50,8 +50,7 @@ export function NextExamCard() {
 
   const days = daysUntil(next.exam_date, today);
   const big = days <= 0 ? "Today" : String(days);
-  const unit =
-    days <= 0 ? "Good luck!" : days === 1 ? "day away" : "days away";
+  const unit = days <= 0 ? "Good luck!" : days === 1 ? "day away" : "days away";
   const prettyDate = new Date(`${next.exam_date}T00:00:00`).toLocaleDateString(
     [],
     { weekday: "short", month: "short", day: "numeric" },
