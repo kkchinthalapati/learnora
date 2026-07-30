@@ -57,6 +57,10 @@ export const handlers = [
   http.patch(rest("exams"), () => new HttpResponse(null, { status: 204 })),
   http.delete(rest("exams"), () => new HttpResponse(null, { status: 204 })),
 
+  http.get(rest("flashcard_decks"), () => HttpResponse.json([])),
+  http.post(rest("flashcard_decks"), () => new HttpResponse(null, { status: 201 })),
+  http.delete(rest("flashcard_decks"), () => new HttpResponse(null, { status: 204 })),
+
   http.get(rest("flashcards"), () => HttpResponse.json([])),
   http.head(rest("flashcards"), () => new HttpResponse(null, { status: 200 })),
 

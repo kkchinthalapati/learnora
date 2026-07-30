@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { AppRoutes } from "./routes";
 import { fakeSession, renderWithAuth } from "./test/auth";
+import { mockAuthSession } from "./test/mockSession";
 
 function renderAt(path: string) {
   return renderWithAuth(
@@ -16,6 +17,10 @@ function renderAt(path: string) {
 }
 
 describe("route skeleton", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it.each([
     ["/", "Dashboard"],
     ["/tasks", "Tasks"],
@@ -23,7 +28,6 @@ describe("route skeleton", () => {
     ["/timer", "Timer"],
     ["/library", "Library"],
     ["/library/notes", "Library"],
-    ["/folders/f-1", "Subject"],
     ["/notes/m-1", "Notes"],
     ["/plan", "Weekly Plan"],
     ["/quiz/q-1", "Quiz"],
@@ -34,6 +38,18 @@ describe("route skeleton", () => {
     renderAt(path);
     expect(
       screen.getByRole("heading", { level: 1, name: heading }),
+    ).toBeInTheDocument();
+  });
+
+  /* Its own case rather than a row in the table above: the subject page is
+     titled with the folder's name, so it can only be asserted once the data
+     has loaded. */
+  it("/folders/:folderId renders that subject's workspace", async () => {
+    mockAuthSession("user-1");
+    renderAt("/folders/folder-1");
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Biology" }),
     ).toBeInTheDocument();
   });
 
