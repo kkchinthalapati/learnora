@@ -8,6 +8,7 @@ import { TimerView } from "./views/timer/TimerView";
 import { LibraryView } from "./views/library/LibraryView";
 import { SubjectDetailPage } from "./views/library/SubjectDetailPage";
 import { DashboardView } from "./views/dashboard/DashboardView";
+import { NotesView } from "./views/notes/NotesView";
 
 /*
  * Route table mirroring the vanilla app's hash router (js/router.js):
@@ -39,10 +40,7 @@ export function AppRoutes() {
         <Route path="/library" element={<LibraryView />} />
         <Route path="/library/:tab" element={<LibraryView />} />
         <Route path="/folders/:folderId" element={<SubjectDetailPage />} />
-        <Route
-          path="/notes/:materialId"
-          element={<Placeholder title="Notes" />}
-        />
+        <Route path="/notes/:materialId" element={<NotesView />} />
         <Route path="/plan" element={<Placeholder title="Weekly Plan" />} />
         <Route path="/quiz/:quizId" element={<Placeholder title="Quiz" />} />
         <Route

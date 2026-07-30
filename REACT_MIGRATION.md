@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 454/454 passing
-- **Last verified:** 2026-07-30 (Step 12 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Step 11's browser pass still owed, see that step's entry)
+- **Tests:** `npm --prefix webapp run test` — expect 480/480 passing
+- **Last verified:** 2026-07-30 (Step 13 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Steps 11 & 12's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -26,7 +26,7 @@ session, or agent can resume without any conversation history.
 | 10 | Timer | Views | ✅ |
 | 11 | Library shell (4 tabs) + Subject detail page | Views | ✅ |
 | 12 | Dashboard (aggregates Tasks/Exams/Timer/Library data) | Views | ✅ |
-| 13 | Notes editor (Quill wrapper) | Views | ☐ |
+| 13 | Notes editor (Quill wrapper) | Views | ✅ |
 | 14 | AI layer port (streaming calls, `renderMarkdown`, action-tag parser) | Foundation | ☐ |
 | 15 | Weekly Plan | Views | ☐ |
 | 16 | Quiz runner + review | Views | ☐ |
@@ -769,6 +769,94 @@ jsdom can't prove — before this merges.
 **Cutover still not performed**, same hash-routing reason as every prior
 step. `index.html` and `js/*` remain untouched.
 
+### Step 13 — Notes editor, Quill wrapper (2026-07-30)
+
+Ports js/editor.js (217 lines) and index.html:1750-1802 into two layers,
+matching Decision #8: `components/RichTextEditor.tsx` (a hand-rolled Quill
+wrapper — `react-quill` is unmaintained against Quill 2.x) and
+`views/notes/NotesEditorPane.tsx` (the autosave/save-status state machine
+above it). `views/notes/NotesView.tsx` is the route-level wrapper that
+resolves the material and its notes and hands off to the pane, split the
+same way Library's `SubjectDetailPage`/panels are. 26 new tests (480 total):
+9 on the wrapper, 9 on the view, 8 on `renderMarkdown` (below).
+
+**Scoping decision made before writing any code.** The vanilla's Notes view
+is actually two panes — the Quill editor (this step) and a full AI study
+sidebar (chat, Quiz-me/Flashcards quick actions, file attach, voice input;
+index.html:1804-1869). The sidebar is not ported here. It depends on the AI
+layer (step 14) and is, in substance, the same chat surface Step 17 builds
+for real — the ledger's own dependency table already has 17 depend on 13,
+not the reverse, so building a throwaway stub here would just be replaced
+work. `notes.module.css` is a single-pane layout for exactly this reason:
+no reason to reserve space for a sidebar that doesn't exist yet.
+
+**One function ported early, deliberately, out of step 14's file.**
+`AI.renderMarkdown` (js/ai.js:138-192) is the fallback path for any note
+whose `html_content` hasn't been generated yet — still processing, or a row
+that predates the `html_content` column (migration 20260727020000). It has
+no network call and no AI dependency, just a pure regex-based markdown→HTML
+transform, so it's ported now into `lib/markdown.ts` rather than leaving
+that fallback broken (or showing raw markdown syntax) until step 14 lands.
+Step 14 should import it, not reimplement it. The one thing deliberately
+*not* carried over: the vanilla's widget-token un-escape step
+(js/ai.js:183-190) — that exists for the AI chat's action-tag system, which
+doesn't exist here yet, so there is nothing calling this function with
+reserved tokens to stay compatible with.
+
+**Both of `js/editor.js`'s documented security fixes are preserved exactly,
+with a regression test each.** (1) Stored HTML is never assigned via
+`innerHTML` — it round-trips through the DB and is seeded from model output
+run over an uploaded document, so `RichTextEditor` only ever loads content
+through `quill.clipboard.convert()`, which parses it into a Delta and keeps
+only the formats on an explicit allowlist. (2) That allowlist excludes
+`video` on purpose: Quill's default format set includes it, and a stored
+`<video>`/iframe embed is a same-origin frame of the app inside a note
+(clickjacking / spoofed UI) — nothing here needs embeds, so the format is
+dropped. Tests load a document containing a `<script>` and one containing an
+`<iframe>` and assert both are stripped, not merely escaped, and that the
+script never executes.
+
+**The autosave state machine keeps two rough edges the vanilla has on
+purpose,** not smoothed over as "obvious improvements": a save already in
+flight blocks a new one from starting rather than racing it
+(js/editor.js:130) — the cost is a save that could in principle sit dirty
+until the next keystroke reschedules it, same as the vanilla, and manual
+Save on an unchanged document acknowledges with "Saved" instead of silently
+doing nothing (js/editor.js:131-138, itself already a fix over an earlier
+version that just did nothing). A pending edit is flushed on unmount rather
+than dropped — `Editor.destroy()`'s fire-and-forget save — using the same
+`flushRef`-points-at-the-latest-closure pattern `useTaskActions.ts` already
+established for its own flush-on-unmount, since an unmount-only effect would
+otherwise close over a stale `note`/mutation.
+
+**`quill` needed pinning to an exact patch version.** `npm install quill`
+resolves to 2.0.3, which `npm audit` flags for GHSA-v3m3-f69x-jf25 (XSS via
+the HTML export feature, CVSS 6.1) — a range of exactly `=2.0.3`; 2.0.2 is
+unaffected. Installed as `"quill": "2.0.2"` (exact, via `--save-exact`).
+`npm audit`: 0 vulnerabilities.
+
+**One pre-existing issue noticed in passing, not fixed here.** Step 11's
+`SubjectDetailPage`'s two "back to Library" affordances nest a `<Button>`
+(a `<button>`) inside a `<Link>` (an `<a>`) — invalid HTML (interactive
+content can't nest) that this step's own not-found empty state avoids by
+using `Button`'s `onClick` + `navigate()` instead, matching the pattern
+already used elsewhere (`ExamsView`'s "+ Add exam", `FoldersPanel`'s
+"+ Create Folder"). Left alone rather than opportunistically fixed —
+outside this step's diff — but worth a one-line fix whenever Library is
+next touched.
+
+**Manual/browser verification not done — no driver available in this
+environment**, same constraint as Steps 11 and 12. The dev server was
+smoke-tested (`/notes/x` returns 200, Quill's stylesheet serves correctly
+at `/node_modules/quill/dist/quill.snow.css` in dev). Everything about this
+step that jsdom *can* prove is covered by the test suite (sanitization,
+autosave timing, read-only toggling); what it can't — the toolbar's actual
+icon rendering, focus rings inside the `ql-editor`, and the picker dropdowns'
+dark-theme colors — wants a real click-through before this merges.
+
+**Cutover still not performed**, same hash-routing reason as every prior
+step. `index.html` and `js/*` remain untouched.
+
 ---
 
 ## Known loose ends
@@ -776,11 +864,14 @@ step. `index.html` and `js/*` remain untouched.
 (carried forward from `REVAMP_PROGRESS.md` where relevant, plus new ones found during
 the port)
 
-- **Step 11's and Step 12's browser passes are both owed** (see those
+- **Steps 11, 12 and 13's browser passes are all owed** (see those
   sections) — no browser driver is available in this environment. Everything
-  else about both steps is verified; only the real-browser look at the
-  Library's four tabs, a subject workspace, and the dashboard's seven cards
-  is outstanding.
+  else about all three steps is verified; only the real-browser look at the
+  Library's four tabs, a subject workspace, the dashboard's seven cards, and
+  the Quill editor's toolbar/pickers is outstanding.
+- **The Notes AI study sidebar is not ported** (Step 13's scoping decision —
+  see that section). `NotesView` is Quill-only until Step 17 builds the chat
+  surface for real; nothing to revisit before then.
 - **SRS due-cards notification is not ported** (found in Step 12).
   `notifyDueCardsOncePerDay` (js/main.js:2241-2256) — a once-per-day browser
   `Notification` when flashcards are due, gated on `notifyStudyReminders` —
@@ -808,6 +899,11 @@ the port)
   could seed "generate a deck/quiz from this material" — a flow that is AI-
   driven and doesn't exist until Step 14. The folder pre-selection, which does
   exist today, is passed.
+- **`SubjectDetailPage`'s two "Back to Library" links nest a `<button>`
+  inside an `<a>`** (found while building Step 13, which needed the same
+  affordance and used `Button`'s `onClick` + `navigate()` instead) — invalid
+  HTML, interactive content can't nest. One-line fix whenever Library is next
+  touched.
 - Vite's react-ts template now ships **oxlint** instead of ESLint (`npm run lint`).
   Kept — it satisfies the lint requirement — but if anyone wants ESLint-specific
   plugins later (e.g. eslint-plugin-react-hooks rules beyond what oxlint covers),

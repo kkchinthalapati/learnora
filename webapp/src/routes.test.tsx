@@ -1,9 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
+import { server } from "./test/mocks/server";
+import { SUPABASE_URL } from "./lib/supabase";
 import { AppRoutes } from "./routes";
 import { fakeSession, renderWithAuth } from "./test/auth";
 import { mockAuthSession } from "./test/mockSession";
+
+const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 
 function renderAt(path: string) {
   return renderWithAuth(
@@ -28,7 +33,6 @@ describe("route skeleton", () => {
     ["/timer", "Timer"],
     ["/library", "Library"],
     ["/library/notes", "Library"],
-    ["/notes/m-1", "Notes"],
     ["/plan", "Weekly Plan"],
     ["/quiz/q-1", "Quiz"],
     ["/quiz/q-1/review", "Quiz Review"],
@@ -51,6 +55,33 @@ describe("route skeleton", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: "Biology" }),
     ).toBeInTheDocument();
+  });
+
+  /* Also its own case, same reason as the folder test above: the notes
+     editor is titled with the material's name, only known once the material
+     and its notes have loaded. */
+  it("/notes/:materialId renders that material's notes", async () => {
+    mockAuthSession("user-1");
+    server.use(
+      http.get(rest("materials"), () =>
+        HttpResponse.json({
+          id: "mat-1",
+          user_id: "user-1",
+          folder_id: null,
+          title: "Cell division",
+          type: "pdf",
+          raw_content: null,
+          storage_path: null,
+          created_at: "2026-03-05T00:00:00.000Z",
+        }),
+      ),
+      http.get(rest("notes"), () => HttpResponse.json([])),
+    );
+    renderAt("/notes/mat-1");
+
+    await waitFor(() =>
+      expect(screen.getByText("Cell division")).toBeInTheDocument(),
+    );
   });
 
   it("unknown paths fall through to Not found", () => {
