@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 411/411 passing (Step 10's 375 + Step 11's 36)
-- **Last verified:** 2026-07-30 (Steps 10 & 11 combined onto `feat/react-step-12-dashboard` — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Step 11's browser pass still owed, see that step's entry)
+- **Tests:** `npm --prefix webapp run test` — expect 454/454 passing
+- **Last verified:** 2026-07-30 (Step 12 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Step 11's browser pass still owed, see that step's entry)
 
 ---
 
@@ -25,7 +25,7 @@ session, or agent can resume without any conversation history.
 | 9 | Exams (calendar + ExamModal + DayDetailModal) | Views | ✅ |
 | 10 | Timer | Views | ✅ |
 | 11 | Library shell (4 tabs) + Subject detail page | Views | ✅ |
-| 12 | Dashboard (aggregates Tasks/Exams/Timer/Library data) | Views | ☐ |
+| 12 | Dashboard (aggregates Tasks/Exams/Timer/Library data) | Views | ✅ |
 | 13 | Notes editor (Quill wrapper) | Views | ☐ |
 | 14 | AI layer port (streaming calls, `renderMarkdown`, action-tag parser) | Foundation | ☐ |
 | 15 | Weekly Plan | Views | ☐ |
@@ -668,6 +668,107 @@ subject against a stubbed session, per the recipe in the loose ends below.
 is hash-routed, so no path rewrite can intercept `#library`. `index.html` and
 `js/*` remain untouched.
 
+### Step 12 — Dashboard (2026-07-30)
+
+**Required combining Steps 10 and 11 first.** The Timer sat unmerged on
+`feat/react-step-10-timer` and the Library was still on its own
+`feat/react-step-11-library` branch — this step is the first that needs both,
+per the plan's Section 4 ("Dashboard comes after its constituent widgets'
+source views"). Both were merged into `feat/react-step-12-dashboard` (two
+merge commits, conflicts only in `routes.tsx` and this ledger — every hook
+file Step 11 touched resolved cleanly since Step 10 never touched them)
+before any Dashboard code was written. 454 total tests (411 carried over +
+43 new: 21 pure-function, 22 integration).
+
+The whole `/` route is ported into `webapp/src/views/dashboard/`: seven
+components (`NextExamCard`, `FocusCard`, `StreakCard`, `TasksCard`,
+`AIActionsCard`, `OnboardingBanner`, `SessionHistoryCard`) composed by
+`DashboardView`, plus `analytics.ts` (the pure functions behind the numbers —
+`computeStreak`, the 7-day sparkline, the per-folder breakdown, focus-time
+totals, the next-exam countdown) and `useLocalSessions.ts`. Sources:
+index.html:470-593 + js/main.js's renderDashboard/renderAnalytics/
+renderNextExam/renderDueCards/renderWeakTopics/maybeRenderOnboardingBanner
+(:1921-2354) and the focus-preset/plan-week/quiz-me bindings (:1252-1276,
+:2445-2483).
+
+**One deliberate cross-view import, pre-authorized by Step 8's own comment.**
+`TasksCard` renders Step 8's `DashboardTasksWidget` directly from
+`views/tasks/` — every other view in this codebase is self-contained, but
+that widget's file comment already says "Step 12 imports it into the real
+dashboard," so this was the plan, not scope creep. `analytics.ts`'s `safeColor`
+is duplicated rather than imported from `views/library` for the same reason
+the reverse direction wasn't done in Step 11: everything else stays
+self-contained.
+
+**Two data sources for one number, same split as the vanilla.** The Focus
+card's total/today paint instantly from the same `localStorage["sessions"]`
+key `TimerProvider` writes first and synchronously (its own comment: "a
+flaky Supabase write should never lose a logged session"), then prefer the
+Supabase-sourced `useSessionsSince(90)` total — the same query `StreakCard`
+reads — the moment it resolves. The vanilla did this as two sequential DOM
+writes (`renderDashboard()` then `renderAnalytics()`); here it's "prefer the
+query once it's ready," which is the idiomatic shape of the same design in
+React.
+
+**Live-refresh bug found and fixed while porting.** `js/timer.js:463`
+dispatches a same-tab `sessionLogged` window event after every local write,
+and `js/main.js:2653` listens for it to repaint the dashboard — necessary
+because the timer can keep running (and finish) on a different route than
+the one showing the log. The first cut of this port missed that entirely:
+`useLocalSessions` read `localStorage` once on mount with no way to learn
+about a write from a sibling component, so a session completing via the
+docked `MiniTimer` while sitting on `/` would never appear until a real
+navigation away and back. `TimerProvider` now dispatches
+`SESSION_LOGGED_EVENT` (same idea, exported name) after its local write, and
+`useLocalSessions` re-reads on it. There's a regression test that dispatches
+the event manually and asserts the list updates without remounting.
+
+**The "Ask Learnora AI" card is real UI with an honest stub, not an
+omission.** All four buttons ("Plan my week", "What next?", "Quiz me",
+"Summarize notes") call into `js/ai.js`, which doesn't exist in the React
+app until Step 14. Rather than drop the card — a visible hole in the
+grid — or invent new `CreateModal` option surface to half-wire "Quiz me"
+early, every button opens the same "AI features aren't connected yet —
+Step 14 wires this up" message Step 6's `MaterialPanel` already established
+for its own AI-gated submit. The weak-topics chips beneath them are real,
+not stubbed: `fetchWeakTopics` only aggregates
+`quiz_attempts.weak_topics`, a plain read with no AI dependency, unchanged
+since Step 5.
+
+**One vanilla behavior not carried over — genuinely dropped, not deferred
+elsewhere.** The vanilla's `renderDueCards()` also pushed a once-per-day
+browser `Notification` when cards are due (`notifyDueCardsOncePerDay`,
+gated on the `notifyStudyReminders` setting). Nothing in the React app fires
+that yet — `TimerProvider`'s `Notification` calls are for timer alerts only,
+a separate setting (`notifyTimerAlerts`). Listed below under loose ends
+rather than silently skipped.
+
+**Testing.** `analytics.test.ts` (21 tests) covers every pure function on
+its own — `computeStreak`'s grace-day and missed-day rules, the sparkline's
+7-day window, the folder breakdown's sort-and-cap-at-4, `daysUntil`'s
+local-time parsing — matching the precedent `lib/timer.test.ts` set for
+testing state logic without a document. `DashboardView.test.tsx`
+(22 tests) covers all seven cards end to end: the exam countdown and its
+empty state, the two-source focus total (including the instant local paint
+asserted *before* the network response resolves), both focus-preset paths
+(idle vs. running-with-confirmation), the streak card's empty state, the
+tasks widget's View-all link and SRS due banner, the AI stub message, real
+weak topics, the onboarding banner's full lifecycle (appears, dismisses,
+persists, disappears once there's real data, focuses the task input), and
+the live session-log refresh. Needed `withTimer: true` in the provider stack
+(FocusCard reads `useTimer()`) and, per the Step 9 loose end, derives every
+exam/session date from the real clock rather than faking timers.
+
+**Manual/browser verification not done — no driver available in this
+environment** (same constraint as Step 11's entry). The dev server was
+smoke-tested (`/` returns 200, `npm run build` succeeds). Worth a real
+click-through — the sparkline bar heights, the AI card's hover states, and
+the glass-card gradients on `.examCard`/`.card::before` are exactly what
+jsdom can't prove — before this merges.
+
+**Cutover still not performed**, same hash-routing reason as every prior
+step. `index.html` and `js/*` remain untouched.
+
 ---
 
 ## Known loose ends
@@ -675,9 +776,26 @@ is hash-routed, so no path rewrite can intercept `#library`. `index.html` and
 (carried forward from `REVAMP_PROGRESS.md` where relevant, plus new ones found during
 the port)
 
-- **Step 11's browser pass is owed** (see that section). Everything else about
-  the step is verified; only the real-browser look at the four tabs and a
-  subject workspace is outstanding.
+- **Step 11's and Step 12's browser passes are both owed** (see those
+  sections) — no browser driver is available in this environment. Everything
+  else about both steps is verified; only the real-browser look at the
+  Library's four tabs, a subject workspace, and the dashboard's seven cards
+  is outstanding.
+- **SRS due-cards notification is not ported** (found in Step 12).
+  `notifyDueCardsOncePerDay` (js/main.js:2241-2256) — a once-per-day browser
+  `Notification` when flashcards are due, gated on `notifyStudyReminders` —
+  has no React equivalent yet. `useFlashcardsDueCount` exists and the
+  dashboard reads it, so wiring the notification itself is small; it just
+  hasn't been done. Natural home is wherever notification permission gets
+  centralized (`TimerProvider` currently owns its own `notifyTimerAlerts`
+  path independently).
+- **"Plan my week" and "Quiz me" are stubs pending Step 14** (Step 12). Both
+  dashboard buttons show "AI features aren't connected yet" instead of
+  calling `AI.generateWeeklyPlan()` or opening a quiz-tuned CreateModal —
+  same reasoning as Step 6's Material panel. Revisit once the AI layer
+  lands; "Quiz me" additionally wants `CreateModal`'s options extended with
+  a way to pre-select the Quiz output and a custom title, which don't exist
+  today.
 - **The material-delete confirmation overstates what goes with it.** It says
   "along with the notes, flashcards and quizzes generated from it", but
   `flashcard_decks` has no `material_id` at all — decks reference a folder

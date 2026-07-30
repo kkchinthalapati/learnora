@@ -43,6 +43,12 @@ import { TimerContext, type TimerApi } from "./timer";
 
 const LOCAL_SESSIONS_KEY = "sessions";
 const MAX_LOCAL_SESSIONS = 500;
+/* The vanilla dispatches this after every local write (js/timer.js:463) so
+ * the dashboard's session log and "today" total repaint live even though the
+ * timer that logged them can be running on a different route — MiniTimer
+ * keeps ticking app-wide. A `storage` event won't do it: that only fires in
+ * *other* tabs, never the one that made the write. */
+export const SESSION_LOGGED_EVENT = "learnora:sessionLogged";
 
 interface LocalSession {
   id: number;
@@ -94,6 +100,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           task,
         });
         Storage.set(LOCAL_SESSIONS_KEY, sessions.slice(0, MAX_LOCAL_SESSIONS));
+        window.dispatchEvent(new Event(SESSION_LOGGED_EVENT));
 
         logSession.mutate(
           { minutes, task, folderId, timerType: state.type },
