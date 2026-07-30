@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 285/285 passing
-- **Last verified:** 2026-07-29 (Step 9 — tests green, `npm run build` green, `npm run lint` clean, browser-verified)
+- **Tests:** `npm --prefix webapp run test` — expect 375/375 passing
+- **Last verified:** 2026-07-30 (Step 10 — tests green, `npm run build` green, `npm run lint` clean, browser-verified)
 
 ---
 
@@ -23,7 +23,7 @@ session, or agent can resume without any conversation history.
 | 7 | Settings (first cutover — lowest external dependency, all 6 tabs) | Views | ✅ |
 | 8 | Tasks (+ dashboard quick-add widget) | Views | ✅ |
 | 9 | Exams (calendar + ExamModal + DayDetailModal) | Views | ✅ |
-| 10 | Timer | Views | ☐ |
+| 10 | Timer | Views | ✅ |
 | 11 | Library shell (4 tabs) + Subject detail page | Views | ☐ |
 | 12 | Dashboard (aggregates Tasks/Exams/Timer/Library data) | Views | ☐ |
 | 13 | Notes editor (Quill wrapper) | Views | ☐ |
@@ -510,6 +510,74 @@ hangs, not a target.
 vanilla app is hash-routed, so no path rewrite can intercept `#todo` or
 `#exams` either. `index.html` and `js/*` remain untouched.
 
+### Step 10 — Timer (2026-07-30)
+
+Ports all 745 lines of `js/timer.js` plus its wiring (js/main.js:1177-1290) and
+markup (index.html:596-846, :2278-2310). Split three ways:
+
+- **`lib/timer.ts`** — the state machine as pure functions, with every DOM
+  write lifted out. The vanilla mutated one shared `state` object in place and
+  repainted by hand, which is why its subtlest rules had no coverage; here each
+  transition returns the next state plus its *effects* as data (`logMinutes`,
+  `toast`, `notify`, `newQuote`), so "what counts as a loggable session" is
+  testable without a clock or a document.
+- **`context/TimerProvider.tsx`** — owns the one live interval, persistence and
+  effect execution. Mounted above the router: a running timer has to survive
+  navigating away from /timer.
+- **`views/timer/`** — `TimerView` and `MiniTimer`, which are now only screens.
+
+Both clock directions are preserved exactly. Count-down is anchored to
+`targetEndTime` and recomputed from the wall clock on every tick, so a
+throttled background tab catches up instead of drifting; count-up is
+`startedAt` + `countUpBase`, so elapsed time survives a pause and a reload. A
+count-down that expires while the tab is closed is still logged and toasted on
+the next load. All four types, all four modes, staging, `+5 min`, flowtime's
+proportional break, favourite presets (including the legacy flat fields the
+vanilla writes, so presets round-trip between the two apps) and the
+motivational quotes all came across.
+
+**The three vanilla bugs its own comments describe are preserved as behaviour
+and pinned by tests** — they were fixed in the vanilla and it would be easy to
+silently undo them in a rewrite: `flushCountUpSession` runs *before* any type
+switch (otherwise a stopwatch looks like a countdown and banked minutes vanish);
+it clears the counters unconditionally (otherwise a type switch reads a
+pomodoro's stale `elapsed` as a fresh stopwatch session and logs time nobody
+spent); and `isRunning` is set before the elapsed read on restore (otherwise the
+display shows the pre-reload time until the first tick).
+
+**One accuracy fix.** `pause()` now recomputes `timeLeft` from the end anchor
+instead of trusting whatever the last tick left behind. The vanilla's version
+rounded up to a second of free time on every pause, and a pause during a
+throttled background tab could bank a value many seconds stale.
+
+**Session logging keeps the vanilla's ordering deliberately**: localStorage
+first and synchronously, then a best-effort Supabase write whose failure is
+warned and swallowed. Local history is the source of truth for instant UI, so a
+flaky connection never loses a logged session — there's a test for exactly that.
+
+**Testing: 90 new tests (375 total).** 64 on the state machine — every type and
+phase transition, both clock directions, the flush rules above, persistence
+round-trips including "expired while away", and the legacy preset format — and
+26 on the views: the type panels, staging vs applying, both confirmation
+dialogs, Stop & log, the preset lifecycle, restore-across-reload, task
+attribution, and the mini-timer's docking rules.
+
+**One test-infrastructure change:** `TimerProvider` is opt-in in
+`test/render.tsx` (`withTimer: true`) rather than part of the default stack. It
+restores and re-persists localStorage-backed state on every mount and owns an
+interval; including it unconditionally made the whole suite roughly eight times
+slower for the benefit of the ~25 tests that need it. That's the same reasoning
+`AuthProvider` is already excluded for.
+
+**Browser-verified.** Started a pomodoro, confirmed it ticks, then switched type
+mid-run: the segmented control and config panel moved to Countdown and the hint
+appeared, while the pomodoro kept running at 24:51 in Focus — the vanilla's
+non-destructive staging, intact. Navigating to /exams docked the mini-timer
+bottom-left, still counting, with its pulsing accent dot. Console clean.
+
+**Cutover still not performed** — same hash-routing reason as Steps 7-9.
+`index.html` and `js/*` remain untouched.
+
 ---
 
 ## Known loose ends
@@ -551,6 +619,19 @@ the port)
 - The Tasks list has no pagination or virtualisation, matching the vanilla — the
   whole table is fetched and rendered. Fine at a student's task count; worth
   revisiting only if someone turns up with thousands.
+- **The dashboard's Focus-Session quick-starts are not wired up** (js/main.js:
+  1252-1276). `TimerProvider` exposes `startPreset()` for exactly that, and the
+  Tasks widget is already built, but the dashboard itself is step 12 — so the
+  entry point lands there.
+- **`vite.config.ts` raises `testTimeout` to 20s** (Step 9). Several
+  pre-existing tests sit near 600ms on an idle machine and the 5s default was
+  failing them under parallel load. It's a ceiling for hangs, not a target; if
+  a test ever approaches it, that's a bug worth looking at rather than a
+  reason to raise it again.
+- The timer's "task" binding logs the task's *text*, not its id — carried over
+  from the vanilla, which read `#active-task-select`'s value. Renaming a task
+  therefore orphans the attribution on past sessions. Worth switching to the
+  id whenever someone touches the study_sessions schema.
 - `webapp/public/favicon.svg` is still the Vite template favicon; swap for Learnora
   branding whenever convenient (cosmetic only).
 - **CSP for the React app is not set yet.** The vanilla app ships a strict policy as

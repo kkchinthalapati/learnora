@@ -10,6 +10,8 @@ function renderAt(path: string) {
       <AppRoutes />
     </MemoryRouter>,
     { session: fakeSession() },
+    /* /timer renders TimerView, which reads the timer context. */
+    { withTimer: true },
   );
 }
 

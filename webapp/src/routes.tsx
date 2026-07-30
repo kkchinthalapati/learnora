@@ -4,6 +4,7 @@ import { SignInRequired } from "./components/SignInRequired";
 import { SettingsView } from "./views/settings/SettingsView";
 import { TasksView } from "./views/tasks/TasksView";
 import { ExamsView } from "./views/exams/ExamsView";
+import { TimerView } from "./views/timer/TimerView";
 
 /*
  * Route table mirroring the vanilla app's hash router (js/router.js):
@@ -31,7 +32,7 @@ export function AppRoutes() {
         <Route path="/" element={<Placeholder title="Dashboard" />} />
         <Route path="/tasks" element={<TasksView />} />
         <Route path="/exams" element={<ExamsView />} />
-        <Route path="/timer" element={<Placeholder title="Timer" />} />
+        <Route path="/timer" element={<TimerView />} />
         <Route path="/library" element={<Placeholder title="Library" />} />
         <Route path="/library/:tab" element={<Placeholder title="Library" />} />
         <Route
