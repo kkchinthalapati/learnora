@@ -34,8 +34,6 @@ describe("route skeleton", () => {
     ["/library", "Library"],
     ["/library/notes", "Library"],
     ["/plan", "This week's plan"],
-    ["/quiz/q-1", "Quiz"],
-    ["/quiz/q-1/review", "Quiz Review"],
     ["/review/d-1", "Flashcard Review"],
     ["/settings", "Settings"],
   ])("%s renders the %s view for a signed-in user", (path, heading) => {
@@ -82,6 +80,27 @@ describe("route skeleton", () => {
     await waitFor(() =>
       expect(screen.getByText("Cell division")).toBeInTheDocument(),
     );
+  });
+
+  /* Both quiz routes load before they can title themselves, so they get their
+     own async cases too. The default handlers return no rows, which is the
+     "quiz was deleted" path — enough to prove the route resolves. */
+  it("/quiz/:quizId renders the quiz runner", async () => {
+    mockAuthSession("user-1");
+    renderAt("/quiz/q-1");
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Quiz not found." }),
+    ).toBeInTheDocument();
+  });
+
+  it("/quiz/:quizId/review renders the quiz review", async () => {
+    mockAuthSession("user-1");
+    renderAt("/quiz/q-1/review");
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Quiz not found." }),
+    ).toBeInTheDocument();
   });
 
   it("unknown paths fall through to Not found", () => {

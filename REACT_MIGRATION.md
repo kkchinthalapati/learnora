@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 570/570 passing
-- **Last verified:** 2026-07-30 (Step 15 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
+- **Tests:** `npm --prefix webapp run test` — expect 617/617 passing
+- **Last verified:** 2026-07-30 (Step 16 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -29,7 +29,7 @@ session, or agent can resume without any conversation history.
 | 13 | Notes editor (Quill wrapper) | Views | ✅ |
 | 14 | AI layer port (streaming calls, `renderMarkdown`, action-tag parser) | Foundation | ✅ |
 | 15 | Weekly Plan | Views | ✅ |
-| 16 | Quiz runner + review | Views | ☐ |
+| 16 | Quiz runner + review | Views | ✅ |
 | 17 | Turbo chat + dashboard command bar | Views | ☐ |
 | 18 | Flashcard Review (SRS flip-card, most complex) | Views | ☐ |
 
@@ -975,6 +975,83 @@ is its offline pause — nothing to do with the view. Seeding the cache through
 **Cutover still not performed**, same hash-routing reason as every prior
 step. `index.html` and `js/*` remain untouched.
 
+### Step 16 — Quiz runner + review (2026-07-30)
+
+`/quiz/:quizId` and `/quiz/:quizId/review`, porting `js/router.js`'s
+`startQuiz` (:827-945) and `reviewQuiz` (:948-1044) plus the host bubble
+markup at index.html:920-926. New files under `webapp/src/views/quiz/`:
+`QuizRunner`, `QuizReview`, `QuizHost` and `quizMeta.ts`.
+
+**No AI in this step.** Taking a quiz and reading back an attempt are plain
+reads and one insert; generation is the Create pipeline's job (out of scope,
+see loose ends) and the chat's `<ADD_QUIZ>` tag, which is step 17. Nothing
+here calls the model.
+
+**Both JSON columns are narrowed at the boundary** (`quizMeta.ts`).
+`questions_json` is model output and `answers_json` is whatever the runner
+wrote at the time; `lib/aiJson.ts` validates questions on the way *in* from
+the model, but rows already in the database predate that check. The rule
+that matters: a question whose `correctIndex` is out of range is **dropped**,
+because the runner grades with `i === correctIndex` and such a question marks
+every option — including the right one — wrong, with nothing said anywhere.
+A quiz left with no usable questions says so instead of rendering
+"Question 1 of 0".
+
+One subtlety worth keeping: `correctIndex` is coerced from a numeric string
+(it grades fine once read as a number) but `Number()` is **not** applied
+blindly — `Number(null)` and `Number("")` are both `0`, which would silently
+declare the first choice correct on a row that never named one. There's a
+test for each.
+
+**The runner is state, not string-building.** The vanilla rebuilt
+`#quiz-content` per question with `innerHTML` and re-bound a listener per
+choice, `esc()`-ing every field on the way in; here the question is state and
+JSX escapes by construction, so the re-render/re-bind cycle and every `esc()`
+call disappear rather than being translated.
+
+**The attempt is written exactly once**, from an effect keyed on the
+transition into "finished" rather than during render, and fire-and-forget:
+the student has already finished, so the completion screen never waits on the
+network — but a failure is surfaced, because weak-topic tracking silently
+stops working otherwise. There's a test asserting exactly one POST and
+another asserting the score still shows when the write fails.
+
+**Two accessibility fixes over the vanilla.** The host bubble is a live
+region — `role="alert"` for a wrong answer, `"status"` otherwise, matching
+how `ToastProvider` already splits the two — so a verdict is announced rather
+than only being a colour change. And the vanilla replayed its `pop-in` class
+by removing it on a 300ms timer; here the bubble is keyed on its message, so
+React remounts it and the animation restarts by definition, with no timer to
+leak. Both the pop-in and the wrong-answer shake are dropped under
+`prefers-reduced-motion`.
+
+The review screen keeps the vanilla's deliberate call to *not* replay the
+in-quiz pop and shake down a list of past answers (style.css:1108-1117) —
+colours kept, motion dropped.
+
+**Testing: 47 new tests (617 total).** 22 on `quizMeta` (every rejection
+rule, the coercion rules above, id-vs-position answer matching, weak-topic
+dedup), 15 on the runner (welcome, per-question feedback and its
+Correct!/Incorrect. fallback, the alert-vs-status split, choices locking after
+one pick, the last question's button wording, scoring, the recorded payload,
+exactly-one-write, the save-failure path, and the three unusable-data
+branches), and 14 on the review (verdicts, the three choice tags and the
+untagged case, position matching when ids are absent, "Not answered", the
+no-attempt state, and the scoped attempt query).
+
+**Browser-verified end to end.** Answered right (green highlight, success
+ring on the host avatar, the question's own feedback), then wrong on the last
+question (red highlight on the pick, green on the right answer, "Incorrect."),
+then through to the completion screen: "1 / 2 correct", "Topics to review:
+Genetics". The stubbed session cannot write to Supabase, which incidentally
+exercised the save-failure path for real — the score stayed on screen and the
+toast appeared. The review screen then showed both questions with
+"Your answer · correct", "Correct answer" and "Your answer" on the right
+rows. Console clean.
+
+**Cutover still not performed**, same hash-routing reason as every prior
+step. `index.html` and `js/*` remain untouched.
+
 ---
 
 ## Known loose ends
@@ -991,6 +1068,13 @@ the port)
   of steps 15-17 depend on it. Until it lands, `MaterialPanel`'s submit keeps
   the Step 6 stub message, which still names step 14; whoever ports the
   pipeline should update that string too.
+- **The docked mini-timer can sit on top of a view's bottom-left controls.**
+  Seen on the quiz completion and review screens, where "Retake quiz" is
+  partly behind it while a timer runs. This is inherited, not new: the
+  vanilla's `#mini-timer` is `position: fixed; bottom/left` with `z-index:
+  985` (style.css:848-853) and the vanilla quiz screen put its buttons in the
+  same place. Worth solving once, app-wide (a bottom-left safe area, or
+  docking away from the pointer), rather than per view.
 - **The AI edge function's CORS allow-list does not include the Vite dev
   server.** `DEFAULT_ALLOWED_ORIGINS` in
   `supabase/functions/learnora-ai/index.ts` lists `http://localhost:3000` (the
