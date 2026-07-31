@@ -37,6 +37,9 @@ export interface ActionHandlers {
   /** Fire-and-forget: the chat must not block on a 30-second generation. */
   generateQuiz: (topic: string) => void;
   generatePlan: () => void;
+  /** Scores whichever flashcard is currently on screen in the review view.
+   *  A no-op when no review session is mounted to grade. */
+  gradeFlashcard: (score: number) => void;
 }
 
 interface TagMatch {
@@ -169,11 +172,16 @@ async function runTag(
     }
 
     case "GRADE_FLASHCARD": {
-      /* Parsed so the tag never survives into the visible reply, but not
-         executed: the vanilla clicked the review screen's score buttons, and
-         there is no React flashcard review until ledger step 18. Rendering
-         nothing matches the vanilla's own behaviour when the click target was
-         missing. */
+      /* The vanilla's own tag-replace pass swapped this block for '' whether
+         or not a score button existed to click (js/router.js:1130-1139) — it
+         never rendered a confirmation, unlike every other executed tag. That
+         behaviour is kept exactly: only the side effect is new. A malformed
+         or out-of-range score, or a repeat, simply grades nothing — matching
+         "the click target was missing". */
+      const score = Number.parseInt(payload, 10);
+      if (!ctx.isRepeat && score >= 1 && score <= 4) {
+        handlers.gradeFlashcard(score);
+      }
       return null;
     }
 

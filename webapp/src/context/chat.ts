@@ -68,6 +68,13 @@ export interface ChatApi {
   send: (query: string) => Promise<void>;
   attachFile: (file: File) => void;
   clearFile: () => void;
+
+  /** The review view registers whichever card is on screen, so a
+   *  `<GRADE_FLASHCARD>` tag executed from anywhere (the panel, the review
+   *  screen's own "AI grade" box) can score it. `null` unregisters — a chat
+   *  reply that arrives after the student has left the review view grades
+   *  nothing, matching the vanilla's "click target missing" behaviour. */
+  registerFlashcardGrader: (grader: ((score: number) => void) | null) => void;
 }
 
 export const ChatContext = createContext<ChatApi | null>(null);

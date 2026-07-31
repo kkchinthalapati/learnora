@@ -39,7 +39,6 @@ describe("route skeleton", () => {
     ["/library", "Library"],
     ["/library/notes", "Library"],
     ["/plan", "This week's plan"],
-    ["/review/d-1", "Flashcard Review"],
     ["/settings", "Settings"],
   ])("%s renders the %s view for a signed-in user", (path, heading) => {
     renderAt(path);
@@ -105,6 +104,46 @@ describe("route skeleton", () => {
 
     expect(
       await screen.findByRole("heading", { level: 1, name: "Quiz not found." }),
+    ).toBeInTheDocument();
+  });
+
+  /* Same reason as the folder/notes/quiz cases above: the review screen
+     titles itself with the deck's name, only known once the deck (and its
+     cards) have loaded. */
+  it("/review/:deckId renders the flashcard review", async () => {
+    mockAuthSession("user-1");
+    server.use(
+      http.get(rest("flashcard_decks"), () =>
+        HttpResponse.json([
+          {
+            id: "d-1",
+            user_id: "user-1",
+            folder_id: null,
+            title: "Cell Biology",
+            created_at: "2026-01-01T00:00:00.000Z",
+          },
+        ]),
+      ),
+      http.get(rest("flashcards"), () =>
+        HttpResponse.json([
+          {
+            id: "c-1",
+            user_id: "user-1",
+            deck_id: "d-1",
+            front: "What is a mitochondrion?",
+            back: "The powerhouse of the cell.",
+            next_review_date: null,
+            srs_interval: 0,
+            ease_factor: 2.5,
+            created_at: "2026-01-01T00:00:00.000Z",
+          },
+        ]),
+      ),
+    );
+    renderAt("/review/d-1");
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Cell Biology" }),
     ).toBeInTheDocument();
   });
 

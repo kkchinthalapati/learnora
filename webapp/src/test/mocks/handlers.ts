@@ -81,6 +81,7 @@ export const handlers = [
 
   http.get(rest("flashcards"), () => HttpResponse.json([])),
   http.head(rest("flashcards"), () => new HttpResponse(null, { status: 200 })),
+  http.patch(rest("flashcards"), () => new HttpResponse(null, { status: 204 })),
 
   http.get(rest("quizzes"), () => HttpResponse.json([])),
   http.post(rest("quizzes"), () => new HttpResponse(null, { status: 201 })),

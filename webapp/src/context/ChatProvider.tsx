@@ -86,6 +86,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
      `AI.chatHistory`, not the widgets or the injected system context. */
   const historyRef = useRef<HistoryMessage[]>([]);
 
+  /* Whichever flashcard is currently on screen in the review view, if any.
+     A ref rather than state: registering it must never itself trigger a
+     chat re-render, and `<GRADE_FLASHCARD>` only ever needs the latest
+     value at the moment a reply executes it. */
+  const flashcardGraderRef = useRef<((score: number) => void) | null>(null);
+  const registerFlashcardGrader = useCallback(
+    (grader: ((score: number) => void) | null) => {
+      flashcardGraderRef.current = grader;
+    },
+    [],
+  );
+
   const { confirm } = useDialog();
   const { showToast } = useToast();
   const { settings } = useSettings();
@@ -207,6 +219,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                 : "Failed to generate your weekly plan. Please try again.";
             showToast(message, { error: true });
           });
+      },
+      gradeFlashcard: (score) => {
+        flashcardGraderRef.current?.(score);
       },
     }),
     [confirm, navigate, qc, setTheme, settings, showToast, startPreset],
@@ -363,6 +378,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       send,
       attachFile,
       clearFile,
+      registerFlashcardGrader,
     }),
     [
       messages,
@@ -379,6 +395,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       send,
       attachFile,
       clearFile,
+      registerFlashcardGrader,
     ],
   );
 

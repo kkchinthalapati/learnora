@@ -16,6 +16,7 @@ function handlers(overrides: Partial<ActionHandlers> = {}): ActionHandlers {
     navigate: vi.fn().mockReturnValue(true),
     generateQuiz: vi.fn(),
     generatePlan: vi.fn(),
+    gradeFlashcard: vi.fn(),
     ...overrides,
   };
 }
@@ -178,16 +179,42 @@ describe("executeActions", () => {
     });
   });
 
-  /* Parsed so the tag never survives into the visible reply, but not executed:
-     the vanilla clicked the review screen's score buttons and there is no
-     React flashcard review until step 18. */
-  it("swallows GRADE_FLASHCARD without executing or rendering it", async () => {
-    const parts = await executeActions(
-      "Nice work <GRADE_FLASHCARD>3</GRADE_FLASHCARD> keep going",
-      handlers(),
-    );
-    expect(widgets(parts)).toHaveLength(0);
-    expect(text(parts)).toBe("Nice work  keep going");
+  describe("GRADE_FLASHCARD", () => {
+    /* Matches the vanilla exactly: this tag never rendered a confirmation,
+       success or failure — only the side effect (which score button gets
+       clicked) is new behaviour as of ledger step 18. */
+    it("grades the current card without rendering anything", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "Nice work <GRADE_FLASHCARD>3</GRADE_FLASHCARD> keep going",
+        h,
+      );
+      expect(h.gradeFlashcard).toHaveBeenCalledWith(3);
+      expect(widgets(parts)).toHaveLength(0);
+      expect(text(parts)).toBe("Nice work  keep going");
+    });
+
+    it("ignores a score outside 1-4", async () => {
+      const h = handlers();
+      await executeActions("<GRADE_FLASHCARD>9</GRADE_FLASHCARD>", h);
+      expect(h.gradeFlashcard).not.toHaveBeenCalled();
+    });
+
+    it("ignores a non-numeric score", async () => {
+      const h = handlers();
+      await executeActions("<GRADE_FLASHCARD>great</GRADE_FLASHCARD>", h);
+      expect(h.gradeFlashcard).not.toHaveBeenCalled();
+    });
+
+    it("grades only the first of two repeated tags", async () => {
+      const h = handlers();
+      await executeActions(
+        "<GRADE_FLASHCARD>2</GRADE_FLASHCARD> and <GRADE_FLASHCARD>4</GRADE_FLASHCARD>",
+        h,
+      );
+      expect(h.gradeFlashcard).toHaveBeenCalledTimes(1);
+      expect(h.gradeFlashcard).toHaveBeenCalledWith(2);
+    });
   });
 
   describe("ADD_QUIZ", () => {

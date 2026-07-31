@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 691/691 passing
-- **Last verified:** 2026-07-30 (Step 17 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
+- **Tests:** `npm --prefix webapp run test` — expect 718/718 passing
+- **Last verified:** 2026-07-31 (Step 18 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -31,7 +31,7 @@ session, or agent can resume without any conversation history.
 | 15 | Weekly Plan | Views | ✅ |
 | 16 | Quiz runner + review | Views | ✅ |
 | 17 | Turbo chat + dashboard command bar | Views | ✅ |
-| 18 | Flashcard Review (SRS flip-card, most complex) | Views | ☐ |
+| 18 | Flashcard Review (SRS flip-card, most complex) | Views | ✅ |
 
 ---
 
@@ -1177,6 +1177,96 @@ Console clean.
 **Cutover still not performed**, same hash-routing reason as every prior
 step. `index.html` and `js/*` remain untouched.
 
+### Step 18 — Flashcard Review, SRS flip-card (2026-07-31)
+
+The last view on the ledger. Ports `startReview` (js/router.js:640-792) and
+the markup at index.html:1873-1909 into `webapp/src/views/review/`:
+`ReviewView` (resolves the deck and its due cards; splits into `ReviewSession`
+once there's a real list to run) and `srs.ts` (the SM-2 approximation and the
+due-date filter as pure functions, matching the precedent `lib/timer.ts` and
+`quiz/quizMeta.ts` already set). `Button` gained a `success` variant for
+"Easy" — the same reasoning Step 7 gave for adding `warning`: the vanilla's
+exact four grading colours (danger/warning/primary/success) are a settled UX
+choice, not a redesign. 27 new tests (718 total): 10 on `srs.ts`, 14 on
+`ReviewView`, and 3 replacing/extending `chatActions.test.ts`'s
+`GRADE_FLASHCARD` case (below).
+
+**The session snapshots its due-card list on mount and never resyncs it.**
+Grading a card invalidates `useFlashcardsByDeck`'s query (`useUpdateFlashcardReview`,
+Step 5), which refetches in the background — and that refetch's response is
+exactly the due list shrinking by the card just graded. Reading `cards`
+straight from the query on every render, the first cut of this step, let a
+refetch landing mid-session shrink the array while `index` stayed put, making
+`index >= cards.length` true a card early and ending the review before every
+due card had been seen. `useState(initialCards)`'s lazy-initializer-by-omission
+(the prop is only ever read on mount) fixes it; there's a regression test that
+forces the refetch to actually land before asserting the session didn't skip
+a card, and reverting the fix to confirm the test catches it was part of
+writing it.
+
+**`<GRADE_FLASHCARD>` is wired for real, closing the loose end Step 17 named.**
+The manual score buttons and the AI-grading box both funnel into one
+`scoreCard(quality)`; `ChatProvider` gained a `registerFlashcardGrader` ref
+(analogous to `TimerProvider`'s app-wide state, but page-scoped: the review
+session registers itself on mount and unregisters on unmount) so a
+`<GRADE_FLASHCARD>` tag executed from *anywhere* — the AI-grading box's own
+`send()` call, or in principle the floating Turbo panel — can score whichever
+card is on screen. `chatActions.ts`'s case matches the vanilla exactly:
+that tag never rendered a confirmation, success or failure, only the *side
+effect* (which score button gets clicked) is new; a malformed score, one
+outside 1-4, or a repeat, grades nothing, same as "the click target was
+missing." The registration re-arms every card change the same way the
+vanilla's `bindScore` closures read `cards[currentIndex]` fresh on every click
+rather than the card that was current when first bound.
+
+**One vanilla bug found and fixed: the deck was never named.**
+`#review-deck-title` (index.html:1877) is static markup nothing in
+`js/router.js` ever assigns to — same class of bug Step 11 found for a
+subject's workspace title. The screen now shows the real deck title,
+sourced the same way `SubjectDetailPage` finds its folder: `useAllDecks()`,
+found by id, no new endpoint needed.
+
+**Grading advances immediately; the write is fire-and-forget with a toast on
+failure** — the same call Steps 8 and 16 already made for task toggles and
+quiz-attempt writes, not the vanilla's blocking `await`. There's a test that
+fails the PATCH and asserts the session still advances to completion while an
+error toast appears, rather than the review stalling on a flaky connection.
+
+**The flip card is a real `<button>`**, not a `div` with an `onclick` and no
+keyboard equivalent — `aria-pressed` carries the flipped state and the label
+stays constant ("Flip card to see the answer") rather than describing the
+state in prose, the standard toggle-button pattern. Both faces are always in
+the DOM (`backface-visibility: hidden` hides whichever one is turned away),
+exactly mirroring the vanilla's structure; only the imperative
+`container.style.transform` write becomes a derived inline style off
+`flipped` state. Card text renders through `white-space: pre-wrap` instead of
+the vanilla's `esc(text).replace(/\n/g, '<br/>')` — no `dangerouslySetInnerHTML`
+anywhere in this app, per Step 3's decision, and a text node escapes by
+construction.
+
+**Browser-verified** (Playwright driving a real Chromium against the dev
+server — no project skill for this existed yet, so this session drove it
+directly: a stubbed `sb-<ref>-auth-token` in localStorage plus routed REST/
+edge-function responses, per the recipe under "Loose ends"). Flip, all four
+grade buttons' colours, two-card progression, the completion screen, the
+all-caught-up and deck-not-found empty states, and the AI-grading path all
+the way through a real `callEdge` request containing the crafted grading
+prompt to a `<GRADE_FLASHCARD>` reply actually advancing the session — all
+console-clean.
+
+**One gap kept, not fixed: AI grading has no timeout.** If the model's reply
+omits a valid `<GRADE_FLASHCARD>` tag (ignored the instruction, or the
+request failed) the "AI is grading..." status has nothing to clear it until
+the student grades manually. The vanilla had the exact same gap — its own
+`aiFeedback` element was set to a loading string once and nothing ever
+replaced it with the model's real one-sentence feedback either. Adding a
+timeout would be new behaviour beyond the port; left as a loose end below.
+
+**Cutover still not performed**, same hash-routing reason as every prior
+step. `index.html` and `js/*` remain untouched. This is also the last view on
+the ledger — every remaining ☐ is the cutover mechanism itself (see the
+`vercel.json` loose end), not a view port.
+
 ---
 
 ## Known loose ends
@@ -1206,10 +1296,15 @@ the port)
   is its own piece of work. The Turbo chat is context-aware on
   `/notes/:materialId` — it reads the note and tutors on it — so the capability
   exists, just not docked beside the editor.
-- **`<GRADE_FLASHCARD>` is parsed but never executed** until step 18 builds
-  the flashcard review screen. Whoever lands that step should wire it into
-  `ChatProvider`'s handlers and drop the `return null` in
-  `lib/chatActions.ts`.
+- ~~**`<GRADE_FLASHCARD>` is parsed but never executed**~~ Closed in Step 18:
+  `ChatProvider` gained `registerFlashcardGrader`, and the review screen
+  registers whichever card is on screen.
+- **AI-grading has no timeout** (Step 18). If a model reply never contains a
+  valid `<GRADE_FLASHCARD>` tag, the review screen's "AI is grading..."
+  status has nothing to clear it short of the student grading manually —
+  the vanilla had the same gap (js/router.js:718-719 set a loading string
+  once and nothing ever replaced it). Worth a timeout if it turns out to
+  bite in practice.
 - **The AI edge function's CORS allow-list does not include the Vite dev
   server.** `DEFAULT_ALLOWED_ORIGINS` in
   `supabase/functions/learnora-ai/index.ts` lists `http://localhost:3000` (the
@@ -1220,11 +1315,19 @@ the port)
   needs to exercise a live generation locally. The test suite intercepts the
   call at the network layer (MSW) and is unaffected.
 
-- **Steps 11, 12 and 13's browser passes are all owed** (see those
-  sections) — no browser driver is available in this environment. Everything
-  else about all three steps is verified; only the real-browser look at the
-  Library's four tabs, a subject workspace, the dashboard's seven cards, and
-  the Quill editor's toolbar/pickers is outstanding.
+- **Steps 11, 12 and 13's browser passes are still owed** (see those
+  sections) — at the time, no browser driver was available in *those*
+  sessions. Step 18 found that Playwright's Chromium (`npx playwright`) is
+  actually installed in this environment (`C:\Users\<user>\AppData\Local\
+  ms-playwright`) and used it directly (no `chromium-cli`, so a small script
+  driving `{ chromium }` from the `playwright` package, per the `run` skill's
+  fallback guidance) — see Step 18's own browser-verification recipe below.
+  Whoever picks this up next should use the same approach rather than
+  re-declaring it impossible: stub `sb-<ref>-auth-token` in `localStorage` via
+  `page.addInitScript`, route `**/rest/v1/**` and `**/functions/v1/**` with
+  canned JSON via `page.route`, then drive the three still-outstanding views —
+  the Library's four tabs, a subject workspace, the dashboard's seven cards,
+  and the Quill editor's toolbar/pickers.
 - **The Notes AI study sidebar is not ported** (Step 13's scoping decision —
   see that section). `NotesView` is Quill-only until Step 17 builds the chat
   surface for real; nothing to revisit before then.
@@ -1362,7 +1465,13 @@ cd webapp && npm install && npm run test    # expect N/N passing
 npm run dev                                  # localhost:5173, side-by-side with vanilla app
 ```
 
-1. Find the first ☐ in the ledger.
+1. Find the first ☐ in the ledger. As of Step 18 (2026-07-31), every row is
+   ✅ — there is no next view to port. What remains is the cutover mechanism
+   itself (see the `vercel.json` loose end: hash-routing and the `base` path
+   both need solving before any route can move off the vanilla app), the
+   still-owed browser passes for Steps 11-13, and the `createStudyPackage`
+   Create-pipeline loose end. Read "Known loose ends" in full before picking
+   a next task.
 2. If its section is not yet written below, read the corresponding entry in `.claude/plans/dapper-snacking-bumblebee.md` or the plan's Section 4.
 3. Implement, verify (see Definition of Done below), commit, tick the box, **stop**.
 
