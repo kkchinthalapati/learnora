@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 733/733 passing
-- **Last verified:** 2026-07-31 (Step 18 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
+- **Tests:** `npm --prefix webapp run test` — expect 768/768 passing
+- **Last verified:** 2026-07-31 (Steps 19-21 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, auth screens browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -32,6 +32,24 @@ session, or agent can resume without any conversation history.
 | 16 | Quiz runner + review | Views | ✅ |
 | 17 | Turbo chat + dashboard command bar | Views | ✅ |
 | 18 | Flashcard Review (SRS flip-card, most complex) | Views | ✅ |
+
+Steps 1-18 were the view-porting plan, and they are done. A workspace-wide pass
+on 2026-07-31 found that view parity was not the same as a complete migration:
+a student still could not sign in without leaving React, two auth-adjacent pages
+and the Terms page had no route, and nothing existed to serve a React route in
+production. Those are steps 19-21.
+
+| # | Step | Phase | Status |
+|---|------|-------|--------|
+| 19 | Auth wall (sign-in, sign-up, forgot password) | Views | ✅ |
+| 20 | Auth-adjacent routes: `/verify`, `/reset-password`, `/terms` | Views | ✅ |
+| 21 | Production cutover mechanism (`vercel.json`, Vite `base`, CSP) | Foundation | ✅ |
+| 22 | i18n port (`i18n.js` → a React translation layer) | Foundation | ☐ |
+| 23 | `createStudyPackage` Create-pipeline | Views | ☐ |
+| 24 | Notes AI study sidebar | Views | ☐ |
+
+Steps 22-24 are the remaining known-scoped work. Everything else outstanding is
+in "Known loose ends".
 
 ---
 
@@ -77,6 +95,12 @@ session, or agent can resume without any conversation history.
 12. **Cutover mechanism: same-domain path-prefix Vercel rewrites.** One rewrite rule added
     per completed step, vanilla route deleted in the same commit. Both apps share the same
     Supabase project + client-side session storage (`persistSession: true`).
+
+    **Amended in Step 21.** The React app is served from the `/app` prefix, and
+    cutting a route over is a **redirect the vanilla app issues** (`#settings` →
+    `/app/settings`), not a rewrite Vercel performs. A rewrite cannot work: the
+    vanilla is hash-routed, and a server never sees the fragment. The prefix
+    makes the two routing schemes disjoint instead of trying to interleave them.
 
 13. **Sequencing:** Foundation steps 1–6 before any view; Settings first view (lowest
     dependency); AI layer (14) before Plan/Quiz/Chat; Chat (17) before Review (18).
@@ -1276,6 +1300,132 @@ the cutover mechanism itself.
 
 ---
 
+### Step 19 — Auth wall (2026-07-31)
+
+The gap that made every other step provisional. `api/auth.ts` had shipped
+`login` / `signup` / `resetPasswordRequest` back in Step 5 and they were tested,
+but no `.tsx` called any of them: `/login` rendered `SignInRequired`, whose only
+action was a link back to the vanilla `index.html`. Decision #13 deferred auth
+past every view step and never circled back.
+
+Three routes replace what the vanilla did with one card and four stacked forms:
+`/login`, `/signup`, `/forgot-password`. Because each is a route, only one form
+is ever mounted, and the shared brand header is a prop rather than something
+`setAuthHeader` (js/main.js:455-460) has to rewrite on every toggle.
+
+Files: `views/auth/{AuthShell,LoginView,SignupView,ForgotPasswordView,
+RedirectIfSignedIn,useAuthStatus}.tsx` + `auth.module.css`. `SignInRequired` and
+its test are deleted. `components/PasswordField.tsx` is lifted out of
+`SecurityTab` and `lib/passwordStrength.ts` out of `views/settings/` — both were
+only in the settings folder because settings was the first step to need them,
+and the vanilla had four copies of that markup.
+
+Two deliberate deviations, both commented at their call sites:
+
+- **The signup poll is dropped.** The vanilla re-attempted a silent login every
+  20s, fifteen times, so the tab would let itself in once the user confirmed
+  elsewhere (js/main.js:601-632). That is fifteen real auth requests against
+  Supabase's rate limit per signup, and it existed only because the vanilla had
+  no way to hear about a session it did not create. The confirmation link now
+  lands on `/verify`, which signs the user in directly.
+- **Nothing reloads on success.** The vanilla called `window.location.reload()`
+  because the auth wall and the app shared one document. `AuthProvider` is
+  already subscribed to `onAuthStateChange`, so the session updating in place is
+  enough — which is also what makes the `state.from` return trip work, since a
+  reload would lose it.
+
+`RedirectIfSignedIn` finally consumes the `state.from` that `ProtectedRoute` has
+recorded since Step 4 (closing that loose end), and refuses to bounce back into
+an auth route. The docked mini-timer and chat panel are now gated on a live
+session in `App.tsx`: both already self-hid most of the time, but the timer's
+"a session is live" is localStorage state that outlives signing out, so a
+returning visitor could get a floating timer over the login form.
+
+Accessibility carried over rather than dropped: the status banner is
+`role="alert"` for errors and `role="status"` otherwise (the vanilla's
+`#auth-status` had no role and was never announced), the date-of-birth hint is
+tied to its field with `aria-describedby` instead of only living in a `title`,
+and the decorative marketing panel is `aria-hidden`.
+
+Tests: 22 across the three views. Browser-verified at `/app/login` and
+`/app/signup` — glass card, marketing panel, strength meter, the 1024px
+breakpoint that drops the panel, and every link correctly `/app`-prefixed.
+
+### Step 20 — `/verify`, `/reset-password`, `/terms` (2026-07-31)
+
+Three standalone pages folded into the router.
+
+`verify.html` + `verify.js` were a static page that waited three seconds and did
+`window.location.replace("index.html" + window.location.hash)`, handing the
+tokens along for *another* page's Supabase client to consume. That hop existed
+only because verify.html had no client. `VerifyView` has one:
+`detectSessionInUrl` exchanges the tokens on mount, `AuthProvider` hears the
+SIGNED_IN, and the redirect is a router navigation with no page load and no
+token re-attached to a URL.
+
+`reset-password.html` + `reset-password.js` built their own Supabase client from
+a CDN import and re-implemented the theme sync, the popup, the password toggle
+and the strength meter. All four are app infrastructure now, so `ResetPasswordView`
+is only the flow. It is deliberately *not* wrapped in `RedirectIfSignedIn`: a
+recovery link produces a real session, so that guard would bounce the user off
+the very screen the link was for.
+
+`terms.html` becomes `/terms`, copy reproduced verbatim, sitting outside
+`ProtectedRoute` — the auth screens link to it, and requiring a session to read
+the terms you are being asked to accept would be backwards.
+
+`api/auth.ts`'s email redirects now point at `/verify` and `/reset-password`
+instead of the `.html` pages, built through `import.meta.env.BASE_URL` so they
+survive the path-prefix deploy. **The vanilla's own redirects are unchanged**,
+so both apps keep working side by side.
+
+> **Action required outside this repo:** both URLs must be added to the Supabase
+> project's redirect allow-list (Authentication → URL Configuration) or Supabase
+> silently falls back to the project's Site URL. That is a dashboard setting.
+
+Tests: 13 across the three views, plus route-table coverage for the public routes.
+
+### Step 21 — Production cutover mechanism (2026-07-31)
+
+Step 7 found the original plan unworkable and it stayed unbuilt: no `vercel.json`
+existed anywhere in the repo, and `vite.config.ts` set no `base`.
+
+The routing-scheme conflict Step 7 identified is real but does not need solving —
+it needs sidestepping. The vanilla app is hash-routed, so a path rewrite can
+never intercept `#settings`; but `/app/*` and `/#settings` cannot collide
+either, because the vanilla's routes live entirely in a fragment the server never
+sees. Mounting the React app on a prefix makes the two schemes disjoint.
+**Cutting a route over therefore becomes a redirect the vanilla app issues, not a
+rewrite Vercel performs** — that is the correction to Decision #12.
+
+- `webapp/vite.config.ts` — `base: "/app/"`. Asset URLs are prefixed, and
+  `import.meta.env.BASE_URL` carries the value to runtime code building absolute
+  URLs.
+- `webapp/src/App.tsx` — `BrowserRouter basename` from `BASE_URL`, so the route
+  table stays written as `/settings`.
+- `scripts/build.sh` — assembles `dist/`: vanilla at the root, React under
+  `/app`. An explicit copy list, because `outputDirectory: "."` would publish
+  `webapp/node_modules` and `webapp/src` too. **Adding a file to the vanilla app
+  means adding it here**; the script fails loudly on a missing path rather than
+  shipping an incomplete site.
+- `vercel.json` — build/output wiring, SPA fallback for `/app/*`, and response
+  headers.
+
+The headers close the CSP loose end: the vanilla ships a strict policy as a
+`<meta>` tag, but the same tag in `webapp/index.html` would break Vite's HMR, so
+it belongs on the response. The policy mirrors the vanilla's Supabase
+`connect-src` origins, drops the `cdn.jsdelivr.net` entries the bundled build has
+no use for, and keeps `script-src` as plain `'self'` — verified against a real
+build whose `index.html` contains no inline script.
+
+> **This is not a route cutover.** No vanilla route is deleted; this only makes
+> one possible. It also cannot be verified from a workstation, because it changes
+> how the whole site is built and served. **Check a Vercel preview deployment
+> before merging**, and confirm the project has no Root Directory override that
+> would bypass `vercel.json`.
+
+---
+
 ## Known loose ends
 
 (carried forward from `REVAMP_PROGRESS.md` where relevant, plus new ones found during
@@ -1348,32 +1498,35 @@ the port)
   could seed "generate a deck/quiz from this material" — a flow that is AI-
   driven and doesn't exist until Step 14. The folder pre-selection, which does
   exist today, is passed.
-- **`SubjectDetailPage`'s two "Back to Library" links nest a `<button>`
-  inside an `<a>`** (found while building Step 13, which needed the same
-  affordance and used `Button`'s `onClick` + `navigate()` instead) — invalid
-  HTML, interactive content can't nest. One-line fix whenever Library is next
-  touched.
+- ~~**`SubjectDetailPage`'s two "Back to Library" links nest a `<button>` inside
+  an `<a>`.**~~ Closed in Step 21's cleanup. Correction to the original note:
+  only **one** did — the empty-state action. The other "Back to Library" is a
+  plain styled `<Link>` with no button inside it and was always valid.
 - Vite's react-ts template now ships **oxlint** instead of ESLint (`npm run lint`).
   Kept — it satisfies the lint requirement — but if anyone wants ESLint-specific
   plugins later (e.g. eslint-plugin-react-hooks rules beyond what oxlint covers),
   that's a separate decision.
-- **`vercel.json` still not added, and the cutover mechanism needs rethinking**
-  (found in Step 7 — see that section for the full analysis). Two blockers: the
-  vanilla app is hash-routed, so a path rewrite cannot intercept `#settings`;
-  and `webapp/dist/index.html` asks for `/assets/*`, so a path-prefix deploy
-  needs Vite's `base` set and the output placed accordingly. Wants its own PR
-  from someone who can sign in and test navigation across the two apps.
-- **i18n is not ported.** `UI.saveSettings()` called `applyTranslations()` over
-  every `[data-i18n]` node; the React app has no translation layer and none is
-  on the ledger. The Preferences tab persists `uiLanguage` (and the vanilla app
-  honours it), but the React UI stays English until someone schedules the port.
-- No React sign-in flow exists, so manual verification of any protected route
-  needs a locally stubbed session in `sb-<ref>-auth-token` (see Step 7). Worth
-  replacing with a real login the moment auth is cut over. A stub token is
-  rejected by the real Supabase, so verifying a data-backed view also needs
-  `window.fetch` patched in the page and the route remounted client-side (no
-  reload, or the patch dies) — done for Steps 8-9. A real login would replace
-  the whole dance.
+- ~~**`vercel.json` still not added, and the cutover mechanism needs
+  rethinking.**~~ Closed in Step 21. Both blockers are addressed: `base` is set,
+  and the hash-routing conflict is sidestepped by the `/app` prefix rather than
+  solved. **Still unverified in production** — see the Step 21 note about
+  checking a Vercel preview deployment before merge.
+- **i18n is not ported** — now scheduled as step 22. `UI.saveSettings()` called
+  `applyTranslations()` over every `[data-i18n]` node; the React app has no
+  translation layer. The Preferences tab persists `uiLanguage` (and the vanilla
+  app honours it), but the React UI stays English.
+
+  Sized deliberately rather than bundled into steps 19-21: this is not one
+  file's worth of work. Porting `i18n.js` (~21KB) is the small half; the large
+  half is threading a `t()` call through every string in ~40 ported components,
+  which touches nearly every file the migration has produced and would swamp any
+  diff it shared. It also wants a decision first — hand-rolled context vs.
+  `react-i18next` — which is a Decision-list item, not an implementation detail.
+- ~~**No React sign-in flow exists**, so manual verification of any protected
+  route needs a locally stubbed session in `sb-<ref>-auth-token`.~~ Closed in
+  Step 19. Manual verification of a protected route is now just signing in at
+  `/app/login` with a real account — no stub token, no `window.fetch` patch, no
+  client-side remount dance.
 - **`vi.useFakeTimers` is unusable in view tests** (found in Step 9). TanStack
   Query, MSW and userEvent all pace themselves off `Date.now()`, so a frozen
   clock hangs the query; `shouldAdvanceTime` fixes that only by burning real
@@ -1400,31 +1553,35 @@ the port)
   from the vanilla, which read `#active-task-select`'s value. Renaming a task
   therefore orphans the attribution on past sessions. Worth switching to the
   id whenever someone touches the study_sessions schema.
-- `webapp/public/favicon.svg` is still the Vite template favicon; swap for Learnora
-  branding whenever convenient (cosmetic only).
-- **CSP for the React app is not set yet.** The vanilla app ships a strict policy as
-  a `<meta>` tag in `index.html`; the same tag in `webapp/index.html` would break
-  Vite's dev server, which injects inline scripts for HMR. Set it as a response
-  header in `vercel.json` alongside the first path-prefix rewrite in Step 7 —
-  production needs `style-src 'unsafe-inline'` (React inline `style` attributes)
-  and the same Supabase `connect-src` origins the vanilla policy lists.
+- ~~`webapp/public/favicon.svg` is still the Vite template favicon.~~ Closed in
+  Step 21's cleanup — it is `learnora.jpg`, the same icon the vanilla uses in
+  `terms.html`.
+- ~~**CSP for the React app is not set yet.**~~ Closed in Step 21: it is a
+  response header in `vercel.json` scoped to `/app/(.*)`, for exactly the
+  reason predicted here (a `<meta>` tag would break Vite's HMR). It keeps
+  `style-src 'unsafe-inline'` and the vanilla's Supabase `connect-src` origins,
+  and — unlike the vanilla's — needs no `cdn.jsdelivr.net`, since the bundle is
+  self-contained. Untested in production until someone checks a preview deploy.
 - Modal enter animation is CSS; the exit animation is dropped because React
   unmounts on close (the vanilla kept the node and faded `.hidden`). Revisit only
   if the missing fade-out is noticeable in review.
-- `ProtectedRoute` records `state.from`, but nothing consumes it yet — the
-  post-sign-in return trip needs the vanilla app to hand control back, which
-  belongs to whichever step cuts auth over.
-- Sign-in, sign-up, password reset and the invite-access gate all still live in
-  the vanilla app. Step 5 ported `signInWithPassword`/`signUp`/`friendlyAuthError`
-  and friends into `api/auth.ts` + `hooks/useAuthActions.ts`, but nothing calls
-  them yet — no React view exists for login/signup/settings until Steps 6–7.
-- **`npm run format:check` reports all 67 tracked files as unformatted on a
-  Windows checkout, unrelated to any step's content.** `core.autocrlf true`
-  checks files out with CRLF while Prettier's default `endOfLine` expects LF;
-  confirmed by stashing every Step 5 change and seeing the same failure count
-  beforehand. Not fixed here — fixing it means picking a repo-wide convention
-  (`.gitattributes` forcing LF, or Prettier's `endOfLine: "auto"`) which is a
-  separate decision, not a Step 5 side effect.
+- ~~`ProtectedRoute` records `state.from`, but nothing consumes it yet.~~ Closed
+  in Step 19: `RedirectIfSignedIn` consumes it, and refuses to send a user back
+  into an auth route.
+- ~~Sign-in, sign-up and password reset all still live in the vanilla app.~~
+  Closed in Steps 19-20. **The invite-access gate is still not ported** —
+  `AuthProvider` clears `learnora_invite_access` on sign-out, but nothing in
+  React ever sets or checks it, so the gate exists only in the vanilla app.
+  Whoever cuts `/` over needs to decide whether that gate is still wanted.
+- **`npm run format:check` fails on unformatted files — but it is not only the
+  CRLF problem.** The original note (Step 5) said all tracked files fail on a
+  Windows checkout because `core.autocrlf true` writes CRLF while Prettier
+  expects LF. **On an LF (macOS) checkout it still reports 33 files**, so there
+  is a genuine backlog underneath the line-ending issue. Step 19-21's own files
+  are formatted; the other 26 are pre-existing and were left alone rather than
+  buried in an unrelated diff. Worth one dedicated `npm run format` commit, plus
+  the repo-wide line-ending decision (`.gitattributes` forcing LF, or Prettier's
+  `endOfLine: "auto"`) the original note called for.
 - `api/dataAdmin.ts`'s `exportCSV` (Blob + anchor-click download) has no test —
   it's a real-browser DOM interaction with nothing meaningful to assert on
   under jsdom. Worth a manual click-through once Settings (Step 7) puts a
@@ -1444,20 +1601,69 @@ the port)
   (`js/datepicker.js`). Functionally equivalent and fully accessible; revisit
   only if a future step needs the vanilla's exact visual calendar widget.
 
+### Found during Steps 19-21
+
+- **The Supabase redirect allow-list is not updated, and cannot be from here.**
+  `/verify` and `/reset-password` (under the `/app` prefix in production) must be
+  added in Authentication → URL Configuration. Until then Supabase falls back to
+  the Site URL and a confirmation link will not reach the React route. This is
+  the single external prerequisite for step 19-20's flows working end to end.
+- **No route has actually been cut over.** Step 21 builds the mechanism; it
+  deletes nothing. The vanilla app still owns every URL a real user visits, and
+  the React app is only reachable at `/app/*`. The first cutover — pick a route,
+  delete the vanilla's handler for it, add a redirect from the vanilla hash to
+  `/app/<route>` — is its own piece of work and should probably start with
+  Settings, as Decision #13 originally intended.
+- **The signup "check your inbox" screen is terminal by design**, and the
+  cross-tab case is untested. If a user confirms their email in a different
+  browser, the original tab will sit on that screen until they click through to
+  `/login`. supabase-js does propagate a session across tabs of the *same*
+  browser via storage events, which would move them on automatically, but that
+  path has not been exercised and no test covers it.
+- **`ResetPasswordView`'s 3-second deadline is a heuristic**, inherited from
+  `reset-password.js`. Supabase fires `PASSWORD_RECOVERY` when it exchanges the
+  token and fires nothing when the token is missing or expired, so "nothing
+  happened for 3s" is the only available signal for a bad link. On a slow
+  connection this can show "Link expired" to someone whose link was fine.
+  Reading the URL's `error` / `error_description` hash params directly would be
+  the deterministic fix.
+- **The `base: "/app/"` change does not affect the edge function's CORS
+  allow-list.** Worth stating explicitly so nobody re-derives it: a path prefix
+  is not part of an origin, so the origin to allow is still
+  `http://localhost:5173`, exactly as the existing CORS loose end says. In
+  production the origin is likewise unchanged.
+- **`webapp/src/assets/learnora.jpg` and `webapp/public/learnora.jpg` are copies
+  of the root `learnora.jpg`.** Three copies of one image: the bundled import
+  (so Vite rewrites its URL under `base`), the public copy (for the favicon,
+  which cannot be a bundled import), and the vanilla's original. Harmless at
+  62KB but worth collapsing if the vanilla app is ever retired.
+
 ---
 
 ## How to resume
 
 ```bash
-cd c:/Users/kkchi/OneDrive/Desktop/study-planner-1
 git checkout react-migration
-cd webapp && npm install && npm run test    # expect N/N passing
-npm run dev                                  # localhost:5173, side-by-side with vanilla app
+cd webapp && npm install && npm run test    # expect 768/768 passing
+npm run dev                                  # http://localhost:5173/app/ — note the /app prefix
 ```
 
-1. Find the first ☐ in the ledger.
+The dev server now serves under `/app/` because `vite.config.ts` sets
+`base: "/app/"` (Step 21). `http://localhost:5173/` will 404; the app is at
+`http://localhost:5173/app/`. Sign in for real at `/app/login` — the stubbed-token
+dance earlier steps needed is gone.
+
+1. Find the first ☐ in the ledger. As of Step 21 (2026-07-31) that is **step 22,
+   the i18n port** — read its loose-end entry first, since it needs a
+   library-vs-hand-rolled decision before any code.
 2. If its section is not yet written below, read the corresponding entry in `.claude/plans/dapper-snacking-bumblebee.md` or the plan's Section 4.
 3. Implement, verify (see Definition of Done below), commit, tick the box, **stop**.
+
+**Before any of that, if the Steps 19-21 PR has not merged:** it carries two
+things that need a human. The Supabase redirect allow-list needs `/verify` and
+`/reset-password` added (a dashboard setting), and `vercel.json` changes how the
+whole site builds and deploys, so it wants a preview deployment checked. Neither
+can be done from a workstation.
 
 ---
 
