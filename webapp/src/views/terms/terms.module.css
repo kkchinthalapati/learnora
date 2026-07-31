@@ -1,0 +1,161 @@
+/* Ported from terms.html's inline <style> block. The vanilla page carried its
+ * own copy of the layout because it loaded style.css but had no app shell;
+ * here it is a route like any other, so only the page-specific rules remain. */
+
+.page {
+  min-height: 100dvh;
+  background-color: var(--bg);
+  color: var(--text);
+  padding: 40px 20px 80px;
+}
+
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 10;
+}
+
+.header {
+  margin-bottom: 40px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border-subtle);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.backBtn:hover {
+  background: var(--surface-hover);
+  transform: translateX(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backBtn:hover {
+    transform: none;
+  }
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.brand img {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+}
+
+.title {
+  font-size: clamp(28px, 5vw, 40px);
+  margin-bottom: var(--s-2);
+}
+
+.meta {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin: 0;
+}
+
+.card {
+  display: block;
+}
+
+.tocBox {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-lg);
+  padding: var(--s-5);
+  margin-bottom: var(--s-8);
+}
+
+.tocTitle {
+  font-weight: 700;
+  margin-bottom: var(--s-3);
+}
+
+.tocList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--s-2);
+}
+
+.tocList a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: var(--fs-sm);
+}
+
+.tocList a:hover {
+  text-decoration: underline;
+}
+
+.section {
+  margin-bottom: var(--s-8);
+  /* Keeps a section's heading clear of the top edge when the table of
+     contents jumps to it. */
+  scroll-margin-top: var(--s-6);
+}
+
+.section h2 {
+  font-size: var(--fs-xl);
+  margin-bottom: var(--s-3);
+}
+
+.section p {
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin-bottom: var(--s-3);
+}
+
+.section ul {
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin: 0 0 var(--s-3);
+  padding-left: var(--s-5);
+}
+
+.section li {
+  margin-bottom: var(--s-2);
+}
+
+.section a {
+  color: var(--accent);
+}
+
+.footer {
+  margin-top: var(--s-10);
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--line);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
