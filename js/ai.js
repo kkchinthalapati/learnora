@@ -104,13 +104,15 @@ export const AI = {
         }
         
         let parsedText = fullText;
+        let refused = false;
         try {
           const parsed = JSON.parse(fullText);
           if (parsed && parsed.text) parsedText = parsed.text;
+          if (parsed && parsed.refused === true) refused = true;
         } catch (e) {}
 
         if (onChunk) onChunk(parsedText, parsedText);
-        return { text: parsedText };
+        return { text: parsedText, refused };
       } catch (err) {
         // Hitting our own deadline means the server already spent its whole
         // budget walking the provider chain. Replaying that costs another
@@ -546,6 +548,14 @@ Output the Markdown notes only. Do not add any preamble or closing commentary.`;
       mode: "notes",
       settings: UI.loadSettings(),
     }, null);
+
+    // `notes` isn't a JSON mode, so the edge function answers a safety
+    // refusal with a normal 200 response whose `text` *is* the refusal
+    // sentence (see safetyRefusalResponse in the edge function) rather than
+    // an error _callEdgeStream throws. Without this check the refusal reads
+    // as more than 50 characters and was saved straight to the database as
+    // the material's own notes, with nothing telling the student it failed.
+    if (data.refused) return null;
 
     const markdown = (data.text || "").trim();
     // A handful of characters back is a truncated or refused response, not a

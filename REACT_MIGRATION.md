@@ -1733,6 +1733,81 @@ in-flight lock. Suite: **833 passing**.
 
 ---
 
+### AI audit pass (2026-07-31)
+
+Asked explicitly to scan every AI surface for bugs and coverage gaps, same
+spirit as the residual-vanilla audit above. Read the edge function
+(`supabase/functions/learnora-ai/index.ts`) end to end alongside every
+client-side AI module — `api/ai.ts`, `api/aiPlan.ts`, `api/aiQuiz.ts`,
+`api/studyPackage.ts`, `lib/aiJson.ts`, `lib/actionTags.ts`,
+`lib/chatActions.ts`, `lib/chatPrompt.ts`, `context/ChatProvider.tsx`,
+`components/chat/*`, `lib/markdownToReact.tsx`, `views/quiz/quizMeta.ts` —
+against each other and against `js/ai.js`. One real bug found and fixed, in
+both apps; one real coverage gap found and closed.
+
+**Fixed — a safety refusal could be saved to the database as a material's
+actual notes, with no error shown anywhere.** `notes` is not a JSON mode
+(`supabase/functions/learnora-ai/index.ts`'s `JSON_MODES`), so when the
+content screen blocks a request, `safetyRefusalResponse` answers with a plain
+`200` and the refusal sentence *as* `text` — deliberately, so a refused
+*chat* reply still displays like any other answer. But `generateNotes`
+(`api/studyPackage.ts`) read that `text` as data: it trimmed the string and
+saved anything over 50 characters as the notes, with nothing checking
+whether the reply was a refusal rather than content. A student uploading
+something that tripped the screen got a material whose notes read "I can't
+help with that topic…", saved silently. `js/ai.js`'s `_generateNotes` has
+the identical bug — same shape, same root cause, ported over in Step 14
+without anyone (including this session, the first time through) noticing the
+implication.
+
+Fixed in both apps by threading the response's `refused` flag through to the
+one caller that needs it:
+- `api/ai.ts` — `EdgeResult` gained an optional `refused` field, only present
+  (and only ever `true`) when the reply is a refusal; omitted otherwise, so
+  it doesn't disturb the existing `{text}`-shaped assertions in `ai.test.ts`.
+- `api/studyPackage.ts` — `generateNotes` now throws `AiError(text, {refused:
+  true})` on that flag, before the length check, which the existing
+  stage-failure machinery already reports correctly (a `StageFailure` with
+  the real refusal text, and nothing written to `notes`).
+- `js/ai.js` — `_callEdgeStream` returns `{text, refused}` instead of
+  dropping the flag; `_generateNotes` returns `null` on `data.refused` (the
+  same "unusable reply" convention it already used for a too-short one),
+  which the existing `errors.push("notes")` path in `createStudyPackage`
+  already handles.
+
+Quiz, flashcard and plan generation were never at risk here: all three are
+JSON modes, so a refusal for them arrives as a non-2xx response and was
+already converted to a thrown, `refused: true` `AiError` — the bug was
+specific to the one non-JSON generation mode. Chat itself needed no change:
+displaying the refusal sentence as the assistant's reply *is* the correct
+behaviour there, which is exactly why the edge function answers `200` for it
+in the first place.
+
+New tests: `ai.test.ts` (the 200-refusal shape), `studyPackage.test.ts` (a
+refused notes generation saves nothing and reports the refusal verbatim).
+Confirmed all 181 vanilla `node --test` cases still pass after the `js/ai.js`
+change.
+
+**Closed — `<ADD_QUIZ>` and `<ADD_PLAN>` had no end-to-end test.**
+`lib/chatActions.test.ts` covers the tag-parsing logic against a *mocked*
+handler; nothing exercised `ChatProvider`'s real `generateQuiz`/`generatePlan`
+closures, which fire a second, differently-moded `callEdge` after the chat
+turn that emitted the tag — exactly the kind of glue code most likely to
+have a wrong invalidation key, a swapped message branch, or a bad navigation
+target with nothing to catch it. `TurboChat.test.tsx` gained 9 tests: for
+each tag, a full success (generation, toast, navigation), a decline, a safety
+refusal's own wording reaching the toast verbatim (distinct from a shape
+error's own wording, distinct again from a plain transport failure's generic
+fallback — three different branches of the same ternary, each needing its
+own case), plus one for `<NAVIGATE>`'s real `navigate()` call.
+`<GRADE_FLASHCARD>` needed no new coverage — already end-to-end tested in
+`ReviewView.test.tsx` since the post-Step-18 pass.
+
+Suite: **845 passing** (74 files). Vanilla: **181/181** (`node --test
+tests/*.test.js`).
+
+---
+
 ## Known loose ends
 
 (carried forward from `REVAMP_PROGRESS.md` where relevant, plus new ones found during
@@ -2036,7 +2111,7 @@ Tasks pagination, and Steps 11-13's real-browser verification passes still owed.
 
 ```bash
 git checkout react-migration
-cd webapp && npm install && npm run test    # expect 833/833 passing
+cd webapp && npm install && npm run test    # expect 845/845 passing
 npm run dev                                  # http://localhost:5173/app/ — note the /app prefix
 ```
 

@@ -53,6 +53,15 @@ function serveEdge(byMode: Record<string, () => Response>) {
 const text = (value: string) => () => HttpResponse.json({ text: value });
 const json = (value: unknown) => () =>
   HttpResponse.json({ text: JSON.stringify(value) });
+/* `notes` isn't a JSON mode, so the edge function answers a safety refusal
+ * with a 200 rather than a thrown error — `text` *is* the refusal sentence,
+ * flagged by `refused: true` alongside it. */
+const refusal = (message: string) => () =>
+  HttpResponse.json({
+    text: message,
+    refused: true,
+    modelUsed: "safety-filter",
+  });
 
 const NOTES_MARKDOWN =
   "## Photosynthesis\nA long enough body of notes to clear the fifty-character floor comfortably.";
@@ -276,6 +285,27 @@ describe("createStudyPackage", () => {
     // The material row still exists — it was created before the model was
     // ever asked anything, and the student can retry against it.
     expect(result.material?.id).toBe("mat-1");
+  });
+
+  /* A notes-mode reply isn't a JSON mode, so a safety refusal comes back as a
+     200 with the refusal sentence *as* `text` (see EdgeResult.refused) — the
+     one case in this pipeline where a reply is read as data rather than
+     displayed. Without the refused check, this sentence would be saved to
+     the database as the material's actual notes, with no error shown at all. */
+  it("never saves a safety refusal as the material's notes", async () => {
+    serveEdge({ notes: refusal("I can't help with that topic.") });
+
+    const result = await request();
+
+    expect(result.notes).toBeNull();
+    expect(inserted.notes).toBeUndefined();
+    expect(result.failures).toEqual([
+      {
+        stage: "notes",
+        message: "I can't help with that topic.",
+        refused: true,
+      },
+    ]);
   });
 
   /* The vanilla lost the deck here: a refusal from the quiz stage re-threw out

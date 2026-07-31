@@ -56,6 +56,16 @@ export interface EdgePayload {
 
 export interface EdgeResult {
   text: string;
+  /** Present (and true) only when `text` is a safety-filter refusal rather
+   *  than real content. A JSON-mode refusal (quiz/flashcards/plan) instead
+   *  arrives as a non-2xx response and surfaces as `AiError.refused` — this
+   *  field exists for the two modes where the edge function answers with a
+   *  200 and the refusal sentence *as* `text` (chat and notes, see
+   *  supabase/functions/learnora-ai/index.ts's `safetyRefusalResponse`). Chat
+   *  can safely ignore it, since the refusal sentence is itself a valid reply
+   *  to show; anything that treats `text` as data to save (`generateNotes`)
+   *  must check it first. */
+  refused?: boolean;
 }
 
 /** Error carrying the two flags the vanilla attached to its thrown errors, so
@@ -137,15 +147,22 @@ export async function callEdge(
 
       const fullText = await response.text();
       let text = fullText;
+      let refused = false;
       try {
-        const parsed = JSON.parse(fullText) as { text?: string };
+        const parsed = JSON.parse(fullText) as {
+          text?: string;
+          refused?: boolean;
+        };
         if (parsed && typeof parsed.text === "string") text = parsed.text;
+        if (parsed?.refused === true) refused = true;
       } catch {
         /* Not JSON — the body is already the reply text. */
       }
 
       if (onText) await onText(text);
-      return { text };
+      // Omitted rather than `false` when not refused, so a caller asserting
+      // the plain `{ text }` shape isn't broken by an always-present field.
+      return refused ? { text, refused } : { text };
     } catch (err) {
       // Hitting our own deadline means the server already spent its whole
       // budget walking the provider chain. Replaying that costs another

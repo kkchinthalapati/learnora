@@ -181,12 +181,21 @@ export async function generateNotes({
     }
   }
 
-  const { text } = await callEdge({
+  const { text, refused } = await callEdge({
     history: [{ role: "user", content: buildNotesPrompt(inlineText) }],
     file: attachment,
     mode: "notes",
     settings,
   });
+
+  /* `notes` isn't a JSON mode, so a safety refusal comes back as a 200 with
+     the refusal sentence *as* `text` rather than a thrown error (see
+     EdgeResult.refused) — the one path in this file where the reply is read
+     as data instead of being displayed. Without this check, an upload that
+     trips the content screen would silently save "I can't help with that
+     topic…" to the database as the material's notes, with nothing telling
+     the student generation had failed. */
+  if (refused) throw new AiError(text, { refused: true, retryable: false });
 
   const markdown = text.trim();
   if (markdown.length < MIN_NOTES_CHARS) throw new NotesShapeError();

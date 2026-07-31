@@ -165,6 +165,28 @@ describe("callEdge", () => {
     });
   });
 
+  /* Only quiz/flashcards/plan are JSON modes, so a safety refusal for chat or
+     notes comes back as a 200 with the refusal sentence as `text` rather than
+     a thrown error — see supabase/functions/learnora-ai's
+     `safetyRefusalResponse`. Callers that read `text` as data instead of
+     displaying it (generateNotes) need this flag to tell the two apart. */
+  it("surfaces a 200 refusal's flag alongside its text", async () => {
+    server.use(
+      http.post(EDGE_URL, () =>
+        HttpResponse.json({
+          text: "I can't help with that topic.",
+          refused: true,
+          modelUsed: "safety-filter",
+        }),
+      ),
+    );
+
+    await expect(callEdge({ history: [] })).resolves.toEqual({
+      text: "I can't help with that topic.",
+      refused: true,
+    });
+  });
+
   it("falls back to a generic message when the error body has none", async () => {
     server.use(
       http.post(EDGE_URL, () => HttpResponse.json({}, { status: 500 })),

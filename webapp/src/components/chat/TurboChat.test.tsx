@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
@@ -25,6 +25,11 @@ function OpenChatButton() {
   );
 }
 
+function LocationProbe() {
+  const { pathname } = useLocation();
+  return <p>{`path:${pathname}`}</p>;
+}
+
 function serveWorkspace() {
   server.use(
     http.get(rest("tasks"), () => HttpResponse.json([])),
@@ -36,12 +41,30 @@ function serveReply(text: string) {
   server.use(http.post(EDGE_URL, () => HttpResponse.json({ text })));
 }
 
+/** Dispatches the edge call by `mode`, for tags like `<ADD_QUIZ>`/`<ADD_PLAN>`
+ *  whose handler fires a *second*, differently-moded `callEdge` after the
+ *  chat turn that emitted the tag — a plain `serveReply` would hand the
+ *  generation call the chat reply's tag-bearing text right back. */
+function serveEdgeByMode(byMode: Record<string, () => Response>) {
+  server.use(
+    http.post(EDGE_URL, async ({ request }) => {
+      const { mode } = (await request.json()) as { mode?: string };
+      const reply = byMode[mode ?? "chat"];
+      if (!reply) {
+        throw new Error(`test forgot to stub edge mode "${mode}"`);
+      }
+      return reply();
+    }),
+  );
+}
+
 function renderChat(initialPath = "/") {
   return renderWithAuth(
     <MemoryRouter initialEntries={[initialPath]}>
       {/* ChatProvider sits inside the router, as it does in App.tsx — it
           navigates and reads the current path for context. */}
       <ChatProvider>
+        <LocationProbe />
         <Routes>
           <Route path="*" element={<OpenChatButton />} />
         </Routes>
@@ -338,6 +361,276 @@ describe("TurboChat", () => {
       expect(
         await screen.findByText("Switched theme to light"),
       ).toBeInTheDocument();
+    });
+
+    it("navigates on <NAVIGATE> and says where", async () => {
+      serveReply("Sure — <NAVIGATE>settings</NAVIGATE>");
+      renderChat();
+      await openChat();
+      await ask("take me to settings");
+
+      expect(
+        await screen.findByText("Navigated to settings"),
+      ).toBeInTheDocument();
+      expect(await screen.findByText("path:/settings")).toBeInTheDocument();
+    });
+
+    /* <ADD_QUIZ>/<ADD_PLAN> fire a *second*, differently-moded `callEdge` off
+       the handler passed to `executeActions` — real network glue that the
+       pure `chatActions.test.ts` (which mocks the handler outright) can't
+       exercise, and nothing else in the suite reaches. */
+    describe("<ADD_QUIZ>", () => {
+      it("generates the quiz once allowed, and lands on it", async () => {
+        serveEdgeByMode({
+          chat: () =>
+            HttpResponse.json({
+              text: "Sure — <ADD_QUIZ>Cell biology</ADD_QUIZ>",
+            }),
+          quiz: () =>
+            HttpResponse.json({
+              text: JSON.stringify([
+                {
+                  question: "What holds a cell's DNA?",
+                  choices: ["Nucleus", "Ribosome"],
+                  correctIndex: 0,
+                },
+              ]),
+            }),
+        });
+        server.use(
+          http.post(rest("quizzes"), () =>
+            HttpResponse.json({ id: "quiz-1", title: "Cell biology Quiz" }),
+          ),
+        );
+        renderChat();
+        await openChat();
+        await ask("quiz me on cell biology");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Quiz" }),
+        );
+
+        expect(await screen.findByText("Generating quiz:")).toBeInTheDocument();
+        expect(
+          await screen.findByText("Quiz generated successfully!"),
+        ).toBeInTheDocument();
+        await waitFor(() =>
+          expect(screen.getByText("path:/quiz/quiz-1")).toBeInTheDocument(),
+        );
+      });
+
+      it("generates nothing when declined", async () => {
+        let quizCalls = 0;
+        serveReply("Sure — <ADD_QUIZ>Cell biology</ADD_QUIZ>");
+        server.use(
+          http.post(rest("quizzes"), () => {
+            quizCalls++;
+            return HttpResponse.json({ id: "quiz-1" });
+          }),
+        );
+        renderChat();
+        await openChat();
+        await ask("quiz me on cell biology");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Cancel" }),
+        );
+
+        expect(
+          await screen.findByText("Canceled quiz generation"),
+        ).toBeInTheDocument();
+        expect(quizCalls).toBe(0);
+      });
+
+      /* A refused topic carries its own explanation, distinct from a plain
+         "try again" — the generic message must not swallow it. */
+      it("toasts the safety refusal's own wording, not a generic failure", async () => {
+        serveEdgeByMode({
+          chat: () =>
+            HttpResponse.json({
+              text: "<ADD_QUIZ>How to make a bomb</ADD_QUIZ>",
+            }),
+          quiz: () =>
+            HttpResponse.json(
+              { error: "I can't help with that topic.", refused: true },
+              { status: 422 },
+            ),
+        });
+        renderChat();
+        await openChat();
+        await ask("quiz me on that");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Quiz" }),
+        );
+
+        expect(
+          await screen.findByText("I can't help with that topic."),
+        ).toBeInTheDocument();
+      });
+
+      it("shows QuizShapeError's own wording when nothing quiz-shaped comes back", async () => {
+        serveEdgeByMode({
+          chat: () =>
+            HttpResponse.json({ text: "<ADD_QUIZ>Cell biology</ADD_QUIZ>" }),
+          quiz: () => HttpResponse.json({ text: "not JSON at all" }),
+        });
+        renderChat();
+        await openChat();
+        await ask("quiz me");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Quiz" }),
+        );
+
+        expect(
+          await screen.findByText(
+            "Couldn't generate a quiz this time. Please try again.",
+          ),
+        ).toBeInTheDocument();
+      });
+
+      /* Distinct from both the refusal and the shape-error paths above: a
+         plain transport failure carries no message worth showing verbatim,
+         so this is the one case that must fall all the way through to the
+         generic wording. A 4xx (rather than a 5xx/429) keeps this from also
+         exercising the client's own retry-with-backoff path — covered
+         separately in ai.test.ts — which would just slow this test down. */
+      it("falls back to a generic toast for a plain transport failure", async () => {
+        serveEdgeByMode({
+          chat: () =>
+            HttpResponse.json({ text: "<ADD_QUIZ>Cell biology</ADD_QUIZ>" }),
+          quiz: () =>
+            HttpResponse.json({ error: "Bad request" }, { status: 400 }),
+        });
+        renderChat();
+        await openChat();
+        await ask("quiz me");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Quiz" }),
+        );
+
+        expect(
+          await screen.findByText("Failed to generate quiz. Please try again."),
+        ).toBeInTheDocument();
+      });
+    });
+
+    describe("<ADD_PLAN>", () => {
+      it("generates the plan once allowed, and lands on it", async () => {
+        serveEdgeByMode({
+          chat: () => HttpResponse.json({ text: "<ADD_PLAN></ADD_PLAN>" }),
+          plan: () =>
+            HttpResponse.json({
+              text: JSON.stringify({
+                summary: "A balanced week",
+                days: [],
+              }),
+            }),
+        });
+        server.use(
+          http.post(rest("weekly_plans"), () =>
+            HttpResponse.json({
+              id: "plan-1",
+              week_start: "2026-08-03",
+              plan_json: { summary: "A balanced week", days: [] },
+            }),
+          ),
+        );
+        renderChat();
+        await openChat();
+        await ask("plan my week");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Plan" }),
+        );
+
+        expect(
+          await screen.findByText("Generating your weekly study plan"),
+        ).toBeInTheDocument();
+        expect(
+          await screen.findByText("Plan generated successfully!"),
+        ).toBeInTheDocument();
+        await waitFor(() =>
+          expect(screen.getByText("path:/plan")).toBeInTheDocument(),
+        );
+      });
+
+      it("generates nothing when declined", async () => {
+        let planCalls = 0;
+        serveReply("<ADD_PLAN></ADD_PLAN>");
+        server.use(
+          http.post(rest("weekly_plans"), () => {
+            planCalls++;
+            return HttpResponse.json({ id: "plan-1" });
+          }),
+        );
+        renderChat();
+        await openChat();
+        await ask("plan my week");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Cancel" }),
+        );
+
+        expect(
+          await screen.findByText("Canceled plan generation"),
+        ).toBeInTheDocument();
+        expect(planCalls).toBe(0);
+      });
+
+      it("shows PlanShapeError's own wording when nothing plan-shaped comes back", async () => {
+        serveEdgeByMode({
+          chat: () => HttpResponse.json({ text: "<ADD_PLAN></ADD_PLAN>" }),
+          plan: () => HttpResponse.json({ text: "no plan for you" }),
+        });
+        renderChat();
+        await openChat();
+        await ask("plan my week");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Plan" }),
+        );
+
+        expect(
+          await screen.findByText(
+            "Couldn't generate a plan this time. Please try again.",
+          ),
+        ).toBeInTheDocument();
+      });
+
+      /* A 4xx keeps this from also exercising the client's own retry path,
+         which would just slow the test down for no extra coverage. */
+      it("falls back to a generic toast for a plain transport failure", async () => {
+        serveEdgeByMode({
+          chat: () => HttpResponse.json({ text: "<ADD_PLAN></ADD_PLAN>" }),
+          plan: () =>
+            HttpResponse.json({ error: "Bad request" }, { status: 400 }),
+        });
+        renderChat();
+        await openChat();
+        await ask("plan my week");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Plan" }),
+        );
+
+        expect(
+          await screen.findByText(
+            "Failed to generate your weekly plan. Please try again.",
+          ),
+        ).toBeInTheDocument();
+      });
     });
   });
 
