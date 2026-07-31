@@ -58,9 +58,10 @@ describe("VerifyView", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "Link expired" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Go to sign in" }),
-    ).toHaveAttribute("href", "/login");
+    expect(screen.getByRole("link", { name: "Go to sign in" })).toHaveAttribute(
+      "href",
+      "/login",
+    );
   });
 
   it("does not call a link expired while the session is still resolving", () => {

@@ -206,7 +206,11 @@
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(120% 120% at 15% 0%, var(--accent-glow) 0%, transparent 50%),
+    radial-gradient(
+      120% 120% at 15% 0%,
+      var(--accent-glow) 0%,
+      transparent 50%
+    ),
     linear-gradient(165deg, #1b1e1c 0%, #0a0c0a 100%);
 }
 
