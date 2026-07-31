@@ -13,6 +13,24 @@ import { ChatProvider } from "./context/ChatProvider";
 import { TurboChat } from "./components/chat/TurboChat";
 import { MiniTimer } from "./views/timer/MiniTimer";
 import { AppRoutes } from "./routes";
+import { useAuth } from "./context/auth";
+
+/* The two docked overlays, kept off the signed-out routes.
+ *
+ * Both already self-hide most of the time — the mini timer only when a session
+ * is live, the chat only when it is open — but "a session is live" is timer
+ * state restored from localStorage, which outlives signing out. Without this
+ * a returning visitor could get a floating timer over the login form. */
+function SignedInOverlays() {
+  const { session } = useAuth();
+  if (!session) return null;
+  return (
+    <>
+      <MiniTimer />
+      <TurboChat />
+    </>
+  );
+}
 
 /* AppearanceProvider sits outside the router: the body attributes it writes
  * style every route, not only /settings, and it has to paint on first mount
@@ -28,7 +46,14 @@ export default function App() {
                 <AuthProvider>
                   <CreateModalProvider>
                     <TimerProvider>
-                      <BrowserRouter>
+                      {/* Mounted under whatever `base` the build used, so a
+                          route table written as "/settings" resolves to
+                          "/app/settings" in production and "/settings" in any
+                          build served from the root. BASE_URL keeps its
+                          trailing slash; basename does not want one. */}
+                      <BrowserRouter
+                        basename={import.meta.env.BASE_URL.replace(/\/$/, "")}
+                      >
                         {/* Inside the router because the chat navigates and
                             reads the current route for context, but outside
                             the route table because the panel and the
@@ -36,9 +61,8 @@ export default function App() {
                         <ChatProvider>
                           <AppRoutes />
                           {/* Docked on every route while a session is live, so
-                              it lives beside the routes rather than inside one. */}
-                          <MiniTimer />
-                          <TurboChat />
+                              they live beside the routes rather than inside one. */}
+                          <SignedInOverlays />
                         </ChatProvider>
                       </BrowserRouter>
                     </TimerProvider>

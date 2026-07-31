@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
@@ -63,6 +63,7 @@ function Section({
 
 export function SubjectDetailPage() {
   const { folderId = "" } = useParams<{ folderId: string }>();
+  const navigate = useNavigate();
   const { openCreateModal } = useCreateModal();
   const { removeMaterial, removeDeck, removeQuiz } = useLibraryActions();
 
@@ -102,9 +103,13 @@ export function SubjectDetailPage() {
           title="This folder no longer exists."
           message="It may have been deleted from another tab or device."
         >
-          <Link to="/library">
-            <Button variant="primary">Back to Library</Button>
-          </Link>
+          {/* navigate() rather than a <Link> wrapping the <Button>: a
+              <button> inside an <a> is invalid HTML — interactive content
+              cannot nest — and browsers disagree about which of the two gets
+              the click. Same approach Step 13 used for this affordance. */}
+          <Button variant="primary" onClick={() => void navigate("/library")}>
+            Back to Library
+          </Button>
         </EmptyState>
       </main>
     );

@@ -1,10 +1,18 @@
-/* Port of the settings password-strength meter (js/main.js:1053-1086).
+/* Port of the password-strength meter the vanilla app bound in four places:
+ * signup, the in-page reset form, reset-password.js's standalone page and the
+ * settings tab (js/main.js:502-540, js/main.js:1053-1086,
+ * reset-password.js:55-83). All four scored identically, so there is one
+ * function here.
  *
  * Lifted out of the component so the scoring is testable on its own — the
  * vanilla computed it inline in an input listener, which is why it was never
  * covered. Behaviour is unchanged, including the quirk that a password under
  * 8 characters is always "Too Weak" no matter how many character classes it
- * uses. */
+ * uses.
+ *
+ * Lives in lib/ rather than views/settings/ because the auth views score the
+ * same way; it was only ever in the settings folder because settings was the
+ * first step that needed it. */
 
 export type StrengthLevel = "weak" | "fair" | "good" | "strong";
 
