@@ -43,6 +43,7 @@ function renderShell(initialPath: string, fullName = "Ada Lovelace") {
 describe("AppShell", () => {
   beforeEach(() => {
     mockAuthSession("user-1");
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -191,6 +192,34 @@ describe("AppShell", () => {
     await user.click(screen.getByRole("button", { name: "Log Out" }));
 
     expect(signOut).toHaveBeenCalled();
+  });
+
+  it("flips the theme with one click, and persists only the theme (not other unsaved appearance edits)", async () => {
+    /* Doesn't assume which state "system" resolves to first (that depends
+       on jsdom's default `prefers-color-scheme`, which this suite doesn't
+       control) — only that one click flips it, persists exactly that flip,
+       and a second click flips it back. */
+    serveDueCount(0);
+    renderShell("/");
+    const user = userEvent.setup();
+    const toggle = screen.getByRole("button", { name: "Toggle Theme" });
+
+    const wasDark = document.body.classList.contains("dark-theme");
+
+    await user.click(toggle);
+
+    expect(document.body.classList.contains("dark-theme")).toBe(!wasDark);
+    expect(JSON.parse(localStorage.getItem("learnora_mode") ?? "")).toBe(
+      wasDark ? "light" : "dark",
+    );
+    // A studio-only field was never touched by this control.
+    expect(localStorage.getItem("learnora_accent")).toBeNull();
+
+    await user.click(toggle);
+    expect(document.body.classList.contains("dark-theme")).toBe(wasDark);
+    expect(JSON.parse(localStorage.getItem("learnora_mode") ?? "")).toBe(
+      wasDark ? "dark" : "light",
+    );
   });
 
   it("toggles the mobile menu open and closed from the header button", async () => {

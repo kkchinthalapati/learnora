@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 792/792 passing
-- **Last verified:** 2026-07-31 (Step 22, App Shell — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
+- **Tests:** `npm --prefix webapp run test` — expect 798/798 passing
+- **Last verified:** 2026-07-31 (residual-vanilla audit — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -46,8 +46,8 @@ production. Those are steps 19-21.
 | 21 | Production cutover mechanism (`vercel.json`, Vite `base`, CSP) | Foundation | ✅ |
 | 22 | App Shell (Sidebar + Header) — should have existed since Step 1 | Foundation | ✅ |
 | 23 | i18n port (`i18n.js` → a React translation layer) | Foundation | ☐ |
-| 23 | `createStudyPackage` Create-pipeline | Views | ☐ |
-| 24 | Notes AI study sidebar | Views | ☐ |
+| 24 | `createStudyPackage` Create-pipeline | Views | ☐ |
+| 25 | Notes AI study sidebar | Views | ☐ |
 
 Steps 22-24 are the remaining known-scoped work. Everything else outstanding is
 in "Known loose ends".
@@ -1597,6 +1597,67 @@ looked like two items were highlighted at once, which computed styles
 proved was a misreading, not a real bug); a 480px viewport with the sidebar
 off-canvas by default and the header collapsed into its mobile layout; the
 hamburger button opening the drawer. Console clean throughout.
+
+---
+
+### Residual-vanilla audit and fixes (2026-07-31)
+
+Asked explicitly, in the same spirit as the Step 22 discovery: read the
+vanilla source directly again, rather than trusting this ledger, to find
+anything else with no React equivalent. Two real, previously-untracked
+findings closed; two more found and deliberately left alone, documented
+below rather than silently dropped. 9 new tests (798 total).
+
+**Closed — the header's quick theme toggle** (`#theme-toggle`,
+js/main.js:725 → `UI.toggleTheme`, js/ui.js:698-704). Distinct from the
+Settings→Appearance studio a few clicks away: one click, flips light/dark,
+persists instantly. `Header.tsx` now has it, reusing `useAppearance()` and
+`resolveDark()` from the Step 7/Step 22 appearance engine rather than
+building a second one. Deliberately does **not** call the provider's own
+`save()` — that persists every appearance field (accent, sidebar style,
+custom colours, …), and the vanilla's version only ever touched the two
+theme keys directly. Calling the broad `save()` here would silently commit
+whatever a student was still auditioning in the Settings studio the moment
+they used this unrelated shortcut, breaking the two-tier "audition without
+keeping it" contract Step 7 established. `lib/inviteAccess.ts` — see below —
+set the precedent for keeping component files fast-refresh-clean by moving
+a plain function out; this one didn't need its own module since
+`resolveDark`/`THEME_KEY` already live in `lib/appearance.ts`.
+
+**Closed — the pre-launch invite-access gate** (`js/main.js:61-63`): the
+single check that runs before anything else in the vanilla, including its
+own login form, redirecting to `coming-soon.html` unless
+`learnora_invite_access` is set in `localStorage`. This app had no
+equivalent *at all* — and unlike the other gaps found this session, this
+one wasn't just an omission still waiting for its turn: since Step 21
+merged, `vercel.json` already serves this app at `/app/*` in production,
+so `/app/signup` was a real, live, working bypass of even that (deliberately
+weak, client-side-only) wall. `components/InviteGate.tsx` +
+`lib/inviteAccess.ts` port the same check, mounted in `main.tsx` wrapping
+`<App />` so it gates every route including `/login` — exactly where the
+vanilla's check sat, before its own auth wall. Fails closed (redirects) if
+`localStorage` itself throws, same outcome as simply not having the key.
+This does not make the gate real security — it never was; a publicly-known
+password gating a marketing splash page is not access control — it restores
+parity with what the vanilla actually shipped, no more, no less.
+
+**Found, deliberately not ported — two cosmetic-only drops:**
+
+- **The full-page "Cinematic Boot Sequence" splash** (`#global-loader`,
+  `js/ui.js:1259-1272`) forced a ~2s branded splash with a personalized
+  greeting on every load. `ProtectedRoute`'s plain skeleton is a reasonable,
+  much simpler stand-in for "the session hasn't resolved yet" — reproducing
+  an artificial minimum delay and a second greeting surface (this app
+  already has one, in `Header`) would be adding UI, not porting a gap.
+- **The blocking "AI is thinking…" full-app overlay** (`js/ui.js:435-501`,
+  `setAILoading`/`setAIProgress`, used by Plan/Quiz generation) applied
+  `inert` to the whole app and showed rotating captions. `PlanView`'s own
+  pending-button state and the chat's typing indicator already communicate
+  "something is happening" for these same actions; a second, competing
+  full-screen lock is a design divergence this session judged reasonable,
+  not a broken feature — but nothing currently reproduces the `inert` lock
+  specifically, worth a look if a real screen-reader user reports being able
+  to interact with the app mid-generation.
 
 ---
 
