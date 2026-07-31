@@ -103,9 +103,11 @@ export function SubjectDetailPage() {
           title="This folder no longer exists."
           message="It may have been deleted from another tab or device."
         >
-          {/* A <button> can't nest inside an <a> — invalid HTML. Same fix
-              NotesView already uses for its own "not found" empty state. */}
-          <Button variant="primary" onClick={() => navigate("/library")}>
+          {/* navigate() rather than a <Link> wrapping the <Button>: a
+              <button> inside an <a> is invalid HTML — interactive content
+              cannot nest — and browsers disagree about which of the two gets
+              the click. Same approach Step 13 used for this affordance. */}
+          <Button variant="primary" onClick={() => void navigate("/library")}>
             Back to Library
           </Button>
         </EmptyState>
