@@ -1467,6 +1467,69 @@ the port)
 
 ---
 
+## Complete Migration — Full Gap Ledger (2026-07-31)
+
+Everything above tracks the 18 view-porting steps and their own loose ends. This
+section is a wider pass: a workspace-wide scan for what's still required before this
+is a genuinely *complete* migration, not just view parity. Nothing here has been
+implemented yet — this is the punch list, ordered by priority.
+
+**Priority order:** auth UI first (nothing else matters if a student can't log in
+without leaving React), then the cutover config (nothing can ship without it), then
+the standalone pages, then the pre-existing "Known loose ends" above roughly in their
+current order.
+
+### 1. No React login/signup/password-reset UI exists — the biggest blocker
+
+`webapp/src/api/auth.ts` already has fully-ported `signInWithPassword`, `signUp`, and
+`resetPasswordForEmail` (Step 5) — the logic layer is real and tested. But grep
+confirms **zero non-test `.tsx` files call any of it**. `ProtectedRoute.tsx` redirects
+an unauthenticated user to `/login`, which renders `SignInRequired.tsx` — and that
+component's only action is a link back to the *vanilla* `index.html`'s login form
+(`VANILLA_APP_URL`). `AuthProvider.tsx` only does `getSession()` +
+`onAuthStateChange`: session-reading, not a login flow. **A user cannot complete
+sign-in, sign-up, or password reset inside the React app at all today.** This is
+Decision #13's own sequencing gap — auth was deferred past every view step and never
+circled back to.
+
+### 2. Two more auth-adjacent pages have no React route
+
+- `verify.html` + `verify.js` (email-verification landing page)
+- `reset-password.html` + `reset-password.js` (reset-completion page — has its own
+  inline Supabase client and its own theme-sync logic, both of which duplicate work
+  `webapp/src/lib/supabase.ts` and `webapp/src/lib/appearance.ts` already do)
+
+A real user following a Supabase email link lands in the vanilla app either way,
+which will keep being true until these get React routes.
+
+### 3. The cutover mechanism still isn't just "found broken" — it's unbuilt
+
+Step 7 documented *why* the original plan (Vercel path-prefix rewrites) can't work as
+specified: the vanilla app is hash-routed (`#settings`, `#library`, …), so a path
+rewrite can never intercept those URLs, and `webapp/dist`'s asset paths need Vite's
+`base` set for a path-prefix deploy to work. Confirmed now: `webapp/vite.config.ts`
+sets no `base` at all, and **no `vercel.json` exists anywhere in the repo** — root or
+`webapp/`. There is currently no configured path to serve any React route in
+production, on top of the routing-scheme conflict itself.
+
+### 4. Standalone pages with no React equivalent
+
+- `terms.html` — static Terms of Service page.
+- `i18n.js` (root, ~21KB) — already named in "Known loose ends" above; restated here
+  for a single complete list. `uiLanguage` persists and the vanilla app honours it;
+  the React UI stays English regardless.
+
+### 5. Everything else
+
+See "Known loose ends" above — CSP not set for `webapp/`, no `DatePicker` primitive,
+`createStudyPackage` AI pipeline not ported, Notes AI study sidebar not ported,
+mini-timer can overlap bottom-left controls, timer logs task by text not id,
+`format:check` fails repo-wide from a CRLF checkout (pre-existing, not a regression),
+no Tasks pagination, the favicon is still Vite's default, and Steps 11-13's real-browser
+verification passes are still owed.
+
+---
+
 ## How to resume
 
 ```bash
