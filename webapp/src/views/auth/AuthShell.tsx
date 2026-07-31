@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
+import type { FeedbackKind, FeedbackState } from "../../components/InlineFeedback";
 /* Imported rather than referenced as `/learnora.jpg`: Vite rewrites the URL to
  * include whatever `base` the build uses, so the logo survives being served
  * from the `/app/` path prefix. A root-absolute path would not. */
@@ -95,25 +96,27 @@ export function AuthShell({
   );
 }
 
-export type AuthStatusKind = "error" | "success" | "info";
+/* Reuses `InlineFeedback`'s kind rather than declaring a parallel
+ * "error" | "success" | "info" type: no auth screen ever constructs an
+ * "info" status (grep confirms every `setStatus` call is "error" or
+ * "success"), so the third kind was dead code duplicating a type the
+ * codebase already has, not a real third state. */
+export type AuthStatusState = FeedbackState;
 
-export interface AuthStatusState {
-  kind: AuthStatusKind;
-  message: string;
-}
-
-const STATUS_CLASS: Record<AuthStatusKind, string> = {
+const STATUS_CLASS: Record<FeedbackKind, string> = {
   error: styles.statusError,
   success: styles.statusSuccess,
-  info: styles.statusInfo,
 };
 
 /* Ports the `#auth-status` banner and `showAuthStatus` (js/main.js:464-478).
  *
- * `role` follows the convention the rest of the app settled on (see
- * InlineFeedback): an error is assertive because it blocks what the user just
- * tried to do, anything else is polite. The vanilla div had no role, so none
- * of it was announced. */
+ * Its own component rather than `InlineFeedback` reused directly: this is a
+ * centered banner sitting above the form (`style.css:2464-2487`), while
+ * `InlineFeedback` is a lighter note appended after a field/section — same
+ * colour semantics, different layout role. `role` follows the same
+ * convention `InlineFeedback` set: an error is assertive because it blocks
+ * what the user just tried to do, anything else is polite. The vanilla div
+ * had no role, so none of it was announced. */
 export function AuthStatus({ kind, message }: AuthStatusState) {
   return (
     <div

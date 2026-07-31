@@ -35,3 +35,25 @@ export function scorePassword(value: string): Strength {
   if (score === 3) return { level: "good", label: "Good" };
   return { level: "strong", label: "Strong" };
 }
+
+/* The same two checks were being re-typed at every "set a new password"
+ * form — signup, the auth reset-password screen, and the settings security
+ * tab — with the wording having already drifted between copies. One
+ * function, called before the API request goes out; returns `null` for the
+ * component to only add its own UI-layer `kind` on an actual failure.
+ * Deliberately returns a plain `{ message }` rather than a UI type like
+ * `FeedbackState`: nothing in `lib/` imports from `components/` elsewhere in
+ * this codebase, and the caller already has to wrap it in whatever status
+ * shape its own screen uses. */
+export function validateNewPassword(
+  password: string,
+  confirmPassword: string,
+): { message: string } | null {
+  if (password.length < 8) {
+    return { message: "Password must be at least 8 characters long." };
+  }
+  if (password !== confirmPassword) {
+    return { message: "Passwords do not match. Please re-enter them." };
+  }
+  return null;
+}

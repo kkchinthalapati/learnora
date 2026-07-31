@@ -7,6 +7,7 @@ import {
 } from "../../components/PasswordField";
 import { supabase } from "../../lib/supabase";
 import { authApi } from "../../api/auth";
+import { validateNewPassword } from "../../lib/passwordStrength";
 import { AuthShell } from "./AuthShell";
 import { useAuthStatus } from "./useAuthStatus";
 import styles from "./auth.module.css";
@@ -65,18 +66,9 @@ export function ResetPasswordView() {
     e.preventDefault();
     if (saving) return;
 
-    if (password.length < 8) {
-      setStatus({
-        kind: "error",
-        message: "Password must be at least 8 characters long.",
-      });
-      return;
-    }
-    if (password !== confirmPassword) {
-      setStatus({
-        kind: "error",
-        message: "Passwords do not match. Please re-enter them.",
-      });
+    const invalid = validateNewPassword(password, confirmPassword);
+    if (invalid) {
+      setStatus({ kind: "error", message: invalid.message });
       return;
     }
 

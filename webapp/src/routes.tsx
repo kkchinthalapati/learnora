@@ -5,6 +5,13 @@ import { SignupView } from "./views/auth/SignupView";
 import { ForgotPasswordView } from "./views/auth/ForgotPasswordView";
 import { ResetPasswordView } from "./views/auth/ResetPasswordView";
 import { VerifyView } from "./views/auth/VerifyView";
+import {
+  LOGIN_PATH,
+  SIGNUP_PATH,
+  FORGOT_PASSWORD_PATH,
+  RESET_PASSWORD_PATH,
+  VERIFY_PATH,
+} from "./views/auth/authPaths";
 import { TermsView } from "./views/terms/TermsView";
 import { SettingsView } from "./views/settings/SettingsView";
 import { TasksView } from "./views/tasks/TasksView";
@@ -47,11 +54,11 @@ function Placeholder({ title }: { title: string }) {
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginView />} />
-      <Route path="/signup" element={<SignupView />} />
-      <Route path="/forgot-password" element={<ForgotPasswordView />} />
-      <Route path="/reset-password" element={<ResetPasswordView />} />
-      <Route path="/verify" element={<VerifyView />} />
+      <Route path={LOGIN_PATH} element={<LoginView />} />
+      <Route path={SIGNUP_PATH} element={<SignupView />} />
+      <Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordView />} />
+      <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordView />} />
+      <Route path={VERIFY_PATH} element={<VerifyView />} />
       <Route path="/terms" element={<TermsView />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<DashboardView />} />

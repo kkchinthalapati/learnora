@@ -6,6 +6,7 @@ import {
   PasswordStrengthMeter,
 } from "../../components/PasswordField";
 import { useSignup } from "../../hooks/useAuthActions";
+import { validateNewPassword } from "../../lib/passwordStrength";
 import { AuthShell } from "./AuthShell";
 import { useAuthStatus } from "./useAuthStatus";
 import { RedirectIfSignedIn } from "./RedirectIfSignedIn";
@@ -48,18 +49,9 @@ export function SignupView() {
     e.preventDefault();
     if (signup.isPending) return;
 
-    if (password.length < 8) {
-      setStatus({
-        kind: "error",
-        message: "Password must be at least 8 characters long.",
-      });
-      return;
-    }
-    if (password !== confirmPassword) {
-      setStatus({
-        kind: "error",
-        message: "Passwords do not match. Please re-enter them.",
-      });
+    const invalid = validateNewPassword(password, confirmPassword);
+    if (invalid) {
+      setStatus({ kind: "error", message: invalid.message });
       return;
     }
 

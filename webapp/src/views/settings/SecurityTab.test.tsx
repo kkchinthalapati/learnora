@@ -73,7 +73,7 @@ describe("SecurityTab", () => {
     await user.click(screen.getByRole("button", { name: "Update Password" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Password must be at least 8 characters.",
+      "Password must be at least 8 characters long.",
     );
     expect(updateUser).not.toHaveBeenCalled();
   });
@@ -91,7 +91,7 @@ describe("SecurityTab", () => {
     await user.click(screen.getByRole("button", { name: "Update Password" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Passwords do not match.",
+      "Passwords do not match. Please re-enter them.",
     );
     expect(updateUser).not.toHaveBeenCalled();
   });

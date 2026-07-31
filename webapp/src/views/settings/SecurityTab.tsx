@@ -14,6 +14,7 @@ import {
   useChangePassword,
   useSignOutOthers,
 } from "../../hooks/useAuthActions";
+import { validateNewPassword } from "../../lib/passwordStrength";
 import settings from "./settings.module.css";
 import styles from "./security.module.css";
 
@@ -39,18 +40,9 @@ export function SecurityTab() {
     useState<FeedbackState | null>(null);
 
   async function onChangePassword() {
-    if (!newPassword || newPassword.length < 8) {
-      setPasswordFeedback({
-        kind: "error",
-        message: "Password must be at least 8 characters.",
-      });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordFeedback({
-        kind: "error",
-        message: "Passwords do not match.",
-      });
+    const invalid = validateNewPassword(newPassword, confirmPassword);
+    if (invalid) {
+      setPasswordFeedback({ kind: "error", message: invalid.message });
       return;
     }
     try {

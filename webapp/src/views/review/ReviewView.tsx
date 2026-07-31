@@ -257,11 +257,21 @@ function ReviewSession({
           aria-pressed={flipped}
           aria-label="Flip card to see the answer"
         >
-          <div className={`${styles.face} ${styles.front}`}>
+          {/* `backface-visibility: hidden` only hides whichever face is
+              turned away *visually* — both stay in the accessibility tree
+              regardless, so without aria-hidden a screen reader announces
+              the answer immediately, before the student ever flips. */}
+          <div
+            className={`${styles.face} ${styles.front}`}
+            aria-hidden={flipped}
+          >
             <div className={styles.cardText}>{card.front}</div>
             {!flipped ? <p className={styles.hint}>Click to flip</p> : null}
           </div>
-          <div className={`${styles.face} ${styles.back}`}>
+          <div
+            className={`${styles.face} ${styles.back}`}
+            aria-hidden={!flipped}
+          >
             <div className={`${styles.cardText} ${styles.backText}`}>
               {card.back}
             </div>
@@ -299,16 +309,36 @@ function ReviewSession({
 
       {flipped ? (
         <div className={styles.controls}>
-          <Button variant="danger" onClick={() => scoreCard(1)}>
+          {/* Disabled while an AI grade is in flight: grading manually here
+              would advance to the next card and re-arm the registered
+              grader for it, so a late AI reply for *this* card would score
+              whichever card is showing by the time it arrives instead. */}
+          <Button
+            variant="danger"
+            onClick={() => scoreCard(1)}
+            disabled={grading}
+          >
             Again (1)
           </Button>
-          <Button variant="warning" onClick={() => scoreCard(2)}>
+          <Button
+            variant="warning"
+            onClick={() => scoreCard(2)}
+            disabled={grading}
+          >
             Hard (2)
           </Button>
-          <Button variant="primary" onClick={() => scoreCard(3)}>
+          <Button
+            variant="primary"
+            onClick={() => scoreCard(3)}
+            disabled={grading}
+          >
             Good (3)
           </Button>
-          <Button variant="success" onClick={() => scoreCard(4)}>
+          <Button
+            variant="success"
+            onClick={() => scoreCard(4)}
+            disabled={grading}
+          >
             Easy (4)
           </Button>
         </div>

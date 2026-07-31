@@ -120,6 +120,68 @@ describe("ReviewView", () => {
     expect(screen.getByRole("button", { name: "Easy (4)" })).toBeInTheDocument();
   });
 
+  it("hides the turned-away face from assistive tech, not just visually", async () => {
+    /* backface-visibility only hides a face visually — without aria-hidden a
+       screen reader announces the answer immediately, before the card is
+       ever flipped, defeating the point of the flip. */
+    serve();
+    renderReview();
+    await screen.findByText("What is a mitochondrion?");
+
+    const front = screen
+      .getByText("What is a mitochondrion?")
+      .closest("[aria-hidden]");
+    const back = screen
+      .getByText("The powerhouse of the cell.")
+      .closest("[aria-hidden]");
+    expect(front).toHaveAttribute("aria-hidden", "false");
+    expect(back).toHaveAttribute("aria-hidden", "true");
+
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: "Flip card to see the answer" }),
+    );
+
+    expect(front).toHaveAttribute("aria-hidden", "true");
+    expect(back).toHaveAttribute("aria-hidden", "false");
+  });
+
+  it("disables manual grading while an AI grade is in flight", async () => {
+    /* Prevents a race: grading manually here would advance the card and
+       re-arm the registered grader for the next one, so a late AI reply for
+       *this* card would score whatever card is showing when it arrives. */
+    serve();
+    let resolveEdge!: (response: Response) => void;
+    server.use(
+      http.post(
+        EDGE_URL,
+        () => new Promise<Response>((resolve) => (resolveEdge = resolve)),
+      ),
+    );
+    renderReview();
+    await screen.findByText("What is a mitochondrion?");
+
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByRole("textbox", { name: "Your answer, for AI to grade" }),
+      "mitochondria",
+    );
+    await user.click(screen.getByRole("button", { name: "Grade" }));
+    await screen.findByText("AI is grading your answer...");
+
+    expect(screen.getByRole("button", { name: "Again (1)" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Hard (2)" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Good (3)" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Easy (4)" })).toBeDisabled();
+
+    resolveEdge(
+      HttpResponse.json({ text: "<GRADE_FLASHCARD>3</GRADE_FLASHCARD>" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText("Review Complete! 🧠")).toBeInTheDocument(),
+    );
+  });
+
   it("grades the card, saves the SM-2 state, and advances to the next one", async () => {
     serve({
       cards: [

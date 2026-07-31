@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router";
 import { useAuth } from "../../context/auth";
 import { Skeleton } from "../../components/Skeleton";
+import { AUTH_PATHS } from "./authPaths";
 
 /* The mirror image of `ProtectedRoute`: it keeps a signed-in user off the
  * sign-in screens, and it is what finally consumes the `state.from` that
@@ -43,14 +44,6 @@ export function RedirectIfSignedIn({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-const AUTH_PATHS = [
-  "/login",
-  "/signup",
-  "/forgot-password",
-  "/reset-password",
-  "/verify",
-];
-
 function isAuthPath(pathname: string): boolean {
-  return AUTH_PATHS.includes(pathname);
+  return (AUTH_PATHS as readonly string[]).includes(pathname);
 }

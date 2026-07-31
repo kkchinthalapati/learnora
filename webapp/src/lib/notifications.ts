@@ -17,15 +17,17 @@ export function shouldNotifyDueCards(
   return Storage.get<string>(NOTIFIED_DATE_KEY) !== now.toDateString();
 }
 
-/** The effectful half — call only after `shouldNotifyDueCards` is true. */
-export function notifyDueCardsOncePerDay(count: number, now = new Date()): void {
+/** The effectful half — call only after `shouldNotifyDueCards` is true.
+ *  No `now` parameter: unlike the pure decision half, nothing calls this
+ *  with a fixed instant (there's nothing here to unit test against one). */
+export function notifyDueCardsOncePerDay(count: number): void {
   if (!("Notification" in window)) return;
   if (Notification.permission === "granted") {
     new Notification("Learnora", {
       body: `${count} flashcard${count > 1 ? "s" : ""} due for review today.`,
       icon: "learnora.jpg",
     });
-    Storage.set(NOTIFIED_DATE_KEY, now.toDateString());
+    Storage.set(NOTIFIED_DATE_KEY, new Date().toDateString());
   } else if (Notification.permission !== "denied") {
     void Notification.requestPermission();
   }

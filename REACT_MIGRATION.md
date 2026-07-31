@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 760/760 passing
-- **Last verified:** 2026-07-31 (Steps 19-21 reconciled onto the post-Step-18 bug-fix pass — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, auth screens browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
+- **Tests:** `npm --prefix webapp run test` — expect 766/766 passing
+- **Last verified:** 2026-07-31 (cleanup pass over Steps 18-21 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -1429,6 +1429,85 @@ build whose `index.html` contains no inline script.
 > how the whole site is built and served. **Check a Vercel preview deployment
 > before merging**, and confirm the project has no Root Directory override that
 > would bypass `vercel.json`.
+
+---
+
+### Cleanup pass over Steps 18-21 (2026-07-31)
+
+Requested explicitly rather than discovered in passing: a full review of
+everything from Step 18 through the Steps 19-21 reconciliation for bugs and
+cleanup, before treating the migration as settled again. Split into a manual
+bug-hunt over the newest, least battle-tested surface (the review flow, the
+auth views, the cutover config) and a 4-agent `/simplify` pass (reuse,
+simplification, efficiency, altitude) over the same diff. 6 new tests (766
+total).
+
+**Two real bugs found and fixed in `ReviewView.tsx`:**
+
+- **The turned-away flashcard face was readable by a screen reader before the
+  card was ever flipped.** `backface-visibility: hidden` only hides a face
+  *visually* — both faces stay in the accessibility tree regardless, so
+  without `aria-hidden` the answer was announced immediately alongside the
+  question, defeating the flip entirely for assistive tech. The competing PR
+  (#39) had caught this independently; this session's own Step 18 hadn't.
+  Both faces now carry `aria-hidden` keyed on `flipped`.
+- **The four manual score buttons weren't disabled while an AI grade was in
+  flight.** Grading manually mid-request would advance the card and
+  re-register the grader for the *next* one, so a late AI reply for the card
+  the student had just left would silently score whatever card happened to
+  be showing when it arrived. Now disabled for the duration, matching the
+  input/Grade button's existing guard.
+
+**From the `/simplify` pass, applied:**
+
+- `AuthShell.tsx`'s `AuthStatus` had its own `"error" | "success" | "info"`
+  type, parallel to `components/InlineFeedback.tsx`'s `FeedbackKind` — and
+  `"info"` was never actually constructed anywhere (grep confirmed every
+  `setStatus` call is `"error"` or `"success"`). `AuthStatusState` is now a
+  type alias for `InlineFeedback`'s `FeedbackState`; `AuthStatus` stays its
+  own component (a centered banner vs. `InlineFeedback`'s lighter inline
+  note — different layout role, same colour semantics), just without a dead
+  third variant.
+- The same two password checks (length, confirmation match) were re-typed at
+  three call sites — `SignupView`, `ResetPasswordView`, and
+  `SecurityTab` — with the wording having already drifted between them.
+  `lib/passwordStrength.ts` (already the shared home for password-scoring
+  logic, per its own header comment) gained `validateNewPassword(password,
+  confirm)`, called by all three; the settings tab's message now matches the
+  auth views' wording instead of a shorter variant.
+- `lib/notifications.ts`'s `notifyDueCardsOncePerDay` had a `now` parameter
+  no call site ever passed a non-default value for. Dropped — the pure
+  decision half (`shouldNotifyDueCards`) is what's actually tested against a
+  fixed instant.
+- `RedirectIfSignedIn.tsx`'s `AUTH_PATHS` hand-duplicated the five route
+  strings `routes.tsx` already owns, with nothing tying the two lists
+  together. Both now import named path constants from a new
+  `views/auth/authPaths.ts` — its own module rather than living in
+  `routes.tsx` itself, since `routes.tsx` imports `LoginView`, which (via
+  `RedirectIfSignedIn`) would otherwise need to import back out of
+  `routes.tsx` — a circular import for no reason.
+
+**Found, deliberately not applied:**
+
+- **`ChatProvider`'s `registerFlashcardGrader`** is arguably the wrong
+  altitude: a single-purpose ref bolted onto the general-purpose `ChatApi`
+  every chat consumer pulls in, when only `ReviewView` registers against it
+  and only `GRADE_FLASHCARD` reads it. The generalizable shape would be a
+  narrow `FlashcardGraderContext` that `ChatProvider` itself consumes just to
+  bridge the tag to the mechanism. Not done here: there is exactly one such
+  tag today, extracting it would mean a new provider threaded through
+  `App.tsx` and every test file that currently wraps `<ChatProvider>`
+  directly (`ReviewView.test.tsx`, `DashboardView.test.tsx`,
+  `routes.test.tsx`, `TurboChat.test.tsx`), and generalizing for a
+  hypothetical second view-scoped tag that doesn't exist yet is exactly the
+  speculative complexity this pass was trying to remove, not add. Worth
+  revisiting the day a second tag actually needs the same mechanism.
+- **Folding each auth view's `catch (err) { setStatus({kind: "error", ...}) }`
+  into `useAuthStatus` itself** (a `runWithStatus(fn)` wrapper) was flagged
+  as a smaller, genuine win, but `SignupView`/`ResetPasswordView` both need
+  early-return validation *before* the try block starts, which complicates
+  the wrapper's control flow for a four-line-per-file saving. Skipped as
+  lower value than the fixes above, not as a false positive.
 
 ---
 
