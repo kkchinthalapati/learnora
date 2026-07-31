@@ -5,7 +5,7 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect TBD_COUNT/TBD_COUNT passing
+- **Tests:** `npm --prefix webapp run test` — expect 760/760 passing
 - **Last verified:** 2026-07-31 (Steps 19-21 reconciled onto the post-Step-18 bug-fix pass — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, auth screens browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
@@ -1734,7 +1734,7 @@ Tasks pagination, and Steps 11-13's real-browser verification passes still owed.
 
 ```bash
 git checkout react-migration
-cd webapp && npm install && npm run test    # expect 768/768 passing
+cd webapp && npm install && npm run test    # expect 760/760 passing
 npm run dev                                  # http://localhost:5173/app/ — note the /app prefix
 ```
 
