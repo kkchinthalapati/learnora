@@ -46,7 +46,14 @@ export default function App() {
                 <AuthProvider>
                   <CreateModalProvider>
                     <TimerProvider>
-                      <BrowserRouter>
+                      {/* Mounted under whatever `base` the build used, so a
+                          route table written as "/settings" resolves to
+                          "/app/settings" in production and "/settings" in any
+                          build served from the root. BASE_URL keeps its
+                          trailing slash; basename does not want one. */}
+                      <BrowserRouter
+                        basename={import.meta.env.BASE_URL.replace(/\/$/, "")}
+                      >
                         {/* Inside the router because the chat navigates and
                             reads the current route for context, but outside
                             the route table because the panel and the
