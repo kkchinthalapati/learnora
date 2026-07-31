@@ -1,0 +1,342 @@
+/* Auth wall — ported from style.css:2243-2551 (`.auth-wrapper` through the
+ * `.loader`), which styled index.html's `#auth-wall`.
+ *
+ * Two deliberate deviations from the vanilla:
+ *
+ * 1. `.wrapper` is a normal block with `min-height: 100dvh`, not
+ *    `position: fixed; inset: 0; z-index: 9999`. The vanilla needed to cover
+ *    an already-rendered `#main-app`; here the auth screens are routes, so
+ *    nothing is underneath to cover, and taking them out of the z-index race
+ *    keeps them from fighting the docked timer and chat panel.
+ *
+ * 2. `.form` drops the `.auth-form.hidden` opacity/visibility dance. The
+ *    vanilla stacked all four forms in one grid cell and cross-faded them;
+ *    each form is its own route here, so only one is ever mounted. */
+
+.wrapper {
+  min-height: 100dvh;
+  display: flex;
+  overflow-y: auto;
+  padding: clamp(16px, 3vh, 40px) var(--s-5);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(
+      ellipse 80% 60% at 10% 15%,
+      var(--bg-tint-1) 0,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 70% 50% at 90% 85%,
+      var(--bg-tint-2) 0,
+      transparent 55%
+    );
+}
+
+.layout {
+  /* margin:auto centers when it fits and stays fully scrollable when it doesn't. */
+  margin: auto;
+  display: flex;
+  width: 100%;
+  max-width: 1040px;
+  min-height: min(600px, 90vh);
+  border-radius: var(--r-2xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--glass-border);
+}
+
+.card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(28px, 4vw, 44px) clamp(24px, 6vw, 56px);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(36px) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(36px) var(--glass-saturate);
+  box-shadow: var(--glass-inner);
+}
+
+.logo {
+  width: 56px;
+  border-radius: var(--r-lg);
+  margin: 0 auto var(--s-4);
+  display: block;
+  box-shadow:
+    var(--shadow-md),
+    0 0 24px var(--accent-glow);
+}
+
+.brandHeader {
+  text-align: center;
+}
+
+.brandHeader h1 {
+  font-size: clamp(24px, 3.4vw, 30px);
+  margin-bottom: var(--s-2);
+}
+
+.brandHeader p {
+  color: var(--text-muted);
+  margin: 0 auto var(--s-6);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.inputGroup label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.fieldDesc {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  margin: var(--s-2) 0 0;
+}
+
+.intro {
+  color: var(--text-muted);
+  margin: 0 0 var(--s-2);
+}
+
+.submit {
+  width: 100%;
+  margin-top: var(--s-4);
+}
+
+.toggleText {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin-top: var(--s-2);
+}
+
+/* The vanilla's `.auth-link` was a <span> with a click handler. These are real
+   links now — each auth view has its own route — so they inherit anchor
+   semantics and only need the colour. */
+.link {
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.linkSmall {
+  composes: link;
+  font-size: var(--fs-xs);
+}
+
+/* --- Status banner (style.css:2464-2487) --- */
+
+.status {
+  padding: 12px 16px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: var(--s-4);
+  animation: fade-up var(--t) var(--ease);
+}
+
+.statusError {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid rgba(224, 90, 78, 0.2);
+}
+
+.statusSuccess {
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid rgba(52, 184, 138, 0.2);
+}
+
+.statusInfo {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent-ring);
+}
+
+/* --- Terms footer (index.html:294-298) --- */
+
+.legal {
+  margin-top: var(--s-4);
+  text-align: center;
+  border-top: 1px solid var(--glass-border);
+  padding-top: 14px;
+}
+
+.legal p {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  margin: 0;
+}
+
+.legal a {
+  color: var(--accent);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+/* --- Marketing panel (style.css:2415-2514) --- */
+
+.visual {
+  flex: 1.1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 120% at 15% 0%, var(--accent-glow) 0%, transparent 50%),
+    linear-gradient(165deg, #1b1e1c 0%, #0a0c0a 100%);
+}
+
+.visual::before {
+  content: "";
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.05) 0%,
+    transparent 55%
+  );
+  animation: drift 32s linear infinite;
+}
+
+.visualContent {
+  position: relative;
+  z-index: 2;
+  text-align: left;
+  padding: 0 var(--s-10);
+  max-width: 460px;
+}
+
+.visualContent h2 {
+  font-size: clamp(26px, 3.4vw, 36px);
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin-bottom: var(--s-4);
+}
+
+.visualSubtitle {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  max-width: 380px;
+  margin: 0 0 var(--s-8);
+}
+
+.visualFeatures {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.visualFeature {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.visualFeature:last-child {
+  border-bottom: none;
+}
+
+.featureIcon {
+  line-height: 1;
+  width: 20px;
+  flex-shrink: 0;
+  opacity: 0.9;
+  display: inline-flex;
+}
+
+/* Ports style.css:3679-3696 — below 1024px the marketing panel is dropped and
+   the card loses its framing so it reads as a plain page, not a inset panel. */
+@media (max-width: 1024px) {
+  .visual {
+    display: none;
+  }
+
+  .layout {
+    max-width: 460px;
+    min-height: 0;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .visual::before {
+    animation: none;
+  }
+}
+
+/* --- Standalone states: /verify and /reset-password --- */
+
+.centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--s-4);
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 4px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 3s;
+  }
+}

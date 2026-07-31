@@ -1,6 +1,11 @@
 import { Route, Routes } from "react-router";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { SignInRequired } from "./components/SignInRequired";
+import { LoginView } from "./views/auth/LoginView";
+import { SignupView } from "./views/auth/SignupView";
+import { ForgotPasswordView } from "./views/auth/ForgotPasswordView";
+import { ResetPasswordView } from "./views/auth/ResetPasswordView";
+import { VerifyView } from "./views/auth/VerifyView";
+import { TermsView } from "./views/terms/TermsView";
 import { SettingsView } from "./views/settings/SettingsView";
 import { TasksView } from "./views/tasks/TasksView";
 import { ExamsView } from "./views/exams/ExamsView";
@@ -18,9 +23,16 @@ import { ReviewView } from "./views/review/ReviewView";
  * Route table mirroring the vanilla app's hash router (js/router.js):
  * dashboard, todo→/tasks, exams, timer, library(+tabs), folder-<id>,
  * notes-<id>, plan, quiz-<id>, quizreview-<id>, review-<id>, settings.
- * Each placeholder is replaced by the real view as its ledger step lands
- * (REACT_MIGRATION.md). Everything except /login sits behind ProtectedRoute,
- * matching the vanilla app, where every view requires a session.
+ *
+ * Above the guard sit the public routes. The vanilla had no equivalent of this
+ * split — its auth wall was a div layered over the app in the same document,
+ * and /verify, /reset-password and /terms were separate static pages outside
+ * the router entirely. As routes they are all one app:
+ *
+ *   /login, /signup, /forgot-password  the auth wall's three forms, one each
+ *   /verify                            what a confirmation email links to
+ *   /reset-password                    what a recovery email links to
+ *   /terms                             linked from the auth screens
  */
 
 function Placeholder({ title }: { title: string }) {
@@ -35,7 +47,12 @@ function Placeholder({ title }: { title: string }) {
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<SignInRequired />} />
+      <Route path="/login" element={<LoginView />} />
+      <Route path="/signup" element={<SignupView />} />
+      <Route path="/forgot-password" element={<ForgotPasswordView />} />
+      <Route path="/reset-password" element={<ResetPasswordView />} />
+      <Route path="/verify" element={<VerifyView />} />
+      <Route path="/terms" element={<TermsView />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<DashboardView />} />
         <Route path="/tasks" element={<TasksView />} />
