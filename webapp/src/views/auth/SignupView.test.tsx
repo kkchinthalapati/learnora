@@ -104,7 +104,10 @@ describe("SignupView", () => {
     await user.click(screen.getByRole("button", { name: "Create Account →" }));
 
     expect(
-      await screen.findByRole("heading", { level: 1, name: "Check your email" }),
+      await screen.findByRole("heading", {
+        level: 1,
+        name: "Check your email",
+      }),
     ).toBeInTheDocument();
     expect(screen.getByText("ada@example.com")).toBeInTheDocument();
     /* The form is gone, not merely disabled — there is nothing left to submit. */
@@ -158,7 +161,10 @@ describe("SignupView", () => {
        that into a real error. */
     server.use(
       http.post(SIGNUP_URL, () =>
-        HttpResponse.json({ user: { id: "u1", identities: [] }, session: null }),
+        HttpResponse.json({
+          user: { id: "u1", identities: [] },
+          session: null,
+        }),
       ),
     );
 

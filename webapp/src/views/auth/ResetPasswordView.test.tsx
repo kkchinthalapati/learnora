@@ -132,9 +132,10 @@ describe("ResetPasswordView", () => {
       expect(signOut).toHaveBeenCalledWith({ scope: "others" }),
     );
     expect(signOut).toHaveBeenCalledWith();
-    expect(
-      screen.getByRole("link", { name: "Go to sign in" }),
-    ).toHaveAttribute("href", "/login");
+    expect(screen.getByRole("link", { name: "Go to sign in" })).toHaveAttribute(
+      "href",
+      "/login",
+    );
   });
 
   it("refuses mismatched passwords without calling the API", async () => {

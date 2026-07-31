@@ -90,8 +90,8 @@ export function SignupView() {
       >
         <div className={styles.centered}>
           <p className={styles.intro}>
-            We sent a confirmation link to <strong>{email.trim()}</strong>.
-            Open it and you'll be signed in automatically.
+            We sent a confirmation link to <strong>{email.trim()}</strong>. Open
+            it and you'll be signed in automatically.
           </p>
           <p className={styles.toggleText}>
             Confirmed somewhere else?{" "}

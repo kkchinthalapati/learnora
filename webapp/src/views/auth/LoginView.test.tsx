@@ -80,7 +80,10 @@ describe("LoginView", () => {
     server.use(
       http.post(TOKEN_URL, () =>
         HttpResponse.json(
-          { error: "invalid_grant", error_description: "Invalid login credentials" },
+          {
+            error: "invalid_grant",
+            error_description: "Invalid login credentials",
+          },
           { status: 400 },
         ),
       ),
