@@ -6,9 +6,13 @@ import {
   type DragEvent,
   type FormEvent,
 } from "react";
+import { useNavigate } from "react-router";
 import { useFolders, useAddFolder } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
+import { useCreateStudyPackage } from "../../hooks/useAI";
 import { useDialog } from "../../context/dialog";
+import { useToast } from "../../context/toast";
+import type { CreateStudyPackageSource } from "../../api/ai";
 import type { Folder } from "../../api/types";
 import shared from "./formShared.module.css";
 import styles from "./MaterialPanel.module.css";
@@ -34,15 +38,20 @@ const PERSONALITY_DESC: Record<string, string> = {
 
 /* Full port of the vanilla #create-modal's Material flow (index.html:2060-
  * 2250, js/main.js:111-422, js/ui.js:508-681) — source picker, dropzone,
- * outputs, folder filing, and the collapsed Options tuning block, all
- * validated exactly as the vanilla form does. The one piece intentionally
- * NOT ported is the submit's actual network call: `AI.createStudyPackage()`
- * unconditionally calls the Gemini edge function for every new material
- * (there is no non-AI path in the vanilla code, per REACT_MIGRATION.md
- * Step 6's scoping note), and that layer doesn't exist in this app until
- * Step 14. Submitting here runs every validation a real submit would, then
- * reports that plainly rather than closing the dialog on a fake success. */
-export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPanelProps) {
+ * outputs, folder filing, the collapsed Options tuning block, and (as of
+ * Step 14) the actual submit: `createStudyPackage()` (api/ai.ts).
+ *
+ * One deliberate deviation from the vanilla's submit flow. The vanilla
+ * closes the dialog immediately on submit and shows a separate full-page
+ * loading overlay (`UI.setAILoading`) for the run — a shared "AI is
+ * thinking" chrome piece that doesn't exist in this app and isn't this
+ * step's job to invent (Step 14 is the service layer, not new UI surface).
+ * This panel stays open instead: Cancel and Create disable, Create's label
+ * tracks `onProgress`, and the result — success or failure — reports inline
+ * in the form's existing error/toast surfaces rather than a popup. The
+ * modal's own Escape/✕ aren't blocked during a run, unlike Cancel; that's a
+ * known, narrow gap (see the ledger's Step 14 loose ends), not an oversight. */
+export function MaterialPanel({ folderId: initialFolderId, onClose, onDone }: MaterialPanelProps) {
   const [source, setSource] = useState<SourceKind>("file");
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -76,7 +85,11 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
   const foldersQuery = useFolders();
   const materialsQuery = useMaterials();
   const addFolder = useAddFolder();
+  const createPackage = useCreateStudyPackage();
   const { promptText } = useDialog();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+  const [progress, setProgress] = useState<string | null>(null);
 
   const fetchedFolders = foldersQuery.data ?? [];
   const folders =
@@ -205,8 +218,9 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
     return null;
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (createPackage.isPending) return;
 
     if (!wantFlashcards && !wantQuiz && !isNewMaterial) {
       setError("Pick at least one thing to create.");
@@ -227,11 +241,61 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
       return;
     }
 
-    // Every check a real submit would run has passed — the only thing left
-    // is the actual AI call, which isn't wired up yet (see the file header).
-    setError(
-      "AI-powered generation isn't connected yet — Step 14 wires this form up to real notes, flashcards, and quizzes.",
-    );
+    setError(null);
+
+    let requestSource: CreateStudyPackageSource;
+    if (source === "file") requestSource = { kind: "file", file: file ?? undefined };
+    else if (source === "text") requestSource = { kind: "text", text };
+    else if (source === "link") requestSource = { kind: "link", url: link };
+    else if (source === "material") requestSource = { kind: "material", materialId };
+    else requestSource = { kind: "topic", topic };
+
+    setProgress("Getting started…");
+    try {
+      const result = await createPackage.mutateAsync({
+        source: requestSource,
+        folderId: source === "topic" ? null : folderId || null,
+        title: titleOverride,
+        outputs: { flashcards: wantFlashcards, quiz: wantQuiz },
+        options: { cardCount, questionCount, difficulty, personality },
+        onProgress: setProgress,
+      });
+      setProgress(null);
+
+      const made: string[] = [];
+      if (result.notes) made.push("notes");
+      if (result.deck) made.push("flashcards");
+      if (result.quiz) made.push("a quiz");
+
+      if (made.length === 0) {
+        setError("Nothing could be generated this time. Please try again in a moment.");
+        return;
+      }
+
+      // Partial success is reported honestly rather than as a plain success.
+      const failed = result.errors.filter((x) => x !== "notes");
+      showToast(
+        failed.length
+          ? `Created ${made.join(", ")} — ${failed.join(" and ")} didn't generate.`
+          : `Created ${made.join(", ")}.`,
+      );
+
+      onDone?.();
+      onClose();
+
+      // Land the student on whatever was just made: a quiz is the most
+      // specific outcome, then freshly written notes (result.notes is only
+      // set when they were generated in this run, so building a deck from an
+      // existing material doesn't dump you back into notes you already had),
+      // then the new deck.
+      if (result.quiz) void navigate(`/quiz/${result.quiz.id}`);
+      else if (result.notes && result.material) void navigate(`/notes/${result.material.id}`);
+      else if (result.deck) void navigate("/library/flashcards");
+      else if (result.material) void navigate(`/notes/${result.material.id}`);
+    } catch (err) {
+      setProgress(null);
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    }
   };
 
   return (
@@ -539,6 +603,12 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
         </div>
       </details>
 
+      {progress ? (
+        <p className={shared.fieldDesc} role="status">
+          {progress}
+        </p>
+      ) : null}
+
       {error ? (
         <p className={shared.error} role="alert">
           {error}
@@ -546,11 +616,11 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
       ) : null}
 
       <div className={`${shared.actions} ${styles.stickyActions}`}>
-        <Button type="button" onClick={onClose}>
+        <Button type="button" onClick={onClose} disabled={createPackage.isPending}>
           Cancel
         </Button>
-        <Button type="submit" variant="primary">
-          Create
+        <Button type="submit" variant="primary" disabled={createPackage.isPending}>
+          {createPackage.isPending ? "Creating…" : "Create"}
         </Button>
       </div>
     </form>

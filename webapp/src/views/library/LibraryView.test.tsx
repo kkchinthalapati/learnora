@@ -7,6 +7,7 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
+import { CreateModalProvider } from "../../context/CreateModalProvider";
 import type {
   FlashcardDeck,
   Folder,
@@ -108,16 +109,26 @@ function LocationProbe() {
 function renderLibrary(path = "/library") {
   return renderWithAuth(
     <MemoryRouter initialEntries={[path]}>
-      <LocationProbe />
-      <Routes>
-        <Route path="/library" element={<LibraryView />} />
-        <Route path="/library/:tab" element={<LibraryView />} />
-        <Route path="/folders/:folderId" element={<h1>Subject workspace</h1>} />
-        <Route path="/notes/:materialId" element={<h1>Notes editor</h1>} />
-        <Route path="/review/:deckId" element={<h1>Deck review</h1>} />
-        <Route path="/quiz/:quizId" element={<h1>Quiz runner</h1>} />
-        <Route path="/quiz/:quizId/review" element={<h1>Quiz review</h1>} />
-      </Routes>
+      {/* A CreateModalProvider of this file's own, nested inside its
+          MemoryRouter — shadows AppProviders' router-less instance so
+          useCreateModal() here resolves to one CreateModal (opened via
+          "+ Create") can actually reach useNavigate() from (Step 14's
+          MaterialPanel navigates on a real submit). See test/render.tsx's
+          `withRouter` comment for why this can't just be `withRouter: true`
+          on renderWithAuth instead — this file already brings its own
+          Router, and react-router refuses to nest two. */}
+      <CreateModalProvider>
+        <LocationProbe />
+        <Routes>
+          <Route path="/library" element={<LibraryView />} />
+          <Route path="/library/:tab" element={<LibraryView />} />
+          <Route path="/folders/:folderId" element={<h1>Subject workspace</h1>} />
+          <Route path="/notes/:materialId" element={<h1>Notes editor</h1>} />
+          <Route path="/review/:deckId" element={<h1>Deck review</h1>} />
+          <Route path="/quiz/:quizId" element={<h1>Quiz runner</h1>} />
+          <Route path="/quiz/:quizId/review" element={<h1>Quiz review</h1>} />
+        </Routes>
+      </CreateModalProvider>
     </MemoryRouter>,
     { session: fakeSession() },
   );

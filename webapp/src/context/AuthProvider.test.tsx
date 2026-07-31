@@ -11,15 +11,25 @@ const getSession = vi.fn();
 const signOut = vi.fn();
 const onAuthStateChange = vi.fn();
 
-vi.mock("../lib/supabase", () => ({
-  supabase: {
-    auth: {
-      getSession: (...args: unknown[]) => getSession(...args),
-      signOut: (...args: unknown[]) => signOut(...args),
-      onAuthStateChange: (...args: unknown[]) => onAuthStateChange(...args),
+/* importOriginal + spread, not a bare replacement object: this file only
+ * cares about mocking the `supabase` client, but test/auth.tsx (imported for
+ * fakeSession below) pulls in the whole provider stack via test/render.tsx —
+ * including, as of Step 14, api/ai.ts, which reads `SUPABASE_URL` at module
+ * load. A bare `{ supabase: {...} }` replacement drops every other export
+ * that anything in that chain might need, present or future. */
+vi.mock("../lib/supabase", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/supabase")>();
+  return {
+    ...actual,
+    supabase: {
+      auth: {
+        getSession: (...args: unknown[]) => getSession(...args),
+        signOut: (...args: unknown[]) => signOut(...args),
+        onAuthStateChange: (...args: unknown[]) => onAuthStateChange(...args),
+      },
     },
-  },
-}));
+  };
+});
 
 /* Captured so tests can drive the callback supabase would normally invoke on
  * sign-in, sign-out and token refresh. */

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { render } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OverlayStackProvider } from "../context/OverlayStackProvider";
 import { ToastProvider } from "../context/ToastProvider";
@@ -24,7 +25,18 @@ import { AuthContext, type AuthState } from "../context/auth";
  * live interval and localStorage-backed state that it restores and re-persists
  * on every mount. Including it unconditionally made the whole suite about
  * eight times slower (12s to 99s) for the benefit of the ~25 tests that
- * actually need a timer, so those ask for it. */
+ * actually need a timer, so those ask for it.
+ *
+ * `withRouter` is opt-in for a harder reason, not a performance one:
+ * CreateModalProvider renders <CreateModal> as a sibling of its children, not
+ * a descendant, so (matching App.tsx as of Step 14, where MaterialPanel
+ * calls useNavigate() after a successful generation) it needs router context
+ * of its own. react-router refuses to render a <Router> inside another one,
+ * so this can't just wrap unconditionally — every other test already brings
+ * its own MemoryRouter as part of `children`. Only a test that opens
+ * CreateModal *and* exercises the navigation that follows a real submit
+ * needs `withRouter: true`, and it must not also nest its own MemoryRouter
+ * inside `children` when it does. */
 
 export function newTestQueryClient() {
   return new QueryClient({
@@ -37,16 +49,25 @@ export function AppProviders({
   auth,
   queryClient,
   withTimer = false,
+  withRouter = false,
 }: {
   children: ReactNode;
   auth?: AuthState;
   queryClient?: QueryClient;
   withTimer?: boolean;
+  withRouter?: boolean;
 }) {
   const inner = withTimer ? (
     <TimerProvider>{children}</TimerProvider>
   ) : (
     children
+  );
+  const createModalSection = withRouter ? (
+    <MemoryRouter initialEntries={["/"]}>
+      <CreateModalProvider>{inner}</CreateModalProvider>
+    </MemoryRouter>
+  ) : (
+    <CreateModalProvider>{inner}</CreateModalProvider>
   );
   const tree = (
     <QueryClientProvider client={queryClient ?? newTestQueryClient()}>
@@ -54,9 +75,7 @@ export function AppProviders({
         <SettingsProvider>
           <OverlayStackProvider>
             <ToastProvider>
-              <DialogProvider>
-                <CreateModalProvider>{inner}</CreateModalProvider>
-              </DialogProvider>
+              <DialogProvider>{createModalSection}</DialogProvider>
             </ToastProvider>
           </OverlayStackProvider>
         </SettingsProvider>
@@ -74,10 +93,10 @@ export function AppProviders({
 export function renderWithProviders(
   ui: ReactNode,
   auth?: AuthState,
-  options: { withTimer?: boolean } = {},
+  options: { withTimer?: boolean; withRouter?: boolean } = {},
 ) {
   return render(
-    <AppProviders auth={auth} withTimer={options.withTimer}>
+    <AppProviders auth={auth} withTimer={options.withTimer} withRouter={options.withRouter}>
       {ui}
     </AppProviders>,
   );

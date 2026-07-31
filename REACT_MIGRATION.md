@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 480/480 passing
-- **Last verified:** 2026-07-30 (Step 13 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Steps 11 & 12's browser passes still owed, see those steps' entries)
+- **Tests:** `npm --prefix webapp run test` — expect 559/559 passing
+- **Last verified:** 2026-07-31 (Step 14 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, `npm audit` 0 vulnerabilities; Steps 11, 12 & 13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -27,7 +27,7 @@ session, or agent can resume without any conversation history.
 | 11 | Library shell (4 tabs) + Subject detail page | Views | ✅ |
 | 12 | Dashboard (aggregates Tasks/Exams/Timer/Library data) | Views | ✅ |
 | 13 | Notes editor (Quill wrapper) | Views | ✅ |
-| 14 | AI layer port (streaming calls, `renderMarkdown`, action-tag parser) | Foundation | ☐ |
+| 14 | AI layer port (streaming calls, `renderMarkdown`, action-tag parser) | Foundation | ✅ |
 | 15 | Weekly Plan | Views | ☐ |
 | 16 | Quiz runner + review | Views | ☐ |
 | 17 | Turbo chat + dashboard command bar | Views | ☐ |
@@ -857,6 +857,141 @@ dark-theme colors — wants a real click-through before this merges.
 **Cutover still not performed**, same hash-routing reason as every prior
 step. `index.html` and `js/*` remain untouched.
 
+### Step 14 — AI layer port (2026-07-31)
+
+Ports `js/ai.js` (1,707 lines) and its edge function contract
+(`supabase/functions/learnora-ai/index.ts`, unchanged — client-side only)
+into a service layer, not a view: `api/ai.ts` (`callAI`, `createStudyPackage`,
+`generateWeeklyPlan`), `lib/aiActionTags.ts` (the action-tag defenses and the
+widget-token system), `lib/aiJson.ts` (the three hardened JSON extractors),
+and `hooks/useAI.ts`. Two long-stubbed affordances get wired to it for real:
+`MaterialPanel`'s submit (Step 6's own file header named this exact step as
+the reason it wasn't done yet) and the dashboard's "Plan my week" button
+(Step 12's loose end). 79 new tests (559 total).
+
+**Scoped as Foundation, matching Step 5's "thin scaffold before views"
+precedent.** `js/ai.js` is really two things: a generation *service*
+(`createStudyPackage`, `generateWeeklyPlan`, streaming/retry/action-tag
+plumbing) and a *chat widget* (`AI.send`/`sendNotesChat`, drag-and-drop,
+voice input, bubble rendering, chat history). Only the service half is here.
+The chat widget is Step 17's job — the ledger's own dependency table already
+has 17 depend on 13 (Notes), not this step, and building even a stub chat UI
+now would be replaced wholesale once Step 17 lands. `generateQuiz`/
+`generateFlashcards` — vanilla's two "back-compat" wrappers over
+`createStudyPackage`, kept there only because `<ADD_QUIZ>` (chat) and a
+flashcard-review call site that turned out not to exist call them by name —
+aren't ported either: their only real caller is the chat surface that isn't
+built yet, and `createStudyPackage` itself is what `MaterialPanel` needed.
+Action-tag *execution* (confirm dialogs, clicking the real timer/theme
+controls) is the same story: nothing to execute tags from until there's a
+chat send() loop. What's ported now is the *parsing/defanging* half
+(`stripActionTags`, `fenceUntrusted`, `stripActionTagBlocks`, the widget
+token system) — pure functions with no UI coupling, exactly what "action-tag
+parser" in this step's own ledger description names, and precisely what
+Step 17 will need on day one.
+
+**`renderMarkdown` was already ported in Step 13**, ahead of schedule, for
+the same reason — the notes editor's empty-`html_content` fallback needed it
+and it has no AI dependency. Nothing new here; noted so this step's file
+list doesn't look incomplete without it.
+
+**Two API-layer decisions carried over from earlier steps, applied here for
+the first time to something non-trivial.** (1) Decision #6 ("API layer
+throws on error") meant deliberately *not* porting `generateWeeklyPlan`'s
+vanilla behavior of swallowing its own failure and calling `UI.showPopup`
+internally — it throws, and the caller (`AIActionsCard`, via a
+`useMutation`) decides how to tell the user, same as every other mutation in
+this app. (2) The vanilla's `_callEdgeStream` reads the response through a
+`reader.read()` loop that *looks* like real token streaming but isn't — the
+edge function has never sent more than one complete JSON body, confirmed by
+reading both sides of the contract. `callAI` ports the loop's actual
+behavior (read full text, parse once, fall back to the raw string on
+malformed JSON) via `response.text()` + manual `JSON.parse`, not a literal
+`ReadableStream` reader — same outcome, honest about what's actually
+happening. If a future provider genuinely streams, this is the function to
+revisit.
+
+**A real, pre-existing bug found and fixed: `CreateModalProvider` sat
+outside `BrowserRouter` in `App.tsx`.** `CreateModalProvider` renders
+`<CreateModal>` as a sibling of its own `children`, not a descendant, and
+until this step nothing rendered *inside* `CreateModal` ever called
+`useNavigate()`/`useLocation()`, so the gap was invisible. `MaterialPanel`
+now navigates to the new note/deck/quiz on a successful submit — which would
+have crashed in production the moment anyone created a material, not just in
+tests. Fixed by moving `CreateModalProvider` inside `BrowserRouter`
+(`App.tsx`). The test harness needed a matching, more careful fix:
+`test/render.tsx` can't just wrap everything in a `MemoryRouter`
+unconditionally, because react-router refuses to render a `<Router>` inside
+another one, and most view tests already bring their own. `withRouter` is a
+new opt-in flag on `renderWithProviders`/`renderWithAuth` for tests that
+don't bring a router of their own (`CreateModal.test.tsx`); tests that do
+(`DashboardView`, `LibraryView`, `SubjectDetailPage`) instead nest their own
+`<CreateModalProvider>` inside their own `<MemoryRouter>`, which shadows
+the outer, router-less instance via normal React context resolution. Every
+test file this broke is fixed as part of this step, not deferred.
+
+**One MaterialPanel UX simplification, called out at the point of the
+change rather than left implicit.** The vanilla closes the Create dialog
+immediately on submit and shows a separate full-page loading overlay
+(`UI.setAILoading`) — a shared "AI is thinking" chrome piece this app
+doesn't have, and inventing it wasn't this step's job (Foundation, not new
+UI surface). `MaterialPanel` stays open instead: Cancel and Create disable,
+Create's label tracks `onProgress`, and the result reports inline in the
+form's existing error/toast surfaces. The dialog's own Escape/✕ aren't
+blocked during a run, unlike Cancel — a narrow, documented gap, not an
+oversight (see loose ends).
+
+**`decksApi.add`'s `folderId` was widened from `string` to `string | null`.**
+`flashcard_decks.folder_id` is nullable in the schema, and a deck generated
+from a topic-only source (no material, no folder picker shown) genuinely has
+none — `createStudyPackage` is the first caller that could pass null.
+`useAddDeck`'s existing callers are unaffected (a narrower `string` argument
+still satisfies a `string | null` parameter).
+
+**Content-safety refusals are the one path that intentionally survives as a
+thrown error with special handling**, matching the vanilla exactly:
+`createStudyPackage` catches a refusal from the flashcards/quiz stage,
+records it in `errors`, and *re-throws* rather than swallowing it — a
+refusal carries its own explanation and must reach the caller verbatim, not
+get flattened into "generation failed." `callAI` marks this via an `AIError`
+with `refused: true`, ported 1:1 from the edge function's `{error, refused:
+true}` response shape.
+
+**Testing.** `aiActionTags.test.ts` (17) and `aiJson.test.ts` (28) cover the
+pure functions directly — every action tag, the widget-token round-trip, and
+(load-bearing, per the vanilla's own comment) that a quiz question missing a
+valid `correctIndex` is rejected outright rather than silently grading every
+answer wrong. `api/ai.test.ts` (21) drives `callAI`'s retry/timeout/refusal
+classification against MSW directly (a real 2s wait for the one test that
+needs to prove a retry actually happened, matching the Tasks-undo-window
+precedent) and `createStudyPackage`'s material/link/topic source paths,
+including the YouTube-link prompt branch and partial-failure reporting, none
+of which the UI-level tests happened to exercise. `MaterialPanel.test.tsx`
+and `DashboardView.test.tsx` gained real end-to-end coverage (success,
+partial failure, refusal, the overwrite-confirmation flow) replacing their
+old "reports the stub" assertions.
+
+**Manual/browser verification not done — no driver available in this
+environment**, same constraint as Steps 11-13. `npm run dev` was
+smoke-tested (`/` and `/library` both 200). Everything the automated suite
+can prove is green; a real click-through of a Material submission and the
+dashboard's Plan-my-week flow against a live edge function is still owed.
+
+**One decision deliberately left to the user, not made unilaterally: the
+edge function's CORS allowlist doesn't include this app's dev origin.**
+`supabase/functions/learnora-ai/index.ts`'s `DEFAULT_ALLOWED_ORIGINS`
+has `http://localhost:3000` (a CRA-era port) but not Vite's `:5173`, so a
+real browser call to the edge function from `npm run dev` will fail with a
+generic "Failed to fetch" until either `ALLOWED_ORIGINS` is set on the
+deployed function or the default list is updated and redeployed. That's a
+live, shared, deployed service — a change worth a deliberate go-ahead, not
+something to fold into a porting step silently. Doesn't block anything in
+this PR: MSW intercepts every request in tests, so the suite is green
+regardless. Flagged in loose ends.
+
+**Cutover still not performed**, same hash-routing reason as every prior
+step. `index.html` and `js/*` remain untouched.
+
 ---
 
 ## Known loose ends
@@ -864,14 +999,43 @@ step. `index.html` and `js/*` remain untouched.
 (carried forward from `REVAMP_PROGRESS.md` where relevant, plus new ones found during
 the port)
 
-- **Steps 11, 12 and 13's browser passes are all owed** (see those
+- **Steps 11, 12, 13 and 14's browser passes are all owed** (see those
   sections) — no browser driver is available in this environment. Everything
-  else about all three steps is verified; only the real-browser look at the
-  Library's four tabs, a subject workspace, the dashboard's seven cards, and
-  the Quill editor's toolbar/pickers is outstanding.
+  else about all four steps is verified; only the real-browser look at the
+  Library's four tabs, a subject workspace, the dashboard's seven cards, the
+  Quill editor's toolbar/pickers, and a real Material submission /
+  Plan-my-week run is outstanding.
+- **The edge function's CORS allowlist doesn't include this app's dev
+  origin** (found in Step 14 — see that section). `ALLOWED_ORIGINS` needs
+  `http://localhost:5173` added (env var, or update+redeploy the default
+  list) before a real browser can call the AI edge function from `npm run
+  dev`. Deliberately not done as part of a porting step — it's a live,
+  shared, deployed service, and changing it wants an explicit go-ahead.
+  Doesn't block automated tests (MSW).
 - **The Notes AI study sidebar is not ported** (Step 13's scoping decision —
   see that section). `NotesView` is Quill-only until Step 17 builds the chat
   surface for real; nothing to revisit before then.
+- **"What next?" and "Summarize notes" (dashboard) and the whole chat
+  widget are still stubs — Step 17's job, not this one's** (Step 14). Both
+  are chat-driven (`AI.send()` in the vanilla); the pure service layer
+  (`createStudyPackage`, `generateWeeklyPlan`, action-tag parsing) is ported,
+  but the chat surface that would call `AI.send()`/execute an action tag
+  isn't built yet. "Quiz me" is also still stubbed: it needs `CreateModal`'s
+  options extended with a way to pre-select the Quiz output and a custom
+  title (unchanged from the Step 12 loose end this replaces — "Plan my week"
+  is now wired for real). "Plan my week" is done.
+- **`generateQuiz`/`generateFlashcards` (vanilla's back-compat wrappers over
+  `createStudyPackage`) were not ported** (Step 14). Their only real caller
+  in the vanilla is the chat widget's `<ADD_QUIZ>` tag (Step 17 territory);
+  `generateFlashcards` turned out to have no call site at all in the current
+  vanilla codebase (confirmed by search — likely already-dead code).
+  `createStudyPackage` itself covers everything `MaterialPanel` needs.
+  Revisit if Step 17 needs a thin per-topic quiz-generation entry point.
+- **`MaterialPanel`'s Escape/✕ aren't blocked during a generation run**
+  (Step 14) — only its own Cancel button is. A narrow, documented gap (see
+  that step's UX-simplification note), not an oversight; the mutation
+  itself is unaffected by the dialog closing (TanStack Query mutations
+  outlive the component), only the in-dialog progress feedback is lost.
 - **SRS due-cards notification is not ported** (found in Step 12).
   `notifyDueCardsOncePerDay` (js/main.js:2241-2256) — a once-per-day browser
   `Notification` when flashcards are due, gated on `notifyStudyReminders` —
@@ -880,13 +1044,6 @@ the port)
   hasn't been done. Natural home is wherever notification permission gets
   centralized (`TimerProvider` currently owns its own `notifyTimerAlerts`
   path independently).
-- **"Plan my week" and "Quiz me" are stubs pending Step 14** (Step 12). Both
-  dashboard buttons show "AI features aren't connected yet" instead of
-  calling `AI.generateWeeklyPlan()` or opening a quiz-tuned CreateModal —
-  same reasoning as Step 6's Material panel. Revisit once the AI layer
-  lands; "Quiz me" additionally wants `CreateModal`'s options extended with
-  a way to pre-select the Quiz output and a custom title, which don't exist
-  today.
 - **The material-delete confirmation overstates what goes with it.** It says
   "along with the notes, flashcards and quizzes generated from it", but
   `flashcard_decks` has no `material_id` at all — decks reference a folder

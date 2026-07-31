@@ -43,3 +43,12 @@ export const WEEKDAY_NAMES = [
   "Fri",
   "Sat",
 ] as const;
+
+/* Port of js/ui.js's `mondayOfWeek` (:45-49). getDay() is 0(Sun)-6(Sat); the
+ * `(day + 6) % 7` rotation maps Sunday to 6 days back and every other day to
+ * `day - 1` days back, landing on the Monday of the same week. */
+export function mondayOfWeek(d: Date = new Date()): Date {
+  const monday = new Date(d);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return monday;
+}

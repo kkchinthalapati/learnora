@@ -25,7 +25,11 @@ export const decksApi = {
     return data ?? [];
   },
 
-  async add(folderId: string, title: string): Promise<FlashcardDeck> {
+  /* folder_id is nullable in the schema — a deck generated from a topic-only
+   * source (no material, no folder picker shown) genuinely has none. This
+   * was typed as a required `string` until Step 14's createStudyPackage()
+   * became the first caller that could pass null. */
+  async add(folderId: string | null, title: string): Promise<FlashcardDeck> {
     const userId = await requireUserId();
     const { data, error } = await supabase
       .from("flashcard_decks")

@@ -15,6 +15,13 @@ function Harness() {
   );
 }
 
+/* withRouter: true — a successful submit now calls useNavigate() (Step 14),
+ * so CreateModal needs router context. See test/render.tsx's comment on why
+ * this can't just be a nested <MemoryRouter> here instead. */
+function renderHarness() {
+  return renderWithProviders(<Harness />, undefined, { withRouter: true });
+}
+
 const folderFixture = [
   { id: "folder-1", user_id: "user-1", name: "Biology", color: "#4A90E2" },
 ];
@@ -42,7 +49,7 @@ describe("MaterialPanel", () => {
 
 async function openDialog() {
     const user = userEvent.setup();
-    renderWithProviders(<Harness />);
+    renderHarness();
     await user.click(screen.getByRole("button", { name: "Open create" }));
     // Let the folders query resolve so the default-folder effect settles.
     await waitFor(() => expect(screen.getByLabelText("Folder")).toHaveValue("folder-1"));
@@ -132,7 +139,7 @@ async function openDialog() {
   it("requires a folder for a new-material source", async () => {
     server.use(http.get(`${SUPABASE_URL}/rest/v1/folders`, () => HttpResponse.json([])));
     const user = userEvent.setup();
-    renderWithProviders(<Harness />);
+    renderHarness();
     await user.click(screen.getByRole("button", { name: "Open create" }));
     await user.click(screen.getByRole("radio", { name: "Text" }));
     await user.type(
@@ -153,21 +160,160 @@ async function openDialog() {
     expect(screen.getByText("Quiz difficulty")).toBeInTheDocument();
   });
 
-  it("reports the AI stub instead of closing on a fully valid submission", async () => {
-    const user = await openDialog();
-    await user.click(screen.getByRole("radio", { name: "Text" }));
-    await user.type(
-      screen.getByLabelText("Paste your notes or text"),
-      "A full paragraph of text that is definitely long enough to pass validation.",
-    );
-    await user.click(screen.getByRole("button", { name: "Create" }));
+  describe("submitting for real (Step 14)", () => {
+    const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "AI-powered generation isn't connected yet",
-    );
-    // Unlike a real submit (which closes the dialog immediately), the stub
-    // leaves the form open and untouched so the message is readable.
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    function serveEdge(byMode: Record<string, string>) {
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          const body = (await request.json()) as { mode?: string };
+          const mode = body.mode ?? "chat";
+          const text = byMode[mode];
+          if (text === undefined) {
+            throw new Error(`Unexpected AI call for mode "${mode}" in this test`);
+          }
+          return HttpResponse.json({ text, modelUsed: "test" });
+        }),
+      );
+    }
+
+    beforeEach(() => {
+      server.use(
+        http.post(`${SUPABASE_URL}/rest/v1/materials`, async ({ request }) => {
+          const [body] = (await request.json()) as Record<string, unknown>[];
+          return HttpResponse.json(
+            { id: "mat-1", created_at: "2026-01-01T00:00:00.000Z", ...body },
+            { status: 201 },
+          );
+        }),
+        http.post(`${SUPABASE_URL}/rest/v1/notes`, () =>
+          HttpResponse.json({ id: "note-1" }, { status: 201 }),
+        ),
+        http.post(`${SUPABASE_URL}/rest/v1/flashcard_decks`, async ({ request }) => {
+          const [body] = (await request.json()) as Record<string, unknown>[];
+          return HttpResponse.json({ id: "deck-1", ...body }, { status: 201 });
+        }),
+        http.post(`${SUPABASE_URL}/rest/v1/flashcards`, () =>
+          HttpResponse.json([{ id: "card-1" }], { status: 201 }),
+        ),
+      );
+    });
+
+    it("generates real notes and closes on success", async () => {
+      serveEdge({ notes: "# Ionic Bonding\n\nA full study guide with plenty of detail." });
+      const user = await openDialog();
+      await user.click(screen.getByRole("radio", { name: "Text" }));
+      await user.type(
+        screen.getByLabelText("Paste your notes or text"),
+        "A full paragraph of text that is definitely long enough to pass validation.",
+      );
+      await user.click(outputCheckbox("Flashcards")); // notes-only run
+
+      await user.click(screen.getByRole("button", { name: "Create" }));
+
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    });
+
+    it("creates notes and a flashcard deck, and reports partial failure honestly", async () => {
+      serveEdge({
+        notes: "# Ionic Bonding\n\nA full study guide with plenty of detail here.",
+        flashcards: "not valid json at all",
+      });
+      const user = await openDialog();
+      await user.click(screen.getByRole("radio", { name: "Text" }));
+      await user.type(
+        screen.getByLabelText("Paste your notes or text"),
+        "A full paragraph of text that is definitely long enough to pass validation.",
+      );
+      // Flashcards defaults on; leave it checked so the deck generation runs
+      // and fails on the unparseable response above.
+
+      await user.click(screen.getByRole("button", { name: "Create" }));
+
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      expect(
+        await screen.findByText(/Created notes — flashcards didn't generate\./),
+      ).toBeInTheDocument();
+    });
+
+    it("shows an inline error and stays open when nothing could be generated", async () => {
+      serveEdge({ notes: "" });
+      const user = await openDialog();
+      await user.click(screen.getByRole("radio", { name: "Text" }));
+      await user.type(
+        screen.getByLabelText("Paste your notes or text"),
+        "A full paragraph of text that is definitely long enough to pass validation.",
+      );
+
+      await user.click(screen.getByRole("button", { name: "Create" }));
+
+      expect(
+        await screen.findByRole("alert"),
+      ).toHaveTextContent("Nothing could be generated this time");
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+    });
+
+    it("surfaces a content-safety refusal by its own message", async () => {
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json(
+            { error: "I can't help with that topic.", refused: true },
+            { status: 422 },
+          ),
+        ),
+      );
+      const user = await openDialog();
+      await user.click(screen.getByRole("radio", { name: "Topic" }));
+      await user.type(screen.getByRole("textbox", { name: "Topic" }), "Something refused");
+      await user.click(outputCheckbox("Flashcards"));
+      await user.click(outputCheckbox("Quiz"));
+
+      await user.click(screen.getByRole("button", { name: "Create" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "I can't help with that topic.",
+      );
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+    });
+
+    it("disables Cancel and Create, and shows progress, while a run is in flight", async () => {
+      // A manually-released response, not a fixed delay: under load a short
+      // timed delay can still resolve before the assertions run, making the
+      // test flaky. Holding the request open until this test explicitly lets
+      // it go is deterministic regardless of how busy the machine is.
+      let releaseEdge!: () => void;
+      const held = new Promise<void>((resolve) => {
+        releaseEdge = resolve;
+      });
+      server.use(
+        http.post(EDGE_URL, async () => {
+          await held;
+          return HttpResponse.json({
+            text: "# Notes\n\nEnough detail to pass the length check here.",
+            modelUsed: "test",
+          });
+        }),
+      );
+      const user = await openDialog();
+      await user.click(screen.getByRole("radio", { name: "Text" }));
+      await user.type(
+        screen.getByLabelText("Paste your notes or text"),
+        "A full paragraph of text that is definitely long enough to pass validation.",
+      );
+      await user.click(outputCheckbox("Flashcards")); // notes-only run
+
+      await user.click(screen.getByRole("button", { name: "Create" }));
+
+      expect(await screen.findByRole("button", { name: "Creating…" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+      // Scoped to the dialog: the toast container is also role="status".
+      expect(
+        within(screen.getByRole("dialog")).getByRole("status"),
+      ).toHaveTextContent(/./);
+
+      releaseEdge();
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    });
   });
 
   it("creates a folder inline via the dialog prompt and selects it", async () => {

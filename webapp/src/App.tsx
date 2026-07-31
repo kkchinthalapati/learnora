@@ -24,16 +24,22 @@ export default function App() {
             <ToastProvider>
               <DialogProvider>
                 <AuthProvider>
-                  <CreateModalProvider>
-                    <TimerProvider>
-                      <BrowserRouter>
+                  <TimerProvider>
+                    <BrowserRouter>
+                      {/* CreateModalProvider renders <CreateModal> as a
+                          sibling of its children, not a descendant — as of
+                          Step 14, MaterialPanel calls useNavigate() after a
+                          successful generation, so it (and anything else
+                          CreateModal ever needs from the router) has to sit
+                          inside BrowserRouter, not outside it. */}
+                      <CreateModalProvider>
                         <AppRoutes />
                         {/* Docked on every route while a session is live, so
                             it lives beside the routes rather than inside one. */}
                         <MiniTimer />
-                      </BrowserRouter>
-                    </TimerProvider>
-                  </CreateModalProvider>
+                      </CreateModalProvider>
+                    </BrowserRouter>
+                  </TimerProvider>
                 </AuthProvider>
               </DialogProvider>
             </ToastProvider>

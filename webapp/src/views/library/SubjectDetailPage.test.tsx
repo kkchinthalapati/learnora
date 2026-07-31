@@ -7,6 +7,7 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
+import { CreateModalProvider } from "../../context/CreateModalProvider";
 import type { FlashcardDeck, Folder, Material, Quiz } from "../../api/types";
 import { SubjectDetailPage } from "./SubjectDetailPage";
 
@@ -82,13 +83,17 @@ function serveSubject({
 function renderSubject(folderId = "folder-1") {
   return renderWithAuth(
     <MemoryRouter initialEntries={[`/folders/${folderId}`]}>
-      <Routes>
-        <Route path="/folders/:folderId" element={<SubjectDetailPage />} />
-        <Route path="/library" element={<h1>Library</h1>} />
-        <Route path="/notes/:materialId" element={<h1>Notes editor</h1>} />
-        <Route path="/review/:deckId" element={<h1>Deck review</h1>} />
-        <Route path="/quiz/:quizId" element={<h1>Quiz runner</h1>} />
-      </Routes>
+      {/* Own CreateModalProvider, nested inside this file's own Router —
+          see LibraryView.test.tsx's identical comment for why. */}
+      <CreateModalProvider>
+        <Routes>
+          <Route path="/folders/:folderId" element={<SubjectDetailPage />} />
+          <Route path="/library" element={<h1>Library</h1>} />
+          <Route path="/notes/:materialId" element={<h1>Notes editor</h1>} />
+          <Route path="/review/:deckId" element={<h1>Deck review</h1>} />
+          <Route path="/quiz/:quizId" element={<h1>Quiz runner</h1>} />
+        </Routes>
+      </CreateModalProvider>
     </MemoryRouter>,
     { session: fakeSession() },
   );

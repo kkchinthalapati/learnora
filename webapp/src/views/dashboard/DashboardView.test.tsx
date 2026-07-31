@@ -7,10 +7,11 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
-import { localDateStr } from "../../lib/date";
+import { CreateModalProvider } from "../../context/CreateModalProvider";
+import { localDateStr, mondayOfWeek } from "../../lib/date";
 import { TIMER_END_KEY, TIMER_STATE_KEY } from "../../lib/timer";
 import { Storage } from "../../lib/storage";
-import type { Exam, Folder, StudySession, Task } from "../../api/types";
+import type { Exam, Folder, StudySession, Task, WeeklyPlan } from "../../api/types";
 import { DashboardView } from "./DashboardView";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -75,6 +76,7 @@ function serveDashboard({
   folders = [] as Folder[],
   tasks = [] as Task[],
   dueCount = 0,
+  weeklyPlan = null as WeeklyPlan | null,
 } = {}) {
   server.use(
     http.get(rest("exams"), () => HttpResponse.json(exams)),
@@ -83,6 +85,7 @@ function serveDashboard({
     http.get(rest("tasks"), () => HttpResponse.json(tasks)),
     http.get(rest("quizzes"), () => HttpResponse.json([])),
     http.get(rest("quiz_attempts"), () => HttpResponse.json([])),
+    http.get(rest("weekly_plans"), () => HttpResponse.json(weeklyPlan)),
     http.head(
       rest("flashcards"),
       () =>
@@ -97,13 +100,20 @@ function serveDashboard({
 function renderDashboard() {
   return renderWithAuth(
     <MemoryRouter initialEntries={["/"]}>
-      <Routes>
-        <Route path="/" element={<DashboardView />} />
-        <Route path="/timer" element={<h1>Timer</h1>} />
-        <Route path="/tasks" element={<h1>Tasks</h1>} />
-        <Route path="/exams" element={<h1>Exams</h1>} />
-        <Route path="/library/flashcards" element={<h1>Flashcards</h1>} />
-      </Routes>
+      {/* Own CreateModalProvider, nested inside this file's own Router — see
+          LibraryView.test.tsx's identical comment for why (Step 14's
+          MaterialPanel navigates on a real submit, so it needs router
+          context CreateModalProvider can't reach from outside this Router). */}
+      <CreateModalProvider>
+        <Routes>
+          <Route path="/" element={<DashboardView />} />
+          <Route path="/timer" element={<h1>Timer</h1>} />
+          <Route path="/tasks" element={<h1>Tasks</h1>} />
+          <Route path="/exams" element={<h1>Exams</h1>} />
+          <Route path="/library/flashcards" element={<h1>Flashcards</h1>} />
+          <Route path="/plan" element={<h1>Weekly Plan</h1>} />
+        </Routes>
+      </CreateModalProvider>
     </MemoryRouter>,
     { session: fakeSession() },
     { withTimer: true },
@@ -291,18 +301,126 @@ describe("DashboardView", () => {
   });
 
   describe("AI actions card", () => {
-    it("tells the truth about not being wired up yet", async () => {
+    const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
+
+    it("tells the truth about the three still-stubbed actions", async () => {
       const user = userEvent.setup();
       serveDashboard();
       renderDashboard();
 
-      await user.click(await screen.findByRole("button", { name: "Plan my week" }));
+      await user.click(await screen.findByRole("button", { name: "What next?" }));
 
       expect(
         await screen.findByText(
           "AI features aren't connected yet — Step 14 wires this up.",
         ),
       ).toBeInTheDocument();
+    });
+
+    it("generates and saves a real weekly plan, then navigates to it", async () => {
+      const user = userEvent.setup();
+      serveDashboard();
+      let saved: unknown = null;
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({
+            text: JSON.stringify({ days: [{ date: "2026-08-03", blocks: [] }] }),
+            modelUsed: "test",
+          }),
+        ),
+        http.post(rest("weekly_plans"), async ({ request }) => {
+          const [body] = (await request.json()) as Record<string, unknown>[];
+          saved = body.plan_json;
+          return HttpResponse.json({ id: "plan-1", ...body }, { status: 201 });
+        }),
+      );
+      renderDashboard();
+
+      await user.click(await screen.findByRole("button", { name: "Plan my week" }));
+
+      expect(await screen.findByRole("heading", { name: "Weekly Plan" })).toBeInTheDocument();
+      expect(saved).toEqual({ days: [{ date: "2026-08-03", blocks: [] }] });
+    });
+
+    it("confirms before replacing an already-existing plan for the week", async () => {
+      const user = userEvent.setup();
+      const weekStartISO = localDateStr(mondayOfWeek());
+      serveDashboard({
+        weeklyPlan: {
+          id: "plan-1",
+          user_id: "user-1",
+          week_start: weekStartISO,
+          plan_json: { days: [] },
+          source: "ai",
+          created_at: "2026-01-01T00:00:00.000Z",
+        },
+      });
+      let generated = false;
+      server.use(
+        http.post(EDGE_URL, () => {
+          generated = true;
+          return HttpResponse.json({ text: JSON.stringify({ days: [] }), modelUsed: "test" });
+        }),
+      );
+      renderDashboard();
+
+      await user.click(await screen.findByRole("button", { name: "Plan my week" }));
+
+      expect(
+        await screen.findByText("This will replace your current weekly plan. Continue?"),
+      ).toBeInTheDocument();
+      expect(generated).toBe(false);
+
+      await user.click(screen.getByRole("button", { name: "Regenerate" }));
+      await waitFor(() => expect(generated).toBe(true));
+    });
+
+    it("does not generate when the overwrite is declined", async () => {
+      const user = userEvent.setup();
+      const weekStartISO = localDateStr(mondayOfWeek());
+      serveDashboard({
+        weeklyPlan: {
+          id: "plan-1",
+          user_id: "user-1",
+          week_start: weekStartISO,
+          plan_json: { days: [] },
+          source: "ai",
+          created_at: "2026-01-01T00:00:00.000Z",
+        },
+      });
+      let generated = false;
+      server.use(http.post(EDGE_URL, () => {
+        generated = true;
+        return HttpResponse.json({ text: "{}", modelUsed: "test" });
+      }));
+      renderDashboard();
+
+      await user.click(await screen.findByRole("button", { name: "Plan my week" }));
+      await screen.findByText("This will replace your current weekly plan. Continue?");
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+      expect(generated).toBe(false);
+      expect(
+        screen.queryByRole("heading", { name: "Weekly Plan" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("reports a failed generation without navigating away", async () => {
+      const user = userEvent.setup();
+      serveDashboard();
+      server.use(
+        http.post(EDGE_URL, () => HttpResponse.json({ text: "not json at all" })),
+      );
+      renderDashboard();
+
+      await user.click(await screen.findByRole("button", { name: "Plan my week" }));
+
+      expect(
+        await screen.findByText("Couldn't generate a plan this time. Please try again."),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", { name: "Weekly Plan" }),
+      ).not.toBeInTheDocument();
     });
 
     it("still surfaces real weak topics, which need no AI call", async () => {
