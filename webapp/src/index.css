@@ -122,3 +122,88 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     transform: none;
   }
 }
+
+/* ------------------------------------------------------------------------ *
+ * Decorative background blobs behind the app shell — ported from style.css's
+ * `.liquid-blobs`/`.liquid-blob` (:3279-3311) and its `@keyframes
+ * liquid-drift` (:3490-3503). Global class names rather than a CSS module:
+ * `body[data-bg-texture="none"]` (the setting `AppearanceProvider` already
+ * writes to the body) has to disable this with a plain selector, which
+ * can't reach into a module's hashed class name.
+ * ------------------------------------------------------------------------ */
+
+.liquid-blobs {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.liquid-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(130px) saturate(120%);
+  opacity: 0.1;
+  animation: liquid-drift 32s ease-in-out infinite alternate;
+}
+
+.liquid-blob--1 {
+  width: 650px;
+  height: 650px;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+  top: -10%;
+  left: -10%;
+}
+
+.liquid-blob--2 {
+  width: 580px;
+  height: 580px;
+  background: radial-gradient(
+    circle,
+    var(--accent-glow) 0%,
+    transparent 70%
+  );
+  bottom: -10%;
+  right: -8%;
+  animation-delay: -6s;
+  animation-duration: 36s;
+}
+
+.liquid-blob--3 {
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, var(--success) 0%, transparent 70%);
+  top: 30%;
+  right: 10%;
+  animation-delay: -12s;
+  animation-duration: 40s;
+}
+
+@keyframes liquid-drift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(40px, -60px) scale(1.15);
+  }
+  50% {
+    transform: translate(-30px, 30px) scale(0.9);
+  }
+  75% {
+    transform: translate(20px, -20px) scale(1.05);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+body[data-bg-texture="none"] .liquid-blobs {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-blob {
+    animation: none;
+  }
+}

@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 766/766 passing
-- **Last verified:** 2026-07-31 (cleanup pass over Steps 18-21 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Steps 11-13's browser passes still owed, see those steps' entries)
+- **Tests:** `npm --prefix webapp run test` — expect 792/792 passing
+- **Last verified:** 2026-07-31 (Step 22, App Shell — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -44,7 +44,8 @@ production. Those are steps 19-21.
 | 19 | Auth wall (sign-in, sign-up, forgot password) | Views | ✅ |
 | 20 | Auth-adjacent routes: `/verify`, `/reset-password`, `/terms` | Views | ✅ |
 | 21 | Production cutover mechanism (`vercel.json`, Vite `base`, CSP) | Foundation | ✅ |
-| 22 | i18n port (`i18n.js` → a React translation layer) | Foundation | ☐ |
+| 22 | App Shell (Sidebar + Header) — should have existed since Step 1 | Foundation | ✅ |
+| 23 | i18n port (`i18n.js` → a React translation layer) | Foundation | ☐ |
 | 23 | `createStudyPackage` Create-pipeline | Views | ☐ |
 | 24 | Notes AI study sidebar | Views | ☐ |
 
@@ -1511,6 +1512,94 @@ total).
 
 ---
 
+### Step 22 — App Shell: Sidebar + Header (2026-07-31)
+
+**The biggest gap the whole migration had, and nobody had noticed it.** Every
+step from 1 through 21 ported a *view* — but the vanilla's persistent chrome
+around every view (the left nav sidebar with the Learnora brand, Dashboard/
+Library/Timer/Task Manager/Plan/Exams/Settings links, the Create button and
+the flashcards-due badge; the header with the page title, a time-of-day
+greeting, a live clock and the logout button — `index.html:339-445`) had no
+React equivalent *at all*. Every migrated view rendered as a bare page. This
+was never on the ledger as a loose end because it was never scoped as a step
+in the first place — Decision-list sequencing covered views and, eventually,
+auth and cutover, but nothing ever owned "the frame around all of it." It
+surfaced only once someone actually signed in and looked: a dashboard with
+real data and no way to reach anything else without typing a URL.
+
+**Files:** `components/AppShell.tsx` (the layout route — sidebar + header +
+`<Outlet />` + the decorative background blobs), `components/Sidebar.tsx` +
+`.module.css`, `components/Header.tsx` + `.module.css`, `lib/sectionLabel.ts`
+(which route belongs to which nav item — shared by both, not duplicated),
+`lib/greeting.ts`, `lib/clock.ts` + `hooks/useLiveClock.ts`. Mounted as its
+own pathless layout route nested *inside* `ProtectedRoute` in `routes.tsx`
+(`ProtectedRoute` decides "is there a session"; `AppShell` decides "what
+wraps the view once there is one") — every protected route now renders
+inside it, not just some.
+
+**The header does not render its own `<h1>`.** Every view already renders a
+real, correctly-labelled `<h1>` — Dashboard, Tasks, Exams, Timer, Plan,
+Settings, Library, and (for a subject/note/quiz/review) the specific item's
+own name. Reproducing `#page-title` as a second heading with the same text
+would be either a literal duplicate (top-level views) or a second
+significant heading fighting the page's real one (item-specific views). The
+header shows the same text — a plain, non-heading label — so the visual
+layout matches the vanilla without creating a duplicate-`<h1>` accessibility
+problem the vanilla's single-document structure never had to deal with.
+
+**Library stays highlighted on pages with no sidebar entry of their own** —
+a subject workspace, a note, a quiz, a flashcard review — the same way the
+vanilla's title logic left `#page-title` reading "Library" on all of them
+(`js/router.js:130-145` folds every `library-*` sub-route to `library`
+before matching). `lib/sectionLabel.ts`'s `isLibrarySection` is the one
+`pathname.startsWith(...)` list both `Sidebar` (for `.active`/`aria-current`)
+and `Header` (for the label) read, rather than two copies drifting apart.
+One correctness fix over a first draft: the Library nav item is a plain
+`Link` with `aria-current` set explicitly from that same check, not a
+`NavLink` — `NavLink`'s own `isActive` only ever compares against
+`"/library"` itself, so it would have highlighted the item visually (via the
+`className` callback) without marking it `aria-current="page"` for assistive
+tech on every one of those deeper pages.
+
+**The mobile collapse is one boolean with a breakpoint-dependent meaning**,
+faithfully carried over from `js/main.js:727-738`'s `.sidebar.collapsed`:
+on desktop it hides the sidebar (the idle state is visible); on mobile it's
+the sidebar's *open* state (the idle state is off-canvas). Same class name,
+opposite effect, entirely down to which `@media` rule is in scope — kept
+exactly rather than "cleaned up" into two differently-named states, since
+the vanilla's version already works and two flags would just be two things
+that could disagree with each other. Choosing a nav link (or the Create
+button) auto-closes the mobile drawer, matching `js/main.js:732-738`.
+
+**Two vanilla sidebar items deliberately left out:** the "Learnora AI" nav
+link — `style.css:4594-4601` hides it with `display: none !important`
+("Hide the redundant Turbo AI tab"), so it is dead UI in the shipped app,
+not something to port — and the `.sidebar-overlay` mobile backdrop, defined
+in CSS but never referenced by any element or script in the vanilla at all.
+
+**Testing:** 26 new tests (792 total) — `lib/greeting.test.ts`,
+`lib/clock.test.ts`, `hooks/useLiveClock.test.ts` (the minute-alignment
+schedule, using fake timers safely since this hook test involves no
+MSW/userEvent — the codebase's usual fake-timer gotcha doesn't apply here),
+`lib/sectionLabel.test.ts`, and `components/AppShell.test.tsx` covering every
+nav link's href, the active/`aria-current` state (including the Library
+edge case), the due-count badge showing and hiding, opening the create modal
+from the sidebar, the time-of-day greeting (derived from the real clock, not
+mocked — this one *is* a view test, so the usual gotcha applies), the header
+label not duplicating the page's `<h1>`, logging out, and the mobile
+menu toggle in both directions including auto-close-after-navigate.
+
+**Browser-verified** with Playwright against a stubbed session: desktop
+layout with the sidebar present and the correct item highlighted on
+Dashboard, Tasks and Library (confirmed via computed `background-color`,
+not just a screenshot glance — a first visual read of the screenshots
+looked like two items were highlighted at once, which computed styles
+proved was a misreading, not a real bug); a 480px viewport with the sidebar
+off-canvas by default and the header collapsed into its mobile layout; the
+hamburger button opening the drawer. Console clean throughout.
+
+---
+
 ## Known loose ends
 
 (carried forward from `REVAMP_PROGRESS.md` where relevant, plus new ones found during
@@ -1626,7 +1715,7 @@ the port)
   and the hash-routing conflict is sidestepped by the `/app` prefix rather than
   solved. **Still unverified in production** — see the Step 21 note about
   checking a Vercel preview deployment before merge.
-- **i18n is not ported** — now scheduled as step 22. `UI.saveSettings()` called
+- **i18n is not ported** — now scheduled as step 23. `UI.saveSettings()` called
   `applyTranslations()` over every `[data-i18n]` node; the React app has no
   translation layer. The Preferences tab persists `uiLanguage` (and the vanilla
   app honours it), but the React UI stays English.
@@ -1794,7 +1883,7 @@ workstation.
 
 - ~~`terms.html`~~ — now `/terms`, closed by Step 20.
 - `i18n.js` (root, ~21KB) is still not ported. Deliberately **not** folded into
-  Steps 19-21 — see the "Known loose ends" entry and ledger step 22: it needs a
+  Steps 19-21 — see the "Known loose ends" entry and ledger step 23: it needs a
   library-vs-hand-rolled decision before any code, and threading `t()` through
   ~40 already-ported components is a large diff in its own right.
 
@@ -1813,19 +1902,23 @@ Tasks pagination, and Steps 11-13's real-browser verification passes still owed.
 
 ```bash
 git checkout react-migration
-cd webapp && npm install && npm run test    # expect 760/760 passing
+cd webapp && npm install && npm run test    # expect 792/792 passing
 npm run dev                                  # http://localhost:5173/app/ — note the /app prefix
 ```
 
 The dev server now serves under `/app/` because `vite.config.ts` sets
 `base: "/app/"` (Step 21). `http://localhost:5173/` will 404; the app is at
 `http://localhost:5173/app/`. Sign in for real at `/app/login` — the stubbed-token
-dance earlier steps needed is gone.
+dance earlier steps needed is gone. Every view now renders inside the sidebar +
+header shell (Step 22) — if you're only used to the bare view-per-page look
+from before that step, expect navigation to look different (and much more
+usable).
 
-1. Find the first ☐ in the ledger. Every view-porting step (1-18) and the
-   auth/cutover work (19-21) are done as of 2026-07-31. That is **step 22, the
-   i18n port** — read its loose-end entry first, since it needs a
-   library-vs-hand-rolled decision before any code. After that: the still-owed
+1. Find the first ☐ in the ledger. Every view-porting step (1-18), the
+   auth/cutover work (19-21), and the app shell (22) are done as of
+   2026-07-31. That is **step 23, the i18n port** — read its loose-end entry
+   first, since it needs a library-vs-hand-rolled decision before any code.
+   After that: the still-owed
    browser passes for Steps 11-13, and the `createStudyPackage` Create-pipeline
    loose end. Read "Known loose ends" in full before picking a next task.
 2. If its section is not yet written below, read the corresponding entry in `.claude/plans/dapper-snacking-bumblebee.md` or the plan's Section 4.

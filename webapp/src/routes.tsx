@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AppShell } from "./components/AppShell";
 import { LoginView } from "./views/auth/LoginView";
 import { SignupView } from "./views/auth/SignupView";
 import { ForgotPasswordView } from "./views/auth/ForgotPasswordView";
@@ -61,20 +62,24 @@ export function AppRoutes() {
       <Route path={VERIFY_PATH} element={<VerifyView />} />
       <Route path="/terms" element={<TermsView />} />
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<DashboardView />} />
-        <Route path="/tasks" element={<TasksView />} />
-        <Route path="/exams" element={<ExamsView />} />
-        <Route path="/timer" element={<TimerView />} />
-        <Route path="/library" element={<LibraryView />} />
-        <Route path="/library/:tab" element={<LibraryView />} />
-        <Route path="/folders/:folderId" element={<SubjectDetailPage />} />
-        <Route path="/notes/:materialId" element={<NotesView />} />
-        <Route path="/plan" element={<PlanView />} />
-        <Route path="/quiz/:quizId" element={<QuizRunner />} />
-        <Route path="/quiz/:quizId/review" element={<QuizReview />} />
-        <Route path="/review/:deckId" element={<ReviewView />} />
-        <Route path="/settings" element={<SettingsView />} />
-        <Route path="*" element={<Placeholder title="Not found" />} />
+        {/* The sidebar/header chrome — see AppShell's own comment for why
+            this sits here rather than inside ProtectedRoute itself. */}
+        <Route element={<AppShell />}>
+          <Route path="/" element={<DashboardView />} />
+          <Route path="/tasks" element={<TasksView />} />
+          <Route path="/exams" element={<ExamsView />} />
+          <Route path="/timer" element={<TimerView />} />
+          <Route path="/library" element={<LibraryView />} />
+          <Route path="/library/:tab" element={<LibraryView />} />
+          <Route path="/folders/:folderId" element={<SubjectDetailPage />} />
+          <Route path="/notes/:materialId" element={<NotesView />} />
+          <Route path="/plan" element={<PlanView />} />
+          <Route path="/quiz/:quizId" element={<QuizRunner />} />
+          <Route path="/quiz/:quizId/review" element={<QuizReview />} />
+          <Route path="/review/:deckId" element={<ReviewView />} />
+          <Route path="/settings" element={<SettingsView />} />
+          <Route path="*" element={<Placeholder title="Not found" />} />
+        </Route>
       </Route>
     </Routes>
   );
