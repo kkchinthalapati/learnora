@@ -11,6 +11,27 @@ import { supabase, SUPABASE_URL } from "../lib/supabase";
 
 const MIN_SIGNUP_AGE = 13;
 
+/* Where Supabase sends someone after they click a link in one of its emails.
+ *
+ * These used to be `/verify.html` and `/reset-password.html` — the vanilla
+ * app's two standalone pages — because there was nowhere else to send them.
+ * Both are React routes now, so the links stay inside this app.
+ *
+ * `import.meta.env.BASE_URL` is the piece that is easy to get wrong: the
+ * production build is served under a path prefix, and a redirect to
+ * `origin + "/verify"` would land on the vanilla app's 404 rather than this
+ * app's route. Vite substitutes the configured `base` at build time, and it
+ * always has a trailing slash, hence the leading slash being trimmed here.
+ *
+ * Both URLs must also be on the Supabase project's redirect allow-list
+ * (Authentication → URL Configuration) or Supabase silently falls back to the
+ * project's Site URL. That is a dashboard setting, not something this repo can
+ * set — see the migration ledger. */
+function authRedirect(path: string): string {
+  const base = import.meta.env.BASE_URL || "/";
+  return `${window.location.origin}${base}${path.replace(/^\//, "")}`;
+}
+
 interface AuthErrorLike {
   message?: string;
   code?: string | number;
@@ -83,7 +104,7 @@ export const authApi = {
       password,
       options: {
         data: { full_name: name, dob },
-        emailRedirectTo: `${window.location.origin}/verify.html`,
+        emailRedirectTo: authRedirect("/verify"),
       },
     });
     if (error) throw new Error(friendlyAuthError(error));
@@ -103,7 +124,7 @@ export const authApi = {
 
   async resetPasswordRequest(email: string): Promise<void> {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password.html`,
+      redirectTo: authRedirect("/reset-password"),
     });
     if (error) throw new Error(friendlyAuthError(error));
   },

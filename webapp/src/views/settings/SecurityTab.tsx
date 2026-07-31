@@ -5,60 +5,23 @@ import {
   InlineFeedback,
   type FeedbackState,
 } from "../../components/InlineFeedback";
+import {
+  PasswordField,
+  PasswordStrengthMeter,
+} from "../../components/PasswordField";
 import { useDialog } from "../../context/dialog";
 import {
   useChangePassword,
   useSignOutOthers,
 } from "../../hooks/useAuthActions";
-import { scorePassword } from "./passwordStrength";
 import settings from "./settings.module.css";
 import styles from "./security.module.css";
 
-/* Security tab — ports index.html:1071-1132 + js/main.js:1051-1138. */
-
-function PasswordField({
-  id,
-  label,
-  value,
-  onChange,
-  autoComplete,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  autoComplete: string;
-}) {
-  const [visible, setVisible] = useState(false);
-  return (
-    <div className={styles.inputGroup}>
-      <label htmlFor={id}>{label}</label>
-      <div className={styles.passwordWrapper}>
-        <input
-          id={id}
-          type={visible ? "text" : "password"}
-          placeholder="Min 8 characters"
-          autoComplete={autoComplete}
-          minLength={8}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
-        {/* tabIndex -1 matches the vanilla: the toggle is a convenience for
-            pointer users, and leaving it in the tab order puts a control
-            between the two password fields. */}
-        <button
-          type="button"
-          className={styles.passwordToggle}
-          tabIndex={-1}
-          aria-label={visible ? "Hide password" : "Show password"}
-          onClick={() => setVisible((v) => !v)}
-        >
-          {visible ? "Hide" : "Show"}
-        </button>
-      </div>
-    </div>
-  );
-}
+/* Security tab — ports index.html:1071-1132 + js/main.js:1051-1138.
+ *
+ * The password field and strength meter this tab introduced now live in
+ * `components/PasswordField` so the auth views share one implementation
+ * rather than a second copy of the same markup. */
 
 export function SecurityTab() {
   const { confirm } = useDialog();
@@ -74,8 +37,6 @@ export function SecurityTab() {
     useState<FeedbackState | null>(null);
   const [sessionsFeedback, setSessionsFeedback] =
     useState<FeedbackState | null>(null);
-
-  const strength = newPassword ? scorePassword(newPassword) : null;
 
   async function onChangePassword() {
     if (!newPassword || newPassword.length < 8) {
@@ -142,34 +103,21 @@ export function SecurityTab() {
           </div>
         </div>
 
-        <PasswordField
-          id={newId}
-          label="New Password"
-          value={newPassword}
-          onChange={setNewPassword}
-          autoComplete="new-password"
-        />
-
-        {strength && (
-          <div
-            className={`${styles.strengthContainer} ${styles[strength.level]}`}
-          >
-            <div className={styles.strengthBars} aria-hidden="true">
-              <div className={styles.strengthSegment} />
-              <div className={styles.strengthSegment} />
-              <div className={styles.strengthSegment} />
-              <div className={styles.strengthSegment} />
-            </div>
-            {/* The vanilla left the meter silent for screen readers; the bars
-                are decorative and the text carries the same information, so
-                it's announced politely as the user types. */}
-            <span className={styles.strengthText} role="status">
-              {strength.label}
-            </span>
+        {/* The per-field `margin-bottom` the vanilla used moves to a gap on
+            the stack, so the strength meter sits tight under the field it
+            measures instead of a field's width apart from it. */}
+        <div className={styles.passwordStack}>
+          <div>
+            <PasswordField
+              id={newId}
+              label="New Password"
+              value={newPassword}
+              onChange={setNewPassword}
+              autoComplete="new-password"
+            />
+            <PasswordStrengthMeter password={newPassword} />
           </div>
-        )}
 
-        <div className={styles.inputGroupLast}>
           <PasswordField
             id={confirmId}
             label="Confirm New Password"

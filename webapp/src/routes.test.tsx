@@ -154,3 +154,52 @@ describe("route skeleton", () => {
     ).toBeInTheDocument();
   });
 });
+
+/* The routes outside ProtectedRoute. Rendered signed-*out*, which is the whole
+   point of them: before auth was ported there was nowhere for a signed-out
+   user to go except back to the vanilla app. */
+describe("public routes", () => {
+  function renderSignedOutAt(path: string) {
+    return renderWithAuth(
+      <MemoryRouter initialEntries={[path]}>
+        <AppRoutes />
+      </MemoryRouter>,
+      { session: null },
+    );
+  }
+
+  it.each([
+    ["/login", "Welcome back"],
+    ["/signup", "Create your account"],
+    ["/forgot-password", "Reset Password"],
+    ["/terms", "Terms of Service"],
+  ])("%s renders for a signed-out user", (path, heading) => {
+    renderSignedOutAt(path);
+    expect(
+      screen.getByRole("heading", { level: 1, name: heading }),
+    ).toBeInTheDocument();
+  });
+
+  it("a protected route sends a signed-out user to /login", () => {
+    renderSignedOutAt("/settings");
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Welcome back" }),
+    ).toBeInTheDocument();
+  });
+
+  it("/terms stays readable while signed in", () => {
+    /* It is linked from the auth screens, but also has to survive being opened
+       from inside the app. */
+    renderWithAuth(
+      <MemoryRouter initialEntries={["/terms"]}>
+        <AppRoutes />
+      </MemoryRouter>,
+      { session: fakeSession() },
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Terms of Service" }),
+    ).toBeInTheDocument();
+  });
+});
