@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import type { Flashcard } from "../../api/types";
 import { Button } from "../../components/Button";
@@ -136,6 +136,11 @@ function ReviewSession({
   const [flipped, setFlipped] = useState(false);
   const [answer, setAnswer] = useState("");
   const [grading, setGrading] = useState(false);
+  /* Mirrors `grading`, but readable synchronously after an `await` without
+     closing over a stale render — see `handleAiGrade` below, an improvement
+     the vanilla never had: its own "AI is grading..." text had no recovery
+     path if the reply never contained a usable tag. */
+  const aiGradeInFlight = useRef(false);
 
   const updateReview = useUpdateFlashcardReview();
   const { send, registerFlashcardGrader } = useChat();
@@ -163,6 +168,7 @@ function ReviewSession({
             ),
         },
       );
+      aiGradeInFlight.current = false;
       setIndex((i) => i + 1);
       setFlipped(false);
       setAnswer("");
@@ -202,18 +208,27 @@ function ReviewSession({
   const handleAiGrade = async () => {
     const trimmed = answer.trim();
     if (!trimmed || grading) return;
+    aiGradeInFlight.current = true;
     setGrading(true);
     /* Flips to reveal the correct answer while grading, same as the vanilla
        (js/router.js:721-724). */
     setFlipped(true);
     /* `send` never throws — a failed request lands in the chat as an error
-       message instead (see ChatProvider.send's catch). If the reply never
-       contains a valid tag (the model ignored the instruction, or the
-       request failed), `grading` has no timeout and stays on until the
-       student grades manually — the vanilla had the same gap: its own
-       "AI is grading..." text was never replaced with real feedback either
-       (js/router.js:718-719 sets it once and nothing ever updates it). */
+       message instead of rejecting (see ChatProvider.send's catch), so this
+       always resolves. The vanilla had no recovery at all if the reply never
+       contained a usable tag: its "AI is grading..." text was set once
+       (js/router.js:718-719) and nothing ever replaced it. Checking the ref
+       here — `scoreCard` clears it on success — means a bad or missing tag
+       surfaces as a real error instead of a screen stuck forever. */
     await send(AI_GRADE_PROMPT(card, trimmed));
+    if (aiGradeInFlight.current) {
+      aiGradeInFlight.current = false;
+      setGrading(false);
+      showToast(
+        "AI couldn't grade that answer — try again, or grade it yourself below.",
+        { error: true },
+      );
+    }
   };
 
   return (

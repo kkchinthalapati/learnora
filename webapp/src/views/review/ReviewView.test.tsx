@@ -387,6 +387,42 @@ describe("ReviewView", () => {
       );
     });
 
+    it("recovers with an error toast when the reply has no usable tag", async () => {
+      /* An improvement over the vanilla, not just a port: its own
+         "AI is grading..." text had no recovery path if the model ignored
+         the instruction. Here the student gets an error and can grade
+         manually instead of staring at a stuck spinner forever. */
+      serve();
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({ text: "Mitochondria are indeed important!" }),
+        ),
+      );
+      renderReview();
+      await screen.findByText("What is a mitochondrion?");
+
+      const user = userEvent.setup();
+      await user.type(
+        screen.getByRole("textbox", { name: "Your answer, for AI to grade" }),
+        "mitochondria",
+      );
+      await user.click(screen.getByRole("button", { name: "Grade" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "AI couldn't grade that answer",
+      );
+      expect(
+        screen.queryByText("AI is grading your answer..."),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Grade" })).not.toBeDisabled();
+
+      // Manual grading still works after the AI path failed.
+      await user.click(screen.getByRole("button", { name: "Easy (4)" }));
+      expect(
+        await screen.findByText("Review Complete! 🧠"),
+      ).toBeInTheDocument();
+    });
+
     it("does nothing when the answer box is empty", async () => {
       serve();
       renderReview();

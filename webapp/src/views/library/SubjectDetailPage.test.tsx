@@ -221,7 +221,7 @@ describe("SubjectDetailPage", () => {
     );
     expect(
       screen.getByText(
-        /will be permanently deleted, along with the notes, flashcards and quizzes generated from it/,
+        /will be permanently deleted, along with the notes and quizzes generated from it/,
       ),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Delete" }));

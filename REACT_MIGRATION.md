@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 718/718 passing
-- **Last verified:** 2026-07-31 (Step 18 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
+- **Tests:** `npm --prefix webapp run test` — expect 724/724 passing
+- **Last verified:** 2026-07-31 (post-Step-18 bug-fix pass — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -1254,18 +1254,31 @@ the way through a real `callEdge` request containing the crafted grading
 prompt to a `<GRADE_FLASHCARD>` reply actually advancing the session — all
 console-clean.
 
-**One gap kept, not fixed: AI grading has no timeout.** If the model's reply
-omits a valid `<GRADE_FLASHCARD>` tag (ignored the instruction, or the
-request failed) the "AI is grading..." status has nothing to clear it until
-the student grades manually. The vanilla had the exact same gap — its own
-`aiFeedback` element was set to a loading string once and nothing ever
-replaced it with the model's real one-sentence feedback either. Adding a
-timeout would be new behaviour beyond the port; left as a loose end below.
-
 **Cutover still not performed**, same hash-routing reason as every prior
 step. `index.html` and `js/*` remain untouched. This is also the last view on
 the ledger — every remaining ☐ is the cutover mechanism itself (see the
 `vercel.json` loose end), not a view port.
+
+### Post-Step-18 bug-fix pass (2026-07-31)
+
+With every view ported, this pass went back through "Known loose ends" for
+real, low-risk fixes rather than starting the (much larger, higher-stakes)
+cutover. 6 new tests (724 total):
+
+- **AI-grading timeout** (closing the gap Step 18 itself just opened, same
+  day): `handleAiGrade` now recovers with an error toast and re-enables
+  manual grading if the model's reply never contains a usable
+  `<GRADE_FLASHCARD>` tag, via a ref `scoreCard` clears on success — the
+  vanilla had no recovery here at all, so this is a real improvement, not
+  just a port.
+- **SRS due-cards notification** (`lib/notifications.ts`, closing the Step 12
+  loose end): the once-per-day browser `Notification` js/main.js:2241-2256
+  described, wired into `TasksCard`'s existing due-count read.
+- **Nested `<button>` inside `<a>`** in `SubjectDetailPage`'s not-found state,
+  fixed the same way `NotesView` already had it.
+- **Material-delete confirmation copy** no longer claims flashcards are
+  deleted with a material — `flashcard_decks` has no `material_id`, so a
+  deck outlives the material it came from.
 
 ---
 
@@ -1299,12 +1312,11 @@ the port)
 - ~~**`<GRADE_FLASHCARD>` is parsed but never executed**~~ Closed in Step 18:
   `ChatProvider` gained `registerFlashcardGrader`, and the review screen
   registers whichever card is on screen.
-- **AI-grading has no timeout** (Step 18). If a model reply never contains a
-  valid `<GRADE_FLASHCARD>` tag, the review screen's "AI is grading..."
-  status has nothing to clear it short of the student grading manually —
-  the vanilla had the same gap (js/router.js:718-719 set a loading string
-  once and nothing ever replaced it). Worth a timeout if it turns out to
-  bite in practice.
+- ~~**AI-grading has no timeout**~~ Closed in a post-Step-18 pass (2026-07-31):
+  `handleAiGrade` now checks a ref `scoreCard` clears on success once `send`
+  resolves, and shows an error toast + re-enables manual grading if the reply
+  never contained a usable tag — strictly better than the vanilla, which had
+  no recovery path here at all.
 - **The AI edge function's CORS allow-list does not include the Vite dev
   server.** `DEFAULT_ALLOWED_ORIGINS` in
   `supabase/functions/learnora-ai/index.ts` lists `http://localhost:3000` (the
@@ -1331,14 +1343,14 @@ the port)
 - **The Notes AI study sidebar is not ported** (Step 13's scoping decision —
   see that section). `NotesView` is Quill-only until Step 17 builds the chat
   surface for real; nothing to revisit before then.
-- **SRS due-cards notification is not ported** (found in Step 12).
-  `notifyDueCardsOncePerDay` (js/main.js:2241-2256) — a once-per-day browser
-  `Notification` when flashcards are due, gated on `notifyStudyReminders` —
-  has no React equivalent yet. `useFlashcardsDueCount` exists and the
-  dashboard reads it, so wiring the notification itself is small; it just
-  hasn't been done. Natural home is wherever notification permission gets
-  centralized (`TimerProvider` currently owns its own `notifyTimerAlerts`
-  path independently).
+- ~~**SRS due-cards notification is not ported**~~ Closed in a post-Step-18
+  pass (2026-07-31): `lib/notifications.ts` ports `notifyDueCardsOncePerDay`
+  (js/main.js:2241-2256) as a pure decision function (`shouldNotifyDueCards`,
+  tested) plus the effectful `Notification` call, fired from `TasksCard`'s
+  `useEffect` on the same `dueCount` the badge already reads. Permission
+  handling still isn't centralized with `TimerProvider`'s own
+  `notifyTimerAlerts` path — two independent call sites, same as noted here
+  before; worth unifying if a third notification type shows up.
 - **"Plan my week" and "Quiz me" are stubs pending Step 14** (Step 12). Both
   dashboard buttons show "AI features aren't connected yet" instead of
   calling `AI.generateWeeklyPlan()` or opening a quiz-tuned CreateModal —
@@ -1346,23 +1358,22 @@ the port)
   lands; "Quiz me" additionally wants `CreateModal`'s options extended with
   a way to pre-select the Quiz output and a custom title, which don't exist
   today.
-- **The material-delete confirmation overstates what goes with it.** It says
-  "along with the notes, flashcards and quizzes generated from it", but
-  `flashcard_decks` has no `material_id` at all — decks reference a folder
-  only, so a deck outlives the material it was generated from. Notes and
-  quizzes really are deleted. The wording is the vanilla's and is left
-  unchanged here (it's a copy decision, not a port bug); worth fixing in
-  whichever step owns deck provenance.
+- ~~**The material-delete confirmation overstates what goes with it**~~ Fixed
+  in a post-Step-18 pass (2026-07-31): the copy no longer names flashcards,
+  since `flashcard_decks` has no `material_id` and a deck outlives the
+  material it was generated from. Notes and quizzes really are deleted, and
+  the wording now says exactly that.
 - **A subject's "+ Create" no longer pre-selects the folder's newest
   material.** The vanilla passed `materialId: materials[0]?.id` so the dialog
   could seed "generate a deck/quiz from this material" — a flow that is AI-
   driven and doesn't exist until Step 14. The folder pre-selection, which does
   exist today, is passed.
-- **`SubjectDetailPage`'s two "Back to Library" links nest a `<button>`
-  inside an `<a>`** (found while building Step 13, which needed the same
-  affordance and used `Button`'s `onClick` + `navigate()` instead) — invalid
-  HTML, interactive content can't nest. One-line fix whenever Library is next
-  touched.
+- ~~**`SubjectDetailPage`'s two "Back to Library" links nest a `<button>`
+  inside an `<a>`**~~ Fixed in a post-Step-18 pass (2026-07-31): the
+  not-found state's link now uses `Button`'s `onClick` + `navigate()`,
+  matching the pattern the rest of the app already used. (The other
+  occurrence, the header's plain text link, was never actually nested —
+  re-checked while fixing this.)
 - Vite's react-ts template now ships **oxlint** instead of ESLint (`npm run lint`).
   Kept — it satisfies the lint requirement — but if anyone wants ESLint-specific
   plugins later (e.g. eslint-plugin-react-hooks rules beyond what oxlint covers),

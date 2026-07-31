@@ -76,8 +76,12 @@ export function useLibraryActions() {
 
   const removeMaterial = useCallback(
     async (id: string, title: string, storagePath: string | null) => {
+      /* The vanilla's copy also named flashcards, but `flashcard_decks` has
+         no `material_id` — decks reference a folder only, so a deck outlives
+         the material it was generated from. Notes and quizzes really are
+         deleted; flashcards aren't touched. */
       const ok = await confirm(
-        `"${title}" will be permanently deleted, along with the notes, flashcards and quizzes generated from it.`,
+        `"${title}" will be permanently deleted, along with the notes and quizzes generated from it.`,
         { title: "Delete file?", confirmText: "Delete", danger: true },
       );
       if (!ok) return;

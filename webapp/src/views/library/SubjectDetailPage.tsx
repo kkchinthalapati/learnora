@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
@@ -63,6 +63,7 @@ function Section({
 
 export function SubjectDetailPage() {
   const { folderId = "" } = useParams<{ folderId: string }>();
+  const navigate = useNavigate();
   const { openCreateModal } = useCreateModal();
   const { removeMaterial, removeDeck, removeQuiz } = useLibraryActions();
 
@@ -102,9 +103,11 @@ export function SubjectDetailPage() {
           title="This folder no longer exists."
           message="It may have been deleted from another tab or device."
         >
-          <Link to="/library">
-            <Button variant="primary">Back to Library</Button>
-          </Link>
+          {/* A <button> can't nest inside an <a> — invalid HTML. Same fix
+              NotesView already uses for its own "not found" empty state. */}
+          <Button variant="primary" onClick={() => navigate("/library")}>
+            Back to Library
+          </Button>
         </EmptyState>
       </main>
     );
