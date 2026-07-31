@@ -1,0 +1,419 @@
+/* Timer — ported 1:1 from style.css's "5.5 Timer & workflow" block, the
+ * mini-timer block, `.small-input`, `.sidebar-divider`, `.btn-ghost-success`,
+ * the `shimmer-drift` / `ring-glow` / `mini-timer-*` keyframes, and the
+ * max-width 1024px and 768px overrides.
+ *
+ * The mobile `!important`s on `.mini-timer`'s inset are dropped: they existed
+ * to beat the base rule from a later section of the same stylesheet, and here
+ * the media query already comes last. */
+
+.view {
+  padding: var(--s-6) var(--s-6) var(--s-8);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.pageHeader {
+  margin-bottom: var(--s-6);
+}
+
+.pageHeader h1 {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  margin: 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 2fr;
+  gap: clamp(16px, 3vw, 28px);
+  align-items: start;
+}
+
+.panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-6);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+}
+
+.panel h3 {
+  margin-bottom: var(--s-6);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+/* --- Type selector: a 4-way segmented control --- */
+.typeSeg {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--s-1);
+  padding: var(--s-1);
+  margin-bottom: var(--s-4);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+}
+
+.segOption {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 8px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    color var(--t-fast) ease;
+}
+
+.segOption input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.segOption:hover {
+  color: var(--text);
+}
+
+.segOption:has(input:checked) {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.segOption:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Non-destructive-change hint, shown when a preset is staged mid-run. */
+.stageHint {
+  margin: 0 0 var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--accent-ring);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+
+.presetButtons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.divider {
+  border: 0;
+  height: 1px;
+  background: var(--line);
+  margin: var(--s-4) var(--s-2);
+}
+
+.configRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+
+.smallInput {
+  width: 96px;
+  padding: 10px;
+  text-align: center;
+}
+
+.typeNote {
+  margin-top: var(--s-3);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.taskBinder {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}
+
+.taskBinder select {
+  width: 96px;
+  padding: 10px;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.applyBtn {
+  width: 100%;
+  margin-top: var(--s-6);
+}
+
+.favs {
+  margin-top: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.favRow {
+  display: flex;
+  gap: 8px;
+}
+
+.favRow > button:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Display side --- */
+.display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: clamp(32px, 5vw, 56px) clamp(20px, 4vw, 40px);
+  position: relative;
+  overflow: hidden;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+}
+
+/* Animated gradient shimmer behind the timer. */
+.display::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 50% 40% at 30% 20%,
+      var(--accent-soft) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 40% 50% at 70% 80%,
+      var(--accent-soft) 0%,
+      transparent 70%
+    );
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 0;
+  animation: shimmer-drift 20s ease-in-out infinite alternate;
+}
+
+.display > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes shimmer-drift {
+  0% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0.4;
+  }
+}
+
+.quote {
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: clamp(14px, 2vw, 16px);
+  margin-bottom: var(--s-6);
+  max-width: 46ch;
+  transition: opacity 0.3s ease;
+}
+
+.ringWrapper {
+  position: relative;
+  width: clamp(200px, 28vw, 280px);
+  height: clamp(200px, 28vw, 280px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--s-8);
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ringBg {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 8;
+}
+
+.ringProgress {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 565.49;
+  transition: stroke-dashoffset 1s linear;
+  filter: drop-shadow(0 0 16px var(--accent-glow));
+}
+
+:global(body.dark-theme) .ringProgress {
+  animation: ring-glow 4s ease-in-out infinite;
+}
+
+@keyframes ring-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px var(--accent-glow));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px var(--accent-glow));
+  }
+}
+
+.ringContent {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.modeLabel {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  margin: 0 0 var(--s-1);
+}
+
+.time {
+  font-family: var(--font-head);
+  font-size: clamp(48px, 7vw, 72px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  line-height: 1;
+}
+
+.cycles {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  margin: var(--s-2) 0 var(--s-4);
+}
+
+.progressTrack {
+  width: 100%;
+  max-width: 460px;
+  height: 6px;
+  background: var(--line);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  margin-bottom: clamp(24px, 4vw, 36px);
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+  box-shadow: 0 0 12px var(--accent-glow);
+  transition: width 1s linear;
+}
+
+.controls {
+  display: flex;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ghostDanger {
+  background: transparent;
+  color: var(--danger);
+  border-color: transparent;
+}
+
+.ghostDanger:hover:not(:disabled) {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.ghostSuccess {
+  background: transparent;
+  color: var(--success);
+  border-color: transparent;
+}
+
+.ghostSuccess:hover:not(:disabled) {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .display {
+    min-height: 380px;
+  }
+}
+
+@media (max-width: 768px) {
+  .view {
+    padding: var(--s-4);
+  }
+  .controls {
+    flex-direction: column;
+  }
+  .controls button {
+    width: 100%;
+  }
+  .ringWrapper {
+    width: 200px;
+    height: 200px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .display::before,
+  :global(body.dark-theme) .ringProgress {
+    animation: none;
+  }
+  .ringProgress,
+  .progressBar {
+    transition: none;
+  }
+}

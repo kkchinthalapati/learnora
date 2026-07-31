@@ -4,6 +4,12 @@ import { SignInRequired } from "./components/SignInRequired";
 import { SettingsView } from "./views/settings/SettingsView";
 import { TasksView } from "./views/tasks/TasksView";
 import { ExamsView } from "./views/exams/ExamsView";
+import { TimerView } from "./views/timer/TimerView";
+import { LibraryView } from "./views/library/LibraryView";
+import { SubjectDetailPage } from "./views/library/SubjectDetailPage";
+import { DashboardView } from "./views/dashboard/DashboardView";
+import { NotesView } from "./views/notes/NotesView";
+import { PlanView } from "./views/plan/PlanView";
 
 /*
  * Route table mirroring the vanilla app's hash router (js/router.js):
@@ -28,21 +34,15 @@ export function AppRoutes() {
     <Routes>
       <Route path="/login" element={<SignInRequired />} />
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<Placeholder title="Dashboard" />} />
+        <Route path="/" element={<DashboardView />} />
         <Route path="/tasks" element={<TasksView />} />
         <Route path="/exams" element={<ExamsView />} />
-        <Route path="/timer" element={<Placeholder title="Timer" />} />
-        <Route path="/library" element={<Placeholder title="Library" />} />
-        <Route path="/library/:tab" element={<Placeholder title="Library" />} />
-        <Route
-          path="/folders/:folderId"
-          element={<Placeholder title="Subject" />}
-        />
-        <Route
-          path="/notes/:materialId"
-          element={<Placeholder title="Notes" />}
-        />
-        <Route path="/plan" element={<Placeholder title="Weekly Plan" />} />
+        <Route path="/timer" element={<TimerView />} />
+        <Route path="/library" element={<LibraryView />} />
+        <Route path="/library/:tab" element={<LibraryView />} />
+        <Route path="/folders/:folderId" element={<SubjectDetailPage />} />
+        <Route path="/notes/:materialId" element={<NotesView />} />
+        <Route path="/plan" element={<PlanView />} />
         <Route path="/quiz/:quizId" element={<Placeholder title="Quiz" />} />
         <Route
           path="/quiz/:quizId/review"

@@ -2,6 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { notesApi } from "../api/notes";
 
 export const notesKeys = {
+  /* Prefix of every per-material key, for the cascade invalidations in
+     useFolders/useMaterials — deleting either takes the notes with it. */
+  all: ["notes"] as const,
   byMaterial: (materialId: string) => ["notes", materialId] as const,
 };
 

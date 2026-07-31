@@ -8,6 +8,8 @@ import { AuthProvider } from "./context/AuthProvider";
 import { CreateModalProvider } from "./context/CreateModalProvider";
 import { AppearanceProvider } from "./context/AppearanceProvider";
 import { SettingsProvider } from "./context/SettingsProvider";
+import { TimerProvider } from "./context/TimerProvider";
+import { MiniTimer } from "./views/timer/MiniTimer";
 import { AppRoutes } from "./routes";
 
 /* AppearanceProvider sits outside the router: the body attributes it writes
@@ -23,9 +25,14 @@ export default function App() {
               <DialogProvider>
                 <AuthProvider>
                   <CreateModalProvider>
-                    <BrowserRouter>
-                      <AppRoutes />
-                    </BrowserRouter>
+                    <TimerProvider>
+                      <BrowserRouter>
+                        <AppRoutes />
+                        {/* Docked on every route while a session is live, so
+                            it lives beside the routes rather than inside one. */}
+                        <MiniTimer />
+                      </BrowserRouter>
+                    </TimerProvider>
                   </CreateModalProvider>
                 </AuthProvider>
               </DialogProvider>

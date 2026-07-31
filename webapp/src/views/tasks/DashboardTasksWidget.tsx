@@ -54,6 +54,7 @@ export function DashboardTasksWidget() {
       <div className={styles.dashAddRow}>
         <input
           type="text"
+          id="dash-task-input"
           className={shake ? styles.inputError : undefined}
           placeholder="Add a task..."
           autoComplete="off"

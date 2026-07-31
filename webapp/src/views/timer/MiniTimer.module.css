@@ -1,0 +1,139 @@
+/* Persistent mini-timer — ported 1:1 from style.css's mini-timer block and
+ * its two keyframes. The mobile `!important`s on the inset are dropped: they
+ * existed only to beat the base rule from an earlier section, and here the
+ * media query already comes last. */
+
+.mini {
+  position: fixed;
+  bottom: clamp(20px, 4vw, 36px);
+  left: clamp(20px, 4vw, 36px);
+  z-index: 985;
+  display: flex;
+  align-items: stretch;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-2) var(--s-2) var(--s-3);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-inner), var(--shadow-lg);
+  animation: mini-timer-in var(--t) var(--ease);
+}
+
+@keyframes mini-timer-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+}
+
+.main {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 4px 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  text-align: left;
+  font-family: inherit;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex: none;
+}
+
+.running .dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 0 var(--accent-glow);
+  animation: mini-timer-pulse 1.6s ease-out infinite;
+}
+
+@keyframes mini-timer-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--accent-glow);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(84, 104, 231, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(84, 104, 231, 0);
+  }
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.time {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  padding: 0;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background var(--t-fast) ease;
+}
+
+.btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 0;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+  transition: width 1s linear;
+}
+
+/* Keep the mini-timer clear of the Turbo button on mobile. */
+@media (max-width: 768px) {
+  .mini {
+    bottom: max(32px, env(safe-area-inset-bottom, 32px));
+    left: max(20px, env(safe-area-inset-left, 20px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini,
+  .running .dot {
+    animation: none;
+  }
+  .bar {
+    transition: none;
+  }
+}

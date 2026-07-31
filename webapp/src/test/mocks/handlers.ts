@@ -4,8 +4,20 @@ import { SUPABASE_URL } from "../../lib/supabase";
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 
 export const taskFixtures = [
-  { id: 1, user_id: "user-1", text: "Read chapter 4", is_done: false, due_date: null },
-  { id: 2, user_id: "user-1", text: "Finish essay", is_done: true, due_date: "2026-08-01" },
+  {
+    id: 1,
+    user_id: "user-1",
+    text: "Read chapter 4",
+    is_done: false,
+    due_date: null,
+  },
+  {
+    id: 2,
+    user_id: "user-1",
+    text: "Finish essay",
+    is_done: true,
+    due_date: "2026-08-01",
+  },
 ];
 
 export const folderFixtures = [
@@ -57,6 +69,16 @@ export const handlers = [
   http.patch(rest("exams"), () => new HttpResponse(null, { status: 204 })),
   http.delete(rest("exams"), () => new HttpResponse(null, { status: 204 })),
 
+  http.get(rest("flashcard_decks"), () => HttpResponse.json([])),
+  http.post(
+    rest("flashcard_decks"),
+    () => new HttpResponse(null, { status: 201 }),
+  ),
+  http.delete(
+    rest("flashcard_decks"),
+    () => new HttpResponse(null, { status: 204 }),
+  ),
+
   http.get(rest("flashcards"), () => HttpResponse.json([])),
   http.head(rest("flashcards"), () => new HttpResponse(null, { status: 200 })),
 
@@ -66,6 +88,17 @@ export const handlers = [
   http.get(rest("quiz_attempts"), () => HttpResponse.json([])),
 
   http.get(rest("study_sessions"), () => HttpResponse.json([])),
-  http.delete(rest("study_sessions"), () => new HttpResponse(null, { status: 204 })),
-  http.delete(rest("weekly_plans"), () => new HttpResponse(null, { status: 204 })),
+  http.delete(
+    rest("study_sessions"),
+    () => new HttpResponse(null, { status: 204 }),
+  ),
+  http.get(rest("weekly_plans"), () => HttpResponse.json([])),
+  http.post(
+    rest("weekly_plans"),
+    () => new HttpResponse(null, { status: 201 }),
+  ),
+  http.delete(
+    rest("weekly_plans"),
+    () => new HttpResponse(null, { status: 204 }),
+  ),
 ];

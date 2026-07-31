@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 285/285 passing
-- **Last verified:** 2026-07-29 (Step 9 — tests green, `npm run build` green, `npm run lint` clean, browser-verified)
+- **Tests:** `npm --prefix webapp run test` — expect 570/570 passing
+- **Last verified:** 2026-07-30 (Step 15 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -23,12 +23,12 @@ session, or agent can resume without any conversation history.
 | 7 | Settings (first cutover — lowest external dependency, all 6 tabs) | Views | ✅ |
 | 8 | Tasks (+ dashboard quick-add widget) | Views | ✅ |
 | 9 | Exams (calendar + ExamModal + DayDetailModal) | Views | ✅ |
-| 10 | Timer | Views | ☐ |
-| 11 | Library shell (4 tabs) + Subject detail page | Views | ☐ |
-| 12 | Dashboard (aggregates Tasks/Exams/Timer/Library data) | Views | ☐ |
-| 13 | Notes editor (Quill wrapper) | Views | ☐ |
-| 14 | AI layer port (streaming calls, `renderMarkdown`, action-tag parser) | Foundation | ☐ |
-| 15 | Weekly Plan | Views | ☐ |
+| 10 | Timer | Views | ✅ |
+| 11 | Library shell (4 tabs) + Subject detail page | Views | ✅ |
+| 12 | Dashboard (aggregates Tasks/Exams/Timer/Library data) | Views | ✅ |
+| 13 | Notes editor (Quill wrapper) | Views | ✅ |
+| 14 | AI layer port (streaming calls, `renderMarkdown`, action-tag parser) | Foundation | ✅ |
+| 15 | Weekly Plan | Views | ✅ |
 | 16 | Quiz runner + review | Views | ☐ |
 | 17 | Turbo chat + dashboard command bar | Views | ☐ |
 | 18 | Flashcard Review (SRS flip-card, most complex) | Views | ☐ |
@@ -510,6 +510,471 @@ hangs, not a target.
 vanilla app is hash-routed, so no path rewrite can intercept `#todo` or
 `#exams` either. `index.html` and `js/*` remain untouched.
 
+### Step 10 — Timer (2026-07-30)
+
+Ports all 745 lines of `js/timer.js` plus its wiring (js/main.js:1177-1290) and
+markup (index.html:596-846, :2278-2310). Split three ways:
+
+- **`lib/timer.ts`** — the state machine as pure functions, with every DOM
+  write lifted out. The vanilla mutated one shared `state` object in place and
+  repainted by hand, which is why its subtlest rules had no coverage; here each
+  transition returns the next state plus its *effects* as data (`logMinutes`,
+  `toast`, `notify`, `newQuote`), so "what counts as a loggable session" is
+  testable without a clock or a document.
+- **`context/TimerProvider.tsx`** — owns the one live interval, persistence and
+  effect execution. Mounted above the router: a running timer has to survive
+  navigating away from /timer.
+- **`views/timer/`** — `TimerView` and `MiniTimer`, which are now only screens.
+
+Both clock directions are preserved exactly. Count-down is anchored to
+`targetEndTime` and recomputed from the wall clock on every tick, so a
+throttled background tab catches up instead of drifting; count-up is
+`startedAt` + `countUpBase`, so elapsed time survives a pause and a reload. A
+count-down that expires while the tab is closed is still logged and toasted on
+the next load. All four types, all four modes, staging, `+5 min`, flowtime's
+proportional break, favourite presets (including the legacy flat fields the
+vanilla writes, so presets round-trip between the two apps) and the
+motivational quotes all came across.
+
+**The three vanilla bugs its own comments describe are preserved as behaviour
+and pinned by tests** — they were fixed in the vanilla and it would be easy to
+silently undo them in a rewrite: `flushCountUpSession` runs *before* any type
+switch (otherwise a stopwatch looks like a countdown and banked minutes vanish);
+it clears the counters unconditionally (otherwise a type switch reads a
+pomodoro's stale `elapsed` as a fresh stopwatch session and logs time nobody
+spent); and `isRunning` is set before the elapsed read on restore (otherwise the
+display shows the pre-reload time until the first tick).
+
+**One accuracy fix.** `pause()` now recomputes `timeLeft` from the end anchor
+instead of trusting whatever the last tick left behind. The vanilla's version
+rounded up to a second of free time on every pause, and a pause during a
+throttled background tab could bank a value many seconds stale.
+
+**Session logging keeps the vanilla's ordering deliberately**: localStorage
+first and synchronously, then a best-effort Supabase write whose failure is
+warned and swallowed. Local history is the source of truth for instant UI, so a
+flaky connection never loses a logged session — there's a test for exactly that.
+
+**Testing: 90 new tests (375 total).** 64 on the state machine — every type and
+phase transition, both clock directions, the flush rules above, persistence
+round-trips including "expired while away", and the legacy preset format — and
+26 on the views: the type panels, staging vs applying, both confirmation
+dialogs, Stop & log, the preset lifecycle, restore-across-reload, task
+attribution, and the mini-timer's docking rules.
+
+**One test-infrastructure change:** `TimerProvider` is opt-in in
+`test/render.tsx` (`withTimer: true`) rather than part of the default stack. It
+restores and re-persists localStorage-backed state on every mount and owns an
+interval; including it unconditionally made the whole suite roughly eight times
+slower for the benefit of the ~25 tests that need it. That's the same reasoning
+`AuthProvider` is already excluded for.
+
+**Browser-verified.** Started a pomodoro, confirmed it ticks, then switched type
+mid-run: the segmented control and config panel moved to Countdown and the hint
+appeared, while the pomodoro kept running at 24:51 in Focus — the vanilla's
+non-destructive staging, intact. Navigating to /exams docked the mini-timer
+bottom-left, still counting, with its pulsing accent dot. Console clean.
+
+**Cutover still not performed** — same hash-routing reason as Steps 7-9.
+`index.html` and `js/*` remain untouched.
+
+### Step 11 — Library shell + subject workspace (2026-07-30)
+
+**Built on Steps 8-9, not on Step 10** — the Timer sat unmerged on
+`feat/react-step-10-timer` at the time and nothing in the Library depended on
+it. Both branches were combined onto `feat/react-step-12-dashboard` when
+Step 12 started, since that step is the first one that needs both.
+
+The Library's four tabs (`/library`, `/library/materials|flashcards|quizzes`)
+and a subject's workspace (`/folders/:folderId`) are ported into
+`webapp/src/views/library/`: `LibraryView` (the shell), one component per tab
+(`FoldersPanel`, `MaterialsPanel`, `FlashcardsPanel`, `QuizzesPanel`),
+`SubjectDetailPage`, `useLibraryActions` (the confirm-then-delete flows both
+surfaces share) and `libraryMeta.ts` (tab list, `safeColor`, the two date
+formats). Sources: index.html:1684-1748 + js/router.js:251-498 and :794-825.
+36 new tests (321 total).
+
+**The active tab lives in the URL**, as it did in the vanilla (`#library`,
+`#library-materials`, …), so tabs stay linkable and survive a refresh. An
+unknown tab now redirects to `/library` instead of rendering Folders under a
+URL that says `#library-nonsense`, which is what `known.includes(tab) ?
+tab : "folders"` did. Only the selected panel is mounted, which is also how the
+vanilla's "load only this tab's data" behaviour falls out for free — an
+unmounted panel's queries never run.
+
+**The delegated-click ordering hack is gone.** The vanilla made each folder
+card a `[data-hash]` div with the rename/delete buttons *inside* it, so
+clicking Delete also navigated into the folder; `js/router.js:32-65` defused
+that with five `[data-action]` checks that had to run before the `[data-hash]`
+handler. Here the card is a real `<Link>` and the buttons are siblings layered
+over it, so neither can trigger the other and there is no ordering to get
+right. Quiz cards, which have two destinations (take it / review the last
+attempt), keep the title and both actions as separate links rather than nesting
+anything inside a card-wide link.
+
+**Card quick-actions are reachable without a mouse.** `.folder-card-actions`
+was `opacity: 0` until `:hover`, so on a touch device rename and delete were
+invisible and unreachable. `:focus-within` was already there for keyboards; the
+port adds a `@media (hover: none)` rule that keeps them visible where hover
+isn't a real input.
+
+**Two bugs found while porting.**
+
+1. *Every subject's workspace was titled "Workspace".* The markup has
+   `<h2 id="workspace-title">Workspace</h2>` and nothing in `js/` ever assigns
+   to it, so the page never named the folder you had opened. It shows the
+   subject's name now, and a folder id that doesn't resolve says so instead of
+   rendering three empty lists that look like a real but empty subject.
+2. *Deletes left the rest of the Library showing rows that no longer existed.*
+   `useDeleteFolder` invalidated only the folder list, but folder deletion
+   cascades to materials, quizzes and decks in the database (migration
+   20260719000000), and a deck takes its flashcards with it. Same gap in
+   `useDeleteDeck` (the due-count banner sits directly above the deck it just
+   removed) and `useDeleteMaterial` (`notes.material_id` and
+   `quizzes.material_id` both point at the deleted row — FKs re-checked against
+   the live schema via the Supabase MCP `list_tables` tool). All three now
+   invalidate what the cascade actually touches; `notesKeys` gained an `all`
+   prefix for it.
+
+**Creation goes through Step 6's CreateModal**, so "+ Create", "+ New Folder"
+and every empty-state button open the one dialog on the right panel — this is
+the "first view step to build real navigation should call `openCreateModal()`"
+loose end from Step 6, now closed. The vanilla created folders from a bare
+`UI.promptText()` with a random colour; the Subject panel asks for the colour
+instead. Renaming a folder still uses `promptText`, matching the vanilla.
+Failures report through an error toast rather than `UI.showPopup`, which has no
+React equivalent, and a successful folder delete now toasts like the other
+three did.
+
+**Nothing re-renders a view by hand.** The vanilla's four delete handlers each
+parsed `window.location.hash` for `folder-<id>` to decide whether to call
+`loadFolderDetail(id)` or `loadAllX()`; cache invalidation reaches every
+subscriber regardless of which is mounted, so deleting a deck inside a subject
+updates the Flashcards tab too. The subject page filters decks and quizzes out
+of the all-entities queries the Library tabs already load, so opening a subject
+from the Library costs no new requests.
+
+**Browser verification not done — it is owed before this merges.** There is no
+browser driver in this environment (no Playwright/Puppeteer installed, no
+browser tool available), and the visual surface here is exactly the kind jsdom
+cannot prove: hover-revealed card actions, `backdrop-filter` glass cards, the
+`auto-fill minmax` grid, and the folder colour written as an inline
+`border-top`. The dev server was smoke-tested instead (`/` and
+`/library/quizzes` both 200, the CSS module compiles and serves), and
+`npm run build` is green. Worth a click-through of all four tabs plus one
+subject against a stubbed session, per the recipe in the loose ends below.
+
+**Cutover still not performed**, for the reasons under Step 7 — the vanilla app
+is hash-routed, so no path rewrite can intercept `#library`. `index.html` and
+`js/*` remain untouched.
+
+### Step 12 — Dashboard (2026-07-30)
+
+**Required combining Steps 10 and 11 first.** The Timer sat unmerged on
+`feat/react-step-10-timer` and the Library was still on its own
+`feat/react-step-11-library` branch — this step is the first that needs both,
+per the plan's Section 4 ("Dashboard comes after its constituent widgets'
+source views"). Both were merged into `feat/react-step-12-dashboard` (two
+merge commits, conflicts only in `routes.tsx` and this ledger — every hook
+file Step 11 touched resolved cleanly since Step 10 never touched them)
+before any Dashboard code was written. 454 total tests (411 carried over +
+43 new: 21 pure-function, 22 integration).
+
+The whole `/` route is ported into `webapp/src/views/dashboard/`: seven
+components (`NextExamCard`, `FocusCard`, `StreakCard`, `TasksCard`,
+`AIActionsCard`, `OnboardingBanner`, `SessionHistoryCard`) composed by
+`DashboardView`, plus `analytics.ts` (the pure functions behind the numbers —
+`computeStreak`, the 7-day sparkline, the per-folder breakdown, focus-time
+totals, the next-exam countdown) and `useLocalSessions.ts`. Sources:
+index.html:470-593 + js/main.js's renderDashboard/renderAnalytics/
+renderNextExam/renderDueCards/renderWeakTopics/maybeRenderOnboardingBanner
+(:1921-2354) and the focus-preset/plan-week/quiz-me bindings (:1252-1276,
+:2445-2483).
+
+**One deliberate cross-view import, pre-authorized by Step 8's own comment.**
+`TasksCard` renders Step 8's `DashboardTasksWidget` directly from
+`views/tasks/` — every other view in this codebase is self-contained, but
+that widget's file comment already says "Step 12 imports it into the real
+dashboard," so this was the plan, not scope creep. `analytics.ts`'s `safeColor`
+is duplicated rather than imported from `views/library` for the same reason
+the reverse direction wasn't done in Step 11: everything else stays
+self-contained.
+
+**Two data sources for one number, same split as the vanilla.** The Focus
+card's total/today paint instantly from the same `localStorage["sessions"]`
+key `TimerProvider` writes first and synchronously (its own comment: "a
+flaky Supabase write should never lose a logged session"), then prefer the
+Supabase-sourced `useSessionsSince(90)` total — the same query `StreakCard`
+reads — the moment it resolves. The vanilla did this as two sequential DOM
+writes (`renderDashboard()` then `renderAnalytics()`); here it's "prefer the
+query once it's ready," which is the idiomatic shape of the same design in
+React.
+
+**Live-refresh bug found and fixed while porting.** `js/timer.js:463`
+dispatches a same-tab `sessionLogged` window event after every local write,
+and `js/main.js:2653` listens for it to repaint the dashboard — necessary
+because the timer can keep running (and finish) on a different route than
+the one showing the log. The first cut of this port missed that entirely:
+`useLocalSessions` read `localStorage` once on mount with no way to learn
+about a write from a sibling component, so a session completing via the
+docked `MiniTimer` while sitting on `/` would never appear until a real
+navigation away and back. `TimerProvider` now dispatches
+`SESSION_LOGGED_EVENT` (same idea, exported name) after its local write, and
+`useLocalSessions` re-reads on it. There's a regression test that dispatches
+the event manually and asserts the list updates without remounting.
+
+**The "Ask Learnora AI" card is real UI with an honest stub, not an
+omission.** All four buttons ("Plan my week", "What next?", "Quiz me",
+"Summarize notes") call into `js/ai.js`, which doesn't exist in the React
+app until Step 14. Rather than drop the card — a visible hole in the
+grid — or invent new `CreateModal` option surface to half-wire "Quiz me"
+early, every button opens the same "AI features aren't connected yet —
+Step 14 wires this up" message Step 6's `MaterialPanel` already established
+for its own AI-gated submit. The weak-topics chips beneath them are real,
+not stubbed: `fetchWeakTopics` only aggregates
+`quiz_attempts.weak_topics`, a plain read with no AI dependency, unchanged
+since Step 5.
+
+**One vanilla behavior not carried over — genuinely dropped, not deferred
+elsewhere.** The vanilla's `renderDueCards()` also pushed a once-per-day
+browser `Notification` when cards are due (`notifyDueCardsOncePerDay`,
+gated on the `notifyStudyReminders` setting). Nothing in the React app fires
+that yet — `TimerProvider`'s `Notification` calls are for timer alerts only,
+a separate setting (`notifyTimerAlerts`). Listed below under loose ends
+rather than silently skipped.
+
+**Testing.** `analytics.test.ts` (21 tests) covers every pure function on
+its own — `computeStreak`'s grace-day and missed-day rules, the sparkline's
+7-day window, the folder breakdown's sort-and-cap-at-4, `daysUntil`'s
+local-time parsing — matching the precedent `lib/timer.test.ts` set for
+testing state logic without a document. `DashboardView.test.tsx`
+(22 tests) covers all seven cards end to end: the exam countdown and its
+empty state, the two-source focus total (including the instant local paint
+asserted *before* the network response resolves), both focus-preset paths
+(idle vs. running-with-confirmation), the streak card's empty state, the
+tasks widget's View-all link and SRS due banner, the AI stub message, real
+weak topics, the onboarding banner's full lifecycle (appears, dismisses,
+persists, disappears once there's real data, focuses the task input), and
+the live session-log refresh. Needed `withTimer: true` in the provider stack
+(FocusCard reads `useTimer()`) and, per the Step 9 loose end, derives every
+exam/session date from the real clock rather than faking timers.
+
+**Manual/browser verification not done — no driver available in this
+environment** (same constraint as Step 11's entry). The dev server was
+smoke-tested (`/` returns 200, `npm run build` succeeds). Worth a real
+click-through — the sparkline bar heights, the AI card's hover states, and
+the glass-card gradients on `.examCard`/`.card::before` are exactly what
+jsdom can't prove — before this merges.
+
+**Cutover still not performed**, same hash-routing reason as every prior
+step. `index.html` and `js/*` remain untouched.
+
+### Step 13 — Notes editor, Quill wrapper (2026-07-30)
+
+Ports js/editor.js (217 lines) and index.html:1750-1802 into two layers,
+matching Decision #8: `components/RichTextEditor.tsx` (a hand-rolled Quill
+wrapper — `react-quill` is unmaintained against Quill 2.x) and
+`views/notes/NotesEditorPane.tsx` (the autosave/save-status state machine
+above it). `views/notes/NotesView.tsx` is the route-level wrapper that
+resolves the material and its notes and hands off to the pane, split the
+same way Library's `SubjectDetailPage`/panels are. 26 new tests (480 total):
+9 on the wrapper, 9 on the view, 8 on `renderMarkdown` (below).
+
+**Scoping decision made before writing any code.** The vanilla's Notes view
+is actually two panes — the Quill editor (this step) and a full AI study
+sidebar (chat, Quiz-me/Flashcards quick actions, file attach, voice input;
+index.html:1804-1869). The sidebar is not ported here. It depends on the AI
+layer (step 14) and is, in substance, the same chat surface Step 17 builds
+for real — the ledger's own dependency table already has 17 depend on 13,
+not the reverse, so building a throwaway stub here would just be replaced
+work. `notes.module.css` is a single-pane layout for exactly this reason:
+no reason to reserve space for a sidebar that doesn't exist yet.
+
+**One function ported early, deliberately, out of step 14's file.**
+`AI.renderMarkdown` (js/ai.js:138-192) is the fallback path for any note
+whose `html_content` hasn't been generated yet — still processing, or a row
+that predates the `html_content` column (migration 20260727020000). It has
+no network call and no AI dependency, just a pure regex-based markdown→HTML
+transform, so it's ported now into `lib/markdown.ts` rather than leaving
+that fallback broken (or showing raw markdown syntax) until step 14 lands.
+Step 14 should import it, not reimplement it. The one thing deliberately
+*not* carried over: the vanilla's widget-token un-escape step
+(js/ai.js:183-190) — that exists for the AI chat's action-tag system, which
+doesn't exist here yet, so there is nothing calling this function with
+reserved tokens to stay compatible with.
+
+**Both of `js/editor.js`'s documented security fixes are preserved exactly,
+with a regression test each.** (1) Stored HTML is never assigned via
+`innerHTML` — it round-trips through the DB and is seeded from model output
+run over an uploaded document, so `RichTextEditor` only ever loads content
+through `quill.clipboard.convert()`, which parses it into a Delta and keeps
+only the formats on an explicit allowlist. (2) That allowlist excludes
+`video` on purpose: Quill's default format set includes it, and a stored
+`<video>`/iframe embed is a same-origin frame of the app inside a note
+(clickjacking / spoofed UI) — nothing here needs embeds, so the format is
+dropped. Tests load a document containing a `<script>` and one containing an
+`<iframe>` and assert both are stripped, not merely escaped, and that the
+script never executes.
+
+**The autosave state machine keeps two rough edges the vanilla has on
+purpose,** not smoothed over as "obvious improvements": a save already in
+flight blocks a new one from starting rather than racing it
+(js/editor.js:130) — the cost is a save that could in principle sit dirty
+until the next keystroke reschedules it, same as the vanilla, and manual
+Save on an unchanged document acknowledges with "Saved" instead of silently
+doing nothing (js/editor.js:131-138, itself already a fix over an earlier
+version that just did nothing). A pending edit is flushed on unmount rather
+than dropped — `Editor.destroy()`'s fire-and-forget save — using the same
+`flushRef`-points-at-the-latest-closure pattern `useTaskActions.ts` already
+established for its own flush-on-unmount, since an unmount-only effect would
+otherwise close over a stale `note`/mutation.
+
+**`quill` needed pinning to an exact patch version.** `npm install quill`
+resolves to 2.0.3, which `npm audit` flags for GHSA-v3m3-f69x-jf25 (XSS via
+the HTML export feature, CVSS 6.1) — a range of exactly `=2.0.3`; 2.0.2 is
+unaffected. Installed as `"quill": "2.0.2"` (exact, via `--save-exact`).
+`npm audit`: 0 vulnerabilities.
+
+**One pre-existing issue noticed in passing, not fixed here.** Step 11's
+`SubjectDetailPage`'s two "back to Library" affordances nest a `<Button>`
+(a `<button>`) inside a `<Link>` (an `<a>`) — invalid HTML (interactive
+content can't nest) that this step's own not-found empty state avoids by
+using `Button`'s `onClick` + `navigate()` instead, matching the pattern
+already used elsewhere (`ExamsView`'s "+ Add exam", `FoldersPanel`'s
+"+ Create Folder"). Left alone rather than opportunistically fixed —
+outside this step's diff — but worth a one-line fix whenever Library is
+next touched.
+
+**Manual/browser verification not done — no driver available in this
+environment**, same constraint as Steps 11 and 12. The dev server was
+smoke-tested (`/notes/x` returns 200, Quill's stylesheet serves correctly
+at `/node_modules/quill/dist/quill.snow.css` in dev). Everything about this
+step that jsdom *can* prove is covered by the test suite (sanitization,
+autosave timing, read-only toggling); what it can't — the toolbar's actual
+icon rendering, focus rings inside the `ql-editor`, and the picker dropdowns'
+dark-theme colors — wants a real click-through before this merges.
+
+**Cutover still not performed**, same hash-routing reason as every prior
+step. `index.html` and `js/*` remain untouched.
+
+### Steps 14 & 15 — AI layer + Weekly Plan (2026-07-30)
+
+Shipped together because 15 cannot exist without 14: the ledger's own
+Decision #13 puts the AI layer before Plan/Quiz/Chat, and the Weekly Plan is
+the first screen that needs it.
+
+**Step 14 — the AI layer**, split by concern rather than transcribed as one
+`AI` object:
+
+- **`api/ai.ts`** — the edge-function caller (`js/ai.js:62-136`). Raw `fetch`
+  rather than `supabase.functions.invoke`, matching the vanilla, so the body
+  can be read as a stream if the edge function ever becomes one. The retry
+  rules are preserved exactly and are now pinned by tests: one retry, 4xx
+  never retried, 429/5xx retried, and our own 60s deadline never replayed
+  (the server has already spent its whole budget walking the provider chain
+  by then, so a replay costs another minute to fail identically). Errors are
+  an `AiError` carrying `retryable` and `refused`, so a content refusal —
+  which arrives with its own explanation written for the student — can be
+  shown verbatim instead of flattened into "generation failed".
+- **`lib/actionTags.ts`** — the three separate jobs the vanilla's tag helpers
+  do, kept separate on purpose because conflating them is how this becomes a
+  prompt-injection hole: `fenceUntrusted` for attacker-influenced text going
+  *into* a prompt (a PDF containing `<SET_THEME>x</SET_THEME>` must not be
+  able to steer the app), `stripActionTagBlocks` for model output coming
+  *out* before it is displayed or written to history, and
+  `widgetToken`/`restoreWidgets` so app-built HTML is spliced back in *after*
+  the model's text has been escaped, never round-tripped through the escaper.
+  There is a test asserting the token survives `renderMarkdown` untouched —
+  that is the property the whole scheme rests on.
+- **`lib/aiJson.ts`** — the hardened extractors (`js/ai.js:257-418`). The
+  ladder of strategies exists because the edge function walks a chain of
+  providers and only some honour `response_format: json_object`, so one
+  request comes back as `{"questions":[…]}` from Groq and a bare `[…]` from
+  Gemini, with or without prose and fences around it. `correctIndex` is
+  validated rather than assumed, for the reason the vanilla documents: the
+  runner grades with `i === q.correctIndex`, so a reply naming its answer
+  field `answer` yields a quiz where every option is marked wrong, silently.
+- **`api/aiPlan.ts`** — `generateWeeklyPlan` plus `loadWorkspaceContext`,
+  which step 17 will reuse for the chat's workspace summary. The prompt is
+  carried over verbatim: it is what the edge function's `mode: "plan"`
+  instructions were tuned against, and rewording it would change what every
+  existing user gets. `settings` is a parameter rather than a global read, so
+  the caller passes whatever `SettingsProvider` holds — including unsaved
+  edits, which is what `UI.loadSettings()` did too.
+
+`renderMarkdown` was already ported early, in Step 13. **`createStudyPackage`
+is deliberately not ported** — see loose ends.
+
+**Step 15 — the Weekly Plan** at `/plan` (`index.html:942-955` +
+`js/router.js:1046-1141`). `views/plan/` holds `PlanView`, `planMeta.ts` and
+the CSS module. The week comes from `mondayOfWeek()` on each render rather
+than state: there is one plan per user per week and no week-stepping UI in
+the vanilla, so holding it would be inventing a feature.
+
+**`plan_json` is narrowed at the boundary** (`planMeta.parseStoredPlan`).
+It is model output round-tripped through the database, so nothing about its
+shape survives the trip — the vanilla read it optimistically
+(`String(b.durationMins)`) and rendered "undefinedm" when a row predated a
+field or a provider drifted. Blocks with no subject are dropped, durations
+are coerced and defaulted to the vanilla's 25, and a plan with no `days`
+falls back to the empty state rather than a broken grid.
+
+**Regeneration asks first.** `Plans.upsert` is keyed on user + week_start, so
+regenerating destroys the plan on screen; both entry points (the view's
+button and the dashboard card) confirm, as the vanilla did. Generating the
+*first* plan of a week destroys nothing and goes straight through.
+
+**`TimerProvider` gained `prepareFocus`** for the vanilla's `start-plan-block`
+handoff (`js/router.js:82-85` + `js/main.js:1288-1319`): a block's duration
+and subject are pre-staged and the student lands on /timer with only Start
+left to press. It deliberately does not auto-start, and never tears down a
+running timer — it stages for the next Apply & Reset instead, the same rule
+`selectType` follows. One deviation: the vanilla wrote only `#config-focus`,
+so a student on the Countdown type saw the duration not change at all; both
+`focus` and `countdown` are written here, since which one the clock reads
+depends on the type (`lib/timer.ts` `focusSeconds`).
+
+**A bug found in the browser and fixed.** After the handoff, the timer's
+"Current Task" select read *None* while the provider was holding "Biology" —
+a plan subject is usually not one of the student's tasks, so the `<select>`
+had no option matching the bound value and fell back to the first one. The
+display was lying about where the logged time would go. `TimerView` now
+renders an option for a bound-but-unlisted task, which is exactly why the
+vanilla appended one by hand; the fix also covers a task renamed or completed
+since it was bound. Regression test in `PlanView.test.tsx`.
+
+**The dashboard's "Plan my week" is now real** (`js/main.js:2445-2466`) —
+generate, then navigate to /plan. The other three AI buttons still say they
+aren't connected, but now name step 17 rather than 14, because what they need
+is the chat surface.
+
+**Testing: 91 new tests (570 total).** 15 on the action-tag sanitizers
+(every tag defanged, opener/closer marked distinctly, a tag only ever paired
+with its own closer, tokens surviving `renderMarkdown`), 25 on the JSON
+extractors (every provider shape, fences, prose, trailing commas, and each
+rejection rule), 18 on `callEdge` and `aiPlan` (bearer token, mode, retry
+matrix, refusal flag, timeout, workspace filtering, upsert payload), 9 on
+`parseStoredPlan`, and 24 on the view (empty state, generate, both failure
+messages, the summary and grid, today's `aria-current`, the confirm-on-
+regenerate in both directions, the timer handoff and its task binding, and
+the unusable-`plan_json` fallback).
+
+**Browser-verified.** With a stubbed session, `/plan` rendered the header,
+week range (27 Jul – 2 Aug), summary panel with "Last generated 3h ago", and
+all seven day cards: today (Thu 30 Jul) carrying the accent border and glow,
+past days dimmed, free days showing their message, and each block its
+subject, duration, hint and reason. Clicking "Start →" on the 90-minute
+Biology block landed on /timer showing Focus 90 / 1:30:00, unstarted — which
+is how the task-select bug above was found. Console clean.
+
+One environment note for whoever verifies next: the query sat in TanStack
+Query's `fetchStatus: "paused"` state on first paint in this browser, which
+is its offline pause — nothing to do with the view. Seeding the cache through
+`queryClient.setQueryData` from the console is the quickest way past it.
+
+**Cutover still not performed**, same hash-routing reason as every prior
+step. `index.html` and `js/*` remain untouched.
+
 ---
 
 ## Known loose ends
@@ -517,6 +982,65 @@ vanilla app is hash-routed, so no path rewrite can intercept `#todo` or
 (carried forward from `REVAMP_PROGRESS.md` where relevant, plus new ones found during
 the port)
 
+- **`createStudyPackage` is not ported** (js/ai.js:680-836, plus its
+  `_generateNotes` / `_generateDeck` / `_loadSourceText` / `_fileToPayload`
+  helpers). Step 14 ported the AI layer the ledger names — streaming calls,
+  `renderMarkdown`, action-tag parser — plus the generation entry point step
+  15 needs. The Create-modal pipeline that turns a file/link/topic into a
+  material + notes + deck + quiz is a separate, larger piece of work and none
+  of steps 15-17 depend on it. Until it lands, `MaterialPanel`'s submit keeps
+  the Step 6 stub message, which still names step 14; whoever ports the
+  pipeline should update that string too.
+- **The AI edge function's CORS allow-list does not include the Vite dev
+  server.** `DEFAULT_ALLOWED_ORIGINS` in
+  `supabase/functions/learnora-ai/index.ts` lists `http://localhost:3000` (the
+  vanilla app's static server) but not `http://localhost:5173`, so any real
+  model call from `npm run dev` is blocked before it reaches the function.
+  Fixable without a redeploy by setting the `ALLOWED_ORIGINS` env var on the
+  function, but that is a production config change, so it is left for whoever
+  needs to exercise a live generation locally. The test suite intercepts the
+  call at the network layer (MSW) and is unaffected.
+
+- **Steps 11, 12 and 13's browser passes are all owed** (see those
+  sections) — no browser driver is available in this environment. Everything
+  else about all three steps is verified; only the real-browser look at the
+  Library's four tabs, a subject workspace, the dashboard's seven cards, and
+  the Quill editor's toolbar/pickers is outstanding.
+- **The Notes AI study sidebar is not ported** (Step 13's scoping decision —
+  see that section). `NotesView` is Quill-only until Step 17 builds the chat
+  surface for real; nothing to revisit before then.
+- **SRS due-cards notification is not ported** (found in Step 12).
+  `notifyDueCardsOncePerDay` (js/main.js:2241-2256) — a once-per-day browser
+  `Notification` when flashcards are due, gated on `notifyStudyReminders` —
+  has no React equivalent yet. `useFlashcardsDueCount` exists and the
+  dashboard reads it, so wiring the notification itself is small; it just
+  hasn't been done. Natural home is wherever notification permission gets
+  centralized (`TimerProvider` currently owns its own `notifyTimerAlerts`
+  path independently).
+- **"Plan my week" and "Quiz me" are stubs pending Step 14** (Step 12). Both
+  dashboard buttons show "AI features aren't connected yet" instead of
+  calling `AI.generateWeeklyPlan()` or opening a quiz-tuned CreateModal —
+  same reasoning as Step 6's Material panel. Revisit once the AI layer
+  lands; "Quiz me" additionally wants `CreateModal`'s options extended with
+  a way to pre-select the Quiz output and a custom title, which don't exist
+  today.
+- **The material-delete confirmation overstates what goes with it.** It says
+  "along with the notes, flashcards and quizzes generated from it", but
+  `flashcard_decks` has no `material_id` at all — decks reference a folder
+  only, so a deck outlives the material it was generated from. Notes and
+  quizzes really are deleted. The wording is the vanilla's and is left
+  unchanged here (it's a copy decision, not a port bug); worth fixing in
+  whichever step owns deck provenance.
+- **A subject's "+ Create" no longer pre-selects the folder's newest
+  material.** The vanilla passed `materialId: materials[0]?.id` so the dialog
+  could seed "generate a deck/quiz from this material" — a flow that is AI-
+  driven and doesn't exist until Step 14. The folder pre-selection, which does
+  exist today, is passed.
+- **`SubjectDetailPage`'s two "Back to Library" links nest a `<button>`
+  inside an `<a>`** (found while building Step 13, which needed the same
+  affordance and used `Button`'s `onClick` + `navigate()` instead) — invalid
+  HTML, interactive content can't nest. One-line fix whenever Library is next
+  touched.
 - Vite's react-ts template now ships **oxlint** instead of ESLint (`npm run lint`).
   Kept — it satisfies the lint requirement — but if anyone wants ESLint-specific
   plugins later (e.g. eslint-plugin-react-hooks rules beyond what oxlint covers),
@@ -551,6 +1075,19 @@ the port)
 - The Tasks list has no pagination or virtualisation, matching the vanilla — the
   whole table is fetched and rendered. Fine at a student's task count; worth
   revisiting only if someone turns up with thousands.
+- **The dashboard's Focus-Session quick-starts are not wired up** (js/main.js:
+  1252-1276). `TimerProvider` exposes `startPreset()` for exactly that, and the
+  Tasks widget is already built, but the dashboard itself is step 12 — so the
+  entry point lands there.
+- **`vite.config.ts` raises `testTimeout` to 20s** (Step 9). Several
+  pre-existing tests sit near 600ms on an idle machine and the 5s default was
+  failing them under parallel load. It's a ceiling for hangs, not a target; if
+  a test ever approaches it, that's a bug worth looking at rather than a
+  reason to raise it again.
+- The timer's "task" binding logs the task's *text*, not its id — carried over
+  from the vanilla, which read `#active-task-select`'s value. Renaming a task
+  therefore orphans the attribution on past sessions. Worth switching to the
+  id whenever someone touches the study_sessions schema.
 - `webapp/public/favicon.svg` is still the Vite template favicon; swap for Learnora
   branding whenever convenient (cosmetic only).
 - **CSP for the React app is not set yet.** The vanilla app ships a strict policy as
@@ -580,11 +1117,10 @@ the port)
   it's a real-browser DOM interaction with nothing meaningful to assert on
   under jsdom. Worth a manual click-through once Settings (Step 7) puts a
   button in front of it.
-- **No real entry point calls `useCreateModal()` yet.** Step 6 built the
-  provider, the modal, and all four panels, but every route is still a
-  placeholder (no sidebar, no dashboard, no per-view "+" button) — the first
-  view step to build real navigation should call `openCreateModal()` from
-  wherever the vanilla app's "+ Create" affordances lived (`js/main.js:116-119`).
+- ~~**No real entry point calls `useCreateModal()` yet.**~~ Closed in Step 11:
+  the Library header, the "+ New Folder" card, a subject's "+ Create" and every
+  empty state now open it (`js/main.js:116-119`'s affordances). The dashboard's
+  own "+" arrives with the shell in Step 12.
 - `MaterialPanel`'s inline "+ New folder" selects the new folder immediately
   via local state (`extraFolder`) merged into the fetched list, rather than
   waiting for `useAddFolder`'s cache invalidation to refetch — intentional
