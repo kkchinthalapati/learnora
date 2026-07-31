@@ -5,7 +5,7 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 724/724 passing
+- **Tests:** `npm --prefix webapp run test` — expect 725/725 passing
 - **Last verified:** 2026-07-31 (post-Step-18 bug-fix pass — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
@@ -1317,6 +1317,18 @@ the port)
   resolves, and shows an error toast + re-enables manual grading if the reply
   never contained a usable tag — strictly better than the vanilla, which had
   no recovery path here at all.
+- ~~**A flashcard's `front`/`back` reach the AI-grading prompt unsanitized**~~
+  Fixed 2026-07-31: a concurrent independent Step 18 implementation (PR #39,
+  `feat/react-step-18-review`) caught this before this session did — card
+  text and the student's typed answer are model-generated-or-student-entered
+  content interpolated into a prompt the app controls, the same class of
+  concern `lib/chatPrompt.ts` already fences note bodies for. Ported just
+  this fix (`fenceUntrusted` around all three fields in `AI_GRADE_PROMPT`)
+  from that PR rather than merging its full, independently-diverged
+  implementation; see the PR for an alternative take on surfacing the
+  model's real feedback text (reads `useChat()`'s `messages` directly with a
+  tracked start-index) that wasn't pulled in here, since it's a different
+  architecture, not a drop-in fix.
 - **The AI edge function's CORS allow-list does not include the Vite dev
   server.** `DEFAULT_ALLOWED_ORIGINS` in
   `supabase/functions/learnora-ai/index.ts` lists `http://localhost:3000` (the

@@ -11,6 +11,7 @@ import {
   useFlashcardsByDeck,
   useUpdateFlashcardReview,
 } from "../../hooks/useFlashcards";
+import { fenceUntrusted } from "../../lib/actionTags";
 import { dueCardsFrom, nextReviewState } from "./srs";
 import styles from "./review.module.css";
 
@@ -102,10 +103,16 @@ export function ReviewView() {
   return <ReviewSession key={deckId} deckTitle={deck.title} cards={due} />;
 }
 
+/* Card text and the student's typed answer are fenced before entering the
+ * prompt: both are model-generated-or-student-entered content the app is
+ * about to interpolate into its own prompt, so a card carrying (say) an
+ * `<ADD_TASK>…</ADD_TASK>` sequence in its `front`/`back` must not be able
+ * to steer the reply. Same class of concern `lib/chatPrompt.ts` already
+ * fences note bodies for. */
 const AI_GRADE_PROMPT = (card: Flashcard, answer: string) => `Grade my flashcard answer.
-Front: ${card.front}
-Correct Back: ${card.back}
-My Answer: ${answer}
+Front: ${fenceUntrusted(card.front)}
+Correct Back: ${fenceUntrusted(card.back)}
+My Answer: ${fenceUntrusted(answer)}
 
 Based on how close I am, issue a <GRADE_FLASHCARD>X</GRADE_FLASHCARD> command where X is:
 1 = Again (completely wrong)
