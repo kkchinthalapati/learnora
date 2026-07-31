@@ -6,9 +6,19 @@ import {
   type DragEvent,
   type FormEvent,
 } from "react";
+import { useNavigate } from "react-router";
 import { useFolders, useAddFolder } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
+import { useCreateStudyPackage } from "../../hooks/useStudyPackage";
 import { useDialog } from "../../context/dialog";
+import { useToast } from "../../context/toast";
+import {
+  CREATE_DEFAULTS,
+  MAX_UPLOAD_BYTES,
+  summarizeStudyPackage,
+  studyPackageDestination,
+  type StudySource,
+} from "../../api/studyPackage";
 import type { Folder } from "../../api/types";
 import shared from "./formShared.module.css";
 import styles from "./MaterialPanel.module.css";
@@ -20,10 +30,9 @@ interface MaterialPanelProps {
   onDone?: () => void;
 }
 
-type SourceKind = "file" | "text" | "link" | "material" | "topic";
-type Difficulty = "Easy" | "Medium" | "Hard";
+type SourceKind = StudySource["kind"];
+type Difficulty = typeof CREATE_DEFAULTS.difficulty;
 
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const FOLDER_COLORS = ["#4A90E2", "#E24A4A", "#4AE283", "#E2A84A", "#9B4AE2"];
 const PERSONALITY_DESC: Record<string, string> = {
   "Friendly Tutor": "Patient, supportive, explains things step by step.",
@@ -34,15 +43,21 @@ const PERSONALITY_DESC: Record<string, string> = {
 
 /* Full port of the vanilla #create-modal's Material flow (index.html:2060-
  * 2250, js/main.js:111-422, js/ui.js:508-681) — source picker, dropzone,
- * outputs, folder filing, and the collapsed Options tuning block, all
- * validated exactly as the vanilla form does. The one piece intentionally
- * NOT ported is the submit's actual network call: `AI.createStudyPackage()`
- * unconditionally calls the Gemini edge function for every new material
- * (there is no non-AI path in the vanilla code, per REACT_MIGRATION.md
- * Step 6's scoping note), and that layer doesn't exist in this app until
- * Step 14. Submitting here runs every validation a real submit would, then
- * reports that plainly rather than closing the dialog on a fake success. */
-export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPanelProps) {
+ * outputs, folder filing, the collapsed Options tuning block, and (as of
+ * Step 24) the submit itself, which runs `api/studyPackage.ts`'s pipeline.
+ *
+ * One deliberate difference from the vanilla submit: it closed the dialog
+ * *immediately* and moved the student to a blocking full-app overlay for the
+ * duration. That overlay isn't part of this app (REACT_MIGRATION.md, "Found,
+ * deliberately not ported"), so the dialog stays up with a live caption of the
+ * stage in flight, and closes when there is somewhere to go. A run that
+ * produces nothing therefore reports why in the form the student is still
+ * looking at, rather than in a popup over a page they've been thrown back to. */
+export function MaterialPanel({
+  folderId: initialFolderId,
+  onClose,
+  onDone,
+}: MaterialPanelProps) {
   const [source, setSource] = useState<SourceKind>("file");
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -54,11 +69,17 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
   const [wantQuiz, setWantQuiz] = useState(false);
   const [folderId, setFolderId] = useState(initialFolderId ?? "");
   const [titleOverride, setTitleOverride] = useState("");
-  const [cardCount, setCardCount] = useState(12);
-  const [questionCount, setQuestionCount] = useState(10);
-  const [difficulty, setDifficulty] = useState<Difficulty>("Medium");
-  const [personality, setPersonality] = useState("Friendly Tutor");
+  const [cardCount, setCardCount] = useState(CREATE_DEFAULTS.cardCount);
+  const [questionCount, setQuestionCount] = useState(
+    CREATE_DEFAULTS.questionCount,
+  );
+  const [difficulty, setDifficulty] = useState<Difficulty>(
+    CREATE_DEFAULTS.difficulty,
+  );
+  const [personality, setPersonality] = useState(CREATE_DEFAULTS.personality);
   const [error, setError] = useState<string | null>(null);
+  // The stage the pipeline reports it is on, or null when nothing is running.
+  const [progress, setProgress] = useState<string | null>(null);
   // A folder created via the "+ New" dialog needs to be selectable
   // immediately, without waiting on the list query's background refetch —
   // mirrors the vanilla's `select.appendChild(opt)` (js/main.js:204-211).
@@ -76,7 +97,10 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
   const foldersQuery = useFolders();
   const materialsQuery = useMaterials();
   const addFolder = useAddFolder();
+  const create = useCreateStudyPackage();
   const { promptText } = useDialog();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const fetchedFolders = foldersQuery.data ?? [];
   const folders =
@@ -86,7 +110,8 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
   const savedMaterials = materialsQuery.data ?? [];
   const hasSavedMaterials = savedMaterials.length > 0;
 
-  const isNewMaterial = source === "file" || source === "text" || source === "link";
+  const isNewMaterial =
+    source === "file" || source === "text" || source === "link";
 
   // Mirrors showCreateModal()'s "pre-select a folder, or default to the
   // first one" — but only once, so picking a different folder afterward
@@ -112,13 +137,17 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
   };
 
   const handleNewFolder = async () => {
-    const name = await promptText("Give it a name so it's easy to find later.", {
-      title: "New folder",
-      placeholder: "e.g. CS101, Biology",
-      confirmText: "Create folder",
-    });
+    const name = await promptText(
+      "Give it a name so it's easy to find later.",
+      {
+        title: "New folder",
+        placeholder: "e.g. CS101, Biology",
+        confirmText: "Create folder",
+      },
+    );
     if (!name) return;
-    const color = FOLDER_COLORS[Math.floor(Math.random() * FOLDER_COLORS.length)];
+    const color =
+      FOLDER_COLORS[Math.floor(Math.random() * FOLDER_COLORS.length)];
     const created = await addFolder.mutateAsync({ name, color });
     setExtraFolder(created);
     setFolderId(created.id);
@@ -155,7 +184,8 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
       }
       if (trimmed.length < 40) {
         return {
-          message: "That's a bit short to study from — paste at least a paragraph.",
+          message:
+            "That's a bit short to study from — paste at least a paragraph.",
           focus: () => textareaRef.current?.focus(),
         };
       }
@@ -165,14 +195,18 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
     if (source === "link") {
       const raw = link.trim();
       if (!raw) {
-        return { message: "Add a link to create from.", focus: () => linkRef.current?.focus() };
+        return {
+          message: "Add a link to create from.",
+          focus: () => linkRef.current?.focus(),
+        };
       }
       let parsed: URL;
       try {
         parsed = new URL(raw);
       } catch {
         return {
-          message: "That doesn't look like a link. Include the https:// prefix.",
+          message:
+            "That doesn't look like a link. Include the https:// prefix.",
           focus: () => linkRef.current?.focus(),
         };
       }
@@ -197,7 +231,10 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
 
     if (source === "topic") {
       if (!topic.trim()) {
-        return { message: "Enter a topic to create from.", focus: () => topicRef.current?.focus() };
+        return {
+          message: "Enter a topic to create from.",
+          focus: () => topicRef.current?.focus(),
+        };
       }
       return null;
     }
@@ -205,8 +242,24 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
     return null;
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  /* The form's five source panels collapse into the one discriminated union
+   * the pipeline takes. Validation above has already guaranteed the field this
+   * reads is filled in. */
+  const buildSource = (): StudySource => {
+    if (source === "file") return { kind: "file", file };
+    if (source === "text") return { kind: "text", text };
+    if (source === "link") return { kind: "link", url: link };
+    if (source === "material") return { kind: "material", materialId };
+    return { kind: "topic", topic };
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    // Guards a second submit landing while the first is in flight. Two
+    // overlapping generations used to produce an error from the run that
+    // failed to parse plus a working quiz from the one that succeeded — both
+    // from a single click (js/main.js:299-307).
+    if (create.isPending) return;
 
     if (!wantFlashcards && !wantQuiz && !isNewMaterial) {
       setError("Pick at least one thing to create.");
@@ -227,11 +280,55 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
       return;
     }
 
-    // Every check a real submit would run has passed — the only thing left
-    // is the actual AI call, which isn't wired up yet (see the file header).
-    setError(
-      "AI-powered generation isn't connected yet — Step 14 wires this form up to real notes, flashcards, and quizzes.",
-    );
+    setError(null);
+    setProgress("Getting started…");
+
+    try {
+      const result = await create.mutateAsync({
+        source: buildSource(),
+        /* A topic-only run files nothing, and its folder picker is hidden — so
+           don't quietly attach the quiz to whichever folder happened to be
+           selected in a dropdown the student never saw. */
+        folderId: source === "topic" ? null : folderId || null,
+        title: titleOverride,
+        outputs: { flashcards: wantFlashcards, quiz: wantQuiz },
+        options: { cardCount, questionCount, difficulty, personality },
+        onProgress: setProgress,
+      });
+
+      const summary = summarizeStudyPackage(result);
+      if (!summary) {
+        // Nothing was produced. The first failure carries the only specific
+        // explanation there is — a refusal especially, which says *why*.
+        setError(
+          result.failures[0]?.message ??
+            "Nothing could be generated this time. Please try again in a moment.",
+        );
+        return;
+      }
+
+      showToast(summary);
+      // A refusal alongside a partial success is its own message: the summary
+      // says a stage didn't generate, only this says the topic was declined.
+      const refusal = result.failures.find((f) => f.refused);
+      if (refusal) showToast(refusal.message, { error: true });
+
+      onDone?.();
+      onClose();
+
+      const destination = studyPackageDestination(result);
+      if (destination) void navigate(destination);
+    } catch (err) {
+      // Only source-resolution problems reach here (see createStudyPackage) —
+      // nothing was created, so the dialog stays open on the field to fix.
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
+    } finally {
+      setProgress(null);
+    }
   };
 
   return (
@@ -240,7 +337,7 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
     // could block native submit on a control the student can't even see —
     // matches the vanilla #create-form's own `novalidate` (index.html:2074)
     // for exactly this reason. Every field is validated in JS instead.
-    <form onSubmit={handleSubmit} noValidate>
+    <form onSubmit={(e) => void handleSubmit(e)} noValidate>
       <div className={shared.inputGroup}>
         <label id="material-source-label">Start from</label>
         <div
@@ -283,8 +380,12 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
           >
-            <p className={styles.dropzoneTitle}>{file ? file.name : "Drag & drop a file"}</p>
-            <p className={shared.fieldDesc}>PDF, Word, text, or audio — up to 10MB</p>
+            <p className={styles.dropzoneTitle}>
+              {file ? file.name : "Drag & drop a file"}
+            </p>
+            <p className={shared.fieldDesc}>
+              PDF, Word, text, or audio — up to 10MB
+            </p>
             <input
               ref={fileInputRef}
               type="file"
@@ -336,7 +437,8 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
             placeholder="https://youtube.com/watch?v=…"
           />
           <p className={shared.fieldDesc}>
-            YouTube links are summarised from the video's topic, not its transcript.
+            YouTube links are summarised from the video's topic, not its
+            transcript.
           </p>
         </div>
       ) : null}
@@ -352,7 +454,9 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
             onChange={(e) => setMaterialId(e.target.value)}
           >
             <option value="" disabled>
-              {materialsQuery.isLoading ? "Loading your materials…" : "Choose a material…"}
+              {materialsQuery.isLoading
+                ? "Loading your materials…"
+                : "Choose a material…"}
             </option>
             {savedMaterials.map((m) => (
               <option key={m.id} value={m.id}>
@@ -378,13 +482,19 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
             onChange={(e) => setTopic(e.target.value)}
             placeholder="e.g. Ionic bonding"
           />
-          <p className={shared.fieldDesc}>No material needed — generated from general knowledge.</p>
+          <p className={shared.fieldDesc}>
+            No material needed — generated from general knowledge.
+          </p>
         </div>
       ) : null}
 
       <div className={shared.inputGroup}>
         <label id="material-outputs-label">Create</label>
-        <div className={styles.outputs} role="group" aria-labelledby="material-outputs-label">
+        <div
+          className={styles.outputs}
+          role="group"
+          aria-labelledby="material-outputs-label"
+        >
           {isNewMaterial ? (
             <label className={styles.outputRow}>
               <input type="checkbox" checked disabled />
@@ -405,7 +515,9 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
             />
             <span className={styles.outputText}>
               <span className={styles.outputName}>Flashcards</span>
-              <span className={styles.outputDesc}>A deck for spaced review</span>
+              <span className={styles.outputDesc}>
+                A deck for spaced review
+              </span>
             </span>
           </label>
           <label className={styles.outputRow}>
@@ -416,7 +528,9 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
             />
             <span className={styles.outputText}>
               <span className={styles.outputName}>Quiz</span>
-              <span className={styles.outputDesc}>Auto-graded multiple choice</span>
+              <span className={styles.outputDesc}>
+                Auto-graded multiple choice
+              </span>
             </span>
           </label>
         </div>
@@ -434,7 +548,9 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
               onChange={(e) => setFolderId(e.target.value)}
             >
               <option value="" disabled>
-                {folders.length ? "Select a folder…" : "No folders yet — create one →"}
+                {folders.length
+                  ? "Select a folder…"
+                  : "No folders yet — create one →"}
               </option>
               {folders.map((f) => (
                 <option key={f.id} value={f.id}>
@@ -468,7 +584,9 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
 
           {wantFlashcards ? (
             <div className={shared.inputGroup}>
-              <label htmlFor="material-card-count">Flashcards: {cardCount} cards</label>
+              <label htmlFor="material-card-count">
+                Flashcards: {cardCount} cards
+              </label>
               <input
                 id="material-card-count"
                 type="range"
@@ -484,7 +602,9 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
           {wantQuiz ? (
             <>
               <div className={shared.inputGroup}>
-                <label htmlFor="material-question-count">Quiz: {questionCount} questions</label>
+                <label htmlFor="material-question-count">
+                  Quiz: {questionCount} questions
+                </label>
                 <input
                   id="material-question-count"
                   type="range"
@@ -532,7 +652,9 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
                     </option>
                   ))}
                 </select>
-                <p className={shared.fieldDesc}>{PERSONALITY_DESC[personality]}</p>
+                <p className={shared.fieldDesc}>
+                  {PERSONALITY_DESC[personality]}
+                </p>
               </div>
             </>
           ) : null}
@@ -545,12 +667,21 @@ export function MaterialPanel({ folderId: initialFolderId, onClose }: MaterialPa
         </p>
       ) : null}
 
+      {/* aria-live, not role="alert": these captions arrive every few seconds
+          and would otherwise interrupt whatever a screen reader is saying. */}
+      {progress ? (
+        <p className={styles.progress} role="status" aria-live="polite">
+          <span className={styles.spinner} aria-hidden="true" />
+          {progress}
+        </p>
+      ) : null}
+
       <div className={`${shared.actions} ${styles.stickyActions}`}>
-        <Button type="button" onClick={onClose}>
+        <Button type="button" onClick={onClose} disabled={create.isPending}>
           Cancel
         </Button>
-        <Button type="submit" variant="primary">
-          Create
+        <Button type="submit" variant="primary" disabled={create.isPending}>
+          {create.isPending ? "Creating…" : "Create"}
         </Button>
       </div>
     </form>

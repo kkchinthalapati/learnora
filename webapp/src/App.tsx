@@ -44,29 +44,30 @@ export default function App() {
             <ToastProvider>
               <DialogProvider>
                 <AuthProvider>
-                  <CreateModalProvider>
-                    <TimerProvider>
-                      {/* Mounted under whatever `base` the build used, so a
-                          route table written as "/settings" resolves to
-                          "/app/settings" in production and "/settings" in any
-                          build served from the root. BASE_URL keeps its
-                          trailing slash; basename does not want one. */}
-                      <BrowserRouter
-                        basename={import.meta.env.BASE_URL.replace(/\/$/, "")}
-                      >
-                        {/* Inside the router because the chat navigates and
-                            reads the current route for context, but outside
-                            the route table because the panel and the
-                            conversation outlive any one view. */}
+                  <TimerProvider>
+                    {/* Mounted under whatever `base` the build used, so a
+                        route table written as "/settings" resolves to
+                        "/app/settings" in production and "/settings" in any
+                        build served from the root. BASE_URL keeps its
+                        trailing slash; basename does not want one. */}
+                    <BrowserRouter
+                      basename={import.meta.env.BASE_URL.replace(/\/$/, "")}
+                    >
+                      {/* Both of these sit inside the router and outside the
+                          route table, for the same two reasons: each navigates
+                          (the chat on its action tags, the Create dialog to
+                          whatever a run just produced), and each outlives any
+                          one view. */}
+                      <CreateModalProvider>
                         <ChatProvider>
                           <AppRoutes />
                           {/* Docked on every route while a session is live, so
                               they live beside the routes rather than inside one. */}
                           <SignedInOverlays />
                         </ChatProvider>
-                      </BrowserRouter>
-                    </TimerProvider>
-                  </CreateModalProvider>
+                      </CreateModalProvider>
+                    </BrowserRouter>
+                  </TimerProvider>
                 </AuthProvider>
               </DialogProvider>
             </ToastProvider>

@@ -46,11 +46,11 @@ production. Those are steps 19-21.
 | 21 | Production cutover mechanism (`vercel.json`, Vite `base`, CSP) | Foundation | ✅ |
 | 22 | App Shell (Sidebar + Header) — should have existed since Step 1 | Foundation | ✅ |
 | 23 | i18n port (`i18n.js` → a React translation layer) | Foundation | ☐ |
-| 24 | `createStudyPackage` Create-pipeline | Views | ☐ |
+| 24 | `createStudyPackage` Create-pipeline | Views | ✅ |
 | 25 | Notes AI study sidebar | Views | ☐ |
 
-Steps 22-24 are the remaining known-scoped work. Everything else outstanding is
-in "Known loose ends".
+Steps 23 and 25 are the remaining known-scoped work. Everything else outstanding
+is in "Known loose ends".
 
 ---
 
@@ -1661,20 +1661,90 @@ parity with what the vanilla actually shipped, no more, no less.
 
 ---
 
+### Step 24 — the `createStudyPackage` Create pipeline (2026-07-31)
+
+**The last big hole in the migration is closed.** Since Step 6 the Create
+dialog had every control, every validation and every error message the vanilla
+had, and a submit button that said "AI-powered generation isn't connected yet".
+It now runs for real: a file, a link, pasted text, a saved material or a bare
+topic becomes a material row, a notes document, a flashcard deck and a quiz.
+
+**`api/studyPackage.ts`** ports `AI.createStudyPackage` and its primitives
+(js/ai.js:472-826) — `generateNotes`, `loadSourceText`, `generateDeck`, the
+`fileToPayload` reader, `CREATE_DEFAULTS`, and the entry point that resolves a
+source into a material and then derives the requested outputs. Every prompt is
+carried over verbatim; they are what the edge function's `mode` instructions
+were tuned against. Quiz generation is **not** duplicated here: `aiQuiz.ts`
+grew a `generateQuizFrom` that both this pipeline and the chat's `<ADD_QUIZ>`
+tag call, with `generateQuizFromTopic` reduced to a four-line wrapper over it.
+That is the vanilla's own "THE ONE ENTRY POINT" consolidation, kept.
+
+**Four deliberate differences from the vanilla**, each following a decision
+already made on this branch:
+
+1. **Failures are structured, and a late refusal no longer discards a
+   successful earlier stage.** The vanilla re-threw on `err.refused`
+   (js/ai.js:784, :803), so a run that generated a deck and was then refused a
+   quiz reported a flat "Create failed" and dropped the deck reference. The
+   result now carries `failures: StageFailure[]` (stage, user-safe message,
+   `refused` flag) and keeps everything that was made. A failure message is
+   only passed through when this layer raised it on purpose — a raw Postgres
+   or storage error is swapped for the stage's own wording rather than shown.
+2. **Untrusted text is fenced on the way into a prompt.** The vanilla dropped
+   a decoded document straight into the notes prompt (js/ai.js:535), so an
+   uploaded file could close the fence and issue its own instructions — or emit
+   an action tag. `buildNotesPrompt` fences internally, so no call path can
+   forget; material titles reaching the quiz prompt as its `topic` are fenced
+   too. Covered by tests in `studyPackage.test.ts`.
+3. **The dialog stays open while the run is in flight**, captioned with the
+   stage `onProgress` reports, instead of closing immediately onto the blocking
+   full-app overlay this branch deliberately didn't port (see "Found,
+   deliberately not ported" above). A run that produces nothing therefore
+   explains itself in the form the student is still looking at. On success it
+   toasts, closes, and lands them on what was made — quiz, then notes written
+   *in this run*, then the deck — the vanilla's own precedence
+   (js/main.js:402-410), lifted into a pure `studyPackageDestination`.
+4. **Half-written flashcards are dropped, not fatal.** `extractFlashcardJSON`
+   validates the array and its first element; a reply trailing off into
+   `{"front": "…"}` with no back would reject the whole batch insert (both
+   columns are NOT NULL) and lose the good cards with it. The deck row is also
+   created only once there are cards to put in it — an empty deck is worse than
+   no deck, since the library lists it and review serves nothing from it.
+
+**Also touched:** `decksApi.add` takes `folderId: string | null` (a deck built
+from a bare topic is filed nowhere, which the Topic source's hidden folder
+picker already implied); `hooks/useStudyPackage.ts` owns the cache
+invalidation for the five tables one run can write to.
+
+**One structural change, in `App.tsx`: `CreateModalProvider` moved inside
+`BrowserRouter`.** The Material panel navigates now, so the dialog has to sit
+under a router — the same reason `ChatProvider` already did. `test/render.tsx`
+gained `withRouter`/`initialEntries` to match, since the dialog it renders is a
+*sibling* of the `ui` a test passes in and so can't be covered by a router
+inside that `ui`. Four view tests that brought their own `<MemoryRouter>` and
+open the create dialog moved to the harness's router instead; nested routers
+are an error, and the app only ever has one.
+
+**Tests:** `api/studyPackage.test.ts` (33) covers each source kind, the
+notes-then-derive ordering, partial success, refusals, fencing, progress
+captions and the two pure reporting helpers; `MaterialPanel.test.tsx` gained
+three covering a real submit end to end, a run that produced nothing, and the
+in-flight lock. Suite: **833 passing**.
+
+---
+
 ## Known loose ends
 
 (carried forward from `REVAMP_PROGRESS.md` where relevant, plus new ones found during
 the port)
 
-- **`createStudyPackage` is not ported** (js/ai.js:680-836, plus its
-  `_generateNotes` / `_generateDeck` / `_loadSourceText` / `_fileToPayload`
-  helpers). Step 14 ported the AI layer the ledger names — streaming calls,
-  `renderMarkdown`, action-tag parser — plus the generation entry point step
-  15 needs. The Create-modal pipeline that turns a file/link/topic into a
-  material + notes + deck + quiz is a separate, larger piece of work and none
-  of steps 15-17 depend on it. Until it lands, `MaterialPanel`'s submit keeps
-  the Step 6 stub message, which still names step 14; whoever ports the
-  pipeline should update that string too.
+- ~~**`createStudyPackage` is not ported**~~ Closed by Step 24 (2026-07-31) —
+  see its section above. `api/studyPackage.ts` + `hooks/useStudyPackage.ts`,
+  wired into `MaterialPanel`'s submit; the Step 6 stub message is gone.
+  **Still owed on it: a real-browser pass.** Every stage is covered by MSW
+  tests, but nothing here has yet uploaded an actual PDF to Supabase Storage
+  and watched a real provider come back — the one part of this step a test
+  cannot stand in for.
 - **The docked mini-timer can sit on top of a view's bottom-left controls.**
   Seen on the quiz completion and review screens, where "Retake quiz" is
   partly behind it while a timer runs. This is inherited, not new: the
@@ -1742,13 +1812,14 @@ the port)
   handling still isn't centralized with `TimerProvider`'s own
   `notifyTimerAlerts` path — two independent call sites, same as noted here
   before; worth unifying if a third notification type shows up.
-- **"Plan my week" and "Quiz me" are stubs pending Step 14** (Step 12). Both
-  dashboard buttons show "AI features aren't connected yet" instead of
-  calling `AI.generateWeeklyPlan()` or opening a quiz-tuned CreateModal —
-  same reasoning as Step 6's Material panel. Revisit once the AI layer
-  lands; "Quiz me" additionally wants `CreateModal`'s options extended with
-  a way to pre-select the Quiz output and a custom title, which don't exist
-  today.
+- ~~**"Plan my week" and "Quiz me" are stubs pending Step 14**~~ (Step 12).
+  "Plan my week" became real in Step 15. "Quiz me" reaches the same generator
+  the Create dialog now does, via the chat's `<ADD_QUIZ>` tag, but it drops a
+  half-written prompt into the composer rather than opening a quiz-tuned
+  CreateModal the way the vanilla did — deliberate (a quiz on a topic nobody
+  named is a downgrade), and left that way in Step 24. Restoring the vanilla's
+  version would want `OpenCreateModalOptions` extended with a way to
+  pre-select the Topic source and the Quiz output; nothing else blocks it.
 - ~~**The material-delete confirmation overstates what goes with it**~~ Fixed
   in a post-Step-18 pass (2026-07-31): the copy no longer names flashcards,
   since `flashcard_decks` has no `material_id` and a deck outlives the
@@ -1756,9 +1827,11 @@ the port)
   the wording now says exactly that.
 - **A subject's "+ Create" no longer pre-selects the folder's newest
   material.** The vanilla passed `materialId: materials[0]?.id` so the dialog
-  could seed "generate a deck/quiz from this material" — a flow that is AI-
-  driven and doesn't exist until Step 14. The folder pre-selection, which does
-  exist today, is passed.
+  could seed "generate a deck/quiz from this material". That flow exists as of
+  Step 24 — the dialog's Saved source runs it — but the *pre-selection* still
+  isn't passed, and reviving it means reviving a blind `materials[0]` pick,
+  which is one of the things the unified pipeline was built to get rid of. The
+  folder pre-selection is passed, as before.
 - ~~**`SubjectDetailPage`'s two "Back to Library" links nest a `<button>` inside
   an `<a>`.**~~ Closed twice, independently, the same day: the post-Step-18
   pass and Step 21's cleanup each fixed the empty-state action's link the same
@@ -1951,8 +2024,8 @@ workstation.
 ### 5. Everything else
 
 See "Known loose ends" above for what's still genuinely open: no `DatePicker`
-primitive, `createStudyPackage` AI pipeline not ported, Notes AI study sidebar not
-ported, mini-timer can overlap bottom-left controls, timer logs task by text not id,
+primitive, Notes AI study sidebar not ported, mini-timer can overlap bottom-left
+controls, timer logs task by text not id,
 `format:check` failing repo-wide (a CRLF-checkout artifact, confirmed larger than
 first thought — an LF checkout still reports 33 files, per Step 21's own note), no
 Tasks pagination, and Steps 11-13's real-browser verification passes still owed.
@@ -1963,7 +2036,7 @@ Tasks pagination, and Steps 11-13's real-browser verification passes still owed.
 
 ```bash
 git checkout react-migration
-cd webapp && npm install && npm run test    # expect 792/792 passing
+cd webapp && npm install && npm run test    # expect 833/833 passing
 npm run dev                                  # http://localhost:5173/app/ — note the /app prefix
 ```
 
@@ -1976,12 +2049,13 @@ from before that step, expect navigation to look different (and much more
 usable).
 
 1. Find the first ☐ in the ledger. Every view-porting step (1-18), the
-   auth/cutover work (19-21), and the app shell (22) are done as of
-   2026-07-31. That is **step 23, the i18n port** — read its loose-end entry
-   first, since it needs a library-vs-hand-rolled decision before any code.
-   After that: the still-owed
-   browser passes for Steps 11-13, and the `createStudyPackage` Create-pipeline
-   loose end. Read "Known loose ends" in full before picking a next task.
+   auth/cutover work (19-21), the app shell (22) and the Create pipeline (24)
+   are done as of 2026-07-31. That is **step 23, the i18n port** — read its
+   loose-end entry first, since it needs a library-vs-hand-rolled decision
+   before any code. After that: **step 25, the Notes AI study sidebar** (the
+   last unported vanilla feature), and the still-owed real-browser passes for
+   Steps 11-13 and for Step 24's upload path. Read "Known loose ends" in full
+   before picking a next task.
 2. If its section is not yet written below, read the corresponding entry in `.claude/plans/dapper-snacking-bumblebee.md` or the plan's Section 4.
 3. Implement, verify (see Definition of Done below), commit, tick the box, **stop**.
 

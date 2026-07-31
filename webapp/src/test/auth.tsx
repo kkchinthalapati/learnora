@@ -42,7 +42,11 @@ export function authValue(partial: Partial<AuthState> = {}): AuthState {
 export function renderWithAuth(
   ui: ReactNode,
   state: Partial<AuthState> = {},
-  options: { withTimer?: boolean } = {},
+  options: {
+    withTimer?: boolean;
+    withRouter?: boolean;
+    initialEntries?: string[];
+  } = {},
 ) {
   return renderWithProviders(ui, authValue(state), options);
 }

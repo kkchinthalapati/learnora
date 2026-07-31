@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { Route, Routes } from "react-router";
 import { server } from "../test/mocks/server";
 import { SUPABASE_URL } from "../lib/supabase";
 import { mockAuthSession } from "../test/mockSession";
@@ -23,20 +23,23 @@ function serveDueCount(count: number) {
   );
 }
 
+/* The router comes from the harness, not from here: the sidebar's Create
+   button opens a dialog the provider renders *beside* this tree, and its
+   Material panel navigates — so the router has to sit above the provider,
+   exactly as it does in App.tsx. */
 function renderShell(initialPath: string, fullName = "Ada Lovelace") {
   return renderWithAuth(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <Routes>
-        <Route element={<AppShell />}>
-          <Route path="/" element={<h1>Dashboard view</h1>} />
-          <Route path="/tasks" element={<h1>Tasks view</h1>} />
-          <Route path="/library" element={<h1>Library view</h1>} />
-          <Route path="/folders/:folderId" element={<h1>Biology</h1>} />
-          <Route path="/settings" element={<h1>Settings view</h1>} />
-        </Route>
-      </Routes>
-    </MemoryRouter>,
+    <Routes>
+      <Route element={<AppShell />}>
+        <Route path="/" element={<h1>Dashboard view</h1>} />
+        <Route path="/tasks" element={<h1>Tasks view</h1>} />
+        <Route path="/library" element={<h1>Library view</h1>} />
+        <Route path="/folders/:folderId" element={<h1>Biology</h1>} />
+        <Route path="/settings" element={<h1>Settings view</h1>} />
+      </Route>
+    </Routes>,
     { session: fakeSession({ user_metadata: { full_name: fullName } }) },
+    { initialEntries: [initialPath] },
   );
 }
 
@@ -178,14 +181,13 @@ describe("AppShell", () => {
     serveDueCount(0);
     const signOut = vi.fn().mockResolvedValue(undefined);
     renderWithAuth(
-      <MemoryRouter initialEntries={["/"]}>
-        <Routes>
-          <Route element={<AppShell />}>
-            <Route path="/" element={<h1>Dashboard view</h1>} />
-          </Route>
-        </Routes>
-      </MemoryRouter>,
+      <Routes>
+        <Route element={<AppShell />}>
+          <Route path="/" element={<h1>Dashboard view</h1>} />
+        </Route>
+      </Routes>,
       { session: fakeSession(), signOut },
+      { initialEntries: ["/"] },
     );
     const user = userEvent.setup();
 

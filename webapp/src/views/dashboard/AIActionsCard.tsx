@@ -17,10 +17,11 @@ import styles from "./dashboard.module.css";
  * "Plan my week" generates and persists this week's plan, then lands the
  * student on /plan. The other three are chat prompts: the vanilla put two of
  * them on `data-chat-prompt` + `data-chat-send`, and "Quiz me" opened the
- * Create dialog pre-filled. That last one needs the Create pipeline's
- * generation path, which is not ported (see REACT_MIGRATION.md loose ends),
- * so it asks the chat for a quiz instead — the chat's `<ADD_QUIZ>` tag reaches
- * the same generator, with the same confirmation in front of it.
+ * Create dialog pre-filled. This one drops a half-written prompt into the
+ * composer instead — the chat's `<ADD_QUIZ>` tag reaches the very same
+ * generator the Create dialog does (`generateQuizFrom`, api/aiQuiz.ts), with
+ * the same confirmation in front of it, and it doesn't commit the student to
+ * a topic before they've named one.
  *
  * The weak-topic chips beneath are not AI-gated: `fetchWeakTopics` only
  * aggregates `quiz_attempts.weak_topics`, a plain read. */

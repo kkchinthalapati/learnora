@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { Route, Routes } from "react-router";
 import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
@@ -81,16 +81,16 @@ function serveSubject({
 
 function renderSubject(folderId = "folder-1") {
   return renderWithAuth(
-    <MemoryRouter initialEntries={[`/folders/${folderId}`]}>
-      <Routes>
-        <Route path="/folders/:folderId" element={<SubjectDetailPage />} />
-        <Route path="/library" element={<h1>Library</h1>} />
-        <Route path="/notes/:materialId" element={<h1>Notes editor</h1>} />
-        <Route path="/review/:deckId" element={<h1>Deck review</h1>} />
-        <Route path="/quiz/:quizId" element={<h1>Quiz runner</h1>} />
-      </Routes>
-    </MemoryRouter>,
+    <Routes>
+      <Route path="/folders/:folderId" element={<SubjectDetailPage />} />
+      <Route path="/library" element={<h1>Library</h1>} />
+      <Route path="/notes/:materialId" element={<h1>Notes editor</h1>} />
+      <Route path="/review/:deckId" element={<h1>Deck review</h1>} />
+      <Route path="/quiz/:quizId" element={<h1>Quiz runner</h1>} />
+    </Routes>,
     { session: fakeSession() },
+    // The router lives above the create-dialog provider — see test/render.tsx.
+    { initialEntries: [`/folders/${folderId}`] },
   );
 }
 

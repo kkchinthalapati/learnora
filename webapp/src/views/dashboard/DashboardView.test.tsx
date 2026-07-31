@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { Route, Routes } from "react-router";
 import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
@@ -98,24 +98,23 @@ function serveDashboard({
 
 function renderDashboard() {
   return renderWithAuth(
-    <MemoryRouter initialEntries={["/"]}>
-      {/* The dashboard's command bar and AI card both talk to the chat, and
-          ChatProvider has to sit inside the router (it navigates). */}
-      <ChatProvider>
-        <Routes>
-          <Route path="/" element={<DashboardView />} />
-          <Route path="/timer" element={<h1>Timer</h1>} />
-          <Route path="/tasks" element={<h1>Tasks</h1>} />
-          <Route path="/exams" element={<h1>Exams</h1>} />
-          <Route path="/library/flashcards" element={<h1>Flashcards</h1>} />
-          <Route path="/plan" element={<h1>Weekly plan</h1>} />
-        </Routes>
-        {/* App.tsx renders the panel beside the routes, not inside a view. */}
-        <TurboChat />
-      </ChatProvider>
-    </MemoryRouter>,
+    /* The dashboard's command bar and AI card both talk to the chat, and
+       ChatProvider has to sit inside the router (it navigates) — which the
+       harness now supplies, since the create dialog needs it too. */
+    <ChatProvider>
+      <Routes>
+        <Route path="/" element={<DashboardView />} />
+        <Route path="/timer" element={<h1>Timer</h1>} />
+        <Route path="/tasks" element={<h1>Tasks</h1>} />
+        <Route path="/exams" element={<h1>Exams</h1>} />
+        <Route path="/library/flashcards" element={<h1>Flashcards</h1>} />
+        <Route path="/plan" element={<h1>Weekly plan</h1>} />
+      </Routes>
+      {/* App.tsx renders the panel beside the routes, not inside a view. */}
+      <TurboChat />
+    </ChatProvider>,
     { session: fakeSession() },
-    { withTimer: true },
+    { withTimer: true, initialEntries: ["/"] },
   );
 }
 

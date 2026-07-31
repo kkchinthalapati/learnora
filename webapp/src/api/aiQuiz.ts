@@ -1,13 +1,12 @@
-/* Topic-only quiz generation — the path the chat's `<ADD_QUIZ>Topic</ADD_QUIZ>`
- * tag takes through the vanilla (`AI.generateQuiz(null, null, { topic })` →
- * `createStudyPackage` with `source: { kind: "topic" }` → `_generateQuizFrom`,
- * js/ai.js:601-679, :758-762, :837-868).
+/* Quiz generation — the vanilla's `_generateQuizFrom` (js/ai.js:601-660).
  *
- * Only that path is ported. `createStudyPackage`'s file/link/material sources
- * pull in uploads, storage and notes generation and belong to the Create
- * pipeline, which is still a loose end (see REACT_MIGRATION.md). A topic
- * source needs none of it: the vanilla's own code reduces to
- * `sourceText = "Topic: <topic>"` before it reaches the model.
+ * Two callers reach it. The chat's `<ADD_QUIZ>Topic</ADD_QUIZ>` tag goes
+ * through `generateQuizFromTopic` below (the vanilla's `AI.generateQuiz(null,
+ * null, { topic })` → `createStudyPackage` with `source: { kind: "topic" }`,
+ * js/ai.js:758-762, :837-868); the Create pipeline goes through
+ * `generateQuizFrom` with the notes it just wrote as the source
+ * (api/studyPackage.ts). Both share this one implementation, which is the
+ * point of the vanilla's own "THE ONE ENTRY POINT" consolidation.
  *
  * The prompt is carried over verbatim — it is what the edge function's
  * `mode: "quiz"` instructions were tuned against, and its "STRICT DIVERSITY &
@@ -103,35 +102,38 @@ ${sourceText}
 """`;
 }
 
-/** Generate and save a quiz on a bare topic. Throws on failure per Decision
- *  #6; `QuizShapeError` distinguishes "the model replied with nothing usable"
- *  from a transport failure. */
-export async function generateQuizFromTopic(
-  topic: string,
-  settings: Settings,
-  options: QuizOptions = {},
-): Promise<Quiz> {
-  const trimmed = topic.trim();
-  if (!trimmed) throw new Error("Please enter a topic.");
-
-  const difficulty = options.difficulty ?? QUIZ_DEFAULTS.difficulty;
-  const personality = options.personality ?? QUIZ_DEFAULTS.personality;
-  const count = options.questionCount ?? QUIZ_DEFAULTS.questionCount;
-
-  /* The topic reaches here from a model reply (`<ADD_QUIZ>…</ADD_QUIZ>`), so
-     it is not app-authored text — fenced before it goes back into a prompt. */
-  const safeTopic = fenceUntrusted(trimmed);
-
+/** Generate a quiz from already-prepared source text and save it against the
+ *  given material/folder. Callers own fencing their `sourceText` and `topic`:
+ *  by here both are interpolated straight into the prompt. Throws on failure
+ *  per Decision #6; `QuizShapeError` distinguishes "the model replied with
+ *  nothing usable" from a transport failure. */
+export async function generateQuizFrom({
+  sourceText,
+  topic,
+  title,
+  materialId = null,
+  folderId = null,
+  settings,
+  options = {},
+}: {
+  sourceText: string;
+  topic: string;
+  title: string;
+  materialId?: string | null;
+  folderId?: string | null;
+  settings: Settings;
+  options?: QuizOptions;
+}): Promise<Quiz> {
   const { text } = await callEdge({
     history: [
       {
         role: "user",
         content: buildQuizPrompt({
-          sourceText: `Topic: ${safeTopic}`,
-          topic: safeTopic,
-          difficulty,
-          personality,
-          count,
+          sourceText,
+          topic,
+          difficulty: options.difficulty ?? QUIZ_DEFAULTS.difficulty,
+          personality: options.personality ?? QUIZ_DEFAULTS.personality,
+          count: options.questionCount ?? QUIZ_DEFAULTS.questionCount,
         }),
       },
     ],
@@ -142,5 +144,29 @@ export async function generateQuizFromTopic(
   const questions = extractQuizJSON(text);
   if (questions.length === 0) throw new QuizShapeError();
 
-  return quizzesApi.add(null, null, `${trimmed} Quiz`, questions);
+  return quizzesApi.add(materialId, folderId, title, questions);
+}
+
+/** Generate and save a quiz on a bare topic — no material, no folder. The
+ *  vanilla's own code reduces a topic source to `sourceText = "Topic: <topic>"`
+ *  before it reaches the model (js/ai.js:759-762), so that is all this adds. */
+export async function generateQuizFromTopic(
+  topic: string,
+  settings: Settings,
+  options: QuizOptions = {},
+): Promise<Quiz> {
+  const trimmed = topic.trim();
+  if (!trimmed) throw new Error("Please enter a topic.");
+
+  /* The topic can reach here from a model reply (`<ADD_QUIZ>…</ADD_QUIZ>`), so
+     it is not app-authored text — fenced before it goes back into a prompt. */
+  const safeTopic = fenceUntrusted(trimmed);
+
+  return generateQuizFrom({
+    sourceText: `Topic: ${safeTopic}`,
+    topic: safeTopic,
+    title: `${trimmed} Quiz`,
+    settings,
+    options,
+  });
 }

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -15,6 +16,12 @@ function Harness({ initial }: { initial?: OpenCreateModalOptions }) {
   return <Button onClick={() => openCreateModal(initial)}>Open create</Button>;
 }
 
+/* The Material panel navigates to whatever a run produced (Step 24), so the
+   provider rendering it has to sit under a router — see test/render.tsx. */
+function renderModal(ui: ReactNode) {
+  return renderWithProviders(ui, undefined, { withRouter: true });
+}
+
 describe("CreateModal", () => {
   beforeEach(() => {
     mockAuthSession("user-1");
@@ -26,7 +33,7 @@ describe("CreateModal", () => {
 
   it("opens on the Material panel by default", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<Harness />);
+    renderModal(<Harness />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     expect(screen.getByRole("dialog", { name: "Create study material" })).toBeInTheDocument();
@@ -35,7 +42,7 @@ describe("CreateModal", () => {
 
   it("opens directly on the requested panel", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<Harness initial={{ type: "task" }} />);
+    renderModal(<Harness initial={{ type: "task" }} />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     expect(screen.getByRole("dialog", { name: "New task" })).toBeInTheDocument();
@@ -44,7 +51,7 @@ describe("CreateModal", () => {
 
   it("switches panels via the type picker without closing the dialog", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<Harness />);
+    renderModal(<Harness />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     await user.click(screen.getByRole("radio", { name: "Subject" }));
@@ -54,7 +61,7 @@ describe("CreateModal", () => {
 
   it("resets to a fresh panel every time it's reopened", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<Harness />);
+    renderModal(<Harness />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     // Switch to Subject and type a name, then cancel.
@@ -79,7 +86,7 @@ describe("SubjectPanel", () => {
 
   it("requires a name", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<Harness initial={{ type: "subject" }} />);
+    renderModal(<Harness initial={{ type: "subject" }} />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     await user.click(screen.getByRole("button", { name: "Create subject" }));
@@ -99,7 +106,7 @@ describe("SubjectPanel", () => {
     );
 
     const user = userEvent.setup();
-    renderWithProviders(<Harness initial={{ type: "subject" }} />);
+    renderModal(<Harness initial={{ type: "subject" }} />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
     await user.type(screen.getByLabelText("Name"), "Biology");
     await user.click(screen.getByRole("button", { name: "Create subject" }));
@@ -120,7 +127,7 @@ describe("ExamPanel", () => {
 
   it("rejects a past date", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<Harness initial={{ type: "exam" }} />);
+    renderModal(<Harness initial={{ type: "exam" }} />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     await user.type(screen.getByLabelText("Exam name"), "Midterm");
@@ -141,7 +148,7 @@ describe("ExamPanel", () => {
     );
 
     const user = userEvent.setup();
-    renderWithProviders(<Harness initial={{ type: "exam" }} />);
+    renderModal(<Harness initial={{ type: "exam" }} />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     await user.type(screen.getByLabelText("Exam name"), "Final");
@@ -173,7 +180,7 @@ describe("TaskPanel", () => {
 
   it("requires task text", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<Harness initial={{ type: "task" }} />);
+    renderModal(<Harness initial={{ type: "task" }} />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     await user.click(screen.getByRole("button", { name: "Add task" }));
@@ -192,7 +199,7 @@ describe("TaskPanel", () => {
     );
 
     const user = userEvent.setup();
-    renderWithProviders(<Harness initial={{ type: "task" }} />);
+    renderModal(<Harness initial={{ type: "task" }} />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
     await user.type(screen.getByRole("textbox", { name: "Task" }), "Read chapter 5");
     await user.click(screen.getByRole("button", { name: "Add task" }));

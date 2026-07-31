@@ -161,3 +161,44 @@
   background: var(--glass-bg-strong);
   padding-top: var(--s-4);
 }
+
+/* The live caption for a generation in flight. The vanilla showed this in a
+   full-app blocking overlay; this branch dropped that overlay deliberately
+   (REACT_MIGRATION.md, "Found, deliberately not ported"), so the stage is
+   reported where the student started the run instead. */
+.progress {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.spinner {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Respects the same reduced-motion contract the rest of the app honours: the
+   caption text already carries the information, so the spin is decoration. */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}

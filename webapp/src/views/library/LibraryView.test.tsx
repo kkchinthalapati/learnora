@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router";
+import { Route, Routes, useLocation } from "react-router";
 import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
@@ -107,7 +107,7 @@ function LocationProbe() {
 
 function renderLibrary(path = "/library") {
   return renderWithAuth(
-    <MemoryRouter initialEntries={[path]}>
+    <>
       <LocationProbe />
       <Routes>
         <Route path="/library" element={<LibraryView />} />
@@ -118,8 +118,10 @@ function renderLibrary(path = "/library") {
         <Route path="/quiz/:quizId" element={<h1>Quiz runner</h1>} />
         <Route path="/quiz/:quizId/review" element={<h1>Quiz review</h1>} />
       </Routes>
-    </MemoryRouter>,
+    </>,
     { session: fakeSession() },
+    // The router lives above the create-dialog provider — see test/render.tsx.
+    { initialEntries: [path] },
   );
 }
 

@@ -11,7 +11,11 @@ const getSession = vi.fn();
 const signOut = vi.fn();
 const onAuthStateChange = vi.fn();
 
+/* `SUPABASE_URL` is re-exported because this file's provider stack reaches
+   modules that build request URLs from it at import time (api/ai.ts, via the
+   create dialog) — a partial mock without it fails the whole suite on load. */
 vi.mock("../lib/supabase", () => ({
+  SUPABASE_URL: "https://project.supabase.co",
   supabase: {
     auth: {
       getSession: (...args: unknown[]) => getSession(...args),
