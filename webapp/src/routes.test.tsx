@@ -39,7 +39,6 @@ describe("route skeleton", () => {
     ["/library", "Library"],
     ["/library/notes", "Library"],
     ["/plan", "This week's plan"],
-    ["/review/d-1", "Flashcard Review"],
     ["/settings", "Settings"],
   ])("%s renders the %s view for a signed-in user", (path, heading) => {
     renderAt(path);
@@ -106,6 +105,15 @@ describe("route skeleton", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: "Quiz not found." }),
     ).toBeInTheDocument();
+  });
+
+  /* Also async: the review screen loads the deck before it can title itself,
+     and the default handlers return no cards, which is the "nothing due" path. */
+  it("/review/:deckId renders the flashcard review", async () => {
+    mockAuthSession("user-1");
+    renderAt("/review/d-1");
+
+    expect(await screen.findByText(/All caught up/)).toBeInTheDocument();
   });
 
   it("unknown paths fall through to Not found", () => {

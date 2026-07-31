@@ -12,6 +12,7 @@ import { NotesView } from "./views/notes/NotesView";
 import { PlanView } from "./views/plan/PlanView";
 import { QuizRunner } from "./views/quiz/QuizRunner";
 import { QuizReview } from "./views/quiz/QuizReview";
+import { ReviewView } from "./views/review/ReviewView";
 
 /*
  * Route table mirroring the vanilla app's hash router (js/router.js):
@@ -47,10 +48,7 @@ export function AppRoutes() {
         <Route path="/plan" element={<PlanView />} />
         <Route path="/quiz/:quizId" element={<QuizRunner />} />
         <Route path="/quiz/:quizId/review" element={<QuizReview />} />
-        <Route
-          path="/review/:deckId"
-          element={<Placeholder title="Flashcard Review" />}
-        />
+        <Route path="/review/:deckId" element={<ReviewView />} />
         <Route path="/settings" element={<SettingsView />} />
         <Route path="*" element={<Placeholder title="Not found" />} />
       </Route>

@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 691/691 passing
-- **Last verified:** 2026-07-30 (Step 17 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
+- **Tests:** `npm --prefix webapp run test` — expect 733/733 passing
+- **Last verified:** 2026-07-31 (Step 18 — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -31,7 +31,7 @@ session, or agent can resume without any conversation history.
 | 15 | Weekly Plan | Views | ✅ |
 | 16 | Quiz runner + review | Views | ✅ |
 | 17 | Turbo chat + dashboard command bar | Views | ✅ |
-| 18 | Flashcard Review (SRS flip-card, most complex) | Views | ☐ |
+| 18 | Flashcard Review (SRS flip-card, most complex) | Views | ✅ |
 
 ---
 
@@ -1177,6 +1177,103 @@ Console clean.
 **Cutover still not performed**, same hash-routing reason as every prior
 step. `index.html` and `js/*` remain untouched.
 
+### Step 18 — Flashcard Review (2026-07-31)
+
+The last view. Ports index.html:952-983 and js/router.js's `startReview`
+(:640-790) into `views/review/` (`ReviewView`, `FlashcardScene`,
+`gradingPrompt.ts`, the CSS module) over a new `lib/srs.ts`, and finally
+wires the chat's `<GRADE_FLASHCARD>` tag, which step 17 shipped parsed but
+inert for want of a review screen to aim at.
+
+**`lib/srs.ts` ports the scheduling maths exactly, and does not improve it.**
+The vanilla's own comment calls it a "Basic SRS approximation" — it is
+SM-2-shaped, not SM-2 — but every card already in the database carries an
+`srs_interval` and `ease_factor` this function produced, so "fixing" the
+curve would silently reschedule every deck a student has. Two consequences
+are pinned by tests so nobody later mistakes them for bugs introduced here:
+a failed card gets `interval = 0`, so it is due *now* (it returns next
+visit, not later in this session), and `ease` grows with no ceiling where
+real SM-2 caps it.
+
+**The due set is snapshotted on entry and never recomputed.** Deriving it
+live would be two bugs at once: scoring invalidates the deck query, so the
+list would change under the current index, and a card scored Again is due
+immediately and would silently re-enter the session it had just left. The
+vanilla filtered once on entry for exactly this reason; there is a test that
+refetches a still-due card mid-session and asserts it does not come back.
+
+**Three accessibility fixes over the vanilla.** The card is a real `<button>`
+(the vanilla hung the click handler on a `<div>`, so the entire review flow
+was mouse-only); the turned-away face is `aria-hidden`, because
+`backface-visibility` hides it visually but leaves it in the accessibility
+tree, so a screen reader read the answer out before the student had flipped;
+and the flip is driven by a class off React state rather than by reading
+`container.style.transform` back out of the DOM to decide what to do next.
+
+**Two vanilla defects fixed, both in the AI grading path:**
+
+- **The model's feedback used to be destroyed in the frame it arrived.**
+  `AI.send` wrote the reply into `#ai-grading-feedback`, then executed the
+  `<GRADE_FLASHCARD>` tag, which called `scoreCard` → `showCard()` → which
+  cleared `#ai-grading-feedback`. The explanation — the entire point of the
+  feature — was never readable. An AI grade now schedules the card
+  immediately but does **not** advance; the score row becomes a single
+  "Next card →" so the student reads the feedback and moves on deliberately.
+  A grade the student gives by hand still advances at once, as before.
+- **The feedback is rendered, not printed.** The vanilla ran it through
+  `renderMarkdown`; a plain-text port showed the student literal
+  `**asterisks**` around the term the model was correcting. It goes through
+  `renderMarkdownNodes` (step 17's renderer), so still no `innerHTML`.
+
+**The card's front and back are fenced before they go into the grading
+prompt.** They are model-generated text the app interpolates into its own
+prompt, so a deck carrying `<ADD_TASK>…</ADD_TASK>` on a card must not be
+able to steer the reply. The student's typed answer is fenced for the same
+reason. Regression test included.
+
+**Scoring no longer blocks on the network.** The vanilla awaited
+`updateReview` before advancing, so a slow connection froze the deck between
+cards. The write is fired and the session moves on; a failure raises a toast
+rather than being swallowed, because a lost write means the card's schedule
+silently didn't move.
+
+**Smaller things:** the deck is named in the heading — the vanilla gave
+`#review-deck-title` an id and then never filled it in, leaving a hard-coded
+"Flashcard Review" — using `useAllDecks`, already cached by the Library tab
+this screen is reached from. Newlines in a card render via
+`white-space: pre-line` rather than the vanilla's
+`esc(text).replace(/\n/g, '<br/>')`, so card text never becomes markup. The
+two end states are their own screens instead of `innerHTML` swapped into the
+card's front face, which had left a "Review Complete!" card still flippable.
+
+**Testing: 42 new tests (733 total).** 14 on the scheduler (both score
+branches, the 0→1→3→×ease ladder, the ease floor, the missing-value
+fallbacks, the no-ceiling behaviour, and `isDue`'s NULL case), 26 on the view
+(due filtering, both end states, flip-by-mouse and flip-by-keyboard, the
+hidden face's `aria-hidden`, the schedules written for a pass and a fail,
+advancing face-down, the snapshot rule, the failed-write toast, and the whole
+AI grading path — prompt contents, feedback rendering, tag-driven scoring,
+hold-then-advance, per-card reset and the injection defence), and 3 on the
+action executor for the tag's two outcomes and its out-of-range guard.
+
+**Browser-verified.** Opened a deck: title, "Card 1 of 2" with a not-due card
+correctly excluded, front face, "Click to flip". Flipping applied a real
+`rotateY(180deg)` (`matrix3d(-1,0,0,0, 0,1,0,0, 0,0,-1,0, 0,0,0,1)`) and
+revealed the four score buttons in the vanilla's colours. Scoring Good on a
+fresh card wrote `srs_interval: 1, ease_factor: 2.6` and advanced face-down.
+Typing an answer and pressing Grade showed "AI is grading your answer…",
+then the model's reply with **bold** rendered, the card held in place, and
+"Next card →" in place of the score row — while the `<GRADE_FLASHCARD>2</…>`
+tag had already written `srs_interval: 0, ease_factor: 2.3`. Console clean.
+
+**Cutover still not performed**, same hash-routing reason as every prior
+step. `index.html` and `js/*` remain untouched.
+
+**Every view on the ledger is now ported.** What remains before the vanilla
+app can be retired is in the loose ends: the Create pipeline
+(`createStudyPackage`), the Notes AI sidebar, a React sign-in flow, i18n, and
+the cutover mechanism itself.
+
 ---
 
 ## Known loose ends
@@ -1206,10 +1303,6 @@ the port)
   is its own piece of work. The Turbo chat is context-aware on
   `/notes/:materialId` — it reads the note and tutors on it — so the capability
   exists, just not docked beside the editor.
-- **`<GRADE_FLASHCARD>` is parsed but never executed** until step 18 builds
-  the flashcard review screen. Whoever lands that step should wire it into
-  `ChatProvider`'s handlers and drop the `return null` in
-  `lib/chatActions.ts`.
 - **The AI edge function's CORS allow-list does not include the Vite dev
   server.** `DEFAULT_ALLOWED_ORIGINS` in
   `supabase/functions/learnora-ai/index.ts` lists `http://localhost:3000` (the

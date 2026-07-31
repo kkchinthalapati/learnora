@@ -68,6 +68,13 @@ export interface ChatApi {
   send: (query: string) => Promise<void>;
   attachFile: (file: File) => void;
   clearFile: () => void;
+
+  /** Registered by the flashcard review screen while it is open, so the
+   *  model's `<GRADE_FLASHCARD>` tag has somewhere to land. Returns an
+   *  unregister function; with nothing registered the tag is parsed and
+   *  ignored, which is what the vanilla did when its click target was
+   *  missing. */
+  registerFlashcardGrader: (grade: (quality: number) => void) => () => void;
 }
 
 export const ChatContext = createContext<ChatApi | null>(null);

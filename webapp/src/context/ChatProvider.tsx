@@ -109,6 +109,22 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const clearFile = useCallback(() => setFile(null), []);
 
+  /* The flashcard review screen registers itself here while it is open; a
+     `<GRADE_FLASHCARD>` tag arriving with nothing registered is ignored, as it
+     was in the vanilla whenever the review screen wasn't the current view. A
+     ref rather than state on purpose: registering must not re-render every
+     chat consumer, and the handler set below reads it at execution time. */
+  const graderRef = useRef<((quality: number) => void) | null>(null);
+  const registerFlashcardGrader = useCallback(
+    (grade: (quality: number) => void) => {
+      graderRef.current = grade;
+      return () => {
+        if (graderRef.current === grade) graderRef.current = null;
+      };
+    },
+    [],
+  );
+
   const attachFile = useCallback(
     (picked: File) => {
       if (picked.size > MAX_FILE_BYTES) {
@@ -191,6 +207,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                 : "Failed to generate quiz. Please try again.";
             showToast(message, { error: true });
           });
+      },
+      gradeFlashcard: (quality) => {
+        if (!graderRef.current) return false;
+        graderRef.current(quality);
+        return true;
       },
       generatePlan: () => {
         generateWeeklyPlan(settings)
@@ -363,6 +384,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       send,
       attachFile,
       clearFile,
+      registerFlashcardGrader,
     }),
     [
       messages,
@@ -379,6 +401,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       send,
       attachFile,
       clearFile,
+      registerFlashcardGrader,
     ],
   );
 

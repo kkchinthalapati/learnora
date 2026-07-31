@@ -37,6 +37,8 @@ export interface ActionHandlers {
   /** Fire-and-forget: the chat must not block on a 30-second generation. */
   generateQuiz: (topic: string) => void;
   generatePlan: () => void;
+  /** Returns false when no flashcard review screen is open to grade against. */
+  gradeFlashcard: (quality: number) => boolean;
 }
 
 interface TagMatch {
@@ -169,12 +171,22 @@ async function runTag(
     }
 
     case "GRADE_FLASHCARD": {
-      /* Parsed so the tag never survives into the visible reply, but not
-         executed: the vanilla clicked the review screen's score buttons, and
-         there is no React flashcard review until ledger step 18. Rendering
-         nothing matches the vanilla's own behaviour when the click target was
-         missing. */
-      return null;
+      /* The one tag whose target may not exist: the vanilla clicked the review
+         screen's score buttons, so a reply carrying this tag outside a review
+         did nothing and rendered nothing. `gradeFlashcard` returns false when
+         no review screen is registered, and the tag is still stripped from the
+         visible reply either way. */
+      const quality = Number.parseInt(payload, 10);
+      if (
+        ctx.isRepeat ||
+        !Number.isInteger(quality) ||
+        quality < 1 ||
+        quality > 4
+      ) {
+        return null;
+      }
+      if (!handlers.gradeFlashcard(quality)) return null;
+      return ok("graduation-cap", `Flashcard Graded (Score: ${quality})`);
     }
 
     case "ADD_QUIZ": {

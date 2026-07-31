@@ -16,6 +16,7 @@ function handlers(overrides: Partial<ActionHandlers> = {}): ActionHandlers {
     navigate: vi.fn().mockReturnValue(true),
     generateQuiz: vi.fn(),
     generatePlan: vi.fn(),
+    gradeFlashcard: vi.fn().mockReturnValue(true),
     ...overrides,
   };
 }
@@ -178,16 +179,40 @@ describe("executeActions", () => {
     });
   });
 
-  /* Parsed so the tag never survives into the visible reply, but not executed:
-     the vanilla clicked the review screen's score buttons and there is no
-     React flashcard review until step 18. */
-  it("swallows GRADE_FLASHCARD without executing or rendering it", async () => {
-    const parts = await executeActions(
-      "Nice work <GRADE_FLASHCARD>3</GRADE_FLASHCARD> keep going",
-      handlers(),
-    );
-    expect(widgets(parts)).toHaveLength(0);
-    expect(text(parts)).toBe("Nice work  keep going");
+  describe("GRADE_FLASHCARD", () => {
+    it("grades the open card and says so", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "Nice work <GRADE_FLASHCARD>3</GRADE_FLASHCARD> keep going",
+        h,
+      );
+
+      expect(h.gradeFlashcard).toHaveBeenCalledWith(3);
+      expect(widgets(parts)[0].text).toBe("Flashcard Graded (Score: 3)");
+      expect(text(parts)).toBe("Nice work  keep going");
+    });
+
+    /* The one tag whose target may not exist. The vanilla's version clicked a
+       score button, so a reply carrying it outside a review did nothing and
+       rendered nothing — but the tag was still stripped from the reply. */
+    it("renders nothing when no review screen is open, but still strips the tag", async () => {
+      const h = handlers({ gradeFlashcard: vi.fn().mockReturnValue(false) });
+      const parts = await executeActions(
+        "Nice work <GRADE_FLASHCARD>3</GRADE_FLASHCARD> keep going",
+        h,
+      );
+
+      expect(widgets(parts)).toHaveLength(0);
+      expect(text(parts)).toBe("Nice work  keep going");
+    });
+
+    it("ignores a score outside 1-4", async () => {
+      const h = handlers();
+      for (const bad of ["0", "5", "many"]) {
+        await executeActions(`<GRADE_FLASHCARD>${bad}</GRADE_FLASHCARD>`, h);
+      }
+      expect(h.gradeFlashcard).not.toHaveBeenCalled();
+    });
   });
 
   describe("ADD_QUIZ", () => {
