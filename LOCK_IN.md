@@ -80,8 +80,11 @@ closed):
   no browser driver was available in those sessions. Step 18 later found
   Playwright's Chromium is actually installed locally; that recipe should be
   reused rather than re-declaring it impossible.
-- No route has actually been cut over to be the default yet — the vanilla app
-  still owns every real URL; React is only reachable at `/app/*`.
+- ~~No route has actually been cut over~~ — Settings was cut over 2026-08-01
+  (`REACT_MIGRATION.md` Step 26): `#settings` now redirects to `/app/settings`
+  and the vanilla view is deleted. Every other route (Tasks, Exams, Timer,
+  Library, Dashboard, Notes, Plan, Quiz, Review) still belongs to the vanilla
+  app — this is the first cutover, not the last.
 - The Supabase auth redirect allow-list doesn't include `/verify` /
   `/reset-password` under `/app` — an external config change (Authentication →
   URL Configuration), can't be fixed from this repo.
@@ -192,8 +195,9 @@ migration-introduced regression currently blocks shipping.
 - Step 23 — i18n port.
 - Step 25 — Notes AI study sidebar.
 - CORS allow-list fix for local `npm run dev` model calls.
-- Cutting a real route over to `/app` as the default (the actual point of
-  the whole migration — nothing has moved off the vanilla app yet).
+- Continuing the route-by-route cutover to `/app` (Settings done 2026-08-01,
+  Step 26 — Tasks, Exams, Timer, Library, Dashboard, Notes, Plan, Quiz, and
+  Review still belong to the vanilla app).
 
 **Nice to have:**
 - Everything in sections 4 and 5.

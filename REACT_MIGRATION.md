@@ -48,9 +48,11 @@ production. Those are steps 19-21.
 | 23 | i18n port (`i18n.js` → a React translation layer) | Foundation | ☐ |
 | 24 | `createStudyPackage` Create-pipeline | Views | ✅ |
 | 25 | Notes AI study sidebar | Views | ☐ |
+| 26 | First real route cutover: Settings (`#settings` → `/app/settings`) | Foundation | ✅ |
 
-Steps 23 and 25 are the remaining known-scoped work. Everything else outstanding
-is in "Known loose ends".
+Steps 23 and 25 are the remaining known-scoped view/feature work. Everything
+else outstanding is in "Known loose ends" — including the rest of the
+route-by-route cutover Step 26 started.
 
 ---
 
@@ -1808,6 +1810,42 @@ tests/*.test.js`).
 
 ---
 
+### Step 26 — First real route cutover: Settings (2026-08-01)
+
+LOCK_IN.md's priority list called this out as the actual point of the whole
+migration — Step 21 only built the mechanism, nothing had used it yet. Picked
+Settings, per Decision #13 and the "Found during Steps 19-21" note.
+
+`js/router.js`'s `navigate()` gained a `CUTOVER_ROUTES` table (`{ settings:
+"/app/settings" }`), checked before any vanilla view-toggling. A cut-over route
+does a full `window.location.href` navigation — not a client-side hash
+change — since it has to cross from the vanilla's fragment-only routing into
+the React app mounted at `/app`. `loadSettingsProfile()` and its call site were
+deleted along with it: unreachable once the redirect fires first.
+
+`index.html`'s `<section id="view-settings">` (721 lines) is deleted outright,
+per the ledger's own description of a cutover ("delete the vanilla's handler
+for it"), not just hidden behind the redirect. `js/main.js`'s `bindSettings()`
+and its settings-panel-specific helpers (`showFeedback`, the tab switcher, the
+appearance-control listeners) were deliberately left in place rather than
+chased down: they're wired with `$(...)?.addEventListener` / iterate empty
+NodeLists, so they no-op harmlessly now that the markup is gone, and
+`UI.applyAppearance` in particular is shared boot-time theme logic (called
+unconditionally at startup, not settings-only) — not safe to remove in the
+same pass as a route deletion. Left as a named cleanup item, not silently
+dropped.
+
+Verified: vanilla suite still 181/181 (`node --test tests/*.test.js` — no test
+referenced the deleted markup or `loadSettingsProfile`). The React side is
+unchanged by this step; `/app/settings` already existed from Step 7.
+
+**Not verified from a workstation, same caveat as Step 21:** a real
+`#settings` click doing the cross-app redirect needs a Vercel preview
+deployment (or `scripts/build.sh` output served locally) — the vanilla and
+React dev servers don't share an origin in local dev.
+
+---
+
 ## Known loose ends
 
 (carried forward from `REVAMP_PROGRESS.md` where relevant, plus new ones found during
@@ -2021,12 +2059,11 @@ the port)
   added in Authentication → URL Configuration. Until then Supabase falls back to
   the Site URL and a confirmation link will not reach the React route. This is
   the single external prerequisite for step 19-20's flows working end to end.
-- **No route has actually been cut over.** Step 21 builds the mechanism; it
-  deletes nothing. The vanilla app still owns every URL a real user visits, and
-  the React app is only reachable at `/app/*`. The first cutover — pick a route,
-  delete the vanilla's handler for it, add a redirect from the vanilla hash to
-  `/app/<route>` — is its own piece of work and should probably start with
-  Settings, as Decision #13 originally intended.
+- ~~**No route has actually been cut over.**~~ — closed by Step 26: `#settings`
+  now redirects to `/app/settings` and the vanilla view is deleted. Every other
+  route (Tasks, Exams, Timer, Library, Dashboard, Notes, Plan, Quiz, Review)
+  still belongs to the vanilla app — this closed the mechanism gap, not the
+  full cutover.
 - **The signup "check your inbox" screen is terminal by design**, and the
   cross-tab case is untested. If a user confirms their email in a different
   browser, the original tab will sit on that screen until they click through to

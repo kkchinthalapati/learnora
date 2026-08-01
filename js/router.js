@@ -127,7 +127,21 @@ export const Router = {
     this.navigate(hash);
   },
 
+  /* Routes cut over to the React app. The vanilla view (and its handler) is
+     deleted, not just hidden — this is a full page navigation, not a rewrite,
+     because /app is a disjoint origin-relative prefix the hash router never
+     sees. See LOCK_IN.md §6 and REACT_MIGRATION.md Step 21. */
+  CUTOVER_ROUTES: {
+    settings: "/app/settings",
+  },
+
   navigate(route) {
+    const cutover = Object.hasOwn(this.CUTOVER_ROUTES, route) ? this.CUTOVER_ROUTES[route] : null;
+    if (cutover) {
+      window.location.href = cutover;
+      return;
+    }
+
     this.currentRoute = route;
 
     // Every library tab is one nav entry, so "library-quizzes" has to light up
@@ -208,41 +222,6 @@ export const Router = {
     if (route === "plan") {
       this.loadPlanView();
     }
-
-    // Populate settings profile data when navigating to settings
-    if (route === "settings") {
-      this.loadSettingsProfile();
-    }
-  },
-
-  /** Populate settings panels with user data */
-  async loadSettingsProfile() {
-    // Import main.js functions would create circular deps, so we inline the logic here.
-    // Get the user session from the Auth module (already imported via api.js).
-    const { Auth } = await import("./api.js");
-    const user = await Auth.getSession();
-    if (!user) return;
-
-    const name = user.user_metadata?.full_name || "Student";
-    const email = user.email || "\u2014";
-    const initials = name
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "?";
-
-    const nameEl = $("settings-display-name");
-    const emailEl = $("settings-user-email");
-    const emailDisplay = $("settings-email-display");
-    const avatarEl = $("settings-avatar-initials");
-    const nameInput = $("settings-name-input");
-
-    if (nameEl) nameEl.textContent = name;
-    if (emailEl) emailEl.textContent = email;
-    if (emailDisplay) emailDisplay.textContent = email;
-    if (avatarEl) avatarEl.textContent = initials;
-    if (nameInput) nameInput.value = name;
   },
 
   /* Shows one Library tab and loads only that tab's data. Called by navigate()
