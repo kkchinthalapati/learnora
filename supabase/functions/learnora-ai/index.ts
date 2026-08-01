@@ -219,7 +219,10 @@ const OPENAI_PROVIDERS: OpenAIProvider[] = [
     modelEnv: "OPENROUTER_MODEL",
     // Kept as the last resort: the free aggregator models are the weakest in
     // the chain, so they only run when everything else is exhausted.
-    defaultModel: "meta-llama/llama-3-8b-instruct:free",
+    // `meta-llama/llama-3-8b-instruct:free` was retired from OpenRouter's
+    // catalog (404 "No endpoints found") — replaced with a model confirmed
+    // live against https://openrouter.ai/api/v1/models on 2026-08-01.
+    defaultModel: "openai/gpt-oss-20b:free",
     url: "https://openrouter.ai/api/v1/chat/completions",
     extraHeaders: { "HTTP-Referer": "https://learnora.app", "X-Title": "Learnora" },
     jsonMode: false,
@@ -447,7 +450,11 @@ Deno.serve(async (req) => {
         // =========================================================================
         const geminiKey = Deno.env.get('GEMINI_API_KEY');
         if (geminiKey) {
-            const geminiModels = (Deno.env.get('GEMINI_MODELS') || "gemini-2.0-flash,gemini-1.5-flash")
+            // gemini-1.5-flash is retired (404 "not found for API version
+            // v1beta") — dropped from the default rather than guessed at a
+            // replacement; GEMINI_MODELS overrides this list without a
+            // redeploy if a second model is wanted.
+            const geminiModels = (Deno.env.get('GEMINI_MODELS') || "gemini-2.0-flash")
                 .split(",").map((m) => m.trim()).filter(Boolean);
             const genAI = new GoogleGenerativeAI(geminiKey);
 
@@ -518,14 +525,29 @@ Deno.serve(async (req) => {
             debugErrors["gemini"] = "GEMINI_API_KEY secret is not set in Supabase.";
         }
 
-        // Text-only providers can't take the attachment inline, so its decoded
-        // contents are folded into the prompt instead.
+        // Text-only providers can't take the attachment inline. Only actual
+        // text is worth folding into the prompt this way — `file` only
+        // reaches this function at all for non-text uploads (a text/plain
+        // file is decoded and merged into `history` client-side before the
+        // call, see studyPackage.ts/ChatProvider.tsx), so a PDF or image
+        // here is genuinely binary. `decodeBase64UTF8`'s TextDecoder doesn't
+        // throw on invalid UTF-8 — it silently emits a replacement character
+        // per bad byte — so running a binary file through it doesn't fail,
+        // it produces a multi-megabyte string of garbage that every
+        // provider below then rejects as an oversized prompt. That is what
+        // "Prompt contains 6117667 tokens" and Groq's 413 actually were:
+        // not a real 6-million-token document, a mis-decoded PDF.
         let fallbackMsg = currentMsg;
-        if (file && file.data) {
+        if (file && file.data && /^text\//.test(file.mimeType || "")) {
             try {
                 const decodedText = decodeBase64UTF8(file.data);
                 fallbackMsg += `\n\n[Attached File Content: ${file.name || "file"}]\n${decodedText}`;
             } catch (_) { }
+        } else if (file && file.data) {
+            // Say so rather than silently dropping it — otherwise the model
+            // answers as though no file were attached at all, with nothing
+            // telling the student why.
+            fallbackMsg += `\n\n[The student attached a file named "${file.name || "file"}" (${file.mimeType || "unknown type"}), but this response is coming from a text-only fallback model that cannot read its contents. Say so if it's relevant to the request.]`;
         }
 
         // =========================================================================
