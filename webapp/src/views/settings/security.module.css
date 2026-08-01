@@ -1,0 +1,10 @@
+/* The password field and strength-meter rules that used to live here moved to
+ * `components/PasswordField.module.css` when the auth views started sharing
+ * the component. What's left is this tab's own layout. */
+
+.passwordStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  margin-bottom: var(--s-5);
+}

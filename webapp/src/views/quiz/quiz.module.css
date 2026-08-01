@@ -1,0 +1,339 @@
+/* Quiz runner and review — ported from style.css's "Quiz Interactive
+ * Gamification" block (:3905-3964) and "Quiz answer review" (:1054-1125),
+ * over the `.glass-panel .summary-card` surface `#quiz-container` used.
+ *
+ * The `!important` run on `.correct-choice` / `.wrong-choice` is dropped: it
+ * existed to beat `.btn-secondary`, which the vanilla applied to the same
+ * element. Here the choice is its own class, so the modifier simply comes
+ * later in the file. */
+
+.view {
+  padding: var(--s-6) var(--s-6) var(--s-8);
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.panel {
+  position: relative;
+  padding: var(--s-6);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+}
+
+.panel h1 {
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  margin: var(--s-2) 0 var(--s-4);
+}
+
+.exit {
+  display: inline-block;
+  padding: 8px 16px;
+  margin-bottom: var(--s-5);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.exit:hover {
+  background: var(--surface-hover);
+}
+
+.progress {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin: 0;
+}
+
+.question {
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  margin: var(--s-2) 0 var(--s-4);
+}
+
+.score {
+  font-size: 1.5rem;
+  margin: var(--s-2) 0 var(--s-4);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.loadError {
+  color: var(--danger);
+}
+
+/* --- Choices --- */
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.choice {
+  width: 100%;
+  text-align: left;
+  padding: 12px 16px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    border-color var(--t-fast) ease,
+    transform var(--t-fast) ease;
+}
+
+.choice:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.choice:disabled {
+  cursor: default;
+}
+
+.correctChoice {
+  background-color: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success);
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+}
+
+.wrongChoice {
+  background-color: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+  animation: quiz-shake 0.5s ease-in-out;
+}
+
+@keyframes quiz-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+  75% {
+    transform: translateX(-5px);
+  }
+}
+
+.nextRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--s-6);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-6);
+}
+
+.actionLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.actionLink:hover {
+  background: var(--surface-hover);
+}
+
+.actionLinkPrimary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.actionLinkPrimary:hover {
+  background: var(--accent-hover);
+}
+
+/* --- Host bubble --- */
+
+.hostBubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: var(--surface-hover);
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  border: 1px solid var(--glass-border);
+  animation: quiz-pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.hostAvatar {
+  display: inline-flex;
+  background: var(--surface-active);
+  padding: 10px;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition:
+    box-shadow var(--t-fast) ease,
+    background var(--t-fast) ease;
+}
+
+.toneCorrect .hostAvatar {
+  background: var(--success-soft);
+  box-shadow:
+    0 0 0 3px var(--success-soft),
+    0 0 16px rgba(52, 184, 138, 0.4);
+}
+
+.toneIncorrect .hostAvatar {
+  background: var(--danger-soft);
+  box-shadow:
+    0 0 0 3px var(--danger-soft),
+    0 0 16px rgba(224, 90, 78, 0.4);
+}
+
+.hostMessage {
+  flex: 1;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  color: var(--text);
+  padding-top: 6px;
+  margin: 0;
+}
+
+@keyframes quiz-pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hostBubble,
+  .wrongChoice {
+    animation: none;
+  }
+  .correctChoice {
+    transform: none;
+  }
+}
+
+/* --- Review --- */
+
+.reviewList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  margin-top: var(--s-6);
+}
+
+.reviewQuestion {
+  padding: clamp(16px, 2vw, 24px);
+  text-align: left;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+}
+
+.reviewHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+.verdict {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.verdictCorrect {
+  color: var(--success);
+}
+
+.verdictWrong {
+  color: var(--danger);
+}
+
+.reviewChoices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reviewChoice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: 12px 16px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+/* The in-quiz reveal pops and shakes to react to a live choice. Replayed down
+   a list of past answers that would be noise, so the colours are kept and the
+   motion dropped — same call the vanilla made at style.css:1108-1117. */
+.reviewChoice.correctChoice {
+  transform: none;
+  box-shadow: none;
+}
+
+.reviewChoice.wrongChoice {
+  animation: none;
+}
+
+.reviewTag {
+  flex-shrink: 0;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+.reviewFeedback {
+  margin-top: var(--s-4);
+  padding: 12px 16px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}

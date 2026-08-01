@@ -1,0 +1,92 @@
+/* Quill overrides — ported 1:1 from style.css's "Quill Overrides for
+ * minimal seamless aesthetic" block (:6062-6150). `--primary`/`--bg-card`/
+ * `--font-primary` (vanilla token names) map to this app's `--accent`/
+ * `--surface`/inherited body font — the notes editor never set its own
+ * font-family in the vanilla either; `--font-primary` there resolved to the
+ * same body font this app already applies globally. */
+
+.wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Read-only state — notes that have no row yet cannot be saved. */
+.wrapper :global(.ql-toolbar.ql-snow) {
+  border: none;
+  border-bottom: 1px solid var(--glass-border);
+  background: transparent;
+  padding: 12px 16px;
+}
+
+.wrapper[aria-disabled="true"] :global(.ql-toolbar.ql-snow) {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.wrapper :global(.ql-container.ql-snow) {
+  border: none;
+  font-size: 1.1rem;
+  background: transparent;
+  flex: 1;
+  min-height: 0;
+}
+
+.wrapper :global(.ql-editor) {
+  padding: 32px 40px;
+  line-height: 1.7;
+  color: var(--text);
+  min-height: 100%;
+}
+
+.wrapper :global(.ql-editor.ql-blank::before) {
+  color: var(--text-faint);
+  font-style: normal;
+}
+
+/* Fix Quill's dropdown and button colors for the dark theme. */
+.wrapper :global(.ql-snow .ql-stroke) {
+  stroke: var(--text-muted);
+}
+
+.wrapper :global(.ql-snow .ql-fill) {
+  fill: var(--text-muted);
+}
+
+.wrapper :global(.ql-snow .ql-picker) {
+  color: var(--text-muted);
+}
+
+.wrapper :global(.ql-snow .ql-picker-options) {
+  background-color: var(--surface);
+  border: 1px solid var(--glass-border);
+}
+
+.wrapper :global(.ql-snow.ql-toolbar button:hover .ql-stroke),
+.wrapper :global(.ql-snow .ql-toolbar button:hover .ql-stroke),
+.wrapper :global(.ql-snow.ql-toolbar button.ql-active .ql-stroke),
+.wrapper :global(.ql-snow .ql-toolbar button.ql-active .ql-stroke),
+.wrapper :global(.ql-snow.ql-toolbar .ql-picker-label:hover .ql-stroke),
+.wrapper :global(.ql-snow .ql-toolbar .ql-picker-label:hover .ql-stroke),
+.wrapper :global(.ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-stroke),
+.wrapper :global(.ql-snow .ql-toolbar .ql-picker-label.ql-active .ql-stroke) {
+  stroke: var(--accent);
+}
+
+.wrapper :global(.ql-snow.ql-toolbar button:hover .ql-fill),
+.wrapper :global(.ql-snow .ql-toolbar button:hover .ql-fill),
+.wrapper :global(.ql-snow.ql-toolbar button.ql-active .ql-fill),
+.wrapper :global(.ql-snow .ql-toolbar button.ql-active .ql-fill),
+.wrapper :global(.ql-snow.ql-toolbar .ql-picker-label:hover .ql-fill),
+.wrapper :global(.ql-snow .ql-toolbar .ql-picker-label:hover .ql-fill),
+.wrapper :global(.ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-fill),
+.wrapper :global(.ql-snow .ql-toolbar .ql-picker-label.ql-active .ql-fill) {
+  fill: var(--accent);
+}
+
+.wrapper :global(.ql-snow.ql-toolbar button:hover),
+.wrapper :global(.ql-snow .ql-toolbar button:hover),
+.wrapper :global(.ql-snow.ql-toolbar .ql-picker-label:hover),
+.wrapper :global(.ql-snow .ql-toolbar .ql-picker-label:hover) {
+  color: var(--accent);
+}

@@ -1,0 +1,51 @@
+/* Ported 1:1 from style.css's `.toggle-switch` / `.toggle-slider` rules. */
+
+.toggleSwitch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggleSwitch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggleSlider {
+  position: absolute;
+  inset: 0;
+  background: var(--line);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: background var(--t-fast) ease;
+}
+
+.toggleSlider::before {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  left: 3px;
+  top: 3px;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--t-fast) var(--ease-spring);
+}
+
+.toggleSwitch input:checked + .toggleSlider {
+  background: var(--accent);
+}
+
+.toggleSwitch input:checked + .toggleSlider::before {
+  transform: translateX(20px);
+}
+
+.toggleSwitch input:focus-visible + .toggleSlider {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

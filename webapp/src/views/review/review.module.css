@@ -1,0 +1,179 @@
+/* Flashcard Review — ported from the inline styles at index.html:1873-1909
+ * (the vanilla never gave this screen a stylesheet rule of its own) plus the
+ * `.glass-panel` surface and button/streaming-pulse tokens the rest of the
+ * app already shares. The 3D flip is the one part with no CSS-module
+ * precedent elsewhere in the app: `perspective` on the scene, `transform-
+ * style: preserve-3d` on the card, and `backface-visibility: hidden` on each
+ * face are the exact three properties the vanilla relied on. */
+
+.view {
+  padding: var(--s-6) var(--s-6) var(--s-8);
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.exit {
+  align-self: flex-start;
+  display: inline-block;
+  padding: 8px 16px;
+  margin-bottom: var(--s-5);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.exit:hover {
+  background: var(--surface-hover);
+}
+
+.header {
+  width: 100%;
+  margin-bottom: var(--s-6);
+}
+
+.title {
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  margin: 0;
+}
+
+.progress {
+  color: var(--text-muted);
+  margin: var(--s-2) 0 0;
+}
+
+.loadError {
+  color: var(--danger);
+}
+
+/* --- The flip card --- */
+
+.scene {
+  width: 100%;
+  min-height: 300px;
+  perspective: 1000px;
+  cursor: pointer;
+}
+
+.card {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  position: relative;
+  padding: 0;
+  border: none;
+  border-radius: 20px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+  cursor: pointer;
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  font-size: 1.5rem;
+  border-radius: 20px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.back {
+  transform: rotateY(180deg);
+}
+
+.cardText {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.backText {
+  color: var(--accent);
+}
+
+.hint {
+  position: absolute;
+  bottom: 20px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* --- AI grading --- */
+
+.gradingStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin: var(--s-4) 0 0;
+}
+
+.pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: review-blink 1s step-end infinite;
+}
+
+@keyframes review-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+  .pulse {
+    animation: none;
+  }
+}
+
+.aiRow {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: var(--s-6);
+}
+
+.aiInput {
+  flex-grow: 1;
+}
+
+/* --- Manual grading controls --- */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-3);
+  margin-top: var(--s-8);
+}

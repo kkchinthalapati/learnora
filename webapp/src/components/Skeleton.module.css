@@ -1,0 +1,26 @@
+/* Loading placeholder. The pulse matches plan-skeleton-pulse in style.css
+ * (1.4s ease-in-out, 0.55→1→0.55 opacity) so skeletons in the React app read
+ * the same as the vanilla Weekly Plan's. */
+
+.skeleton {
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    opacity: 0.7;
+  }
+}

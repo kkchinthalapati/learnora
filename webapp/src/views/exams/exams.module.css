@@ -1,0 +1,403 @@
+/* Exams calendar — ported 1:1 from style.css's "5.7 Calendar" block, the
+ * `.icon-btn` rule from 5.8, the `.segmented*` control, `.btn-ghost-danger`,
+ * and the `body.dark-theme .calendar-day-cell` overrides from section 8.
+ *
+ * `.exam-bar`'s difficulty/status modifiers keep their exact gradients. The
+ * `!important` on `.status-completed` is dropped: it existed only to beat the
+ * `.diff-*` rules by force, and a CSS Module lets the completed modifier
+ * simply come later in the file. */
+
+.view {
+  padding: var(--s-6) var(--s-6) var(--s-8);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.pageHeader {
+  margin-bottom: var(--s-6);
+}
+
+.pageHeader h1 {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  margin: 0;
+}
+
+.container {
+  overflow-x: auto;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  padding: var(--s-6);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-bottom: var(--s-6);
+}
+
+.toolbar h2 {
+  font-size: var(--fs-lg);
+  margin: 0;
+}
+
+.monthNav {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.iconBtn {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: var(--fs-lg);
+  color: var(--text);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+  cursor: pointer;
+}
+
+.iconBtn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-ring);
+  box-shadow: var(--glass-inner), var(--shadow-md);
+}
+
+.hint {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin: 0 0 var(--s-4);
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding-bottom: var(--s-3);
+}
+
+.daysGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(40px, 1fr));
+  grid-auto-rows: minmax(96px, auto);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  min-width: 520px;
+  margin-top: var(--s-4);
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: clamp(8px, 1vw, 12px);
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+  position: relative;
+  border: none;
+  font-family: inherit;
+  text-align: left;
+  transition:
+    background var(--t-fast) ease,
+    box-shadow var(--t-fast) ease;
+}
+
+.cell:hover {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-ring);
+}
+
+.cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.empty {
+  background: var(--surface-2);
+  cursor: default;
+  backdrop-filter: none;
+}
+
+:global(body.dark-theme) .cell {
+  background: var(--surface);
+}
+
+:global(body.dark-theme) .empty {
+  background: var(--surface-2);
+}
+
+.dayNumber {
+  align-self: flex-end;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-faint);
+}
+
+.today .dayNumber {
+  color: var(--accent-on);
+  background: var(--accent);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.overflowBadge {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: var(--s-1) var(--s-2);
+  align-self: flex-start;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-xs);
+}
+
+.examBar {
+  font-family: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: #fff;
+  padding: 5px 8px;
+  border: none;
+  border-radius: var(--r-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  cursor: pointer;
+  transition: transform var(--t-fast) ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.examBar:hover {
+  transform: translateY(-1px);
+}
+
+.diffEasy {
+  background: linear-gradient(135deg, var(--success), #2aad80);
+}
+
+.diffMedium {
+  background: linear-gradient(135deg, var(--warning), #e0a94e);
+}
+
+.diffHard {
+  background: linear-gradient(135deg, var(--danger), #e87068);
+}
+
+.isPast {
+  opacity: 0.55;
+  filter: saturate(0.5);
+}
+
+/* Last, so it wins over the .diff-* gradients without !important. */
+.statusCompleted {
+  background: var(--surface-2);
+  color: var(--text-faint);
+  text-decoration: line-through;
+  border: 1px solid var(--glass-border-subtle);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell,
+  .examBar {
+    transition: none;
+  }
+  .examBar:hover {
+    transform: none;
+  }
+}
+
+/* --- Exam modal --- */
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-bottom: var(--s-4);
+}
+
+.inputGroup label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-1);
+  padding: var(--s-1);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+}
+
+.segmentedOption {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 8px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    color var(--t-fast) ease;
+}
+
+.segmentedOption input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.segmentedOption:hover {
+  color: var(--text);
+}
+
+.segmentedOption:has(input:checked) {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.segmentedOption:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-8);
+}
+
+.actionsRight {
+  display: flex;
+  gap: var(--s-3);
+  margin-left: auto;
+}
+
+/* Ghost danger — de-emphasized destructive action so Save stays primary. */
+.ghostDanger {
+  background: transparent;
+  color: var(--danger);
+  border-color: transparent;
+}
+
+.ghostDanger:hover:not(:disabled) {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.dateError {
+  animation: exam-shake 0.5s ease-in-out;
+  border-color: var(--danger) !important;
+}
+
+@keyframes exam-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+/* --- Day detail modal --- */
+.dayList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+
+/* The vanilla set all of this with inline `style` assignments in JS
+   (js/main.js:1806-1812); it belongs in the stylesheet. */
+.dayItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding: var(--s-3);
+  background: var(--surface-active);
+  border: none;
+  border-radius: var(--r-md);
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dayItem:hover {
+  background: var(--accent-soft);
+}
+
+.dayItemText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dayItemName {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+}
+
+.dayItemMeta {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}

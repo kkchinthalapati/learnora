@@ -1,0 +1,509 @@
+/* Dashboard — ported 1:1 from style.css's "5.x DASHBOARD" block
+ * (:1394-1729), the `.log-item`/`.stat-number` rules it reuses (:966-989,
+ * :1371-1383), `.dash-pill.diff-*` (:1484-1504) and `.onboarding-banner`
+ * (:1726-1728). */
+
+.view {
+  padding: var(--s-6) var(--s-6) var(--s-8);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.pageHeader {
+  margin-bottom: var(--s-6);
+}
+
+.pageHeader h1 {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ---- Grid + shared card shell ------------------------------------------ */
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: var(--s-6);
+  align-items: stretch;
+  margin-bottom: var(--s-6);
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
+  padding: clamp(20px, 3vw, 28px);
+}
+
+.eyebrow {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  margin-bottom: var(--s-3);
+}
+
+.sub {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.cardHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--s-1);
+}
+
+.link {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.link:hover {
+  color: var(--accent-hover);
+}
+
+.emptySm {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin: auto 0;
+}
+
+.statNumber {
+  position: relative;
+  font-size: clamp(34px, 5vw, 44px);
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.statNumber span {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ---- Next exam spotlight ------------------------------------------------ */
+
+.examCard {
+  position: relative;
+  overflow: hidden;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.examCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 90% 70% at 100% 0%,
+    var(--accent-soft) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+.examCard > * {
+  position: relative;
+}
+
+.countdown {
+  font-family: var(--font-head);
+  font-size: clamp(38px, 6vw, 56px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.countdownUnit {
+  display: block;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0;
+  margin-top: var(--s-2);
+}
+
+.examName {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.examMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin-top: var(--s-2);
+}
+
+.examMetaDate {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.diffEasy {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.diffMedium {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.diffHard {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* ---- Focus card ---------------------------------------------------------- */
+
+.focusCard {
+  justify-content: flex-start;
+}
+
+.statNumberLeft {
+  position: relative;
+  font-size: clamp(30px, 4vw, 40px);
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  margin: 0 0 var(--s-2);
+}
+
+.statNumberLeft span {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.focusPresets {
+  display: flex;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+}
+
+.focusPresetBtn {
+  flex: 1;
+  padding: var(--s-2) 0;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+
+.focusPresetBtn:hover,
+.focusPresetBtn:focus-visible {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.fullWidthBtn {
+  width: 100%;
+  margin-top: var(--s-4);
+}
+
+/* ---- Today's tasks -------------------------------------------------------- */
+
+.tasksCard {
+  gap: var(--s-2);
+}
+
+.srsDue {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 10px 12px;
+  margin-top: var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  border: 1px solid var(--glass-border-subtle);
+  font-size: var(--fs-sm);
+}
+
+.srsDueLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---- AI quick actions ------------------------------------------------------ */
+
+.aiCard {
+  gap: 0;
+}
+
+.aiActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}
+
+.aiBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  justify-content: flex-start;
+  padding: 14px;
+  text-align: left;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast) ease,
+    background var(--t-fast) ease,
+    transform var(--t-fast) ease;
+}
+
+.aiBtn:hover {
+  border-color: var(--accent-ring);
+  background: var(--accent-soft);
+  transform: translateY(-1px);
+}
+
+.aiIcon {
+  display: inline-flex;
+  color: var(--accent);
+}
+
+.weakTopics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1);
+  margin-top: var(--s-4);
+}
+
+.weakTopicsLabel {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.weakTopicPill {
+  display: inline-flex;
+  padding: 4px 10px;
+  margin: 2px;
+  font-size: 0.75rem;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  color: var(--text);
+}
+
+/* ---- Streak & analytics ----------------------------------------------------- */
+
+.streakBars {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s-2);
+  height: 56px;
+  margin-top: var(--s-4);
+}
+
+.streakBarCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-1);
+  flex: 1;
+}
+
+.streakBar {
+  width: 100%;
+  max-width: 14px;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  opacity: 0.85;
+}
+
+.streakBarLabel {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+
+.folderBreakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+}
+
+.folderRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.folderDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: var(--s-2);
+}
+
+.folderMins {
+  color: var(--text-muted);
+}
+
+/* ---- Onboarding banner ------------------------------------------------------ */
+
+.onboardingBanner {
+  padding: 20px 24px;
+  margin-bottom: var(--s-6);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
+}
+
+.onboardingHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--s-4);
+}
+
+.onboardingHead h3 {
+  margin: 0 0 var(--s-2);
+}
+
+.dismissBtn {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-lg);
+  color: var(--text);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+  cursor: pointer;
+}
+
+.dismissBtn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-ring);
+}
+
+.onboardingActions {
+  display: flex;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}
+
+/* ---- Recent focus sessions --------------------------------------------------- */
+
+.historyCard {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
+  padding: clamp(20px, 3vw, 28px);
+}
+
+.historyCard h2 {
+  margin: 0 0 var(--s-2);
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.logList {
+  list-style: none;
+  padding: 0;
+  margin: var(--s-4) 0 0;
+}
+
+.logItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  margin-bottom: var(--s-3);
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+  font-weight: 500;
+}
+
+.logMinutes {
+  color: var(--accent);
+}
+
+.logTimestamp {
+  color: var(--text-muted);
+}

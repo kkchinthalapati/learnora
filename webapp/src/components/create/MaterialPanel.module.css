@@ -1,0 +1,204 @@
+/* Ported from style.css :6329-6516 (.create-* rules) — see formShared.module.css
+ * for the generic input/segmented/error pieces this reuses. */
+
+.sourcePicker {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 520px) {
+  .sourcePicker {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.sourcePanel {
+  margin-bottom: var(--s-4);
+}
+
+.select {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.dropzone {
+  border: 2px dashed var(--glass-border-subtle);
+  border-radius: var(--r-lg);
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--glass-bg);
+  transition:
+    border-color var(--t-fast) ease,
+    background var(--t-fast) ease;
+}
+
+.dropzone.dragging {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.dropzoneTitle {
+  font-weight: 650;
+  margin-bottom: var(--s-1);
+}
+
+.outputs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.outputRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast) ease,
+    background var(--t-fast) ease;
+}
+
+.outputRow:hover {
+  border-color: var(--accent);
+}
+
+.outputRow:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
+}
+
+.outputRow:has(input:disabled) {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.outputRow:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.outputRow input[type="checkbox"] {
+  margin-top: 3px;
+  width: 17px;
+  height: 17px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+  cursor: inherit;
+}
+
+.outputText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.outputName {
+  font-weight: 650;
+}
+
+.outputDesc {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.folderRow {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.folderRow .select {
+  flex: 1;
+}
+
+.options {
+  margin-top: var(--s-4);
+  border-top: 1px solid var(--glass-border-subtle);
+  padding-top: var(--s-3);
+}
+
+.options > summary {
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: var(--s-2) 0;
+  list-style: none;
+}
+
+.options > summary::-webkit-details-marker {
+  display: none;
+}
+
+.options > summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: var(--s-2);
+  transition: transform var(--t-fast) ease;
+}
+
+.options[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.optionsBody {
+  padding-top: var(--s-2);
+}
+
+.optionsBody input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.stickyActions {
+  position: sticky;
+  bottom: 0;
+  background: var(--glass-bg-strong);
+  padding-top: var(--s-4);
+}
+
+/* The live caption for a generation in flight. The vanilla showed this in a
+   full-app blocking overlay; this branch dropped that overlay deliberately
+   (REACT_MIGRATION.md, "Found, deliberately not ported"), so the stage is
+   reported where the student started the run instead. */
+.progress {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.spinner {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Respects the same reduced-motion contract the rest of the app honours: the
+   caption text already carries the information, so the spin is decoration. */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}

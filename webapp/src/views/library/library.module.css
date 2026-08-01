@@ -1,0 +1,502 @@
+/* Library + subject workspace — ported from style.css's `.library-tabs` /
+ * `.library-tab` (6292-6326), `.glass-panel` (378-400), `.stat-card` and
+ * `.folder-card-actions` (1329-1360), `.grid-list` / `.grid-responsive`
+ * (957-964), `.icon-btn` (2055-2078), `.material-row` and friends
+ * (1129-1176), `.flashcards-due-banner` (1695-1698) and the `.hover-lift` /
+ * `.hover-bright` utilities (3819-3830).
+ *
+ * Two rules are not carried over. `.stat-card`'s `text-align: center` is
+ * dropped for the Library's cards: the vanilla set it and then had every card
+ * inside override alignment per element, so the live rendering is
+ * left-aligned. And the `.grid-list > *` pop-in animation is declared and then
+ * immediately reset to `animation: none` in style.css (the same reason it was
+ * skipped for the Tasks port), so there is nothing to port. */
+
+.view {
+  padding: var(--s-6) var(--s-6) var(--s-8);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+/* ---- Header ------------------------------------------------------------ */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-5);
+}
+
+.header h1 {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  margin: 0;
+}
+
+.headerSub {
+  color: var(--text-muted);
+  margin-top: var(--s-2);
+}
+
+/* ---- Tab strip --------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  margin-top: var(--s-4);
+  padding: var(--s-1);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+}
+
+.tab {
+  flex: 1 1 auto;
+  padding: 9px var(--s-4);
+  background: none;
+  border: none;
+  border-radius: var(--r-sm);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    color var(--t-fast) ease;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.tabActive {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.panel {
+  margin-top: var(--s-6);
+}
+
+.panel:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--r-md);
+}
+
+.loadError {
+  color: var(--danger);
+}
+
+/* ---- Cards ------------------------------------------------------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: var(--s-6);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(24px, 3vw, 32px);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  box-shadow:
+    var(--glass-inner),
+    var(--glass-inner-bottom),
+    var(--shadow-md);
+  overflow: hidden;
+  transition:
+    transform var(--t-slow) var(--ease-spring),
+    box-shadow var(--t-slow) var(--ease),
+    border-color var(--t-slow) var(--ease);
+}
+
+/* `.stat-card::before` — the accent wash behind every card in the vanilla. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    var(--accent-soft) 0%,
+    transparent 60%
+  );
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    var(--glass-inner),
+    var(--glass-inner-bottom),
+    var(--shadow-lg);
+}
+
+/* The whole card is one link (the vanilla used a [data-hash] div), so it has
+   to cover the card's padding box to keep the same click target. */
+.cardLink {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  align-items: flex-start;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cardLink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 6px;
+  border-radius: var(--r-sm);
+}
+
+.cardTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cardTitleLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.cardTitleLink:hover {
+  color: var(--accent);
+}
+
+.cardMeta {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin: 0;
+}
+
+/* Visual affordance only — the card around it is the link. */
+.cardCta {
+  margin-top: var(--s-3);
+  padding: 6px 12px;
+  border-radius: var(--r-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    var(--accent-hover) 100%
+  );
+  color: var(--accent-on);
+  box-shadow: var(--shadow-sm);
+}
+
+.cardFooter {
+  position: relative;
+  display: flex;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+}
+
+.footerLink {
+  padding: 6px 12px;
+  border-radius: var(--r-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+}
+
+.footerLink:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.footerLinkPrimary {
+  background: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    var(--accent-hover) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--accent-on);
+}
+
+.footerLinkPrimary:hover {
+  color: var(--accent-on);
+}
+
+/* ---- Card quick-actions ------------------------------------------------ */
+
+.cardActions {
+  position: absolute;
+  top: var(--s-2);
+  right: var(--s-2);
+  display: flex;
+  gap: var(--s-1);
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+  z-index: 1;
+}
+
+.card:hover .cardActions,
+.cardActions:focus-within {
+  opacity: 1;
+}
+
+/* Keyboard and touch users never get :hover, and an action that only appears
+   on hover is unreachable for them — so the actions stay visible wherever
+   hover isn't a real input. The vanilla hid them unconditionally. */
+@media (hover: none) {
+  .cardActions {
+    opacity: 1;
+  }
+}
+
+.iconBtn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    color var(--t-fast) ease,
+    border-color var(--t-fast) ease;
+}
+
+.iconBtn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-ring);
+}
+
+.iconBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- "New folder" card ------------------------------------------------- */
+
+.newCard {
+  display: flex;
+}
+
+.newCardBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  padding: clamp(20px, 3vw, 28px);
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--text);
+  background: var(--glass-bg);
+  border: 2px dashed var(--glass-border);
+  border-radius: var(--r-xl);
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast) ease,
+    color var(--t-fast) ease;
+}
+
+.newCardBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.newCardBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- Flashcards due banner --------------------------------------------- */
+
+.dueBanner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  margin: 0 0 var(--s-5);
+  font-size: var(--fs-sm);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+}
+
+/* ---- Subject workspace ------------------------------------------------- */
+
+.workspaceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-6);
+}
+
+.workspaceTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.backLink {
+  padding: 12px 20px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-base);
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--text);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+}
+
+.backLink:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.workspaceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--s-6);
+}
+
+.workspaceSection {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  box-shadow:
+    var(--glass-inner),
+    var(--glass-inner-bottom),
+    var(--shadow-md);
+  padding: clamp(20px, 3vw, 28px);
+}
+
+.sectionTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  margin: 0 0 var(--s-2);
+}
+
+.sectionHint {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin: 0 0 var(--s-4);
+}
+
+.rowList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 4px 4px 4px 12px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+}
+
+.rowLink {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--t-fast) ease;
+}
+
+.rowLink:hover {
+  color: var(--accent);
+}
+
+.rowTitle {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowDelete {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-faint);
+  font-size: var(--fs-md);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background var(--t) ease,
+    color var(--t) ease;
+}
+
+.rowDelete:hover,
+.rowDelete:focus-visible {
+  background: var(--danger-soft);
+  color: var(--danger);
+}

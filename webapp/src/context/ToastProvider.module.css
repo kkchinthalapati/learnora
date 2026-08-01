@@ -1,0 +1,45 @@
+/* Ported from style.css .toast-container / .toast / .toast-error, with the
+ * glass-panel surface the vanilla toast inherits from its second class. */
+
+.container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  z-index: 9999;
+}
+
+.toast {
+  padding: 12px 16px;
+  border-radius: var(--r-md);
+  background: var(--surface-active);
+  border: 1px solid var(--glass-border-subtle);
+  box-shadow: var(--glass-inner), var(--shadow-md);
+  display: flex;
+  align-items: center;
+  animation: toast-in var(--t) var(--ease);
+}
+
+.error {
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+}
+
+.action {
+  margin-left: 16px;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
