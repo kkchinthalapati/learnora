@@ -197,10 +197,12 @@ bundle is pinned and self-contained. The storage key is left at the default on
 purpose: it's how both apps share one session while they run side by side.
 `context/AuthProvider.tsx` ports `Auth.getSession`/`Auth.logout` — `getSession()`
 first (local, no network), then `onAuthStateChange` as the running source of
-truth, with `_cachedUser` replaced by provider state. `signOut` clears the
-`learnora_invite_access` keys from both storages and drops the session even when
-the API call fails, as the vanilla logout does; it does **not** reload the page,
-since React re-renders from the state change.
+truth, with `_cachedUser` replaced by provider state. `signOut` drops the
+session even when the API call fails, as the vanilla logout does; it does
+**not** reload the page, since React re-renders from the state change.
+(It also used to clear the `learnora_invite_access` keys — removed when the
+gate itself was removed on 2026-08-01, see the "Residual-vanilla audit"
+section below.)
 
 `components/ProtectedRoute.tsx` is a layout route wrapping every view; `/login` is
 the only public route. While the stored session is still resolving it renders a
@@ -1641,6 +1643,19 @@ This does not make the gate real security — it never was; a publicly-known
 password gating a marketing splash page is not access control — it restores
 parity with what the vanilla actually shipped, no more, no less.
 
+**Removed entirely (2026-08-01).** The product is no longer pre-launch, so the
+gate stopped being a marketing wall and started being a live bug: the React
+dev server has no `/coming-soon.html` to redirect to (it only ever existed in
+the vanilla app's static root), so every local `vite` session hard-404'd on
+first paint. Deleted on both sides rather than patched — `coming-soon.html`,
+`components/InviteGate.tsx`, `lib/inviteAccess.ts` (+ their tests), the
+`InviteGate` wrapper in `main.tsx`, the redirect in `js/main.js:61-63`, the
+`learnora_invite_access` clears in `js/api.js`'s `logout` and
+`AuthProvider.signOut`, and the `coming-soon.html` entry in
+`scripts/build.sh`'s `VANILLA_PATHS`. If a pre-launch wall is ever needed
+again, it should be a Vercel-level check (env var / edge middleware), not a
+client-side redirect racing the app's own boot.
+
 **Found, deliberately not ported — two cosmetic-only drops:**
 
 - **The full-page "Cinematic Boot Sequence" splash** (`#global-loader`,
@@ -1982,10 +1997,9 @@ the port)
   in Step 19: `RedirectIfSignedIn` consumes it, and refuses to send a user back
   into an auth route.
 - ~~Sign-in, sign-up and password reset all still live in the vanilla app.~~
-  Closed in Steps 19-20. **The invite-access gate is still not ported** —
-  `AuthProvider` clears `learnora_invite_access` on sign-out, but nothing in
-  React ever sets or checks it, so the gate exists only in the vanilla app.
-  Whoever cuts `/` over needs to decide whether that gate is still wanted.
+  Closed in Steps 19-20. ~~The invite-access gate is still not ported.~~
+  Moot: the gate was removed entirely on 2026-08-01 (product is past
+  pre-launch) — see the "Residual-vanilla audit" section above.
 - **`npm run format:check` fails on unformatted files — but it is not only the
   CRLF problem.** The original note (Step 5) said all tracked files fail on a
   Windows checkout because `core.autocrlf true` writes CRLF while Prettier

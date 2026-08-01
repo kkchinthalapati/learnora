@@ -17,8 +17,6 @@ import { AuthContext } from "./auth";
  * `_cachedUser` variable for the same reason; here the provider's state is
  * that cache. */
 
-const INVITE_ACCESS_KEY = "learnora_invite_access";
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,8 +60,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fall through: the local session is cleared either way, matching the
       // vanilla logout's "force clear even if signOut API fails".
     }
-    localStorage.removeItem(INVITE_ACCESS_KEY);
-    sessionStorage.removeItem(INVITE_ACCESS_KEY);
     setSession(null);
   }, []);
 
