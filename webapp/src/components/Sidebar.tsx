@@ -3,7 +3,9 @@ import { Icon } from "./Icon";
 import type { IconName } from "./icons";
 import { useCreateModal } from "../context/createModal";
 import { useFlashcardsDueCount } from "../hooks/useFlashcards";
+import { useTranslation } from "../hooks/useTranslation";
 import { isLibrarySection } from "../lib/sectionLabel";
+import type { TranslationKey } from "../lib/i18n";
 import styles from "./Sidebar.module.css";
 
 /* The main nav — ports index.html:339-411.
@@ -28,6 +30,10 @@ interface NavItem {
   to: string;
   icon: IconName;
   label: string;
+  /** Only set for items the vanilla actually translates (index.html:339-411
+   *  — "This week's plan" and "Exams" have no `data-i18n` there either, so
+   *  they stay plain English literals here too). */
+  translationKey?: TranslationKey;
 }
 
 /* Dashboard and Library are handled separately below — Dashboard needs
@@ -35,8 +41,13 @@ interface NavItem {
    `isLibrarySection` check above instead of NavLink's own comparison. Every
    other item here is a plain, unambiguous path prefix. */
 const NAV_ITEMS: NavItem[] = [
-  { to: "/timer", icon: "clock", label: "Timer" },
-  { to: "/tasks", icon: "list-checks", label: "Task Manager" },
+  { to: "/timer", icon: "clock", label: "Timer", translationKey: "nav_timer" },
+  {
+    to: "/tasks",
+    icon: "list-checks",
+    label: "Task Manager",
+    translationKey: "nav_tasks",
+  },
   { to: "/plan", icon: "calendar", label: "This week's plan" },
   { to: "/exams", icon: "calendar", label: "Exams" },
 ];
@@ -54,6 +65,7 @@ export function Sidebar({
   const { pathname } = useLocation();
   const { openCreateModal } = useCreateModal();
   const { data: dueCount = 0 } = useFlashcardsDueCount();
+  const t = useTranslation();
 
   const classes = [styles.sidebar, collapsed ? styles.collapsed : null]
     .filter(Boolean)
@@ -73,7 +85,7 @@ export function Sidebar({
             }
           >
             <Icon name="dashboard" size={20} />
-            <span>Dashboard</span>
+            <span>{t("nav_dashboard")}</span>
           </NavLink>
         </li>
         <hr className={styles.divider} />
@@ -90,7 +102,7 @@ export function Sidebar({
             }}
           >
             <Icon name="plus" size={20} />
-            <span>Create</span>
+            <span>{t("nav_create")}</span>
           </button>
         </li>
         <li>
@@ -108,7 +120,7 @@ export function Sidebar({
             className={`${styles.navLink} ${isLibrarySection(pathname) ? styles.active : ""}`}
           >
             <Icon name="layers" size={20} />
-            <span>Library</span>
+            <span>{t("nav_library")}</span>
             {dueCount > 0 ? (
               <span className={styles.badge}>{dueCount}</span>
             ) : null}
@@ -125,7 +137,7 @@ export function Sidebar({
               }
             >
               <Icon name={item.icon} size={20} />
-              <span>{item.label}</span>
+              <span>{item.translationKey ? t(item.translationKey) : item.label}</span>
             </NavLink>
           </li>
         ))}
@@ -139,7 +151,7 @@ export function Sidebar({
             }
           >
             <Icon name="settings" size={20} />
-            <span>Settings</span>
+            <span>{t("nav_settings")}</span>
           </NavLink>
         </li>
         <li>

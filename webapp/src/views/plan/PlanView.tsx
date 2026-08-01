@@ -5,6 +5,7 @@ import { useDialog } from "../../context/dialog";
 import { useToast } from "../../context/toast";
 import { useTimer } from "../../context/timer";
 import { useGenerateWeeklyPlan, usePlanForWeek } from "../../hooks/usePlans";
+import { useTranslation } from "../../hooks/useTranslation";
 import { AiError } from "../../api/ai";
 import { PlanShapeError } from "../../api/aiPlan";
 import {
@@ -125,6 +126,7 @@ function DayCard({
 }
 
 export function PlanView() {
+  const t = useTranslation();
   const monday = mondayOfWeek();
   const weekStartISO = localDateStr(monday);
   const today = localDateStr();
@@ -193,7 +195,7 @@ export function PlanView() {
     <main className={styles.view}>
       <div className={styles.summaryCard}>
         <div>
-          <h1>This week&apos;s plan</h1>
+          <h1>{t("header_plan")}</h1>
           <p className={styles.weekRange}>{weekRange}</p>
         </div>
         <Button

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { isLibrarySection, sectionLabel } from "./sectionLabel";
+import { translate } from "./i18n";
+
+const t = (key: Parameters<typeof translate>[1]) => translate("en", key);
 
 describe("isLibrarySection", () => {
   it("is true for the library shell and its tabs", () => {
@@ -24,26 +27,32 @@ describe("isLibrarySection", () => {
 
 describe("sectionLabel", () => {
   it("labels the dashboard", () => {
-    expect(sectionLabel("/")).toBe("Dashboard");
+    expect(sectionLabel("/", t)).toBe("Dashboard");
   });
 
   it("labels every library-family route as Library", () => {
-    expect(sectionLabel("/library")).toBe("Library");
-    expect(sectionLabel("/folders/f-1")).toBe("Library");
-    expect(sectionLabel("/notes/m-1")).toBe("Library");
-    expect(sectionLabel("/quiz/q-1")).toBe("Library");
-    expect(sectionLabel("/review/d-1")).toBe("Library");
+    expect(sectionLabel("/library", t)).toBe("Library");
+    expect(sectionLabel("/folders/f-1", t)).toBe("Library");
+    expect(sectionLabel("/notes/m-1", t)).toBe("Library");
+    expect(sectionLabel("/quiz/q-1", t)).toBe("Library");
+    expect(sectionLabel("/review/d-1", t)).toBe("Library");
   });
 
   it("labels the remaining top-level sections", () => {
-    expect(sectionLabel("/timer")).toBe("Timer");
-    expect(sectionLabel("/tasks")).toBe("Task Manager");
-    expect(sectionLabel("/plan")).toBe("This week's plan");
-    expect(sectionLabel("/exams")).toBe("Exams");
-    expect(sectionLabel("/settings")).toBe("Settings");
+    expect(sectionLabel("/timer", t)).toBe("Timer");
+    expect(sectionLabel("/tasks", t)).toBe("Task Manager");
+    expect(sectionLabel("/plan", t)).toBe("This week's plan");
+    expect(sectionLabel("/exams", t)).toBe("Exams");
+    expect(sectionLabel("/settings", t)).toBe("Settings");
   });
 
   it("falls back for anything unrecognized", () => {
-    expect(sectionLabel("/definitely-not-a-route")).toBe("Learnora");
+    expect(sectionLabel("/definitely-not-a-route", t)).toBe("Learnora");
+  });
+
+  it("translates when given a non-English t", () => {
+    const es = (key: Parameters<typeof translate>[1]) => translate("es", key);
+    expect(sectionLabel("/", es)).toBe("Tablero");
+    expect(sectionLabel("/tasks", es)).toBe("Tareas");
   });
 });

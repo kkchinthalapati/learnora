@@ -6,6 +6,7 @@ import { AIActionsCard } from "./AIActionsCard";
 import { OnboardingBanner } from "./OnboardingBanner";
 import { SessionHistoryCard } from "./SessionHistoryCard";
 import { CommandBar } from "./CommandBar";
+import { useTranslation } from "../../hooks/useTranslation";
 import styles from "./dashboard.module.css";
 
 /* The dashboard — ports index.html:470-593. Aggregates the four views this
@@ -14,10 +15,12 @@ import styles from "./dashboard.module.css";
  * 4: "a read-mostly aggregation; building it earlier would mean mocking
  * everything twice"). */
 export function DashboardView() {
+  const t = useTranslation();
+
   return (
     <main className={styles.view}>
       <div className={styles.pageHeader}>
-        <h1>Dashboard</h1>
+        <h1>{t("title_dashboard")}</h1>
       </div>
 
       <div className={styles.grid}>

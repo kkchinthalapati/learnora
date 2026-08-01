@@ -3,6 +3,7 @@ import { Icon } from "./Icon";
 import { useAuth } from "../context/auth";
 import { useAppearance } from "../context/appearance";
 import { useLiveClock } from "../hooks/useLiveClock";
+import { useTranslation } from "../hooks/useTranslation";
 import { getGreeting } from "../lib/greeting";
 import { sectionLabel } from "../lib/sectionLabel";
 import { resolveDark, THEME_KEY } from "../lib/appearance";
@@ -27,6 +28,7 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
   const { user, signOut } = useAuth();
   const { appearance, setAppearance } = useAppearance();
   const time = useLiveClock();
+  const t = useTranslation();
 
   const firstName =
     (user?.user_metadata?.full_name as string | undefined)?.split(" ")[0] ||
@@ -61,7 +63,7 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
           ☰
         </button>
         <div>
-          <p className={styles.title}>{sectionLabel(pathname)}</p>
+          <p className={styles.title}>{sectionLabel(pathname, t)}</p>
           <p className={styles.subtitle}>{getGreeting(firstName)}</p>
         </div>
       </div>

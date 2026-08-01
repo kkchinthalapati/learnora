@@ -42,7 +42,6 @@ VANILLA_PATHS=(
   verify.js
   reset-password.html
   reset-password.js
-  coming-soon.html
 )
 
 echo "==> Copying the vanilla app"

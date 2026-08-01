@@ -123,31 +123,6 @@ describe("AuthProvider", () => {
     );
   });
 
-  it("clears the invite-access keys on sign out", async () => {
-    getSession.mockResolvedValue({
-      data: { session: fakeSession() },
-      error: null,
-    });
-    localStorage.setItem("learnora_invite_access", "granted");
-    sessionStorage.setItem("learnora_invite_access", "granted");
-
-    const user = userEvent.setup();
-    renderProvider();
-    await waitFor(() =>
-      expect(screen.getByTestId("state")).toHaveTextContent(
-        "student@example.com",
-      ),
-    );
-
-    await user.click(screen.getByRole("button", { name: "Sign out" }));
-
-    await waitFor(() =>
-      expect(screen.getByTestId("state")).toHaveTextContent("signed-out"),
-    );
-    expect(localStorage.getItem("learnora_invite_access")).toBeNull();
-    expect(sessionStorage.getItem("learnora_invite_access")).toBeNull();
-  });
-
   it("still signs out locally when the API call fails", async () => {
     getSession.mockResolvedValue({
       data: { session: fakeSession() },
