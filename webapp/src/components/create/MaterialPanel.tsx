@@ -26,6 +26,10 @@ import { Button } from "../Button";
 
 interface MaterialPanelProps {
   folderId?: string | null;
+  /** Opens on the "Saved" source with this material already chosen. */
+  materialId?: string;
+  /** Pre-ticked outputs; omitted keys keep the panel's own defaults. */
+  outputs?: { flashcards?: boolean; quiz?: boolean };
   onClose: () => void;
   onDone?: () => void;
 }
@@ -55,18 +59,27 @@ const PERSONALITY_DESC: Record<string, string> = {
  * looking at, rather than in a popup over a page they've been thrown back to. */
 export function MaterialPanel({
   folderId: initialFolderId,
+  materialId: initialMaterialId,
+  outputs,
   onClose,
   onDone,
 }: MaterialPanelProps) {
-  const [source, setSource] = useState<SourceKind>("file");
+  /* A caller that named a material is asking to build from *that* document
+     ("Quiz me" in the notes sidebar), so the panel opens on Saved with it
+     chosen instead of on an empty dropzone. */
+  const [source, setSource] = useState<SourceKind>(
+    initialMaterialId ? "material" : "file",
+  );
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [text, setText] = useState("");
   const [link, setLink] = useState("");
-  const [materialId, setMaterialId] = useState("");
+  const [materialId, setMaterialId] = useState(initialMaterialId ?? "");
   const [topic, setTopic] = useState("");
-  const [wantFlashcards, setWantFlashcards] = useState(true);
-  const [wantQuiz, setWantQuiz] = useState(false);
+  const [wantFlashcards, setWantFlashcards] = useState(
+    outputs?.flashcards ?? true,
+  );
+  const [wantQuiz, setWantQuiz] = useState(outputs?.quiz ?? false);
   const [folderId, setFolderId] = useState(initialFolderId ?? "");
   const [titleOverride, setTitleOverride] = useState("");
   const [cardCount, setCardCount] = useState(CREATE_DEFAULTS.cardCount);

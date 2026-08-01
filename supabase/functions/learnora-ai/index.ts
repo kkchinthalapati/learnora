@@ -10,13 +10,22 @@ import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0"
    takes the whole AI offline.
 
    Set ALLOWED_ORIGINS (comma-separated) to add a domain without a code change,
-   e.g. when a custom domain is attached. */
+   e.g. when a custom domain is attached.
+
+   The two 5173 entries are Vite's dev server (the React app in `webapp/`).
+   Without them every real model call from `npm run dev` was rejected at the
+   preflight — the vanilla app's own dev server is the 3000 entry, and the
+   React app inherited neither. 127.0.0.1 is listed alongside localhost
+   because they are distinct origins to a browser, and Vite prints whichever
+   the host resolves to. */
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://learnora-app.vercel.app",
   "https://study-planner-delta-six.vercel.app",
   "https://learnora.app",
   "https://www.learnora.app",
   "http://localhost:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
 ];
 
 function allowedOrigins(): string[] {

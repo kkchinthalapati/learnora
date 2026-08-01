@@ -13,11 +13,10 @@ import styles from "./notes.module.css";
  * Library's SubjectDetailPage/panels are: loading/error/not-found belongs to
  * the route, not the document editor.
  *
- * The vanilla's AI study sidebar (index.html:1804-1869 — quiz-me/flashcards
- * quick actions, the document-aware chat) is deliberately not ported here.
- * It depends on the AI layer (ledger step 14) and the chat surface Step 17
- * builds for real — the ledger's own dependency table has 17 depend on 13,
- * not the reverse, so this step is only ever the Quill pane. */
+ * The AI study sidebar that shares the row with the editor arrived later, as
+ * Step 25 — it needed the AI layer (Step 14) and the chat surface Step 17
+ * built, and the ledger's dependency table has 17 depend on 13, not the
+ * reverse. It is `NotesAiSidebar`, mounted by `NotesEditorPane`. */
 export function NotesView() {
   const { materialId = "" } = useParams<{ materialId: string }>();
   const navigate = useNavigate();
@@ -62,7 +61,9 @@ export function NotesView() {
   return (
     <NotesEditorPane
       key={materialId}
+      materialId={materialId}
       materialTitle={material.data.title}
+      folderId={material.data.folder_id ?? null}
       note={notes.data[0] ?? null}
     />
   );
