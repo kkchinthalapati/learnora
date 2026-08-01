@@ -75,14 +75,13 @@ closed):
   completion/review screens) — inherited from the vanilla's own
   `position: fixed` timer, not new.
 - ~~The AI edge function's CORS allow-list lists `http://localhost:3000` but
-  not `http://localhost:5173`~~ — fixed 2026-08-01:
-  `supabase/functions/learnora-ai/index.ts`'s `DEFAULT_ALLOWED_ORIGINS` now
-  includes `http://localhost:5173` and `http://127.0.0.1:5173` (distinct
-  origins to a browser; Vite prints whichever the host resolves to).
-  **Needs a function redeploy to take effect** — the running deployment still
-  serves the old default list, so `ALLOWED_ORIGINS` remains the no-redeploy
-  workaround until then. Never affected tests (MSW intercepts at the network
-  layer).
+  not the Vite dev server~~ — closed 2026-08-01, deployed as version 33. Two
+  earlier attempts each hardcoded one port and broke again the next time a
+  session ran Vite somewhere else, so `corsHeadersFor` now matches any
+  `localhost`/`127.0.0.1` origin on any port by pattern, the same way a
+  Vercel preview subdomain already was — verified live with `curl -X
+  OPTIONS` against three origins (two locals plus `evil.com`, which is still
+  rejected). Never affected tests (MSW intercepts at the network layer).
 - Steps 11-13's real-browser verification passes are still owed (Library's
   four tabs, a subject workspace, the dashboard's cards, Quill's toolbar) —
   no browser driver was available in those sessions. Step 18 later found
@@ -234,8 +233,9 @@ is a locale-dependent test bug, not a product defect — see section 2.
   listing it as high-impact was the ledger's own stale entry.
 - ~~Step 25 — Notes AI study sidebar.~~ Closed. This was the last known-scoped
   port; there is no remaining "build it in React" work.
-- ~~CORS allow-list fix for local `npm run dev` model calls.~~ Fixed in code;
-  **still needs the edge function redeployed** to take effect.
+- ~~CORS allow-list fix for local `npm run dev` model calls.~~ Fixed and
+  deployed (version 33) — matches any local dev port by pattern now, not one
+  hardcoded value.
 
 **High impact — the whole of what's left:**
 - **Continuing the route-by-route cutover to `/app`.** This is now the only

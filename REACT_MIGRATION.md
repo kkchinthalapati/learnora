@@ -2008,9 +2008,8 @@ prompt* per surface, and the notes one says "This panel cannot run app
 actions". Reusing the workspace chat therefore handed the notes sidebar the
 whole action-tag contract, so the model could create tasks and start timers
 from beside the document. This implementation was kept instead, and that
-branch dropped. Two things came back from reviewing it: the empty-reply
-fallback below, and `127.0.0.1:5173` was already covered here but only
-`localhost:5173` there.
+branch dropped. One thing came back from reviewing it: the empty-reply
+fallback below.
 
 One fix taken from that review: an action-only reply strips to an empty
 string and rendered as a blank bubble — no answer, no explanation. It now
@@ -2072,15 +2071,19 @@ the port)
   tracked start-index) that wasn't pulled in here, since it's a different
   architecture, not a drop-in fix.
 - ~~**The AI edge function's CORS allow-list does not include the Vite dev
-  server.**~~ Fixed 2026-08-01: `DEFAULT_ALLOWED_ORIGINS` in
-  `supabase/functions/learnora-ai/index.ts` now lists `http://localhost:5173`
-  and `http://127.0.0.1:5173` alongside the vanilla app's `:3000` (they are
-  distinct origins to a browser, and Vite prints whichever the host resolves
-  to). **Takes effect only once the function is redeployed** — the running
-  deployment still has the old default list, so until then a live model call
-  from `npm run dev` is still blocked, and the `ALLOWED_ORIGINS` env var
-  remains the no-redeploy workaround. The test suite intercepts the call at
-  the network layer (MSW) and was never affected either way.
+  server.**~~ Closed for real 2026-08-01. Two attempts before this one each
+  hardcoded a port (`:5173`, then also `:8112` when a session ran Vite on a
+  non-default port and hit the same wall again) — the third time that
+  happened, `corsHeadersFor` (`supabase/functions/learnora-ai/index.ts`) grew
+  a pattern match instead: any `http://localhost:<port>` or
+  `http://127.0.0.1:<port>` origin is echoed back, the same way a Vercel
+  preview subdomain already was. Neither pattern is reachable by a real
+  attacker's origin, so this doesn't widen the boundary that actually
+  matters, which is the JWT check a few lines below. **Deployed** (version
+  33) and verified live with `curl -X OPTIONS` against three origins:
+  `:8112` and `:5555` both got their own origin echoed back,
+  `https://evil.com` did not. The test suite intercepts the call at the
+  network layer (MSW) and was never affected either way.
 
 - **Steps 11, 12 and 13's browser passes are still owed** (see those
   sections) — at the time, no browser driver was available in *those*

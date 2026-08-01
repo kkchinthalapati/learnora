@@ -12,20 +12,19 @@ import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0"
    Set ALLOWED_ORIGINS (comma-separated) to add a domain without a code change,
    e.g. when a custom domain is attached.
 
-   The two 5173 entries are Vite's dev server (the React app in `webapp/`).
-   Without them every real model call from `npm run dev` was rejected at the
-   preflight — the vanilla app's own dev server is the 3000 entry, and the
-   React app inherited neither. 127.0.0.1 is listed alongside localhost
-   because they are distinct origins to a browser, and Vite prints whichever
-   the host resolves to. */
+   Local dev ports are matched by pattern (below), not enumerated here: the
+   vanilla's static server picked 3000, but Vite (webapp/) prints whatever
+   port is free — 5173 by default, something else if that's taken or a
+   session asks for a specific one (`vite --port 8112`), and either
+   `localhost` or `127.0.0.1` depending on how the host resolves. Hardcoding
+   one port fixes this once and breaks again the next time someone runs a
+   different one. */
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://learnora-app.vercel.app",
   "https://study-planner-delta-six.vercel.app",
   "https://learnora.app",
   "https://www.learnora.app",
   "http://localhost:3000",
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
 ];
 
 function allowedOrigins(): string[] {
@@ -34,15 +33,20 @@ function allowedOrigins(): string[] {
   return configured.split(",").map((o) => o.trim()).filter(Boolean);
 }
 
-/* Echoes the caller's origin when it is on the list. Vercel preview
-   deployments get a fresh subdomain per build, so those are matched by
-   pattern rather than needing to be enumerated. */
+/* Echoes the caller's origin when it is on the list, or matches one of two
+   patterns: a Vercel preview deployment (fresh subdomain per build), or any
+   localhost/127.0.0.1 dev server on any port — see the note above on why a
+   fixed port list keeps breaking. Neither pattern is reachable by a real
+   attacker's origin, so widening past an exact match doesn't weaken the
+   boundary that matters, which is the JWT check below. */
 function corsHeadersFor(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin") || "";
   const list = allowedOrigins();
   const isPreview = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin) &&
     /learnora|study-planner/i.test(origin);
-  const allow = list.includes(origin) || isPreview ? origin : list[0];
+  const isLocalDev = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+  const allow =
+    list.includes(origin) || isPreview || isLocalDev ? origin : list[0];
 
   return {
     "Access-Control-Allow-Origin": allow,
