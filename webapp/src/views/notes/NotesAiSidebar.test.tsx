@@ -171,6 +171,19 @@ describe("NotesAiSidebar", () => {
     expect(screen.queryByText("Revise mitosis")).not.toBeInTheDocument();
   });
 
+  it("explains itself when a reply was nothing but an action tag", async () => {
+    /* Stripping an action-only reply leaves an empty string, which would
+       render as a blank bubble — no answer and no hint why. */
+    const user = userEvent.setup();
+    serveReply("<ADD_TASK>Revise mitosis</ADD_TASK>");
+    renderNotes();
+
+    await ask(user, "Add a task");
+
+    expect(await screen.findByText(/this panel can't/i)).toBeInTheDocument();
+    expect(screen.queryByText(/ADD_TASK/)).not.toBeInTheDocument();
+  });
+
   it("keeps a failed exchange out of the history", async () => {
     const user = userEvent.setup();
     // 400, not 500: a 5xx is retryable, so the assertion would be waiting out

@@ -204,7 +204,15 @@ export function NotesAiSidebar({
           settings,
         });
 
-        const cleanText = stripActionTagBlocks(text).trim();
+        /* Stripping is defence in depth: the system context tells the model
+           this panel runs no actions, but a reply that was *only* an action
+           tag would otherwise strip to nothing and render as a blank bubble —
+           a dead end with no hint of what happened. The vanilla said "Action
+           completed." here, which would be a lie in this panel, so say what
+           actually went on and point at the cards that can do it. */
+        const cleanText =
+          stripActionTagBlocks(text).trim() ||
+          "I tried to run an app action, but this panel can't — use the Quiz me or Flashcards buttons above.";
         historyRef.current = [
           ...historyRef.current,
           { role: "user", content: query },

@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 846/846 passing
-- **Last verified:** 2026-08-01 (Step 23, i18n port — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Steps 11-13's browser passes still owed, see those steps' entries)
+- **Tests:** `npm --prefix webapp run test` — expect 856/856 passing
+- **Last verified:** 2026-08-01 (Step 25, Notes AI study sidebar — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -1994,10 +1994,29 @@ The vanilla needed `body:has(#view-notes:not(.hidden)) .dashboard-command-bar
 No equivalent is needed: the React command bar is rendered by `DashboardView`,
 not the app shell, so it doesn't exist on this route.
 
-Verified: 9 new tests in `NotesAiSidebar.test.tsx` (document context, the
+Verified: 10 new tests in `NotesAiSidebar.test.tsx` (document context, the
 fencing, tag stripping, a failed exchange staying out of history, multi-turn
 history, suggestion chips, both quick actions, the podcast toast). Suite
-**854 passing** (75 files); vanilla **181/181**. Also a real-browser pass —
+**856 passing** (75 files); vanilla **181/181**.
+
+**Reconciled with a second, independent Step 25** (branch
+`feat/react-step-25-notes-sidebar`, built in parallel before either was
+merged — the same collision Step 18 hit with PR #39). That one reused
+`useChat()` on the theory that the vanilla shared one `AI.chatHistory`
+between both surfaces. It does — but it also sends a *different system
+prompt* per surface, and the notes one says "This panel cannot run app
+actions". Reusing the workspace chat therefore handed the notes sidebar the
+whole action-tag contract, so the model could create tasks and start timers
+from beside the document. This implementation was kept instead, and that
+branch dropped. Two things came back from reviewing it: the empty-reply
+fallback below, and `127.0.0.1:5173` was already covered here but only
+`localhost:5173` there.
+
+One fix taken from that review: an action-only reply strips to an empty
+string and rendered as a blank bubble — no answer, no explanation. It now
+falls back to saying the panel cannot run actions and pointing at the quick
+-action cards. The vanilla's own "Action completed." would have been a lie
+here, since nothing ran. Also a real-browser pass —
 the first this migration has managed on a view — at desktop and 375px, in
 light and dark: the split layout, cards, chips and composer all render, the
 Create dialog opens with "Quiz on this document" and Quiz pre-ticked, and
