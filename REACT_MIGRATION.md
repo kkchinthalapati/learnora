@@ -50,8 +50,8 @@ production. Those are steps 19-21.
 | 25 | Notes AI study sidebar | Views | ☐ |
 | 26 | First real route cutover: Settings (`#settings` → `/app/settings`) | Foundation | ✅ |
 
-Steps 23 and 25 are the remaining known-scoped view/feature work. Everything
-else outstanding is in "Known loose ends" — including the rest of the
+Step 25 is the remaining known-scoped view/feature work. Everything else
+outstanding is in "Known loose ends" — including the rest of the
 route-by-route cutover Step 26 started.
 
 ---

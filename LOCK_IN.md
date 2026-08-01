@@ -19,12 +19,10 @@ all 11 entities, the universal CreateModal, Settings, Tasks, Exams, Timer,
 Library + Subject detail, Dashboard, Notes editor (Quill wrapper), the AI
 layer, Weekly Plan, Quiz runner + review, Turbo chat, Flashcard review, the
 auth wall, `/verify` `/reset-password` `/terms`, the production cutover
-mechanism (`vercel.json` + Vite `base`), the App Shell, and the
-`createStudyPackage` pipeline.
+mechanism (`vercel.json` + Vite `base`), the App Shell, i18n (Step 23), and
+the `createStudyPackage` pipeline.
 
 **Still vanilla-only, actively tracked as open work:**
-- **i18n (Step 23).** `i18n.js` has no React equivalent — the Preferences tab
-  persists `uiLanguage`, but the React UI is English-only regardless of it.
 - **Notes AI study sidebar (Step 25).** `sendNotesChat` (`js/ai.js:1388-1512`)
   — quiz-me/flashcard quick actions plus the split-pane layout beside the
   editor — isn't ported. The Turbo chat already reads a note's content and
