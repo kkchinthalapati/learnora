@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import { Button } from "../../components/Button";
 import { Skeleton } from "../../components/Skeleton";
 import { useAddTask, useTasks } from "../../hooks/useTasks";
+import { useTranslation } from "../../hooks/useTranslation";
 import { useToast } from "../../context/toast";
 import { TaskItem } from "./TaskItem";
 import { sortTasksByUrgency } from "./sortTasks";
@@ -20,6 +21,7 @@ export function TasksView() {
   const addTask = useAddTask();
   const { showToast } = useToast();
   const { toggle, rename, setDueDate, remove, visible } = useTaskActions();
+  const t = useTranslation();
 
   const [text, setText] = useState("");
   const [dueDate, setDueDate_] = useState("");
@@ -60,7 +62,7 @@ export function TasksView() {
         <input
           type="text"
           className={`${styles.textInput}${shake ? ` ${styles.inputError}` : ""}`}
-          placeholder="Add a new task..."
+          placeholder={t("placeholder_task")}
           autoComplete="off"
           aria-label="New Task Input"
           value={text}
@@ -90,7 +92,7 @@ export function TasksView() {
         </div>
 
         <Button variant="primary" onClick={submit} disabled={addTask.isPending}>
-          Add Task
+          {t("btn_add")}
         </Button>
       </div>
 

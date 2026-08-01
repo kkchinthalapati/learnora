@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 798/798 passing
-- **Last verified:** 2026-07-31 (residual-vanilla audit — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean, browser-verified; Steps 11-13's browser passes still owed, see those steps' entries)
+- **Tests:** `npm --prefix webapp run test` — expect 846/846 passing
+- **Last verified:** 2026-08-01 (Step 23, i18n port — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -45,7 +45,7 @@ production. Those are steps 19-21.
 | 20 | Auth-adjacent routes: `/verify`, `/reset-password`, `/terms` | Views | ✅ |
 | 21 | Production cutover mechanism (`vercel.json`, Vite `base`, CSP) | Foundation | ✅ |
 | 22 | App Shell (Sidebar + Header) — should have existed since Step 1 | Foundation | ✅ |
-| 23 | i18n port (`i18n.js` → a React translation layer) | Foundation | ☐ |
+| 23 | i18n port (`i18n.js` → a React translation layer) | Foundation | ✅ |
 | 24 | `createStudyPackage` Create-pipeline | Views | ✅ |
 | 25 | Notes AI study sidebar | Views | ☐ |
 
@@ -1676,6 +1676,76 @@ client-side redirect racing the app's own boot.
 
 ---
 
+### Step 23 — i18n port (2026-08-01)
+
+**Decision: hand-rolled hook, not `react-i18next`.** `i18n.js` is a flat
+`{ lang: { key: string } }` object, 10 languages, ~61 keys each, no
+interpolation, no pluralization, no nesting (`tests/i18n-labels.test.js`
+even asserts no key contains HTML). Nothing there justifies a library built
+for ICU plurals and lazy namespace loading — a hand-rolled hook is less code,
+no new dependency, and matches decision #10's "not a new library" reasoning
+for Modals/Toasts.
+
+`lib/i18n.ts` ports the `translations` object verbatim (all 10 languages,
+even the 6 the Settings UI doesn't expose — it's just data) plus one pure
+`translate(lang, key)` matching `applyTranslations`'s exact fallback
+(`js/ui.js:1111,1116`: unknown language → whole English dict; missing key →
+that key's English string). `TranslationKey` is derived as
+`keyof typeof translations.en`, so a typo'd key is a compile error — a real
+check the vanilla's untyped strings never had.
+
+**No new Context.** `uiLanguage` already lived in `SettingsProvider`
+(Step 7) and was already persisted — just never read by anything. `hooks/
+useTranslation.ts` is a three-line hook: read `settings.uiLanguage` from
+`useSettings()`, return a memoized `t(key)` closed over it. One consequence
+worth flagging: `setSettings` commits to React state immediately and only
+`save()` persists it, so switching the Preferences tab's language `<select>`
+re-translates the page live, before "Save Changes" is clicked — stricter
+than the vanilla (whose DOM walk only ran on save). A free byproduct of
+reading reactive context instead of walking the DOM on an event, not a
+redesign.
+
+**Scope: exactly what the vanilla translates, verified against `index.html`
+directly rather than against the fear of "~40 components."** A plain grep
+for `data-i18n=` in `index.html` turned up every real key site: `Sidebar`,
+`Header` (via `sectionLabel`, which now takes `t` as a parameter — it's
+shared with `Sidebar`'s active-route check), `DashboardView`'s h1,
+`SessionHistoryCard`, `PlanView`'s h1, all of `TimerView`'s pomodoro-panel
+labels, `TasksView`'s input placeholder and Add button, `ExamsView`'s
+weekday header, and `PreferencesTab`'s AI Personalization + Localization
+fields (including the option lists, keyed locally by `value` since
+`AI_PERSONA_OPTIONS`/`AI_LENGTH_OPTIONS` are shared data, not per-view text).
+
+Confirmed **not** to translate, because the vanilla doesn't either: toasts,
+popups, confirm dialogs, the auth wall, the dashboard's "Ask Learnora AI"
+card (`AIActionsCard` — every button there is untranslated in
+`index.html:531-573`), the Data & Privacy tab, `FocusCard`'s dashboard preset
+buttons (vanilla shows bare "20m"/"45m"/"90m", no `data-i18n`), and the
+`<option>` language *names* in both language selects (English/Español/…
+render the same regardless of UI language, in both apps). Two keys the
+dictionary defines but `index.html` never actually references
+(`nav_calendar`, `nav_ai`'s sibling `header_flashcards`/`desc_flashcards`/
+`nav_quizzes`/`header_quizzes`/`desc_quizzes`/`desc_plan`) are ported as inert
+data and left unwired here too — translating them would be adding scope the
+vanilla itself never shipped.
+
+**One found-in-passing fix.** The Save button showed "Save Preferences" in
+`index.html`'s raw markup, but `applyTranslations()` runs unconditionally at
+boot (`js/main.js`, right after `populateSettingsUI()`) and overwrites it
+with `translations.en.btn_save_config` = **"Save Changes"** even when the
+language is English — the HTML's "Save Preferences" is dead text nobody
+running the vanilla app has actually seen since translations were added.
+`PreferencesTab` now shows "Save Changes" to match what the vanilla
+actually renders, not its stale source fallback; its tests were updated to
+match.
+
+7 new tests (846 total): `lib/i18n.test.ts`, `hooks/useTranslation.test.tsx`,
+plus one added to `sectionLabel.test.ts`; `PreferencesTab.test.tsx`'s existing
+tests were updated in place (reordered selects, "Save Changes" wording) rather
+than adding new ones.
+
+---
+
 ### Step 24 — the `createStudyPackage` Create pipeline (2026-07-31)
 
 **The last big hole in the migration is closed.** Since Step 6 the Create
@@ -1939,17 +2009,16 @@ the port)
   and the hash-routing conflict is sidestepped by the `/app` prefix rather than
   solved. **Still unverified in production** — see the Step 21 note about
   checking a Vercel preview deployment before merge.
-- **i18n is not ported** — now scheduled as step 23. `UI.saveSettings()` called
-  `applyTranslations()` over every `[data-i18n]` node; the React app has no
-  translation layer. The Preferences tab persists `uiLanguage` (and the vanilla
-  app honours it), but the React UI stays English.
-
-  Sized deliberately rather than bundled into steps 19-21: this is not one
-  file's worth of work. Porting `i18n.js` (~21KB) is the small half; the large
-  half is threading a `t()` call through every string in ~40 ported components,
-  which touches nearly every file the migration has produced and would swamp any
-  diff it shared. It also wants a decision first — hand-rolled context vs.
-  `react-i18next` — which is a Decision-list item, not an implementation detail.
+- ~~**i18n is not ported**~~ Closed by Step 23 (2026-08-01) — see its section
+  below. The feared "~40 components" turned out to be the vanilla's own
+  audit talking about worst case, not what `[data-i18n]` actually covers:
+  grepping `index.html` for real `data-i18n` usage found only ~9 components'
+  worth of surface (sidebar/header, three dashboard/plan headings, the Timer
+  view, the Tasks quick-add, the Exams calendar header, and Preferences' AI +
+  Localization fields) — everything else in the vanilla (toasts, popups,
+  confirms, the auth wall, Data & Privacy, the dashboard's AI-actions card)
+  was never translated either, so porting it 1:1 meant leaving it alone, not
+  adding new scope.
 - ~~**No React sign-in flow exists**, so manual verification of any protected
   route needs a locally stubbed session in `sb-<ref>-auth-token`.~~ Closed in
   Step 19. Manual verification of a protected route is now just signing in at

@@ -5,6 +5,8 @@ import { useDialog } from "../../context/dialog";
 import { useTimer } from "../../context/timer";
 import { useFolders } from "../../hooks/useFolders";
 import { useTasks } from "../../hooks/useTasks";
+import { useTranslation } from "../../hooks/useTranslation";
+import type { TranslationKey } from "../../lib/i18n";
 import {
   WORKFLOW_PRESETS,
   format,
@@ -76,6 +78,7 @@ export function TimerView() {
   const { confirm, promptText } = useDialog();
   const { data: tasks } = useTasks();
   const { data: folders } = useFolders();
+  const t = useTranslation();
 
   const focusId = useId();
   const shortId = useId();
@@ -180,18 +183,20 @@ export function TimerView() {
 
           {panelType === "pomodoro" && (
             <div>
-              <h3>Workflow Presets</h3>
+              <h3>{t("timer_presets")}</h3>
               <div className={styles.presetButtons}>
-                {[
-                  { key: "deep", label: "Deep Work (90m)" },
-                  { key: "cram", label: "Exam Cram (45m)" },
-                  { key: "light", label: "Light Study (20m)" },
-                ].map(({ key, label }) => (
+                {(
+                  [
+                    { key: "deep", labelKey: "preset_deep" },
+                    { key: "cram", labelKey: "preset_cram" },
+                    { key: "light", labelKey: "preset_light" },
+                  ] satisfies { key: string; labelKey: TranslationKey }[]
+                ).map(({ key, labelKey }) => (
                   <Button
                     key={key}
                     onClick={() => setDraftConfig(WORKFLOW_PRESETS[key])}
                   >
-                    {label}
+                    {t(labelKey)}
                   </Button>
                 ))}
               </div>
@@ -199,7 +204,7 @@ export function TimerView() {
               <hr className={styles.divider} />
 
               <div className={styles.configRow}>
-                <label htmlFor={focusId}>Focus (mins)</label>
+                <label htmlFor={focusId}>{t("config_focus")}</label>
                 <input
                   id={focusId}
                   type="number"
@@ -212,7 +217,7 @@ export function TimerView() {
                 />
               </div>
               <div className={styles.configRow}>
-                <label htmlFor={shortId}>Short Break</label>
+                <label htmlFor={shortId}>{t("config_short")}</label>
                 <input
                   id={shortId}
                   type="number"
@@ -225,7 +230,7 @@ export function TimerView() {
                 />
               </div>
               <div className={styles.configRow}>
-                <label htmlFor={longId}>Long Break</label>
+                <label htmlFor={longId}>{t("config_long")}</label>
                 <input
                   id={longId}
                   type="number"
@@ -238,7 +243,7 @@ export function TimerView() {
                 />
               </div>
               <div className={styles.configRow}>
-                <label htmlFor={cyclesId}>Cycles</label>
+                <label htmlFor={cyclesId}>{t("config_cycles")}</label>
                 <input
                   id={cyclesId}
                   type="number"
@@ -281,7 +286,7 @@ export function TimerView() {
           )}
 
           <div className={styles.taskBinder}>
-            <label htmlFor={taskId}>Current Task:</label>
+            <label htmlFor={taskId}>{t("config_task")}</label>
             <select
               id={taskId}
               value={activeTask}
@@ -308,7 +313,7 @@ export function TimerView() {
           </div>
 
           <div className={styles.taskBinder}>
-            <label htmlFor={folderId}>Subject (optional):</label>
+            <label htmlFor={folderId}>{t("config_folder")}</label>
             <select
               id={folderId}
               value={activeFolderId}
@@ -328,7 +333,7 @@ export function TimerView() {
             className={styles.applyBtn}
             onClick={() => void onApply()}
           >
-            Apply &amp; Reset
+            {t("btn_apply")}
           </Button>
 
           <div className={styles.favs}>
@@ -416,11 +421,11 @@ export function TimerView() {
           <div className={styles.controls}>
             {state.isRunning ? (
               <Button variant="secondary" onClick={pause}>
-                Pause
+                {t("btn_pause")}
               </Button>
             ) : (
               <Button variant="primary" onClick={start}>
-                Start
+                {t("btn_start")}
               </Button>
             )}
             {/* +5 min is meaningless on a clock with no end. */}
@@ -430,7 +435,7 @@ export function TimerView() {
               className={stopAndLog ? styles.ghostSuccess : styles.ghostDanger}
               onClick={() => void onReset()}
             >
-              {stopAndLog ? "Stop & log" : "Reset"}
+              {stopAndLog ? "Stop & log" : t("btn_reset")}
             </Button>
           </div>
         </div>

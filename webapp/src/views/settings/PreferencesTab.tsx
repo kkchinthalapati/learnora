@@ -3,6 +3,7 @@ import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
+import { useTranslation } from "../../hooks/useTranslation";
 import {
   AI_LANGUAGE_OPTIONS,
   AI_LENGTH_OPTIONS,
@@ -11,6 +12,7 @@ import {
   type AiConciseness,
   type AiPersona,
 } from "../../lib/settings";
+import type { TranslationKey } from "../../lib/i18n";
 import styles from "./settings.module.css";
 
 /* Preferences tab — ports index.html:1510-1595 + js/ui.js's saveSettings
@@ -22,14 +24,29 @@ import styles from "./settings.module.css";
  * clobber each other (see SettingsProvider).
  *
  * `saveSettings()` also called `applyTranslations()`, which walks every
- * `[data-i18n]` node in the vanilla document. Nothing in the React app is
- * translated yet — no i18n layer is on the ledger — so the UI-language choice
- * is persisted and honoured by the vanilla app, but does not re-render this
- * app. Noted as a loose end in REACT_MIGRATION.md. */
+ * `[data-i18n]` node in the vanilla document — now ported via `useTranslation()`
+ * (Step 23). Only the headings/labels/option text the vanilla actually marks
+ * `data-i18n` translate here: the `<option>` *language names* themselves
+ * (English/Español/…) don't, in either app, and neither do this tab's plain
+ * descriptive `<p>` copy or the Data & Privacy tab, none of which carry
+ * `data-i18n` in index.html either. */
+
+const PERSONA_KEYS: Record<AiPersona, TranslationKey> = {
+  tutor: "opt_tutor",
+  coach: "opt_coach",
+  buddy: "opt_buddy",
+};
+
+const LENGTH_KEYS: Record<AiConciseness, TranslationKey> = {
+  short: "opt_short",
+  medium: "opt_med",
+  detailed: "opt_long",
+};
 
 export function PreferencesTab() {
   const { settings, setSettings, save } = useSettings();
   const { showToast } = useToast();
+  const t = useTranslation();
 
   const personaId = useId();
   const lengthId = useId();
@@ -44,14 +61,14 @@ export function PreferencesTab() {
             <Icon name="brain" size={18} />
           </span>
           <div>
-            <h3 id="settings-ai-heading">AI Personalization</h3>
+            <h3 id="settings-ai-heading">{t("set_ai_brain")}</h3>
             <p>Customize how Learnora AI responds to you</p>
           </div>
         </div>
 
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
-            <label htmlFor={personaId}>AI Persona</label>
+            <label htmlFor={personaId}>{t("set_persona")}</label>
             <p className={styles.fieldDesc}>
               Choose the teaching style that works best for you
             </p>
@@ -66,7 +83,7 @@ export function PreferencesTab() {
             >
               {AI_PERSONA_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
-                  {o.label}
+                  {t(PERSONA_KEYS[o.value])}
                 </option>
               ))}
             </select>
@@ -75,7 +92,7 @@ export function PreferencesTab() {
 
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
-            <label htmlFor={lengthId}>Response Length</label>
+            <label htmlFor={lengthId}>{t("set_length")}</label>
             <p className={styles.fieldDesc}>
               How detailed AI responses should be
             </p>
@@ -90,7 +107,7 @@ export function PreferencesTab() {
             >
               {AI_LENGTH_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
-                  {o.label}
+                  {t(LENGTH_KEYS[o.value])}
                 </option>
               ))}
             </select>
@@ -104,14 +121,14 @@ export function PreferencesTab() {
             <Icon name="globe" size={18} />
           </span>
           <div>
-            <h3 id="settings-l10n-heading">Localization</h3>
+            <h3 id="settings-l10n-heading">{t("set_localization")}</h3>
             <p>Language and regional preferences</p>
           </div>
         </div>
 
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
-            <label htmlFor={uiLangId}>UI Language</label>
+            <label htmlFor={uiLangId}>{t("set_ui_lang")}</label>
             <p className={styles.fieldDesc}>Language used for the interface</p>
           </div>
           <div className={styles.fieldAction}>
@@ -131,7 +148,7 @@ export function PreferencesTab() {
 
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
-            <label htmlFor={aiLangId}>AI Response Language</label>
+            <label htmlFor={aiLangId}>{t("set_ai_lang")}</label>
             <p className={styles.fieldDesc}>
               Language for AI-generated content
             </p>
@@ -160,7 +177,7 @@ export function PreferencesTab() {
             showToast("Your settings have been saved successfully.");
           }}
         >
-          Save Preferences
+          {t("btn_save_config")}
         </Button>
       </div>
     </>

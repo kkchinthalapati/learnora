@@ -28,14 +28,14 @@ describe("PreferencesTab", () => {
     expect(screen.getByLabelText("AI Response Language")).toHaveValue("Hindi");
   });
 
-  it("does not persist until Save Preferences is pressed", async () => {
+  it("does not persist until Save Changes is pressed", async () => {
     const user = userEvent.setup();
     renderWithProviders(<PreferencesTab />);
 
     await user.selectOptions(screen.getByLabelText("AI Persona"), "buddy");
     expect(loadSettings().aiPersona).toBe("tutor");
 
-    await user.click(screen.getByRole("button", { name: "Save Preferences" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
     expect(loadSettings().aiPersona).toBe("buddy");
   });
 
@@ -45,12 +45,17 @@ describe("PreferencesTab", () => {
 
     await user.selectOptions(screen.getByLabelText("AI Persona"), "coach");
     await user.selectOptions(screen.getByLabelText("Response Length"), "short");
-    await user.selectOptions(screen.getByLabelText("UI Language"), "fr");
+    /* AI Response Language before UI Language: switching UI Language
+       re-translates this tab live (Step 23's useTranslation), which renames
+       the "AI Response Language" <label> itself once it's no longer English
+       — selecting it first, while the label still reads in English, avoids
+       the query racing its own translation. */
     await user.selectOptions(
       screen.getByLabelText("AI Response Language"),
       "Spanish",
     );
-    await user.click(screen.getByRole("button", { name: "Save Preferences" }));
+    await user.selectOptions(screen.getByLabelText("UI Language"), "fr");
+    await user.click(screen.getByRole("button", { name: /^(Save Changes|Enregistrer)$/ }));
 
     expect(loadSettings()).toEqual({
       ...DEFAULT_SETTINGS,
@@ -65,7 +70,7 @@ describe("PreferencesTab", () => {
     const user = userEvent.setup();
     renderWithProviders(<PreferencesTab />);
 
-    await user.click(screen.getByRole("button", { name: "Save Preferences" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     expect(
       await screen.findByText("Your settings have been saved successfully."),
@@ -88,7 +93,7 @@ describe("PreferencesTab", () => {
     expect(loadSettings().notifyTimerAlerts).toBe(false);
 
     await user.selectOptions(screen.getByLabelText("AI Persona"), "coach");
-    await user.click(screen.getByRole("button", { name: "Save Preferences" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
     expect(loadSettings()).toMatchObject({
       aiPersona: "coach",

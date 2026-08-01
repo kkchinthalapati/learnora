@@ -2,12 +2,9 @@ import { useMemo, useState } from "react";
 import { Button } from "../../components/Button";
 import { Skeleton } from "../../components/Skeleton";
 import { useExams } from "../../hooks/useExams";
-import {
-  MONTH_NAMES,
-  WEEKDAY_NAMES,
-  formatDateStr,
-  localDateStr,
-} from "../../lib/date";
+import { useTranslation } from "../../hooks/useTranslation";
+import { MONTH_NAMES, formatDateStr, localDateStr } from "../../lib/date";
+import type { TranslationKey } from "../../lib/i18n";
 import type { Exam } from "../../api/types";
 import { DayDetailModal } from "./DayDetailModal";
 import { ExamModal } from "./ExamModal";
@@ -21,6 +18,19 @@ import styles from "./exams.module.css";
  * the vanilla mutated a shared `displayDate` with `setMonth()`, which made
  * "next month" from the 31st skip a month (Jan 31 + 1 month is Mar 3);
  * building from a year/month pair can't drift like that. */
+
+/* Same order as WEEKDAY_NAMES (js/i18n.js's day_sun..day_sat) — only this
+   calendar header translates them (index.html:907-914); the Plan view's own
+   use of WEEKDAY_NAMES has no data-i18n in the vanilla, so it stays as-is. */
+const WEEKDAY_KEYS: readonly TranslationKey[] = [
+  "day_sun",
+  "day_mon",
+  "day_tue",
+  "day_wed",
+  "day_thu",
+  "day_fri",
+  "day_sat",
+];
 
 type Overlay =
   | { kind: "none" }
@@ -55,6 +65,7 @@ function difficultyClass(difficulty: string | null): string {
 
 export function ExamsView() {
   const { data: exams, isPending, isError, error } = useExams();
+  const t = useTranslation();
   const today = localDateStr();
   const now = new Date();
   const [viewMonth, setViewMonth] = useState({
@@ -162,8 +173,8 @@ export function ExamsView() {
         ) : (
           <>
             <div className={styles.weekdays} aria-hidden="true">
-              {WEEKDAY_NAMES.map((d) => (
-                <div key={d}>{d}</div>
+              {WEEKDAY_KEYS.map((key) => (
+                <div key={key}>{t(key)}</div>
               ))}
             </div>
 
