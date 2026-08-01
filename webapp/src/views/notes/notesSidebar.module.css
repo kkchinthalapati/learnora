@@ -1,0 +1,301 @@
+/* Notes AI study sidebar — ported from style.css's `.notes-ai-panel` block
+ * (:5886-6075) and the notes chat input row (:6176-6233).
+ *
+ * The vanilla's hard-coded `rgba(255, 255, 255, 0.04)` surfaces are expressed
+ * in the ported tokens here, the same substitution every other migrated
+ * stylesheet in this app makes — those literals only ever looked right on the
+ * dark theme, and this view now has to survive the light one too.
+ *
+ * The vanilla also needed `body:has(#view-notes:not(.hidden))
+ * .dashboard-command-bar { display: none }` so the fixed workspace command bar
+ * did not sit on top of this panel's own input — two competing AI inputs, one
+ * covering the other. No equivalent rule is needed here: the React command bar
+ * is rendered by DashboardView, not by the app shell, so it does not exist on
+ * this route to begin with. */
+
+.panel {
+  /* Sized in a clamp so it holds a readable chat column, and allowed to
+     shrink before it is dropped below the document: the panel is the point of
+     this view, so it stays a sidebar for as long as both panes fit. */
+  flex: 0 1 clamp(320px, 30vw, 420px);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden; /* inner sections scroll */
+}
+
+/* --- quick-action cards --------------------------------------------------
+   A compact study rail rather than three stacked panels, so the chat — the
+   part students actually use — keeps the vertical space. */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 12px;
+  text-align: left;
+  font-family: inherit;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  cursor: pointer;
+  transition:
+    transform var(--t-fast) ease,
+    background var(--t-fast) ease,
+    border-color var(--t-fast) ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  background: var(--surface-hover);
+  border-color: var(--glass-border);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cardSoon {
+  opacity: 0.6;
+}
+
+.cardIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.cardBody {
+  display: block;
+  min-width: 0;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cardHead strong {
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.cardDesc {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.badge {
+  background: var(--success);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+/* --- chat column --------------------------------------------------------- */
+
+.chat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border-radius: var(--r-lg);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border-subtle);
+}
+
+.intro {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.greeting {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.subtext {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Suggested openers — give an empty panel an obvious first move. */
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  flex-shrink: 0;
+}
+
+.suggestion {
+  padding: 7px 12px;
+  border-radius: var(--r-pill);
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  cursor: pointer;
+  transition:
+    color var(--t-fast) ease,
+    background var(--t-fast) ease,
+    border-color var(--t-fast) ease;
+}
+
+.suggestion:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface-hover);
+  border-color: var(--accent-ring);
+}
+
+.suggestion:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.feed {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin: 16px 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* --- input dock ---------------------------------------------------------- */
+
+.dock {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s-2);
+  padding: 6px 8px;
+  border-radius: 22px;
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+}
+
+.dock:focus-within {
+  border-color: var(--accent-ring);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  max-height: 120px;
+  padding: 8px 4px;
+  font-family: inherit;
+  font-size: var(--fs-base);
+  color: var(--text);
+  background: transparent;
+  border: none;
+  resize: none;
+}
+
+.input:focus {
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--text-faint);
+}
+
+.iconBtn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    color var(--t-fast) ease;
+}
+
+.iconBtn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.sendBtn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-on);
+  background: linear-gradient(135deg, var(--accent), #6b7ee8);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.sendBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+  box-shadow:
+    0 4px 16px var(--accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.sendBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (max-width: 900px) {
+  .panel {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 60vh;
+  }
+}

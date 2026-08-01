@@ -1,16 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "../../components/Button";
-import { RichTextEditor } from "../../components/RichTextEditor";
+import {
+  RichTextEditor,
+  type RichTextEditorHandle,
+} from "../../components/RichTextEditor";
 import { useUpdateNoteHtml } from "../../hooks/useNotes";
 import { renderMarkdown } from "../../lib/markdown";
+import { NotesAiSidebar } from "./NotesAiSidebar";
 import type { Note } from "../../api/types";
 import styles from "./notes.module.css";
 
 export const SAVE_DEBOUNCE_MS = 2000;
 const SAVED_STATUS_LINGER_MS = 2000;
 
-type SaveStatus = "idle" | "unsaved" | "saving" | "saved" | "failed" | "readonly";
+type SaveStatus =
+  "idle" | "unsaved" | "saving" | "saved" | "failed" | "readonly";
 
 const STATUS_TEXT: Record<SaveStatus, string> = {
   idle: "",
@@ -31,7 +36,12 @@ const STATUS_CLASS: Record<SaveStatus, string | undefined> = {
 };
 
 interface NotesEditorPaneProps {
+  materialId: string;
   materialTitle: string;
+  /** The open material's folder, passed through to the AI sidebar's
+   *  quick-action cards so a deck or quiz made from this document is filed
+   *  alongside it. */
+  folderId: string | null;
   /** The material's most recent note row, or null if generation hasn't
    *  produced one yet. Rendered by `NotesView`, keyed on the material id so
    *  a navigation between two materials always mounts a fresh instance. */
@@ -41,10 +51,16 @@ interface NotesEditorPaneProps {
 /* The autosave/save-status state machine above RichTextEditor, which only
  * knows how to hold a document — ports js/editor.js's `save`/`scheduleSave`/
  * `destroy` (:122-189). */
-export function NotesEditorPane({ materialTitle, note }: NotesEditorPaneProps) {
+export function NotesEditorPane({
+  materialId,
+  materialTitle,
+  folderId,
+  note,
+}: NotesEditorPaneProps) {
   const navigate = useNavigate();
   const updateHtml = useUpdateNoteHtml();
   const [status, setStatus] = useState<SaveStatus>(note ? "idle" : "readonly");
+  const editorRef = useRef<RichTextEditorHandle>(null);
 
   const dirtyHtmlRef = useRef<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -86,7 +102,10 @@ export function NotesEditorPane({ materialTitle, note }: NotesEditorPaneProps) {
     dirtyHtmlRef.current = html;
     setStatus("unsaved");
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => flushRef.current(), SAVE_DEBOUNCE_MS);
+    saveTimerRef.current = setTimeout(
+      () => flushRef.current(),
+      SAVE_DEBOUNCE_MS,
+    );
   }, []);
 
   /* Flush a pending edit on unmount rather than drop it — Editor.destroy()
@@ -114,7 +133,9 @@ export function NotesEditorPane({ materialTitle, note }: NotesEditorPaneProps) {
   const initialHtml =
     note?.html_content ||
     (note?.markdown_content ? renderMarkdown(note.markdown_content) : "") ||
-    (note ? "" : "<p>No notes yet — Learnora is still processing this material.</p>");
+    (note
+      ? ""
+      : "<p>No notes yet — Learnora is still processing this material.</p>");
 
   return (
     <main className={styles.view}>
@@ -132,18 +153,32 @@ export function NotesEditorPane({ materialTitle, note }: NotesEditorPaneProps) {
           >
             {STATUS_TEXT[status]}
           </span>
-          <Button variant="primary" size="sm" disabled={!note} onClick={manualSave}>
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={!note}
+            onClick={manualSave}
+          >
             Save
           </Button>
         </div>
       </div>
 
-      <div className={styles.editorPane}>
-        <RichTextEditor
-          initialHtml={initialHtml}
-          readOnly={!note}
-          placeholder="Start typing your notes here…"
-          onUserChange={note ? handleUserChange : undefined}
+      <div className={styles.splitLayout}>
+        <div className={styles.editorPane}>
+          <RichTextEditor
+            ref={editorRef}
+            initialHtml={initialHtml}
+            readOnly={!note}
+            placeholder="Start typing your notes here…"
+            onUserChange={note ? handleUserChange : undefined}
+          />
+        </div>
+
+        <NotesAiSidebar
+          materialId={materialId}
+          folderId={folderId}
+          getDocumentText={() => editorRef.current?.getPlainText() ?? ""}
         />
       </div>
     </main>

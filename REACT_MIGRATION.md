@@ -5,8 +5,8 @@ session, or agent can resume without any conversation history.
 
 - **New app root:** `webapp/` (separate npm package, side-by-side with the vanilla app)
 - **Branch:** `react-migration` (to be created on first implementation session)
-- **Tests:** `npm --prefix webapp run test` — expect 846/846 passing
-- **Last verified:** 2026-08-01 (Step 23, i18n port — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Steps 11-13's browser passes still owed, see those steps' entries)
+- **Tests:** `npm --prefix webapp run test` — expect 856/856 passing
+- **Last verified:** 2026-08-01 (Step 25, Notes AI study sidebar — tests green, `npm run build` green, `npm run lint` clean, `tsc -b` clean; Steps 11-13's browser passes still owed, see those steps' entries)
 
 ---
 
@@ -47,12 +47,14 @@ production. Those are steps 19-21.
 | 22 | App Shell (Sidebar + Header) — should have existed since Step 1 | Foundation | ✅ |
 | 23 | i18n port (`i18n.js` → a React translation layer) | Foundation | ✅ |
 | 24 | `createStudyPackage` Create-pipeline | Views | ✅ |
-| 25 | Notes AI study sidebar | Views | ☐ |
+| 25 | Notes AI study sidebar | Views | ✅ |
 | 26 | First real route cutover: Settings (`#settings` → `/app/settings`) | Foundation | ✅ |
 
-Step 25 is the remaining known-scoped view/feature work. Everything else
-outstanding is in "Known loose ends" — including the rest of the
-route-by-route cutover Step 26 started.
+**Every known-scoped view and feature port is now done.** With Step 25 closed
+(2026-08-01), nothing on the vanilla side is waiting to be *built* in React —
+what remains is the route-by-route cutover Step 26 started (Tasks, Exams,
+Timer, Library, Dashboard, Notes, Plan, Quiz, Review still belong to the
+vanilla app) plus the items in "Known loose ends".
 
 ---
 
@@ -1931,6 +1933,101 @@ React dev servers don't share an origin in local dev.
 
 ---
 
+### Step 25 — Notes AI study sidebar (2026-08-01)
+
+The last known-scoped view work. Ports the vanilla's `.notes-ai-panel`
+(index.html:1084-1155), its wiring in `bindNotesEditor` /
+`bindNotesQuickActions` / `bindNotesSuggestions` (js/main.js:2522-2628), and
+`AI.sendNotesChat` (js/ai.js:1388-1512).
+
+`views/notes/NotesAiSidebar.tsx` is the panel; `lib/notesChatPrompt.ts` is its
+system context, carried over word for word the way `chatPrompt.ts` was.
+`NotesEditorPane` now renders a two-column `.splitLayout` — the Quill pane and
+the sidebar — instead of a single editor pane.
+
+**It is not the Turbo chat with a different prompt, and that distinction is
+the point of the step.** The two system contexts tell the model opposite
+things about what it may do: the workspace assistant is handed the action-tag
+contract and executes what it emits, while this panel's context says plainly
+that it "cannot run app actions" and to point the student at the quick-action
+cards instead. That is why the prompt lives in its own module rather than as a
+boolean parameter on the existing builder — one flag apart is exactly how the
+sidebar would quietly acquire the power to create tasks. Action tags are still
+*stripped* from what it displays: a model that emits one anyway must not have
+raw markup rendered at the student.
+
+Four decisions worth knowing:
+
+1. **Its own transcript.** The vanilla pushed this panel's turns onto
+   `AI.chatHistory` — the *same array* the workspace chat uses — so a question
+   asked beside a document silently became context for the floating panel on
+   another view, and vice versa. Here the history is local to the mounted
+   sidebar and `NotesView` keys it on the material, so switching documents
+   starts a fresh conversation about the document actually on screen.
+2. **The document is read live, not snapshotted.** `RichTextEditor` gained a
+   `getPlainText()` imperative handle (a direct port of `Editor.getPlainText()`,
+   js/editor.js:194-197) so the model sees what the student is looking at now,
+   unsaved edits included. It is truncated at 5000 chars and `fenceUntrusted`d
+   before interpolation, exactly as the vanilla did — a note body is
+   model-generated from an uploaded file and freely editable, so it is
+   untrusted input going into the app's own prompt.
+3. **The quick actions reuse the Create dialog.** `openCreateModal` gained
+   `materialId` / `outputs` / `title`, so "Quiz me" and "Flashcards" open the
+   one Create dialog scoped to the open document with the matching output
+   pre-ticked and the material's folder pre-filled — the vanilla's own
+   consolidation (js/main.js:2589-2612), which had replaced a four-field quiz
+   modal and an options-free flashcard generation. A caller-supplied heading
+   applies only to the panel the dialog opened on; switching panels restores
+   that panel's own heading rather than mislabelling it.
+4. **The cards are real `<button>`s**, where the vanilla used `role="button"`
+   divs that had to hand-wire Enter and Space.
+
+Two deliberate divergences from the vanilla's markup and CSS: the hard-coded
+`rgba(255,255,255,0.0x)` surfaces are expressed in the ported tokens (they only
+ever looked right on the dark theme, and this view has to survive the light one
+— verified in both), and the composer placeholder is shortened to "Ask about
+your notes…" because the vanilla's longer string wrapped to a second line a
+one-row textarea has no room for and rendered as a clipped half-line.
+
+The vanilla needed `body:has(#view-notes:not(.hidden)) .dashboard-command-bar
+{ display: none }` so the fixed command bar didn't cover this panel's input.
+No equivalent is needed: the React command bar is rendered by `DashboardView`,
+not the app shell, so it doesn't exist on this route.
+
+Verified: 10 new tests in `NotesAiSidebar.test.tsx` (document context, the
+fencing, tag stripping, a failed exchange staying out of history, multi-turn
+history, suggestion chips, both quick actions, the podcast toast). Suite
+**856 passing** (75 files); vanilla **181/181**.
+
+**Reconciled with a second, independent Step 25** (branch
+`feat/react-step-25-notes-sidebar`, built in parallel before either was
+merged — the same collision Step 18 hit with PR #39). That one reused
+`useChat()` on the theory that the vanilla shared one `AI.chatHistory`
+between both surfaces. It does — but it also sends a *different system
+prompt* per surface, and the notes one says "This panel cannot run app
+actions". Reusing the workspace chat therefore handed the notes sidebar the
+whole action-tag contract, so the model could create tasks and start timers
+from beside the document. This implementation was kept instead, and that
+branch dropped. Two things came back from reviewing it: the empty-reply
+fallback below, and `127.0.0.1:5173` was already covered here but only
+`localhost:5173` there.
+
+One fix taken from that review: an action-only reply strips to an empty
+string and rendered as a blank bubble — no answer, no explanation. It now
+falls back to saying the panel cannot run actions and pointing at the quick
+-action cards. The vanilla's own "Action completed." would have been a lie
+here, since nothing ran. Also a real-browser pass —
+the first this migration has managed on a view — at desktop and 375px, in
+light and dark: the split layout, cards, chips and composer all render, the
+Create dialog opens with "Quiz on this document" and Quiz pre-ticked, and
+there is no horizontal overflow at mobile. That was done by mounting
+`NotesEditorPane` in a throwaway harness with a fake note, since `/app/notes/:id`
+sits behind the auth wall and no test account was available; the harness was
+deleted after. **Still owed: a pass with a real signed-in session and a live
+model call** — the reply path itself is only covered by MSW.
+
+---
+
 ## Known loose ends
 
 (carried forward from `REVAMP_PROGRESS.md` where relevant, plus new ones found during
@@ -1950,12 +2047,10 @@ the port)
   985` (style.css:848-853) and the vanilla quiz screen put its buttons in the
   same place. Worth solving once, app-wide (a bottom-left safe area, or
   docking away from the pointer), rather than per view.
-- **The Notes AI study sidebar is still not ported.** Step 13 deferred it to
-  17 and 17 scoped it out: the sidebar is `sendNotesChat` (js/ai.js:1378-1503)
-  plus its quiz-me/flashcards quick actions and the split-pane layout, which
-  is its own piece of work. The Turbo chat is context-aware on
-  `/notes/:materialId` — it reads the note and tutors on it — so the capability
-  exists, just not docked beside the editor.
+- ~~**The Notes AI study sidebar is still not ported.**~~ Closed by Step 25
+  (2026-08-01) — see its section below. `views/notes/NotesAiSidebar.tsx` +
+  `lib/notesChatPrompt.ts`, mounted by `NotesEditorPane` in a two-column
+  layout.
 - ~~**`<GRADE_FLASHCARD>` is parsed but never executed**~~ Closed in Step 18:
   `ChatProvider` gained `registerFlashcardGrader`, and the review screen
   registers whichever card is on screen.
@@ -1976,15 +2071,16 @@ the port)
   model's real feedback text (reads `useChat()`'s `messages` directly with a
   tracked start-index) that wasn't pulled in here, since it's a different
   architecture, not a drop-in fix.
-- **The AI edge function's CORS allow-list does not include the Vite dev
-  server.** `DEFAULT_ALLOWED_ORIGINS` in
-  `supabase/functions/learnora-ai/index.ts` lists `http://localhost:3000` (the
-  vanilla app's static server) but not `http://localhost:5173`, so any real
-  model call from `npm run dev` is blocked before it reaches the function.
-  Fixable without a redeploy by setting the `ALLOWED_ORIGINS` env var on the
-  function, but that is a production config change, so it is left for whoever
-  needs to exercise a live generation locally. The test suite intercepts the
-  call at the network layer (MSW) and is unaffected.
+- ~~**The AI edge function's CORS allow-list does not include the Vite dev
+  server.**~~ Fixed 2026-08-01: `DEFAULT_ALLOWED_ORIGINS` in
+  `supabase/functions/learnora-ai/index.ts` now lists `http://localhost:5173`
+  and `http://127.0.0.1:5173` alongside the vanilla app's `:3000` (they are
+  distinct origins to a browser, and Vite prints whichever the host resolves
+  to). **Takes effect only once the function is redeployed** — the running
+  deployment still has the old default list, so until then a live model call
+  from `npm run dev` is still blocked, and the `ALLOWED_ORIGINS` env var
+  remains the no-redeploy workaround. The test suite intercepts the call at
+  the network layer (MSW) and was never affected either way.
 
 - **Steps 11, 12 and 13's browser passes are still owed** (see those
   sections) — at the time, no browser driver was available in *those*
@@ -2075,10 +2171,11 @@ the port)
 - The Tasks list has no pagination or virtualisation, matching the vanilla — the
   whole table is fetched and rendered. Fine at a student's task count; worth
   revisiting only if someone turns up with thousands.
-- **The dashboard's Focus-Session quick-starts are not wired up** (js/main.js:
-  1252-1276). `TimerProvider` exposes `startPreset()` for exactly that, and the
-  Tasks widget is already built, but the dashboard itself is step 12 — so the
-  entry point lands there.
+- ~~**The dashboard's Focus-Session quick-starts are not wired up**~~ Stale —
+  struck through 2026-08-01, having been fixed by Step 12 itself without this
+  entry being updated. `FocusCard.tsx`, rendered by `DashboardView`, calls
+  `startFocusPreset()` → `TimerProvider.startPreset()`. (`LOCK_IN.md` flagged
+  the discrepancy; this closes it.)
 - **`vite.config.ts` raises `testTimeout` to 20s** (Step 9). Several
   pre-existing tests sit near 600ms on an idle machine and the 5s default was
   failing them under parallel load. It's a ceiling for hangs, not a target; if
@@ -2208,22 +2305,23 @@ Step 21's ledger entry, and note its two open items that need a human (the Supab
 redirect allow-list, and a Vercel preview-deploy check) — neither can be done from a
 workstation.
 
-### 4. Standalone pages — `terms.html` closed by Step 20; i18n still open
+### 4. Standalone pages — both closed
 
 - ~~`terms.html`~~ — now `/terms`, closed by Step 20.
-- `i18n.js` (root, ~21KB) is still not ported. Deliberately **not** folded into
-  Steps 19-21 — see the "Known loose ends" entry and ledger step 23: it needs a
-  library-vs-hand-rolled decision before any code, and threading `t()` through
-  ~40 already-ported components is a large diff in its own right.
+- ~~`i18n.js` (root, ~21KB) is still not ported~~ — closed by Step 23
+  (2026-08-01), `lib/i18n.ts`. This entry described it as needing a
+  library-vs-hand-rolled decision first; that decision was made and the port
+  landed. Struck through 2026-08-01, having been left stale.
 
 ### 5. Everything else
 
 See "Known loose ends" above for what's still genuinely open: no `DatePicker`
-primitive, Notes AI study sidebar not ported, mini-timer can overlap bottom-left
-controls, timer logs task by text not id,
-`format:check` failing repo-wide (a CRLF-checkout artifact, confirmed larger than
-first thought — an LF checkout still reports 33 files, per Step 21's own note), no
-Tasks pagination, and Steps 11-13's real-browser verification passes still owed.
+primitive, mini-timer can overlap bottom-left controls, timer logs task by text
+not id, `format:check` failing repo-wide (a CRLF-checkout artifact, confirmed
+larger than first thought — an LF checkout still reports 33 files, per Step 21's
+own note), no Tasks pagination, and Steps 11-13's real-browser verification
+passes still owed. The Notes AI study sidebar was on this list until Step 25
+closed it (2026-08-01).
 
 ---
 

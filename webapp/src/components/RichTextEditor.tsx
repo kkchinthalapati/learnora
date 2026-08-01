@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useImperativeHandle, useRef, type RefObject } from "react";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
 import styles from "./RichTextEditor.module.css";
@@ -71,6 +71,15 @@ function setContentsFromHtml(quill: Quill, html: string): void {
   quill.setContents(delta, "silent");
 }
 
+export interface RichTextEditorHandle {
+  /** The document as plain text, read live — ports `Editor.getPlainText()`
+   *  (js/editor.js:194-197). Its one caller is the notes AI sidebar, which
+   *  needs whatever is on screen at the moment a question is sent, unsaved
+   *  edits included, rather than the last persisted HTML. Returns "" before
+   *  the editor has mounted. */
+  getPlainText: () => string;
+}
+
 export interface RichTextEditorProps {
   initialHtml: string;
   readOnly?: boolean;
@@ -80,6 +89,7 @@ export interface RichTextEditorProps {
    *  `setContents` call), matching Quill's own `source` distinction. */
   onUserChange?: (html: string) => void;
   className?: string;
+  ref?: RefObject<RichTextEditorHandle | null>;
 }
 
 export function RichTextEditor({
@@ -88,11 +98,18 @@ export function RichTextEditor({
   placeholder,
   onUserChange,
   className,
+  ref,
 }: RichTextEditorProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const quillRef = useRef<Quill | null>(null);
   const onUserChangeRef = useRef(onUserChange);
   onUserChangeRef.current = onUserChange;
+
+  useImperativeHandle(
+    ref,
+    () => ({ getPlainText: () => quillRef.current?.getText() ?? "" }),
+    [],
+  );
 
   useEffect(() => {
     const wrapper = wrapperRef.current;

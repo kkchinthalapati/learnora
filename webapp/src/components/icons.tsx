@@ -278,6 +278,15 @@ export const ICONS = {
     </>
   ),
   paperclip: <path d="M8 12.5V7a4 4 0 0 1 8 0v9a2.5 2.5 0 0 1-5 0V8.5" />,
+  /* The notes sidebar's send button (index.html:1143). Not in js/icons.js —
+     the vanilla inlined this one as raw markup in the template rather than
+     registering it. */
+  send: (
+    <>
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </>
+  ),
   eyedropper: (
     <>
       <path d="m2 22 1-1h3l9-9" />
