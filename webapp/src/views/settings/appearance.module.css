@@ -524,7 +524,7 @@
   border: none;
   border-radius: 50%;
   background: var(--danger);
-  color: #fff;
+  color: var(--danger-on);
   font-size: 11px;
   line-height: 1;
   cursor: pointer;

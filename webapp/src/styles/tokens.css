@@ -45,6 +45,28 @@
   --warning-soft: rgba(201, 138, 46, 0.14);
   --danger: #c2453a;
   --danger-soft: rgba(194, 69, 58, 0.12);
+  /* Label colour for anything filled with --success/--warning/--danger —
+     same job as --accent-on, added for the same reason: a handful of these
+     fills hardcoded `color: #fff`, and dark-theme's --warning (2.18:1) and
+     --danger (3.71:1) both fail white at AA. --success-on is pure black
+     rather than --accent-ink: neither white (4.09:1) nor --accent-ink
+     (4.47:1) clears AA against --success, and unlike the accent presets this
+     token parity-tests 1:1 against the vanilla's style.css, so the fill
+     itself isn't free to move — only the label is. */
+  --success-on: #000000;
+  --warning-on: var(--accent-ink);
+  --danger-on: #ffffff;
+  /* The exam list's difficulty chip paints a two-stop gradient rather than a
+     flat fill, so its label has to clear AA against *both* stops. Light-mode
+     --danger only just passes white (4.99:1) — the vanilla's lighter second
+     stop (#e87068, reused unchanged in dark mode) dropped that to 3.02:1.
+     This is the same colour darkened instead of lightened, which is a pure
+     win for a white label (darkening a colour can only raise its contrast
+     against white) and needed nowhere else: --success-2/--warning-2 don't
+     exist because their gradients read fine with --success-on/--warning-on
+     as-is. Dark mode doesn't override this — the vanilla's stop already
+     clears --danger-on there (ink, 6.05:1). */
+  --danger-2: #97362d;
 
   /* --- Page surfaces --- */
   --bg: #f6f5f2;

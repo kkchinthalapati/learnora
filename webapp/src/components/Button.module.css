@@ -82,7 +82,7 @@
 }
 .danger:hover:not(:disabled) {
   background: var(--danger);
-  color: #fff;
+  color: var(--danger-on);
   box-shadow:
     0 4px 16px color-mix(in srgb, var(--danger) 30%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
@@ -100,7 +100,7 @@
 }
 .warning:hover:not(:disabled) {
   background: var(--warning);
-  color: #fff;
+  color: var(--warning-on);
   box-shadow:
     0 4px 16px color-mix(in srgb, var(--warning) 30%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
@@ -118,7 +118,7 @@
 }
 .success:hover:not(:disabled) {
   background: var(--success);
-  color: #fff;
+  color: var(--success-on);
   box-shadow:
     0 4px 16px color-mix(in srgb, var(--success) 30%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);

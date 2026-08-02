@@ -196,7 +196,7 @@
 
 .deleteBtn:hover {
   background: var(--danger);
-  color: #fff;
+  color: var(--danger-on);
 }
 
 .empty {
