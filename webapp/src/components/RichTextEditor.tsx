@@ -78,6 +78,13 @@ export interface RichTextEditorHandle {
    *  edits included, rather than the last persisted HTML. Returns "" before
    *  the editor has mounted. */
   getPlainText: () => string;
+  /** Appends `text` as a new paragraph at the end of the document. Passed
+   *  with Quill's "user" change source, not "api" or "silent" — that's what
+   *  makes the existing `text-change` listener fire `onUserChange` exactly
+   *  as if the student had typed it themselves, so an AI-inserted paragraph
+   *  autosaves through the same debounce path rather than needing a second
+   *  one. A no-op before the editor has mounted or while it's read-only. */
+  appendText: (text: string) => void;
 }
 
 export interface RichTextEditorProps {
@@ -107,7 +114,23 @@ export function RichTextEditor({
 
   useImperativeHandle(
     ref,
-    () => ({ getPlainText: () => quillRef.current?.getText() ?? "" }),
+    () => ({
+      getPlainText: () => quillRef.current?.getText() ?? "",
+      appendText: (text) => {
+        const quill = quillRef.current;
+        if (!quill || !text.trim()) return;
+        // getLength() counts Quill's own trailing newline, so this is always
+        // "just before that" — the true end of the document's content.
+        const end = quill.getLength() - 1;
+        const hasContent = quill.getText().trim().length > 0;
+        quill.insertText(
+          end,
+          `${hasContent ? "\n\n" : ""}${text.trim()}\n`,
+          "user",
+        );
+        quill.setSelection(quill.getLength() - 1, 0, "silent");
+      },
+    }),
     [],
   );
 

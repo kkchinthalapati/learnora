@@ -184,6 +184,54 @@ describe("NotesAiSidebar", () => {
     expect(screen.queryByText(/ADD_TASK/)).not.toBeInTheDocument();
   });
 
+  it("appends INSERT_INTO_NOTE's content to the live document and confirms it", async () => {
+    const user = userEvent.setup();
+    serveReply(
+      "Sure — <INSERT_INTO_NOTE>Mitosis has four phases: prophase, metaphase, anaphase, telophase.</INSERT_INTO_NOTE>",
+    );
+    renderNotes();
+    await waitFor(() =>
+      expect(
+        (document.querySelector(".ql-editor") as HTMLElement).textContent,
+      ).toContain("Mitosis has four phases."),
+    );
+
+    await ask(user, "Add a summary of the phases to my notes");
+
+    expect(await screen.findByText(/Sure —/)).toBeInTheDocument();
+    expect(screen.queryByText(/INSERT_INTO_NOTE/)).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        (document.querySelector(".ql-editor") as HTMLElement).textContent,
+      ).toContain(
+        "Mitosis has four phases: prophase, metaphase, anaphase, telophase.",
+      ),
+    );
+    expect(await screen.findByText("Added to your notes.")).toBeInTheDocument();
+  });
+
+  it("confirms the insert even when the reply is nothing but the tag", async () => {
+    const user = userEvent.setup();
+    serveReply("<INSERT_INTO_NOTE>A new line.</INSERT_INTO_NOTE>");
+    renderNotes();
+    await waitFor(() =>
+      expect(
+        (document.querySelector(".ql-editor") as HTMLElement).textContent,
+      ).toContain("Mitosis"),
+    );
+
+    await ask(user, "Add a line");
+
+    expect(
+      await screen.findByText("Done — I've added that to your notes."),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        (document.querySelector(".ql-editor") as HTMLElement).textContent,
+      ).toContain("A new line."),
+    );
+  });
+
   it("keeps a failed exchange out of the history", async () => {
     const user = userEvent.setup();
     // 400, not 500: a 5xx is retryable, so the assertion would be waiting out

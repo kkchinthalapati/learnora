@@ -35,6 +35,14 @@ export const ACTION_TAGS = [
   "ADD_QUIZ",
   "ADD_DECK",
   "ADD_PLAN",
+  /* Executed only by the notes sidebar (see NotesAiSidebar.tsx), not by
+     chatActions.ts's executeActions — it needs its own handler because it
+     writes into a live Quill instance, not an API call. Listed here anyway
+     so fenceUntrusted/stripActionTagBlocks cover it like every other tag: a
+     document containing the literal text "<INSERT_INTO_NOTE>...</...>" must
+     not be able to pose as a real instruction when it's fed back into a
+     prompt as untrusted context. */
+  "INSERT_INTO_NOTE",
 ] as const;
 
 export type ActionTag = (typeof ACTION_TAGS)[number];
