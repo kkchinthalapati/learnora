@@ -39,6 +39,12 @@ export interface ChatMessage {
   error?: boolean;
   /** A reply that was a flashcard set rather than prose. */
   cards?: FlashcardDraft[];
+  /** Set once `cards` has been saved as a real deck — the id it saved to,
+   *  so the bubble can swap its "Save as deck" button for a link there
+   *  instead of letting the student save the same set twice. */
+  savedDeckId?: string;
+  /** True while `saveCards` is persisting this message's `cards`. */
+  savingCards?: boolean;
 }
 
 export interface AttachedFile {
@@ -68,6 +74,12 @@ export interface ChatApi {
   send: (query: string) => Promise<void>;
   attachFile: (file: File) => void;
   clearFile: () => void;
+
+  /** Persists a `cards`-bearing message's flashcards as a real deck the
+   *  student can review — the chat's own generation was, until now, always
+   *  throwaway: the only way to keep a conversational "generate flashcards"
+   *  reply was to notice, then redo the whole thing through Create. */
+  saveCards: (messageId: string) => Promise<void>;
 
   /** The review view registers whichever card is on screen, so a
    *  `<GRADE_FLASHCARD>` tag executed from anywhere (the panel, the review

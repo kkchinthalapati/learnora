@@ -1,12 +1,20 @@
-/* Builds the system context injected ahead of every chat message — ported
- * verbatim from js/ai.js:967-1030.
+/* Builds the system context injected ahead of every chat message — originally
+ * ported verbatim from js/ai.js:967-1030.
  *
- * The wording is carried over exactly, not paraphrased. It is the thing the
- * app's action-tag contract is written in: "emit <ADD_TASK>…</ADD_TASK>" is
- * what makes the model produce tags this app can execute, and the GROUNDING
- * RULES are what stop it inventing tasks and deadlines a student would then
- * act on. Rewording any of it changes model behaviour for every user with no
- * way to tell from a diff. */
+ * Most of the wording still is carried over exactly: it is the thing the
+ * app's action-tag contract is written in, and the GROUNDING RULES are what
+ * stop the model inventing tasks and deadlines a student would then act on.
+ * Rewording established lines changes model behaviour for every user with no
+ * way to tell from a diff, so don't.
+ *
+ * Three CAPABILITIES additions are a deliberate departure from parity, not an
+ * oversight: NAVIGATE and GRADE_FLASHCARD were executable in chatActions.ts
+ * from the very first port (they're even in the vanilla's own ACTION_TAGS,
+ * js/ai.js:213) but never once described here — in either app — so the model
+ * could never have emitted them. ADD_TASK's optional `||DUE:` suffix is new
+ * capability, not a port: tasksApi.add already took a due date, chat simply
+ * never passed one through. ADD_EXAM is new outright — there was no way to
+ * create an exam by chat at all, only via the manual form. */
 
 import { localDateStr } from "./date";
 import { fenceUntrusted } from "./actionTags";
@@ -50,7 +58,14 @@ export function activeContextForPath(
     return `User is reading study notes. Here is the content they are studying:\n"""\n${truncated}\n"""\nAct as a tutor for this specific material. Answer questions about it. Quiz them if they ask.`;
   }
   if (pathname.startsWith("/review/")) {
-    return "User is doing flashcard review. Be encouraging and supportive!";
+    /* GRADE_FLASHCARD only ever does anything here — ReviewView is the one
+       screen that registers a grader (see ChatProvider's
+       registerFlashcardGrader) — so the tag is taught only in this branch
+       rather than in the global CAPABILITIES list below. Telling the model
+       about it everywhere would invite "grade my last quiz answer a 4"
+       outside review, where the tag silently does nothing. */
+    return `User is doing flashcard review. Be encouraging and supportive!
+- If, and only if, the student explicitly says how well they knew the card currently on screen (e.g. "I knew that", "no idea", "score me a 3"), emit <GRADE_FLASHCARD>n</GRADE_FLASHCARD> where n is 1 (again), 2 (hard), 3 (good) or 4 (easy) — your best judgement of which they meant. Never emit it unless they've clearly self-rated; do not grade a card just because they answered a question about its content.`;
   }
   return DEFAULT_ACTIVE_CONTEXT;
 }
@@ -90,11 +105,13 @@ GROUNDING RULES (important — follow exactly):
 - A task listed as "(due YYYY-MM-DD)" carries that deadline; a task listed with no "(due …)" simply has no due date set. When asked to summarise, order or prioritise tasks, sort by due date — soonest first — using TODAY IS above to work out what is overdue, due today, or due this week, and put undated tasks last. If every task is undated, say so plainly and offer to help set due dates.
 
 CAPABILITIES:
-- To create a task, emit the tag <ADD_TASK>the task name</ADD_TASK>. The app executes this tag and displays it to the student as the task's name, so lead into it naturally (e.g. "Done — I've added this to your tasks: <ADD_TASK>Review Chapter 3</ADD_TASK>") and do not repeat the same name elsewhere in the sentence. Only create a task when the student clearly asks you to.
+- To create a task, emit the tag <ADD_TASK>the task name</ADD_TASK>. The app executes this tag and displays it to the student as the task's name, so lead into it naturally (e.g. "Done — I've added this to your tasks: <ADD_TASK>Review Chapter 3</ADD_TASK>") and do not repeat the same name elsewhere in the sentence. Only create a task when the student clearly asks you to. If the student states or implies a deadline ("by Friday", "before the 12th", "due next week"), work it out from TODAY IS above and append it as \`||DUE:YYYY-MM-DD\` — e.g. <ADD_TASK>Review Chapter 3||DUE:2026-08-07</ADD_TASK>. Omit the \`||DUE:\` suffix entirely when no deadline was given; never guess one.
+- To schedule an exam, emit <ADD_EXAM>Exam name||YYYY-MM-DD||Difficulty</ADD_EXAM> — e.g. <ADD_EXAM>Chemistry Final||2026-08-20||Hard</ADD_EXAM>. Difficulty is Easy, Medium or Hard; omit the trailing \`||Difficulty\` (but keep the date) when the student doesn't say, and it defaults to Medium. Only emit this once the student has given both a name and a date — ask for whichever is missing rather than guessing.
 - To generate a formal interactive quiz, emit the tag <ADD_QUIZ>Topic Name</ADD_QUIZ>. The app will generate a quiz for that topic.
 - To generate a formal weekly study schedule, emit the tag <ADD_PLAN></ADD_PLAN>. The app will build a weekly plan and navigate the user there.
 - To start a focus timer, emit the tag <START_TIMER>25</START_TIMER> with the number of minutes. Only emit it once the student has named a duration. If they ask for a timer without saying how long (e.g. "start a timer"), do NOT pick one for them and do NOT emit the tag — ask how many minutes they want, suggesting 25, 45 or 60 as options, and start it on their next reply.
 - To switch the app's theme, emit <SET_THEME>dark</SET_THEME> or <SET_THEME>light</SET_THEME> when the student asks to change the theme/appearance.
+- To take the student somewhere in the app, emit <NAVIGATE>view</NAVIGATE> with one of: dashboard, tasks, exams, timer, library, materials, flashcards, quizzes, plan, settings. Use this whenever they ask to go, see, or open a part of the app ("take me to my flashcards", "show me the calendar") — don't just describe where it is.
 - Answer questions about the student's current study material.
 - Help with exam prep, concept explanations, and study strategies.
 - Be conversational, supportive, and concise.

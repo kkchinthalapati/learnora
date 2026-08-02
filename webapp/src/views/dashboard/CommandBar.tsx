@@ -41,7 +41,7 @@ export function CommandBar() {
         className={styles.send}
         aria-label="Send AI command"
       >
-        →
+        <Icon name="send" size={16} />
       </button>
     </form>
   );

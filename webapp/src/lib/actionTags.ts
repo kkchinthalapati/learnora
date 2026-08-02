@@ -23,6 +23,7 @@
 /** Action tags the app executes when it sees them in a model reply. */
 export const ACTION_TAGS = [
   "ADD_TASK",
+  "ADD_EXAM",
   "START_TIMER",
   "SET_THEME",
   "NAVIGATE",

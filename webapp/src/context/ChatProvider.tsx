@@ -14,11 +14,18 @@ import {
   PlanShapeError,
 } from "../api/aiPlan";
 import { generateQuizFromTopic, QuizShapeError } from "../api/aiQuiz";
+import { decksApi } from "../api/decks";
+import { examsApi } from "../api/exams";
+import { flashcardsApi } from "../api/flashcards";
 import { notesApi } from "../api/notes";
 import { tasksApi } from "../api/tasks";
+import { decksKeys } from "../hooks/useDecks";
+import { examsKeys } from "../hooks/useExams";
+import { flashcardsKeys } from "../hooks/useFlashcards";
 import { plansKeys } from "../hooks/usePlans";
 import { quizzesKeys } from "../hooks/useQuizzes";
 import { tasksKeys } from "../hooks/useTasks";
+import { formatMonthDay } from "../lib/date";
 import {
   executeActions,
   pathForNavigateTarget,
@@ -75,6 +82,12 @@ function detectFlashcardReply(text: string) {
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  /* Read by saveCards, which needs the current message's cards but must not
+     itself change identity on every new message the way depending on
+     `messages` directly would — send() doesn't take that dependency either,
+     for the same reason (see pathnameRef below for the established pattern). */
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -170,12 +183,21 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const handlers = useMemo<ActionHandlers>(
     () => ({
       confirm,
-      addTask: async (text) => {
-        await tasksApi.add(text);
+      addTask: async (text, dueDate) => {
+        await tasksApi.add(text, dueDate ?? null);
         /* Invalidated through the client rather than a mutation hook: the
            chat can be closed (unmounting an observer) between the confirm and
            the write landing, and the task list must still refresh. */
         await qc.invalidateQueries({ queryKey: tasksKeys.all });
+      },
+      addExam: async (name, date, difficulty) => {
+        await examsApi.save({
+          exam_name: name,
+          exam_date: date,
+          difficulty,
+          status: "Scheduled",
+        });
+        await qc.invalidateQueries({ queryKey: examsKeys.all });
       },
       startTimer: (minutes) => {
         startPreset({ countdown: minutes }, "countdown");
@@ -362,6 +384,50 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     [file, handlers, settings],
   );
 
+  const saveCards = useCallback(
+    async (messageId: string) => {
+      const message = messagesRef.current.find((m) => m.id === messageId);
+      if (!message?.cards?.length || message.savedDeckId) return;
+
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, savingCards: true } : m)),
+      );
+
+      try {
+        // Filed nowhere — same as a Create pipeline "Topic" source — since a
+        // chat reply has no folder of its own to suggest.
+        const deck = await decksApi.add(
+          null,
+          `Chat Flashcards — ${formatMonthDay(new Date())}`,
+        );
+        await flashcardsApi.addBatch(deck.id, message.cards);
+        await Promise.all([
+          qc.invalidateQueries({ queryKey: decksKeys.all }),
+          qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount }),
+        ]);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? { ...m, savingCards: false, savedDeckId: deck.id }
+              : m,
+          ),
+        );
+        showToast("Saved to your flashcard library.");
+      } catch (err) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId ? { ...m, savingCards: false } : m,
+          ),
+        );
+        showToast(
+          err instanceof Error ? err.message : "Failed to save flashcards.",
+          { error: true },
+        );
+      }
+    },
+    [qc, showToast],
+  );
+
   const value = useMemo<ChatApi>(
     () => ({
       messages,
@@ -378,6 +444,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       send,
       attachFile,
       clearFile,
+      saveCards,
       registerFlashcardGrader,
     }),
     [
@@ -395,6 +462,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       send,
       attachFile,
       clearFile,
+      saveCards,
       registerFlashcardGrader,
     ],
   );

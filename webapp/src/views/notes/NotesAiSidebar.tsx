@@ -357,7 +357,7 @@ export function NotesAiSidebar({
               aria-label={`Remove ${file.name}`}
               onClick={() => setFile(null)}
             >
-              ✖
+              <Icon name="x" size={12} />
             </button>
           </div>
         ) : null}

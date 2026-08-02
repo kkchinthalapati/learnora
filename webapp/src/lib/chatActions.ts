@@ -21,13 +21,17 @@ import type { ActionWidget, ReplyPart } from "../context/chat";
  *  tasks is a malfunction, not a request. */
 export const MAX_TASKS_PER_REPLY = 10;
 
+export type ExamDifficulty = "Easy" | "Medium" | "Hard";
+
 export interface ActionHandlers {
   /** Returns true when the student allows the action. */
   confirm: (
     message: string,
     options: { title: string; confirmText: string; danger?: boolean },
   ) => Promise<boolean>;
-  addTask: (text: string) => Promise<void>;
+  /** `dueDate` is a plain YYYY-MM-DD, or omitted for an undated task — see
+   *  the ADD_TASK case for where the `||DUE:` suffix is parsed out. */
+  addTask: (text: string, dueDate?: string) => Promise<void>;
   /** Applies and starts a countdown of `minutes`. */
   startTimer: (minutes: number) => void;
   /** Returns false when the value names no theme the app has. */
@@ -40,6 +44,11 @@ export interface ActionHandlers {
   /** Scores whichever flashcard is currently on screen in the review view.
    *  A no-op when no review session is mounted to grade. */
   gradeFlashcard: (score: number) => void;
+  addExam: (
+    name: string,
+    date: string,
+    difficulty: ExamDifficulty,
+  ) => Promise<void>;
 }
 
 interface TagMatch {
@@ -47,6 +56,44 @@ interface TagMatch {
   payload: string;
   start: number;
   end: number;
+}
+
+/** Plain YYYY-MM-DD, matching what every date `<input>` in the app produces
+ *  and every date column stores. Anything else (a relative phrase the model
+ *  didn't resolve, a malformed string) is rejected rather than passed on to
+ *  a Postgres date column that would reject it anyway with a worse error. */
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+const EXAM_DIFFICULTIES: readonly ExamDifficulty[] = ["Easy", "Medium", "Hard"];
+
+/** Splits `ADD_TASK`'s optional `Task text||DUE:YYYY-MM-DD` payload. A
+ *  malformed or missing date suffix is treated as "no due date" rather than
+ *  rejecting the whole task — the task itself is still worth creating. */
+function parseTaskPayload(payload: string): {
+  text: string;
+  dueDate?: string;
+} {
+  const sep = payload.lastIndexOf("||DUE:");
+  if (sep === -1) return { text: payload };
+  const text = payload.slice(0, sep).trim();
+  const dueDate = payload.slice(sep + "||DUE:".length).trim();
+  return DATE_RE.test(dueDate) ? { text, dueDate } : { text: text || payload };
+}
+
+/** Splits `ADD_EXAM`'s `Name||YYYY-MM-DD||Difficulty` payload. Difficulty is
+ *  optional and defaults to Medium, matching ExamPanel's own default; an
+ *  unrecognised value falls back the same way rather than rejecting the tag
+ *  over a detail the student didn't actually specify. */
+function parseExamPayload(
+  payload: string,
+): { name: string; date: string; difficulty: ExamDifficulty } | null {
+  const parts = payload.split("||").map((p) => p.trim());
+  const [name, date, difficultyRaw] = parts;
+  if (!name || !date || !DATE_RE.test(date)) return null;
+  const difficulty = EXAM_DIFFICULTIES.includes(difficultyRaw as ExamDifficulty)
+    ? (difficultyRaw as ExamDifficulty)
+    : "Medium";
+  return { name, date, difficulty };
 }
 
 const BLOCK_RE = new RegExp(
@@ -133,17 +180,42 @@ async function runTag(
   switch (tag) {
     case "ADD_TASK": {
       if (!payload) return null;
+      const { text, dueDate } = parseTaskPayload(payload);
+      if (!text) return null;
       if (ctx.tasksAdded >= MAX_TASKS_PER_REPLY) {
-        return cancelled("Canceled adding task:", payload);
+        return cancelled("Canceled adding task:", text);
       }
+      const dueNote = dueDate ? ` — due ${dueDate}` : "";
       const allowed = await handlers.confirm(
-        `AI wants to create a new task:\n\n"${payload}"\n\nAllow this?`,
+        `AI wants to create a new task:\n\n"${text}"${dueNote}\n\nAllow this?`,
         { title: "AI Task Creation", confirmText: "Add Task" },
       );
-      if (!allowed) return cancelled("Canceled adding task:", payload);
-      await handlers.addTask(payload);
+      if (!allowed) return cancelled("Canceled adding task:", text);
+      // Passed positionally only when present, so a caller asserting the
+      // one-arg call for an undated task (still the overwhelmingly common
+      // case) isn't broken by an always-present `undefined`.
+      if (dueDate) await handlers.addTask(text, dueDate);
+      else await handlers.addTask(text);
       ctx.addTask();
-      return ok("check", "Added task:", payload);
+      return ok(
+        "check",
+        dueDate ? `Added task (due ${dueDate}):` : "Added task:",
+        text,
+      );
+    }
+
+    case "ADD_EXAM": {
+      if (!payload) return null;
+      const parsed = parseExamPayload(payload);
+      if (!parsed) return cancelled("Canceled adding exam");
+      const { name, date, difficulty } = parsed;
+      const allowed = await handlers.confirm(
+        `AI wants to add an exam to your calendar:\n\n"${name}" on ${date} (${difficulty})\n\nAllow this?`,
+        { title: "AI Exam Creation", confirmText: "Add Exam" },
+      );
+      if (!allowed) return cancelled("Canceled adding exam:", name);
+      await handlers.addExam(name, date, difficulty);
+      return ok("calendar", `Added exam (${date}):`, name);
     }
 
     case "START_TIMER": {

@@ -17,6 +17,7 @@ function handlers(overrides: Partial<ActionHandlers> = {}): ActionHandlers {
     generateQuiz: vi.fn(),
     generatePlan: vi.fn(),
     gradeFlashcard: vi.fn(),
+    addExam: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -104,6 +105,117 @@ describe("executeActions", () => {
       const parts = await executeActions("<ADD_TASK>  </ADD_TASK>", h);
       expect(h.confirm).not.toHaveBeenCalled();
       expect(widgets(parts)).toHaveLength(0);
+    });
+
+    it("parses a ||DUE: suffix into a due date, cleanly", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<ADD_TASK>Review Chapter 3||DUE:2026-08-07</ADD_TASK>",
+        h,
+      );
+      expect(h.confirm).toHaveBeenCalledWith(
+        expect.stringContaining("due 2026-08-07"),
+        expect.anything(),
+      );
+      expect(h.addTask).toHaveBeenCalledWith("Review Chapter 3", "2026-08-07");
+      // The raw ||DUE: delimiter must never reach the widget the student sees.
+      expect(widgets(parts)[0].subject).toBe("Review Chapter 3");
+    });
+
+    it("creates an undated task when there is no ||DUE: suffix", async () => {
+      const h = handlers();
+      await executeActions("<ADD_TASK>Read chapter 3</ADD_TASK>", h);
+      expect(h.addTask).toHaveBeenCalledWith("Read chapter 3");
+    });
+
+    it("treats a malformed due date as no due date, not a rejected task", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<ADD_TASK>Read chapter 3||DUE:next friday</ADD_TASK>",
+        h,
+      );
+      // The unparsed date is dropped rather than leaking "||DUE:..." into
+      // the task name; the task itself still gets created, undated.
+      expect(h.addTask).toHaveBeenCalledWith("Read chapter 3");
+      expect(widgets(parts)[0].cancelled).toBe(false);
+    });
+  });
+
+  describe("ADD_EXAM", () => {
+    it("asks first, then adds the exam with the stated difficulty", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<ADD_EXAM>Chemistry Final||2026-08-20||Hard</ADD_EXAM>",
+        h,
+      );
+
+      expect(h.confirm).toHaveBeenCalledWith(
+        expect.stringContaining("Chemistry Final"),
+        expect.objectContaining({ title: "AI Exam Creation" }),
+      );
+      expect(h.addExam).toHaveBeenCalledWith(
+        "Chemistry Final",
+        "2026-08-20",
+        "Hard",
+      );
+      expect(widgets(parts)[0]).toMatchObject({
+        cancelled: false,
+        subject: "Chemistry Final",
+      });
+    });
+
+    it("defaults to Medium difficulty when none is given", async () => {
+      const h = handlers();
+      await executeActions("<ADD_EXAM>Bio Midterm||2026-08-20</ADD_EXAM>", h);
+      expect(h.addExam).toHaveBeenCalledWith(
+        "Bio Midterm",
+        "2026-08-20",
+        "Medium",
+      );
+    });
+
+    it("defaults to Medium for an unrecognised difficulty rather than rejecting", async () => {
+      const h = handlers();
+      await executeActions(
+        "<ADD_EXAM>Bio Midterm||2026-08-20||Brutal</ADD_EXAM>",
+        h,
+      );
+      expect(h.addExam).toHaveBeenCalledWith(
+        "Bio Midterm",
+        "2026-08-20",
+        "Medium",
+      );
+    });
+
+    it("creates nothing when the student declines", async () => {
+      const h = handlers({ confirm: vi.fn().mockResolvedValue(false) });
+      const parts = await executeActions(
+        "<ADD_EXAM>Chemistry Final||2026-08-20</ADD_EXAM>",
+        h,
+      );
+      expect(h.addExam).not.toHaveBeenCalled();
+      expect(widgets(parts)[0].cancelled).toBe(true);
+    });
+
+    it("creates nothing when the date is missing or malformed", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<ADD_EXAM>Chemistry Final||next friday</ADD_EXAM>",
+        h,
+      );
+      expect(h.confirm).not.toHaveBeenCalled();
+      expect(h.addExam).not.toHaveBeenCalled();
+      expect(widgets(parts)[0].cancelled).toBe(true);
+    });
+
+    it("creates nothing when the name is missing", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<ADD_EXAM>||2026-08-20||Hard</ADD_EXAM>",
+        h,
+      );
+      expect(h.addExam).not.toHaveBeenCalled();
+      expect(widgets(parts)[0].cancelled).toBe(true);
     });
   });
 

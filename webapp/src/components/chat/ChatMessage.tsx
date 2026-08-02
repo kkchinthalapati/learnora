@@ -1,4 +1,5 @@
 import { Icon } from "../Icon";
+import { Button } from "../Button";
 import {
   renderMarkdownNodes,
   renderMarkdownSegments,
@@ -49,7 +50,17 @@ function ThinkingDots() {
   );
 }
 
-export function ChatMessageBubble({ message }: { message: Message }) {
+export function ChatMessageBubble({
+  message,
+  onSaveCards,
+}: {
+  message: Message;
+  /** Persists `message.cards` as a real deck. Omitted where a cards-shaped
+   *  message can never occur (the notes sidebar generates no such replies —
+   *  see NotesAiSidebar's header comment), so the button silently isn't
+   *  offered rather than wired to nothing. */
+  onSaveCards?: (messageId: string) => void;
+}) {
   if (message.role === "user") {
     return (
       <div className={`${styles.bubble} ${styles.userBubble}`}>
@@ -78,10 +89,27 @@ export function ChatMessageBubble({ message }: { message: Message }) {
   } else if (message.cards) {
     body = (
       <div>
-        <p className={styles.cardsIntro}>
-          {message.cards.length} flashcards. Use <strong>+ Create</strong> to
-          save a set you want to keep.
-        </p>
+        <div className={styles.cardsHead}>
+          <p className={styles.cardsIntro}>{message.cards.length} flashcards</p>
+          {onSaveCards ? (
+            message.savedDeckId ? (
+              <span className={styles.cardsSaved}>
+                <Icon name="check" size={14} />
+                Saved
+              </span>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                disabled={message.savingCards}
+                onClick={() => onSaveCards(message.id)}
+              >
+                <Icon name="layers" size={14} />
+                {message.savingCards ? "Saving…" : "Save as deck"}
+              </Button>
+            )
+          ) : null}
+        </div>
         <dl className={styles.cards}>
           {message.cards.map((card, i) => (
             <div key={i} className={styles.card}>

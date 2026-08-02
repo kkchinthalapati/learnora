@@ -117,7 +117,12 @@
 
 .userBubble {
   align-self: flex-end;
-  background: linear-gradient(135deg, var(--accent), #6b7ee8);
+  /* Was a fixed indigo (#6b7ee8) rather than --accent-hover — looked
+     intentional under the default teal/indigo pairing, but every other
+     accent preset (Hacker's green, Sunset's orange, …) painted this bubble
+     half in a colour that had nothing to do with the theme the student
+     picked. */
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
   color: var(--accent-on);
   border-bottom-right-radius: var(--r-xs);
   box-shadow:
@@ -222,10 +227,28 @@
 
 /* --- flashcard reply --- */
 
+.cardsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+
 .cardsIntro {
-  margin: 0 0 var(--s-3);
+  margin: 0;
   font-size: var(--fs-sm);
   color: var(--text-muted);
+}
+
+.cardsSaved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--success);
+  flex-shrink: 0;
 }
 
 .cards {
@@ -359,9 +382,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
   color: var(--accent-on);
-  background: linear-gradient(135deg, var(--accent), #6b7ee8);
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
   border: none;
   border-radius: 50%;
   cursor: pointer;

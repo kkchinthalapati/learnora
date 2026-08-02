@@ -769,6 +769,52 @@ describe("TurboChat", () => {
 
       expect(await screen.findByText(/want more\?/)).toBeInTheDocument();
     });
+
+    /** Echoes each inserted row back the way PostgREST does for `.select()` —
+     *  same pattern MaterialPanel.test.tsx uses for the Create pipeline's
+     *  own deck/card inserts. */
+    function serveDeckWrites() {
+      const echo = (table: string, id: string) =>
+        http.post(rest(table), async ({ request }) => {
+          const rows = (await request.json()) as Record<string, unknown>[];
+          return HttpResponse.json(
+            rows.length === 1
+              ? { id, ...rows[0] }
+              : rows.map((r) => ({ id, ...r })),
+            { status: 201 },
+          );
+        });
+      server.use(
+        echo("flashcard_decks", "deck-1"),
+        echo("flashcards", "card-1"),
+      );
+    }
+
+    /* Previously the only way to keep a chat-generated set was to notice and
+       manually redo the whole thing through +Create — this is the fix. */
+    it("saves the set as a real deck the student can review later", async () => {
+      serveReply(
+        JSON.stringify([
+          { front: "Mitochondrion", back: "Makes ATP" },
+          { front: "Ribosome", back: "Builds proteins" },
+          { front: "Nucleus", back: "Holds DNA" },
+        ]),
+      );
+      serveDeckWrites();
+      renderChat();
+      await openChat();
+      await ask("make me flashcards");
+      await screen.findByText("Mitochondrion");
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "Save as deck" }),
+      );
+
+      expect(await screen.findByText("Saved")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Save as deck" }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it("keeps the conversation when the panel is closed and reopened", async () => {
