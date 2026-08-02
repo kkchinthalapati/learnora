@@ -1,6 +1,6 @@
 # Learnora Redesign Ledger
 
-Last updated: 2026-08-02 — batch 1 of 15 (dashboard) audited
+Last updated: 2026-08-02 — batch 2 of 15 (notes) audited
 
 This is the master index for the Learnora visual/UX redesign. It is kept deliberately small —
 findings live in `redesign/audit/<batch>.md`, not here. A cold session (no memory of prior
@@ -50,7 +50,7 @@ conversations) should be able to resume this project using only this file plus t
 | Batch | Files | Audit | Screenshots | Redesign | Tests | Notes file |
 |---|---|---|---|---|---|---|
 | dashboard | 8 | AUDITED | done | TODO | — | redesign/audit/dashboard.md |
-| notes | 3 | TODO | — | TODO | — | redesign/audit/notes.md |
+| notes | 3 | AUDITED | done | TODO | — | redesign/audit/notes.md |
 | exams | 3 | TODO | — | TODO | — | redesign/audit/exams.md |
 | library | 6 | TODO | — | TODO | — | redesign/audit/library.md |
 | plan | 1 | TODO | — | TODO | — | redesign/audit/plan.md |
