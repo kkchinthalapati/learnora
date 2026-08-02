@@ -76,7 +76,7 @@
 
 .tabActive {
   background: var(--surface);
-  color: var(--accent);
+  color: var(--accent-text);
   box-shadow: var(--shadow-sm);
 }
 
@@ -183,7 +183,7 @@
 }
 
 .cardTitleLink:hover {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .cardMeta {
@@ -228,7 +228,7 @@
 
 .footerLink:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .footerLinkPrimary {
@@ -294,7 +294,7 @@
 
 .iconBtn:hover {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
   border-color: var(--accent-ring);
 }
 
@@ -331,7 +331,7 @@
 
 .newCardBtn:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .newCardBtn:focus-visible {
@@ -392,7 +392,7 @@
 
 .backLink:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .workspaceGrid {
@@ -457,7 +457,7 @@
 }
 
 .rowLink:hover {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .rowTitle {

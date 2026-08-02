@@ -76,7 +76,7 @@
   height: 34px;
   border-radius: 10px;
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .cardBody {
@@ -142,7 +142,7 @@
   flex-shrink: 0;
   border-radius: 50%;
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .greeting {
@@ -261,7 +261,7 @@
 
 .iconBtn:hover {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .sendBtn {

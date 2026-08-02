@@ -19,6 +19,17 @@
   --accent-ring: rgba(15, 118, 110, 0.32);
   --accent-on: #ffffff;
   --accent-glow: rgba(15, 118, 110, 0.35);
+  /* Label colour for fills whose accent is too light to carry white text.
+     Near-black rather than --text so it stays constant across light/dark —
+     it sits on the accent, not on the page. */
+  --accent-ink: #10151f;
+  --accent-on-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  /* The accent when it is the *text*, not the fill. A fill only has to clear
+     3:1 against what surrounds it, but a label has to clear 4.5:1 against the
+     page — and the brighter presets (Hacker green scored 2.28:1 on white)
+     cannot do both with one hex. Themes that need it override this with a
+     darkened tone of the same hue; the rest leave it pointing at --accent. */
+  --accent-text: var(--accent);
   --primary: var(--accent);
   --primary-hover: var(--accent-hover);
   --gradient-primary: linear-gradient(

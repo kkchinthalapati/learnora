@@ -156,7 +156,7 @@
 
 .due:hover {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .dueUnset {

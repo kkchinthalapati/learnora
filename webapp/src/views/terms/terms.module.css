@@ -109,7 +109,7 @@
 }
 
 .tocList a {
-  color: var(--accent);
+  color: var(--accent-text);
   text-decoration: none;
   font-size: var(--fs-sm);
 }
@@ -148,7 +148,7 @@
 }
 
 .section a {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .footer {

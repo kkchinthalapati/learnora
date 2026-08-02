@@ -520,3 +520,10 @@
     align-items: stretch;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .inlineForm {
+    animation: none;
+  }
+}

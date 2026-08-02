@@ -88,5 +88,5 @@
 .wrapper :global(.ql-snow .ql-toolbar button:hover),
 .wrapper :global(.ql-snow.ql-toolbar .ql-picker-label:hover),
 .wrapper :global(.ql-snow .ql-toolbar .ql-picker-label:hover) {
-  color: var(--accent);
+  color: var(--accent-text);
 }

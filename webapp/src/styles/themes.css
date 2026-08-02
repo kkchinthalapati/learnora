@@ -4,13 +4,18 @@
  * settings, and the React theme engine (later step) applies the same classes
  * and attributes to <body>. No visual redesign. */
 
+/* Fallback accent ramp for a body with no `data-theme-color` at all. Every
+   preset below scores the same specificity as this block and is declared
+   later, so a themed body takes its accent from its own preset — see the
+   `body.dark-theme[data-theme-color=...]` ramps at the bottom of this file,
+   which is where a dark-mode accent actually comes from in practice. */
 body.dark-theme {
   --accent: #2dd4bf;
   --accent-hover: #5eead4;
   --accent-press: #14b8a6;
   --accent-soft: rgba(45, 212, 191, 0.15);
   --accent-ring: rgba(45, 212, 191, 0.4);
-  --accent-on: #ffffff;
+  --accent-on: #10151f;
   --accent-glow: rgba(45, 212, 191, 0.45);
 
   --success: #2fbf88;
@@ -61,6 +66,79 @@ body[data-theme-color] {
   --bg-tint-2: rgba(var(--accent-rgb-2, var(--accent-rgb)), 0.07);
   --primary: var(--accent);
   --primary-hover: var(--accent-hover);
+  /* Label colour for anything filled with --accent. Presets whose accent is
+     light enough that white text on it drops under 4.5:1 override this to
+     --accent-ink; the two --accent-on-* pairings below then follow it. */
+  --accent-on: #ffffff;
+  --text-on-accent: var(--accent-on);
+  /* The lift a white label needs to read against a mid-tone fill. Themes that
+     switch to dark ink clear the shadow — it only muddies dark-on-light. */
+  --accent-on-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Presets bright enough that a white label fails AA against them. Measured
+   against the flat accent, which is the lighter of the two gradient stops
+   `.primary` paints and so the worst case. */
+body[data-theme-color="minimal"],
+body[data-theme-color="breeze"],
+body[data-theme-color="forest"],
+body[data-theme-color="hacker"],
+body[data-theme-color="cyberpunk"],
+body[data-theme-color="ruby"],
+body[data-theme-color="warm"],
+body[data-theme-color="sunset"] {
+  --accent-on: var(--accent-ink);
+  --accent-on-shadow: none;
+}
+
+/* Light-mode --accent-text: the same hue walked down in lightness until it
+   clears 4.5:1 on --bg (#f6f5f2). The page background is the target rather
+   than --surface because it is the darker of the two, and so the harder one.
+   Only "default" was already dark enough to need no override. Dark mode needs
+   none of these — the lifted ramps below clear 5:1 on the dark surface, and
+   the rule after them points --accent-text back at --accent. */
+body[data-theme-color="original"] {
+  --accent-text: #4b60e6;
+}
+body[data-theme-color="minimal"] {
+  --accent-text: #6e6e73;
+}
+body[data-theme-color="monochrome"] {
+  --accent-text: #617087;
+}
+body[data-theme-color="ocean"] {
+  --accent-text: #0275b0;
+}
+body[data-theme-color="breeze"] {
+  --accent-text: #04788c;
+}
+body[data-theme-color="forest"] {
+  --accent-text: #0b7e58;
+}
+body[data-theme-color="hacker"] {
+  --accent-text: #167f3d;
+}
+body[data-theme-color="lavender"] {
+  --accent-text: #7d49f5;
+}
+body[data-theme-color="cyberpunk"] {
+  --accent-text: #d41674;
+}
+body[data-theme-color="ruby"] {
+  --accent-text: #dc0d30;
+}
+body[data-theme-color="warm"] {
+  --accent-text: #9d601f;
+}
+body[data-theme-color="sunset"] {
+  --accent-text: #b94e05;
+}
+
+/* Dark mode reverts every one of the above — the accent is already the
+   brightest thing on the surface there, so darkening it would invert the
+   intent. Scores (0,2,1) and so beats the per-preset rules above. */
+body.dark-theme[data-theme-color] {
+  --accent-text: var(--accent);
 }
 
 body[data-theme-color="default"] {
@@ -105,10 +183,13 @@ body[data-theme-color="warm"] {
   --accent-press: #9a5f1d;
 }
 
+/* A shade below the Tailwind sky-600 this started from: at #0284c7 neither a
+   white nor a dark label cleared 4.5:1 on the fill (4.10 and 4.46). Dropping
+   ~4% lightness puts white at 4.69:1 and costs nothing visible. */
 body[data-theme-color="ocean"] {
-  --accent-rgb: 2, 132, 199;
+  --accent-rgb: 2, 122, 184;
   --accent-rgb-2: 56, 189, 248;
-  --accent: #0284c7;
+  --accent: #027ab8;
   --accent-hover: #0369a1;
   --accent-press: #075985;
 }
@@ -138,10 +219,12 @@ body[data-theme-color="sunset"] {
   --accent-press: #c2410c;
 }
 
+/* Same story as Ocean: #8b5cf6 left both label colours short (4.23 / 4.32).
+   A hair darker and white clears at 4.66:1. */
 body[data-theme-color="lavender"] {
-  --accent-rgb: 139, 92, 246;
+  --accent-rgb: 132, 82, 245;
   --accent-rgb-2: 217, 70, 239;
-  --accent: #8b5cf6;
+  --accent: #8452f5;
   --accent-hover: #7c3aed;
   --accent-press: #6d28d9;
 }
@@ -177,6 +260,103 @@ body[data-theme-color="hacker"] {
   --accent: #22c55e;
   --accent-hover: #16a34a;
   --accent-press: #15803d;
+}
+
+/* ------------------------------------------------------------------------ *
+ * Dark-mode accent ramps.
+ *
+ * A preset declares one accent hex and wears it in both modes, but a hue that
+ * reads well on #fff is often too dark on #131615 — the default teal scored
+ * 3.33:1 there, under the 4.5:1 AA floor, and Original and Monochrome were
+ * not far behind. These blocks lift only the presets that needed it, keeping
+ * hue and saturation so each theme still reads as itself; the rest repeat
+ * their light values so every preset has one obvious place to look.
+ *
+ * `body.dark-theme[data-theme-color=...]` scores (0,2,1) and so beats both the
+ * plain `body.dark-theme` fallback and the presets, which tie at (0,1,1).
+ * --accent-rgb is restated because the shared `body[data-theme-color]` rule
+ * derives soft/ring/glow and the page tints from it.
+ * ------------------------------------------------------------------------ */
+
+body.dark-theme[data-theme-color="default"] {
+  --accent-rgb: 19, 152, 142;
+  --accent: #13988e;
+  --accent-hover: #18bcb0;
+  --accent-press: #0e6f68;
+}
+
+body.dark-theme[data-theme-color="original"] {
+  --accent-rgb: 109, 126, 234;
+  --accent: #6d7eea;
+  --accent-hover: #919eef;
+  --accent-press: #455be4;
+}
+
+body.dark-theme[data-theme-color="monochrome"] {
+  --accent-rgb: 121, 137, 159;
+  --accent: #79899f;
+  --accent-hover: #919eb0;
+  --accent-press: #627288;
+}
+
+body.dark-theme[data-theme-color="ocean"] {
+  --accent-rgb: 2, 142, 214;
+  --accent: #028ed6;
+  --accent-hover: #04a8fd;
+  --accent-press: #0270a9;
+}
+
+body.dark-theme[data-theme-color="lavender"] {
+  --accent-rgb: 151, 109, 247;
+  --accent: #976df7;
+  --accent-hover: #b394f9;
+  --accent-press: #7841f5;
+}
+
+body.dark-theme[data-theme-color="ruby"] {
+  --accent-rgb: 244, 65, 96;
+  --accent: #f44160;
+  --accent-hover: #f66880;
+  --accent-press: #f1163c;
+}
+
+/* Already clear 5:1 on the dark surface; hover lightens rather than darkens,
+   which is the direction that reads as "raised" against a dark background. */
+body.dark-theme[data-theme-color="minimal"] {
+  --accent-hover: #9f9fa3;
+  --accent-press: #737378;
+}
+body.dark-theme[data-theme-color="breeze"] {
+  --accent-hover: #0bd6f8;
+  --accent-press: #0590a7;
+}
+body.dark-theme[data-theme-color="forest"] {
+  --accent-hover: #13df9b;
+  --accent-press: #0c8f64;
+}
+body.dark-theme[data-theme-color="hacker"] {
+  --accent-hover: #34dc72;
+  --accent-press: #1b9e4b;
+}
+body.dark-theme[data-theme-color="cyberpunk"] {
+  --accent-hover: #f06dae;
+  --accent-press: #e81e82;
+}
+body.dark-theme[data-theme-color="warm"] {
+  --accent-hover: #e0a261;
+  --accent-press: #c37727;
+}
+body.dark-theme[data-theme-color="sunset"] {
+  --accent-hover: #fa8b3e;
+  --accent-press: #db5d06;
+}
+
+/* Every lifted accent is now light enough that dark ink beats white on it.
+   "custom" is exempt: its engine already picks ink from the accent's own
+   luminance (deriveCustomThemeVars), and that choice should win here. */
+body.dark-theme[data-theme-color]:not([data-theme-color="custom"]) {
+  --accent-on: var(--accent-ink);
+  --accent-on-shadow: none;
 }
 
 /* User-built accent. Every --custom-* property is written to body.style by

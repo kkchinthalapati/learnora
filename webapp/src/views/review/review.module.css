@@ -106,7 +106,7 @@
 }
 
 .backText {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .hint {

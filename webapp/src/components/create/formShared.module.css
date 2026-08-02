@@ -103,7 +103,7 @@ select.field {
 
 .segmentedOption:has(input:checked) {
   background: var(--surface);
-  color: var(--accent);
+  color: var(--accent-text);
   box-shadow: var(--shadow-sm);
 }
 

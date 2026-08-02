@@ -130,7 +130,7 @@
   border: none;
   border-radius: var(--r-sm);
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-on);
   font-family: inherit;
   font-size: var(--fs-base);
   font-weight: 650;
@@ -161,7 +161,7 @@
   justify-content: center;
   border-radius: var(--r-pill);
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-on);
   font-size: 11px;
   font-weight: 700;
   line-height: 1;

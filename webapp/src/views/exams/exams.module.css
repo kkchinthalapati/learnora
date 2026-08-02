@@ -77,7 +77,7 @@
 
 .iconBtn:hover {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
   border-color: var(--accent-ring);
   box-shadow: var(--glass-inner), var(--shadow-md);
 }
@@ -296,7 +296,7 @@
 
 .segmentedOption:has(input:checked) {
   background: var(--surface);
-  color: var(--accent);
+  color: var(--accent-text);
   box-shadow: var(--shadow-sm);
 }
 

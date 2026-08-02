@@ -63,7 +63,7 @@
 .iconBtn:hover,
 .menuToggle:hover {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
   border-color: var(--accent-ring);
   box-shadow: var(--glass-inner), var(--shadow-md);
 }
