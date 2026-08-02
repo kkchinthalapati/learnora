@@ -395,6 +395,16 @@ async function runTag(
       handlers.generatePlan();
       return ok("calendar", "Generating your weekly study plan");
     }
+
+    /* Never taught in chatPrompt.ts's CAPABILITIES — only notesChatPrompt.ts
+       teaches it, and NotesAiSidebar.tsx has its own tiny extraction step
+       for it rather than going through executeActions at all (see that
+       file's comment on why: it writes into a live Quill instance, not an
+       API call). This case exists purely so the ActionTag switch stays
+       exhaustive and a stray tag reaching the general workspace chat is
+       inert instead of a TypeScript error. */
+    case "INSERT_INTO_NOTE":
+      return null;
   }
 }
 

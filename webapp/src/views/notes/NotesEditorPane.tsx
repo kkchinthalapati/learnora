@@ -179,6 +179,9 @@ export function NotesEditorPane({
           materialId={materialId}
           folderId={folderId}
           getDocumentText={() => editorRef.current?.getPlainText() ?? ""}
+          onInsertText={
+            note ? (text) => editorRef.current?.appendText(text) : undefined
+          }
         />
       </div>
     </main>

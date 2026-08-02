@@ -110,12 +110,23 @@ interface NotesAiSidebarProps {
    *  the model sees what the student is looking at now, including unsaved
    *  edits (the vanilla read `Editor.getPlainText()` the same way). */
   getDocumentText: () => string;
+  /** Appends text to the live document — RichTextEditorHandle.appendText,
+   *  threaded down by NotesEditorPane. Undefined when there's no note row
+   *  to write into yet (readOnly), in which case INSERT_INTO_NOTE is simply
+   *  never acted on — see the fallback branch in `send` below. */
+  onInsertText?: (text: string) => void;
 }
+
+/* Extracted separately from `stripActionTagBlocks` rather than folded into
+   it: this is the one tag whose *payload* the caller needs, not just its
+   removal from the display text. */
+const INSERT_INTO_NOTE_RE = /<INSERT_INTO_NOTE>([\s\S]*?)<\/INSERT_INTO_NOTE>/;
 
 export function NotesAiSidebar({
   materialId,
   folderId,
   getDocumentText,
+  onInsertText,
 }: NotesAiSidebarProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -139,6 +150,22 @@ export function NotesAiSidebar({
     const feed = feedRef.current;
     if (feed) feed.scrollTop = feed.scrollHeight;
   }, [messages]);
+
+  /* The dock's own CSS (`max-height: 120px`, `resize: none`) was built for a
+     textarea that grows with its content — nothing ever actually grew it, so
+     a message past one line just scrolled invisibly inside a single-row box.
+     Resetting to "auto" before reading scrollHeight is what lets the box
+     shrink back down too, not just grow: without it a box once expanded
+     would never report a smaller scrollHeight, since it would be measuring
+     against its own stale expanded height. CSS max-height still caps the
+     visible result — this only ever asks for more room than that, never
+     draws past it. */
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [input]);
 
   const send = useCallback(
     async (query: string) => {
@@ -204,15 +231,32 @@ export function NotesAiSidebar({
           settings,
         });
 
-        /* Stripping is defence in depth: the system context tells the model
-           this panel runs no actions, but a reply that was *only* an action
-           tag would otherwise strip to nothing and render as a blank bubble —
-           a dead end with no hint of what happened. The vanilla said "Action
-           completed." here, which would be a lie in this panel, so say what
-           actually went on and point at the cards that can do it. */
+        /* INSERT_INTO_NOTE is the one tag this panel actually executes —
+           extracted before stripping, since stripping only removes it from
+           the display text and this needs the payload too. `onInsertText`
+           is undefined while the document has no note row to write into
+           yet, in which case the tag is simply not acted on rather than
+           thrown at a `null` editor ref. */
+        const insertMatch = text.match(INSERT_INTO_NOTE_RE);
+        if (insertMatch && onInsertText) {
+          const content = insertMatch[1].trim();
+          if (content) {
+            onInsertText(content);
+            showToast("Added to your notes.");
+          }
+        }
+
+        /* Stripping is defence in depth beyond that: a reply that was
+           *only* an action tag would otherwise strip to nothing and render
+           as a blank bubble — a dead end with no hint of what happened. The
+           vanilla said "Action completed." here, which would be a lie in
+           this panel; say what actually happened instead. */
+        const stripped = stripActionTagBlocks(text).trim();
         const cleanText =
-          stripActionTagBlocks(text).trim() ||
-          "I tried to run an app action, but this panel can't — use the Quiz me or Flashcards buttons above.";
+          stripped ||
+          (insertMatch
+            ? "Done — I've added that to your notes."
+            : "I tried to run an app action, but this panel can't — use the Quiz me or Flashcards buttons above.");
         historyRef.current = [
           ...historyRef.current,
           { role: "user", content: query },
@@ -233,7 +277,7 @@ export function NotesAiSidebar({
         setIsSending(false);
       }
     },
-    [file, settings],
+    [file, settings, onInsertText, showToast],
   );
 
   const submit = (text: string) => {
