@@ -63,7 +63,7 @@
   margin: 0;
   font-size: var(--fs-md);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .headerControls {
@@ -348,7 +348,7 @@
 
 .uploadBtn:hover {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .sendBtn {
@@ -390,7 +390,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--glass-bg-strong);
   border: 2px dashed var(--accent);
   border-radius: var(--r-lg);

@@ -89,7 +89,7 @@
 
 .segOption:has(input:checked) {
   background: var(--surface);
-  color: var(--accent);
+  color: var(--accent-text);
   box-shadow: var(--shadow-sm);
 }
 
@@ -311,7 +311,7 @@
 }
 
 .modeLabel {
-  color: var(--accent);
+  color: var(--accent-text);
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-size: var(--fs-xs);

@@ -126,7 +126,7 @@
    links now — each auth view has its own route — so they inherit anchor
    semantics and only need the colour. */
 .link {
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 600;
   cursor: pointer;
   background: none;
@@ -185,7 +185,7 @@
 }
 
 .legal a {
-  color: var(--accent);
+  color: var(--accent-text);
   text-decoration: underline;
   font-weight: 500;
 }

@@ -68,7 +68,7 @@
 
 .title {
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

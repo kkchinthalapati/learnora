@@ -126,7 +126,7 @@
 }
 
 .isToday .dayHeader {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .dayBlocks {
@@ -247,7 +247,7 @@
 }
 
 .emptyIcon {
-  color: var(--accent);
+  color: var(--accent-text);
   margin-bottom: var(--s-3);
   line-height: 0;
 }

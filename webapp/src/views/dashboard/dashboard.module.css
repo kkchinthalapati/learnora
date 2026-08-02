@@ -74,7 +74,7 @@
 .link {
   font-size: var(--fs-sm);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-text);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -93,7 +93,7 @@
   position: relative;
   font-size: clamp(34px, 5vw, 44px);
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-text);
   line-height: 1;
   font-variant-numeric: tabular-nums;
   margin: 0;
@@ -136,7 +136,7 @@
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.03em;
-  color: var(--accent);
+  color: var(--accent-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -206,7 +206,7 @@
   position: relative;
   font-size: clamp(30px, 4vw, 40px);
   font-weight: 800;
-  color: var(--accent);
+  color: var(--accent-text);
   line-height: 1;
   font-variant-numeric: tabular-nums;
   text-align: left;
@@ -245,7 +245,7 @@
 .focusPresetBtn:hover,
 .focusPresetBtn:focus-visible {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
   border-color: var(--accent);
 }
 
@@ -321,7 +321,7 @@
 
 .aiIcon {
   display: inline-flex;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .weakTopics {
@@ -448,7 +448,7 @@
 
 .dismissBtn:hover {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
   border-color: var(--accent-ring);
 }
 
@@ -501,7 +501,7 @@
 }
 
 .logMinutes {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .logTimestamp {

@@ -73,6 +73,32 @@ textarea::placeholder {
   color: var(--text-faint);
 }
 
+/* ------------------------------------------------------------------------ *
+ * Keyboard focus baseline.
+ *
+ * Roughly twenty modules had grown their own `:focus-visible` rule and the
+ * rest — including the shared Button — fell through to the UA ring, which
+ * ignores the accent and is close to invisible on the dark surface. This is
+ * the default for everything interactive; the selector list sits inside
+ * `:where()` so the rule scores only the (0,1,0) of `:focus-visible` and any
+ * module that wants a different ring still wins on specificity.
+ *
+ * Inputs, selects and textareas are absent on purpose — the rule above already
+ * answers their focus with an accent ring drawn in box-shadow.
+ * ------------------------------------------------------------------------ */
+
+:where(
+  a,
+  button,
+  summary,
+  [role="button"],
+  [role="tab"],
+  [tabindex]
+):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 input:where(
     :not([type="radio"]):not([type="checkbox"]):not([type="file"]):not(
         [type="range"]
