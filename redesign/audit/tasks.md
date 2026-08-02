@@ -1,0 +1,4 @@
+# Tasks batch — 3 files
+
+Status: TODO — not yet audited. See `_TEMPLATE.md` for the per-view entry structure to follow.
+Source: `webapp/src/views/tasks/`
