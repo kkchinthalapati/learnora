@@ -84,7 +84,10 @@ export type SignupOutcome = "ok" | "verification-sent";
 
 export const authApi = {
   async login(email: string, password: string): Promise<void> {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     if (error) throw new Error(friendlyAuthError(error));
   },
 
@@ -178,19 +181,18 @@ export const authApi = {
     } = await supabase.auth.getSession();
     if (!session) throw new Error("No active session. Please log in again.");
 
-    const res = await fetch(
-      `${SUPABASE_URL}/functions/v1/delete-account`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          "Content-Type": "application/json",
-        },
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
       },
-    );
+    });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || "Failed to delete account. Please try again.");
+      throw new Error(
+        body.error || "Failed to delete account. Please try again.",
+      );
     }
     await supabase.auth.signOut();
   },

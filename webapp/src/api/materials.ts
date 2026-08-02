@@ -83,7 +83,10 @@ export const materialsApi = {
    * leaves the material still listed and retryable, whereas dropping the row
    * first would orphan the object with nothing left pointing at it. Rows in
    * dependent tables (notes, decks, quizzes) are removed by the FK cascade. */
-  async delete(materialId: string, storagePath: string | null = null): Promise<void> {
+  async delete(
+    materialId: string,
+    storagePath: string | null = null,
+  ): Promise<void> {
     if (storagePath) {
       const { error: storageError } = await supabase.storage
         .from("materials")

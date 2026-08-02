@@ -38,7 +38,9 @@ export function useUpdateNoteHtml() {
       notesApi.updateHtml(id, htmlContent),
     onSuccess: (data) => {
       if (data.material_id) {
-        qc.invalidateQueries({ queryKey: notesKeys.byMaterial(data.material_id) });
+        qc.invalidateQueries({
+          queryKey: notesKeys.byMaterial(data.material_id),
+        });
       }
     },
   });

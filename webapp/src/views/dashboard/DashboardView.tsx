@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { NextExamCard } from "./NextExamCard";
 import { FocusCard } from "./FocusCard";
 import { StreakCard } from "./StreakCard";
@@ -16,6 +17,7 @@ import styles from "./dashboard.module.css";
  * everything twice"). */
 export function DashboardView() {
   const t = useTranslation();
+  const taskInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <main className={styles.view}>
@@ -27,11 +29,13 @@ export function DashboardView() {
         <NextExamCard />
         <FocusCard />
         <StreakCard />
-        <TasksCard />
+        <TasksCard taskInputRef={taskInputRef} />
         <AIActionsCard />
       </div>
 
-      <OnboardingBanner />
+      <OnboardingBanner
+        onFocusTaskInput={() => taskInputRef.current?.focus()}
+      />
 
       <SessionHistoryCard />
 

@@ -4,7 +4,8 @@ import { quizzesApi } from "../api/quizzes";
 export const quizzesKeys = {
   all: ["quizzes"] as const,
   byId: (id: string) => ["quizzes", id] as const,
-  latestAttempt: (quizId: string) => ["quizzes", quizId, "latest-attempt"] as const,
+  latestAttempt: (quizId: string) =>
+    ["quizzes", quizId, "latest-attempt"] as const,
   weakTopics: (limit: number) => ["quizzes", "weak-topics", limit] as const,
 };
 

@@ -51,9 +51,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
   border-radius: var(--r-md);
-  box-shadow:
-    var(--glass-inner),
-    var(--shadow-sm);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
   cursor: pointer;
   transition:
     background var(--t-fast) ease,
@@ -67,9 +65,7 @@
   background: var(--accent-soft);
   color: var(--accent);
   border-color: var(--accent-ring);
-  box-shadow:
-    var(--glass-inner),
-    var(--shadow-md);
+  box-shadow: var(--glass-inner), var(--shadow-md);
 }
 
 /* Only shown at the same breakpoint the sidebar goes off-canvas. */
@@ -89,9 +85,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
   border-radius: var(--r-md);
-  box-shadow:
-    var(--glass-inner),
-    var(--shadow-sm);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
 }
 
 @media (max-width: 768px) {

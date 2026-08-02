@@ -31,11 +31,13 @@ describe("RichTextEditor", () => {
    * the format allowlist has to be dropped, not merely escaped. */
   it("strips a script tag from the loaded document instead of executing it", async () => {
     render(
-      <RichTextEditor initialHtml='<p>Safe</p><script>window.__pwned = true;</script>' />,
+      <RichTextEditor initialHtml="<p>Safe</p><script>window.__pwned = true;</script>" />,
     );
     await waitFor(() => expect(editorEl().textContent).toContain("Safe"));
     expect(editorEl().innerHTML).not.toContain("<script");
-    expect((window as unknown as { __pwned?: boolean }).__pwned).toBeUndefined();
+    expect(
+      (window as unknown as { __pwned?: boolean }).__pwned,
+    ).toBeUndefined();
   });
 
   it("strips an embed/iframe format not in the allowlist", async () => {
@@ -49,7 +51,9 @@ describe("RichTextEditor", () => {
   it("calls onUserChange only for user-sourced edits, not the initial load", async () => {
     const user = userEvent.setup();
     const onUserChange = vi.fn();
-    render(<RichTextEditor initialHtml="<p>Hi</p>" onUserChange={onUserChange} />);
+    render(
+      <RichTextEditor initialHtml="<p>Hi</p>" onUserChange={onUserChange} />,
+    );
     await waitFor(() => expect(editorEl().textContent).toBe("Hi"));
 
     expect(onUserChange).not.toHaveBeenCalled();
@@ -67,7 +71,11 @@ describe("RichTextEditor", () => {
     const user = userEvent.setup();
     const onUserChange = vi.fn();
     render(
-      <RichTextEditor initialHtml="<p>Hi</p>" readOnly onUserChange={onUserChange} />,
+      <RichTextEditor
+        initialHtml="<p>Hi</p>"
+        readOnly
+        onUserChange={onUserChange}
+      />,
     );
     await waitFor(() =>
       expect(editorEl()).toHaveAttribute("contenteditable", "false"),

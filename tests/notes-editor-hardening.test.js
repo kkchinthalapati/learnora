@@ -9,7 +9,6 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const html = readFileSync(join(root, "index.html"), "utf8");
 const ai = readFileSync(join(root, "js", "ai.js"), "utf8");
 const editor = readFileSync(join(root, "js", "editor.js"), "utf8");
-const router = readFileSync(join(root, "js", "router.js"), "utf8");
 
 /* The prompt-boundary helpers guard every place attacker-influenced text is
    interpolated into a model prompt, so the real source is sliced out and run
@@ -134,66 +133,8 @@ test("the notes editor does not build DOM from stored HTML", async (t) => {
   });
 });
 
-test("the study sidebar markup holds together", async (t) => {
-  const panel = (() => {
-    const start = html.indexOf('<aside class="notes-ai-panel"');
-    assert.ok(start !== -1, "the AI panel must be an <aside> landmark");
-    return html.slice(start, html.indexOf("</aside>", start));
-  })();
-
-  await t.test("emoji are not used as functional icons", () => {
-    // Matches the app-wide convention established when emoji-as-icons were
-    // removed: functional icons are inline SVG from the shared set.
-    assert.ok(
-      !/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(panel),
-      "the notes sidebar must use inline SVG icons, not emoji"
-    );
-    assert.ok(
-      (panel.match(/<svg class="icon"/g) || []).length >= 4,
-      "quick-action cards and the assistant avatar need their SVG icons"
-    );
-  });
-
-  await t.test("suggested prompts carry a prompt payload", () => {
-    const chips = panel.match(/class="notes-suggestion"[^>]*/g) || [];
-    assert.ok(chips.length >= 3, "expected at least three suggested openers");
-    for (const chip of chips) {
-      assert.ok(/data-prompt="[^"]+"/.test(chip), `suggestion chip has no data-prompt: ${chip}`);
-    }
-  });
-
-  await t.test("suggestions are delegated, not inline handlers", () => {
-    // The page ships a strict CSP with no 'unsafe-inline' in script-src.
-    assert.ok(!/on(click|keydown)=/.test(panel), "inline handlers are blocked by the CSP");
-    assert.ok(
-      /notes-suggestions/.test(readFileSync(join(root, "js", "main.js"), "utf8")),
-      "suggestion chips must be bound from main.js"
-    );
-  });
-});
-
-test("the notes view resolves its own material", async (t) => {
-  const loadNotes = (() => {
-    const start = router.indexOf("  async loadNotes(materialId) {");
-    assert.ok(start !== -1, "loadNotes not found in js/router.js");
-    const rest = router.slice(start);
-    return rest.slice(0, rest.indexOf("\n  },") + 5);
-  })();
-
-  await t.test("the title is not guessed from the most recent upload", () => {
-    assert.ok(
-      !/fetchMostRecent\(/.test(loadNotes),
-      "loadNotes must resolve the material by id, not take the newest one"
-    );
-    assert.ok(/Materials\.fetchById\(materialId\)/.test(loadNotes));
-  });
-
-  await t.test("quick-action cards are not rebuilt on every visit", () => {
-    // Scoped to loadNotes: the clone/replace idiom is used elsewhere in the
-    // router and is out of scope here.
-    assert.ok(
-      !/\.cloneNode\(/.test(loadNotes),
-      "replacing the cards to shed listeners also drops every other listener on them"
-    );
-  });
-});
+/* The vanilla study sidebar markup and router.js's loadNotes() were removed
+   when Notes was cut over to the React app (webapp/src/views/notes/) — the
+   equivalent coverage now lives in that view's own test suite
+   (NotesAiSidebar.test.tsx, NotesView.test.tsx). Their vanilla-markup-specific
+   tests were removed here rather than left asserting on deleted code. */

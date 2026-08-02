@@ -71,7 +71,9 @@ function serveSubject({
         .get("folder_id")
         ?.replace("eq.", "");
       return HttpResponse.json(
-        folderId ? materials.filter((m) => m.folder_id === folderId) : materials,
+        folderId
+          ? materials.filter((m) => m.folder_id === folderId)
+          : materials,
       );
     }),
     http.get(rest("flashcard_decks"), () => HttpResponse.json(decks)),
@@ -177,7 +179,9 @@ describe("SubjectDetailPage", () => {
     serveSubject({ materials: [material()] });
     renderSubject();
 
-    await user.click(await screen.findByRole("link", { name: /Cell division/ }));
+    await user.click(
+      await screen.findByRole("link", { name: /Cell division/ }),
+    );
 
     expect(
       await screen.findByRole("heading", { name: "Notes editor" }),
@@ -205,10 +209,13 @@ describe("SubjectDetailPage", () => {
     let removedPaths: unknown = null;
     server.use(
       http.get(rest("materials"), () => HttpResponse.json(materials)),
-      http.delete(`${SUPABASE_URL}/storage/v1/object/materials`, async ({ request }) => {
-        removedPaths = await request.json();
-        return HttpResponse.json([]);
-      }),
+      http.delete(
+        `${SUPABASE_URL}/storage/v1/object/materials`,
+        async ({ request }) => {
+          removedPaths = await request.json();
+          return HttpResponse.json([]);
+        },
+      ),
       http.delete(rest("materials"), () => {
         materials = [];
         return new HttpResponse(null, { status: 204 });
@@ -230,7 +237,9 @@ describe("SubjectDetailPage", () => {
       expect(screen.queryByText("Cell division")).not.toBeInTheDocument(),
     );
     expect(removedPaths).toEqual({ prefixes: ["user-1/cells.pdf"] });
-    expect(await screen.findByText('Deleted "Cell division".')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Deleted "Cell division".'),
+    ).toBeInTheDocument();
   });
 
   it("keeps the material when the delete is cancelled", async () => {

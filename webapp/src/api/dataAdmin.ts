@@ -24,7 +24,8 @@ export const dataAdminApi = {
       sessionsApi.fetchSince(3650),
     ]);
 
-    let localSessions: { minutes: number; task?: string; timestamp: string }[] = [];
+    let localSessions: { minutes: number; task?: string; timestamp: string }[] =
+      [];
     if (!dbSessions.length) {
       // Fall back to localStorage history predating the study_sessions table.
       try {

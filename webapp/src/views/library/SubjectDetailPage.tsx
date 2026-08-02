@@ -152,10 +152,7 @@ export function SubjectDetailPage() {
             <ul className={styles.rowList}>
               {materials.data.map((material) => (
                 <li key={material.id} className={styles.row}>
-                  <Link
-                    to={`/notes/${material.id}`}
-                    className={styles.rowLink}
-                  >
+                  <Link to={`/notes/${material.id}`} className={styles.rowLink}>
                     <Icon
                       name={MATERIAL_ICONS[material.type] ?? "file-text"}
                       size={16}

@@ -61,9 +61,10 @@ describe("AppShell", () => {
       "href",
       "/",
     );
-    expect(
-      screen.getByRole("link", { name: /Task Manager/ }),
-    ).toHaveAttribute("href", "/tasks");
+    expect(screen.getByRole("link", { name: /Task Manager/ })).toHaveAttribute(
+      "href",
+      "/tasks",
+    );
     expect(screen.getByRole("link", { name: /Library/ })).toHaveAttribute(
       "href",
       "/library",
@@ -92,9 +93,9 @@ describe("AppShell", () => {
     serveDueCount(0);
     renderShell("/tasks");
 
-    expect(
-      screen.getByRole("link", { name: /Dashboard/ }),
-    ).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: /Dashboard/ })).not.toHaveAttribute(
+      "aria-current",
+    );
     expect(screen.getByRole("link", { name: /Task Manager/ })).toHaveAttribute(
       "aria-current",
       "page",

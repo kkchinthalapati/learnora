@@ -15,9 +15,9 @@ describe("nextReviewState", () => {
   });
 
   it("softens the ease factor on a miss, floored at 1.3", () => {
-    expect(nextReviewState(card({ ease_factor: 1.4 }), 2, NOW).ease).toBeCloseTo(
-      1.3,
-    );
+    expect(
+      nextReviewState(card({ ease_factor: 1.4 }), 2, NOW).ease,
+    ).toBeCloseTo(1.3);
     expect(nextReviewState(card({ ease_factor: 1.35 }), 1, NOW).ease).toBe(1.3);
   });
 
@@ -42,20 +42,16 @@ describe("nextReviewState", () => {
   });
 
   it("increases the ease factor on a good or easy answer", () => {
-    expect(nextReviewState(card({ ease_factor: 2.5 }), 3, NOW).ease).toBeCloseTo(
-      2.6,
-    );
-    expect(nextReviewState(card({ ease_factor: 2.5 }), 4, NOW).ease).toBeCloseTo(
-      2.6,
-    );
+    expect(
+      nextReviewState(card({ ease_factor: 2.5 }), 3, NOW).ease,
+    ).toBeCloseTo(2.6);
+    expect(
+      nextReviewState(card({ ease_factor: 2.5 }), 4, NOW).ease,
+    ).toBeCloseTo(2.6);
   });
 
   it("defaults a never-reviewed card's ease factor to 2.5", () => {
-    const result = nextReviewState(
-      { srs_interval: 0, ease_factor: 0 },
-      3,
-      NOW,
-    );
+    const result = nextReviewState({ srs_interval: 0, ease_factor: 0 }, 3, NOW);
     expect(result.ease).toBeCloseTo(2.6);
   });
 });

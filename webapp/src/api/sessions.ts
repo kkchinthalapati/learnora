@@ -11,7 +11,12 @@ export interface LogSessionInput {
 
 /* Direct port of js/api.js's `Sessions` object (:920-957). */
 export const sessionsApi = {
-  async log({ minutes, task, folderId = null, timerType = null }: LogSessionInput): Promise<void> {
+  async log({
+    minutes,
+    task,
+    folderId = null,
+    timerType = null,
+  }: LogSessionInput): Promise<void> {
     const userId = await requireUserId();
     const startedAt = new Date(Date.now() - minutes * 60000).toISOString();
     const { error } = await supabase.from("study_sessions").insert([

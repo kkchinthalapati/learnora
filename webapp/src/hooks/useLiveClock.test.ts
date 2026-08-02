@@ -24,23 +24,28 @@ describe("useLiveClock", () => {
 
   it("ticks once per minute, aligned to the minute boundary", () => {
     const { result } = renderHook(() => useLiveClock());
+    const expectedAt = (iso: string) =>
+      new Date(iso).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
 
     // Advancing by less than the remaining 40s shouldn't tick yet.
     act(() => {
       vi.advanceTimersByTime(39_000);
     });
-    expect(result.current).toContain("14:07");
+    expect(result.current).toBe(expectedAt("2026-01-01T14:07:20.000"));
 
     // Crossing into 14:08 fires the aligned first tick.
     act(() => {
       vi.advanceTimersByTime(1_000);
     });
-    expect(result.current).toContain("14:08");
+    expect(result.current).toBe(expectedAt("2026-01-01T14:08:00.000"));
 
     // The next tick is a plain 60s later.
     act(() => {
       vi.advanceTimersByTime(60_000);
     });
-    expect(result.current).toContain("14:09");
+    expect(result.current).toBe(expectedAt("2026-01-01T14:09:00.000"));
   });
 });

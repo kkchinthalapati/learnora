@@ -133,6 +133,15 @@ export const Router = {
      sees. See LOCK_IN.md §6 and REACT_MIGRATION.md Step 21. */
   CUTOVER_ROUTES: {
     settings: "/app/settings",
+    exams: "/app/exams",
+    plan: "/app/plan",
+    timer: "/app/timer",
+    todo: "/app/tasks",
+    dashboard: "/app/",
+    library: "/app/library",
+    "library-materials": "/app/library/materials",
+    "library-flashcards": "/app/library/flashcards",
+    "library-quizzes": "/app/library/quizzes",
   },
 
   navigate(route) {
@@ -166,46 +175,32 @@ export const Router = {
     // Dynamic routing for folders and notes
     if (route.startsWith("folder-")) {
       const folderId = route.replace("folder-", "");
-      $(`view-folder-detail`)?.classList.remove("hidden");
-      this.loadFolderDetail(folderId);
+      window.location.href = `/app/folders/${decodeURIComponent(folderId)}`;
       return;
     }
     
     if (route.startsWith("notes-")) {
       const materialId = route.replace("notes-", "");
-      $(`view-notes`)?.classList.remove("hidden");
-      this.loadNotes(materialId);
+      window.location.href = `/app/notes/${materialId}`;
       return;
     }
     
     if (route.startsWith("review-")) {
       const deckId = route.replace("review-", "");
-      $(`view-review`)?.classList.remove("hidden");
-      this.startReview(deckId);
+      window.location.href = `/app/review/${decodeURIComponent(deckId)}`;
       return;
     }
 
     // Checked before "quiz-" so the more specific prefix wins.
     if (route.startsWith("quizreview-")) {
       const quizId = route.replace("quizreview-", "");
-      $(`view-quiz`)?.classList.remove("hidden");
-      this.reviewQuiz(decodeURIComponent(quizId));
+      window.location.href = `/app/quiz/${decodeURIComponent(quizId)}/review`;
       return;
     }
 
     if (route.startsWith("quiz-")) {
       const quizId = route.replace("quiz-", "");
-      $(`view-quiz`)?.classList.remove("hidden");
-      this.startQuiz(quizId);
-      return;
-    }
-
-    // The Library is one view with four tab panels, addressed as
-    // #library (folders), #library-materials, #library-flashcards and
-    // #library-quizzes so each tab stays linkable and survives a refresh.
-    if (route === "library" || route.startsWith("library-")) {
-      $("view-library")?.classList.remove("hidden");
-      this.showLibraryTab(route === "library" ? "folders" : route.slice("library-".length));
+      window.location.href = `/app/quiz/${decodeURIComponent(quizId)}`;
       return;
     }
 
@@ -216,11 +211,6 @@ export const Router = {
     } else {
       // Fallback
       $("view-dashboard")?.classList.remove("hidden");
-    }
-
-    // specific routing logic
-    if (route === "plan") {
-      this.loadPlanView();
     }
   },
 
@@ -474,46 +464,6 @@ export const Router = {
       }
 
     }
-  },
-
-  async loadNotes(materialId) {
-    if (!materialId) {
-      window.location.hash = "library";
-      return;
-    }
-    
-    const { Notes, Materials } = await import("./api.js");
-    const { Editor } = await import("./editor.js");
-
-    const contentEl = document.getElementById("notes-quill-editor");
-    if (!contentEl) return;
-
-    // Resolve the real material rather than guessing from the most recent
-    // upload — opening notes for anything other than the newest material
-    // showed the wrong title (or fell back to "Document Notes").
-    const [notes, material] = await Promise.all([
-      Notes.fetchByMaterial(materialId),
-      Materials.fetchById(materialId),
-    ]);
-    const title = material?.title || "Document Notes";
-
-    // The quick-action cards are static markup bound once at startup; they read
-    // the current material from Editor state. The previous cloneNode/replaceChild
-    // dance re-created them on every visit purely to shed stale listeners, which
-    // also silently dropped any other listener bound to them.
-    if (!notes || notes.length === 0) {
-      Editor.init(
-        materialId,
-        null,
-        "<p>No notes yet — Learnora is still processing this material.</p>",
-        "",
-        title
-      );
-      return;
-    }
-
-    const note = notes[0]; // Currently 1:1 mapping
-    Editor.init(materialId, note.id, note.html_content, note.markdown_content, title);
   },
 
   async createNewFolder() {

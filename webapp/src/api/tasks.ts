@@ -18,9 +18,11 @@ export const tasksApi = {
 
   async add(text: string, dueDate: string | null = null): Promise<void> {
     const userId = await requireUserId();
-    const { error } = await supabase.from("tasks").insert([
-      { text, is_done: false, user_id: userId, due_date: dueDate || null },
-    ]);
+    const { error } = await supabase
+      .from("tasks")
+      .insert([
+        { text, is_done: false, user_id: userId, due_date: dueDate || null },
+      ]);
     if (error) throw new Error(error.message);
   },
 

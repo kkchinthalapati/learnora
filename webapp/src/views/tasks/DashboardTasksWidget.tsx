@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type Ref } from "react";
 import { Button } from "../../components/Button";
 import { useAddTask, useTasks } from "../../hooks/useTasks";
 import { useToast } from "../../context/toast";
@@ -16,7 +16,16 @@ import styles from "./tasks.module.css";
 
 const MAX_VISIBLE = 6;
 
-export function DashboardTasksWidget() {
+type DashboardTasksWidgetProps = {
+  /* Lets OnboardingBanner focus the quick-add input without reaching across
+   * components via document.getElementById — see DashboardView, which owns
+   * the ref both components need. */
+  inputRef?: Ref<HTMLInputElement>;
+};
+
+export function DashboardTasksWidget({
+  inputRef,
+}: DashboardTasksWidgetProps = {}) {
   const { data: tasks } = useTasks();
   const addTask = useAddTask();
   const { showToast } = useToast();
@@ -54,7 +63,7 @@ export function DashboardTasksWidget() {
       <div className={styles.dashAddRow}>
         <input
           type="text"
-          id="dash-task-input"
+          ref={inputRef}
           className={shake ? styles.inputError : undefined}
           placeholder="Add a task..."
           autoComplete="off"

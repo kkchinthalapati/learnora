@@ -120,10 +120,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
-  box-shadow:
-    var(--glass-inner),
-    var(--glass-inner-bottom),
-    var(--shadow-md);
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
   overflow: hidden;
   transition:
     transform var(--t-slow) var(--ease-spring),
@@ -147,10 +144,7 @@
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow:
-    var(--glass-inner),
-    var(--glass-inner-bottom),
-    var(--shadow-lg);
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-lg);
 }
 
 /* The whole card is one link (the vanilla used a [data-hash] div), so it has
@@ -413,10 +407,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
-  box-shadow:
-    var(--glass-inner),
-    var(--glass-inner-bottom),
-    var(--shadow-md);
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
   padding: clamp(20px, 3vw, 28px);
 }
 

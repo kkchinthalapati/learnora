@@ -10,11 +10,18 @@ import styles from "./dashboard.module.css";
 
 const DISMISSED_KEY = "onboarding_dismissed";
 
+type OnboardingBannerProps = {
+  /* DashboardView owns the task-input ref (DashboardTasksWidget lives two
+   * components away, via TasksCard), so focusing it is a callback rather
+   * than a document.getElementById lookup into a sibling's DOM. */
+  onFocusTaskInput: () => void;
+};
+
 /* One-time nudge for a brand-new account — ports js/main.js:2318-2354.
  * Reads the same three queries the rest of the dashboard already issues
  * (Folders/Tasks/Exams), so TanStack Query's cache means this costs no
  * extra request. */
-export function OnboardingBanner() {
+export function OnboardingBanner({ onFocusTaskInput }: OnboardingBannerProps) {
   const [dismissed, setDismissed] = useState(() =>
     Storage.get(DISMISSED_KEY, false),
   );
@@ -58,9 +65,7 @@ export function OnboardingBanner() {
         <Button variant="primary" onClick={() => openCreateModal()}>
           <Icon name="upload-cloud" size={15} /> Create study material
         </Button>
-        <Button
-          onClick={() => document.getElementById("dash-task-input")?.focus()}
-        >
+        <Button onClick={onFocusTaskInput}>
           <Icon name="list-checks" size={15} /> Add a task
         </Button>
       </div>

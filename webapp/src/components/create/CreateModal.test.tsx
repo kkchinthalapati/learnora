@@ -36,8 +36,12 @@ describe("CreateModal", () => {
     renderModal(<Harness />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
-    expect(screen.getByRole("dialog", { name: "Create study material" })).toBeInTheDocument();
-    expect(screen.getByRole("radiogroup", { name: "Start from" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "Create study material" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("radiogroup", { name: "Start from" }),
+    ).toBeInTheDocument();
   });
 
   it("opens directly on the requested panel", async () => {
@@ -45,7 +49,9 @@ describe("CreateModal", () => {
     renderModal(<Harness initial={{ type: "task" }} />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
-    expect(screen.getByRole("dialog", { name: "New task" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "New task" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Task" })).toBeInTheDocument();
   });
 
@@ -55,7 +61,9 @@ describe("CreateModal", () => {
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     await user.click(screen.getByRole("radio", { name: "Subject" }));
-    expect(screen.getByRole("dialog", { name: "New subject" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "New subject" }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
   });
 
@@ -71,7 +79,9 @@ describe("CreateModal", () => {
 
     // Reopen — should be back on Material, not Subject with stale text.
     await user.click(screen.getByRole("button", { name: "Open create" }));
-    expect(screen.getByRole("dialog", { name: "Create study material" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "Create study material" }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -90,7 +100,9 @@ describe("SubjectPanel", () => {
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     await user.click(screen.getByRole("button", { name: "Create subject" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Give the subject a name");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Give the subject a name",
+    );
   });
 
   it("creates a folder and closes on success", async () => {
@@ -99,7 +111,11 @@ describe("SubjectPanel", () => {
       http.post(`${SUPABASE_URL}/rest/v1/folders`, async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>[];
         return HttpResponse.json(
-          { id: "folder-1", ...capturedBody[0], created_at: "2026-01-01T00:00:00.000Z" },
+          {
+            id: "folder-1",
+            ...capturedBody[0],
+            created_at: "2026-01-01T00:00:00.000Z",
+          },
           { status: 201 },
         );
       }),
@@ -111,7 +127,9 @@ describe("SubjectPanel", () => {
     await user.type(screen.getByLabelText("Name"), "Biology");
     await user.click(screen.getByRole("button", { name: "Create subject" }));
 
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
     expect(capturedBody?.[0].name).toBe("Biology");
   });
 });
@@ -135,7 +153,9 @@ describe("ExamPanel", () => {
     fireEvent.change(dateInput, { target: { value: "2020-01-01" } });
     await user.click(screen.getByRole("button", { name: "Add exam" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("can't be in the past");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "can't be in the past",
+    );
   });
 
   it("creates an exam scoped to the user with status Scheduled", async () => {
@@ -156,7 +176,9 @@ describe("ExamPanel", () => {
     fireEvent.change(dateInput, { target: { value: "2027-06-15" } });
     await user.click(screen.getByRole("button", { name: "Add exam" }));
 
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
     expect(capturedBody).toEqual([
       {
         exam_name: "Final",
@@ -201,10 +223,15 @@ describe("TaskPanel", () => {
     const user = userEvent.setup();
     renderModal(<Harness initial={{ type: "task" }} />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
-    await user.type(screen.getByRole("textbox", { name: "Task" }), "Read chapter 5");
+    await user.type(
+      screen.getByRole("textbox", { name: "Task" }),
+      "Read chapter 5",
+    );
     await user.click(screen.getByRole("button", { name: "Add task" }));
 
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
     expect(capturedBody?.[0].text).toBe("Read chapter 5");
   });
 });

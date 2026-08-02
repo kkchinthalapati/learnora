@@ -9,8 +9,12 @@ describe("renderMarkdown", () => {
   });
 
   it("escapes raw HTML before applying any markdown", () => {
-    expect(renderMarkdown("<script>alert(1)</script>")).not.toContain("<script>");
-    expect(renderMarkdown("<script>alert(1)</script>")).toContain("&lt;script&gt;");
+    expect(renderMarkdown("<script>alert(1)</script>")).not.toContain(
+      "<script>",
+    );
+    expect(renderMarkdown("<script>alert(1)</script>")).toContain(
+      "&lt;script&gt;",
+    );
   });
 
   it("renders bold, italic and bold-italic", () => {
@@ -35,7 +39,7 @@ describe("renderMarkdown", () => {
   });
 
   it("renders unordered and ordered list items", () => {
-    expect(renderMarkdown("- item")).toContain('list-style-type:disc');
+    expect(renderMarkdown("- item")).toContain("list-style-type:disc");
     expect(renderMarkdown("1. item")).toContain("list-style-type:decimal");
   });
 

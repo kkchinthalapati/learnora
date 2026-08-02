@@ -2,7 +2,10 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
-import type { FeedbackKind, FeedbackState } from "../../components/InlineFeedback";
+import type {
+  FeedbackKind,
+  FeedbackState,
+} from "../../components/InlineFeedback";
 /* Imported rather than referenced as `/learnora.jpg`: Vite rewrites the URL to
  * include whatever `base` the build uses, so the logo survives being served
  * from the `/app/` path prefix. A root-absolute path would not. */

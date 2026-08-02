@@ -1323,6 +1323,12 @@ let _taskLoadDebounce = null;
 
 async function loadTasks() {
   const tasks = await Tasks.fetch();
+
+  // Keep the dashboard's compact task list in sync from the same fetch —
+  // called before the #todo-list guard below so it still runs once Tasks
+  // itself is cut over to React and that element no longer exists.
+  renderDashboardTasks(tasks);
+
   const list = $("todo-list");
   const select = $("active-task-select");
   if (!list) return;
@@ -1580,9 +1586,6 @@ async function loadTasks() {
       select.value = "None";
     }
   }
-
-  // Keep the dashboard's compact task list in sync from the same fetch.
-  renderDashboardTasks(tasks);
 }
 
 function bindTasks() {

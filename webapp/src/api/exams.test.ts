@@ -62,7 +62,10 @@ describe("examsApi", () => {
   it("throws on a failed save", async () => {
     server.use(
       http.post(`${SUPABASE_URL}/rest/v1/exams`, () =>
-        HttpResponse.json({ message: "check constraint violated" }, { status: 400 }),
+        HttpResponse.json(
+          { message: "check constraint violated" },
+          { status: 400 },
+        ),
       ),
     );
     await expect(examsApi.save({ exam_name: "" })).rejects.toThrow(

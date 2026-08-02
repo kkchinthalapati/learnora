@@ -7,12 +7,7 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
-import type {
-  FlashcardDeck,
-  Folder,
-  Material,
-  Quiz,
-} from "../../api/types";
+import type { FlashcardDeck, Folder, Material, Quiz } from "../../api/types";
 import { LibraryView } from "./LibraryView";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -84,7 +79,9 @@ function serveLibrary({
         .get("folder_id")
         ?.replace("eq.", "");
       return HttpResponse.json(
-        folderId ? materials.filter((m) => m.folder_id === folderId) : materials,
+        folderId
+          ? materials.filter((m) => m.folder_id === folderId)
+          : materials,
       );
     }),
     http.get(rest("flashcard_decks"), () => HttpResponse.json(decks)),
@@ -305,7 +302,9 @@ describe("Library — Folders tab", () => {
     );
     renderLibrary();
 
-    await user.click(await screen.findByRole("button", { name: "Rename Biology" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Rename Biology" }),
+    );
     const input = await screen.findByRole("textbox");
     expect(input).toHaveValue("Biology");
     await user.clear(input);
@@ -327,7 +326,9 @@ describe("Library — Folders tab", () => {
     );
     renderLibrary();
 
-    await user.click(await screen.findByRole("button", { name: "Rename Biology" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Rename Biology" }),
+    );
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
 
     await waitFor(() =>
@@ -352,7 +353,9 @@ describe("Library — Folders tab", () => {
     );
     renderLibrary();
 
-    await user.click(await screen.findByRole("button", { name: "Delete Biology" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Delete Biology" }),
+    );
     expect(
       screen.getByText(
         /and everything inside it — materials, notes, flashcards, and quizzes — will be permanently deleted/,
@@ -380,7 +383,9 @@ describe("Library — Folders tab", () => {
     );
     renderLibrary();
 
-    await user.click(await screen.findByRole("button", { name: "Delete Biology" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Delete Biology" }),
+    );
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(deleteCount).toBe(0);
@@ -397,7 +402,9 @@ describe("Library — Folders tab", () => {
     );
     renderLibrary();
 
-    await user.click(await screen.findByRole("button", { name: "Delete Biology" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Delete Biology" }),
+    );
     await user.click(screen.getByRole("button", { name: "Delete" }));
 
     const toast = await screen.findByText(
@@ -466,9 +473,7 @@ describe("Library — Flashcards tab", () => {
     renderLibrary("/library/flashcards");
 
     await screen.findByText("Mitosis basics");
-    expect(
-      screen.queryByText(/due for review today/),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/due for review today/)).not.toBeInTheDocument();
   });
 
   it("deletes a deck after confirming what goes with it", async () => {

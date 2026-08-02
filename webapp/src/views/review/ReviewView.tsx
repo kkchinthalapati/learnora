@@ -109,7 +109,10 @@ export function ReviewView() {
  * `<ADD_TASK>…</ADD_TASK>` sequence in its `front`/`back` must not be able
  * to steer the reply. Same class of concern `lib/chatPrompt.ts` already
  * fences note bodies for. */
-const AI_GRADE_PROMPT = (card: Flashcard, answer: string) => `Grade my flashcard answer.
+const AI_GRADE_PROMPT = (
+  card: Flashcard,
+  answer: string,
+) => `Grade my flashcard answer.
 Front: ${fenceUntrusted(card.front)}
 Correct Back: ${fenceUntrusted(card.back)}
 My Answer: ${fenceUntrusted(answer)}
@@ -161,10 +164,7 @@ function ReviewSession({
     (quality: number) => {
       const card = cards[index];
       if (!card) return;
-      const { interval, ease, nextReviewDate } = nextReviewState(
-        card,
-        quality,
-      );
+      const { interval, ease, nextReviewDate } = nextReviewState(card, quality);
       updateReview.mutate(
         { cardId: card.id, nextReviewDate, interval, ease },
         {

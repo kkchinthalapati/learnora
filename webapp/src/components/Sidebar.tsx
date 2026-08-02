@@ -137,7 +137,9 @@ export function Sidebar({
               }
             >
               <Icon name={item.icon} size={20} />
-              <span>{item.translationKey ? t(item.translationKey) : item.label}</span>
+              <span>
+                {item.translationKey ? t(item.translationKey) : item.label}
+              </span>
             </NavLink>
           </li>
         ))}

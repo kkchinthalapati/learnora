@@ -14,6 +14,21 @@ Notes AI study sidebar) and the AI edge function's CORS allow-list. Sections 1,
 23 listed as high-impact when it had already shipped, and the `OnboardingBanner`
 refactor — are corrected in place rather than left to be re-derived.
 
+**Updated:** 2026-08-02. The route-by-route cutover is finished — all nine
+remaining routes (Exams, Notes, Plan, Quiz, Review, Library, Timer, Tasks,
+Dashboard) now redirect to `/app/*` and their vanilla `<section>`s are deleted.
+The vanilla `index.html` is now a pure redirect shell: every hash route it
+still recognizes sends the browser straight to the React app. The AI edge
+function's CORS fix turned out to already be live (checked the deployed
+function directly — version 35, not the "version 33" this doc previously
+guessed — and confirmed with a live `curl -X OPTIONS` against both an allowed
+and a rejected origin), so no redeploy was actually needed this session. All
+four "nice to have" items from the previous update are also closed:
+`useLiveClock.test.ts`'s locale assertion, `OnboardingBanner`'s
+`getElementById` hack, `ResetPasswordView`'s expiry heuristic, and the
+`format:check` backlog (`.gitattributes` added, `npm run format` run once).
+Sections 1, 2, 3, 4 and 6 are amended below.
+
 ---
 
 ## 1. Migration Status
@@ -58,10 +73,14 @@ intentional and centralized:
 - Quill-wrapper tests reach into the editor's real DOM node — expected, since
   Quill itself isn't a React component.
 
-One minor exception, not currently tracked anywhere: `OnboardingBanner.tsx:62`
+~~One minor exception, not currently tracked anywhere: `OnboardingBanner.tsx:62`
 does `document.getElementById("dash-task-input")?.focus()` to focus an input
 that lives in a sibling component, instead of going through a ref/callback.
-Works, low risk — listed under Refactoring below.
+Works, low risk — listed under Refactoring below.~~ — closed 2026-08-02.
+`DashboardView` now owns a `useRef<HTMLInputElement>`, threaded down through
+`TasksCard` into `DashboardTasksWidget`'s input and passed to
+`OnboardingBanner` as an `onFocusTaskInput` callback. No `document.*` lookup
+left in `webapp/src` outside the list already audited above.
 
 ---
 
@@ -95,22 +114,49 @@ closed):
   wraps the component in the App provider stack with fake props), then deleted
   it. Anything needing *real* data still needs a real session.
 - ~~No route has actually been cut over~~ — Settings was cut over 2026-08-01
-  (`REACT_MIGRATION.md` Step 26): `#settings` now redirects to `/app/settings`
-  and the vanilla view is deleted. Every other route (Tasks, Exams, Timer,
+  (`REACT_MIGRATION.md` Step 26). ~~Every other route (Tasks, Exams, Timer,
   Library, Dashboard, Notes, Plan, Quiz, Review) still belongs to the vanilla
-  app — this is the first cutover, not the last.
+  app~~ — closed 2026-08-02, all nine cut over in one session. Two real
+  cross-view landmines turned up and were handled by ordering (Exams → Notes →
+  Plan/Quiz/Review → Library → Timer → Tasks → Dashboard, so each dependency
+  was already-cut-over by the time the thing depending on it moved) plus one
+  real bug fix: `loadTasks()` (`js/main.js`) early-returned on `#todo-list`
+  not existing, which would have silently stopped populating Dashboard's task
+  widget via `renderDashboardTasks()` once Tasks was cut over — the call was
+  moved ahead of that guard. `js/router.js`'s dynamic-ID routes (`notes-`,
+  `quiz-`, `quizreview-`, `review-`, `folder-`) needed their
+  `route.startsWith(...)` branches changed to a `window.location.href`
+  redirect directly, since `CUTOVER_ROUTES`'s static exact-match object can't
+  hold an arbitrary ID the way it could for `settings`/`exams`/`plan`/`timer`/
+  `todo`/`library`(+tabs). `index.html`'s `<main>` now has no `<section>`s
+  left at all.
 - The Supabase auth redirect allow-list doesn't include `/verify` /
   `/reset-password` under `/app` — an external config change (Authentication →
   URL Configuration), can't be fixed from this repo.
 - The sign-up "check your inbox" screen's cross-tab confirmation case
   (confirming in a different browser) is untested.
-- `ResetPasswordView`'s "link expired" check is a 3-second heuristic
+- ~~`ResetPasswordView`'s "link expired" check is a 3-second heuristic
   ("nothing happened yet = bad link") — can misfire as a false "expired" on a
   slow connection. Reading the URL's `error`/`error_description` hash params
-  directly would be the deterministic fix.
-- `npm run format:check` fails on 33 pre-existing files even on an LF
+  directly would be the deterministic fix.~~ — closed 2026-08-02.
+  `lib/supabase.ts` now captures `initialUrlHash` before `createClient()` gets
+  any chance to consume it, and `ResetPasswordView` checks it for Supabase's
+  own `error`/`error_code=otp_expired` params on mount, setting `phase` to
+  `"expired"` immediately when present. The 3s timeout remains as a fallback
+  for the case where neither an auth event nor an error param ever arrives.
+  Not covered by a new test: exercising the real module-load-order race would
+  need a `vi.resetModules()` + dynamic-import trick that risks more test
+  flakiness than it proves — this is better verified against a real recovery
+  link in a browser than in jsdom.
+- ~~`npm run format:check` fails on 33 pre-existing files even on an LF
   checkout — a real formatting backlog underneath the Windows CRLF issue, not
-  only a line-ending problem.
+  only a line-ending problem.~~ — closed 2026-08-02. Root cause was actually
+  worse than 33 files: with `.gitattributes` still missing and
+  `core.autocrlf=true`, every file was CRLF on disk against Prettier's
+  `endOfLine: "lf"` default — 287 of ~292 tracked files under `webapp/`
+  failed. Added `.gitattributes` (`* text=auto eol=lf`) so the object store
+  stays LF regardless of a future Windows checkout's `core.autocrlf`, then ran
+  `npm run format` once; `npm run format:check` is clean now.
 - `api/dataAdmin.ts`'s `exportCSV` (Blob + anchor-click download) has no
   automated test — real-browser-only DOM interaction, nothing meaningful to
   assert under jsdom.
@@ -122,15 +168,19 @@ closed):
   state rather than waiting for cache invalidation — intentional (avoids a
   flash where the folder is briefly unselectable), just worth knowing if a
   future "create inline from a select" needs the same trick.
-- **New, not previously tracked:** `OnboardingBanner.tsx:62`'s
-  cross-component `getElementById` focus call (see section 1).
-- **Found 2026-08-01:** `src/hooks/useLiveClock.test.ts` fails on any machine
-  whose locale formats time as 12-hour — it asserts `toContain("14:07")` and
-  gets `"02:07 PM"`. Pre-existing and locale-dependent, not a code bug: the
-  test hard-codes a 24-hour expectation instead of pinning a locale (or
-  asserting on the formatter's own output). It is the *only* failing test in
-  the suite, so it currently makes a green run look red. Fix by passing an
-  explicit locale to the formatter under test.
+- ~~**New, not previously tracked:** `OnboardingBanner.tsx:62`'s
+  cross-component `getElementById` focus call (see section 1).~~ — closed
+  2026-08-02, see section 1.
+- ~~**Found 2026-08-01:** `src/hooks/useLiveClock.test.ts` fails on any
+  machine whose locale formats time as 12-hour — it asserts `toContain
+  ("14:07")` and gets `"02:07 PM"`. Pre-existing and locale-dependent, not a
+  code bug: the test hard-codes a 24-hour expectation instead of pinning a
+  locale (or asserting on the formatter's own output). It is the *only*
+  failing test in the suite, so it currently makes a green run look red. Fix
+  by passing an explicit locale to the formatter under test.~~ — closed
+  2026-08-02. The second test now compares against a live `toLocaleTimeString`
+  call for each expected minute instead of a hardcoded 24-hour string,
+  matching the pattern the file's first test already used.
 
 **Corrections to `REACT_MIGRATION.md`'s ledger — applied 2026-08-01,** now
 that this session was editing that doc anyway (the previous audit noted them
@@ -154,11 +204,6 @@ introduced by the port:
   anyone touches the `study_sessions` schema.
 - The mini-timer/quiz-review z-index overlap (also listed above as incomplete
   work — it's cosmetic but is a real visual bug).
-- `ResetPasswordView`'s expiry heuristic can false-positive on slow
-  connections (also listed above).
-- `useLiveClock.test.ts`'s hard-coded 24-hour assertion (see section 2) — a
-  test bug rather than an app bug, but it is the one red line in an otherwise
-  green suite, which is its own cost.
 
 **Fixed in the 2026-08-01 session, and worth knowing it was a real bug:** the
 vanilla's notes sidebar shared one `AI.chatHistory` array with the workspace
@@ -167,20 +212,34 @@ panel on an unrelated view. The React port (Step 25) gives the sidebar its own
 transcript keyed on the material. Listed here because the vanilla still has
 this behaviour on every route that hasn't been cut over.
 
+**Fixed in the 2026-08-02 session, and worth knowing it was a real bug:**
+`loadTasks()` (`js/main.js`) fetched tasks, then early-returned if `#todo-list`
+wasn't found before ever reaching the `renderDashboardTasks(tasks)` call at
+its tail. That's fine while Tasks is still vanilla, but the moment Tasks was
+cut over and `#todo-list` was deleted, Dashboard's own compact task widget —
+still vanilla at that point in the cutover order — would have silently stopped
+refreshing, even though nothing about Dashboard itself had changed. Fixed by
+moving the `renderDashboardTasks(tasks)` call ahead of the `#todo-list` guard,
+so it always runs off the same fetch regardless of whether the vanilla Tasks
+view exists. Both `ResetPasswordView`'s expiry heuristic and
+`useLiveClock.test.ts`'s hard-coded assertion (previously listed here) are
+also closed — see section 2.
+
 ---
 
 ## 4. Refactoring Opportunities
 
-- `OnboardingBanner.tsx`'s `document.getElementById("dash-task-input")?.focus()`
+- ~~`OnboardingBanner.tsx`'s `document.getElementById("dash-task-input")?.focus()`
   → pass a ref down, or lift the focus call into a shared dashboard context,
-  next time that file is touched.
-- The `npm run format:check` backlog (33 files) → one dedicated
+  next time that file is touched.~~ — closed 2026-08-02, see section 1.
+- ~~The `npm run format:check` backlog (33 files) → one dedicated
   `npm run format` commit, plus a repo-wide line-ending decision
-  (`.gitattributes` forcing LF, or Prettier's `endOfLine: "auto"`).
-  **Confirmed 2026-08-01, and confirmed as needing its own commit:** running
-  `npm run format` during the Step 25 work rewrote 34 unrelated files in one
-  sweep. That churn was reverted so it would not bury a feature diff — it is a
-  five-minute job for whoever picks it up, but it has to land on its own.
+  (`.gitattributes` forcing LF, or Prettier's `endOfLine: "auto"`).~~ — closed
+  2026-08-02, see section 2. **Confirmed 2026-08-01:** running `npm run format`
+  during the Step 25 work rewrote 34 unrelated files in one sweep and that
+  churn was reverted at the time so it wouldn't bury a feature diff — this
+  session's reformat (287 files) was deliberately its own pass, alongside
+  route-cutover edits but not mixed into them, for the same reason.
 - Nothing else qualifies. No class components exist to convert, no
   prop-drilling smell was found (Context + TanStack Query already do the
   job), and no repetitive un-componentized JSX turned up in the parts of
@@ -225,36 +284,49 @@ ledger itself, per the original ask.
 ## 6. Priority Order
 
 **Blockers:** none. No build breakage, no migration-introduced regression
-currently blocks shipping. One failing test (`useLiveClock.test.ts`), but it
-is a locale-dependent test bug, not a product defect — see section 2.
+currently blocks shipping. `npm test` (856), `node --test tests/*.test.js`
+(173), `npm run lint`, and `npm run build` are all clean as of 2026-08-02.
+
+**Done since this list was written (2026-08-02):**
+- ~~Continuing the route-by-route cutover to `/app`.~~ All nine remaining
+  routes are cut over — see section 2. The vanilla app is now a redirect
+  shell with no `<section>`s left in `<main>`.
+- ~~Redeploy the AI edge function so the CORS fix above actually lands.~~ Was
+  already live (version 35) when checked directly — no redeploy needed.
+- Everything previously listed under "Nice to have" below is closed:
+  `OnboardingBanner`'s focus hack, the format/`.gitattributes` backlog, the
+  `ResetPasswordView` heuristic, and the `useLiveClock` locale assertion.
 
 **Done since this list was written (2026-08-01):**
 - ~~Step 23 — i18n port.~~ Was already shipped when this list was written;
   listing it as high-impact was the ledger's own stale entry.
 - ~~Step 25 — Notes AI study sidebar.~~ Closed. This was the last known-scoped
   port; there is no remaining "build it in React" work.
-- ~~CORS allow-list fix for local `npm run dev` model calls.~~ Fixed and
-  deployed (version 33) — matches any local dev port by pattern now, not one
-  hardcoded value.
+- ~~CORS allow-list fix for local `npm run dev` model calls.~~ Fixed; confirmed
+  live 2026-08-02 (version 35).
 
-**High impact — the whole of what's left:**
-- **Continuing the route-by-route cutover to `/app`.** This is now the only
-  thing standing between the app and being React. Settings went first (Step
-  26, 2026-08-01); Tasks, Exams, Timer, Library, Dashboard, Notes, Plan, Quiz
-  and Review still belong to the vanilla app. Step 26's entry documents the
-  recipe: add the route to `CUTOVER_ROUTES` in `js/router.js`, delete the
-  vanilla `<section>` from `index.html`, and leave the no-op `bind*` listeners
-  alone unless they are provably view-specific. Tasks or Timer are the natural
-  next pick — self-contained, and each has a full React test suite behind it.
-- **Redeploy the AI edge function** so the CORS fix above actually lands.
+**High impact:** nothing currently open.
 
 **Nice to have:**
-- Everything in sections 4 and 5.
-- The smaller loose ends: mini-timer overlap, duplicate logo files, the
-  format backlog, `exportCSV`'s missing test, the reset-password heuristic,
-  the sign-up cross-tab case, and the `useLiveClock` locale assertion.
+- Everything in sections 4 and 5 not already struck through — the animation/
+  design-upgrade backlog in section 5 is untouched by this session, by design
+  (visual redesign was out of scope).
+- The smaller loose ends still open: mini-timer/quiz-review z-index overlap,
+  duplicate logo files, `exportCSV`'s missing test, the sign-up cross-tab
+  case, the `/verify`/`/reset-password` Supabase redirect allow-list (external
+  config, can't be fixed from this repo), and the timer's task-attribution-by-
+  text-not-id schema note.
 
-**Verification debt worth paying down alongside any of the above:** every
-route except `/app/settings` has still only ever been exercised under jsdom.
-Step 25 showed a real-browser pass is achievable (see section 2 for the
-harness technique), so a cutover is a good moment to take one.
+**Verification debt worth paying down next:** every route was verified this
+session via the full automated suite (`node --test` + `npm test`, both green
+after each cutover) and static cross-reference auditing of every `bind*`/
+`load*` function for DOM lookups reaching outside the section being deleted —
+but not against a real signed-in browser session, since no test account was
+available and the app's data-fetching means a real click-through needs one
+(unlike Step 25's Notes work, which could mount a single view in isolation via
+the devharness technique with fake props). A real-browser pass — ideally
+hitting all nine newly-cut-over routes with a real account, both to confirm
+the redirect UX feels right and to exercise the two genuine cross-view fixes
+this session made (`loadTasks()`/`renderDashboardTasks()`, and the
+`ResetPasswordView` hash-timing fix, which is inherently hard to unit-test) —
+is the highest-value next session.

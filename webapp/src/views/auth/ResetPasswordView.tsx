@@ -5,7 +5,7 @@ import {
   PasswordField,
   PasswordStrengthMeter,
 } from "../../components/PasswordField";
-import { supabase } from "../../lib/supabase";
+import { initialUrlHash, supabase } from "../../lib/supabase";
 import { authApi } from "../../api/auth";
 import { validateNewPassword } from "../../lib/passwordStrength";
 import { AuthShell } from "./AuthShell";
@@ -25,9 +25,13 @@ import styles from "./auth.module.css";
  * signed-in users off /login would bounce the user off the very screen the link
  * was for.
  *
- * The three-second deadline is the vanilla's, and it is a heuristic either way:
  * Supabase fires PASSWORD_RECOVERY when it successfully exchanges the token in
- * the URL, and fires nothing at all when the token is missing or expired. */
+ * the URL. When the link is invalid or expired it fires nothing — except it
+ * does append `#error=access_denied&error_code=otp_expired&...` to the
+ * redirect, which is read from `initialUrlHash` below for a deterministic
+ * answer. The three-second timeout is the vanilla's fallback heuristic for
+ * the remaining case: no event and no error param either (e.g. a link with
+ * no token at all). */
 
 const RECOVERY_TIMEOUT_MS = 3000;
 
@@ -44,6 +48,12 @@ export function ResetPasswordView() {
   const { setStatus, node: statusNode } = useAuthStatus();
 
   useEffect(() => {
+    const params = new URLSearchParams(initialUrlHash.replace(/^#/, ""));
+    if (params.get("error")) {
+      setPhase("expired");
+      return;
+    }
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {

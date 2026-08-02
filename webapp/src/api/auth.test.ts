@@ -6,9 +6,9 @@ import { authApi } from "./auth";
 
 describe("authApi.signup", () => {
   it("rejects with no network call when dob is missing", async () => {
-    await expect(authApi.signup("Ada", "ada@example.com", "pw", "")).rejects.toThrow(
-      "date of birth",
-    );
+    await expect(
+      authApi.signup("Ada", "ada@example.com", "pw", ""),
+    ).rejects.toThrow("date of birth");
   });
 
   it("rejects under-13 signups by calculated age", async () => {

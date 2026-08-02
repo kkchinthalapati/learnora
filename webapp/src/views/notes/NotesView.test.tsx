@@ -45,7 +45,9 @@ function serveNotes({
 } = {}) {
   server.use(
     http.get(rest("materials"), ({ request }) => {
-      const id = new URL(request.url).searchParams.get("id")?.replace("eq.", "");
+      const id = new URL(request.url).searchParams
+        .get("id")
+        ?.replace("eq.", "");
       if (!id) return HttpResponse.json([]);
       return HttpResponse.json(mat && mat.id === id ? mat : null);
     }),
@@ -53,11 +55,15 @@ function serveNotes({
       const materialId = new URL(request.url).searchParams
         .get("material_id")
         ?.replace("eq.", "");
-      return HttpResponse.json(notes.filter((n) => n.material_id === materialId));
+      return HttpResponse.json(
+        notes.filter((n) => n.material_id === materialId),
+      );
     }),
     http.patch(rest("notes"), async ({ request }) => {
       const patch = (await request.json()) as { html_content: string };
-      const id = new URL(request.url).searchParams.get("id")?.replace("eq.", "");
+      const id = new URL(request.url).searchParams
+        .get("id")
+        ?.replace("eq.", "");
       const row = notes.find((n) => n.id === id);
       return HttpResponse.json({ ...row, ...patch });
     }),
@@ -94,9 +100,7 @@ describe("NotesView", () => {
     renderNotes();
 
     expect(await screen.findByText("Cell division")).toBeInTheDocument();
-    await waitFor(() =>
-      expect(editorEl().textContent).toBe("Existing notes"),
-    );
+    await waitFor(() => expect(editorEl().textContent).toBe("Existing notes"));
     expect(editorEl()).toHaveAttribute("contenteditable", "true");
   });
 
@@ -109,7 +113,9 @@ describe("NotesView", () => {
       await screen.findByText("This file no longer exists."),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Back to Library" }));
-    expect(await screen.findByRole("heading", { name: "Library" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Library" }),
+    ).toBeInTheDocument();
   });
 
   it("is read-only with a placeholder when the material has no notes yet", async () => {
@@ -123,7 +129,9 @@ describe("NotesView", () => {
     expect(editorEl().textContent).toContain(
       "No notes yet — Learnora is still processing this material.",
     );
-    expect(screen.getByText("Notes aren't ready to edit yet")).toBeInTheDocument();
+    expect(
+      screen.getByText("Notes aren't ready to edit yet"),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
   });
 
@@ -163,7 +171,10 @@ describe("NotesView", () => {
   it("autosaves after the debounce window and reports Saved", async () => {
     const user = userEvent.setup();
     let saved: string | null = null;
-    serveNotes({ material: material(), notes: [note({ html_content: "<p>Hi</p>" })] });
+    serveNotes({
+      material: material(),
+      notes: [note({ html_content: "<p>Hi</p>" })],
+    });
     server.use(
       http.patch(rest("notes"), async ({ request }) => {
         const body = (await request.json()) as { html_content: string };
@@ -178,10 +189,9 @@ describe("NotesView", () => {
     await user.keyboard("!");
     expect(await screen.findByText("Unsaved changes")).toBeInTheDocument();
 
-    await waitFor(
-      () => expect(screen.getByText("Saved")).toBeInTheDocument(),
-      { timeout: SAVE_DEBOUNCE_MS + 2000 },
-    );
+    await waitFor(() => expect(screen.getByText("Saved")).toBeInTheDocument(), {
+      timeout: SAVE_DEBOUNCE_MS + 2000,
+    });
     expect(saved).toContain("!");
     expect(saved).toContain("Hi");
   });
@@ -207,7 +217,10 @@ describe("NotesView", () => {
 
   it("reports a failed save", async () => {
     const user = userEvent.setup();
-    serveNotes({ material: material(), notes: [note({ html_content: "<p>Hi</p>" })] });
+    serveNotes({
+      material: material(),
+      notes: [note({ html_content: "<p>Hi</p>" })],
+    });
     server.use(
       http.patch(rest("notes"), () =>
         HttpResponse.json({ message: "nope" }, { status: 500 }),
@@ -230,7 +243,10 @@ describe("NotesView", () => {
   it("flushes a pending edit on unmount instead of dropping it", async () => {
     const user = userEvent.setup();
     let saved: string | null = null;
-    serveNotes({ material: material(), notes: [note({ html_content: "<p>Hi</p>" })] });
+    serveNotes({
+      material: material(),
+      notes: [note({ html_content: "<p>Hi</p>" })],
+    });
     server.use(
       http.patch(rest("notes"), async ({ request }) => {
         const body = (await request.json()) as { html_content: string };

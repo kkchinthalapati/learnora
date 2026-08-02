@@ -159,11 +159,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .liquid-blob--2 {
   width: 580px;
   height: 580px;
-  background: radial-gradient(
-    circle,
-    var(--accent-glow) 0%,
-    transparent 70%
-  );
+  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
   bottom: -10%;
   right: -8%;
   animation-delay: -6s;

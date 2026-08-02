@@ -1,11 +1,18 @@
-import { useEffect } from "react";
+import { useEffect, type Ref } from "react";
 import { Link } from "react-router";
 import { Icon } from "../../components/Icon";
 import { useSettings } from "../../context/settings";
 import { useFlashcardsDueCount } from "../../hooks/useFlashcards";
-import { notifyDueCardsOncePerDay, shouldNotifyDueCards } from "../../lib/notifications";
+import {
+  notifyDueCardsOncePerDay,
+  shouldNotifyDueCards,
+} from "../../lib/notifications";
 import { DashboardTasksWidget } from "../tasks/DashboardTasksWidget";
 import styles from "./dashboard.module.css";
+
+type TasksCardProps = {
+  taskInputRef?: Ref<HTMLInputElement>;
+};
 
 /* "Today's tasks" card — wraps Step 8's `DashboardTasksWidget` (built for
  * exactly this, per its own comment) with the "View all" link and the SRS
@@ -16,7 +23,7 @@ import styles from "./dashboard.module.css";
  * call wasn't. Closed here: same gate (`notifyStudyReminders`, one per
  * calendar day via `localStorage`), fired from the same place the vanilla's
  * `renderDueCards()` did every time the dashboard saw a nonzero due count. */
-export function TasksCard() {
+export function TasksCard({ taskInputRef }: TasksCardProps = {}) {
   const { data: dueCount = 0 } = useFlashcardsDueCount();
   const { settings } = useSettings();
 
@@ -34,7 +41,7 @@ export function TasksCard() {
           View all →
         </Link>
       </div>
-      <DashboardTasksWidget />
+      <DashboardTasksWidget inputRef={taskInputRef} />
       {dueCount > 0 ? (
         <div className={styles.srsDue}>
           <span className={styles.srsDueLabel}>

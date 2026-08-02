@@ -10,8 +10,13 @@ export function useExams() {
 export function useSaveExam() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ payload, id }: { payload: ExamPayload; id?: number | null }) =>
-      examsApi.save(payload, id ?? null),
+    mutationFn: ({
+      payload,
+      id,
+    }: {
+      payload: ExamPayload;
+      id?: number | null;
+    }) => examsApi.save(payload, id ?? null),
     onSuccess: () => qc.invalidateQueries({ queryKey: examsKeys.all }),
   });
 }

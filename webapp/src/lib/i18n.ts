@@ -545,8 +545,7 @@ export const translations = {
     desc_flashcards: "Seus cartões.",
     nav_quizzes: "Questionários",
     header_quizzes: "Questionários",
-    desc_quizzes:
-      "Questionários gerados por IA a partir dos seus materiais.",
+    desc_quizzes: "Questionários gerados por IA a partir dos seus materiais.",
     header_plan: "Plano desta semana",
     desc_plan: "Gerado por IA com base nos seus exames e tarefas.",
     set_ai_brain: "IA",

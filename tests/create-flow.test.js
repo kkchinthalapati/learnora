@@ -255,17 +255,13 @@ test("the client and the edge function agree on every mode", async (t) => {
 });
 
 test("the Library replaces four views without breaking links", async (t) => {
-  await t.test("the merged views are gone", () => {
+  // The Library itself was cut over to the React app (webapp/src/views/library/) —
+  // its own merged-views-and-grid-containers coverage now lives in
+  // LibraryView.test.tsx. What's still meaningfully vanilla-side here is that
+  // the pre-merge dead views stay gone and old hashes still resolve.
+  await t.test("the pre-merge views are gone", () => {
     for (const dead of ["view-folders", "view-upload", "view-flashcards", "view-quizzes"]) {
       assert.ok(!html.includes(`id="${dead}"`), `${dead} still exists`);
-    }
-    assert.ok(html.includes('id="view-library"'), "the Library view must exist");
-  });
-
-  await t.test("the grid containers the router writes into still exist", () => {
-    // loadFolders/loadAllFlashcards/loadAllQuizzes target these by id.
-    for (const id of ["folders-container", "flashcards-grid", "quizzes-grid", "materials-grid"]) {
-      assert.ok(html.includes(`id="${id}"`), `${id} is missing — its loader would no-op`);
     }
   });
 

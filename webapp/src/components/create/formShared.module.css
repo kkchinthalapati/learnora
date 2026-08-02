@@ -37,9 +37,7 @@
   border: 1px solid var(--glass-border-subtle);
   border-radius: var(--r-md);
   outline: none;
-  box-shadow:
-    var(--glass-inner),
-    var(--glass-inner-bottom);
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom);
   transition:
     border-color var(--t) var(--ease-spring),
     box-shadow var(--t) var(--ease-spring),

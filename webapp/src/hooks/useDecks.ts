@@ -22,11 +22,17 @@ export function useDecksByFolder(folderId: string) {
 export function useAddDeck() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ folderId, title }: { folderId: string | null; title: string }) =>
-      decksApi.add(folderId, title),
+    mutationFn: ({
+      folderId,
+      title,
+    }: {
+      folderId: string | null;
+      title: string;
+    }) => decksApi.add(folderId, title),
     onSuccess: (_data, { folderId }) => {
       qc.invalidateQueries({ queryKey: decksKeys.all });
-      if (folderId) qc.invalidateQueries({ queryKey: decksKeys.byFolder(folderId) });
+      if (folderId)
+        qc.invalidateQueries({ queryKey: decksKeys.byFolder(folderId) });
     },
   });
 }

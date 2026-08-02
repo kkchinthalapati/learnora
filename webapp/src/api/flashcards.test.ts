@@ -32,7 +32,9 @@ describe("flashcardsApi", () => {
     const count = await flashcardsApi.fetchDueCount();
 
     expect(count).toBe(7);
-    expect(capturedUrl?.searchParams.get("or")).toContain("next_review_date.is.null");
+    expect(capturedUrl?.searchParams.get("or")).toContain(
+      "next_review_date.is.null",
+    );
   });
 
   it("fetches all-due cards joined with their deck title, ordered nulls-first", async () => {

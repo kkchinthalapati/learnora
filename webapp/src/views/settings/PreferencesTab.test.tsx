@@ -55,7 +55,9 @@ describe("PreferencesTab", () => {
       "Spanish",
     );
     await user.selectOptions(screen.getByLabelText("UI Language"), "fr");
-    await user.click(screen.getByRole("button", { name: /^(Save Changes|Enregistrer)$/ }));
+    await user.click(
+      screen.getByRole("button", { name: /^(Save Changes|Enregistrer)$/ }),
+    );
 
     expect(loadSettings()).toEqual({
       ...DEFAULT_SETTINGS,

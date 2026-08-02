@@ -66,7 +66,10 @@ describe("useAddTask", () => {
         getCalls += 1;
         return HttpResponse.json(taskFixtures);
       }),
-      http.post(`${SUPABASE_URL}/rest/v1/tasks`, () => new HttpResponse(null, { status: 201 })),
+      http.post(
+        `${SUPABASE_URL}/rest/v1/tasks`,
+        () => new HttpResponse(null, { status: 201 }),
+      ),
     );
 
     const queryClient = new QueryClient({
