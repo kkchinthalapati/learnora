@@ -22,7 +22,15 @@ import { THEME_PRESETS } from "../lib/appearance";
 const AA = 4.5;
 
 function read(rel: string): string {
-  return readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
+  const raw = readFileSync(
+    fileURLToPath(new URL(rel, import.meta.url)),
+    "utf8",
+  );
+  // Strip comments before anything else touches this text — several of them
+  // are long enough to contain their own "word: text;"-shaped substrings
+  // (this file's own doc comments do), which the declaration regex below
+  // would otherwise happily match as if they were real CSS.
+  return raw.replace(/\/\*[\s\S]*?\*\//g, "");
 }
 
 const css = read("./tokens.css") + "\n" + read("./themes.css");
@@ -113,6 +121,20 @@ function resolve(tokens: Map<string, string>, name: string): string {
   return value;
 }
 
+/**
+ * Tokens for the base cascade only (no preset) — what --success/--warning/
+ * --danger and their -on/-2 labels resolve to in each mode. Unlike --accent,
+ * nothing in themes.css re-declares these per preset, so :root plus
+ * body.dark-theme is the whole cascade.
+ */
+function baseTokensFor(dark: boolean): Map<string, string> {
+  const merged = new Map<string, string>();
+  for (const layer of [":root", ...(dark ? ["body.dark-theme"] : [])]) {
+    for (const [k, v] of declarationsFor(layer)) merged.set(k, v);
+  }
+  return merged;
+}
+
 /* --- the guard ----------------------------------------------------------- */
 
 // "custom" is user-built and derives its own ink at runtime in
@@ -164,4 +186,37 @@ describe("accent contrast", () => {
       }
     });
   }
+
+  /* --success/--warning/--danger carry the same "one hex, two jobs" problem
+     the accent did, but none of them varies by preset, so this only needs to
+     check light vs dark — no preset loop. */
+  describe("semantic fills", () => {
+    for (const dark of [false, true]) {
+      const mode = dark ? "dark" : "light";
+
+      it(`${mode} mode keeps success/warning/danger labels readable`, () => {
+        const tokens = baseTokensFor(dark);
+        for (const name of ["success", "warning", "danger"] as const) {
+          const fill = resolve(tokens, `--${name}`);
+          const on = resolve(tokens, `--${name}-on`);
+          expect(contrast(fill, on), name).toBeGreaterThanOrEqual(AA);
+        }
+      });
+
+      it(`${mode} mode: the Hard exam chip's gradient reads at both stops`, () => {
+        const tokens = baseTokensFor(dark);
+        const danger = resolve(tokens, "--danger");
+        const dangerOn = resolve(tokens, "--danger-on");
+        const dangerStop2 = resolve(tokens, "--danger-2");
+        expect(
+          contrast(danger, dangerOn),
+          "stop 1 (--danger)",
+        ).toBeGreaterThanOrEqual(AA);
+        expect(
+          contrast(dangerStop2, dangerOn),
+          "stop 2 (--danger-2)",
+        ).toBeGreaterThanOrEqual(AA);
+      });
+    }
+  });
 });

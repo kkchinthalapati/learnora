@@ -323,7 +323,7 @@
   font-family: var(--font-head);
   font-size: var(--fs-xl);
   font-weight: 700;
-  color: #fff;
+  color: var(--accent-on);
   text-transform: uppercase;
   flex-shrink: 0;
   box-shadow:

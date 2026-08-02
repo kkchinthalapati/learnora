@@ -189,7 +189,11 @@
   font-family: inherit;
   font-size: var(--fs-xs);
   font-weight: 600;
-  color: #fff;
+  /* Flat ink: reads on Easy and Medium's gradients in both modes. Hard is the
+     odd one out — .diffHard overrides this with --danger-on, which resolves
+     to white in light mode (ink fails --danger there) and back to ink in
+     dark mode, same as this default. */
+  color: var(--accent-ink);
   padding: 5px 8px;
   border: none;
   border-radius: var(--r-xs);
@@ -215,7 +219,8 @@
 }
 
 .diffHard {
-  background: linear-gradient(135deg, var(--danger), #e87068);
+  background: linear-gradient(135deg, var(--danger), var(--danger-2));
+  color: var(--danger-on);
 }
 
 .isPast {

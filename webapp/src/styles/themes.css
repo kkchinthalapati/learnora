@@ -24,6 +24,19 @@ body.dark-theme {
   --warning-soft: rgba(224, 165, 62, 0.15);
   --danger: #e2564a;
   --danger-soft: rgba(226, 86, 74, 0.15);
+  /* Unlike --accent, no preset overrides these, so this is the value that
+     actually ships. All three brightened enough in dark mode that a white
+     label — the light-mode default — drops under AA (--danger's 3.71:1 was
+     the worst of the six semantic pairings, on par with the accent bugs). */
+  --success-on: var(--accent-ink);
+  --warning-on: var(--accent-ink);
+  --danger-on: var(--accent-ink);
+  /* The exam-difficulty chip's second gradient stop. Unlike tokens.css's
+     value, this one didn't need fixing — dark mode's --danger already
+     clears --danger-on (ink) at 4.93:1, and the vanilla's original stop
+     clears it too (6.05:1) — so this just restores that value, which
+     --danger-2 would otherwise inherit from tokens.css's *light*-mode fix. */
+  --danger-2: #e87068;
 
   --bg: #0a0e0d;
   --bg-tint-1: rgba(45, 212, 191, 0.07);
