@@ -5,6 +5,8 @@ import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
+import { SETTINGS_KEY } from "../../lib/settings";
+import { Storage } from "../../lib/storage";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { ChatProvider } from "../../context/ChatProvider";
@@ -418,6 +420,46 @@ describe("TurboChat", () => {
         await waitFor(() =>
           expect(screen.getByText("path:/quiz/quiz-1")).toBeInTheDocument(),
         );
+      });
+
+      /* <ADD_QUIZ> has no picker of its own to name a host personality with —
+         unlike MaterialPanel's Create dialog — so it has to fall back to
+         *something*. Before AI_PERSONA_QUIZ_HOST existed that fallback was
+         hardcoded to "Friendly Tutor" regardless of what the student had set
+         in Preferences; now it follows the same global aiPersona setting
+         MaterialPanel's own default follows. */
+      it("hosts the quiz in the student's own AI persona, not a fixed default", async () => {
+        Storage.set(SETTINGS_KEY, { aiPersona: "coach" });
+        // The quiz-mode reply is deliberately unusable (no questions survive
+        // extraction) — this test only cares what prompt the quiz call was
+        // sent, not whether generation succeeds.
+        let quizPrompt = "";
+        server.use(
+          http.post(EDGE_URL, async ({ request }) => {
+            const body = (await request.json()) as {
+              mode?: string;
+              history: { content: string }[];
+            };
+            if (body.mode === "quiz") {
+              quizPrompt = body.history.at(-1)?.content ?? "";
+              return HttpResponse.json({ text: JSON.stringify([]) });
+            }
+            return HttpResponse.json({
+              text: "Sure — <ADD_QUIZ>Cell biology</ADD_QUIZ>",
+            });
+          }),
+        );
+        renderChat();
+        await openChat();
+        await ask("quiz me on cell biology");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Quiz" }),
+        );
+
+        await waitFor(() => expect(quizPrompt).not.toBe(""));
+        expect(quizPrompt).toContain("AI Host Personality: Strict Coach");
       });
 
       it("generates nothing when declined", async () => {

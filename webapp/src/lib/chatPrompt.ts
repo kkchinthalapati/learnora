@@ -7,14 +7,17 @@
  * Rewording established lines changes model behaviour for every user with no
  * way to tell from a diff, so don't.
  *
- * Three CAPABILITIES additions are a deliberate departure from parity, not an
- * oversight: NAVIGATE and GRADE_FLASHCARD were executable in chatActions.ts
- * from the very first port (they're even in the vanilla's own ACTION_TAGS,
- * js/ai.js:213) but never once described here — in either app — so the model
- * could never have emitted them. ADD_TASK's optional `||DUE:` suffix is new
- * capability, not a port: tasksApi.add already took a due date, chat simply
- * never passed one through. ADD_EXAM is new outright — there was no way to
- * create an exam by chat at all, only via the manual form. */
+ * A growing set of CAPABILITIES lines are a deliberate departure from parity,
+ * not an oversight. NAVIGATE and GRADE_FLASHCARD were executable in
+ * chatActions.ts from the very first port (they're even in the vanilla's own
+ * ACTION_TAGS, js/ai.js:213) but never once described here — in either app —
+ * so the model could never have emitted them. ADD_TASK's optional `||DUE:`
+ * suffix is new capability, not a port: tasksApi.add already took a due
+ * date, chat simply never passed one through. Everything else here —
+ * COMPLETE_TASK, DELETE_TASK, RESCHEDULE_TASK, ADD_EXAM, DELETE_EXAM,
+ * ADD_DECK — is new outright: there was no chat path to mutate an existing
+ * task or exam at all, or to generate a flashcard deck the way ADD_QUIZ
+ * already generates a quiz. */
 
 import { localDateStr } from "./date";
 import { fenceUntrusted } from "./actionTags";
@@ -106,8 +109,13 @@ GROUNDING RULES (important — follow exactly):
 
 CAPABILITIES:
 - To create a task, emit the tag <ADD_TASK>the task name</ADD_TASK>. The app executes this tag and displays it to the student as the task's name, so lead into it naturally (e.g. "Done — I've added this to your tasks: <ADD_TASK>Review Chapter 3</ADD_TASK>") and do not repeat the same name elsewhere in the sentence. Only create a task when the student clearly asks you to. If the student states or implies a deadline ("by Friday", "before the 12th", "due next week"), work it out from TODAY IS above and append it as \`||DUE:YYYY-MM-DD\` — e.g. <ADD_TASK>Review Chapter 3||DUE:2026-08-07</ADD_TASK>. Omit the \`||DUE:\` suffix entirely when no deadline was given; never guess one.
+- To mark an existing task done, emit <COMPLETE_TASK>the exact task name</COMPLETE_TASK> — the name must match one listed in WORKSPACE STATE above exactly (WORKSPACE STATE names never carry a "(due …)" suffix in the tag, even if the task is listed with one there). Several may be emitted in one reply for "mark these done" requests.
+- To remove a task the student no longer wants, emit <DELETE_TASK>the exact task name</DELETE_TASK>, matched the same way. Several may be emitted in one reply. Only do this when the student clearly asks to remove or cancel it — "I finished this" means COMPLETE_TASK, not DELETE_TASK.
+- To change an existing task's due date, emit <RESCHEDULE_TASK>the exact task name||YYYY-MM-DD</RESCHEDULE_TASK> — e.g. <RESCHEDULE_TASK>Review Chapter 3||2026-08-14</RESCHEDULE_TASK>. Only one per reply.
 - To schedule an exam, emit <ADD_EXAM>Exam name||YYYY-MM-DD||Difficulty</ADD_EXAM> — e.g. <ADD_EXAM>Chemistry Final||2026-08-20||Hard</ADD_EXAM>. Difficulty is Easy, Medium or Hard; omit the trailing \`||Difficulty\` (but keep the date) when the student doesn't say, and it defaults to Medium. Only emit this once the student has given both a name and a date — ask for whichever is missing rather than guessing.
+- To remove an exam, emit <DELETE_EXAM>the exact exam name</DELETE_EXAM>, matched against WORKSPACE STATE the same way as a task. Only one per reply.
 - To generate a formal interactive quiz, emit the tag <ADD_QUIZ>Topic Name</ADD_QUIZ>. The app will generate a quiz for that topic.
+- To generate a flashcard deck on a topic (not from the student's existing notes), emit <ADD_DECK>Topic Name</ADD_DECK>. Use ADD_QUIZ instead when they ask to be quizzed or tested rather than asking for cards to study from.
 - To generate a formal weekly study schedule, emit the tag <ADD_PLAN></ADD_PLAN>. The app will build a weekly plan and navigate the user there.
 - To start a focus timer, emit the tag <START_TIMER>25</START_TIMER> with the number of minutes. Only emit it once the student has named a duration. If they ask for a timer without saying how long (e.g. "start a timer"), do NOT pick one for them and do NOT emit the tag — ask how many minutes they want, suggesting 25, 45 or 60 as options, and start it on their next reply.
 - To switch the app's theme, emit <SET_THEME>dark</SET_THEME> or <SET_THEME>light</SET_THEME> when the student asks to change the theme/appearance.

@@ -11,6 +11,7 @@ import { useFolders, useAddFolder } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useCreateStudyPackage } from "../../hooks/useStudyPackage";
 import { useDialog } from "../../context/dialog";
+import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
 import {
   CREATE_DEFAULTS,
@@ -19,6 +20,7 @@ import {
   studyPackageDestination,
   type StudySource,
 } from "../../api/studyPackage";
+import { AI_PERSONA_QUIZ_HOST } from "../../lib/settings";
 import type { Folder } from "../../api/types";
 import shared from "./formShared.module.css";
 import styles from "./MaterialPanel.module.css";
@@ -67,6 +69,7 @@ export function MaterialPanel({
   /* A caller that named a material is asking to build from *that* document
      ("Quiz me" in the notes sidebar), so the panel opens on Saved with it
      chosen instead of on an empty dropzone. */
+  const { settings } = useSettings();
   const [source, setSource] = useState<SourceKind>(
     initialMaterialId ? "material" : "file",
   );
@@ -89,7 +92,13 @@ export function MaterialPanel({
   const [difficulty, setDifficulty] = useState<Difficulty>(
     CREATE_DEFAULTS.difficulty,
   );
-  const [personality, setPersonality] = useState(CREATE_DEFAULTS.personality);
+  /* Seeded from the student's global AI-persona setting rather than a fixed
+     "Friendly Tutor" default, so the two independent persona pickers in this
+     app — this one and Preferences' — agree unless the student deliberately
+     overrides one for a single quiz. See AI_PERSONA_QUIZ_HOST's own comment. */
+  const [personality, setPersonality] = useState(
+    AI_PERSONA_QUIZ_HOST[settings.aiPersona],
+  );
   const [error, setError] = useState<string | null>(null);
   // The stage the pipeline reports it is on, or null when nothing is running.
   const [progress, setProgress] = useState<string | null>(null);

@@ -50,8 +50,13 @@ describe("buildSystemContext", () => {
     const prompt = buildSystemContext(base);
     for (const tag of [
       "ADD_TASK",
+      "COMPLETE_TASK",
+      "DELETE_TASK",
+      "RESCHEDULE_TASK",
       "ADD_EXAM",
+      "DELETE_EXAM",
       "ADD_QUIZ",
+      "ADD_DECK",
       "ADD_PLAN",
       "START_TIMER",
       "SET_THEME",
@@ -61,9 +66,11 @@ describe("buildSystemContext", () => {
     }
   });
 
-  /* ADD_TASK's due-date suffix and ADD_EXAM are both new capability, not a
-     port — tasksApi.add already took a due date and examsApi.save already
-     existed; chat simply had no way to reach either. */
+  /* ADD_TASK's due-date suffix and everything past it are new capability,
+     not a port — the underlying API calls (tasksApi.add's due date,
+     tasksApi.toggle/delete/updateDueDate, examsApi.save/delete,
+     generateDeckFromTopic) already existed; chat simply had no way to reach
+     any of them. */
   it("teaches the ADD_TASK due-date suffix", () => {
     const prompt = buildSystemContext(base);
     expect(prompt).toContain("||DUE:YYYY-MM-DD");
@@ -74,6 +81,25 @@ describe("buildSystemContext", () => {
     const prompt = buildSystemContext(base);
     expect(prompt).toContain(
       "<ADD_EXAM>Exam name||YYYY-MM-DD||Difficulty</ADD_EXAM>",
+    );
+  });
+
+  it("teaches COMPLETE_TASK/DELETE_TASK to match WORKSPACE STATE exactly", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).toContain("must match one listed in WORKSPACE STATE");
+  });
+
+  it("teaches the RESCHEDULE_TASK shape", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).toContain(
+      "<RESCHEDULE_TASK>the exact task name||YYYY-MM-DD</RESCHEDULE_TASK>",
+    );
+  });
+
+  it("distinguishes ADD_DECK from ADD_QUIZ", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).toContain(
+      "Use ADD_QUIZ instead when they ask to be quizzed",
     );
   });
 

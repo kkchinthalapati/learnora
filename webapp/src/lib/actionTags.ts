@@ -23,12 +23,17 @@
 /** Action tags the app executes when it sees them in a model reply. */
 export const ACTION_TAGS = [
   "ADD_TASK",
+  "COMPLETE_TASK",
+  "DELETE_TASK",
+  "RESCHEDULE_TASK",
   "ADD_EXAM",
+  "DELETE_EXAM",
   "START_TIMER",
   "SET_THEME",
   "NAVIGATE",
   "GRADE_FLASHCARD",
   "ADD_QUIZ",
+  "ADD_DECK",
   "ADD_PLAN",
 ] as const;
 

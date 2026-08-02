@@ -18,6 +18,7 @@ import { decksApi } from "../api/decks";
 import { examsApi } from "../api/exams";
 import { flashcardsApi } from "../api/flashcards";
 import { notesApi } from "../api/notes";
+import { generateDeckFromTopic, DeckShapeError } from "../api/studyPackage";
 import { tasksApi } from "../api/tasks";
 import { decksKeys } from "../hooks/useDecks";
 import { examsKeys } from "../hooks/useExams";
@@ -78,6 +79,20 @@ function detectFlashcardReply(text: string) {
     !trimmed.startsWith("```");
   if (conversational && cards.length < 3) return null;
   return cards;
+}
+
+/** Resolves a `COMPLETE_TASK`/`DELETE_TASK`/`RESCHEDULE_TASK`/`DELETE_EXAM`
+ *  tag's name against a freshly-fetched list. The model only ever sees names
+ *  in WORKSPACE STATE, never a stable id, so an exact case-insensitive match
+ *  is the only handle chat has on an existing row — same reasoning as the
+ *  grounding rules' "only reference tasks and exams you can see". */
+function findByName<T>(
+  items: T[],
+  name: string,
+  getName: (item: T) => string,
+): T | undefined {
+  const target = name.trim().toLowerCase();
+  return items.find((item) => getName(item).trim().toLowerCase() === target);
 }
 
 export function ChatProvider({ children }: { children: ReactNode }) {
@@ -190,6 +205,32 @@ export function ChatProvider({ children }: { children: ReactNode }) {
            the write landing, and the task list must still refresh. */
         await qc.invalidateQueries({ queryKey: tasksKeys.all });
       },
+      completeTask: async (name) => {
+        const tasks = await tasksApi.fetch();
+        const match = findByName(tasks, name, (t) => t.text);
+        if (!match) return false;
+        // Idempotent: a task already done stays done rather than being
+        // toggled back to pending by a second "mark it done" request.
+        if (!match.is_done) await tasksApi.toggle(match.id, false);
+        await qc.invalidateQueries({ queryKey: tasksKeys.all });
+        return true;
+      },
+      deleteTask: async (name) => {
+        const tasks = await tasksApi.fetch();
+        const match = findByName(tasks, name, (t) => t.text);
+        if (!match) return false;
+        await tasksApi.delete(match.id);
+        await qc.invalidateQueries({ queryKey: tasksKeys.all });
+        return true;
+      },
+      rescheduleTask: async (name, dueDate) => {
+        const tasks = await tasksApi.fetch();
+        const match = findByName(tasks, name, (t) => t.text);
+        if (!match) return false;
+        await tasksApi.updateDueDate(match.id, dueDate);
+        await qc.invalidateQueries({ queryKey: tasksKeys.all });
+        return true;
+      },
       addExam: async (name, date, difficulty) => {
         await examsApi.save({
           exam_name: name,
@@ -198,6 +239,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           status: "Scheduled",
         });
         await qc.invalidateQueries({ queryKey: examsKeys.all });
+      },
+      deleteExam: async (name) => {
+        const exams = await examsApi.fetch();
+        const match = findByName(exams, name, (e) => e.exam_name);
+        if (!match) return false;
+        await examsApi.delete(match.id);
+        await qc.invalidateQueries({ queryKey: examsKeys.all });
+        return true;
       },
       startTimer: (minutes) => {
         startPreset({ countdown: minutes }, "countdown");
@@ -223,6 +272,22 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               (err instanceof AiError && err.refused)
                 ? err.message
                 : "Failed to generate quiz. Please try again.";
+            showToast(message, { error: true });
+          });
+      },
+      generateDeck: (topic) => {
+        generateDeckFromTopic(topic, settings)
+          .then(() => {
+            qc.invalidateQueries({ queryKey: decksKeys.all });
+            showToast("Flashcard deck generated successfully!");
+            void navigate("/library/flashcards");
+          })
+          .catch((err: unknown) => {
+            const message =
+              err instanceof DeckShapeError ||
+              (err instanceof AiError && err.refused)
+                ? err.message
+                : "Failed to generate flashcards. Please try again.";
             showToast(message, { error: true });
           });
       },

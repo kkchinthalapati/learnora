@@ -268,6 +268,31 @@ export async function generateDeck({
   return deck;
 }
 
+/** Generate and save a deck on a bare topic — no material, no folder. Same
+ *  shape as `generateQuizFromTopic` below it in aiQuiz.ts: the chat's
+ *  `<ADD_DECK>Topic</ADD_DECK>` tag is the only caller, and a topic-only
+ *  source has no notes document, so the topic line stands in for one. */
+export async function generateDeckFromTopic(
+  topic: string,
+  settings: Settings,
+  count: number = CREATE_DEFAULTS.cardCount,
+): Promise<FlashcardDeck> {
+  const trimmed = topic.trim();
+  if (!trimmed) throw new Error("Please enter a topic.");
+
+  /* Reachable from a model reply, so not app-authored text — fenced before
+     it goes back into a prompt, matching generateQuizFromTopic. */
+  const safeTopic = fenceUntrusted(trimmed);
+
+  return generateDeck({
+    sourceText: `Topic: ${safeTopic}`,
+    folderId: null,
+    title: `${trimmed} Flashcards`,
+    count,
+    settings,
+  });
+}
+
 /* =========================================================================
    THE ONE ENTRY POINT.
    ========================================================================= */

@@ -17,7 +17,7 @@ import { callEdge } from "./ai";
 import { quizzesApi } from "./quizzes";
 import { extractQuizJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
-import type { Settings } from "../lib/settings";
+import { AI_PERSONA_QUIZ_HOST, type Settings } from "../lib/settings";
 import type { Quiz } from "./types";
 
 /** Applied whenever the caller omits a value — the vanilla's `CREATE_DEFAULTS`
@@ -132,7 +132,13 @@ export async function generateQuizFrom({
           sourceText,
           topic,
           difficulty: options.difficulty ?? QUIZ_DEFAULTS.difficulty,
-          personality: options.personality ?? QUIZ_DEFAULTS.personality,
+          // Falls back to the student's own persona setting rather than a
+          // fixed "Friendly Tutor" — MaterialPanel's picker already does the
+          // same for the Create dialog (see AI_PERSONA_QUIZ_HOST); this is
+          // the same fix for the chat's <ADD_QUIZ> tag, which had no picker
+          // to seed from and so had been hardcoded regardless of persona.
+          personality:
+            options.personality ?? AI_PERSONA_QUIZ_HOST[settings.aiPersona],
           count: options.questionCount ?? QUIZ_DEFAULTS.questionCount,
         }),
       },

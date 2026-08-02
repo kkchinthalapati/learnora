@@ -35,6 +35,7 @@ const PERSONA_KEYS: Record<AiPersona, TranslationKey> = {
   tutor: "opt_tutor",
   coach: "opt_coach",
   buddy: "opt_buddy",
+  professor: "opt_professor",
 };
 
 const LENGTH_KEYS: Record<AiConciseness, TranslationKey> = {

@@ -32,6 +32,16 @@ export interface ActionHandlers {
   /** `dueDate` is a plain YYYY-MM-DD, or omitted for an undated task — see
    *  the ADD_TASK case for where the `||DUE:` suffix is parsed out. */
   addTask: (text: string, dueDate?: string) => Promise<void>;
+  /** These four all resolve `name` against the student's current tasks/exams
+   *  by exact text match (case-insensitive) — the model only ever sees task
+   *  and exam *names* in WORKSPACE STATE, never a stable id, so a name match
+   *  is the only handle chat has on an existing row. Each returns false when
+   *  nothing matched, so the caller can tell the student rather than
+   *  silently doing nothing. */
+  completeTask: (name: string) => Promise<boolean>;
+  deleteTask: (name: string) => Promise<boolean>;
+  rescheduleTask: (name: string, dueDate: string) => Promise<boolean>;
+  deleteExam: (name: string) => Promise<boolean>;
   /** Applies and starts a countdown of `minutes`. */
   startTimer: (minutes: number) => void;
   /** Returns false when the value names no theme the app has. */
@@ -40,6 +50,7 @@ export interface ActionHandlers {
   navigate: (view: string) => boolean;
   /** Fire-and-forget: the chat must not block on a 30-second generation. */
   generateQuiz: (topic: string) => void;
+  generateDeck: (topic: string) => void;
   generatePlan: () => void;
   /** Scores whichever flashcard is currently on screen in the review view.
    *  A no-op when no review session is mounted to grade. */
@@ -96,6 +107,20 @@ function parseExamPayload(
   return { name, date, difficulty };
 }
 
+/** Splits `RESCHEDULE_TASK`'s `Name||YYYY-MM-DD` payload. Unlike ADD_TASK's
+ *  due date, the date isn't optional here — "reschedule" with no new date
+ *  isn't a coherent request, so a missing or malformed one cancels the whole
+ *  tag rather than silently leaving the task where it was. */
+function parseReschedulePayload(
+  payload: string,
+): { name: string; date: string } | null {
+  const sep = payload.lastIndexOf("||");
+  if (sep === -1) return null;
+  const name = payload.slice(0, sep).trim();
+  const date = payload.slice(sep + 2).trim();
+  return name && DATE_RE.test(date) ? { name, date } : null;
+}
+
 const BLOCK_RE = new RegExp(
   `<(${ACTION_TAGS.join("|")})>([\\s\\S]*?)</\\1>`,
   "g",
@@ -144,7 +169,21 @@ export async function executeActions(
      ADD_TASK, but its `.replace()` pass then rendered a success widget for
      every occurrence — so a reply with two `<START_TIMER>` blocks claimed two
      timers had started when one had. Later occurrences are marked cancelled
-     here instead, which is what actually happened. */
+     here instead, which is what actually happened.
+
+     COMPLETE_TASK and DELETE_TASK join ADD_TASK in being allowed to repeat —
+     "mark my finished readings as done" is a normal batch request, and
+     unlike ADD_TASK's spam risk (an invented task costs nothing to generate),
+     these can only ever act on tasks that already exist, which bounds them
+     naturally. RESCHEDULE_TASK, DELETE_EXAM and ADD_DECK stay single-
+     occurrence, matching ADD_QUIZ/ADD_PLAN/SET_THEME/NAVIGATE, since a batch
+     reschedule or multi-exam deletion in one reply is rare enough that
+     forcing separate turns is the safer default. */
+  const REPEATABLE_TAGS: ReadonlySet<ActionTag> = new Set([
+    "ADD_TASK",
+    "COMPLETE_TASK",
+    "DELETE_TASK",
+  ]);
   const done = new Set<ActionTag>();
 
   let cursor = 0;
@@ -161,7 +200,7 @@ export async function executeActions(
         tasksAdded++;
       },
     });
-    if (match.tag !== "ADD_TASK") done.add(match.tag);
+    if (!REPEATABLE_TAGS.has(match.tag)) done.add(match.tag);
     if (widget) parts.push({ kind: "widget", widget });
   }
 
@@ -204,6 +243,50 @@ async function runTag(
       );
     }
 
+    case "COMPLETE_TASK": {
+      if (!payload) return null;
+      const allowed = await handlers.confirm(
+        `AI wants to mark this task as done:\n\n"${payload}"\n\nAllow this?`,
+        { title: "AI Task Update", confirmText: "Mark Done" },
+      );
+      if (!allowed) return cancelled("Canceled completing task:", payload);
+      const found = await handlers.completeTask(payload);
+      return found
+        ? ok("check", "Marked task done:", payload)
+        : cancelled("Couldn't find that task:", payload);
+    }
+
+    case "DELETE_TASK": {
+      if (!payload) return null;
+      const allowed = await handlers.confirm(
+        `AI wants to delete this task:\n\n"${payload}"\n\nAllow this?`,
+        { title: "AI Task Deletion", confirmText: "Delete Task", danger: true },
+      );
+      if (!allowed) return cancelled("Canceled deleting task:", payload);
+      const found = await handlers.deleteTask(payload);
+      return found
+        ? ok("trash", "Deleted task:", payload)
+        : cancelled("Couldn't find that task:", payload);
+    }
+
+    case "RESCHEDULE_TASK": {
+      if (!payload || ctx.isRepeat) {
+        return cancelled("Canceled rescheduling task");
+      }
+      const parsed = parseReschedulePayload(payload);
+      if (!parsed) return cancelled("Canceled rescheduling task");
+      const { name, date } = parsed;
+      const allowed = await handlers.confirm(
+        `AI wants to reschedule this task:\n\n"${name}" — new due date ${date}\n\nAllow this?`,
+        { title: "AI Task Update", confirmText: "Reschedule" },
+      );
+      if (!allowed) return cancelled("Canceled rescheduling task:", name);
+      const found = await handlers.rescheduleTask(name, date);
+      return found
+        ? ok("calendar", `Rescheduled to ${date}:`, name)
+        : cancelled("Couldn't find that task:", name);
+    }
+
     case "ADD_EXAM": {
       if (!payload) return null;
       const parsed = parseExamPayload(payload);
@@ -216,6 +299,21 @@ async function runTag(
       if (!allowed) return cancelled("Canceled adding exam:", name);
       await handlers.addExam(name, date, difficulty);
       return ok("calendar", `Added exam (${date}):`, name);
+    }
+
+    case "DELETE_EXAM": {
+      if (!payload || ctx.isRepeat) {
+        return cancelled("Canceled deleting exam");
+      }
+      const allowed = await handlers.confirm(
+        `AI wants to remove this exam from your calendar:\n\n"${payload}"\n\nAllow this?`,
+        { title: "AI Exam Deletion", confirmText: "Delete Exam", danger: true },
+      );
+      if (!allowed) return cancelled("Canceled deleting exam:", payload);
+      const found = await handlers.deleteExam(payload);
+      return found
+        ? ok("trash", "Deleted exam:", payload)
+        : cancelled("Couldn't find that exam:", payload);
     }
 
     case "START_TIMER": {
@@ -268,6 +366,19 @@ async function runTag(
       if (!allowed) return cancelled("Canceled quiz generation");
       handlers.generateQuiz(payload);
       return ok("help-circle", "Generating quiz:", payload);
+    }
+
+    case "ADD_DECK": {
+      if (!payload || ctx.isRepeat) {
+        return cancelled("Canceled flashcard generation");
+      }
+      const allowed = await handlers.confirm(
+        `AI wants to generate a flashcard deck on "${payload}".\n\nAllow this?`,
+        { title: "AI Flashcard Generation", confirmText: "Generate Deck" },
+      );
+      if (!allowed) return cancelled("Canceled flashcard generation");
+      handlers.generateDeck(payload);
+      return ok("layers", "Generating flashcards:", payload);
     }
 
     case "ADD_PLAN": {
