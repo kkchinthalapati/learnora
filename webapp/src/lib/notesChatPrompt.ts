@@ -10,9 +10,15 @@
  * apart, which is exactly the kind of edit that silently gives the sidebar the
  * power to create tasks.
  *
- * As with `chatPrompt.ts`, the wording is carried over exactly, not
+ * As with `chatPrompt.ts`, the wording is mostly carried over exactly, not
  * paraphrased — it is the behaviour, and rewording it changes what every
- * student's assistant does with no way to tell from a diff. */
+ * student's assistant does with no way to tell from a diff.
+ *
+ * One exception: the self-introduction dropped "Turbo" — a name that
+ * appeared nowhere else in the app (not in this codebase, not in the
+ * vanilla's UI copy, not in the workspace assistant's own self-introduction)
+ * — so a student who asked either assistant "what's your name?" got two
+ * different answers depending on which panel they asked from. */
 
 import { fenceUntrusted } from "./actionTags";
 
@@ -48,7 +54,7 @@ export function buildNotesSystemContext({
   query,
 }: NotesChatContext): string {
   return `[SYSTEM — Learnora AI Notes Assistant]
-You are Turbo (Learnora AI), an expert study assistant embedded next to the student's document.
+You are Learnora AI, an expert study assistant embedded next to the student's document.
 
 VOICE:
 - Speak in the first person. Be concise, friendly, and helpful.

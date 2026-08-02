@@ -6,6 +6,8 @@ import { renderWithProviders } from "../../test/render";
 import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
+import { SETTINGS_KEY, DEFAULT_SETTINGS } from "../../lib/settings";
+import { Storage } from "../../lib/storage";
 import { useLocation } from "react-router";
 import { useCreateModal } from "../../context/createModal";
 
@@ -66,6 +68,9 @@ describe("MaterialPanel", () => {
   });
 
   afterEach(() => {
+    // The quiz-host-persona test writes to learnora_settings; clearing here
+    // keeps it from leaking into whichever test runs next.
+    localStorage.clear();
     vi.restoreAllMocks();
   });
 
@@ -218,6 +223,18 @@ describe("MaterialPanel", () => {
     expect(screen.queryByText("Quiz difficulty")).not.toBeInTheDocument();
     await user.click(outputCheckbox("Quiz"));
     expect(screen.getByText("Quiz difficulty")).toBeInTheDocument();
+  });
+
+  /* Before AI_PERSONA_QUIZ_HOST existed, this picker always opened on
+     "Friendly Tutor" regardless of what the student had set in Preferences —
+     two independent persona vocabularies that happened to share four of the
+     same underlying ideas but never agreed with each other. */
+  it("seeds the quiz host from the student's global AI persona", async () => {
+    Storage.set(SETTINGS_KEY, { ...DEFAULT_SETTINGS, aiPersona: "coach" });
+    const user = await openDialog();
+    await user.click(outputCheckbox("Quiz"));
+    await user.click(screen.getByText("Options"));
+    expect(screen.getByLabelText("Quiz host")).toHaveValue("Strict Coach");
   });
 
   describe("submitting for real", () => {

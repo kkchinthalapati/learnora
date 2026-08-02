@@ -5,6 +5,8 @@ import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
+import { SETTINGS_KEY } from "../../lib/settings";
+import { Storage } from "../../lib/storage";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { ChatProvider } from "../../context/ChatProvider";
@@ -420,6 +422,46 @@ describe("TurboChat", () => {
         );
       });
 
+      /* <ADD_QUIZ> has no picker of its own to name a host personality with —
+         unlike MaterialPanel's Create dialog — so it has to fall back to
+         *something*. Before AI_PERSONA_QUIZ_HOST existed that fallback was
+         hardcoded to "Friendly Tutor" regardless of what the student had set
+         in Preferences; now it follows the same global aiPersona setting
+         MaterialPanel's own default follows. */
+      it("hosts the quiz in the student's own AI persona, not a fixed default", async () => {
+        Storage.set(SETTINGS_KEY, { aiPersona: "coach" });
+        // The quiz-mode reply is deliberately unusable (no questions survive
+        // extraction) — this test only cares what prompt the quiz call was
+        // sent, not whether generation succeeds.
+        let quizPrompt = "";
+        server.use(
+          http.post(EDGE_URL, async ({ request }) => {
+            const body = (await request.json()) as {
+              mode?: string;
+              history: { content: string }[];
+            };
+            if (body.mode === "quiz") {
+              quizPrompt = body.history.at(-1)?.content ?? "";
+              return HttpResponse.json({ text: JSON.stringify([]) });
+            }
+            return HttpResponse.json({
+              text: "Sure — <ADD_QUIZ>Cell biology</ADD_QUIZ>",
+            });
+          }),
+        );
+        renderChat();
+        await openChat();
+        await ask("quiz me on cell biology");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Quiz" }),
+        );
+
+        await waitFor(() => expect(quizPrompt).not.toBe(""));
+        expect(quizPrompt).toContain("AI Host Personality: Strict Coach");
+      });
+
       it("generates nothing when declined", async () => {
         let quizCalls = 0;
         serveReply("Sure — <ADD_QUIZ>Cell biology</ADD_QUIZ>");
@@ -768,6 +810,52 @@ describe("TurboChat", () => {
       await ask("show me an example card");
 
       expect(await screen.findByText(/want more\?/)).toBeInTheDocument();
+    });
+
+    /** Echoes each inserted row back the way PostgREST does for `.select()` —
+     *  same pattern MaterialPanel.test.tsx uses for the Create pipeline's
+     *  own deck/card inserts. */
+    function serveDeckWrites() {
+      const echo = (table: string, id: string) =>
+        http.post(rest(table), async ({ request }) => {
+          const rows = (await request.json()) as Record<string, unknown>[];
+          return HttpResponse.json(
+            rows.length === 1
+              ? { id, ...rows[0] }
+              : rows.map((r) => ({ id, ...r })),
+            { status: 201 },
+          );
+        });
+      server.use(
+        echo("flashcard_decks", "deck-1"),
+        echo("flashcards", "card-1"),
+      );
+    }
+
+    /* Previously the only way to keep a chat-generated set was to notice and
+       manually redo the whole thing through +Create — this is the fix. */
+    it("saves the set as a real deck the student can review later", async () => {
+      serveReply(
+        JSON.stringify([
+          { front: "Mitochondrion", back: "Makes ATP" },
+          { front: "Ribosome", back: "Builds proteins" },
+          { front: "Nucleus", back: "Holds DNA" },
+        ]),
+      );
+      serveDeckWrites();
+      renderChat();
+      await openChat();
+      await ask("make me flashcards");
+      await screen.findByText("Mitochondrion");
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "Save as deck" }),
+      );
+
+      expect(await screen.findByText("Saved")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Save as deck" }),
+      ).not.toBeInTheDocument();
     });
   });
 

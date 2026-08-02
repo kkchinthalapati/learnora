@@ -11,12 +11,18 @@ function handlers(overrides: Partial<ActionHandlers> = {}): ActionHandlers {
   return {
     confirm: vi.fn().mockResolvedValue(true),
     addTask: vi.fn().mockResolvedValue(undefined),
+    completeTask: vi.fn().mockResolvedValue(true),
+    deleteTask: vi.fn().mockResolvedValue(true),
+    rescheduleTask: vi.fn().mockResolvedValue(true),
     startTimer: vi.fn(),
     setTheme: vi.fn().mockReturnValue(true),
     navigate: vi.fn().mockReturnValue(true),
     generateQuiz: vi.fn(),
+    generateDeck: vi.fn(),
     generatePlan: vi.fn(),
     gradeFlashcard: vi.fn(),
+    addExam: vi.fn().mockResolvedValue(undefined),
+    deleteExam: vi.fn().mockResolvedValue(true),
     ...overrides,
   };
 }
@@ -104,6 +110,279 @@ describe("executeActions", () => {
       const parts = await executeActions("<ADD_TASK>  </ADD_TASK>", h);
       expect(h.confirm).not.toHaveBeenCalled();
       expect(widgets(parts)).toHaveLength(0);
+    });
+
+    it("parses a ||DUE: suffix into a due date, cleanly", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<ADD_TASK>Review Chapter 3||DUE:2026-08-07</ADD_TASK>",
+        h,
+      );
+      expect(h.confirm).toHaveBeenCalledWith(
+        expect.stringContaining("due 2026-08-07"),
+        expect.anything(),
+      );
+      expect(h.addTask).toHaveBeenCalledWith("Review Chapter 3", "2026-08-07");
+      // The raw ||DUE: delimiter must never reach the widget the student sees.
+      expect(widgets(parts)[0].subject).toBe("Review Chapter 3");
+    });
+
+    it("creates an undated task when there is no ||DUE: suffix", async () => {
+      const h = handlers();
+      await executeActions("<ADD_TASK>Read chapter 3</ADD_TASK>", h);
+      expect(h.addTask).toHaveBeenCalledWith("Read chapter 3");
+    });
+
+    it("treats a malformed due date as no due date, not a rejected task", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<ADD_TASK>Read chapter 3||DUE:next friday</ADD_TASK>",
+        h,
+      );
+      // The unparsed date is dropped rather than leaking "||DUE:..." into
+      // the task name; the task itself still gets created, undated.
+      expect(h.addTask).toHaveBeenCalledWith("Read chapter 3");
+      expect(widgets(parts)[0].cancelled).toBe(false);
+    });
+  });
+
+  describe("ADD_EXAM", () => {
+    it("asks first, then adds the exam with the stated difficulty", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<ADD_EXAM>Chemistry Final||2026-08-20||Hard</ADD_EXAM>",
+        h,
+      );
+
+      expect(h.confirm).toHaveBeenCalledWith(
+        expect.stringContaining("Chemistry Final"),
+        expect.objectContaining({ title: "AI Exam Creation" }),
+      );
+      expect(h.addExam).toHaveBeenCalledWith(
+        "Chemistry Final",
+        "2026-08-20",
+        "Hard",
+      );
+      expect(widgets(parts)[0]).toMatchObject({
+        cancelled: false,
+        subject: "Chemistry Final",
+      });
+    });
+
+    it("defaults to Medium difficulty when none is given", async () => {
+      const h = handlers();
+      await executeActions("<ADD_EXAM>Bio Midterm||2026-08-20</ADD_EXAM>", h);
+      expect(h.addExam).toHaveBeenCalledWith(
+        "Bio Midterm",
+        "2026-08-20",
+        "Medium",
+      );
+    });
+
+    it("defaults to Medium for an unrecognised difficulty rather than rejecting", async () => {
+      const h = handlers();
+      await executeActions(
+        "<ADD_EXAM>Bio Midterm||2026-08-20||Brutal</ADD_EXAM>",
+        h,
+      );
+      expect(h.addExam).toHaveBeenCalledWith(
+        "Bio Midterm",
+        "2026-08-20",
+        "Medium",
+      );
+    });
+
+    it("creates nothing when the student declines", async () => {
+      const h = handlers({ confirm: vi.fn().mockResolvedValue(false) });
+      const parts = await executeActions(
+        "<ADD_EXAM>Chemistry Final||2026-08-20</ADD_EXAM>",
+        h,
+      );
+      expect(h.addExam).not.toHaveBeenCalled();
+      expect(widgets(parts)[0].cancelled).toBe(true);
+    });
+
+    it("creates nothing when the date is missing or malformed", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<ADD_EXAM>Chemistry Final||next friday</ADD_EXAM>",
+        h,
+      );
+      expect(h.confirm).not.toHaveBeenCalled();
+      expect(h.addExam).not.toHaveBeenCalled();
+      expect(widgets(parts)[0].cancelled).toBe(true);
+    });
+
+    it("creates nothing when the name is missing", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<ADD_EXAM>||2026-08-20||Hard</ADD_EXAM>",
+        h,
+      );
+      expect(h.addExam).not.toHaveBeenCalled();
+      expect(widgets(parts)[0].cancelled).toBe(true);
+    });
+  });
+
+  describe("COMPLETE_TASK", () => {
+    it("asks first, then marks the task done", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<COMPLETE_TASK>Read chapter 3</COMPLETE_TASK>",
+        h,
+      );
+      expect(h.confirm).toHaveBeenCalledWith(
+        expect.stringContaining("Read chapter 3"),
+        expect.objectContaining({ title: "AI Task Update" }),
+      );
+      expect(h.completeTask).toHaveBeenCalledWith("Read chapter 3");
+      expect(widgets(parts)[0]).toMatchObject({
+        cancelled: false,
+        subject: "Read chapter 3",
+      });
+    });
+
+    it("says so when no task matches, rather than claiming success", async () => {
+      const h = handlers({ completeTask: vi.fn().mockResolvedValue(false) });
+      const parts = await executeActions(
+        "<COMPLETE_TASK>Nonexistent</COMPLETE_TASK>",
+        h,
+      );
+      expect(widgets(parts)[0]).toMatchObject({
+        cancelled: true,
+        text: "Couldn't find that task:",
+      });
+    });
+
+    it("does nothing when the student declines", async () => {
+      const h = handlers({ confirm: vi.fn().mockResolvedValue(false) });
+      await executeActions("<COMPLETE_TASK>Read chapter 3</COMPLETE_TASK>", h);
+      expect(h.completeTask).not.toHaveBeenCalled();
+    });
+
+    it("may repeat, like ADD_TASK", async () => {
+      const h = handlers();
+      await executeActions(
+        "<COMPLETE_TASK>one</COMPLETE_TASK><COMPLETE_TASK>two</COMPLETE_TASK>",
+        h,
+      );
+      expect(h.completeTask).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("DELETE_TASK", () => {
+    it("asks with danger styling, then deletes", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<DELETE_TASK>Old task</DELETE_TASK>",
+        h,
+      );
+      expect(h.confirm).toHaveBeenCalledWith(
+        expect.stringContaining("Old task"),
+        expect.objectContaining({ title: "AI Task Deletion", danger: true }),
+      );
+      expect(h.deleteTask).toHaveBeenCalledWith("Old task");
+      expect(widgets(parts)[0].cancelled).toBe(false);
+    });
+
+    it("says so when no task matches", async () => {
+      const h = handlers({ deleteTask: vi.fn().mockResolvedValue(false) });
+      const parts = await executeActions(
+        "<DELETE_TASK>Nonexistent</DELETE_TASK>",
+        h,
+      );
+      expect(widgets(parts)[0]).toMatchObject({
+        cancelled: true,
+        text: "Couldn't find that task:",
+      });
+    });
+
+    it("may repeat, like ADD_TASK", async () => {
+      const h = handlers();
+      await executeActions(
+        "<DELETE_TASK>one</DELETE_TASK><DELETE_TASK>two</DELETE_TASK>",
+        h,
+      );
+      expect(h.deleteTask).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("RESCHEDULE_TASK", () => {
+    it("asks first, then updates the due date", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<RESCHEDULE_TASK>Read chapter 3||2026-08-14</RESCHEDULE_TASK>",
+        h,
+      );
+      expect(h.confirm).toHaveBeenCalledWith(
+        expect.stringContaining("2026-08-14"),
+        expect.objectContaining({ title: "AI Task Update" }),
+      );
+      expect(h.rescheduleTask).toHaveBeenCalledWith(
+        "Read chapter 3",
+        "2026-08-14",
+      );
+      expect(widgets(parts)[0]).toMatchObject({
+        cancelled: false,
+        subject: "Read chapter 3",
+      });
+    });
+
+    it("creates nothing when the date is missing or malformed", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<RESCHEDULE_TASK>Read chapter 3||next friday</RESCHEDULE_TASK>",
+        h,
+      );
+      expect(h.confirm).not.toHaveBeenCalled();
+      expect(h.rescheduleTask).not.toHaveBeenCalled();
+      expect(widgets(parts)[0].cancelled).toBe(true);
+    });
+
+    it("does not repeat, unlike COMPLETE_TASK/DELETE_TASK", async () => {
+      const h = handlers();
+      await executeActions(
+        "<RESCHEDULE_TASK>one||2026-08-14</RESCHEDULE_TASK><RESCHEDULE_TASK>two||2026-08-15</RESCHEDULE_TASK>",
+        h,
+      );
+      expect(h.rescheduleTask).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("DELETE_EXAM", () => {
+    it("asks with danger styling, then deletes", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<DELETE_EXAM>Chemistry Final</DELETE_EXAM>",
+        h,
+      );
+      expect(h.confirm).toHaveBeenCalledWith(
+        expect.stringContaining("Chemistry Final"),
+        expect.objectContaining({ title: "AI Exam Deletion", danger: true }),
+      );
+      expect(h.deleteExam).toHaveBeenCalledWith("Chemistry Final");
+      expect(widgets(parts)[0].cancelled).toBe(false);
+    });
+
+    it("says so when no exam matches", async () => {
+      const h = handlers({ deleteExam: vi.fn().mockResolvedValue(false) });
+      const parts = await executeActions(
+        "<DELETE_EXAM>Nonexistent</DELETE_EXAM>",
+        h,
+      );
+      expect(widgets(parts)[0]).toMatchObject({
+        cancelled: true,
+        text: "Couldn't find that exam:",
+      });
+    });
+
+    it("does not repeat", async () => {
+      const h = handlers();
+      await executeActions(
+        "<DELETE_EXAM>one</DELETE_EXAM><DELETE_EXAM>two</DELETE_EXAM>",
+        h,
+      );
+      expect(h.deleteExam).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -240,6 +519,33 @@ describe("executeActions", () => {
       const h = handlers({ confirm: vi.fn().mockResolvedValue(false) });
       const parts = await executeActions("<ADD_QUIZ>Topic</ADD_QUIZ>", h);
       expect(h.generateQuiz).not.toHaveBeenCalled();
+      expect(widgets(parts)[0].cancelled).toBe(true);
+    });
+  });
+
+  describe("ADD_DECK", () => {
+    it("asks first, then kicks off generation", async () => {
+      const h = handlers();
+      const parts = await executeActions(
+        "<ADD_DECK>Photosynthesis</ADD_DECK>",
+        h,
+      );
+
+      expect(h.confirm).toHaveBeenCalledWith(
+        expect.stringContaining("Photosynthesis"),
+        expect.objectContaining({ title: "AI Flashcard Generation" }),
+      );
+      expect(h.generateDeck).toHaveBeenCalledWith("Photosynthesis");
+      expect(widgets(parts)[0]).toMatchObject({
+        cancelled: false,
+        subject: "Photosynthesis",
+      });
+    });
+
+    it("generates nothing when declined", async () => {
+      const h = handlers({ confirm: vi.fn().mockResolvedValue(false) });
+      const parts = await executeActions("<ADD_DECK>Topic</ADD_DECK>", h);
+      expect(h.generateDeck).not.toHaveBeenCalled();
       expect(widgets(parts)[0].cancelled).toBe(true);
     });
   });

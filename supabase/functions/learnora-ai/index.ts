@@ -393,7 +393,14 @@ Deno.serve(async (req) => {
         const personaMap = {
             coach: 'a strict, tough-love, demanding academic coach',
             buddy: 'a casual, friendly, bro-like, relaxed study partner',
-            tutor: 'a patient, explanatory, supportive tutor'
+            tutor: 'a patient, explanatory, supportive tutor',
+            // The client's fourth persona option (webapp/src/lib/settings.ts's
+            // AI_PERSONA_OPTIONS / AI_PERSONA_QUIZ_HOST). Without an entry
+            // here `personaMap[s.aiPersona] || personaMap.tutor` silently
+            // falls back to tutor for every student who picks it — degrades
+            // gracefully, but the point of adding the option was for it to
+            // actually change the voice.
+            professor: 'a formal, precise, academic professor who explains things in textbook style'
         };
 
         const modeInstructions = mode === "plan"

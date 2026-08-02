@@ -10,7 +10,7 @@ import { Storage } from "./storage";
 
 export const SETTINGS_KEY = "learnora_settings";
 
-export type AiPersona = "tutor" | "coach" | "buddy";
+export type AiPersona = "tutor" | "coach" | "buddy" | "professor";
 export type AiConciseness = "short" | "medium" | "detailed";
 
 export interface Settings {
@@ -38,7 +38,27 @@ export const AI_PERSONA_OPTIONS: ReadonlyArray<{
   { value: "tutor", label: "Tutor (Patient & Explanatory)" },
   { value: "coach", label: "Coach (Strict & Tough Love)" },
   { value: "buddy", label: "Buddy (Casual & Friendly)" },
+  { value: "professor", label: "Professor (Formal & Precise)" },
 ];
+
+/* The Create dialog's quiz-generation flow has its own, richer "AI Host
+ * Personality" picker (components/create/MaterialPanel.tsx) — four options
+ * with the same underlying idea as aiPersona but a separate free-string
+ * vocabulary the global setting never fed into, so a student who set their
+ * assistant to "Coach" in Preferences still got a quiz hosted by the
+ * hardcoded "Friendly Tutor" default every time. This is the map that ties
+ * them together: MaterialPanel seeds its initial selection from here rather
+ * than a fixed default, so the two surfaces agree unless the student
+ * deliberately picks something different for one quiz. The value on the
+ * right is unchanged from before — it's the literal string
+ * `buildQuizPrompt` interpolates as "AI Host Personality: …", so this is
+ * additive (a new source for an initial value), not a breaking rename. */
+export const AI_PERSONA_QUIZ_HOST: Record<AiPersona, string> = {
+  tutor: "Friendly Tutor",
+  coach: "Strict Coach",
+  buddy: "Sarcastic Buddy",
+  professor: "Academic Professor",
+};
 
 export const AI_LENGTH_OPTIONS: ReadonlyArray<{
   value: AiConciseness;

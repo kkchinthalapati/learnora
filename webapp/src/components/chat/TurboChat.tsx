@@ -67,6 +67,7 @@ export function TurboChat() {
     send,
     attachFile,
     clearFile,
+    saveCards,
   } = useChat();
 
   const [input, setInput] = useState("");
@@ -231,7 +232,7 @@ export function TurboChat() {
             aria-pressed={isFullscreen}
             onClick={toggleFullscreen}
           >
-            ⛶
+            <Icon name={isFullscreen ? "minimize" : "maximize"} size={16} />
           </button>
           <button
             type="button"
@@ -239,7 +240,7 @@ export function TurboChat() {
             aria-label="Close AI chat"
             onClick={close}
           >
-            ✖
+            <Icon name="x" size={16} />
           </button>
         </div>
       </div>
@@ -251,7 +252,11 @@ export function TurboChat() {
           </div>
         ) : (
           messages.map((message) => (
-            <ChatMessageBubble key={message.id} message={message} />
+            <ChatMessageBubble
+              key={message.id}
+              message={message}
+              onSaveCards={saveCards}
+            />
           ))
         )}
       </div>
@@ -279,7 +284,7 @@ export function TurboChat() {
             aria-label={`Remove ${file.name}`}
             onClick={clearFile}
           >
-            ✖
+            <Icon name="x" size={12} />
           </button>
         </div>
       ) : null}
@@ -322,7 +327,7 @@ export function TurboChat() {
           aria-label="Send message"
           disabled={isSending}
         >
-          →
+          <Icon name="send" size={18} />
         </button>
       </form>
     </div>

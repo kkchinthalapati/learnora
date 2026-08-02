@@ -55,9 +55,12 @@ function serve({
 function renderReview(deckId = "d-1") {
   return renderWithAuth(
     <MemoryRouter initialEntries={[`/review/${deckId}`]}>
-      {/* The AI-grading box sends through the same chat pipeline the Turbo
-          panel uses, so it needs ChatProvider inside the router exactly like
-          the dashboard's command bar does (see DashboardView.test.tsx). */}
+      {/* ReviewView still calls useChat() for registerFlashcardGrader — a
+          <GRADE_FLASHCARD> tag from the floating Turbo panel needs somewhere
+          to click through to — so this needs ChatProvider inside the router
+          exactly like the dashboard's command bar does (see
+          DashboardView.test.tsx), even though the AI-grade box's own request
+          no longer goes through it. */}
       <ChatProvider>
         <Routes>
           <Route path="/review/:deckId" element={<ReviewView />} />
@@ -344,12 +347,12 @@ describe("ReviewView", () => {
     ).toBeInTheDocument();
   });
 
-  /* End to end: the "AI grade" box sends the same prompt the vanilla built
-     (js/router.js:726-736) through the real chat pipeline, and a reply
-     containing <GRADE_FLASHCARD> must click through to the same `scoreCard`
-     the manual buttons use — the loose end named in Step 17's own ledger
-     entry ("Whoever lands step 18 should wire it into ChatProvider's
-     handlers"). */
+  /* End to end: the "AI grade" box sends the prompt the vanilla built
+     (js/router.js:726-736) directly via callEdge — not through the workspace
+     chat pipeline, which used to wrap it in the full buildSystemContext for
+     no reason a single-tag grading request needed (see ReviewView's own
+     comment on `handleAiGrade`) — and a reply containing <GRADE_FLASHCARD>
+     must click through to the same `scoreCard` the manual buttons use. */
   describe("AI grading", () => {
     it("grades the card from the model's reply and clears the loading status", async () => {
       serve({
@@ -476,12 +479,13 @@ describe("ReviewView", () => {
       );
 
       await waitFor(() => expect(prompt).not.toBe(""));
-      /* The system prompt's own CAPABILITIES section legitimately mentions
-         `<ADD_TASK>` as instructional text — only the interpolated card
-         content is what must never carry a live tag through. */
-      const userPortion = prompt.slice(prompt.indexOf("User message:"));
-      expect(userPortion).toContain("Correct Back:");
-      expect(userPortion).not.toContain("<ADD_TASK>");
+      /* The grade request is now the whole prompt, not a slice of one that
+         also legitimately mentions the workspace chat's own CAPABILITIES —
+         this call goes straight to callEdge with no such wrapper (see
+         ReviewView's own comment on why grading no longer routes through
+         the full workspace system prompt). */
+      expect(prompt).toContain("Correct Back:");
+      expect(prompt).not.toContain("<ADD_TASK>");
     });
 
     it("recovers with an error toast when the reply has no usable tag", async () => {

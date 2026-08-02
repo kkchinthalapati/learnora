@@ -42,18 +42,75 @@ describe("buildSystemContext", () => {
     expect(prompt).toContain("Never invent, assume, or hallucinate tasks");
   });
 
-  /* Each of these is the contract for a tag the app executes. */
-  it("declares every executable tag", () => {
+  /* Each of these is the contract for a tag the app executes. NAVIGATE is
+     here too, unlike GRADE_FLASHCARD: it does something from anywhere in the
+     app, so it belongs in the always-on list rather than gated to one
+     activeContext branch — see the "teaches GRADE_FLASHCARD" test below. */
+  it("declares every globally-executable tag", () => {
     const prompt = buildSystemContext(base);
     for (const tag of [
       "ADD_TASK",
+      "COMPLETE_TASK",
+      "DELETE_TASK",
+      "RESCHEDULE_TASK",
+      "ADD_EXAM",
+      "DELETE_EXAM",
       "ADD_QUIZ",
+      "ADD_DECK",
       "ADD_PLAN",
       "START_TIMER",
       "SET_THEME",
+      "NAVIGATE",
     ]) {
       expect(prompt).toContain(`<${tag}>`);
     }
+  });
+
+  /* ADD_TASK's due-date suffix and everything past it are new capability,
+     not a port — the underlying API calls (tasksApi.add's due date,
+     tasksApi.toggle/delete/updateDueDate, examsApi.save/delete,
+     generateDeckFromTopic) already existed; chat simply had no way to reach
+     any of them. */
+  it("teaches the ADD_TASK due-date suffix", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).toContain("||DUE:YYYY-MM-DD");
+    expect(prompt).toContain("never guess one");
+  });
+
+  it("teaches the ADD_EXAM shape", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).toContain(
+      "<ADD_EXAM>Exam name||YYYY-MM-DD||Difficulty</ADD_EXAM>",
+    );
+  });
+
+  it("teaches COMPLETE_TASK/DELETE_TASK to match WORKSPACE STATE exactly", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).toContain("must match one listed in WORKSPACE STATE");
+  });
+
+  it("teaches the RESCHEDULE_TASK shape", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).toContain(
+      "<RESCHEDULE_TASK>the exact task name||YYYY-MM-DD</RESCHEDULE_TASK>",
+    );
+  });
+
+  it("distinguishes ADD_DECK from ADD_QUIZ", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).toContain(
+      "Use ADD_QUIZ instead when they ask to be quizzed",
+    );
+  });
+
+  /* GRADE_FLASHCARD is real, wired capability (ReviewView registers a grader
+     via ChatProvider) that was never once described to the model in either
+     app — so it could never actually fire from ordinary conversation. Gated
+     to the review activeContext rather than declared globally: the tag does
+     nothing outside a review session, and teaching it everywhere would
+     invite "grade my last quiz answer a 4" where it silently no-ops. */
+  it("does not teach GRADE_FLASHCARD outside a review session", () => {
+    expect(buildSystemContext(base)).not.toContain("GRADE_FLASHCARD");
   });
 
   it("keeps the rule that a timer needs a stated duration", () => {
@@ -87,6 +144,14 @@ describe("activeContextForPath", () => {
 
   it("recognises flashcard review", () => {
     expect(activeContextForPath("/review/d-1")).toContain("flashcard review");
+  });
+
+  it("teaches GRADE_FLASHCARD only in a review session, gated on self-rating", () => {
+    const context = activeContextForPath("/review/d-1");
+    expect(context).toContain("<GRADE_FLASHCARD>n</GRADE_FLASHCARD>");
+    expect(context).toContain(
+      "Never emit it unless they've clearly self-rated",
+    );
   });
 
   it("feeds the note body in as tutoring context", () => {

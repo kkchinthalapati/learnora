@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
+import { callEdge } from "../../api/ai";
 import type { Flashcard } from "../../api/types";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
 import { Skeleton } from "../../components/Skeleton";
 import { useChat } from "../../context/chat";
+import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
 import { useAllDecks } from "../../hooks/useDecks";
 import {
@@ -12,6 +14,7 @@ import {
   useUpdateFlashcardReview,
 } from "../../hooks/useFlashcards";
 import { fenceUntrusted } from "../../lib/actionTags";
+import { executeActions, type ActionHandlers } from "../../lib/chatActions";
 import { dueCardsFrom, nextReviewState } from "./srs";
 import styles from "./review.module.css";
 
@@ -124,6 +127,33 @@ Based on how close I am, issue a <GRADE_FLASHCARD>X</GRADE_FLASHCARD> command wh
 4 = Easy (perfect)
 Also provide a short 1-sentence feedback.`;
 
+/** `AI_GRADE_PROMPT` only ever asks for one tag, so `executeActions` only
+ *  ever needs one real handler — the rest exist purely to satisfy
+ *  `ActionHandlers`'s shape and are never reachable from this prompt. A
+ *  fresh object per call is cheap and avoids memoising a dependency on
+ *  `scoreCard`, which itself changes identity every card. */
+function gradeOnlyHandlers(scoreCard: (score: number) => void): ActionHandlers {
+  const unreachable = () => {
+    throw new Error("AI_GRADE_PROMPT does not ask for this tag");
+  };
+  return {
+    confirm: async () => false,
+    addTask: unreachable,
+    completeTask: unreachable,
+    deleteTask: unreachable,
+    rescheduleTask: unreachable,
+    addExam: unreachable,
+    deleteExam: unreachable,
+    startTimer: () => {},
+    setTheme: () => false,
+    navigate: () => false,
+    generateQuiz: () => {},
+    generateDeck: () => {},
+    generatePlan: () => {},
+    gradeFlashcard: scoreCard,
+  };
+}
+
 function ReviewSession({
   deckTitle,
   cards: initialCards,
@@ -153,7 +183,8 @@ function ReviewSession({
   const aiGradeInFlight = useRef(false);
 
   const updateReview = useUpdateFlashcardReview();
-  const { send, registerFlashcardGrader } = useChat();
+  const { registerFlashcardGrader } = useChat();
+  const { settings } = useSettings();
   const { showToast } = useToast();
 
   const finished = index >= cards.length;
@@ -184,13 +215,15 @@ function ReviewSession({
     [cards, index, updateReview, showToast],
   );
 
-  /* The chat sits above the router and is the only thing that ever sees a
-     `<GRADE_FLASHCARD>` tag (it comes back from `send()` below, or from the
-     Turbo chat panel if the student asked it to grade something directly).
-     Registering re-arms on every card change, the same way the vanilla's
-     `bindScore` closures read `cards[currentIndex]` fresh on every click
-     (js/router.js:777-789) rather than the card that was current when the
-     button was first bound. */
+  /* Registered so a `<GRADE_FLASHCARD>` tag from the *floating* Turbo panel
+     (a student who happens to chat "I knew that one" while reviewing) can
+     still reach this session — see chatPrompt.ts's review-scoped teaching of
+     that tag. The AI-grade box below this component does not go through the
+     registered ref at all; it grades directly, for the reasons in
+     `handleAiGrade`'s own comment. Registering re-arms on every card change,
+     the same way the vanilla's `bindScore` closures read `cards[currentIndex]`
+     fresh on every click (js/router.js:777-789) rather than the card that was
+     current when the button was first bound. */
   useEffect(() => {
     registerFlashcardGrader(scoreCard);
     return () => registerFlashcardGrader(null);
@@ -220,14 +253,33 @@ function ReviewSession({
     /* Flips to reveal the correct answer while grading, same as the vanilla
        (js/router.js:721-724). */
     setFlipped(true);
-    /* `send` never throws — a failed request lands in the chat as an error
-       message instead of rejecting (see ChatProvider.send's catch), so this
-       always resolves. The vanilla had no recovery at all if the reply never
-       contained a usable tag: its "AI is grading..." text was set once
-       (js/router.js:718-719) and nothing ever replaced it. Checking the ref
-       here — `scoreCard` clears it on success — means a bad or missing tag
-       surfaces as a real error instead of a screen stuck forever. */
-    await send(AI_GRADE_PROMPT(card, trimmed));
+    try {
+      /* A direct callEdge, not `useChat().send()`. The AI_GRADE_PROMPT below
+         is a complete, self-contained request — it needs no pending tasks,
+         no upcoming exams, no active-view text, and none of the dozen other
+         tags the workspace chat's CAPABILITIES section teaches, none of
+         which are relevant to grading one flashcard. Sending it through
+         `send()` used to wrap it in the entire buildSystemContext anyway —
+         more tokens, a slower reply, for a request that only ever needed one
+         tag and one sentence back. Persona/conciseness/language voice is
+         still applied: the edge function's own systemInstruction (built from
+         `settings`, server-side) covers that regardless of what the client
+         sends as history. */
+      const { text } = await callEdge({
+        history: [{ role: "user", content: AI_GRADE_PROMPT(card, trimmed) }],
+        settings,
+      });
+      await executeActions(text, gradeOnlyHandlers(scoreCard));
+    } catch {
+      /* Falls through to the same "couldn't grade" recovery below as a reply
+         with no usable tag — a transport failure and a model that ignored
+         the instruction look the same to the student: nothing graded, try
+         again. The vanilla had no recovery at all if the reply never
+         contained a usable tag: its "AI is grading..." text was set once
+         (js/router.js:718-719) and nothing ever replaced it. Checking the ref
+         here — `scoreCard` clears it on success — means either failure mode
+         surfaces as a real error instead of a screen stuck forever. */
+    }
     if (aiGradeInFlight.current) {
       aiGradeInFlight.current = false;
       setGrading(false);

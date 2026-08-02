@@ -14,11 +14,19 @@ import {
   PlanShapeError,
 } from "../api/aiPlan";
 import { generateQuizFromTopic, QuizShapeError } from "../api/aiQuiz";
+import { decksApi } from "../api/decks";
+import { examsApi } from "../api/exams";
+import { flashcardsApi } from "../api/flashcards";
 import { notesApi } from "../api/notes";
+import { generateDeckFromTopic, DeckShapeError } from "../api/studyPackage";
 import { tasksApi } from "../api/tasks";
+import { decksKeys } from "../hooks/useDecks";
+import { examsKeys } from "../hooks/useExams";
+import { flashcardsKeys } from "../hooks/useFlashcards";
 import { plansKeys } from "../hooks/usePlans";
 import { quizzesKeys } from "../hooks/useQuizzes";
 import { tasksKeys } from "../hooks/useTasks";
+import { formatMonthDay } from "../lib/date";
 import {
   executeActions,
   pathForNavigateTarget,
@@ -73,8 +81,28 @@ function detectFlashcardReply(text: string) {
   return cards;
 }
 
+/** Resolves a `COMPLETE_TASK`/`DELETE_TASK`/`RESCHEDULE_TASK`/`DELETE_EXAM`
+ *  tag's name against a freshly-fetched list. The model only ever sees names
+ *  in WORKSPACE STATE, never a stable id, so an exact case-insensitive match
+ *  is the only handle chat has on an existing row — same reasoning as the
+ *  grounding rules' "only reference tasks and exams you can see". */
+function findByName<T>(
+  items: T[],
+  name: string,
+  getName: (item: T) => string,
+): T | undefined {
+  const target = name.trim().toLowerCase();
+  return items.find((item) => getName(item).trim().toLowerCase() === target);
+}
+
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  /* Read by saveCards, which needs the current message's cards but must not
+     itself change identity on every new message the way depending on
+     `messages` directly would — send() doesn't take that dependency either,
+     for the same reason (see pathnameRef below for the established pattern). */
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -170,12 +198,55 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const handlers = useMemo<ActionHandlers>(
     () => ({
       confirm,
-      addTask: async (text) => {
-        await tasksApi.add(text);
+      addTask: async (text, dueDate) => {
+        await tasksApi.add(text, dueDate ?? null);
         /* Invalidated through the client rather than a mutation hook: the
            chat can be closed (unmounting an observer) between the confirm and
            the write landing, and the task list must still refresh. */
         await qc.invalidateQueries({ queryKey: tasksKeys.all });
+      },
+      completeTask: async (name) => {
+        const tasks = await tasksApi.fetch();
+        const match = findByName(tasks, name, (t) => t.text);
+        if (!match) return false;
+        // Idempotent: a task already done stays done rather than being
+        // toggled back to pending by a second "mark it done" request.
+        if (!match.is_done) await tasksApi.toggle(match.id, false);
+        await qc.invalidateQueries({ queryKey: tasksKeys.all });
+        return true;
+      },
+      deleteTask: async (name) => {
+        const tasks = await tasksApi.fetch();
+        const match = findByName(tasks, name, (t) => t.text);
+        if (!match) return false;
+        await tasksApi.delete(match.id);
+        await qc.invalidateQueries({ queryKey: tasksKeys.all });
+        return true;
+      },
+      rescheduleTask: async (name, dueDate) => {
+        const tasks = await tasksApi.fetch();
+        const match = findByName(tasks, name, (t) => t.text);
+        if (!match) return false;
+        await tasksApi.updateDueDate(match.id, dueDate);
+        await qc.invalidateQueries({ queryKey: tasksKeys.all });
+        return true;
+      },
+      addExam: async (name, date, difficulty) => {
+        await examsApi.save({
+          exam_name: name,
+          exam_date: date,
+          difficulty,
+          status: "Scheduled",
+        });
+        await qc.invalidateQueries({ queryKey: examsKeys.all });
+      },
+      deleteExam: async (name) => {
+        const exams = await examsApi.fetch();
+        const match = findByName(exams, name, (e) => e.exam_name);
+        if (!match) return false;
+        await examsApi.delete(match.id);
+        await qc.invalidateQueries({ queryKey: examsKeys.all });
+        return true;
       },
       startTimer: (minutes) => {
         startPreset({ countdown: minutes }, "countdown");
@@ -201,6 +272,22 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               (err instanceof AiError && err.refused)
                 ? err.message
                 : "Failed to generate quiz. Please try again.";
+            showToast(message, { error: true });
+          });
+      },
+      generateDeck: (topic) => {
+        generateDeckFromTopic(topic, settings)
+          .then(() => {
+            qc.invalidateQueries({ queryKey: decksKeys.all });
+            showToast("Flashcard deck generated successfully!");
+            void navigate("/library/flashcards");
+          })
+          .catch((err: unknown) => {
+            const message =
+              err instanceof DeckShapeError ||
+              (err instanceof AiError && err.refused)
+                ? err.message
+                : "Failed to generate flashcards. Please try again.";
             showToast(message, { error: true });
           });
       },
@@ -362,6 +449,50 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     [file, handlers, settings],
   );
 
+  const saveCards = useCallback(
+    async (messageId: string) => {
+      const message = messagesRef.current.find((m) => m.id === messageId);
+      if (!message?.cards?.length || message.savedDeckId) return;
+
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, savingCards: true } : m)),
+      );
+
+      try {
+        // Filed nowhere — same as a Create pipeline "Topic" source — since a
+        // chat reply has no folder of its own to suggest.
+        const deck = await decksApi.add(
+          null,
+          `Chat Flashcards — ${formatMonthDay(new Date())}`,
+        );
+        await flashcardsApi.addBatch(deck.id, message.cards);
+        await Promise.all([
+          qc.invalidateQueries({ queryKey: decksKeys.all }),
+          qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount }),
+        ]);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? { ...m, savingCards: false, savedDeckId: deck.id }
+              : m,
+          ),
+        );
+        showToast("Saved to your flashcard library.");
+      } catch (err) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId ? { ...m, savingCards: false } : m,
+          ),
+        );
+        showToast(
+          err instanceof Error ? err.message : "Failed to save flashcards.",
+          { error: true },
+        );
+      }
+    },
+    [qc, showToast],
+  );
+
   const value = useMemo<ChatApi>(
     () => ({
       messages,
@@ -378,6 +509,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       send,
       attachFile,
       clearFile,
+      saveCards,
       registerFlashcardGrader,
     }),
     [
@@ -395,6 +527,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       send,
       attachFile,
       clearFile,
+      saveCards,
       registerFlashcardGrader,
     ],
   );
