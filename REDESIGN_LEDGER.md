@@ -1,15 +1,17 @@
 # Learnora Redesign Ledger
 
-Last updated: 2026-08-03 — Phase 6 rollout: quiz batch VERIFIED (see footnote ⁷) — the shared
-`.panel` shell across all 5 QuizRunner/QuizReview states migrated to `<Card>`, an exact match on
-every axis. plan batch VERIFIED the round before (footnote ⁶) — all three `<div>`-rooted glass
-shells (summary card, AI summary, empty state) migrated to `<Card>`. library batch VERIFIED two
-rounds back (footnote ⁵) — the `<PageHeader>` primitive is now built (Library was its declared
-first consumer) and applied, plus a Card migration on the subject-workspace sections. Settings
-batch VERIFIED three rounds back (footnote ⁴), extending `<Card>` with a narrow
-`as="div" | "section"` prop. Phase 3 signed off by owner (see `redesign/DESIGN_MOVES.md`,
-`Status: APPROVED 2026-08-03`), including the PageHeader decision (drop the 5 duplicate h1s,
-promote the shell header's label to `<h1>`).
+Last updated: 2026-08-03 — Phase 6 rollout: review batch VERIFIED (see footnote ⁸) —
+documentation-only round, no code changed. Found and corrected a planning error: Review was
+slated as `<PageHeader>`'s second consumer, but its `<h1>` is not a duplicate of the shell's
+(generic "Library") heading the way Library's was, so migrating it would have deleted the page's
+only real heading. quiz batch VERIFIED the round before (footnote ⁷) — the shared `.panel` shell
+across all 5 QuizRunner/QuizReview states migrated to `<Card>`, an exact match on every axis.
+plan batch VERIFIED two rounds back (footnote ⁶). library batch VERIFIED three rounds back
+(footnote ⁵) — the `<PageHeader>` primitive is now built (Library was its declared first
+consumer) and applied. Settings batch VERIFIED four rounds back (footnote ⁴), extending `<Card>`
+with a narrow `as="div" | "section"` prop. Phase 3 signed off by owner (see
+`redesign/DESIGN_MOVES.md`, `Status: APPROVED 2026-08-03`), including the PageHeader decision
+(drop the 5 duplicate h1s, promote the shell header's label to `<h1>`).
 
 This is the master index for the Learnora visual/UX redesign. It is kept deliberately small —
 findings live in `redesign/audit/<batch>.md`, not here. A cold session (no memory of prior
@@ -75,7 +77,10 @@ conversations) should be able to resume this project using only this file plus t
       page-heading gap to fix (already resolved by Phase 4's move #2 correction). See footnote ⁶.
       quiz done round 5 — the shared `.panel` shell (5 call sites) migrated, exact match, zero
       residual. `.reviewQuestion` stayed CSS-only (`<article>` root, single instance — not
-      enough evidence to extend `as` again). See footnote ⁷.
+      enough evidence to extend `as` again). See footnote ⁷. review done round 6 —
+      documentation-only: corrected the PageHeader plan (Review's `<h1>` isn't a duplicate, so
+      it wasn't migrated) and confirmed zero Card candidates (`.card`/`.face` is the flashcard
+      flip, explicitly do-not-migrate; `.header` is a plain layout wrapper). See footnote ⁸.
 - [ ] Phase 7 — Final consistency pass + full test suite + lint green
 
 ## Batch table
@@ -88,7 +93,7 @@ conversations) should be able to resume this project using only this file plus t
 | library | 6 | AUDITED | done (live) | VERIFIED⁵ | PASS | redesign/audit/library.md |
 | plan | 1 | AUDITED | done (live) | VERIFIED⁶ | PASS | redesign/audit/plan.md |
 | quiz | 3 | AUDITED | done (live) | VERIFIED⁷ | PASS | redesign/audit/quiz.md |
-| review | 1 | AUDITED | — | TODO | — | redesign/audit/review.md |
+| review | 1 | AUDITED | — | VERIFIED⁸ | PASS | redesign/audit/review.md |
 | settings | 8 | AUDITED | done (live) | VERIFIED⁴ | PASS | redesign/audit/settings.md |
 | tasks | 3 | AUDITED | — | VERIFIED³ | PASS | redesign/audit/tasks.md |
 | terms | 1 | AUDITED | — | TODO | — | redesign/audit/terms.md |
@@ -160,6 +165,18 @@ residual override was needed at all. `.reviewQuestion` (the per-question card in
 list) stayed CSS-only: it's an `<article>` root and Card only supports `div`/`section`, and a
 single one-off instance doesn't clear the evidence bar that justified extending `as` for
 Settings' 6-file pattern.
+
+⁸ **review VERIFIED, no code changed.** Investigated as `<PageHeader>`'s planned second consumer
+and found the plan was wrong: Review's `<h1>{deckTitle}</h1>` is not a duplicate of the shell's
+heading (which shows the generic "Library" on every `isLibrarySection` route, `/review/:deckId`
+included) — migrating it through `<PageHeader>` would have deleted the page's only real heading
+rather than fixed a duplicate. Corrected in PRIMITIVES.md's PageHeader section; `review` now
+joins `quiz` on the "do not migrate" heading list, both for the identical reason. `.card`/`.face`
+(the flashcard 3D flip) remain explicitly excluded from Card, per the Phase 2 audit's own LOW-
+confidence call — confirmed still accurate on inspection. `.header` is a plain layout wrapper
+(width + margin only), not a glass shell, so there was no Card candidate to migrate either. The
+two hardcoded `border-radius: 20px` literals (exactly `--r-lg`) stay an open, separately-tracked
+LOW finding, same treatment as other rounds' untouched blur-drift findings.
 **Status vocab — Tests:** — / PASS / FAIL (link failure detail in the batch's own file, not here)
 
 ### Screenshot gap — partially closed

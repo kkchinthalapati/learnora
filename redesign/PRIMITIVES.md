@@ -68,9 +68,22 @@ trio is the closest, and it is confined to one batch. Build shell-only, as plann
 `Header.tsx` `.title` element (currently a `<p>`) becomes the page's real `<h1>`. Dashboard,
 Tasks, Exams, Timer, and Settings lose their `.pageHeader`/`<h1>` block entirely — they do
 **not** get a `<PageHeader>` in its place, the shell now covers that role. `<PageHeader>` gets
-built only for the two views that show something the shell cannot: Library (subtitle + actions
-— already has this shape hand-rolled, see move #5) and Review (deck title). Notes' sticky
-toolbar is its own thing, not migrated to this primitive.
+built only for views that show something the shell cannot: Library (subtitle + actions — already
+has this shape hand-rolled, see move #5). Notes' sticky toolbar is its own thing, not migrated to
+this primitive.
+
+**Correction found during Phase 6/Review — Review is NOT a second consumer, contrary to this
+section's original plan.** The reasoning above assumed Review's `.header` `<h1>{deckTitle}</h1>`
+duplicated the shell's own heading the same way Library's did. It does not: `sectionLabel.ts`
+returns the generic `"Library"` for every `isLibrarySection` route (`/library`, `/notes/:id`,
+`/quiz/:id`, `/review/:deckId`) — the shell's `<h1>` on `/review/:deckId` literally says
+"Library", not the deck's name. Review's own `<h1>` is the page's *only* heading that names what
+the student is actually reviewing; migrating it through `<PageHeader>` (whose `title` renders as
+a `<p>`, per the correction below) would silently delete that heading rather than fix a
+duplicate. This is the same pattern already recorded for Quiz's in-panel heading — see "Do not
+migrate these headers" below, which now includes `review` alongside `quiz` for the identical
+reason. No code changed for this batch; see PRIMITIVES.md's Build status and the ledger's review
+footnote.
 
 ```tsx
 interface PageHeaderProps {
@@ -95,8 +108,10 @@ Must render the exact current DOM shape (`<div className={pageHeader}><h1>{title
 queries are unaffected.
 
 **Do not migrate these headers** — audited and confirmed deliberate, each for its own reason:
-`notes` (sticky editor toolbar), `quiz` (heading inside the panel), `terms` and `auth`
-(rendered outside `AppShell`, so they supply their own page chrome).
+`notes` (sticky editor toolbar), `quiz` and `review` (heading inside the panel/section — the
+shell's own `<h1>` on these routes is the generic "Library" label, so the view's own heading is
+not a duplicate and must stay a real `<h1>`), `terms` and `auth` (rendered outside `AppShell`,
+so they supply their own page chrome).
 
 ## Migration strategy (build → prove → roll out, test-safe by construction)
 
@@ -322,6 +337,19 @@ Live-rendered via Playwright (`redesign/screenshots/phase6-verify/quiz-runner.pn
 `quiz-review.png`) — confirmed the host bubble, choice list, and both correct/incorrect review
 states render identically to the pre-migration layout.
 
-**Not yet done**: the remaining 8 batches' Card migration (review, terms, auth, shell,
-components — chat stays N/A), the three NotesAiSidebar surfaces, and Review's own
-`<PageHeader>` adoption (its declared second consumer, per the PageHeader section above).
+**Phase 6 round 6 — Review, 2026-08-03. No code migration — documentation-only round.**
+Investigated Review as PageHeader's planned second consumer and found the plan itself was wrong
+(see the PageHeader section's correction above): its `<h1>{deckTitle}</h1>` is not a duplicate of
+the shell's heading, so migrating it would have deleted the page's one real heading. `.card`/
+`.face` (the flashcard flip) were already flagged LOW confidence / do-not-migate by the Phase 2
+audit — a 3D transform surface (`preserve-3d`, two `backface-visibility` faces), not a content
+card, confirmed unchanged on inspection. `.header` is a plain layout wrapper (width + margin),
+not a glass shell — no Card candidate there either. Net result: this batch has zero Card/
+PageHeader migration work, which is itself a valid, evidence-based outcome (same class of
+finding as Notes' AI sidebar or Tasks' `.item`), not a gap. The two LOW-severity hardcoded
+`border-radius: 20px` literals (`:75`, `:94`, exactly equal to `--r-lg`) stay as an open,
+separately-tracked token-conformance finding — same treatment as the blur-drift findings left
+untouched in prior rounds, unrelated to Card/PageHeader and out of scope here.
+
+**Not yet done**: the remaining 7 batches' Card migration (terms, auth, shell, components — chat
+stays N/A), and the three NotesAiSidebar surfaces.
