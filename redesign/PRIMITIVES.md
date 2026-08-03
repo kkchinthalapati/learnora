@@ -434,7 +434,44 @@ neither touched this round on purpose:**
 confirmed the log-out/theme-toggle buttons render unchanged and the mobile hamburger toggle's
 responsive show/hide still works correctly post-migration.
 
-**Not yet done**: the `components` batch's Card migration (chat stays N/A), the three
-NotesAiSidebar surfaces, rolling `IconButton` out to its other 2 confirmed call sites
+**Phase 6 round 10 — Components, 2026-08-03. No migration — closes two long-open threads.**
+
+**NotesAiSidebar's three surfaces, resolved (this file lives in `views/notes/`, not
+`components/`, but the question was left open since the Notes round — closing it here rather
+than leaving it dangling indefinitely):**
+- `.card` — a real `<button>` (`QuickAction`, `NotesAiSidebar.tsx:85`). Excluded on element type
+  alone, same as every other button-rooted `.card` in the app.
+- `.chat` (`<div>`) — `background: var(--glass-bg)` with **no** blur and **no** shadow, bordered
+  with `--glass-border-subtle`. Checked against all four variants: it has `panel`/`elevated`'s
+  background token but neither's blur/shadow, and `subtle`'s no-blur/no-shadow profile but not
+  its `--surface-2` background. A genuine hybrid, not a 5th variant candidate — one instance
+  doesn't clear the 3-batch bar this project holds new variants to.
+- `.dock` (`<div>`) — background/border match `subtle` exactly, but its radius is a hardcoded
+  `22px`, which is neither `--r-lg` (20px) nor `--r-xl` (24px) — it sits deliberately between
+  them (a rounded chat-input-bar look). Closest near-miss of the three, but still a single
+  instance needing a residual override for one property; same "not a genuine fit" call as
+  Terms' `.tocBox`.
+
+**`create/MaterialPanel`, checked against the audit's "re-declares a card shell" trigger:** on
+inspection neither of its two glass surfaces is actually a Card-shaped panel. `.dropzone` is a
+2px **dashed**-border upload zone (same class of pattern as Library's/Plan's dashed "new" tiles,
+already excluded elsewhere) — dashed borders signal a drop-target affordance, not a content card.
+`.stickyActions` is a sticky footer bar with a background tint but no border and no radius at
+all. The audit's own note hedged this ("the decision to act on it is Phase 3's"); Phase 3 didn't
+select it as one of the 9 approved moves, and up-close neither surface actually matches Card's
+contract, so there's nothing to migrate.
+
+**`formShared`/`SubjectPanel`'s single-instance glass hints, `Button`/`Modal`/`MiniTimer`/
+`commandBar`, all confirmed out of scope**, no new findings: `Button`'s color contract is
+explicitly do-not-touch without re-running `contrast.test.ts`; the floating-surface tier
+(`Modal`/`MiniTimer`/`commandBar`/`chat/.panel`) was already ruled out of Card's scope in this
+doc's own Card section. No new `IconButton` candidates found in `components/` either (grepped
+for other 42px squares — none).
+
+**Verification**: no source changed; this round is a documentation closure only.
+
+**Not yet done**: rolling `IconButton` out to its 2 confirmed remaining call sites
 (`exams.iconBtn` — exact match; `dashboard.dismissBtn` — has a drift to resolve first: missing
-blur, no hover shadow escalation), and Phase 7's nested-`<main>` fix.
+blur, no hover shadow escalation) and Phase 7's nested-`<main>` fix. Every Card/PageHeader/
+IconButton candidate identified across all 15 audited batches has now been resolved, one way or
+another — migrated, or confirmed and documented as not a genuine fit.

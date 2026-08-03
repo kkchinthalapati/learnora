@@ -1,6 +1,11 @@
 # Learnora Redesign Ledger
 
-Last updated: 2026-08-03 — Phase 6 rollout: shell batch VERIFIED (see footnote ¹¹) — built the
+Last updated: 2026-08-03 — Phase 6 rollout: components batch VERIFIED (see footnote ¹²) —
+documentation-only round that closes out every remaining open Card/PageHeader/IconButton
+question in the app, including the long-deferred NotesAiSidebar surfaces (all three confirmed
+not a fit, for three different reasons) and `create/MaterialPanel`'s flagged "re-declares a card
+shell" trigger (on inspection, neither surface is actually card-shaped). shell batch VERIFIED the
+round before (footnote ¹¹) — built the
 `IconButton` primitive (move #7) and applied it to Header's three buttons; found move #7's own
 evidence citation was stale (`library.iconBtn` is a different, smaller button — corrected in
 DESIGN_MOVES.md). The audit's nested-`<main>` HIGH finding is re-confirmed still open, reserved
@@ -95,6 +100,9 @@ conversations) should be able to resume this project using only this file plus t
       See footnote ¹⁰. shell done round 9 — built `IconButton` (move #7), applied to Header;
       corrected move #7's stale `library.iconBtn` citation. Nested-`<main>` HIGH finding
       re-confirmed open, deferred to Phase 7 per the audit's own scoping. See footnote ¹¹.
+      components done round 10 — no migration; closed the NotesAiSidebar and MaterialPanel
+      threads for good, the last two open Card/PageHeader/IconButton questions in the app.
+      See footnote ¹². **Every batch is now VERIFIED or N/A except `chat` (permanently N/A).**
 - [ ] Phase 7 — Final consistency pass + full test suite + lint green
 
 ## Batch table
@@ -114,7 +122,7 @@ conversations) should be able to resume this project using only this file plus t
 | timer | 2 | AUDITED | — | VERIFIED | PASS | redesign/audit/timer.md |
 | auth | 6 | AUDITED | — | VERIFIED¹⁰ | PASS | redesign/audit/auth.md |
 | shell (AppShell/Sidebar/Header) | 3 | AUDITED | done (live) | VERIFIED¹¹ | PASS | redesign/audit/shell.md |
-| components (shared, 29 files) | 29 | AUDITED | — | TODO | — | redesign/audit/components.md |
+| components (shared, 29 files) | 29 | AUDITED | — | VERIFIED¹² | — | redesign/audit/components.md |
 | chat (preserve, audit-only) | 3 | AUDITED | — | N/A | — | redesign/audit/chat.md |
 
 **Status vocab — Audit:** TODO / SCREENSHOTTED / AUDITED
@@ -128,9 +136,10 @@ its Card-shell migration is still Phase 6 work.
 instance) was migrated to `<Card>`. `NotesAiSidebar`'s three surfaces (`.card`, `.chat`,
 `.dock`) were deliberately left alone — `.card` is a real `<button>` (Card is div-only by
 design), and `.chat`/`.dock` don't cleanly match the current variant contract (different
-background token, non-standard radius) without ad hoc per-instance overrides. Left for Phase 6
-once more cross-batch evidence can justify extending the contract properly, rather than forcing
-a fit now. See PRIMITIVES.md's Build status.
+background token, non-standard radius) without ad hoc per-instance overrides. **Resolved
+permanently in the components round (footnote ¹²)**: revisited with the full app's evidence in
+hand and confirmed none of the three clears the bar for extending the contract — this is a
+closed decision, not still-pending. See PRIMITIVES.md's Build status.
 
 ³ **tasks VERIFIED is partial by design**: `.inputCard` → `<Card variant="panel">` (residual
 padding override, since `var(--s-5)`'s flat 20px doesn't match any of Card's padding options).
@@ -227,6 +236,22 @@ Dashboard is follow-up work. The audit's nested-`<main>` HIGH finding (every sig
 double-nests `<main>` inside the shell's own) is re-confirmed still present and deliberately
 untouched — the audit itself scoped that fix to Phase 7 as a ~30-call-site sweep, not a Card/
 IconButton-round change.
+
+¹² **components VERIFIED, no code migrated — closes the app's last two open primitive
+questions.** NotesAiSidebar's three surfaces (open since the Notes round; this file actually
+lives in `views/notes/`, not `components/`, but the question was closed here rather than left
+dangling): `.card` is a real `<button>`, excluded on element type alone; `.chat` (`<div>`) has
+`panel`/`elevated`'s background token but neither's blur/shadow, and `subtle`'s no-blur/no-shadow
+profile but not its background — a genuine hybrid that doesn't clear the 3-batch bar for a 5th
+variant; `.dock` (`<div>`) matches `subtle` on background/border but its `22px` radius sits
+deliberately between `--r-lg` (20px) and `--r-xl` (24px) — the closest near-miss of the three,
+still a single instance needing a residual override, same call as Terms' `.tocBox`.
+`create/MaterialPanel`'s flagged "re-declares a card shell" trigger, checked directly: neither of
+its two glass surfaces is actually card-shaped — `.dropzone` is a dashed-border drop target (not
+a content card, same pattern as Library's/Plan's dashed "new" tiles), `.stickyActions` is a
+sticky footer tint with no border and no radius at all. `formShared`/`SubjectPanel`/`Button`/
+`Modal`/`MiniTimer`/`commandBar` all reconfirmed already out of scope, no new findings. No new
+`IconButton` candidates in `components/` either.
 **Status vocab — Tests:** — / PASS / FAIL (link failure detail in the batch's own file, not here)
 
 ### Screenshot gap — partially closed
