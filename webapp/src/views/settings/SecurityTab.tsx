@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import {
   InlineFeedback,
@@ -81,7 +82,11 @@ export function SecurityTab() {
 
   return (
     <>
-      <section
+      <Card
+        as="section"
+        variant="elevated"
+        radius="lg"
+        padding="lg"
         className={settings.card}
         aria-labelledby="settings-password-heading"
       >
@@ -127,9 +132,13 @@ export function SecurityTab() {
           {changePassword.isPending ? "Updating..." : "Update Password"}
         </Button>
         {passwordFeedback && <InlineFeedback {...passwordFeedback} />}
-      </section>
+      </Card>
 
-      <section
+      <Card
+        as="section"
+        variant="elevated"
+        radius="lg"
+        padding="lg"
         className={settings.card}
         aria-labelledby="settings-sessions-heading"
       >
@@ -161,7 +170,7 @@ export function SecurityTab() {
           </div>
         </div>
         {sessionsFeedback && <InlineFeedback {...sessionsFeedback} />}
-      </section>
+      </Card>
     </>
   );
 }

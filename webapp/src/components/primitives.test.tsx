@@ -142,6 +142,19 @@ describe("Card", () => {
       "true",
     );
   });
+
+  it("renders a section root when asked, keeping the aria-labelledby landmark", () => {
+    render(
+      <>
+        <h3 id="card-heading">Profile</h3>
+        <Card as="section" aria-labelledby="card-heading">
+          content
+        </Card>
+      </>,
+    );
+    const region = screen.getByRole("region", { name: "Profile" });
+    expect(region.tagName).toBe("SECTION");
+  });
 });
 
 describe("Skeleton", () => {

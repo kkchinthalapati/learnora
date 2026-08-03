@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import {
   InlineFeedback,
@@ -95,7 +96,11 @@ export function AccountTab() {
 
   return (
     <>
-      <section
+      <Card
+        as="section"
+        variant="elevated"
+        radius="lg"
+        padding="lg"
         className={styles.card}
         aria-labelledby="settings-profile-heading"
       >
@@ -214,9 +219,13 @@ export function AccountTab() {
           </div>
         )}
         {emailFeedback && <InlineFeedback {...emailFeedback} />}
-      </section>
+      </Card>
 
-      <section
+      <Card
+        as="section"
+        variant="elevated"
+        radius="lg"
+        padding="lg"
         className={styles.card}
         aria-labelledby="settings-export-heading"
       >
@@ -242,7 +251,7 @@ export function AccountTab() {
             </Button>
           </div>
         </div>
-      </section>
+      </Card>
     </>
   );
 }

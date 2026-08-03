@@ -177,18 +177,23 @@
 }
 
 /* -- Card -- */
+/* Shell mostly comes from <Card as="section" variant="elevated" radius="lg"
+   padding="lg">; documented one-off hybrid (redesign/PRIMITIVES.md): --r-lg
+   (not elevated's usual --r-xl) + the inner-bottom shadow layer (elevated)
+   but --shadow-sm at rest instead of elevated's --shadow-md, escalating to
+   --shadow-md on hover. */
 .card {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-lg);
-  padding: var(--s-6);
   margin-bottom: var(--s-5);
-  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-sm);
   transition:
     box-shadow var(--t) var(--ease),
     border-color var(--t) var(--ease);
+}
+
+/* Doubled selector for specificity (0,2,0) — same technique as
+   notes.editorPane, guarantees this wins over Card's own .elevated
+   box-shadow regardless of CSS Modules' cross-file injection order. */
+.card.card {
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-sm);
 }
 
 .card:hover {

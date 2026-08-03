@@ -1,8 +1,9 @@
 # Learnora Redesign Ledger
 
-Last updated: 2026-08-03 — Phase 3 signed off by owner (see `redesign/DESIGN_MOVES.md`,
-`Status: APPROVED 2026-08-03`), including the PageHeader decision (drop the 5 duplicate h1s,
-promote the shell header's label to `<h1>`). Phase 4 (primitives) starting now.
+Last updated: 2026-08-03 — Phase 6 rollout: settings batch VERIFIED (see footnote ⁴), extending
+`<Card>` with a narrow `as="div" | "section"` prop. Phase 3 signed off by owner (see
+`redesign/DESIGN_MOVES.md`, `Status: APPROVED 2026-08-03`), including the PageHeader decision
+(drop the 5 duplicate h1s, promote the shell header's label to `<h1>`).
 
 This is the master index for the Learnora visual/UX redesign. It is kept deliberately small —
 findings live in `redesign/audit/<batch>.md`, not here. A cold session (no memory of prior
@@ -58,8 +59,10 @@ conversations) should be able to resume this project using only this file plus t
       `redesign/screenshots/phase4-verify/` and `phase5-verify/`)**; awaiting the owner's visual
       sign-off before Phase 6 rollout begins.
 - [ ] Phase 6 — Full rollout (remaining 12 batches) — IN PROGRESS, started 2026-08-03.
-      tasks/timer done this round. settings' `.card` needs more care (shared across `<div>`
-      and `<section aria-labelledby>` elements) — deferred to next round rather than rushed.
+      tasks/timer done round 1. settings done round 2 — all 8 instances turned out to be
+      `<section aria-labelledby>` (not mixed with `<div>` as first assumed), so `<Card>` gained
+      a narrow `as="div" | "section"` prop rather than leaving the batch CSS-only. See footnote ⁴
+      and PRIMITIVES.md's Build status.
 - [ ] Phase 7 — Final consistency pass + full test suite + lint green
 
 ## Batch table
@@ -73,7 +76,7 @@ conversations) should be able to resume this project using only this file plus t
 | plan | 1 | AUDITED | — | h1 only¹ | PASS | redesign/audit/plan.md |
 | quiz | 3 | AUDITED | — | TODO | — | redesign/audit/quiz.md |
 | review | 1 | AUDITED | — | TODO | — | redesign/audit/review.md |
-| settings | 8 | AUDITED | — | h1 only¹ | PASS | redesign/audit/settings.md |
+| settings | 8 | AUDITED | done (live) | VERIFIED⁴ | PASS | redesign/audit/settings.md |
 | tasks | 3 | AUDITED | — | VERIFIED³ | PASS | redesign/audit/tasks.md |
 | terms | 1 | AUDITED | — | TODO | — | redesign/audit/terms.md |
 | timer | 2 | AUDITED | — | VERIFIED | PASS | redesign/audit/timer.md |
@@ -103,6 +106,18 @@ padding override, since `var(--s-5)`'s flat 20px doesn't match any of Card's pad
 it's a `<li role="checkbox">` inside a `<ul>`, and Card is div-only by design — swapping would
 break list semantics. `.empty`/`.dashTask` left CSS-only, same reasoning as Notes' AI sidebar
 (non-matching radius/background without ad hoc overrides).
+
+⁴ **settings VERIFIED, all 6 files/8 instances migrated** (Account ×2, Danger ×1, Notifications
+×1, Preferences ×2, Appearance ×1, Security ×2). All 8 turned out to be `<section
+aria-labelledby="...">` landmarks, not a div/section mix as first assumed from the audit —
+`<Card>` was div-only, so rather than leave a real, well-evidenced, 6-file pattern CSS-only,
+`Card` gained a narrow `as?: "div" | "section"` prop (default `"div"`, unchanged for every
+existing call site). This is explicitly **not** general polymorphism: still no `button`/`li`
+targets, ever (NotesAiSidebar's `.card` button and Tasks' `.item`/`<li>` remain permanently
+excluded, same reasoning as footnotes ² and ³). `settings.card`'s one-off hybrid shadow
+(`--glass-inner`+`--glass-inner-bottom`+`--shadow-sm`) kept as a doubled-selector residual
+override, same technique as Notes' `.editorPane`. See PRIMITIVES.md's Build status for the full
+verification record.
 **Status vocab — Tests:** — / PASS / FAIL (link failure detail in the batch's own file, not here)
 
 ### Screenshot gap — partially closed

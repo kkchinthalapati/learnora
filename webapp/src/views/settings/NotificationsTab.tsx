@@ -1,5 +1,6 @@
 import { useCallback, useId, useState } from "react";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { ToggleSwitch } from "../../components/ToggleSwitch";
 import { useSettings } from "../../context/settings";
@@ -45,7 +46,14 @@ export function NotificationsTab() {
   }, []);
 
   return (
-    <section className={styles.card} aria-labelledby="settings-notif-heading">
+    <Card
+      as="section"
+      variant="elevated"
+      radius="lg"
+      padding="lg"
+      className={styles.card}
+      aria-labelledby="settings-notif-heading"
+    >
       <div className={styles.cardHeader}>
         <span className={styles.cardIcon}>
           <Icon name="bell" size={18} />
@@ -114,6 +122,6 @@ export function NotificationsTab() {
           />
         </div>
       </div>
-    </section>
+    </Card>
   );
 }

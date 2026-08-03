@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
@@ -56,7 +57,14 @@ export function PreferencesTab() {
 
   return (
     <>
-      <section className={styles.card} aria-labelledby="settings-ai-heading">
+      <Card
+        as="section"
+        variant="elevated"
+        radius="lg"
+        padding="lg"
+        className={styles.card}
+        aria-labelledby="settings-ai-heading"
+      >
         <div className={styles.cardHeader}>
           <span className={styles.cardIcon}>
             <Icon name="brain" size={18} />
@@ -114,9 +122,16 @@ export function PreferencesTab() {
             </select>
           </div>
         </div>
-      </section>
+      </Card>
 
-      <section className={styles.card} aria-labelledby="settings-l10n-heading">
+      <Card
+        as="section"
+        variant="elevated"
+        radius="lg"
+        padding="lg"
+        className={styles.card}
+        aria-labelledby="settings-l10n-heading"
+      >
         <div className={styles.cardHeader}>
           <span className={styles.cardIcon}>
             <Icon name="globe" size={18} />
@@ -168,7 +183,7 @@ export function PreferencesTab() {
             </select>
           </div>
         </div>
-      </section>
+      </Card>
 
       <div className={styles.actionsRight}>
         <Button

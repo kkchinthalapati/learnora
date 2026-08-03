@@ -138,7 +138,7 @@ wrapper change breaks a test:
 
 | Constraint | Source | Why |
 |---|---|---|
-| `<Card>` must render a **`div`** root — no polymorphic `as` prop | `DashboardView.test.tsx:263,528` | `:528` climbs `.closest("div")` from an `h2` then calls `getByRole("listitem")` (singular). A non-div root makes the climb reach `main` and match every list on the page. |
+| `<Card>` must be able to render a **`div`** root — `as` may only add `"section"`, never `button`/`li` | `DashboardView.test.tsx:263,528` | `:528` climbs `.closest("div")` from an `h2` then calls `getByRole("listitem")` (singular). Any call site without an explicit `as="section"` must stay a div, or the climb reaches `main` and matches every list on the page. (Extended 2026-08-03 for Settings — see Build status.) |
 | Per-section wrappers must stay **`<section>`** | `SubjectDetailPage.test.tsx:100` | It is the `within()` root for the whole file. |
 | Choice rows and list rows must stay **`<li>`** | `QuizReview.test.tsx:83`, `LibraryView.test.tsx:261,264,533,541` | Same — `within()` roots. A `<Card>` *inside* the `<li>` is fine. |
 | Form controls must stay wrapped in **`<label>`** | `create/MaterialPanel.test.tsx:80` | `.closest("label")`. |
@@ -200,7 +200,51 @@ to the Phase 2 baseline screenshots.
 clean, live-rendered via Playwright (`redesign/screenshots/phase5-verify/`) confirming exam
 difficulty colour-coding and the AI sidebar render unchanged.
 
+**Phase 6 round 1 — Tasks and Timer, 2026-08-03**:
+- **Tasks**: `.inputCard` → `<Card variant="panel" padding="none" className={styles.inputCard}>`
+  with a residual `padding: var(--s-5)` override (20px, off the `none`/`sm`/`md`/`lg` scale).
+  `.item`/`.empty`/`.dashTask` deliberately NOT migrated: `.item` is a `<li role="checkbox">`
+  inside a `<ul>` — Card is div-only, swapping would break list semantics — and `.empty`/
+  `.dashTask` don't match the variant contract without ad hoc overrides (same reasoning as
+  Notes' AI sidebar above).
+- **Timer**: `.panel` → `<Card variant="panel" padding="lg" className={styles.panel}>`, an
+  exact match, zero residual override needed.
+
+**Verification (Tasks + Timer)**: `npm test` 933/933, `tsc -b`/`oxlint`/`prettier --check` clean.
+
+**Phase 6 round 2 — Settings, 2026-08-03**: all 8 `.card` instances across 6 files (AccountTab
+×2, DangerTab ×1, NotificationsTab ×1, PreferencesTab ×2, AppearanceTab ×1, SecurityTab ×2)
+migrated to `<Card>`. On inspection every instance turned out to be a
+`<section aria-labelledby="...">` landmark, not a div/section mix as the Phase 2 audit's stub
+assumed — forcing them to `<div>` would have dropped the landmark role and its `aria-labelledby`
+association app-wide.
+
+**Contract change: `Card` gained a narrow `as?: "div" | "section"` prop, default `"div"`.**
+This is a deliberate, scoped extension, not a reversal of the "no polymorphic `as`" constraint
+in the table below — that constraint exists specifically because `DashboardView.test.tsx:528`
+climbs `.closest("div")`, which only requires that *div stays available*, not that it's the only
+option. `button`/`li` targets (NotesAiSidebar's `.card`, Tasks' `.item`) remain permanently
+excluded — `as` is `"div" | "section"` only, by type, not a general polymorphic-component prop.
+A `Card.test.tsx` case (`primitives.test.tsx`) confirms `as="section"` keeps the
+`aria-labelledby` landmark: `getByRole("region", { name: ... })` resolves and the DOM tag is
+`SECTION`.
+
+Every instance mapped cleanly to `<Card as="section" variant="elevated" radius="lg" padding="lg"
+aria-labelledby="...">` (`elevated` because `settings.card`'s own recipe — inner-bottom shadow +
+`--r-lg` + `--shadow-sm` — is one of the two documented one-off hybrids above, and `elevated`'s
+inner-bottom base needed less residual override than `panel` would have). The one-off
+`--shadow-sm` (vs. `elevated`'s default `--shadow-md`) stays a residual `.card.card` doubled-
+selector override in `settings.module.css`, same technique as Notes' `.editorPane`. `DangerTab`'s
+`.dangerCard` modifier (red border-color only) composes unchanged via `className`.
+
+**Verification (Settings)**: `npm test` 934/934 (933 + 1 new `as="section"` Card test), `tsc -b`/
+`oxlint`/`prettier --check` clean. Live-rendered via Playwright across all 6 tabs (screenshots in
+`redesign/screenshots/phase6-verify/`) — confirmed correct glass-panel styling on every section,
+the Danger Zone's red left-border accent, Notifications' toggle switches, Preferences' dropdowns,
+and Appearance's theme-preset grid, all pixel-matching the pre-migration render.
+
 **Not yet done**: `<PageHeader>` component itself (deferred to Phase 6/Library, per the
-migration strategy above — no flagship view actually needs it). The remaining 12 batches'
-Card migration (Phase 6), and the three NotesAiSidebar surfaces noted above once the contract
-has evidence to extend to them properly.
+migration strategy above — no flagship view actually needs it). The remaining 11 batches'
+Card migration (library, plan, quiz, review, terms, auth, shell, components — chat stays N/A),
+and the three NotesAiSidebar surfaces noted above once the contract has evidence to extend to
+them properly.
