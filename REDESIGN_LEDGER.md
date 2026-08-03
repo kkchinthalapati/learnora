@@ -1,7 +1,8 @@
 # Learnora Redesign Ledger
 
-Last updated: 2026-08-02 — Phase 2 complete (all 15 batches AUDITED), Phase 3 synthesized and
-awaiting sign-off
+Last updated: 2026-08-02 — Phase 2 complete (all 15 batches AUDITED via two parallel sessions:
+source-only for 12 batches, live-Playwright-rendered with screenshots for the flagship 3 —
+dashboard/notes/exams). Phase 3 synthesized and awaiting sign-off.
 
 This is the master index for the Learnora visual/UX redesign. It is kept deliberately small —
 findings live in `redesign/audit/<batch>.md`, not here. A cold session (no memory of prior
@@ -57,9 +58,9 @@ conversations) should be able to resume this project using only this file plus t
 
 | Batch | Files | Audit | Screenshots | Redesign | Tests | Notes file |
 |---|---|---|---|---|---|---|
-| dashboard | 8 | AUDITED | — | TODO | — | redesign/audit/dashboard.md |
-| notes | 3 | AUDITED | — | TODO | — | redesign/audit/notes.md |
-| exams | 3 | AUDITED | — | TODO | — | redesign/audit/exams.md |
+| dashboard | 9 | AUDITED | done (live) | TODO | — | redesign/audit/dashboard.md |
+| notes | 3 | AUDITED | done (live) | TODO | — | redesign/audit/notes.md |
+| exams | 3 | AUDITED | done (live) | TODO | — | redesign/audit/exams.md |
 | library | 6 | AUDITED | — | TODO | — | redesign/audit/library.md |
 | plan | 1 | AUDITED | — | TODO | — | redesign/audit/plan.md |
 | quiz | 3 | AUDITED | — | TODO | — | redesign/audit/quiz.md |
@@ -77,20 +78,28 @@ conversations) should be able to resume this project using only this file plus t
 **Status vocab — Redesign:** TODO / IN_PROGRESS / APPLIED / VERIFIED / SIGNED_OFF / N/A
 **Status vocab — Tests:** — / PASS / FAIL (link failure detail in the batch's own file, not here)
 
-### Screenshot gap
+### Screenshot gap — partially closed
 
-The Screenshots column is `—` for every row: **no screenshots were captured in Phase 2.** Every
-view except `terms` and `auth` sits behind Supabase auth, and this audit pass had no signed-in
-session to capture from. The 15 batch files are static code audits.
+Two independent Phase 2 passes ran in parallel: one source-only (12 batches — library, plan,
+quiz, review, settings, tasks, terms, timer, auth, shell, components, chat), one with a working
+live-render setup (3 flagship batches — dashboard, notes, exams). The live pass solved the
+auth problem the source-only pass hit (every view but `terms`/`auth` sits behind Supabase auth)
+by seeding a fake session into `localStorage` (matching what `supabase-js`'s `persistSession`
+reads) and intercepting REST/auth/functions calls via Playwright route mocking with fixtures
+shaped from each batch's own MSW test handlers — see the "Rendering" section at the top of
+`dashboard.md`/`notes.md`/`exams.md` for the exact technique, including two gotchas worth
+carrying into Phase 4: appearance localStorage values must be `JSON.stringify`'d (bare strings
+silently fall back to defaults), and Playwright's `fill()`/`click()` auto-scroll can clip a
+sticky element if the view scrolls its own container rather than the window.
 
-Seven of the nine design moves rest on structural evidence a code read establishes on its own.
-Two — accent restraint (#4) and empty/loading/error polish (#6) — ask visual questions and are
-marked **PENDING VISUAL** in `redesign/DESIGN_MOVES.md`; they cannot be confirmed or killed
-until someone looks at the running app.
-
-**Recommendation: fold visual capture into Phase 4 rather than reopening Phase 2.** The
-primitive swap needs a real before/after diff anyway, so the screenshots get taken once and
-serve both purposes. `PRIMITIVES.md`'s migration strategy now has this as step 0.
+**For dashboard/notes/exams specifically, this resolves the PENDING VISUAL question for moves
+#4 (accent restraint) and #6 (empty/loading/error polish)** — captured live across light/dark/a
+non-default accent preset plus empty/loading/error states for all three. Verdict for these
+three: accent usage reads as tasteful in both themes and the loud `cyberpunk` preset; empty/
+loading/error states are calm and consistent. The remaining 12 batches are still source-only and
+still PENDING VISUAL for #4/#6 — **still recommend folding that visual capture into Phase 4**
+rather than reopening Phase 2 for the rest, since the primitive swap needs a before/after diff
+of those views anyway.
 
 ### Phase 2 headline findings
 
