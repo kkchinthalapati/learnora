@@ -1,6 +1,7 @@
 # Card / PageHeader Primitives
 
-Status: CONTRACT ONLY — not yet built. Built in Phase 4, after Phase 3 design-move sign-off.
+Status: APPROVED, BUILDING NOW (Phase 4, started 2026-08-03). Phase 3 signed off both the
+contract below and the PageHeader decision (see PageHeader section).
 
 **Revised 2026-08-02 against Phase 2 audit evidence.** The variant names below changed: the
 pre-audit guess was `default | flat | subtle`, but the codebase's actual split is two elevation
@@ -63,12 +64,13 @@ trio is the closest, and it is confined to one batch. Build shell-only, as plann
 
 ## PageHeader
 
-**BLOCKED — do not build until the move #2 decision in `DESIGN_MOVES.md` is made.** The audit
-found that the app shell's `Header` already renders the section label, and the five views with
-`.pageHeader` render an `<h1>` with the *same string* directly below it (identical in every
-locale). Building this primitive as specified would systematise a visible double heading.
-The decision — keep the per-view `<h1>`, or promote the shell header's label to `<h1>` and drop
-the duplicates — determines whether this component is needed for five views or two.
+**Decision made 2026-08-03 (see DESIGN_MOVES.md move #2): drop the duplicate h1s.** The shell's
+`Header.tsx` `.title` element (currently a `<p>`) becomes the page's real `<h1>`. Dashboard,
+Tasks, Exams, Timer, and Settings lose their `.pageHeader`/`<h1>` block entirely — they do
+**not** get a `<PageHeader>` in its place, the shell now covers that role. `<PageHeader>` gets
+built only for the two views that show something the shell cannot: Library (subtitle + actions
+— already has this shape hand-rolled, see move #5) and Review (deck title). Notes' sticky
+toolbar is its own thing, not migrated to this primitive.
 
 ```tsx
 interface PageHeaderProps {
@@ -98,21 +100,31 @@ queries are unaffected.
 
 ## Migration strategy (build → prove → roll out, test-safe by construction)
 
-1. Build both primitives targeting **zero visual delta**. Phase 2 captured no screenshots (every
-   view but `terms`/`auth` is behind Supabase auth — see `DESIGN_MOVES.md` "Screenshot gap"), so
-   **take the Dashboard before-shots as step 0 of Phase 4**, with a signed-in session, before
-   touching any CSS. Light + dark, plus one saturated accent preset.
-2. Prove on **Dashboard only**: swap `dashboard.module.css`'s `.card`/`.historyCard`/
-   `.onboardingBanner`/`.pageHeader` usages for `<Card>`/`<PageHeader>`, keep every internal
-   child JSX identical, run `DashboardView.test.tsx` (confirmed to contain `.closest("div")`
-   calls sensitive to wrapper depth — this is the concrete safety gate).
-3. Only after Dashboard's tests pass green: apply to Notes and Exams (the other two flagship
-   picks), each gated on its own test run before moving to the next.
-4. Roll out to the remaining 12 batches, same per-batch loop as the audit: apply → scoped
+1. Build both primitives targeting **zero visual delta**. Before-shots for Dashboard/Notes/Exams
+   already exist (`redesign/screenshots/`, captured live during Phase 2) — reuse those rather
+   than recapturing; only `terms`/`auth`/the other 12 batches need a first capture, done as each
+   is touched rather than all up front.
+2. Prove on **Dashboard**: (a) swap `dashboard.module.css`'s `.card`/`.historyCard`/
+   `.onboardingBanner` usages for `<Card>`, keeping every internal child JSX identical; (b)
+   **drop** `dashboard.module.css`'s `.pageHeader`/`<h1>` block entirely per the move #2
+   decision — Dashboard does not get a `<PageHeader>`, the shell's now-promoted `<h1>` covers
+   it. Run `DashboardView.test.tsx` (confirmed to contain `.closest("div")` calls sensitive to
+   wrapper depth, and `getByRole("heading", ...)` queries that must still resolve against the
+   shell's `<h1>` post-move) — this is the concrete safety gate.
+3. Promote `Header.tsx`'s `.title` from `<p>` to `<h1>` as part of the same change (it's the
+   thing Dashboard's dropped `<h1>` is being replaced by) — one PR, not two, since removing the
+   per-view h1 without the promotion would leave zero h1s on the page.
+4. Only after Dashboard's tests pass green: apply to Notes (Card only — Notes keeps its own
+   toolbar, not touched) and Exams (Card + drop its `.pageHeader` the same way as Dashboard's),
+   each gated on its own test run before moving to the next.
+5. Build `<PageHeader>` itself once Library is reached in Phase 6 (its first real consumer) —
+   no flagship screen in Phase 4/5 actually uses it, per the move #2 decision.
+6. Roll out to the remaining 12 batches, same per-batch loop as the audit: apply → scoped
    `npm test` → screenshot diff (light+dark) → ledger row updated to VERIFIED. Any batch whose
    tests break gets a ledger note with the exact fix needed (e.g. add/remove a wrapper level)
-   rather than reworking the test to fit.
-5. Never touch `components/chat/*` or `components/create/*` internals unless the audit
+   rather than reworking the test to fit. Batches with a `.pageHeader` (Tasks, Timer, Settings)
+   drop it the same way as Dashboard/Exams, not migrate it to `<PageHeader>`.
+7. Never touch `components/chat/*` or `components/create/*` internals unless the audit
    specifically flags card-shell duplication inside them.
    **Audit result: the `create/` condition is met** — `create/MaterialPanel.module.css`
    re-declares a card shell rather than composing one (2 glass shells, 12 accent refs). This
@@ -140,4 +152,4 @@ There are **no snapshot tests** in the app.
 
 ## Build status
 
-Not started.
+Starting now: Card primitive + Dashboard proof-of-concept (Phase 4).

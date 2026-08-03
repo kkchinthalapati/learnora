@@ -1,8 +1,8 @@
 # Learnora Redesign Ledger
 
-Last updated: 2026-08-02 — Phase 2 complete (all 15 batches AUDITED via two parallel sessions:
-source-only for 12 batches, live-Playwright-rendered with screenshots for the flagship 3 —
-dashboard/notes/exams). Phase 3 synthesized and awaiting sign-off.
+Last updated: 2026-08-03 — Phase 3 signed off by owner (see `redesign/DESIGN_MOVES.md`,
+`Status: APPROVED 2026-08-03`), including the PageHeader decision (drop the 5 duplicate h1s,
+promote the shell header's label to `<h1>`). Phase 4 (primitives) starting now.
 
 This is the master index for the Learnora visual/UX redesign. It is kept deliberately small —
 findings live in `redesign/audit/<batch>.md`, not here. A cold session (no memory of prior
@@ -47,9 +47,9 @@ conversations) should be able to resume this project using only this file plus t
 - [x] Phase 1 — Ledger scaffold created
 - [x] Phase 2 — Full audit (all 15 batch rows AUDITED) — code audit done 2026-08-02;
       **screenshots not captured**, see "Screenshot gap" below
-- [ ] Phase 3 — Design moves synthesized + user sign-off (see `redesign/DESIGN_MOVES.md`)
-      — synthesis **done**; sign-off **PENDING** (owner's call). One decision blocks move #2.
-- [ ] Phase 4 — Card/PageHeader primitives built + proven on Dashboard (tests green)
+- [x] Phase 3 — Design moves synthesized + user sign-off — **APPROVED 2026-08-03**
+      (see `redesign/DESIGN_MOVES.md`). Move #2 decision: drop the 5 duplicate h1s.
+- [ ] Phase 4 — Card/PageHeader primitives built + proven on Dashboard (tests green) — IN PROGRESS
 - [ ] Phase 5 — Flagship 3-screen sign-off (Dashboard, Notes, Exams) — user must approve before Phase 6
 - [ ] Phase 6 — Full rollout (remaining 12 batches)
 - [ ] Phase 7 — Final consistency pass + full test suite + lint green
