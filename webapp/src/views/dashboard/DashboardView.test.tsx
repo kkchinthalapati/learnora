@@ -470,7 +470,11 @@ describe("DashboardView", () => {
       serveDashboard();
       renderDashboard();
 
-      await screen.findByRole("heading", { name: "Dashboard" });
+      // The dashboard no longer renders its own "Dashboard" heading (the
+      // app shell's Header supplies the page's <h1> — see move #2 in
+      // redesign/DESIGN_MOVES.md); wait on AIActionsCard's static label
+      // instead as an equivalent "the page has rendered" signal.
+      await screen.findByText("Ask Learnora AI");
       expect(
         screen.queryByText("👋 Welcome to Learnora!"),
       ).not.toBeInTheDocument();

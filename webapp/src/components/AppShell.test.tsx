@@ -32,7 +32,7 @@ function renderShell(initialPath: string, fullName = "Ada Lovelace") {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/" element={<h1>Dashboard view</h1>} />
-        <Route path="/tasks" element={<h1>Tasks view</h1>} />
+        <Route path="/tasks" element={<p>Tasks view</p>} />
         <Route path="/library" element={<h1>Library view</h1>} />
         <Route path="/folders/:folderId" element={<h1>Biology</h1>} />
         <Route path="/settings" element={<h1>Settings view</h1>} />
@@ -165,16 +165,17 @@ describe("AppShell", () => {
     expect(screen.getByText(getGreeting("Ada"))).toBeInTheDocument();
   });
 
-  it("shows the current section as a label, not a competing page heading", () => {
+  it("renders the current section as the page's one <h1>", () => {
     serveDueCount(0);
     renderShell("/tasks");
 
     // The header (a <header> landmark, i.e. role "banner") shows the
-    // section label as plain text, not a second <h1> — the view's own
-    // heading ("Tasks view" here) stays the page's one and only <h1>.
-    expect(
-      within(screen.getByRole("banner")).getByText("Task Manager"),
-    ).toBeInTheDocument();
+    // section label as an <h1> — migrated views don't render their own
+    // competing heading, so this is the page's one and only <h1>.
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(within(screen.getByRole("banner")).getByText("Task Manager")).toBe(
+      heading,
+    );
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 

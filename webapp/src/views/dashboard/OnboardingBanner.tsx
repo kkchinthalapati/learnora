@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { useCreateModal } from "../../context/createModal";
 import { useExams } from "../../hooks/useExams";
@@ -40,7 +41,7 @@ export function OnboardingBanner({ onFocusTaskInput }: OnboardingBannerProps) {
   if (dismissed || !loaded || hasData) return null;
 
   return (
-    <div className={styles.onboardingBanner}>
+    <Card variant="elevated" padding="none" className={styles.onboardingBanner}>
       <div className={styles.onboardingHead}>
         <div>
           <h3>👋 Welcome to Learnora!</h3>
@@ -69,6 +70,6 @@ export function OnboardingBanner({ onFocusTaskInput }: OnboardingBannerProps) {
           <Icon name="list-checks" size={15} /> Add a task
         </Button>
       </div>
-    </div>
+    </Card>
   );
 }

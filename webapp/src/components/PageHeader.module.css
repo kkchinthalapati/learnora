@@ -1,0 +1,33 @@
+/* Matches library.module.css's former .header/.title/.headerSub exactly —
+ * this primitive's first consumer (Library) had already independently
+ * invented this shape, see PRIMITIVES.md. */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-5);
+}
+
+.eyebrow {
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 var(--s-1);
+}
+
+.title {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  margin: 0;
+}
+
+.sub {
+  color: var(--text-muted);
+  margin-top: var(--s-2);
+}

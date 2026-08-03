@@ -2,8 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Button } from "./Button";
+import { Card } from "./Card";
 import { EmptyState } from "./EmptyState";
 import { Icon } from "./Icon";
+import { IconButton } from "./IconButton";
+import { PageHeader } from "./PageHeader";
 import { Skeleton } from "./Skeleton";
 import { ICON_NAMES } from "./icons";
 
@@ -80,6 +83,124 @@ describe("EmptyState", () => {
   it("renders the compact variant as a single line", () => {
     render(<EmptyState size="sm" message="Nothing due today" />);
     expect(screen.getByText("Nothing due today")).toBeInTheDocument();
+  });
+});
+
+describe("Card", () => {
+  it("renders a div root with the panel variant and md padding by default", () => {
+    render(<Card data-testid="card">content</Card>);
+    const card = screen.getByTestId("card");
+    expect(card.tagName).toBe("DIV");
+    expect(card.className).toMatch(/_panel_/);
+    expect(card.className).toMatch(/_padding-md_/);
+    expect(card.className).toMatch(/_radius-lg_/);
+  });
+
+  it("switches recipe and default radius together for the elevated variant", () => {
+    render(
+      <Card variant="elevated" data-testid="card">
+        content
+      </Card>,
+    );
+    const card = screen.getByTestId("card");
+    expect(card.className).toMatch(/_elevated_/);
+    expect(card.className).toMatch(/_radius-xl_/);
+  });
+
+  it("lets an explicit radius override the variant's default", () => {
+    render(
+      <Card variant="elevated" radius="lg" data-testid="card">
+        content
+      </Card>,
+    );
+    expect(screen.getByTestId("card").className).toMatch(/_radius-lg_/);
+  });
+
+  it("combines a caller's className with its own generated classes", () => {
+    render(
+      <Card className="examCard" data-testid="card">
+        content
+      </Card>,
+    );
+    expect(screen.getByTestId("card").className).toContain("examCard");
+  });
+
+  it("only adds the hover-elevation class when opted in", () => {
+    const { rerender } = render(<Card data-testid="card">content</Card>);
+    expect(screen.getByTestId("card").className).not.toMatch(/hoverElevation/);
+
+    rerender(
+      <Card hoverElevation data-testid="card">
+        content
+      </Card>,
+    );
+    expect(screen.getByTestId("card").className).toMatch(/hoverElevation/);
+  });
+
+  it("forwards arbitrary div props like aria-busy", () => {
+    render(<Card aria-busy="true">content</Card>);
+    expect(screen.getByText("content").closest("div")).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+  });
+
+  it("renders a section root when asked, keeping the aria-labelledby landmark", () => {
+    render(
+      <>
+        <h3 id="card-heading">Profile</h3>
+        <Card as="section" aria-labelledby="card-heading">
+          content
+        </Card>
+      </>,
+    );
+    const region = screen.getByRole("region", { name: "Profile" });
+    expect(region.tagName).toBe("SECTION");
+  });
+});
+
+describe("PageHeader", () => {
+  it("renders the title as plain text, not a heading", () => {
+    render(<PageHeader title="Library" />);
+    expect(screen.getByText("Library").tagName).toBe("P");
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+  });
+
+  it("renders sub and actions when given, omitting either when not", () => {
+    const { rerender } = render(<PageHeader title="Library" />);
+    expect(screen.queryByText("subtitle")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+
+    rerender(
+      <PageHeader
+        title="Library"
+        sub="subtitle"
+        actions={<Button>+ Create</Button>}
+      />,
+    );
+    expect(screen.getByText("subtitle")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "+ Create" }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("IconButton", () => {
+  it("defaults to type=button and forwards an accessible name", () => {
+    render(<IconButton aria-label="Log Out">×</IconButton>);
+    const button = screen.getByRole("button", { name: "Log Out" });
+    expect(button).toHaveAttribute("type", "button");
+  });
+
+  it("combines a caller's className with its own generated class", () => {
+    render(
+      <IconButton aria-label="Toggle" className="menuToggle">
+        ☰
+      </IconButton>,
+    );
+    expect(screen.getByRole("button", { name: "Toggle" }).className).toContain(
+      "menuToggle",
+    );
   });
 });
 

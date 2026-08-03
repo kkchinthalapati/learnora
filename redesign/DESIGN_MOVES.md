@@ -1,8 +1,9 @@
 # Design Moves
 
-Status: SYNTHESIZED FROM PHASE 2 AUDIT — **not yet approved.** Do not apply any move below
-beyond the flagship proof-of-concept until this file has a line reading `Status: APPROVED <date>`
-at the top. Phase 3 sign-off is the owner's call, not the audit's.
+Status: APPROVED 2026-08-03. Moves #1, #2 (with the decision below), #3, #5, #7, #8, #9 are
+approved to implement. Moves #4 and #6 remain PENDING VISUAL for the 12 source-only batches —
+approved in principle, but confirm against a screenshot before applying to a given view (already
+confirmed for Dashboard/Notes/Exams via this project's live-rendered flagship audit).
 
 Synthesis date: 2026-08-02. Evidence: all 15 batch files in `redesign/audit/`, each AUDITED.
 
@@ -25,12 +26,12 @@ everywhere.
 | # | Move | Batches at MEDIUM+ | Verdict |
 |---|---|---|---|
 | 1 | Card primitive | 10 | **SURVIVES** — contract needs revision |
-| 2 | PageHeader primitive | 9 | **SURVIVES, BLOCKED** — needs a design decision first |
+| 2 | PageHeader primitive | 9 | **APPROVED** — drop the 5 duplicate h1s (decided 2026-08-03) |
 | 3 | Spacing-scale conformance | 8 | **SURVIVES** — larger than assumed |
 | 4 | Accent restraint | 4 | **PENDING VISUAL** |
 | 5 | Header action-affordance | 4 | **SURVIVES** — already built in Library |
 | 6 | Empty/loading/error polish | 4 | **PENDING VISUAL** |
-| 7 | Icon-button primitive (new) | 4 | **SURVIVES** |
+| 7 | Icon-button primitive (new) | 3 | **SURVIVES** — built in Phase 6/Shell; `library` was a stale citation |
 | 8 | Breakpoint coordination (new) | 6 | **SURVIVES** |
 | 9 | Single `<main>` landmark (new) | 10 | **SURVIVES** — correctness, not taste |
 
@@ -84,7 +85,7 @@ Two further contract-affecting findings:
 `notes.toolbar` 12px, `library` 12px, plus `exams.cell` 8px and `auth.card` 36px (the last two
 look deliberate).
 
-## 2. PageHeader primitive — SURVIVES on count (9 batches), but BLOCKED on a design decision
+## 2. PageHeader primitive — APPROVED (9 batches), decision made 2026-08-03
 
 Confirmed at MEDIUM+ in: dashboard, exams, library, plan, settings, tasks, timer, components
 (all HIGH), review (MEDIUM). The duplication is exactly as predicted: **five byte-identical
@@ -102,19 +103,32 @@ The user reads "Dashboard" twice, stacked, about 20px apart.
 `h1`s per page). That reasoning is sound and was never wrong — but it was written to justify
 keeping both elements, and nothing since has asked whether both should exist.
 
-**Building `<PageHeader>` as specified would systematise this duplication into a primitive.**
-So this move is blocked on one decision, which is the owner's to make:
+**Decision: APPROVED 2026-08-03 — go with the audit's recommendation.** Promote the shell
+header's label (`Header.tsx:66`) to the page's real `<h1>`, and drop the five per-view `<h1>`
+copies on Dashboard, Tasks, Exams, Timer, and Settings. Build `<PageHeader>` only for views
+whose header says something the shell cannot: Library (subtitle + actions), Review (deck
+title), Notes (document title in the sticky toolbar — already its own thing, not a new build).
+This turns the primitive from "extract five copies of a redundant heading" into "a header for
+views that have something of their own to say", and it removes a real double-heading rather
+than encoding it.
 
-> **Decision needed:** should signed-in views keep a per-view `<h1>` that repeats the shell
-> header's label, or should the shell header's label become the page's `<h1>` and the five
-> per-view copies be dropped?
+**Implementation implication for Phase 4**: `Header.tsx`'s `.title` element needs to become a
+real `<h1>` (it's currently a `<p>`, per the comment at `Header.tsx:16-24` explaining why —
+that reasoning was sound for a world with per-view h1s, and no longer applies once those are
+dropped). The five views lose their `.pageHeader`/`<h1>` block entirely; they do not get a
+`<PageHeader>` in its place, since the shell now covers that role for them.
 
-**Audit's recommendation** (not a decision): promote the shell header's label to the `<h1>` and
-drop the five duplicates, then keep `<PageHeader>` only for views whose header says something
-the shell cannot — Library (subtitle + actions), Review (deck title), Notes (document title in
-the toolbar). That turns the primitive from "extract five copies of a redundant heading" into
-"a header for views that have something of their own to say", and it removes a real
-double-heading rather than encoding it.
+**Correction found during Phase 4 implementation, 2026-08-03: the scope above was incomplete
+by two routes.** `Header.tsx`'s title is a single global element — promoting it to `<h1>`
+affects every route at once, not just the five named here. `routes.test.tsx`'s table-driven
+test caught it: Library's top-level `/library` route (`<h1>Library</h1>`, byte-identical to
+`sectionLabel`'s `t("nav_library")`) and `/plan` (`t("header_plan")`, identical to
+`sectionLabel.ts`'s hardcoded `"This week's plan"`) had the exact same duplicate-text problem,
+just not flagged as `.pageHeader` instances in the Phase 2 audit because their markup uses a
+different class name (`.header`/`.summaryCard`, not `.pageHeader`). Fixed the same way: title
+demoted from `<h1>` to plain styled text, shell's `<h1>` is now the page's only one. This does
+**not** touch Library's subject/notes/quiz/review sub-pages — those show genuinely different
+text (a folder/document/deck name), not a duplicate, and were never part of this problem.
 
 Either way, the contract needs one change the evidence is unambiguous about: **PageHeader needs
 a `sub`/subtitle slot.** Two batches independently invented one (`library.headerSub`,
@@ -197,20 +211,24 @@ deliberately gives the **loader** `animation-duration: 3s` instead of `none` —
 stops spinning stops communicating. **Adopt this as the house rule** and check the other
 reduced-motion blocks against it; several (`timer`, `MiniTimer`, `chat`) blanket-disable.
 
-## 7. Icon-button primitive — NEW, SURVIVES (4 batches at MEDIUM+)
+## 7. Icon-button primitive — NEW, SURVIVES (3 batches at MEDIUM+)
 
-Not among the seeded hypotheses; surfaced by the audit. The same 42px square glass icon button
-is declared **four times**:
+Not among the seeded hypotheses; surfaced by the audit. **Correction found while building this
+move (Phase 6/Shell, 2026-08-03): the original citation below was wrong about `library`.** The
+same 42px square glass icon button is declared three times, not four:
 
 - `Header.module.css:36-60` — `.iconBtn, .menuToggle` (the canonical one)
-- `exams.module.css:55-72` — `.iconBtn`
-- `library.module.css:279-287` — `.iconBtn`
-- `dashboard.module.css:433-447` — `.dismissBtn`
+- `exams.module.css:55-72` — `.iconBtn` — exact match, including the hover shadow escalation
+- `dashboard.module.css:433-447` — `.dismissBtn` — close but not exact: no `backdrop-filter` at
+  all, and its `:hover` doesn't escalate the box-shadow the way Header's/Exams' do
 
-All four are 42×42, `--r-md`, glass bg + border, `--glass-inner` + `--shadow-sm`, with an
-accent-soft hover. They differ only in whether the hover escalates the shadow. This is the
-second-strongest duplication in the app after the card shell itself, and unlike the card shell
-it has **no** variant spread to design around.
+`library.module.css`'s `.iconBtn` is a **different, smaller button** — 32×32 (not 42×42),
+`background: var(--surface-2)` (not `--glass-bg`), no blur — and does not belong to this family.
+It was miscited in the original audit pass; drop it from this move's evidence. Built the
+`IconButton` primitive off the two confirmed exact matches (Header, Exams); Dashboard's
+`.dismissBtn` drift (missing blur, no hover escalation) is a separate, still-open finding to
+resolve if/when it's migrated. This is still the second-strongest duplication in the app after
+the card shell itself, and unlike the card shell it has **no** variant spread to design around.
 
 ## 8. Breakpoint coordination — NEW, SURVIVES (6 batches at MEDIUM+)
 
@@ -292,10 +310,31 @@ Recommendation: fold visual capture into Phase 4 rather than reopening Phase 2. 
 swap needs a real before/after diff anyway, so the screenshots get taken once and serve both
 purposes. `terms` and `auth` can be captured immediately if an early baseline is wanted.
 
-## Approved moves (Phase 3 output — empty until sign-off)
+## Approved moves (Phase 3 output)
 
-(none yet — awaiting owner approval of the verdicts above, and of the move #2 decision)
+1. **Card primitive** — build per the `panel`/`elevated`/`row`/`subtle` contract in
+   `PRIMITIVES.md`. Do not migrate: review, auth, terms, chat (see move #1 above).
+2. **PageHeader primitive** — build per the decision above: shell header becomes the real
+   `<h1>`, 5 duplicate per-view h1s dropped, `<PageHeader>` built only for Library/Review.
+3. **Spacing-scale conformance** — snap on-scale-but-hardcoded values to tokens as each batch
+   is touched; document `clamp()` and genuinely off-scale values rather than forcing them.
+5. **Header action-affordance** — generalise Library's existing header+actions shape; ties to
+   move #2's `actions` slot.
+7. **Icon-button primitive** — extract the 42px glass icon button (4 call sites).
+8. **Breakpoint coordination** — adopt named breakpoint tokens; prefer intrinsic layout
+   (`auto-fit`/`minmax`/`flex-wrap`) over new width breakpoints where a batch has none today.
+9. **Single `<main>` landmark** — shell keeps `<main>`, views become `<div>`/`<section>`.
+   Scheduled for Phase 7 (wide, mechanical, ~30 call sites) rather than bundled into Phase 4/6.
+
+**Approved in principle, confirm visually per-batch before applying:**
+4. **Accent restraint** — already visually confirmed for Dashboard/Notes/Exams (reads fine in
+   both themes and a loud preset). Confirm the other 12 batches as they're touched in Phase 6,
+   prioritising Timer (three simultaneous accent animations, flagged as highest-risk).
+6. **Empty/loading/error polish** — structurally confirmed everywhere; visually confirmed for
+   Dashboard/Notes/Exams. Adopt the auth batch's reduced-motion house rule (spinners keep a
+   3s animation-duration instead of `none` — a stopped spinner stops communicating) across
+   `timer`/`MiniTimer`/`chat` as those are touched.
 
 ## Sign-off
 
-Status: PENDING
+Status: APPROVED 2026-08-03.

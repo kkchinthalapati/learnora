@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import {
   InlineFeedback,
@@ -82,7 +83,11 @@ export function DangerTab() {
   }
 
   return (
-    <section
+    <Card
+      as="section"
+      variant="elevated"
+      radius="lg"
+      padding="lg"
       className={`${styles.card} ${styles.dangerCard}`}
       aria-labelledby="settings-danger-heading"
     >
@@ -137,6 +142,6 @@ export function DangerTab() {
       </div>
 
       {feedback && <InlineFeedback {...feedback} />}
-    </section>
+    </Card>
   );
 }

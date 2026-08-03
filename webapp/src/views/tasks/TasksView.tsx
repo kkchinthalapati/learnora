@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Skeleton } from "../../components/Skeleton";
 import { useAddTask, useTasks } from "../../hooks/useTasks";
 import { useTranslation } from "../../hooks/useTranslation";
@@ -54,11 +55,7 @@ export function TasksView() {
 
   return (
     <main className={styles.view}>
-      <div className={styles.pageHeader}>
-        <h1>Tasks</h1>
-      </div>
-
-      <div className={styles.inputCard}>
+      <Card variant="panel" padding="none" className={styles.inputCard}>
         <input
           type="text"
           className={`${styles.textInput}${shake ? ` ${styles.inputError}` : ""}`}
@@ -94,7 +91,7 @@ export function TasksView() {
         <Button variant="primary" onClick={submit} disabled={addTask.isPending}>
           {t("btn_add")}
         </Button>
-      </div>
+      </Card>
 
       {isPending && (
         <div className={styles.list} aria-busy="true">

@@ -1,5 +1,6 @@
 import { useLocation } from "react-router";
 import { Icon } from "./Icon";
+import { IconButton } from "./IconButton";
 import { useAuth } from "../context/auth";
 import { useAppearance } from "../context/appearance";
 import { useLiveClock } from "../hooks/useLiveClock";
@@ -13,15 +14,13 @@ import styles from "./Header.module.css";
 /* Ports index.html:413-445 (`header`, `#page-title`, `#user-greeting`,
  * `#live-clock`, `#header-logout-btn`, `#theme-toggle`, `#menu-toggle`).
  *
- * `#page-title` is deliberately not reproduced as a heading here. The
- * vanilla needed it because one static document swapped which section was
- * visible; every view in this app already renders its own real `<h1>` (the
- * exact same text this header would show for Dashboard/Tasks/Exams/Timer/
- * Plan/Settings, or "Library" while a view under it — a subject, a note, a
- * quiz, a flashcard review — titles itself with the specific thing inside).
- * A second element with the same text and heading semantics would be a
- * duplicate `<h1>` per page, not a port. The label still renders, styled the
- * same way, just without competing for the page's one main heading. */
+ * `#page-title` renders as this page's real `<h1>` — the redesign audit
+ * (2026-08) found five views duplicating this exact label as their own
+ * `<h1>` directly below it (same text, ~20px apart, in every locale), so
+ * the duplicates are being dropped in favor of this one. Views that show
+ * something the section label can't (Library's subtitle+actions, Review's
+ * deck title, Notes' document title in its own toolbar) keep their own
+ * heading; a plain Dashboard/Tasks/Exams/Timer/Settings does not. */
 
 export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
   const { pathname } = useLocation();
@@ -53,40 +52,35 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
   return (
     <header className={styles.header}>
       <div className={styles.headerLeft}>
-        <button
-          type="button"
+        <IconButton
           className={styles.menuToggle}
           aria-label="Toggle Sidebar Menu"
           title="Toggle Sidebar Menu"
           onClick={onToggleMenu}
         >
           ☰
-        </button>
+        </IconButton>
         <div>
-          <p className={styles.title}>{sectionLabel(pathname, t)}</p>
+          <h1 className={styles.title}>{sectionLabel(pathname, t)}</h1>
           <p className={styles.subtitle}>{getGreeting(firstName)}</p>
         </div>
       </div>
       <div className={styles.headerRight}>
         <span className={styles.clock}>{time}</span>
-        <button
-          type="button"
-          className={styles.iconBtn}
+        <IconButton
           aria-label="Log Out"
           title="Log Out"
           onClick={() => void signOut()}
         >
           <Icon name="log-out" size={20} />
-        </button>
-        <button
-          type="button"
-          className={styles.iconBtn}
+        </IconButton>
+        <IconButton
           aria-label="Toggle Theme"
           title="Toggle Theme"
           onClick={toggleTheme}
         >
           <Icon name={isDark ? "sun" : "moon"} size={24} />
-        </button>
+        </IconButton>
       </div>
     </header>
   );

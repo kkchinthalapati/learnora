@@ -1,0 +1,103 @@
+/* Card — the shared glass-surface primitive, extracted per the redesign
+ * audit (redesign/DESIGN_MOVES.md move #1). The four variants below are the
+ * app's actual recipes, not the pre-audit guess (default/flat/subtle) —
+ * see PRIMITIVES.md for the declaration counts and evidence per variant.
+ *
+ * Shell-only: no compound header/body/footer API. Callers keep composing
+ * their own children exactly as before, inside <Card> instead of a bare
+ * <div className={styles.card}>. */
+
+.card {
+  border: 1px solid var(--glass-border);
+}
+
+/* ---- Variants ------------------------------------------------------- */
+
+/* Recipe A. 6 declarations app-wide (dashboard x3, library x2, settings x1).
+   Flex-column + min-width:0 matches every current elevated usage (stat
+   cards); override via className if a future elevated usage needs its own
+   layout. */
+.elevated {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
+}
+
+/* Recipe B — the app's actual default. 23 declarations across 10 modules. */
+.panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+}
+
+/* List-row tier — tasks.taskItem / dashboard.logItem were verbatim copies of
+   this, both with a hardcoded blur(16px) instead of --glass-blur (18px).
+   This primitive uses the token, intentionally correcting that drift (see
+   DESIGN_MOVES.md move #1, "Blur drift to resolve while doing this") — a
+   documented 2px blur change, not an accidental regression. */
+.row {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+}
+
+/* No blur, no shadow — a flat bordered tile. notesSidebar.card is the one
+   confirmed match (verified during Phase 6/Terms, 2026-08-03) — terms.tocBox
+   and exams.overflowBadge were miscited here originally: both actually use
+   --glass-bg, not --surface-2 (overflowBadge also uses --r-xs, which isn't
+   one of Card's lg/xl radius options), so neither is a clean fit and both
+   stay CSS-only. */
+.subtle {
+  background: var(--surface-2);
+  border-color: var(--glass-border-subtle);
+}
+
+/* ---- Padding ---------------------------------------------------------- */
+
+.padding-none {
+  padding: 0;
+}
+
+.padding-sm {
+  padding: var(--s-4);
+}
+
+/* The canonical dashboard .card/.historyCard padding. */
+.padding-md {
+  padding: clamp(20px, 3vw, 28px);
+}
+
+.padding-lg {
+  padding: var(--s-6);
+}
+
+/* ---- Radius ------------------------------------------------------------ */
+
+.radius-lg {
+  border-radius: var(--r-lg);
+}
+
+.radius-xl {
+  border-radius: var(--r-xl);
+}
+
+/* ---- Hover elevation ---------------------------------------------------- */
+
+/* Four independent implementations existed at three different target
+   shadows (Button.secondary/Header.iconBtn/settings.card -> --shadow-md,
+   library.card -> --shadow-lg). Standardizing on --shadow-md, the majority
+   choice, per DESIGN_MOVES.md move #1. Opt-in — no current dashboard usage
+   needs it. */
+.hoverElevation {
+  transition: box-shadow var(--t-fast) var(--ease);
+}
+
+.hoverElevation:hover {
+  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
+}

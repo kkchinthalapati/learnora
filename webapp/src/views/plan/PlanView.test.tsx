@@ -457,8 +457,8 @@ describe("PlanView", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "permission denied",
     );
-    expect(
-      screen.getByRole("heading", { name: "This week's plan" }),
-    ).toBeInTheDocument();
+    // Not a heading anymore — the app shell's Header supplies the page's
+    // <h1> now (see redesign/DESIGN_MOVES.md move #2).
+    expect(screen.getByText("This week's plan")).toBeInTheDocument();
   });
 });

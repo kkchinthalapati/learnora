@@ -75,10 +75,6 @@ export function SettingsView() {
 
   return (
     <main className={styles.view}>
-      <div className={styles.pageHeader}>
-        <h1>Settings</h1>
-      </div>
-
       <div className={styles.layout}>
         <nav className={styles.sidebar} aria-label="Settings tabs">
           <div

@@ -18,29 +18,6 @@
   margin: 0 auto;
 }
 
-/* ---- Header ------------------------------------------------------------ */
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--s-4);
-  flex-wrap: wrap;
-  margin-bottom: var(--s-5);
-}
-
-.header h1 {
-  font-family: var(--font-head);
-  font-size: var(--fs-2xl);
-  font-weight: 700;
-  margin: 0;
-}
-
-.headerSub {
-  color: var(--text-muted);
-  margin-top: var(--s-2);
-}
-
 /* ---- Tab strip --------------------------------------------------------- */
 
 .tabs {
@@ -399,16 +376,6 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: var(--s-6);
-}
-
-.workspaceSection {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
-  padding: clamp(20px, 3vw, 28px);
 }
 
 .sectionTitle {

@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router";
+import { Card } from "../../components/Card";
 import { Skeleton } from "../../components/Skeleton";
 import { useLatestQuizAttempt, useQuiz } from "../../hooks/useQuizzes";
 import {
@@ -68,7 +69,7 @@ export function QuizReview() {
   if (!attempt) {
     return (
       <main className={styles.view}>
-        <div className={styles.panel}>
+        <Card variant="panel" padding="lg" className={styles.panel}>
           <ExitLink />
           <h1>{quiz.title || "Quiz"}</h1>
           <p className={styles.muted}>
@@ -83,7 +84,7 @@ export function QuizReview() {
               Take the quiz
             </Link>
           </div>
-        </div>
+        </Card>
       </main>
     );
   }
@@ -93,7 +94,7 @@ export function QuizReview() {
 
   return (
     <main className={styles.view}>
-      <div className={styles.panel}>
+      <Card variant="panel" padding="lg" className={styles.panel}>
         <ExitLink />
         <h1>{quiz.title || "Quiz"} — your answers</h1>
         <p className={styles.score}>
@@ -172,7 +173,7 @@ export function QuizReview() {
             Back to Quizzes
           </Link>
         </div>
-      </div>
+      </Card>
     </main>
   );
 }

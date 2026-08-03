@@ -12,17 +12,9 @@
   margin: 0 auto;
 }
 
-.pageHeader {
-  margin-bottom: var(--s-6);
-}
-
-.pageHeader h1 {
-  font-family: var(--font-head);
-  font-size: var(--fs-2xl);
-  font-weight: 700;
-  margin: 0;
-}
-
+/* Shell now comes from <Card variant="panel">; this residual rule owns the
+   layout plus the flat var(--s-5) padding, which Card's own padding scale
+   doesn't have a flat 20px slot for ("md" is a responsive clamp). */
 .inputCard {
   display: flex;
   gap: var(--s-3);
@@ -30,13 +22,7 @@
   /* The due-date field carries a label above it; aligning on the baseline of
      the controls keeps the text box, date box and button on one line. */
   align-items: flex-end;
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-lg);
   padding: var(--s-5);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
 }
 
 .textInput {

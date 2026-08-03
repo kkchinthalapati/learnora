@@ -1,4 +1,5 @@
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
 import { useAppearance } from "../../context/appearance";
@@ -110,7 +111,11 @@ export function AppearanceTab() {
 
   return (
     <>
-      <section
+      <Card
+        as="section"
+        variant="elevated"
+        radius="lg"
+        padding="lg"
         className={settings.card}
         aria-labelledby="settings-appearance-heading"
       >
@@ -353,7 +358,7 @@ export function AppearanceTab() {
             </div>
           </div>
         </div>
-      </section>
+      </Card>
 
       <div className={styles.actions}>
         <Button

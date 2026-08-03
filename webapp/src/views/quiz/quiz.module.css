@@ -15,13 +15,6 @@
 
 .panel {
   position: relative;
-  padding: var(--s-6);
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
 }
 
 .panel h1 {

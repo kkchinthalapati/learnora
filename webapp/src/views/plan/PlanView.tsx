@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { useDialog } from "../../context/dialog";
 import { useToast } from "../../context/toast";
@@ -193,9 +194,14 @@ export function PlanView() {
 
   return (
     <main className={styles.view}>
-      <div className={styles.summaryCard}>
+      {/* The app shell's Header supplies the page's real <h1> (t("nav_...")
+          isn't defined for /plan, but sectionLabel.ts hardcodes the same
+          "This week's plan" text this card used to duplicate as its own
+          <h1>) — this card's title is plain text now, not a second
+          heading. See redesign/DESIGN_MOVES.md move #2. */}
+      <Card variant="panel" padding="none" className={styles.summaryCard}>
         <div>
-          <h1>{t("header_plan")}</h1>
+          <p className={styles.title}>{t("header_plan")}</p>
           <p className={styles.weekRange}>{weekRange}</p>
         </div>
         <Button
@@ -209,7 +215,7 @@ export function PlanView() {
               ? "Regenerate"
               : "Generate Plan"}
         </Button>
-      </div>
+      </Card>
 
       {isError ? (
         <p role="alert" className={styles.loadError}>
@@ -218,14 +224,14 @@ export function PlanView() {
       ) : null}
 
       {hasPlan && parsed.summary ? (
-        <div className={styles.summary}>
+        <Card variant="panel" padding="none" className={styles.summary}>
           <p>{parsed.summary}</p>
           {plan?.created_at ? (
             <p className={styles.lastGenerated}>
               Last generated {formatRelativeTime(plan.created_at)}
             </p>
           ) : null}
-        </div>
+        </Card>
       ) : null}
 
       {isPending || generate.isPending ? (
@@ -247,7 +253,7 @@ export function PlanView() {
         </ul>
       ) : (
         <div className={styles.emptyWrap}>
-          <div className={styles.emptyState}>
+          <Card variant="panel" padding="none" className={styles.emptyState}>
             <span className={styles.emptyIcon}>
               <Icon name="calendar-week" size={44} />
             </span>
@@ -264,7 +270,7 @@ export function PlanView() {
               <Icon name="bot" size={17} />
               Generate Weekly Plan with AI
             </Button>
-          </div>
+          </Card>
         </div>
       )}
     </main>

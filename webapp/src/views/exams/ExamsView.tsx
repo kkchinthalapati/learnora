@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Skeleton } from "../../components/Skeleton";
 import { useExams } from "../../hooks/useExams";
 import { useTranslation } from "../../hooks/useTranslation";
@@ -113,15 +114,7 @@ export function ExamsView() {
 
   return (
     <main className={styles.view}>
-      {/* The vanilla named the current view in the shell's `#page-title`,
-          which the router rewrote on navigation. No shell exists yet (it
-          belongs with the Dashboard, ledger step 12), so each migrated view
-          carries its own h1 until then — same as Tasks and Settings. */}
-      <div className={styles.pageHeader}>
-        <h1>Exams</h1>
-      </div>
-
-      <div className={styles.container}>
+      <Card variant="panel" padding="lg" className={styles.container}>
         <div className={styles.toolbar}>
           <div className={styles.monthNav}>
             <button
@@ -252,7 +245,7 @@ export function ExamsView() {
             </div>
           </>
         )}
-      </div>
+      </Card>
 
       {/* Keyed on what it is editing so every open starts from that exam's
           values rather than the previous one's — the vanilla did this by

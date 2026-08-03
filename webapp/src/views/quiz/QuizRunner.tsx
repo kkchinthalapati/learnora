@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useToast } from "../../context/toast";
@@ -78,14 +79,14 @@ export function QuizRunner() {
   if (questions.length === 0) {
     return (
       <main className={styles.view}>
-        <div className={styles.panel}>
+        <Card variant="panel" padding="lg" className={styles.panel}>
           <ExitLink />
           <h1>{quiz.title || "Quiz"}</h1>
           <p className={styles.muted}>
             This quiz has no usable questions. Generating it again should fix
             it.
           </p>
-        </div>
+        </Card>
       </main>
     );
   }
@@ -155,7 +156,7 @@ function QuizSession({
     const weakTopics = weakTopicsFrom(answers);
     return (
       <main className={styles.view}>
-        <div className={styles.panel}>
+        <Card variant="panel" padding="lg" className={styles.panel}>
           <QuizHost
             message={`Finished! You got ${score} out of ${total}. Check your weak topics and keep studying!`}
           />
@@ -181,7 +182,7 @@ function QuizSession({
               Back to Quizzes
             </Link>
           </div>
-        </div>
+        </Card>
       </main>
     );
   }
@@ -220,7 +221,7 @@ function QuizSession({
 
   return (
     <main className={styles.view}>
-      <div className={styles.panel}>
+      <Card variant="panel" padding="lg" className={styles.panel}>
         {hostMessage ? (
           <QuizHost message={hostMessage} tone={hostTone} />
         ) : null}
@@ -265,7 +266,7 @@ function QuizSession({
             </Button>
           </div>
         ) : null}
-      </div>
+      </Card>
     </main>
   );
 }

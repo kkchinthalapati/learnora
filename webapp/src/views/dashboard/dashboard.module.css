@@ -9,17 +9,6 @@
   margin: 0 auto;
 }
 
-.pageHeader {
-  margin-bottom: var(--s-6);
-}
-
-.pageHeader h1 {
-  font-family: var(--font-head);
-  font-size: var(--fs-2xl);
-  font-weight: 700;
-  margin: 0;
-}
-
 /* ---- Grid + shared card shell ------------------------------------------ */
 
 .grid {
@@ -34,19 +23,6 @@
   .grid {
     grid-template-columns: 1fr;
   }
-}
-
-.card {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
-  padding: clamp(20px, 3vw, 28px);
 }
 
 .eyebrow {
@@ -408,15 +384,13 @@
 
 /* ---- Onboarding banner ------------------------------------------------------ */
 
+/* Shell (glass/border/radius/shadow) now comes from <Card variant="elevated"
+   padding="none">; this residual rule owns only the asymmetric padding
+   Card's own padding scale doesn't have a slot for (var(--s-5) var(--s-6),
+   individually on-scale, previously hardcoded as 20px 24px). */
 .onboardingBanner {
-  padding: 20px 24px;
+  padding: var(--s-5) var(--s-6);
   margin-bottom: var(--s-6);
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
 }
 
 .onboardingHead {
@@ -460,16 +434,9 @@
 
 /* ---- Recent focus sessions --------------------------------------------------- */
 
-.historyCard {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
-  padding: clamp(20px, 3vw, 28px);
-}
-
+/* Shell now comes from <Card variant="elevated"> (defaults match exactly:
+   --r-xl, 3-layer shadow, clamp(20px,3vw,28px) padding) — this file keeps
+   only the descendant selector below. */
 .historyCard h2 {
   margin: 0 0 var(--s-2);
   font-family: var(--font-head);

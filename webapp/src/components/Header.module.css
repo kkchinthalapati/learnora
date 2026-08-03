@@ -35,41 +35,11 @@
   margin: 0;
 }
 
-.iconBtn,
-.menuToggle {
-  flex-shrink: 0;
-  width: 42px;
-  height: 42px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--fs-lg);
-  color: var(--text);
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-md);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
-  cursor: pointer;
-  transition:
-    background var(--t-fast) ease,
-    color var(--t-fast) ease,
-    border-color var(--t-fast) ease,
-    box-shadow var(--t-fast) ease;
-}
-
-.iconBtn:hover,
-.menuToggle:hover {
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  border-color: var(--accent-ring);
-  box-shadow: var(--glass-inner), var(--shadow-md);
-}
-
-/* Only shown at the same breakpoint the sidebar goes off-canvas. */
-.menuToggle {
+/* Only shown at the same breakpoint the sidebar goes off-canvas. Recipe
+   itself now lives in components/IconButton — see move #7. Doubled selector:
+   IconButton's own `display: flex` (for icon centering) has the same
+   specificity, and CSS Modules doesn't guarantee this file loads after it. */
+.menuToggle.menuToggle {
   display: none;
 }
 
@@ -99,7 +69,7 @@
     justify-content: flex-end;
   }
 
-  .menuToggle {
+  .menuToggle.menuToggle {
     display: flex;
   }
 }

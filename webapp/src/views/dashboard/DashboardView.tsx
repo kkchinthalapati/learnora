@@ -7,24 +7,23 @@ import { AIActionsCard } from "./AIActionsCard";
 import { OnboardingBanner } from "./OnboardingBanner";
 import { SessionHistoryCard } from "./SessionHistoryCard";
 import { CommandBar } from "./CommandBar";
-import { useTranslation } from "../../hooks/useTranslation";
 import styles from "./dashboard.module.css";
 
 /* The dashboard — ports index.html:470-593. Aggregates the four views this
  * step depends on (Tasks, Exams, Timer, Library) into one command-center
  * grid, so it lands last among them (ledger step 12, per the plan's Section
  * 4: "a read-mostly aggregation; building it earlier would mean mocking
- * everything twice"). */
+ * everything twice").
+ *
+ * No page-level heading here — the app shell's Header renders the section
+ * label as the page's real <h1> (see Header.tsx). This view used to
+ * duplicate that exact text as its own <h1> right below it; the redesign
+ * audit (2026-08) found that duplication on five views and dropped it. */
 export function DashboardView() {
-  const t = useTranslation();
   const taskInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <main className={styles.view}>
-      <div className={styles.pageHeader}>
-        <h1>{t("title_dashboard")}</h1>
-      </div>
-
       <div className={styles.grid}>
         <NextExamCard />
         <FocusCard />
