@@ -118,6 +118,18 @@ that reasoning was sound for a world with per-view h1s, and no longer applies on
 dropped). The five views lose their `.pageHeader`/`<h1>` block entirely; they do not get a
 `<PageHeader>` in its place, since the shell now covers that role for them.
 
+**Correction found during Phase 4 implementation, 2026-08-03: the scope above was incomplete
+by two routes.** `Header.tsx`'s title is a single global element — promoting it to `<h1>`
+affects every route at once, not just the five named here. `routes.test.tsx`'s table-driven
+test caught it: Library's top-level `/library` route (`<h1>Library</h1>`, byte-identical to
+`sectionLabel`'s `t("nav_library")`) and `/plan` (`t("header_plan")`, identical to
+`sectionLabel.ts`'s hardcoded `"This week's plan"`) had the exact same duplicate-text problem,
+just not flagged as `.pageHeader` instances in the Phase 2 audit because their markup uses a
+different class name (`.header`/`.summaryCard`, not `.pageHeader`). Fixed the same way: title
+demoted from `<h1>` to plain styled text, shell's `<h1>` is now the page's only one. This does
+**not** touch Library's subject/notes/quiz/review sub-pages — those show genuinely different
+text (a folder/document/deck name), not a duplicate, and were never part of this problem.
+
 Either way, the contract needs one change the evidence is unambiguous about: **PageHeader needs
 a `sub`/subtitle slot.** Two batches independently invented one (`library.headerSub`,
 `review.progress`), and the shell header has one too. `PRIMITIVES.md` currently offers

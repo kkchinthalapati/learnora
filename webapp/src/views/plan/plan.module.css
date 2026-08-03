@@ -28,7 +28,7 @@
   box-shadow: var(--glass-inner), var(--shadow-sm);
 }
 
-.summaryCard h1 {
+.title {
   font-family: var(--font-head);
   font-size: var(--fs-2xl);
   font-weight: 700;

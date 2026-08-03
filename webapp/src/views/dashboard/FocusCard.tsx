@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { useDialog } from "../../context/dialog";
 import { useTimer } from "../../context/timer";
 import { useSessionsSince } from "../../hooks/useSessions";
@@ -53,7 +54,7 @@ export function FocusCard() {
   }
 
   return (
-    <div className={`${styles.card} ${styles.focusCard}`}>
+    <Card variant="elevated" className={styles.focusCard}>
       <span className={styles.eyebrow}>Focus</span>
       <h2 className={styles.statNumberLeft}>
         {formatFocusTime(total)} <span>total</span>
@@ -84,6 +85,6 @@ export function FocusCard() {
       >
         Start a focus session →
       </Button>
-    </div>
+    </Card>
   );
 }

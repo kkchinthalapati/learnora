@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Card } from "../../components/Card";
 import { Skeleton } from "../../components/Skeleton";
 import { useFolders } from "../../hooks/useFolders";
 import { useSessionsSince } from "../../hooks/useSessions";
@@ -27,38 +28,38 @@ export function StreakCard() {
 
   if (isPending) {
     return (
-      <div className={`${styles.card} ${styles.streakCard}`} aria-busy="true">
+      <Card variant="elevated" className={styles.streakCard} aria-busy="true">
         <Skeleton label="Loading your streak" height={140} />
-      </div>
+      </Card>
     );
   }
 
   if (isError) {
     return (
-      <div className={`${styles.card} ${styles.streakCard}`}>
+      <Card variant="elevated" className={styles.streakCard}>
         <span className={styles.eyebrow}>Streak</span>
         <p role="alert" className={styles.emptySm}>
           Could not load your study history. {(error as Error).message}
         </p>
-      </div>
+      </Card>
     );
   }
 
   if (sessions.length === 0) {
     return (
-      <div className={`${styles.card} ${styles.streakCard}`}>
+      <Card variant="elevated" className={styles.streakCard}>
         <span className={styles.eyebrow}>Streak</span>
         <p className={styles.emptySm}>
           Start your first streak today — complete a focus session to begin.
         </p>
-      </div>
+      </Card>
     );
   }
 
   const maxMins = Math.max(1, ...sparkline.map((d) => d.mins));
 
   return (
-    <div className={`${styles.card} ${styles.streakCard}`}>
+    <Card variant="elevated" className={styles.streakCard}>
       <span className={styles.eyebrow}>Streak</span>
       <h2 className={styles.statNumber}>
         🔥 {streak} <span>day{streak === 1 ? "" : "s"}</span>
@@ -98,6 +99,6 @@ export function StreakCard() {
           ))}
         </div>
       ) : null}
-    </div>
+    </Card>
   );
 }

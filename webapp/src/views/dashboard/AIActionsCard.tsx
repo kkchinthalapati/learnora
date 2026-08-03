@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router";
+import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
 import { useChat } from "../../context/chat";
@@ -106,7 +107,7 @@ export function AIActionsCard() {
   };
 
   return (
-    <div className={`${styles.card} ${styles.aiCard}`}>
+    <Card variant="elevated" className={styles.aiCard}>
       <span className={styles.eyebrow}>Ask Learnora AI</span>
       <p className={styles.sub}>Turn your workload into a plan in one tap.</p>
       <div className={styles.aiActions}>
@@ -145,6 +146,6 @@ export function AIActionsCard() {
           ))}
         </div>
       ) : null}
-    </div>
+    </Card>
   );
 }

@@ -1,3 +1,4 @@
+import { Card } from "../../components/Card";
 import { useTranslation } from "../../hooks/useTranslation";
 import { formatFocusTime } from "./analytics";
 import { useLocalSessions } from "./useLocalSessions";
@@ -12,7 +13,7 @@ export function SessionHistoryCard() {
   const t = useTranslation();
 
   return (
-    <div className={styles.historyCard}>
+    <Card variant="elevated" className={styles.historyCard}>
       <h2>{t("header_history")}</h2>
       <p className={styles.sub}>{t("desc_history")}</p>
       <ul className={styles.logList}>
@@ -34,6 +35,6 @@ export function SessionHistoryCard() {
           ))
         )}
       </ul>
-    </div>
+    </Card>
   );
 }

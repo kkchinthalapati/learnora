@@ -54,10 +54,6 @@ export function TasksView() {
 
   return (
     <main className={styles.view}>
-      <div className={styles.pageHeader}>
-        <h1>Tasks</h1>
-      </div>
-
       <div className={styles.inputCard}>
         <input
           type="text"

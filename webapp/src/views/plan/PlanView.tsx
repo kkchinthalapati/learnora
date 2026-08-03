@@ -193,9 +193,14 @@ export function PlanView() {
 
   return (
     <main className={styles.view}>
+      {/* The app shell's Header supplies the page's real <h1> (t("nav_...")
+          isn't defined for /plan, but sectionLabel.ts hardcodes the same
+          "This week's plan" text this card used to duplicate as its own
+          <h1>) — this card's title is plain text now, not a second
+          heading. See redesign/DESIGN_MOVES.md move #2. */}
       <div className={styles.summaryCard}>
         <div>
-          <h1>{t("header_plan")}</h1>
+          <p className={styles.title}>{t("header_plan")}</p>
           <p className={styles.weekRange}>{weekRange}</p>
         </div>
         <Button

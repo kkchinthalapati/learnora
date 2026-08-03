@@ -147,10 +147,6 @@ export function TimerView() {
 
   return (
     <main className={styles.view}>
-      <div className={styles.pageHeader}>
-        <h1>Timer</h1>
-      </div>
-
       <div className={styles.layout}>
         <div className={styles.panel}>
           <div

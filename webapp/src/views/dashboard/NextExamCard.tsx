@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useExams } from "../../hooks/useExams";
@@ -12,20 +13,20 @@ export function NextExamCard() {
 
   if (isPending) {
     return (
-      <div className={`${styles.card} ${styles.examCard}`} aria-busy="true">
+      <Card variant="elevated" className={styles.examCard} aria-busy="true">
         <Skeleton label="Loading your next exam" height={140} />
-      </div>
+      </Card>
     );
   }
 
   if (isError) {
     return (
-      <div className={`${styles.card} ${styles.examCard}`}>
+      <Card variant="elevated" className={styles.examCard}>
         <span className={styles.eyebrow}>Next exam</span>
         <p role="alert" className={styles.emptySm}>
           Could not load your exams. {(error as Error).message}
         </p>
-      </div>
+      </Card>
     );
   }
 
@@ -35,7 +36,7 @@ export function NextExamCard() {
 
   if (!next) {
     return (
-      <div className={`${styles.card} ${styles.examCard}`}>
+      <Card variant="elevated" className={styles.examCard}>
         <span className={styles.eyebrow}>Next exam</span>
         <p className={styles.emptySm}>
           No exams scheduled. You&apos;re all clear — or add one to start
@@ -44,7 +45,7 @@ export function NextExamCard() {
         <Link to="/exams" className={styles.link}>
           Open calendar →
         </Link>
-      </div>
+      </Card>
     );
   }
 
@@ -64,7 +65,7 @@ export function NextExamCard() {
         : styles.diffMedium;
 
   return (
-    <div className={`${styles.card} ${styles.examCard}`}>
+    <Card variant="elevated" className={styles.examCard}>
       <span className={styles.eyebrow}>Next exam</span>
       <div className={styles.countdown}>
         {big}
@@ -83,6 +84,6 @@ export function NextExamCard() {
       <Link to="/exams" className={styles.link}>
         Open calendar →
       </Link>
-    </div>
+    </Card>
   );
 }

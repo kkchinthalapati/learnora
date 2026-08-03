@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Button } from "./Button";
+import { Card } from "./Card";
 import { EmptyState } from "./EmptyState";
 import { Icon } from "./Icon";
 import { Skeleton } from "./Skeleton";
@@ -80,6 +81,66 @@ describe("EmptyState", () => {
   it("renders the compact variant as a single line", () => {
     render(<EmptyState size="sm" message="Nothing due today" />);
     expect(screen.getByText("Nothing due today")).toBeInTheDocument();
+  });
+});
+
+describe("Card", () => {
+  it("renders a div root with the panel variant and md padding by default", () => {
+    render(<Card data-testid="card">content</Card>);
+    const card = screen.getByTestId("card");
+    expect(card.tagName).toBe("DIV");
+    expect(card.className).toMatch(/_panel_/);
+    expect(card.className).toMatch(/_padding-md_/);
+    expect(card.className).toMatch(/_radius-lg_/);
+  });
+
+  it("switches recipe and default radius together for the elevated variant", () => {
+    render(
+      <Card variant="elevated" data-testid="card">
+        content
+      </Card>,
+    );
+    const card = screen.getByTestId("card");
+    expect(card.className).toMatch(/_elevated_/);
+    expect(card.className).toMatch(/_radius-xl_/);
+  });
+
+  it("lets an explicit radius override the variant's default", () => {
+    render(
+      <Card variant="elevated" radius="lg" data-testid="card">
+        content
+      </Card>,
+    );
+    expect(screen.getByTestId("card").className).toMatch(/_radius-lg_/);
+  });
+
+  it("combines a caller's className with its own generated classes", () => {
+    render(
+      <Card className="examCard" data-testid="card">
+        content
+      </Card>,
+    );
+    expect(screen.getByTestId("card").className).toContain("examCard");
+  });
+
+  it("only adds the hover-elevation class when opted in", () => {
+    const { rerender } = render(<Card data-testid="card">content</Card>);
+    expect(screen.getByTestId("card").className).not.toMatch(/hoverElevation/);
+
+    rerender(
+      <Card hoverElevation data-testid="card">
+        content
+      </Card>,
+    );
+    expect(screen.getByTestId("card").className).toMatch(/hoverElevation/);
+  });
+
+  it("forwards arbitrary div props like aria-busy", () => {
+    render(<Card aria-busy="true">content</Card>);
+    expect(screen.getByText("content").closest("div")).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
   });
 });
 

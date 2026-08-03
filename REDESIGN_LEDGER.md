@@ -49,7 +49,10 @@ conversations) should be able to resume this project using only this file plus t
       **screenshots not captured**, see "Screenshot gap" below
 - [x] Phase 3 — Design moves synthesized + user sign-off — **APPROVED 2026-08-03**
       (see `redesign/DESIGN_MOVES.md`). Move #2 decision: drop the 5 duplicate h1s.
-- [ ] Phase 4 — Card/PageHeader primitives built + proven on Dashboard (tests green) — IN PROGRESS
+- [x] Phase 4 — Card primitive built + proven on Dashboard (tests green) — **DONE 2026-08-03**.
+      Move #2 (duplicate h1) implemented too — see PRIMITIVES.md's "Build status" for why it
+      couldn't stay Dashboard-only (Header.tsx is global). `<PageHeader>` itself deferred to
+      Phase 6/Library, its first real consumer.
 - [ ] Phase 5 — Flagship 3-screen sign-off (Dashboard, Notes, Exams) — user must approve before Phase 6
 - [ ] Phase 6 — Full rollout (remaining 12 batches)
 - [ ] Phase 7 — Final consistency pass + full test suite + lint green
@@ -58,24 +61,28 @@ conversations) should be able to resume this project using only this file plus t
 
 | Batch | Files | Audit | Screenshots | Redesign | Tests | Notes file |
 |---|---|---|---|---|---|---|
-| dashboard | 9 | AUDITED | done (live) | TODO | — | redesign/audit/dashboard.md |
+| dashboard | 9 | AUDITED | done (live) | VERIFIED | PASS | redesign/audit/dashboard.md |
 | notes | 3 | AUDITED | done (live) | TODO | — | redesign/audit/notes.md |
-| exams | 3 | AUDITED | done (live) | TODO | — | redesign/audit/exams.md |
-| library | 6 | AUDITED | — | TODO | — | redesign/audit/library.md |
-| plan | 1 | AUDITED | — | TODO | — | redesign/audit/plan.md |
+| exams | 3 | AUDITED | done (live) | h1 only¹ | PASS | redesign/audit/exams.md |
+| library | 6 | AUDITED | — | h1 only¹ | PASS | redesign/audit/library.md |
+| plan | 1 | AUDITED | — | h1 only¹ | PASS | redesign/audit/plan.md |
 | quiz | 3 | AUDITED | — | TODO | — | redesign/audit/quiz.md |
 | review | 1 | AUDITED | — | TODO | — | redesign/audit/review.md |
-| settings | 8 | AUDITED | — | TODO | — | redesign/audit/settings.md |
-| tasks | 3 | AUDITED | — | TODO | — | redesign/audit/tasks.md |
+| settings | 8 | AUDITED | — | h1 only¹ | PASS | redesign/audit/settings.md |
+| tasks | 3 | AUDITED | — | h1 only¹ | PASS | redesign/audit/tasks.md |
 | terms | 1 | AUDITED | — | TODO | — | redesign/audit/terms.md |
-| timer | 2 | AUDITED | — | TODO | — | redesign/audit/timer.md |
+| timer | 2 | AUDITED | — | h1 only¹ | PASS | redesign/audit/timer.md |
 | auth | 6 | AUDITED | — | TODO | — | redesign/audit/auth.md |
 | shell (AppShell/Sidebar/Header) | 3 | AUDITED | — | TODO | — | redesign/audit/shell.md |
 | components (shared, 29 files) | 29 | AUDITED | — | TODO | — | redesign/audit/components.md |
 | chat (preserve, audit-only) | 3 | AUDITED | — | N/A | — | redesign/audit/chat.md |
 
 **Status vocab — Audit:** TODO / SCREENSHOTTED / AUDITED
-**Status vocab — Redesign:** TODO / IN_PROGRESS / APPLIED / VERIFIED / SIGNED_OFF / N/A
+**Status vocab — Redesign:** TODO / IN_PROGRESS / APPLIED / VERIFIED / SIGNED_OFF / N/A / h1 only¹
+
+¹ **h1 only**: the duplicate per-view `<h1>` was dropped (move #2, see PRIMITIVES.md's Build
+status for why this couldn't stay Dashboard-only) — the batch is *not* otherwise redesigned;
+its Card-shell migration is still Phase 6 work.
 **Status vocab — Tests:** — / PASS / FAIL (link failure detail in the batch's own file, not here)
 
 ### Screenshot gap — partially closed

@@ -418,18 +418,6 @@
   margin: 0;
 }
 
-/* -- Page heading -- */
-.pageHeader {
-  margin-bottom: var(--s-6);
-}
-
-.pageHeader h1 {
-  font-family: var(--font-head);
-  font-size: var(--fs-2xl);
-  font-weight: 700;
-  margin: 0;
-}
-
 .actionsRight {
   display: flex;
   justify-content: flex-end;

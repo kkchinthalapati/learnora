@@ -152,4 +152,31 @@ There are **no snapshot tests** in the app.
 
 ## Build status
 
-Starting now: Card primitive + Dashboard proof-of-concept (Phase 4).
+**Done, 2026-08-03.** `Card.tsx`/`Card.module.css` built (`webapp/src/components/`), with
+tests in `primitives.test.tsx`. Applied to all of Dashboard's card instances (`.card`,
+`.historyCard`, `.onboardingBanner` → `<Card variant="elevated">`).
+
+**Move #2 (PageHeader/duplicate-h1) also completed in the same change** — turned out to be
+inseparable from the Dashboard proof: `Header.tsx`'s `.title` is global, so promoting it to
+`<h1>` without also dropping every other view's own competing `<h1>` would have created new
+literal-duplicate headings on routes this pass didn't touch. Discovered via `routes.test.tsx`
+(`getMultipleElementsFoundError`) after the Dashboard-only version passed its own tests but
+broke the app-wide table. Fixed by dropping the per-view `<h1>` on all 5 originally-scoped
+routes (Dashboard, Tasks, Exams, Timer, Settings) plus two the audit hadn't separately flagged
+but which turned out to have the identical bug once tested against the real shell: Library's
+top-level `/library` route and `/plan` (`t("header_plan")` literally matches `sectionLabel.ts`'s
+hardcoded string for that route). Both keep their title as **styled text, not a heading** — the
+shell's `<h1>` is now the page's only one; a real `<PageHeader>` component (with Library's
+subtitle+actions slot) is still Phase 6 work, this pass only removed the duplicate.
+Subject/notes/quiz/review pages under Library are untouched — their own headings show
+genuinely different text (a folder/document/deck name), not a duplicate of the shell's label.
+
+**Verification**: `npm test` 933/933 (927 baseline + 6 new Card tests), `tsc -b` clean,
+`oxlint` clean, `prettier --check` clean. Live-rendered via Playwright against all 7 touched
+routes (screenshots in `redesign/screenshots/phase4-verify/`) — confirmed exactly one `<h1>`
+per route with the correct text, and Dashboard's Card-migrated surfaces render pixel-identical
+to the Phase 2 baseline screenshots.
+
+**Not yet done**: `<PageHeader>` component itself (deferred to Phase 6/Library, per the
+migration strategy above — no flagship or Phase 4 view actually needs it). Card not yet applied
+to Notes/Exams or the remaining 12 batches (Phase 6).

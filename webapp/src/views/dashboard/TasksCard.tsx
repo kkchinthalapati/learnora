@@ -1,5 +1,6 @@
 import { useEffect, type Ref } from "react";
 import { Link } from "react-router";
+import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { useSettings } from "../../context/settings";
 import { useFlashcardsDueCount } from "../../hooks/useFlashcards";
@@ -34,7 +35,7 @@ export function TasksCard({ taskInputRef }: TasksCardProps = {}) {
   }, [dueCount, settings.notifyStudyReminders]);
 
   return (
-    <div className={`${styles.card} ${styles.tasksCard}`}>
+    <Card variant="elevated" className={styles.tasksCard}>
       <div className={styles.cardHead}>
         <span className={styles.eyebrow}>Today&apos;s tasks</span>
         <Link to="/tasks" className={styles.link}>
@@ -53,6 +54,6 @@ export function TasksCard({ taskInputRef }: TasksCardProps = {}) {
           </Link>
         </div>
       ) : null}
-    </div>
+    </Card>
   );
 }

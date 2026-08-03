@@ -72,12 +72,13 @@ export function LibraryView() {
 
   return (
     <main className={styles.view}>
-      {/* No app shell exists yet (it ships with the Dashboard, ledger step
-          12), so each migrated view carries its own heading — same as Tasks,
-          Exams and Settings. */}
+      {/* The app shell's Header supplies the page's real <h1> ("Library",
+          identical to this row's own title text) — this row's own title is
+          plain text, not a second heading, so it doesn't duplicate that.
+          See redesign/DESIGN_MOVES.md move #2. */}
       <div className={styles.header}>
         <div>
-          <h1>Library</h1>
+          <p className={styles.title}>Library</p>
           <p className={styles.headerSub}>
             Your folders, materials, decks, and quizzes — all in one place.
           </p>
