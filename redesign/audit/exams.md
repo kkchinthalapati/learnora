@@ -1,6 +1,9 @@
 # Exams batch — 3 renderable files
 
-Status: AUDITED — 2026-08-02.
+Status: AUDITED — 2026-08-02. Combines two independent passes: this session's live-rendered
+audit (screenshots below) and a parallel source-only pass (dev account) that independently
+corroborated the Card/PageHeader findings and added one new finding (a stray `!important`),
+folded in below.
 Source: `webapp/src/views/exams/`
 Flagship sign-off screen (Phase 5) — third and last of the flagship trio (Dashboard, Notes,
 Exams). Preserve exam-difficulty color coding (explicit ledger instruction).
@@ -198,7 +201,12 @@ every populated screenshot.
     "hardcoded hex" gradient stops are a deliberate, load-bearing, AA-contrast-tested design
     decision with only one consumer each, not duplicated state that a token would clean up** —
     worth flagging clearly so a future redesign pass doesn't "fix" this into a contrast
-    regression by naively tokenizing or normalizing it.
+    regression by naively tokenizing or normalizing it. (The parallel source-only audit
+    independently flagged these same two literals as a MEDIUM finding, from the angle that they
+    sit outside the token system and won't respond to the 13 accent presets/Custom Theme Studio —
+    a fair complementary framing, not a contradiction: both audits agree the values are
+    intentional and documented, the disagreement is only about whether "documented" fully closes
+    the finding or whether it's still worth a visible flag. Recording both framings here.)
   - **Cross-batch inconsistency worth flagging**: Dashboard's `NextExamCard` implements the
     *same* difficulty concept with a **completely different visual treatment** —
     `dashboard.module.css:184-197`'s `.diffEasy/.diffMedium/.diffHard` are flat
@@ -289,6 +297,11 @@ every populated screenshot.
   - **Low/maintainability — third independent instance of hardcoded `blur(Npx)` instead of
     `var(--glass-blur)`** (`.cell`, `blur(8px)`), joining `dashboard.md`'s and `notes.md`'s
     findings. Three batches, three different hardcoded values, same root cause.
+  - **Low — `.dateError` uses `border-color: … !important`** (`exams.module.css:326`, found by
+    the parallel source-only audit). The port deliberately removed every other `!important` in
+    this file (see `.statusCompleted`'s source-order comment above) — this one survived and is
+    beatable by source order the same way, worth cleaning up for consistency even though it's
+    not currently causing a visible bug.
 - Redesign status: TODO
 
 ---

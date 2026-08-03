@@ -1,6 +1,9 @@
 # Dashboard batch — 9 renderable files
 
-Status: AUDITED — 2026-08-02.
+Status: AUDITED — 2026-08-02. Combines two independent passes: this session's live-rendered
+audit (screenshots below) and a parallel source-only pass (dev account) that additionally
+found a HIGH-severity accessibility bug and a breakpoint-coordination issue, folded in below
+at the CommandBar and DashboardView entries respectively.
 Source: `webapp/src/views/dashboard/`
 
 Rendering: **live, via Playwright against the real running Vite dev server** (not source-only).
@@ -58,7 +61,10 @@ Screenshots captured (`redesign/screenshots/dashboard/`):
 - Accessibility: single `<main>` landmark wraps the whole view; one `<h1>`. No other roles here.
 - Responsive: `@media (max-width: 860px)` — grid to single column (line 33-37); not verified at
   a narrow viewport in the captured screenshots (all taken at 1440px) — worth a follow-up capture
-  before Phase 4/5 sign-off, not blocking for source-grounded audit.
+  before Phase 4/5 sign-off, not blocking for source-grounded audit. **Cross-batch note (from the
+  parallel source-only audit): this file's 860px breakpoint doesn't match any other module's** —
+  768/900/1024 are used elsewhere in the app (CommandBar itself uses 768px). See design-move #8
+  (breakpoint coordination) in DESIGN_MOVES.md.
 - Test file: `DashboardView.test.tsx` — one file tests the whole composed page (see per-card
   notes below for its query style). Renders through `renderWithAuth` + a real `Routes` table +
   `ChatProvider` + `TurboChat`, i.e. as close to the real app tree as a unit test gets.
@@ -132,6 +138,15 @@ Screenshots captured (`redesign/screenshots/dashboard/`):
   [accent restraint: MEDIUM] (heaviest single accent user in the batch; not unattractive but
   worth a second look across all 13 presets, not just default+cyberpunk)
 - Issues found (severity):
+  - **HIGH (found by the parallel source-only audit, confirmed against source here) — the
+    CommandBar input has no focus indicator at all.** `commandBar.module.css:52,56-58` sets
+    `outline: none` plus `box-shadow: none` on `.input:focus`, and neither global fallback in
+    `index.css` can reach it: the `:where(...):focus-visible` ring deliberately excludes inputs,
+    and the generic `input:focus` accent ring loses on specificity ((0,1,1) vs the module rule's
+    (0,2,0)). A keyboard user tabbing to the dashboard's primary AI entry point gets no visible
+    focus state — a WCAG 2.4.7 failure. Not visible in the live screenshots since focus state
+    isn't captured by a static screenshot; this is a real gap this session's live pass didn't
+    catch on its own. Standalone bug fix, not gated on any design move.
   - **Low — stale centering comment/behavior.** `left: 50%` centers on the full viewport, not the
     content area beside the sidebar, contradicting the file's own comment that this was meant to
     be revisited "with the sidebar" (which now exists). Visually off-center in every screenshot.
@@ -535,3 +550,17 @@ and the text being queried will silently change what these two assertions target
 necessarily fail loudly, they may just start asserting against the wrong, wrongly-scoped element.
 **Recommendation for Phase 4**: rewrite both to `getByRole`/`getByTestId` scoping before or as
 part of the primitive swap, don't rely on the current DOM depth surviving it.
+
+**Sharper version of this constraint from the parallel source-only audit, worth stating
+explicitly: `<Card>` must render a `div` as its root element, full stop — no polymorphic
+`as`/`component` prop.** Line 528's `.closest("div")` climbs from the `<h2>` and then calls
+`within(history).getByRole("listitem")` (singular). If `<Card>` ever rendered `section`/
+`article` instead of `div`, the climb would miss the card entirely and land on `main.view`, at
+which point `getByRole("listitem")` matches *every* list on the page and throws — a hard
+failure, not a silent one like line 263's. An extra *inner* wrapper div is survivable; a
+non-div root is not.
+
+Also worth noting from that same pass: `OnboardingBanner`'s `.dismissBtn`
+(dashboard.module.css:433-447) is a 42px icon button that re-declares the glass bg/border/
+inner-shadow shell on its own — a third near-copy of the same "glass icon button" shape found
+independently in the exams and library batches (design-move #7, icon-button primitive).

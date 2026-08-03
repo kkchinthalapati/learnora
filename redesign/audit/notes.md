@@ -1,6 +1,9 @@
 # Notes batch — 3 renderable files (+ 1 shared subcomponent audited alongside)
 
-Status: AUDITED — 2026-08-02.
+Status: AUDITED — 2026-08-02. Combines two independent passes: this session's live-rendered
+audit (screenshots below) and a parallel source-only pass (dev account) that independently found
+the same `#6b7ee8` bug and spacing issues, plus two small additions folded in below (an
+aria-live accessibility check on save-status, and a breakpoint-coordination note).
 Source: `webapp/src/views/notes/`
 
 Rendering: **live, via Playwright against the real running Vite dev server** (not source-only),
@@ -150,13 +153,19 @@ Screenshots captured (`redesign/screenshots/notes/`):
 - Accessibility: save-status `<span>` swaps `role` between `"status"` and `"alert"` depending on
   whether the state is `"failed"` (line 152) — a nice touch, live-region semantics that match
   severity. `RichTextEditor`'s own read-only handling (`readOnly={!note}`, `placeholder`) is a
-  `components/` concern, out of scope here.
+  `components/` concern, out of scope here. (Cross-checked by the parallel source-only audit,
+  which flagged this same span as worth verifying carries an `aria-live` region since it's the
+  only feedback a save happened — confirmed here: `role="status"`/`role="alert"` both imply an
+  implicit live region per ARIA spec, so this is already covered without an explicit
+  `aria-live` attribute.)
 - Responsive: `@media (max-width: 900px)` (notes.module.css:28-37, 110-114) collapses
   `.splitLayout` from a row to a column (editor pane above, AI sidebar below) and drops `.view`'s
   fixed height to `auto`; `.editorPane` gets `min-height: 55vh` so it doesn't collapse to nothing
   before the sidebar. Not verified at a narrow viewport in the captured screenshots (all taken at
   1440px) — same follow-up gap `dashboard.md` noted for its own 860px breakpoint, worth a batched
   narrow-viewport pass before Phase 5 sign-off rather than repeating this note per-batch.
+  **Cross-batch note (from the parallel source-only audit): this 900px breakpoint is shared only
+  with the `plan` batch** — everything else uses 768/860/1024, see design-move #8.
 - Test file: `NotesView.test.tsx` (the same file — `NotesEditorPane` has no separate test file;
   its behaviour is exercised through `NotesView`'s route-level tests) — role/text queries plus
   one direct DOM query, `document.querySelector(".ql-editor")` (`editorEl()` helper, line 85-87),
