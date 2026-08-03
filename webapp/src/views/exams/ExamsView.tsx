@@ -113,7 +113,7 @@ export function ExamsView() {
     overlay.kind === "day" ? (byDate.get(overlay.date) ?? []) : [];
 
   return (
-    <main className={styles.view}>
+    <div className={styles.view}>
       <Card variant="panel" padding="lg" className={styles.container}>
         <div className={styles.toolbar}>
           <div className={styles.monthNav}>
@@ -274,6 +274,6 @@ export function ExamsView() {
           }
         />
       )}
-    </main>
+    </div>
   );
 }

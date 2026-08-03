@@ -54,7 +54,7 @@ export function TasksView() {
   const ordered = tasks ? sortTasksByUrgency(visible(tasks)) : [];
 
   return (
-    <main className={styles.view}>
+    <div className={styles.view}>
       <Card variant="panel" padding="none" className={styles.inputCard}>
         <input
           type="text"
@@ -123,6 +123,6 @@ export function TasksView() {
           )}
         </ul>
       )}
-    </main>
+    </div>
   );
 }

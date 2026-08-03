@@ -47,20 +47,20 @@ export function ReviewView() {
 
   if (decks.isPending || cardsQuery.isPending) {
     return (
-      <main className={styles.view} aria-busy="true">
+      <div className={styles.view} aria-busy="true">
         <Skeleton label="Loading flashcards" height={320} />
-      </main>
+      </div>
     );
   }
 
   if (decks.isError || cardsQuery.isError) {
     return (
-      <main className={styles.view}>
+      <div className={styles.view}>
         <ExitLink />
         <p role="alert" className={styles.loadError}>
           Could not load this deck.
         </p>
-      </main>
+      </div>
     );
   }
 
@@ -72,7 +72,7 @@ export function ReviewView() {
      title: the screen it names doesn't say what it's reviewing. */
   if (!deck) {
     return (
-      <main className={styles.view}>
+      <div className={styles.view}>
         <ExitLink />
         <EmptyState
           icon="layers"
@@ -83,7 +83,7 @@ export function ReviewView() {
             <Button variant="primary">Back to Flashcards</Button>
           </Link>
         </EmptyState>
-      </main>
+      </div>
     );
   }
 
@@ -91,7 +91,7 @@ export function ReviewView() {
 
   if (due.length === 0) {
     return (
-      <main className={styles.view}>
+      <div className={styles.view}>
         <ExitLink />
         <h1 className={styles.title}>{deck.title}</h1>
         <EmptyState
@@ -99,7 +99,7 @@ export function ReviewView() {
           title="All caught up! 🎉"
           message="No cards due for review in this deck right now."
         />
-      </main>
+      </div>
     );
   }
 
@@ -231,7 +231,7 @@ function ReviewSession({
 
   if (finished) {
     return (
-      <main className={styles.view}>
+      <div className={styles.view}>
         <ExitLink />
         <h1 className={styles.title}>{deckTitle}</h1>
         <EmptyState
@@ -239,7 +239,7 @@ function ReviewSession({
           title="Review Complete! 🧠"
           message="Great job."
         />
-      </main>
+      </div>
     );
   }
 
@@ -291,7 +291,7 @@ function ReviewSession({
   };
 
   return (
-    <main className={styles.view}>
+    <div className={styles.view}>
       <ExitLink />
       <div className={styles.header}>
         <h1 className={styles.title}>{deckTitle}</h1>
@@ -395,6 +395,6 @@ function ReviewSession({
           </Button>
         </div>
       ) : null}
-    </main>
+    </div>
   );
 }

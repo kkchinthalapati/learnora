@@ -85,15 +85,15 @@ export function SubjectDetailPage() {
 
   if (folders.isPending) {
     return (
-      <main className={styles.view} aria-busy="true">
+      <div className={styles.view} aria-busy="true">
         <Skeleton label="Loading this subject" height={240} />
-      </main>
+      </div>
     );
   }
 
   if (!folder) {
     return (
-      <main className={styles.view}>
+      <div className={styles.view}>
         <div className={styles.workspaceHeader}>
           <Link to="/library" className={styles.backLink}>
             ← Back to Library
@@ -112,12 +112,12 @@ export function SubjectDetailPage() {
             Back to Library
           </Button>
         </EmptyState>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className={styles.view}>
+    <div className={styles.view}>
       <div className={styles.workspaceHeader}>
         <Link to="/library" className={styles.backLink}>
           ← Back to Library
@@ -253,6 +253,6 @@ export function SubjectDetailPage() {
           )}
         </Section>
       </div>
-    </main>
+    </div>
   );
 }

@@ -35,31 +35,31 @@ export function QuizReview() {
 
   if (quizQuery.isPending || attemptQuery.isPending) {
     return (
-      <main className={styles.view} aria-busy="true">
+      <div className={styles.view} aria-busy="true">
         <Skeleton label="Loading your answers" height={220} />
-      </main>
+      </div>
     );
   }
 
   if (quizQuery.isError || attemptQuery.isError) {
     const err = (quizQuery.error ?? attemptQuery.error) as Error;
     return (
-      <main className={styles.view}>
+      <div className={styles.view}>
         <ExitLink />
         <p role="alert" className={styles.loadError}>
           Could not load your answers. {err.message}
         </p>
-      </main>
+      </div>
     );
   }
 
   const quiz = quizQuery.data;
   if (!quiz) {
     return (
-      <main className={styles.view}>
+      <div className={styles.view}>
         <ExitLink />
         <h1>Quiz not found.</h1>
-      </main>
+      </div>
     );
   }
 
@@ -68,7 +68,7 @@ export function QuizReview() {
 
   if (!attempt) {
     return (
-      <main className={styles.view}>
+      <div className={styles.view}>
         <Card variant="panel" padding="lg" className={styles.panel}>
           <ExitLink />
           <h1>{quiz.title || "Quiz"}</h1>
@@ -85,7 +85,7 @@ export function QuizReview() {
             </Link>
           </div>
         </Card>
-      </main>
+      </div>
     );
   }
 
@@ -93,7 +93,7 @@ export function QuizReview() {
   const taken = formatTaken(attempt.created_at);
 
   return (
-    <main className={styles.view}>
+    <div className={styles.view}>
       <Card variant="panel" padding="lg" className={styles.panel}>
         <ExitLink />
         <h1>{quiz.title || "Quiz"} — your answers</h1>
@@ -174,6 +174,6 @@ export function QuizReview() {
           </Link>
         </div>
       </Card>
-    </main>
+    </div>
   );
 }

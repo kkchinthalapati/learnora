@@ -23,7 +23,7 @@ export function DashboardView() {
   const taskInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <main className={styles.view}>
+    <div className={styles.view}>
       <div className={styles.grid}>
         <NextExamCard />
         <FocusCard />
@@ -41,6 +41,6 @@ export function DashboardView() {
       {/* Floating, and dashboard-only — the vanilla shows it on #dashboard
           alone (index.html:2459-2475). */}
       <CommandBar />
-    </main>
+    </div>
   );
 }

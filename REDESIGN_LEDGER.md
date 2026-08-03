@@ -107,7 +107,23 @@ conversations) should be able to resume this project using only this file plus t
       components done round 10 — no migration; closed the NotesAiSidebar and MaterialPanel
       threads for good, the last two open Card/PageHeader/IconButton questions in the app.
       See footnote ¹². **Every batch is now VERIFIED or N/A except `chat` (permanently N/A).**
-- [ ] Phase 7 — Final consistency pass + full test suite + lint green
+- [ ] Phase 7 — Final consistency pass + full test suite + lint green. **Nested `<main>` landmark
+      fix — DONE 2026-08-03.** ~30 call sites across 14 files (routes.tsx's not-found Placeholder,
+      Dashboard, Tasks, Exams, Timer, Plan, Settings, Library, SubjectDetailPage ×3, NotesView
+      ×3, NotesEditorPane, ReviewView ×6, QuizRunner ×6, QuizReview ×5) demoted from `<main>` to
+      `<div>` — every one of them was nested inside `AppShell`'s own `<main>` via `<Outlet/>`, so
+      the page had two overlapping "main" landmarks. `AppShell`'s `<main>` is now the page's only
+      one on every signed-in route. Left untouched, correctly: `AppShell.tsx` (the shell's own,
+      the one that stays), `TermsView.tsx`/`AuthShell.tsx` (routes rendered outside `AppShell`,
+      each supplies its own page chrome), `ProtectedRoute.tsx`/`RedirectIfSignedIn.tsx` (their
+      `<main>` only ever renders *before* `AppShell` mounts — the session-loading state — so
+      there is nothing else on the page for it to nest inside).
+      Verification: `npm test` 938/938, `tsc -b`/`oxlint`/`prettier --check` clean, live-rendered
+      via Playwright counting `document.querySelectorAll("main")` across 8 signed-in routes
+      (including the 404 fallback) — exactly 1 on every route (`redesign/screenshots/
+      phase7-verify/dashboard-post-main-fix.png` confirms zero visual delta, as expected since
+      `<main>`→`<div>` carries no default browser styling).
+      Remaining for Phase 7: cross-batch visual consistency spot-check, close out the ledger.
 
 ## Batch table
 

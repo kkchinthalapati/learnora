@@ -45,10 +45,10 @@ import { ReviewView } from "./views/review/ReviewView";
 
 function Placeholder({ title }: { title: string }) {
   return (
-    <main>
+    <div>
       <h1>{title}</h1>
       <p>This view has not been migrated yet.</p>
-    </main>
+    </div>
   );
 }
 
