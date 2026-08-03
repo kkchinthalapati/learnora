@@ -283,6 +283,25 @@ options — a single-instance, low-value fit, left alone.
 phase6-verify/library.png`, `library-subject.png`) — confirmed the header/subtitle/action row
 and all three workspace-section cards render identically to the pre-migration layout.
 
-**Not yet done**: the remaining 10 batches' Card migration (plan, quiz, review, terms, auth,
-shell, components — chat stays N/A), the three NotesAiSidebar surfaces, and Review's own
+**Phase 6 round 4 — Plan, 2026-08-03.** All three `<div>`-rooted glass shells migrated to
+`<Card variant="panel" padding="none">`, each with a residual `.x.x { padding: ...; }` doubled-
+selector override (all three used a two-value `padding` — `var(--s-5) var(--s-6)` or a `clamp(…)
+28px` pair — that doesn't match any single-value Card padding preset): `.summaryCard` (title +
+Generate/Regenerate button row), `.summary` (the AI-generated week summary), `.emptyState` (the
+"No plan yet" empty state). All three matched the `panel` recipe exactly otherwise (`--r-lg` +
+`--glass-inner`/`--shadow-sm`), so no radius override was needed. `.dayCard` stayed CSS-only,
+same `<li>`-rooted list-semantics exclusion as Tasks'/Library's row cards — its hardcoded
+`blur(16px)` drift (flagged by the audit, third instance app-wide) is untouched, unrelated to
+this migration. The audit's "MEDIUM — no page heading" finding was already resolved as a side
+effect of Phase 4's move #2 correction (the `/plan` route was one of the two routes found to have
+a duplicate `<h1>` bug beyond the five originally scoped) — Plan has had the shell's `<h1>` since
+that round, so no `<PageHeader>` was added here.
+
+**Verification (Plan)**: `npm test` 936/936, `tsc -b`/`oxlint`/`prettier --check` clean.
+Live-rendered via Playwright (`redesign/screenshots/phase6-verify/plan-empty.png`,
+`plan-with-data.png`) — confirmed the summary card, AI-summary panel, and empty-state card all
+render identically to the pre-migration layout, both with and without a generated plan.
+
+**Not yet done**: the remaining 9 batches' Card migration (quiz, review, terms, auth, shell,
+components — chat stays N/A), the three NotesAiSidebar surfaces, and Review's own
 `<PageHeader>` adoption (its declared second consumer, per the PageHeader section above).

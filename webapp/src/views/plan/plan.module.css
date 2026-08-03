@@ -19,13 +19,10 @@
   justify-content: space-between;
   gap: var(--s-4);
   flex-wrap: wrap;
+}
+
+.summaryCard.summaryCard {
   padding: var(--s-5) var(--s-6);
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
 }
 
 .title {
@@ -42,13 +39,10 @@
 
 .summary {
   margin-top: var(--s-4);
+}
+
+.summary.summary {
   padding: var(--s-5) var(--s-6);
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
 }
 
 .lastGenerated {
@@ -233,17 +227,14 @@
   max-width: 640px;
   box-sizing: border-box;
   text-align: center;
-  padding: clamp(36px, 6vw, 56px) 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
+}
+
+.emptyState.emptyState {
+  padding: clamp(36px, 6vw, 56px) 28px;
 }
 
 .emptyIcon {

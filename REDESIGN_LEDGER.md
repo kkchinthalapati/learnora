@@ -1,11 +1,13 @@
 # Learnora Redesign Ledger
 
-Last updated: 2026-08-03 — Phase 6 rollout: library batch VERIFIED (see footnote ⁵) — the
-`<PageHeader>` primitive is now built (Library was its declared first consumer) and applied,
-plus a Card migration on the subject-workspace sections. Settings batch VERIFIED the round
-before (footnote ⁴), extending `<Card>` with a narrow `as="div" | "section"` prop. Phase 3 signed
-off by owner (see `redesign/DESIGN_MOVES.md`, `Status: APPROVED 2026-08-03`), including the
-PageHeader decision (drop the 5 duplicate h1s, promote the shell header's label to `<h1>`).
+Last updated: 2026-08-03 — Phase 6 rollout: plan batch VERIFIED (see footnote ⁶) — all three
+`<div>`-rooted glass shells (summary card, AI summary, empty state) migrated to `<Card>`. library
+batch VERIFIED the round before (footnote ⁵) — the `<PageHeader>` primitive is now built (Library
+was its declared first consumer) and applied, plus a Card migration on the subject-workspace
+sections. Settings batch VERIFIED two rounds back (footnote ⁴), extending `<Card>` with a narrow
+`as="div" | "section"` prop. Phase 3 signed off by owner (see `redesign/DESIGN_MOVES.md`,
+`Status: APPROVED 2026-08-03`), including the PageHeader decision (drop the 5 duplicate h1s,
+promote the shell header's label to `<h1>`).
 
 This is the master index for the Learnora visual/UX redesign. It is kept deliberately small —
 findings live in `redesign/audit/<batch>.md`, not here. A cold session (no memory of prior
@@ -66,7 +68,9 @@ conversations) should be able to resume this project using only this file plus t
       a narrow `as="div" | "section"` prop rather than leaving the batch CSS-only. See footnote ⁴
       and PRIMITIVES.md's Build status. library done round 3 — `<PageHeader>` built (its
       declared first consumer) plus a Card migration on the subject-workspace sections; the
-      four `.card` grid tiles stayed CSS-only (all `<li>` roots). See footnote ⁵.
+      four `.card` grid tiles stayed CSS-only (all `<li>` roots). See footnote ⁵. plan done
+      round 4 — all three glass shells migrated; `.dayCard` stayed CSS-only (`<li>` root). No
+      page-heading gap to fix (already resolved by Phase 4's move #2 correction). See footnote ⁶.
 - [ ] Phase 7 — Final consistency pass + full test suite + lint green
 
 ## Batch table
@@ -77,7 +81,7 @@ conversations) should be able to resume this project using only this file plus t
 | notes | 3 | AUDITED | done (live) | VERIFIED² | PASS | redesign/audit/notes.md |
 | exams | 3 | AUDITED | done (live) | VERIFIED | PASS | redesign/audit/exams.md |
 | library | 6 | AUDITED | done (live) | VERIFIED⁵ | PASS | redesign/audit/library.md |
-| plan | 1 | AUDITED | — | h1 only¹ | PASS | redesign/audit/plan.md |
+| plan | 1 | AUDITED | done (live) | VERIFIED⁶ | PASS | redesign/audit/plan.md |
 | quiz | 3 | AUDITED | — | TODO | — | redesign/audit/quiz.md |
 | review | 1 | AUDITED | — | TODO | — | redesign/audit/review.md |
 | settings | 8 | AUDITED | done (live) | VERIFIED⁴ | PASS | redesign/audit/settings.md |
@@ -134,6 +138,15 @@ panels) are all `<li>` roots and stayed CSS-only, same list-semantics exclusion 
 (footnote ³); `.iconBtn` awaits move #7 (glass icon button, not yet built); `.newCard`/
 `.newCardBtn`/`.dueBanner`/`.backLink`/`.tabs` don't match any variant recipe cleanly. See
 PRIMITIVES.md's Build status for the full list.
+
+⁶ **plan VERIFIED**: `.summaryCard`, `.summary` (AI week summary), and `.emptyState` all migrated
+to `<Card variant="panel" padding="none">` with a residual doubled-selector padding override
+each (all three used a two-value padding that doesn't match a single-value Card preset).
+`.dayCard` stayed CSS-only — it's an `<li>` root, same exclusion as Tasks'/Library's row cards;
+its hardcoded `blur(16px)` drift (a pre-existing audit finding, third instance app-wide) is
+unrelated to this round and untouched. The audit's "no page heading" finding was already fixed
+as a side effect of Phase 4 (Plan was one of the two extra routes found to duplicate the shell's
+`<h1>`), so no `<PageHeader>` was needed here.
 **Status vocab — Tests:** — / PASS / FAIL (link failure detail in the batch's own file, not here)
 
 ### Screenshot gap — partially closed
