@@ -193,7 +193,7 @@ export function PlanView() {
   };
 
   return (
-    <main className={styles.view}>
+    <div className={styles.view}>
       {/* The app shell's Header supplies the page's real <h1> (t("nav_...")
           isn't defined for /plan, but sectionLabel.ts hardcodes the same
           "This week's plan" text this card used to duplicate as its own
@@ -273,6 +273,6 @@ export function PlanView() {
           </Card>
         </div>
       )}
-    </main>
+    </div>
   );
 }

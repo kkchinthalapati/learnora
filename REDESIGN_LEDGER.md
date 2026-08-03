@@ -1,6 +1,9 @@
 # Learnora Redesign Ledger
 
-Last updated: 2026-08-03 — Phase 6 rollout: components batch VERIFIED (see footnote ¹²) —
+Last updated: 2026-08-03 — **Phase 7 complete, redesign project done.** Fixed the nested `<main>`
+landmark finding (~30 call sites across 14 files), then ran the final gate: `npm run build`,
+whole-repo `format:check`, and the full test suite, all clean. See Phase status below for the
+full closing summary. Phase 6 rollout: components batch VERIFIED (see footnote ¹²) —
 documentation-only round that closes out every remaining open Card/PageHeader/IconButton
 question in the app, including the long-deferred NotesAiSidebar surfaces (all three confirmed
 not a fit, for three different reasons) and `create/MaterialPanel`'s flagged "re-declares a card
@@ -107,7 +110,33 @@ conversations) should be able to resume this project using only this file plus t
       components done round 10 — no migration; closed the NotesAiSidebar and MaterialPanel
       threads for good, the last two open Card/PageHeader/IconButton questions in the app.
       See footnote ¹². **Every batch is now VERIFIED or N/A except `chat` (permanently N/A).**
-- [ ] Phase 7 — Final consistency pass + full test suite + lint green
+- [ ] Phase 7 — Final consistency pass + full test suite + lint green. **Nested `<main>` landmark
+      fix — DONE 2026-08-03.** ~30 call sites across 14 files (routes.tsx's not-found Placeholder,
+      Dashboard, Tasks, Exams, Timer, Plan, Settings, Library, SubjectDetailPage ×3, NotesView
+      ×3, NotesEditorPane, ReviewView ×6, QuizRunner ×6, QuizReview ×5) demoted from `<main>` to
+      `<div>` — every one of them was nested inside `AppShell`'s own `<main>` via `<Outlet/>`, so
+      the page had two overlapping "main" landmarks. `AppShell`'s `<main>` is now the page's only
+      one on every signed-in route. Left untouched, correctly: `AppShell.tsx` (the shell's own,
+      the one that stays), `TermsView.tsx`/`AuthShell.tsx` (routes rendered outside `AppShell`,
+      each supplies its own page chrome), `ProtectedRoute.tsx`/`RedirectIfSignedIn.tsx` (their
+      `<main>` only ever renders *before* `AppShell` mounts — the session-loading state — so
+      there is nothing else on the page for it to nest inside).
+      Verification: `npm test` 938/938, `tsc -b`/`oxlint`/`prettier --check` clean, live-rendered
+      via Playwright counting `document.querySelectorAll("main")` across 8 signed-in routes
+      (including the 404 fallback) — exactly 1 on every route (`redesign/screenshots/
+      phase7-verify/dashboard-post-main-fix.png` confirms zero visual delta, as expected since
+      `<main>`→`<div>` carries no default browser styling).
+      **Final gate — DONE 2026-08-03.** `npm run build` (`tsc -b && vite build`) succeeds clean
+      (the one chunk-size-over-500kB warning is pre-existing and unrelated to this redesign).
+      `npm run format:check` clean across the whole repo, not just touched files. `npm test`
+      938/938. Combined with the per-batch live-render verification already captured across
+      every round (`redesign/screenshots/phase4-verify/` through `phase7-verify/` — light/dark,
+      a non-default accent preset on the 3 flagship screens, and now a full-route `<main>`-count
+      check), this closes Phase 7. **The redesign project is complete**: all 15 batches audited
+      and resolved, 3 primitives shipped (`Card`, `PageHeader`, `IconButton`), the one HIGH-
+      severity structural finding (nested `<main>`) fixed, full test/build/lint/format green.
+      A cold session picking this ledger up next has no outstanding redesign work — only
+      genuinely new requests.
 
 ## Batch table
 

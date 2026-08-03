@@ -147,7 +147,7 @@ export function TimerView() {
   }
 
   return (
-    <main className={styles.view}>
+    <div className={styles.view}>
       <div className={styles.layout}>
         <Card variant="panel" padding="lg" className={styles.panel}>
           <div
@@ -437,6 +437,6 @@ export function TimerView() {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

@@ -72,7 +72,7 @@ export function LibraryView() {
   const Panel = PANELS[active];
 
   return (
-    <main className={styles.view}>
+    <div className={styles.view}>
       {/* The app shell's Header supplies the page's real <h1> ("Library",
           identical to this row's own title text) — this row's own title is
           plain text, not a second heading, so it doesn't duplicate that.
@@ -118,6 +118,6 @@ export function LibraryView() {
       >
         <Panel />
       </div>
-    </main>
+    </div>
   );
 }

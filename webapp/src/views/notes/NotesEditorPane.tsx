@@ -139,7 +139,7 @@ export function NotesEditorPane({
       : "<p>No notes yet — Learnora is still processing this material.</p>");
 
   return (
-    <main className={styles.view}>
+    <div className={styles.view}>
       <div className={styles.toolbar}>
         <div className={styles.toolbarLeft}>
           <Button size="sm" onClick={() => void navigate(-1)}>
@@ -185,6 +185,6 @@ export function NotesEditorPane({
           }
         />
       </div>
-    </main>
+    </div>
   );
 }

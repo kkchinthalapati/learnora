@@ -25,26 +25,26 @@ export function NotesView() {
 
   if (material.isPending || notes.isPending) {
     return (
-      <main className={styles.view} aria-busy="true">
+      <div className={styles.view} aria-busy="true">
         <Skeleton label="Loading your notes" height={400} />
-      </main>
+      </div>
     );
   }
 
   if (material.isError || notes.isError) {
     return (
-      <main className={styles.view}>
+      <div className={styles.view}>
         <p role="alert" className={styles.loadError}>
           Could not load these notes.{" "}
           {((material.error ?? notes.error) as Error).message}
         </p>
-      </main>
+      </div>
     );
   }
 
   if (!material.data) {
     return (
-      <main className={styles.view}>
+      <div className={styles.view}>
         <EmptyState
           icon="file-text"
           title="This file no longer exists."
@@ -54,7 +54,7 @@ export function NotesView() {
             Back to Library
           </Button>
         </EmptyState>
-      </main>
+      </div>
     );
   }
 

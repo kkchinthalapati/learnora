@@ -74,7 +74,7 @@ export function SettingsView() {
   const Panel = PANELS[active];
 
   return (
-    <main className={styles.view}>
+    <div className={styles.view}>
       <div className={styles.layout}>
         <nav className={styles.sidebar} aria-label="Settings tabs">
           <div
@@ -138,6 +138,6 @@ export function SettingsView() {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
