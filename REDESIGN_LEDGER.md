@@ -53,7 +53,10 @@ conversations) should be able to resume this project using only this file plus t
       Move #2 (duplicate h1) implemented too — see PRIMITIVES.md's "Build status" for why it
       couldn't stay Dashboard-only (Header.tsx is global). `<PageHeader>` itself deferred to
       Phase 6/Library, its first real consumer.
-- [ ] Phase 5 — Flagship 3-screen sign-off (Dashboard, Notes, Exams) — user must approve before Phase 6
+- [ ] Phase 5 — Flagship 3-screen sign-off (Dashboard, Notes, Exams) — **Card migration done and
+      verified 2026-08-03 (933/933 tests, live-rendered screenshots in
+      `redesign/screenshots/phase4-verify/` and `phase5-verify/`)**; awaiting the owner's visual
+      sign-off before Phase 6 rollout begins.
 - [ ] Phase 6 — Full rollout (remaining 12 batches)
 - [ ] Phase 7 — Final consistency pass + full test suite + lint green
 
@@ -62,8 +65,8 @@ conversations) should be able to resume this project using only this file plus t
 | Batch | Files | Audit | Screenshots | Redesign | Tests | Notes file |
 |---|---|---|---|---|---|---|
 | dashboard | 9 | AUDITED | done (live) | VERIFIED | PASS | redesign/audit/dashboard.md |
-| notes | 3 | AUDITED | done (live) | TODO | — | redesign/audit/notes.md |
-| exams | 3 | AUDITED | done (live) | h1 only¹ | PASS | redesign/audit/exams.md |
+| notes | 3 | AUDITED | done (live) | VERIFIED² | PASS | redesign/audit/notes.md |
+| exams | 3 | AUDITED | done (live) | VERIFIED | PASS | redesign/audit/exams.md |
 | library | 6 | AUDITED | — | h1 only¹ | PASS | redesign/audit/library.md |
 | plan | 1 | AUDITED | — | h1 only¹ | PASS | redesign/audit/plan.md |
 | quiz | 3 | AUDITED | — | TODO | — | redesign/audit/quiz.md |
@@ -83,6 +86,14 @@ conversations) should be able to resume this project using only this file plus t
 ¹ **h1 only**: the duplicate per-view `<h1>` was dropped (move #2, see PRIMITIVES.md's Build
 status for why this couldn't stay Dashboard-only) — the batch is *not* otherwise redesigned;
 its Card-shell migration is still Phase 6 work.
+
+² **notes VERIFIED is partial by design**: only `.editorPane` (the clearest, best-evidenced
+instance) was migrated to `<Card>`. `NotesAiSidebar`'s three surfaces (`.card`, `.chat`,
+`.dock`) were deliberately left alone — `.card` is a real `<button>` (Card is div-only by
+design), and `.chat`/`.dock` don't cleanly match the current variant contract (different
+background token, non-standard radius) without ad hoc per-instance overrides. Left for Phase 6
+once more cross-batch evidence can justify extending the contract properly, rather than forcing
+a fit now. See PRIMITIVES.md's Build status.
 **Status vocab — Tests:** — / PASS / FAIL (link failure detail in the batch's own file, not here)
 
 ### Screenshot gap — partially closed

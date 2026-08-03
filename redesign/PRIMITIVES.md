@@ -177,6 +177,30 @@ routes (screenshots in `redesign/screenshots/phase4-verify/`) — confirmed exac
 per route with the correct text, and Dashboard's Card-migrated surfaces render pixel-identical
 to the Phase 2 baseline screenshots.
 
+**Extended to Exams and Notes, 2026-08-03 (Phase 5)** — the other two flagship screens:
+- **Exams**: `.container` → `<Card variant="panel" padding="lg">`. Clean, exact match (the
+  audit's own characterization of `.container` as "panel with a radius/shadow drift" was
+  right: `--r-lg` + `--glass-inner`/`--shadow-sm` **is** the panel recipe, not a drift from
+  elevated). `.iconBtn`/`.cell`/`.overflowBadge`/`.empty` deliberately left CSS-only — none
+  match the current variant contract cleanly (icon buttons are a separate primitive, move #7,
+  not yet built; `.cell`'s 8px blur was already flagged by the audit as "looks deliberate," not
+  drift to fix; `.overflowBadge`'s `--r-xs` and `.dock`-style near-pill radii don't fit the
+  `lg`/`xl` radius prop without adding a case with no second instance yet to justify it).
+- **Notes**: `.editorPane` → `<Card variant="elevated" padding="none">`, with a residual
+  `.editorPane.editorPane` doubled-selector override for its one-off `--shadow-sm` (see the
+  contract's "two one-off hybrids" note above) — doubled specificity so the override doesn't
+  depend on cross-file CSS Modules injection order. `overflow: hidden` (load-bearing for
+  Quill) stays in the residual class. `NotesAiSidebar`'s three surfaces (`.card`/`.chat`/
+  `.dock`) deliberately NOT migrated: `.card` is a real `<button>` (Card is div-only, no
+  polymorphic `as`), and `.chat`/`.dock` don't match the panel/elevated/row/subtle recipes as
+  built (different background token, non-standard radius) — forcing them would mean bespoke
+  per-instance overrides eroding the primitive's coherence, not a genuine fit.
+
+**Verification (Exams + Notes)**: `npm test` 933/933, `tsc -b`/`oxlint`/`prettier --check`
+clean, live-rendered via Playwright (`redesign/screenshots/phase5-verify/`) confirming exam
+difficulty colour-coding and the AI sidebar render unchanged.
+
 **Not yet done**: `<PageHeader>` component itself (deferred to Phase 6/Library, per the
-migration strategy above — no flagship or Phase 4 view actually needs it). Card not yet applied
-to Notes/Exams or the remaining 12 batches (Phase 6).
+migration strategy above — no flagship view actually needs it). The remaining 12 batches'
+Card migration (Phase 6), and the three NotesAiSidebar surfaces noted above once the contract
+has evidence to extend to them properly.

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Skeleton } from "../../components/Skeleton";
 import { useExams } from "../../hooks/useExams";
 import { useTranslation } from "../../hooks/useTranslation";
@@ -113,7 +114,7 @@ export function ExamsView() {
 
   return (
     <main className={styles.view}>
-      <div className={styles.container}>
+      <Card variant="panel" padding="lg" className={styles.container}>
         <div className={styles.toolbar}>
           <div className={styles.monthNav}>
             <button
@@ -244,7 +245,7 @@ export function ExamsView() {
             </div>
           </>
         )}
-      </div>
+      </Card>
 
       {/* Keyed on what it is editing so every open starts from that exam's
           values rather than the previous one's — the vanilla did this by
