@@ -374,5 +374,20 @@ two expecting a clean match. No test/behavior change — comment-only.
 **Verification (Terms)**: comment-only change to a shared file — `tsc -b`/`oxlint`/
 `prettier --check` clean; full suite not re-run since no `.tsx`/behavioral file changed.
 
-**Not yet done**: the remaining 6 batches' Card migration (auth, shell, components — chat stays
-N/A), and the three NotesAiSidebar surfaces.
+**Phase 6 round 8 — Auth, 2026-08-03. No migration — confirmed, no code changed.** Re-verified
+the audit's do-not-migrate call against current source rather than trusting it blindly (the same
+check that caught Terms' stale citation last round): `.card` (`auth.module.css:48-58`) still
+uses `--glass-bg-strong` (not `--glass-bg`, and not `--surface-2`), a hardcoded `blur(36px)`, and
+sets no `border-radius` of its own at all — radius and outer shadow are owned by the parent
+`.layout` (`--r-2xl` + `--shadow-lg` + `overflow: hidden`), a load-bearing two-part split-screen
+construction. None of Card's four variants match this recipe, and the container/panel split
+can't be expressed through a single `<Card>` without restructuring the layout for one call site.
+`.brandHeader` is a signed-out brand lockup, correctly N/A for `<PageHeader>` (routes render
+outside `AppShell`, same as Terms). No issues found — the audit called this "the most internally
+consistent batch in the app," confirmed still true.
+
+**Verification (Auth)**: no source changed; `npm test src/views/auth` 28/28 passing (unaffected,
+run to confirm no drift since the Phase 2 audit).
+
+**Not yet done**: the remaining 2 batches' Card migration (shell, components — chat stays N/A),
+and the three NotesAiSidebar surfaces (part of the components/notes work).

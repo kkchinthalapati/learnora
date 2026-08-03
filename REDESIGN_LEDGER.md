@@ -1,6 +1,10 @@
 # Learnora Redesign Ledger
 
-Last updated: 2026-08-03 — Phase 6 rollout: terms batch VERIFIED (see footnote ⁹) —
+Last updated: 2026-08-03 — Phase 6 rollout: auth batch VERIFIED (see footnote ¹⁰) — no
+migration, re-confirmed against current source that `.card`'s one-off `--glass-bg-strong`/
+36px-blur/no-own-radius recipe still doesn't match any Card variant; "most internally consistent
+batch in the app" per the original audit, still true. terms batch VERIFIED the round before
+(footnote ⁹) —
 no migration (both `subtle`-variant candidates turned out to use `--glass-bg`, not the variant's
 actual `--surface-2`), but found and fixed a stale evidence citation in `Card.module.css`'s
 `subtle` comment that miscited `terms.tocBox`/`exams.overflowBadge` as matches. review batch
@@ -82,7 +86,9 @@ conversations) should be able to resume this project using only this file plus t
       flip, explicitly do-not-migrate; `.header` is a plain layout wrapper). See footnote ⁸.
       terms done round 7 — no migration (`.tocBox`/`.backBtn` use `--glass-bg`, not `subtle`'s
       `--surface-2`); fixed a stale `Card.module.css` comment that miscited both as matches.
-      See footnote ⁹.
+      See footnote ⁹. auth done round 8 — no migration, re-confirmed `.card`'s one-off recipe
+      (`--glass-bg-strong`, radius owned by the parent `.layout`) against current source.
+      See footnote ¹⁰.
 - [ ] Phase 7 — Final consistency pass + full test suite + lint green
 
 ## Batch table
@@ -100,7 +106,7 @@ conversations) should be able to resume this project using only this file plus t
 | tasks | 3 | AUDITED | — | VERIFIED³ | PASS | redesign/audit/tasks.md |
 | terms | 1 | AUDITED | — | VERIFIED⁹ | — | redesign/audit/terms.md |
 | timer | 2 | AUDITED | — | VERIFIED | PASS | redesign/audit/timer.md |
-| auth | 6 | AUDITED | — | TODO | — | redesign/audit/auth.md |
+| auth | 6 | AUDITED | — | VERIFIED¹⁰ | PASS | redesign/audit/auth.md |
 | shell (AppShell/Sidebar/Header) | 3 | AUDITED | — | TODO | — | redesign/audit/shell.md |
 | components (shared, 29 files) | 29 | AUDITED | — | TODO | — | redesign/audit/components.md |
 | chat (preserve, audit-only) | 3 | AUDITED | — | N/A | — | redesign/audit/chat.md |
@@ -191,6 +197,15 @@ process, found `Card.module.css`'s `subtle` comment had miscited `terms.tocBox` 
 `exams.overflowBadge` as matches (both actually use `--glass-bg`, and `overflowBadge` also uses
 `--r-xs`, not a Card radius option) — corrected the comment so a future round doesn't repeat the
 mistake; `notesSidebar.card` is the variant's one confirmed match.
+
+¹⁰ **auth VERIFIED, no code migrated.** Re-checked the audit's do-not-migrate call against
+current source (the same discipline that caught Terms' stale citation): `.card` still uses
+`--glass-bg-strong`, a hardcoded `blur(36px)`, and sets no `border-radius` of its own — radius
+and outer shadow come from the parent `.layout` (`--r-2xl` + `--shadow-lg` + `overflow: hidden`),
+a load-bearing container/panel split for the signed-out screen. No Card variant matches this
+recipe. `.brandHeader` is correctly N/A for `<PageHeader>` (route renders outside `AppShell`,
+same as Terms). No issues found; confirmed still "the most internally consistent batch in the
+app" per the original audit.
 **Status vocab — Tests:** — / PASS / FAIL (link failure detail in the batch's own file, not here)
 
 ### Screenshot gap — partially closed
