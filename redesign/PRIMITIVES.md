@@ -302,6 +302,26 @@ Live-rendered via Playwright (`redesign/screenshots/phase6-verify/plan-empty.png
 `plan-with-data.png`) — confirmed the summary card, AI-summary panel, and empty-state card all
 render identically to the pre-migration layout, both with and without a generated plan.
 
-**Not yet done**: the remaining 9 batches' Card migration (quiz, review, terms, auth, shell,
+**Phase 6 round 5 — Quiz, 2026-08-03.** `.panel` — the shared shell for every QuizRunner/
+QuizReview state (5 call sites: no-usable-questions, finished, in-progress, no-attempt-yet,
+review) — migrated to `<Card variant="panel" padding="lg" className={styles.panel}>`. Exact
+match on every axis (`--r-lg` + `--glass-inner`/`--shadow-sm`, padding `var(--s-6)` **is**
+`padding-lg`'s literal value), so `.panel` in `quiz.module.css` shrank to just
+`position: relative` (kept for layout safety; no absolutely-positioned child currently depends on
+it) plus the untouched `.panel h1` descendant rule, which still applies since `.panel` stays a
+real className on the Card.
+
+`.reviewQuestion` (the per-question card inside the review list) deliberately **NOT** migrated:
+it's an `<article>` root, and Card only supports `div`/`section` — extending `as` again for a
+single, one-off instance (vs. Settings' 6-file/8-instance pattern that justified the `section`
+addition) would be contract creep without the cross-batch evidence the primitive's build rules
+require. Left CSS-only, unchanged.
+
+**Verification (Quiz)**: `npm test` 936/936, `tsc -b`/`oxlint`/`prettier --check` clean.
+Live-rendered via Playwright (`redesign/screenshots/phase6-verify/quiz-runner.png`,
+`quiz-review.png`) — confirmed the host bubble, choice list, and both correct/incorrect review
+states render identically to the pre-migration layout.
+
+**Not yet done**: the remaining 8 batches' Card migration (review, terms, auth, shell,
 components — chat stays N/A), the three NotesAiSidebar surfaces, and Review's own
 `<PageHeader>` adoption (its declared second consumer, per the PageHeader section above).

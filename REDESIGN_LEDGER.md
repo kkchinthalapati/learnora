@@ -1,10 +1,12 @@
 # Learnora Redesign Ledger
 
-Last updated: 2026-08-03 — Phase 6 rollout: plan batch VERIFIED (see footnote ⁶) — all three
-`<div>`-rooted glass shells (summary card, AI summary, empty state) migrated to `<Card>`. library
-batch VERIFIED the round before (footnote ⁵) — the `<PageHeader>` primitive is now built (Library
-was its declared first consumer) and applied, plus a Card migration on the subject-workspace
-sections. Settings batch VERIFIED two rounds back (footnote ⁴), extending `<Card>` with a narrow
+Last updated: 2026-08-03 — Phase 6 rollout: quiz batch VERIFIED (see footnote ⁷) — the shared
+`.panel` shell across all 5 QuizRunner/QuizReview states migrated to `<Card>`, an exact match on
+every axis. plan batch VERIFIED the round before (footnote ⁶) — all three `<div>`-rooted glass
+shells (summary card, AI summary, empty state) migrated to `<Card>`. library batch VERIFIED two
+rounds back (footnote ⁵) — the `<PageHeader>` primitive is now built (Library was its declared
+first consumer) and applied, plus a Card migration on the subject-workspace sections. Settings
+batch VERIFIED three rounds back (footnote ⁴), extending `<Card>` with a narrow
 `as="div" | "section"` prop. Phase 3 signed off by owner (see `redesign/DESIGN_MOVES.md`,
 `Status: APPROVED 2026-08-03`), including the PageHeader decision (drop the 5 duplicate h1s,
 promote the shell header's label to `<h1>`).
@@ -71,6 +73,9 @@ conversations) should be able to resume this project using only this file plus t
       four `.card` grid tiles stayed CSS-only (all `<li>` roots). See footnote ⁵. plan done
       round 4 — all three glass shells migrated; `.dayCard` stayed CSS-only (`<li>` root). No
       page-heading gap to fix (already resolved by Phase 4's move #2 correction). See footnote ⁶.
+      quiz done round 5 — the shared `.panel` shell (5 call sites) migrated, exact match, zero
+      residual. `.reviewQuestion` stayed CSS-only (`<article>` root, single instance — not
+      enough evidence to extend `as` again). See footnote ⁷.
 - [ ] Phase 7 — Final consistency pass + full test suite + lint green
 
 ## Batch table
@@ -82,7 +87,7 @@ conversations) should be able to resume this project using only this file plus t
 | exams | 3 | AUDITED | done (live) | VERIFIED | PASS | redesign/audit/exams.md |
 | library | 6 | AUDITED | done (live) | VERIFIED⁵ | PASS | redesign/audit/library.md |
 | plan | 1 | AUDITED | done (live) | VERIFIED⁶ | PASS | redesign/audit/plan.md |
-| quiz | 3 | AUDITED | — | TODO | — | redesign/audit/quiz.md |
+| quiz | 3 | AUDITED | done (live) | VERIFIED⁷ | PASS | redesign/audit/quiz.md |
 | review | 1 | AUDITED | — | TODO | — | redesign/audit/review.md |
 | settings | 8 | AUDITED | done (live) | VERIFIED⁴ | PASS | redesign/audit/settings.md |
 | tasks | 3 | AUDITED | — | VERIFIED³ | PASS | redesign/audit/tasks.md |
@@ -147,6 +152,14 @@ its hardcoded `blur(16px)` drift (a pre-existing audit finding, third instance a
 unrelated to this round and untouched. The audit's "no page heading" finding was already fixed
 as a side effect of Phase 4 (Plan was one of the two extra routes found to duplicate the shell's
 `<h1>`), so no `<PageHeader>` was needed here.
+
+⁷ **quiz VERIFIED**: the shared `.panel` shell used across all 5 QuizRunner/QuizReview states
+(no-usable-questions, finished, in-progress, no-attempt-yet, review) migrated to
+`<Card variant="panel" padding="lg">` — an exact match on recipe, radius, and padding, so no
+residual override was needed at all. `.reviewQuestion` (the per-question card inside the review
+list) stayed CSS-only: it's an `<article>` root and Card only supports `div`/`section`, and a
+single one-off instance doesn't clear the evidence bar that justified extending `as` for
+Settings' 6-file pattern.
 **Status vocab — Tests:** — / PASS / FAIL (link failure detail in the batch's own file, not here)
 
 ### Screenshot gap — partially closed
