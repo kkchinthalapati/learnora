@@ -26,6 +26,8 @@ import { PlanView } from "./views/plan/PlanView";
 import { QuizRunner } from "./views/quiz/QuizRunner";
 import { QuizReview } from "./views/quiz/QuizReview";
 import { ReviewView } from "./views/review/ReviewView";
+import { FriendsView } from "./views/friends/FriendsView";
+import { FriendInviteLanding } from "./views/friends/FriendInviteLanding";
 
 /*
  * Route table mirroring the vanilla app's hash router (js/router.js):
@@ -77,6 +79,11 @@ export function AppRoutes() {
           <Route path="/quiz/:quizId" element={<QuizRunner />} />
           <Route path="/quiz/:quizId/review" element={<QuizReview />} />
           <Route path="/review/:deckId" element={<ReviewView />} />
+          <Route path="/friends" element={<FriendsView />} />
+          {/* Inside the guard on purpose: an invite link opened by someone
+              who is signed out goes through ProtectedRoute's existing
+              `state: { from }` redirect and lands back here after login. */}
+          <Route path="/friends/add/:code" element={<FriendInviteLanding />} />
           <Route path="/settings" element={<SettingsView />} />
           <Route path="*" element={<Placeholder title="Not found" />} />
         </Route>

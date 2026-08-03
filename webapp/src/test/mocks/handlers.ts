@@ -2,6 +2,9 @@ import { http, HttpResponse } from "msw";
 import { SUPABASE_URL } from "../../lib/supabase";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
+/* The friends feature reaches Postgres functions rather than tables, so its
+ * requests land on a different path shape than every other module's. */
+const rpc = (name: string) => `${SUPABASE_URL}/rest/v1/rpc/${name}`;
 
 export const taskFixtures = [
   {
@@ -102,4 +105,13 @@ export const handlers = [
     rest("weekly_plans"),
     () => new HttpResponse(null, { status: 204 }),
   ),
+
+  /* Friends. The default user has a code but no friends and no pending
+     requests, so any view that merely renders the Friends page gets the
+     zero-state without having to declare handlers of its own. */
+  http.get(rest("profiles"), () =>
+    HttpResponse.json([{ friend_code: "K7M2QW9X" }]),
+  ),
+  http.post(rpc("get_friends_leaderboard"), () => HttpResponse.json([])),
+  http.post(rpc("get_friend_requests"), () => HttpResponse.json([])),
 ];

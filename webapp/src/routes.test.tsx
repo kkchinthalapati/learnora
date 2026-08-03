@@ -43,6 +43,7 @@ describe("route skeleton", () => {
     ["/library", "Library"],
     ["/library/notes", "Library"],
     ["/plan", "This week's plan"],
+    ["/friends", "Friends"],
     ["/settings", "Settings"],
   ])("%s renders the %s view for a signed-in user", (path, heading) => {
     renderAt(path);

@@ -1,0 +1,170 @@
+/* Friends. New surface, so this is written against the tokens directly rather
+ * than ported from style.css — the shells are <Card>, and everything here is
+ * spacing, type scale and the two accent tokens. */
+
+.view {
+  padding: var(--s-6) var(--s-6) var(--s-8);
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+}
+
+.sectionTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  margin: 0 0 var(--s-4);
+}
+
+/* --- Invite link --- */
+
+.inviteRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  align-items: center;
+}
+
+.linkField {
+  flex: 1 1 260px;
+  min-width: 0;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: var(--fs-sm);
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-sm);
+  padding: var(--s-3) var(--s-4);
+}
+
+.linkField:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.inviteHint {
+  margin: var(--s-3) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+/* --- Shared person row --- */
+
+.personRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+.personRow + .personRow {
+  margin-top: var(--s-3);
+}
+
+.rank {
+  flex: 0 0 auto;
+  min-width: 2.25rem;
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+/* Initials, not a remote <img>: the deployed CSP is `img-src 'self' data:
+   blob:` (vercel.json), so an avatar_url from a user's OAuth metadata would be
+   blocked in production anyway — and fetching one would hand whoever set it a
+   view-tracking pixel on every leaderboard render. */
+.avatar {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-pill);
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+}
+
+.personMain {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.personName {
+  margin: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personMeta {
+  margin: var(--s-1) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.youTag {
+  margin-left: var(--s-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border-radius: var(--r-pill);
+  padding: 2px var(--s-2);
+}
+
+.personActions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: var(--s-2);
+}
+
+.selfRow {
+  border-color: var(--accent-ring);
+  background: var(--accent-soft);
+}
+
+/* --- Invite landing --- */
+
+.landing {
+  padding: var(--s-8) var(--s-6);
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.landingInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--s-4);
+}
+
+.landingAvatar {
+  width: 64px;
+  height: 64px;
+  font-size: var(--fs-lg);
+}
+
+.landingName {
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  margin: 0;
+}
+
+.landingSub {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.landingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  justify-content: center;
+}

@@ -37,6 +37,10 @@ export function sectionLabel(
   if (pathname.startsWith("/tasks")) return t("nav_tasks");
   if (pathname.startsWith("/plan")) return "This week's plan";
   if (pathname.startsWith("/exams")) return "Exams";
+  /* Covers /friends/add/:code too, so an invite link keeps the sidebar's
+     Friends item highlighted the way NavLink's own prefix match already
+     does — the landing page has no nav entry of its own. */
+  if (pathname.startsWith("/friends")) return "Friends";
   if (pathname.startsWith("/settings")) return t("nav_settings");
   return "Learnora";
 }
