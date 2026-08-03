@@ -239,6 +239,17 @@ export const ICONS = {
       <path d="M5 20a7 7 0 0 1 14 0" />
     </>
   ),
+  /* `user` with a second figure set behind it — same head radius and shoulder
+     arc, scaled down and clipped by the front figure, so the two read as one
+     family at 20px. */
+  users: (
+    <>
+      <circle cx="10" cy="8" r="3.5" />
+      <path d="M3 20a7 7 0 0 1 14 0" />
+      <path d="M16.5 5.2a3.5 3.5 0 0 1 0 6.6" />
+      <path d="M18 14.3A7 7 0 0 1 21 20" />
+    </>
+  ),
   "log-out": (
     <>
       <path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" />

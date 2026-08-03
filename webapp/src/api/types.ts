@@ -119,3 +119,56 @@ export interface WeakTopic {
   topic: string;
   count: number;
 }
+
+/* Friends. Unlike everything above, most of these are not table rows — they
+ * are the return shapes of the SECURITY DEFINER RPCs added in
+ * 20260803000000_add_friends_feature.sql. `profiles` and `study_sessions`
+ * stay owner-only in RLS, so a friend's name and stats can only ever arrive
+ * pre-aggregated from one of those functions, never as a row this client
+ * selected for itself. */
+
+export type FriendshipStatus = "pending" | "accepted" | "declined";
+
+export interface Friendship {
+  id: string;
+  requester_id: string;
+  addressee_id: string;
+  status: FriendshipStatus;
+  created_at: string;
+  responded_at: string | null;
+}
+
+/** How the signed-in user already relates to the owner of an invite code. */
+export type FriendRelationship = "none" | "outgoing" | "incoming" | "accepted";
+
+/** `resolve_friend_code(code)` — the card behind "Add Alex as a friend?". */
+export interface ResolvedFriendCode {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  is_self: boolean;
+  relationship: FriendRelationship;
+}
+
+/** `get_friend_requests()` — pending in both directions, name attached. */
+export interface FriendRequest {
+  friendship_id: string;
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  direction: "incoming" | "outgoing";
+  created_at: string;
+}
+
+/** `get_friends_leaderboard(tz)`. `friendship_id` is null on the caller's own
+ *  row — there is no friendship with yourself to remove. */
+export interface LeaderboardEntry {
+  friendship_id: string | null;
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  weekly_minutes: number;
+  streak: number;
+  is_self: boolean;
+  rank: number;
+}

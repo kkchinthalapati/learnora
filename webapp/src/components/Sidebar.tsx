@@ -50,6 +50,10 @@ const NAV_ITEMS: NavItem[] = [
   },
   { to: "/plan", icon: "calendar", label: "This week's plan" },
   { to: "/exams", icon: "calendar", label: "Exams" },
+  /* Plain English like its two neighbours above: i18n.js has no key for this
+     feature, and inventing one here would leave every non-English locale
+     falling through to the key name. */
+  { to: "/friends", icon: "users", label: "Friends" },
 ];
 
 export function Sidebar({
