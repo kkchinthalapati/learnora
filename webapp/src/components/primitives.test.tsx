@@ -5,6 +5,7 @@ import { Button } from "./Button";
 import { Card } from "./Card";
 import { EmptyState } from "./EmptyState";
 import { Icon } from "./Icon";
+import { PageHeader } from "./PageHeader";
 import { Skeleton } from "./Skeleton";
 import { ICON_NAMES } from "./icons";
 
@@ -154,6 +155,32 @@ describe("Card", () => {
     );
     const region = screen.getByRole("region", { name: "Profile" });
     expect(region.tagName).toBe("SECTION");
+  });
+});
+
+describe("PageHeader", () => {
+  it("renders the title as plain text, not a heading", () => {
+    render(<PageHeader title="Library" />);
+    expect(screen.getByText("Library").tagName).toBe("P");
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+  });
+
+  it("renders sub and actions when given, omitting either when not", () => {
+    const { rerender } = render(<PageHeader title="Library" />);
+    expect(screen.queryByText("subtitle")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+
+    rerender(
+      <PageHeader
+        title="Library"
+        sub="subtitle"
+        actions={<Button>+ Create</Button>}
+      />,
+    );
+    expect(screen.getByText("subtitle")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "+ Create" }),
+    ).toBeInTheDocument();
   });
 });
 

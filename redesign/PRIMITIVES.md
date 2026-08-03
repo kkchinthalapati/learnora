@@ -243,8 +243,46 @@ selector override in `settings.module.css`, same technique as Notes' `.editorPan
 the Danger Zone's red left-border accent, Notifications' toggle switches, Preferences' dropdowns,
 and Appearance's theme-preset grid, all pixel-matching the pre-migration render.
 
-**Not yet done**: `<PageHeader>` component itself (deferred to Phase 6/Library, per the
-migration strategy above — no flagship view actually needs it). The remaining 11 batches'
-Card migration (library, plan, quiz, review, terms, auth, shell, components — chat stays N/A),
-and the three NotesAiSidebar surfaces noted above once the contract has evidence to extend to
-them properly.
+**Phase 6 round 3 — `<PageHeader>` built + Library, 2026-08-03.** Library was the primitive's
+declared first consumer (see PageHeader section above), so it's built now rather than
+speculatively earlier:
+
+```tsx
+interface PageHeaderProps {
+  title: string;
+  eyebrow?: string;
+  sub?: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+}
+```
+
+**Contract correction vs. the original spec above: `title` renders as a plain `<p>`, not an
+`<h1>`.** The spec's "must render `<h1>{title}</h1>`" line predates the move #2 correction
+(shell's `Header` now supplies the page's one `<h1>`; five-plus views' own `<h1>` was dropped
+specifically to kill a duplicate heading). Building `PageHeader` to spec as written would have
+reintroduced that exact bug on Library. `eyebrow`/`title`/`sub` all render as styled `<p>`
+elements inside a wrapper div; `actions` renders as a direct sibling (not wrapped in an extra
+div) so the DOM shape matches what Library's hand-rolled `.header` already had, pixel-for-pixel.
+
+Wired into `LibraryView.tsx`, replacing its hand-rolled `.header`/`.title`/`.headerSub` (now
+deleted from `library.module.css`). Also migrated `SubjectDetailPage.tsx`'s `Section` wrapper
+(`.workspaceSection`) to `<Card as="section" variant="elevated" padding="md">` — exact match,
+zero residual override (`padding: clamp(20px, 3vw, 28px)` **is** `padding-md`'s literal value).
+
+**Left CSS-only, same reasoning as prior rounds**: the four `.card` grid tiles (FoldersPanel,
+MaterialsPanel, FlashcardsPanel, QuizzesPanel) are all `<li>` roots — list semantics, same
+exclusion as Tasks' `.item`. `.iconBtn` is move #7 (glass icon button), not yet built. `.newCard`/
+`.newCardBtn` (dashed "new folder" tile) and `.dueBanner` (a `<p>`) don't match any variant
+recipe. `.backLink` is an `<a>` with a separately-flagged LOW hardcoded-blur drift, unrelated to
+Card. `.tabs` (the tablist container) uses `--r-md`, which isn't one of Card's `lg`/`xl` radius
+options — a single-instance, low-value fit, left alone.
+
+**Verification (Library)**: `npm test` 936/936 (934 + 2 new PageHeader tests), `tsc -b`/
+`oxlint`/`prettier --check` clean. Live-rendered via Playwright (`redesign/screenshots/
+phase6-verify/library.png`, `library-subject.png`) — confirmed the header/subtitle/action row
+and all three workspace-section cards render identically to the pre-migration layout.
+
+**Not yet done**: the remaining 10 batches' Card migration (plan, quiz, review, terms, auth,
+shell, components — chat stays N/A), the three NotesAiSidebar surfaces, and Review's own
+`<PageHeader>` adoption (its declared second consumer, per the PageHeader section above).

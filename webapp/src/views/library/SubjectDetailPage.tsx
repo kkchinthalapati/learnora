@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
@@ -50,14 +51,14 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className={styles.workspaceSection}>
+    <Card as="section" variant="elevated" padding="md">
       <h2 className={styles.sectionTitle}>
         <Icon name={icon} size={18} />
         {title}
       </h2>
       <p className={styles.sectionHint}>{hint}</p>
       {children}
-    </section>
+    </Card>
   );
 }
 

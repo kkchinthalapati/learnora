@@ -1,9 +1,11 @@
 # Learnora Redesign Ledger
 
-Last updated: 2026-08-03 — Phase 6 rollout: settings batch VERIFIED (see footnote ⁴), extending
-`<Card>` with a narrow `as="div" | "section"` prop. Phase 3 signed off by owner (see
-`redesign/DESIGN_MOVES.md`, `Status: APPROVED 2026-08-03`), including the PageHeader decision
-(drop the 5 duplicate h1s, promote the shell header's label to `<h1>`).
+Last updated: 2026-08-03 — Phase 6 rollout: library batch VERIFIED (see footnote ⁵) — the
+`<PageHeader>` primitive is now built (Library was its declared first consumer) and applied,
+plus a Card migration on the subject-workspace sections. Settings batch VERIFIED the round
+before (footnote ⁴), extending `<Card>` with a narrow `as="div" | "section"` prop. Phase 3 signed
+off by owner (see `redesign/DESIGN_MOVES.md`, `Status: APPROVED 2026-08-03`), including the
+PageHeader decision (drop the 5 duplicate h1s, promote the shell header's label to `<h1>`).
 
 This is the master index for the Learnora visual/UX redesign. It is kept deliberately small —
 findings live in `redesign/audit/<batch>.md`, not here. A cold session (no memory of prior
@@ -62,7 +64,9 @@ conversations) should be able to resume this project using only this file plus t
       tasks/timer done round 1. settings done round 2 — all 8 instances turned out to be
       `<section aria-labelledby>` (not mixed with `<div>` as first assumed), so `<Card>` gained
       a narrow `as="div" | "section"` prop rather than leaving the batch CSS-only. See footnote ⁴
-      and PRIMITIVES.md's Build status.
+      and PRIMITIVES.md's Build status. library done round 3 — `<PageHeader>` built (its
+      declared first consumer) plus a Card migration on the subject-workspace sections; the
+      four `.card` grid tiles stayed CSS-only (all `<li>` roots). See footnote ⁵.
 - [ ] Phase 7 — Final consistency pass + full test suite + lint green
 
 ## Batch table
@@ -72,7 +76,7 @@ conversations) should be able to resume this project using only this file plus t
 | dashboard | 9 | AUDITED | done (live) | VERIFIED | PASS | redesign/audit/dashboard.md |
 | notes | 3 | AUDITED | done (live) | VERIFIED² | PASS | redesign/audit/notes.md |
 | exams | 3 | AUDITED | done (live) | VERIFIED | PASS | redesign/audit/exams.md |
-| library | 6 | AUDITED | — | h1 only¹ | PASS | redesign/audit/library.md |
+| library | 6 | AUDITED | done (live) | VERIFIED⁵ | PASS | redesign/audit/library.md |
 | plan | 1 | AUDITED | — | h1 only¹ | PASS | redesign/audit/plan.md |
 | quiz | 3 | AUDITED | — | TODO | — | redesign/audit/quiz.md |
 | review | 1 | AUDITED | — | TODO | — | redesign/audit/review.md |
@@ -118,6 +122,18 @@ excluded, same reasoning as footnotes ² and ³). `settings.card`'s one-off hybr
 (`--glass-inner`+`--glass-inner-bottom`+`--shadow-sm`) kept as a doubled-selector residual
 override, same technique as Notes' `.editorPane`. See PRIMITIVES.md's Build status for the full
 verification record.
+
+⁵ **library VERIFIED**: `<PageHeader>` (title/sub/actions) built and applied to `LibraryView`,
+replacing the hand-rolled `.header`/`.title`/`.headerSub` — Library was the primitive's declared
+first consumer (see PRIMITIVES.md's PageHeader section). Its `title` renders as a `<p>`, not an
+`<h1>`, correcting the original PageHeader spec written before move #2 (the shell already
+supplies the page's one heading). `SubjectDetailPage`'s `Section` wrapper (`.workspaceSection`)
+also migrated to `<Card as="section" variant="elevated" padding="md">`, an exact match with zero
+residual override. The four grid-tile `.card` instances (Folders/Materials/Flashcards/Quizzes
+panels) are all `<li>` roots and stayed CSS-only, same list-semantics exclusion as Tasks' `.item`
+(footnote ³); `.iconBtn` awaits move #7 (glass icon button, not yet built); `.newCard`/
+`.newCardBtn`/`.dueBanner`/`.backLink`/`.tabs` don't match any variant recipe cleanly. See
+PRIMITIVES.md's Build status for the full list.
 **Status vocab — Tests:** — / PASS / FAIL (link failure detail in the batch's own file, not here)
 
 ### Screenshot gap — partially closed

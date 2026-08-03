@@ -2,6 +2,7 @@ import { useRef } from "react";
 import type { KeyboardEvent } from "react";
 import { Navigate, useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
+import { PageHeader } from "../../components/PageHeader";
 import { useCreateModal } from "../../context/createModal";
 import { FoldersPanel } from "./FoldersPanel";
 import { MaterialsPanel } from "./MaterialsPanel";
@@ -76,17 +77,15 @@ export function LibraryView() {
           identical to this row's own title text) — this row's own title is
           plain text, not a second heading, so it doesn't duplicate that.
           See redesign/DESIGN_MOVES.md move #2. */}
-      <div className={styles.header}>
-        <div>
-          <p className={styles.title}>Library</p>
-          <p className={styles.headerSub}>
-            Your folders, materials, decks, and quizzes — all in one place.
-          </p>
-        </div>
-        <Button variant="primary" onClick={() => openCreateModal()}>
-          + Create
-        </Button>
-      </div>
+      <PageHeader
+        title="Library"
+        sub="Your folders, materials, decks, and quizzes — all in one place."
+        actions={
+          <Button variant="primary" onClick={() => openCreateModal()}>
+            + Create
+          </Button>
+        }
+      />
 
       <div role="tablist" aria-label="Library sections" className={styles.tabs}>
         {LIBRARY_TABS.map((t, i) => (
