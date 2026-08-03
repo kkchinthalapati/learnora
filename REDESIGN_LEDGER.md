@@ -1,15 +1,14 @@
 # Learnora Redesign Ledger
 
-Last updated: 2026-08-03 — Phase 6 rollout: review batch VERIFIED (see footnote ⁸) —
-documentation-only round, no code changed. Found and corrected a planning error: Review was
-slated as `<PageHeader>`'s second consumer, but its `<h1>` is not a duplicate of the shell's
-(generic "Library") heading the way Library's was, so migrating it would have deleted the page's
-only real heading. quiz batch VERIFIED the round before (footnote ⁷) — the shared `.panel` shell
-across all 5 QuizRunner/QuizReview states migrated to `<Card>`, an exact match on every axis.
-plan batch VERIFIED two rounds back (footnote ⁶). library batch VERIFIED three rounds back
-(footnote ⁵) — the `<PageHeader>` primitive is now built (Library was its declared first
-consumer) and applied. Settings batch VERIFIED four rounds back (footnote ⁴), extending `<Card>`
-with a narrow `as="div" | "section"` prop. Phase 3 signed off by owner (see
+Last updated: 2026-08-03 — Phase 6 rollout: terms batch VERIFIED (see footnote ⁹) —
+no migration (both `subtle`-variant candidates turned out to use `--glass-bg`, not the variant's
+actual `--surface-2`), but found and fixed a stale evidence citation in `Card.module.css`'s
+`subtle` comment that miscited `terms.tocBox`/`exams.overflowBadge` as matches. review batch
+VERIFIED the round before (footnote ⁸) — documentation-only, corrected a PageHeader planning
+error. quiz batch VERIFIED two rounds back (footnote ⁷). plan batch VERIFIED three rounds back
+(footnote ⁶). library batch VERIFIED four rounds back (footnote ⁵) — the `<PageHeader>`
+primitive is now built and applied. Settings batch VERIFIED five rounds back (footnote ⁴),
+extending `<Card>` with a narrow `as="div" | "section"` prop. Phase 3 signed off by owner (see
 `redesign/DESIGN_MOVES.md`, `Status: APPROVED 2026-08-03`), including the PageHeader decision
 (drop the 5 duplicate h1s, promote the shell header's label to `<h1>`).
 
@@ -81,6 +80,9 @@ conversations) should be able to resume this project using only this file plus t
       documentation-only: corrected the PageHeader plan (Review's `<h1>` isn't a duplicate, so
       it wasn't migrated) and confirmed zero Card candidates (`.card`/`.face` is the flashcard
       flip, explicitly do-not-migrate; `.header` is a plain layout wrapper). See footnote ⁸.
+      terms done round 7 — no migration (`.tocBox`/`.backBtn` use `--glass-bg`, not `subtle`'s
+      `--surface-2`); fixed a stale `Card.module.css` comment that miscited both as matches.
+      See footnote ⁹.
 - [ ] Phase 7 — Final consistency pass + full test suite + lint green
 
 ## Batch table
@@ -96,7 +98,7 @@ conversations) should be able to resume this project using only this file plus t
 | review | 1 | AUDITED | — | VERIFIED⁸ | PASS | redesign/audit/review.md |
 | settings | 8 | AUDITED | done (live) | VERIFIED⁴ | PASS | redesign/audit/settings.md |
 | tasks | 3 | AUDITED | — | VERIFIED³ | PASS | redesign/audit/tasks.md |
-| terms | 1 | AUDITED | — | TODO | — | redesign/audit/terms.md |
+| terms | 1 | AUDITED | — | VERIFIED⁹ | — | redesign/audit/terms.md |
 | timer | 2 | AUDITED | — | VERIFIED | PASS | redesign/audit/timer.md |
 | auth | 6 | AUDITED | — | TODO | — | redesign/audit/auth.md |
 | shell (AppShell/Sidebar/Header) | 3 | AUDITED | — | TODO | — | redesign/audit/shell.md |
@@ -177,6 +179,18 @@ confidence call — confirmed still accurate on inspection. `.header` is a plain
 (width + margin only), not a glass shell, so there was no Card candidate to migrate either. The
 two hardcoded `border-radius: 20px` literals (exactly `--r-lg`) stay an open, separately-tracked
 LOW finding, same treatment as other rounds' untouched blur-drift findings.
+
+⁹ **terms VERIFIED, no code migrated.** `.header` is a standalone-document header (route sits
+outside `AppShell`) — correctly N/A for `<PageHeader>`. `.tocBox`/`.backBtn`, the audit's two
+LOW-confidence `subtle`-variant candidates, turned out not to match: `.tocBox` uses
+`background: var(--glass-bg)` where `subtle` actually sets `--surface-2` (translucent-glass vs.
+solid-flat, a real visual difference in both themes, not incidental), plus a padding
+(`--s-5`) that matches no Card preset — two residual overrides on one LOW-confidence instance,
+the same "not a genuine fit" call already made for NotesAiSidebar. Left CSS-only. In the
+process, found `Card.module.css`'s `subtle` comment had miscited `terms.tocBox` and
+`exams.overflowBadge` as matches (both actually use `--glass-bg`, and `overflowBadge` also uses
+`--r-xs`, not a Card radius option) — corrected the comment so a future round doesn't repeat the
+mistake; `notesSidebar.card` is the variant's one confirmed match.
 **Status vocab — Tests:** — / PASS / FAIL (link failure detail in the batch's own file, not here)
 
 ### Screenshot gap — partially closed

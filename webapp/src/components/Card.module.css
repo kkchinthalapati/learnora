@@ -47,8 +47,12 @@
   box-shadow: var(--glass-inner), var(--shadow-sm);
 }
 
-/* No blur, no shadow — a flat bordered tile. terms.tocBox, notesSidebar.card,
-   exams.overflowBadge. */
+/* No blur, no shadow — a flat bordered tile. notesSidebar.card is the one
+   confirmed match (verified during Phase 6/Terms, 2026-08-03) — terms.tocBox
+   and exams.overflowBadge were miscited here originally: both actually use
+   --glass-bg, not --surface-2 (overflowBadge also uses --r-xs, which isn't
+   one of Card's lg/xl radius options), so neither is a clean fit and both
+   stay CSS-only. */
 .subtle {
   background: var(--surface-2);
   border-color: var(--glass-border-subtle);

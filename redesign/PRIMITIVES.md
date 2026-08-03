@@ -351,5 +351,28 @@ finding as Notes' AI sidebar or Tasks' `.item`), not a gap. The two LOW-severity
 separately-tracked token-conformance finding — same treatment as the blur-drift findings left
 untouched in prior rounds, unrelated to Card/PageHeader and out of scope here.
 
-**Not yet done**: the remaining 7 batches' Card migration (terms, auth, shell, components — chat
-stays N/A), and the three NotesAiSidebar surfaces.
+**Phase 6 round 7 — Terms, 2026-08-03. No migration — found and fixed a stale evidence citation.**
+`.header` is a standalone-document header (the route sits outside `AppShell`, so it supplies its
+own page chrome) — correctly N/A for `<PageHeader>`, already documented above. `.tocBox` and
+`.backBtn` were the audit's two LOW-confidence `subtle`-variant candidates; on inspection neither
+is a clean fit: `.tocBox` uses `background: var(--glass-bg)` where the `subtle` variant (in
+`Card.module.css`) sets `--surface-2` — a translucent-glass vs. solid-flat distinction that's
+visibly different by design in both themes (see `themes.css`/`tokens.css`), not an incidental
+gap. `.tocBox`'s padding (`--s-5`, 20px flat) also doesn't match any Card padding preset. Forcing
+it through `subtle` would need two residual overrides on a single, LOW-confidence instance — the
+same "eroding the primitive's coherence, not a genuine fit" call already made for NotesAiSidebar.
+Left both CSS-only.
+
+**Found in the process: the `subtle` variant's own doc comment miscited its evidence.** It named
+three sources (`terms.tocBox`, `notesSidebar.card`, `exams.overflowBadge`); only
+`notesSidebar.card` actually uses `--surface-2` — both `terms.tocBox` and `exams.overflowBadge`
+use `--glass-bg` instead (and `overflowBadge` also uses `--r-xs`, not a Card radius option),
+which is exactly why both were independently left CSS-only in their own rounds. Corrected the
+comment in `Card.module.css` so a future session doesn't reach for `subtle` on either of those
+two expecting a clean match. No test/behavior change — comment-only.
+
+**Verification (Terms)**: comment-only change to a shared file — `tsc -b`/`oxlint`/
+`prettier --check` clean; full suite not re-run since no `.tsx`/behavioral file changed.
+
+**Not yet done**: the remaining 6 batches' Card migration (auth, shell, components — chat stays
+N/A), and the three NotesAiSidebar surfaces.
