@@ -1,6 +1,9 @@
 # Learnora Redesign Ledger
 
-Last updated: 2026-08-03 — Phase 6 rollout: components batch VERIFIED (see footnote ¹²) —
+Last updated: 2026-08-03 — **Phase 7 complete, redesign project done.** Fixed the nested `<main>`
+landmark finding (~30 call sites across 14 files), then ran the final gate: `npm run build`,
+whole-repo `format:check`, and the full test suite, all clean. See Phase status below for the
+full closing summary. Phase 6 rollout: components batch VERIFIED (see footnote ¹²) —
 documentation-only round that closes out every remaining open Card/PageHeader/IconButton
 question in the app, including the long-deferred NotesAiSidebar surfaces (all three confirmed
 not a fit, for three different reasons) and `create/MaterialPanel`'s flagged "re-declares a card
@@ -123,7 +126,17 @@ conversations) should be able to resume this project using only this file plus t
       (including the 404 fallback) — exactly 1 on every route (`redesign/screenshots/
       phase7-verify/dashboard-post-main-fix.png` confirms zero visual delta, as expected since
       `<main>`→`<div>` carries no default browser styling).
-      Remaining for Phase 7: cross-batch visual consistency spot-check, close out the ledger.
+      **Final gate — DONE 2026-08-03.** `npm run build` (`tsc -b && vite build`) succeeds clean
+      (the one chunk-size-over-500kB warning is pre-existing and unrelated to this redesign).
+      `npm run format:check` clean across the whole repo, not just touched files. `npm test`
+      938/938. Combined with the per-batch live-render verification already captured across
+      every round (`redesign/screenshots/phase4-verify/` through `phase7-verify/` — light/dark,
+      a non-default accent preset on the 3 flagship screens, and now a full-route `<main>`-count
+      check), this closes Phase 7. **The redesign project is complete**: all 15 batches audited
+      and resolved, 3 primitives shipped (`Card`, `PageHeader`, `IconButton`), the one HIGH-
+      severity structural finding (nested `<main>`) fixed, full test/build/lint/format green.
+      A cold session picking this ledger up next has no outstanding redesign work — only
+      genuinely new requests.
 
 ## Batch table
 
