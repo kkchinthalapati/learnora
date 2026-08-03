@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { useDialog } from "../../context/dialog";
 import { useTimer } from "../../context/timer";
@@ -148,7 +149,7 @@ export function TimerView() {
   return (
     <main className={styles.view}>
       <div className={styles.layout}>
-        <div className={styles.panel}>
+        <Card variant="panel" padding="lg" className={styles.panel}>
           <div
             className={styles.typeSeg}
             role="radiogroup"
@@ -358,7 +359,7 @@ export function TimerView() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
         <div className={styles.display}>
           <p className={styles.quote}>&ldquo;{quote}&rdquo;</p>

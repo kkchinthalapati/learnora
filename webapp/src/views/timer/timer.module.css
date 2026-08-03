@@ -20,15 +20,8 @@
   align-items: start;
 }
 
-.panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-lg);
-  padding: var(--s-6);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
-}
+/* Shell now comes from <Card variant="panel" padding="lg"> (defaults match
+   exactly: --r-lg, --glass-inner + --shadow-sm, var(--s-6) padding). */
 
 .panel h3 {
   margin-bottom: var(--s-6);

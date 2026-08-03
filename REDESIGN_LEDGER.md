@@ -57,7 +57,9 @@ conversations) should be able to resume this project using only this file plus t
       verified 2026-08-03 (933/933 tests, live-rendered screenshots in
       `redesign/screenshots/phase4-verify/` and `phase5-verify/`)**; awaiting the owner's visual
       sign-off before Phase 6 rollout begins.
-- [ ] Phase 6 — Full rollout (remaining 12 batches)
+- [ ] Phase 6 — Full rollout (remaining 12 batches) — IN PROGRESS, started 2026-08-03.
+      tasks/timer done this round. settings' `.card` needs more care (shared across `<div>`
+      and `<section aria-labelledby>` elements) — deferred to next round rather than rushed.
 - [ ] Phase 7 — Final consistency pass + full test suite + lint green
 
 ## Batch table
@@ -72,9 +74,9 @@ conversations) should be able to resume this project using only this file plus t
 | quiz | 3 | AUDITED | — | TODO | — | redesign/audit/quiz.md |
 | review | 1 | AUDITED | — | TODO | — | redesign/audit/review.md |
 | settings | 8 | AUDITED | — | h1 only¹ | PASS | redesign/audit/settings.md |
-| tasks | 3 | AUDITED | — | h1 only¹ | PASS | redesign/audit/tasks.md |
+| tasks | 3 | AUDITED | — | VERIFIED³ | PASS | redesign/audit/tasks.md |
 | terms | 1 | AUDITED | — | TODO | — | redesign/audit/terms.md |
-| timer | 2 | AUDITED | — | h1 only¹ | PASS | redesign/audit/timer.md |
+| timer | 2 | AUDITED | — | VERIFIED | PASS | redesign/audit/timer.md |
 | auth | 6 | AUDITED | — | TODO | — | redesign/audit/auth.md |
 | shell (AppShell/Sidebar/Header) | 3 | AUDITED | — | TODO | — | redesign/audit/shell.md |
 | components (shared, 29 files) | 29 | AUDITED | — | TODO | — | redesign/audit/components.md |
@@ -94,6 +96,13 @@ design), and `.chat`/`.dock` don't cleanly match the current variant contract (d
 background token, non-standard radius) without ad hoc per-instance overrides. Left for Phase 6
 once more cross-batch evidence can justify extending the contract properly, rather than forcing
 a fit now. See PRIMITIVES.md's Build status.
+
+³ **tasks VERIFIED is partial by design**: `.inputCard` → `<Card variant="panel">` (residual
+padding override, since `var(--s-5)`'s flat 20px doesn't match any of Card's padding options).
+`.item` (the audit's `tasks.taskItem` — matches the "row" recipe exactly) was **not** migrated:
+it's a `<li role="checkbox">` inside a `<ul>`, and Card is div-only by design — swapping would
+break list semantics. `.empty`/`.dashTask` left CSS-only, same reasoning as Notes' AI sidebar
+(non-matching radius/background without ad hoc overrides).
 **Status vocab — Tests:** — / PASS / FAIL (link failure detail in the batch's own file, not here)
 
 ### Screenshot gap — partially closed
