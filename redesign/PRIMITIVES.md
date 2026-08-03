@@ -1,4 +1,4 @@
-# Card / PageHeader Primitives
+# Card / PageHeader / IconButton Primitives
 
 Status: APPROVED, BUILDING NOW (Phase 4, started 2026-08-03). Phase 3 signed off both the
 contract below and the PageHeader decision (see PageHeader section).
@@ -12,6 +12,7 @@ marked "audit says" record what the evidence forced; everything else is unchange
 
 `webapp/src/components/Card.tsx` + `Card.module.css`
 `webapp/src/components/PageHeader.tsx` + `PageHeader.module.css`
+`webapp/src/components/IconButton.tsx` + `IconButton.module.css`
 
 Same flat convention as existing `Button.tsx`/`EmptyState.tsx`. Add `Card.test.tsx` /
 `PageHeader.test.tsx` (or extend an existing shared-primitives test file if one exists).
@@ -112,6 +113,22 @@ queries are unaffected.
 shell's own `<h1>` on these routes is the generic "Library" label, so the view's own heading is
 not a duplicate and must stay a real `<h1>`), `terms` and `auth` (rendered outside `AppShell`,
 so they supply their own page chrome).
+
+## IconButton
+
+**Built 2026-08-03 (see DESIGN_MOVES.md move #7), during Phase 6/Shell.** A real `<button>`
+shell, not a `Card` variant — Card is div/section only, and every one of this pattern's
+instances is a genuine interactive button, so it needed its own primitive.
+
+```tsx
+type IconButtonProps = ComponentPropsWithRef<"button">; // type defaults to "button"
+```
+
+Shell-only, same convention as `Card`: 42×42, `--r-md`, `--glass-bg` + `blur(var(--glass-blur))`,
+`--glass-inner` + `--shadow-sm`, hover escalates to `accent-soft` background + `--shadow-md`.
+Matches `Header.module.css`'s former `.iconBtn` exactly — the canonical, most complete instance
+of the three real matches (see move #7's correction: `library.module.css`'s `.iconBtn` was a
+stale citation, a different smaller/flatter button that doesn't belong to this family).
 
 ## Migration strategy (build → prove → roll out, test-safe by construction)
 
@@ -389,5 +406,35 @@ consistent batch in the app," confirmed still true.
 **Verification (Auth)**: no source changed; `npm test src/views/auth` 28/28 passing (unaffected,
 run to confirm no drift since the Phase 2 audit).
 
-**Not yet done**: the remaining 2 batches' Card migration (shell, components — chat stays N/A),
-and the three NotesAiSidebar surfaces (part of the components/notes work).
+**Phase 6 round 9 — Shell, 2026-08-03.** `Card` itself is N/A for AppShell/Sidebar/Header — they
+are app chrome, not content cards, confirmed by the audit and unchanged on inspection.
+`<PageHeader>` is also N/A — the shell *is* the thing PageHeader was built to replace for other
+views, not itself a PageHeader consumer.
+
+Built `IconButton` (see the IconButton section above) and applied it to Header's three buttons
+(Log Out, Toggle Theme, the mobile menu toggle) — `Header.module.css`'s `.iconBtn`/`.menuToggle`
+shared recipe shrank to just `.menuToggle`'s responsive `display` toggle, now a doubled
+`.menuToggle.menuToggle` selector (IconButton's own `display: flex`, for icon centering, has the
+same specificity and CSS Modules doesn't guarantee file load order). `.clock` (a text pill, not
+an icon button) stays CSS-only — its `--r-md` radius doesn't fit Card's `lg`/`xl` options either,
+same exclusion class as `exams.overflowBadge`.
+
+**Two pre-existing HIGH-severity findings from the Phase 2 shell audit, re-confirmed still open,
+neither touched this round on purpose:**
+- **Nested `<main>` landmarks on every signed-in route** — `AppShell` renders `<main>` and
+  ~13 views each render their own `<main>` inside it. The audit explicitly scoped this fix to
+  Phase 7 ("touches ~30 call sites across 10 batches... rather than being smuggled into a card
+  swap") — deferring it there rather than doing it now, per that existing plan.
+- **The duplicate section-label heading** this same audit flagged is the finding move #2 already
+  resolved in Phase 4 — re-confirmed fixed, not still open.
+
+**Verification (Shell)**: `npm test` 938/938 (936 + 2 new IconButton tests), `tsc -b`/`oxlint`/
+`prettier --check` clean. Live-rendered via Playwright at both desktop and mobile viewport widths
+(`redesign/screenshots/phase6-verify/shell-header-desktop.png`, `shell-header-mobile.png`) —
+confirmed the log-out/theme-toggle buttons render unchanged and the mobile hamburger toggle's
+responsive show/hide still works correctly post-migration.
+
+**Not yet done**: the `components` batch's Card migration (chat stays N/A), the three
+NotesAiSidebar surfaces, rolling `IconButton` out to its other 2 confirmed call sites
+(`exams.iconBtn` — exact match; `dashboard.dismissBtn` — has a drift to resolve first: missing
+blur, no hover shadow escalation), and Phase 7's nested-`<main>` fix.

@@ -31,7 +31,7 @@ everywhere.
 | 4 | Accent restraint | 4 | **PENDING VISUAL** |
 | 5 | Header action-affordance | 4 | **SURVIVES** — already built in Library |
 | 6 | Empty/loading/error polish | 4 | **PENDING VISUAL** |
-| 7 | Icon-button primitive (new) | 4 | **SURVIVES** |
+| 7 | Icon-button primitive (new) | 3 | **SURVIVES** — built in Phase 6/Shell; `library` was a stale citation |
 | 8 | Breakpoint coordination (new) | 6 | **SURVIVES** |
 | 9 | Single `<main>` landmark (new) | 10 | **SURVIVES** — correctness, not taste |
 
@@ -211,20 +211,24 @@ deliberately gives the **loader** `animation-duration: 3s` instead of `none` —
 stops spinning stops communicating. **Adopt this as the house rule** and check the other
 reduced-motion blocks against it; several (`timer`, `MiniTimer`, `chat`) blanket-disable.
 
-## 7. Icon-button primitive — NEW, SURVIVES (4 batches at MEDIUM+)
+## 7. Icon-button primitive — NEW, SURVIVES (3 batches at MEDIUM+)
 
-Not among the seeded hypotheses; surfaced by the audit. The same 42px square glass icon button
-is declared **four times**:
+Not among the seeded hypotheses; surfaced by the audit. **Correction found while building this
+move (Phase 6/Shell, 2026-08-03): the original citation below was wrong about `library`.** The
+same 42px square glass icon button is declared three times, not four:
 
 - `Header.module.css:36-60` — `.iconBtn, .menuToggle` (the canonical one)
-- `exams.module.css:55-72` — `.iconBtn`
-- `library.module.css:279-287` — `.iconBtn`
-- `dashboard.module.css:433-447` — `.dismissBtn`
+- `exams.module.css:55-72` — `.iconBtn` — exact match, including the hover shadow escalation
+- `dashboard.module.css:433-447` — `.dismissBtn` — close but not exact: no `backdrop-filter` at
+  all, and its `:hover` doesn't escalate the box-shadow the way Header's/Exams' do
 
-All four are 42×42, `--r-md`, glass bg + border, `--glass-inner` + `--shadow-sm`, with an
-accent-soft hover. They differ only in whether the hover escalates the shadow. This is the
-second-strongest duplication in the app after the card shell itself, and unlike the card shell
-it has **no** variant spread to design around.
+`library.module.css`'s `.iconBtn` is a **different, smaller button** — 32×32 (not 42×42),
+`background: var(--surface-2)` (not `--glass-bg`), no blur — and does not belong to this family.
+It was miscited in the original audit pass; drop it from this move's evidence. Built the
+`IconButton` primitive off the two confirmed exact matches (Header, Exams); Dashboard's
+`.dismissBtn` drift (missing blur, no hover escalation) is a separate, still-open finding to
+resolve if/when it's migrated. This is still the second-strongest duplication in the app after
+the card shell itself, and unlike the card shell it has **no** variant spread to design around.
 
 ## 8. Breakpoint coordination — NEW, SURVIVES (6 batches at MEDIUM+)
 

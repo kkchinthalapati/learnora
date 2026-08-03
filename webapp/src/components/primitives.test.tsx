@@ -5,6 +5,7 @@ import { Button } from "./Button";
 import { Card } from "./Card";
 import { EmptyState } from "./EmptyState";
 import { Icon } from "./Icon";
+import { IconButton } from "./IconButton";
 import { PageHeader } from "./PageHeader";
 import { Skeleton } from "./Skeleton";
 import { ICON_NAMES } from "./icons";
@@ -181,6 +182,25 @@ describe("PageHeader", () => {
     expect(
       screen.getByRole("button", { name: "+ Create" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("IconButton", () => {
+  it("defaults to type=button and forwards an accessible name", () => {
+    render(<IconButton aria-label="Log Out">×</IconButton>);
+    const button = screen.getByRole("button", { name: "Log Out" });
+    expect(button).toHaveAttribute("type", "button");
+  });
+
+  it("combines a caller's className with its own generated class", () => {
+    render(
+      <IconButton aria-label="Toggle" className="menuToggle">
+        ☰
+      </IconButton>,
+    );
+    expect(screen.getByRole("button", { name: "Toggle" }).className).toContain(
+      "menuToggle",
+    );
   });
 });
 

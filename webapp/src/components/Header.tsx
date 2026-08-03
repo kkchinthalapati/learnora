@@ -1,5 +1,6 @@
 import { useLocation } from "react-router";
 import { Icon } from "./Icon";
+import { IconButton } from "./IconButton";
 import { useAuth } from "../context/auth";
 import { useAppearance } from "../context/appearance";
 import { useLiveClock } from "../hooks/useLiveClock";
@@ -51,15 +52,14 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
   return (
     <header className={styles.header}>
       <div className={styles.headerLeft}>
-        <button
-          type="button"
+        <IconButton
           className={styles.menuToggle}
           aria-label="Toggle Sidebar Menu"
           title="Toggle Sidebar Menu"
           onClick={onToggleMenu}
         >
           ☰
-        </button>
+        </IconButton>
         <div>
           <h1 className={styles.title}>{sectionLabel(pathname, t)}</h1>
           <p className={styles.subtitle}>{getGreeting(firstName)}</p>
@@ -67,24 +67,20 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
       </div>
       <div className={styles.headerRight}>
         <span className={styles.clock}>{time}</span>
-        <button
-          type="button"
-          className={styles.iconBtn}
+        <IconButton
           aria-label="Log Out"
           title="Log Out"
           onClick={() => void signOut()}
         >
           <Icon name="log-out" size={20} />
-        </button>
-        <button
-          type="button"
-          className={styles.iconBtn}
+        </IconButton>
+        <IconButton
           aria-label="Toggle Theme"
           title="Toggle Theme"
           onClick={toggleTheme}
         >
           <Icon name={isDark ? "sun" : "moon"} size={24} />
-        </button>
+        </IconButton>
       </div>
     </header>
   );

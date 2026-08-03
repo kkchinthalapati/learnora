@@ -1,0 +1,33 @@
+/* Matches Header.module.css's former .iconBtn exactly — the canonical
+ * instance of the 42px glass icon button (see DESIGN_MOVES.md move #7). */
+
+.iconButton {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-lg);
+  color: var(--text);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    color var(--t-fast) ease,
+    border-color var(--t-fast) ease,
+    box-shadow var(--t-fast) ease;
+}
+
+.iconButton:hover {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent-ring);
+  box-shadow: var(--glass-inner), var(--shadow-md);
+}

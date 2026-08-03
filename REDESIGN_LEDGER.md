@@ -1,6 +1,10 @@
 # Learnora Redesign Ledger
 
-Last updated: 2026-08-03 — Phase 6 rollout: auth batch VERIFIED (see footnote ¹⁰) — no
+Last updated: 2026-08-03 — Phase 6 rollout: shell batch VERIFIED (see footnote ¹¹) — built the
+`IconButton` primitive (move #7) and applied it to Header's three buttons; found move #7's own
+evidence citation was stale (`library.iconBtn` is a different, smaller button — corrected in
+DESIGN_MOVES.md). The audit's nested-`<main>` HIGH finding is re-confirmed still open, reserved
+for Phase 7 per the audit's own scoping. auth batch VERIFIED the round before (footnote ¹⁰) — no
 migration, re-confirmed against current source that `.card`'s one-off `--glass-bg-strong`/
 36px-blur/no-own-radius recipe still doesn't match any Card variant; "most internally consistent
 batch in the app" per the original audit, still true. terms batch VERIFIED the round before
@@ -88,7 +92,9 @@ conversations) should be able to resume this project using only this file plus t
       `--surface-2`); fixed a stale `Card.module.css` comment that miscited both as matches.
       See footnote ⁹. auth done round 8 — no migration, re-confirmed `.card`'s one-off recipe
       (`--glass-bg-strong`, radius owned by the parent `.layout`) against current source.
-      See footnote ¹⁰.
+      See footnote ¹⁰. shell done round 9 — built `IconButton` (move #7), applied to Header;
+      corrected move #7's stale `library.iconBtn` citation. Nested-`<main>` HIGH finding
+      re-confirmed open, deferred to Phase 7 per the audit's own scoping. See footnote ¹¹.
 - [ ] Phase 7 — Final consistency pass + full test suite + lint green
 
 ## Batch table
@@ -107,7 +113,7 @@ conversations) should be able to resume this project using only this file plus t
 | terms | 1 | AUDITED | — | VERIFIED⁹ | — | redesign/audit/terms.md |
 | timer | 2 | AUDITED | — | VERIFIED | PASS | redesign/audit/timer.md |
 | auth | 6 | AUDITED | — | VERIFIED¹⁰ | PASS | redesign/audit/auth.md |
-| shell (AppShell/Sidebar/Header) | 3 | AUDITED | — | TODO | — | redesign/audit/shell.md |
+| shell (AppShell/Sidebar/Header) | 3 | AUDITED | done (live) | VERIFIED¹¹ | PASS | redesign/audit/shell.md |
 | components (shared, 29 files) | 29 | AUDITED | — | TODO | — | redesign/audit/components.md |
 | chat (preserve, audit-only) | 3 | AUDITED | — | N/A | — | redesign/audit/chat.md |
 
@@ -206,6 +212,21 @@ a load-bearing container/panel split for the signed-out screen. No Card variant 
 recipe. `.brandHeader` is correctly N/A for `<PageHeader>` (route renders outside `AppShell`,
 same as Terms). No issues found; confirmed still "the most internally consistent batch in the
 app" per the original audit.
+
+¹¹ **shell VERIFIED.** `Card`/`PageHeader` are both N/A for AppShell/Sidebar/Header (chrome, not
+content; the shell is what PageHeader replaces elsewhere, not a consumer of it). Built the new
+`IconButton` primitive (move #7) and applied it to Header's Log Out/Toggle Theme/mobile-menu
+buttons — `.iconBtn`/`.menuToggle`'s shared recipe in `Header.module.css` shrank to just
+`.menuToggle`'s doubled-selector responsive `display` toggle. `.clock` stays CSS-only (`--r-md`
+radius doesn't fit Card, and it's a text pill, not an icon button). In the process, found move
+#7's own citation was wrong: `library.module.css`'s `.iconBtn` is a different, smaller (32×32,
+`--surface-2`) button, not a fourth match — corrected in `DESIGN_MOVES.md`, leaving 3 real
+matches (Header, Exams exact; Dashboard's `.dismissBtn` close but missing blur + hover
+escalation). `IconButton` itself is only wired into Header this round; rolling it out to Exams/
+Dashboard is follow-up work. The audit's nested-`<main>` HIGH finding (every signed-in view
+double-nests `<main>` inside the shell's own) is re-confirmed still present and deliberately
+untouched — the audit itself scoped that fix to Phase 7 as a ~30-call-site sweep, not a Card/
+IconButton-round change.
 **Status vocab — Tests:** — / PASS / FAIL (link failure detail in the batch's own file, not here)
 
 ### Screenshot gap — partially closed
