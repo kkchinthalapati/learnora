@@ -78,7 +78,11 @@ conversations) should be able to resume this project using only this file plus t
       verified 2026-08-03 (933/933 tests, live-rendered screenshots in
       `redesign/screenshots/phase4-verify/` and `phase5-verify/`)**; awaiting the owner's visual
       sign-off before Phase 6 rollout begins.
-- [ ] Phase 6 — Full rollout (remaining 12 batches) — IN PROGRESS, started 2026-08-03.
+- [x] Phase 6 — Full rollout (remaining 12 batches) — **DONE 2026-08-03.** All 15 batches
+      VERIFIED or confirmed N/A (chat). 10 rounds total; 5 applied a Card/PageHeader/IconButton
+      migration, 5 resolved with no code change (a genuine, evidence-based "nothing to migrate"
+      or a documentation correction). Two new primitives shipped beyond the original Card/
+      PageHeader pair: `IconButton` (move #7) and `PageHeader` itself. Full history below.
       tasks/timer done round 1. settings done round 2 — all 8 instances turned out to be
       `<section aria-labelledby>` (not mixed with `<div>` as first assumed), so `<Card>` gained
       a narrow `as="div" | "section"` prop rather than leaving the batch CSS-only. See footnote ⁴
