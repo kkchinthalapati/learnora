@@ -25,6 +25,14 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: "./src/test/setup.ts",
+    /* Node 22+ ships its own global `localStorage`/`sessionStorage` (Web
+     * Storage API), on by default since Node 24. It defines `localStorage`
+     * on globalThis *before* the jsdom environment sets up window's version,
+     * so without a `--localstorage-file` path it wins as a non-functional
+     * stub — every test hits "localStorage.clear is not a function" instead
+     * of ever reaching jsdom's real Storage implementation. Disabling Node's
+     * own copy for the test worker processes is what lets jsdom's take over. */
+    execArgv: ["--no-experimental-webstorage"],
     /* Vitest's 5s default is tight for this suite. A single test here mounts
      * jsdom, the whole provider stack and an MSW interceptor, then drives it
      * with userEvent — several already sit near 600ms on an idle machine, and
