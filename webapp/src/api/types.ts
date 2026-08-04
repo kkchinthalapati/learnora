@@ -172,3 +172,16 @@ export interface LeaderboardEntry {
   is_self: boolean;
   rank: number;
 }
+
+/** `push_subscriptions` — one row per browser/device that opted into Web
+ *  Push. See supabase/migrations/20260804000000_add_push_notifications.sql. */
+export interface PushSubscriptionRow {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  notify_exams: boolean;
+  notify_flashcards: boolean;
+  created_at: string;
+}

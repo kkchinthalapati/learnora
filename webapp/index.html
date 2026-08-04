@@ -5,6 +5,12 @@
     <!-- Same icon the vanilla app uses (terms.html's <link rel="icon">), not
          Vite's template logo. Vite prefixes this with the build's `base`. -->
     <link rel="icon" type="image/jpeg" href="/learnora.jpg" />
+    <link rel="apple-touch-icon" href="/learnora.jpg" />
+    <!-- Vite prefixes this with the build's `base`, same as the favicon
+         above — the manifest itself still needs its own start_url/scope
+         hardcoded to /app/ since it's a static file Vite doesn't process. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0a0e0d" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
