@@ -18,7 +18,10 @@ import {
   WEEKDAY_NAMES,
 } from "../../lib/date";
 import type { PlanBlock, PlanDay } from "../../lib/aiJson";
-import { DEFAULT_BLOCK_MINUTES, parseStoredPlan } from "./planMeta";
+import { DEFAULT_BLOCK_MINUTES, parseStoredPlan } from "../../lib/planShape";
+import { useFolders } from "../../hooks/useFolders";
+import { useSessionsSince } from "../../hooks/useSessions";
+import { computeWeekAdherence } from "../../lib/planAdherence";
 import styles from "./plan.module.css";
 
 /* The Weekly Plan — ports index.html:942-955 + js/router.js's `loadPlanView`
@@ -151,6 +154,28 @@ export function PlanView() {
   const parsed = plan ? parseStoredPlan(plan.plan_json) : null;
   const hasPlan = !!parsed && parsed.days.length > 0;
 
+  /* "Did last week's plan actually happen?" — a quiet recap, not a new
+     generation input the student has to act on (that part happens inside
+     the prompt api/aiPlan.ts builds; this is just showing the same signal
+     back). Computed from whatever plan/sessions/folders are already
+     cached — no dedicated fetch beyond the two extra reads. */
+  const prevMonday = new Date(monday);
+  prevMonday.setDate(prevMonday.getDate() - 7);
+  const prevWeekStartISO = localDateStr(prevMonday);
+  const { data: prevPlan } = usePlanForWeek(prevWeekStartISO);
+  const { data: recentSessions } = useSessionsSince(14);
+  const { data: folders } = useFolders();
+  const prevParsed = prevPlan ? parseStoredPlan(prevPlan.plan_json) : null;
+  const adherence =
+    prevParsed && prevParsed.days.length > 0 && recentSessions && folders
+      ? computeWeekAdherence(
+          prevParsed.days,
+          recentSessions,
+          folders,
+          prevWeekStartISO,
+        )
+      : null;
+
   /* Ports the vanilla's `start-plan-block` handoff (js/router.js:82-85): the
      block's duration and subject are pre-staged on the timer and the student
      lands on /timer with only Start left to press. */
@@ -216,6 +241,32 @@ export function PlanView() {
               : "Generate Plan"}
         </Button>
       </Card>
+
+      {adherence ? (
+        <Card variant="panel" padding="none" className={styles.adherence}>
+          <div className={styles.adherenceRow}>
+            <span className={styles.adherencePct}>
+              {adherence.completionPct}%
+            </span>
+            <span className={styles.adherenceLabel}>
+              of last week&apos;s plan followed
+            </span>
+          </div>
+          {adherence.neglectedSubjects.length > 0 ? (
+            <p className={styles.adherenceNote}>
+              Under-studied last week:{" "}
+              <span className={styles.neglectedTags}>
+                {adherence.neglectedSubjects.map((subject) => (
+                  <span key={subject} className={styles.neglectedTag}>
+                    {subject}
+                  </span>
+                ))}
+              </span>{" "}
+              — the next plan will ease these back in.
+            </p>
+          ) : null}
+        </Card>
+      ) : null}
 
       {isError ? (
         <p role="alert" className={styles.loadError}>

@@ -56,6 +56,57 @@
   color: var(--danger);
 }
 
+/* --- Last week's adherence recap --- */
+
+.adherence {
+  margin-top: var(--s-4);
+}
+
+.adherence.adherence {
+  padding: var(--s-4) var(--s-6);
+}
+
+.adherenceRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+}
+
+.adherencePct {
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--accent-text);
+}
+
+.adherenceLabel {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.adherenceNote {
+  margin: var(--s-2) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.neglectedTags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.neglectedTag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--r-full, 999px);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  color: var(--text);
+  font-weight: 600;
+  font-size: var(--fs-xs);
+}
+
 .weekGrid {
   display: grid;
   grid-template-columns: repeat(7, minmax(180px, 1fr));

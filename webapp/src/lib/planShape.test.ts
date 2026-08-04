@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_BLOCK_MINUTES, parseStoredPlan } from "./planMeta";
+import { DEFAULT_BLOCK_MINUTES, parseStoredPlan } from "./planShape";
 
 /* `weekly_plans.plan_json` is model output round-tripped through the database,
  * so by the time the grid sees it nothing about its shape is guaranteed. The

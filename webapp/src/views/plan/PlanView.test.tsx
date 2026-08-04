@@ -56,12 +56,22 @@ const SAMPLE_PLAN = {
   ],
 };
 
-/** `maybeSingle()` on an empty result set returns null, not a row. */
+/** `maybeSingle()` on an empty result set returns null, not a row.
+ *
+ *  Filters on the request's `week_start` param rather than answering every
+ *  GET the same way: PlanView now also queries *last* week (for the
+ *  adherence recap), and a mock that ignored the param would hand that
+ *  query this same current-week row back, rendering it twice. */
 function servePlan(row: unknown) {
   server.use(
-    http.get(rest("weekly_plans"), () =>
-      row ? HttpResponse.json([row]) : HttpResponse.json([]),
-    ),
+    http.get(rest("weekly_plans"), ({ request }) => {
+      const requestedWeek = new URL(request.url).searchParams
+        .get("week_start")
+        ?.replace(/^eq\./, "");
+      return row && requestedWeek === WEEK_START
+        ? HttpResponse.json([row])
+        : HttpResponse.json([]);
+    }),
   );
 }
 
@@ -127,18 +137,27 @@ describe("PlanView", () => {
   });
 
   it("asks the database for this week's plan, scoped to the user", async () => {
-    let url: URL | undefined;
+    // Two requests land now, not one: the view also asks for *last* week's
+    // plan for the adherence recap. Both hit this handler, so the
+    // assertion below picks out the current-week one specifically rather
+    // than trusting whichever happened to resolve last.
+    const urls: URL[] = [];
     server.use(
       http.get(rest("weekly_plans"), ({ request }) => {
-        url = new URL(request.url);
+        urls.push(new URL(request.url));
         return HttpResponse.json([]);
       }),
     );
     renderPlan();
 
     await screen.findByText("No plan yet for this week");
-    expect(url?.searchParams.get("user_id")).toBe("eq.user-1");
-    expect(url?.searchParams.get("week_start")).toBe(`eq.${WEEK_START}`);
+    const thisWeekRequest = urls.find(
+      (u) => u.searchParams.get("week_start") === `eq.${WEEK_START}`,
+    );
+    expect(thisWeekRequest?.searchParams.get("user_id")).toBe("eq.user-1");
+    expect(thisWeekRequest?.searchParams.get("week_start")).toBe(
+      `eq.${WEEK_START}`,
+    );
   });
 
   describe("with no plan yet", () => {
@@ -443,6 +462,124 @@ describe("PlanView", () => {
 
       expect(await screen.findByText("25m")).toBeInTheDocument();
       expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("last week's adherence recap", () => {
+    const prevMonday = new Date(MONDAY);
+    prevMonday.setDate(prevMonday.getDate() - 7);
+    const PREV_WEEK_START = localDateStr(prevMonday);
+
+    /* Answers the previous week's weekly_plans query with a plan, and this
+       week's with none — servePlan only knows about the current week (see
+       its own comment), so this test needs the finer-grained handler
+       itself. */
+    function servePrevWeekPlan(planJson: unknown) {
+      server.use(
+        http.get(rest("weekly_plans"), ({ request }) => {
+          const requestedWeek = new URL(request.url).searchParams
+            .get("week_start")
+            ?.replace(/^eq\./, "");
+          return requestedWeek === PREV_WEEK_START && planJson
+            ? HttpResponse.json([
+                {
+                  id: "prev-plan",
+                  week_start: PREV_WEEK_START,
+                  plan_json: planJson,
+                },
+              ])
+            : HttpResponse.json([]);
+        }),
+      );
+    }
+
+    it("shows nothing when there was no plan last week", async () => {
+      servePrevWeekPlan(null);
+      renderPlan();
+
+      await screen.findByText("No plan yet for this week");
+      expect(
+        screen.queryByText(/of last week's plan followed/),
+      ).not.toBeInTheDocument();
+    });
+
+    it("shows the completion percentage and neglected subjects", async () => {
+      servePrevWeekPlan({
+        days: [
+          {
+            date: PREV_WEEK_START,
+            blocks: [{ subject: "Chemistry", durationMins: 100 }],
+          },
+        ],
+      });
+      server.use(
+        http.get(rest("study_sessions"), () => HttpResponse.json([])),
+        http.get(rest("folders"), () =>
+          HttpResponse.json([
+            {
+              id: "f-chem",
+              user_id: "user-1",
+              name: "Chemistry",
+              color: "#111111",
+              created_at: "2026-01-01T00:00:00Z",
+            },
+          ]),
+        ),
+      );
+      renderPlan();
+
+      expect(await screen.findByText("0%")).toBeInTheDocument();
+      expect(
+        screen.getByText("of last week's plan followed"),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Chemistry")).toBeInTheDocument();
+      expect(
+        screen.getByText(/the next plan will ease these back in/),
+      ).toBeInTheDocument();
+    });
+
+    it("omits the neglected-subjects note when nothing was neglected", async () => {
+      servePrevWeekPlan({
+        days: [
+          {
+            date: PREV_WEEK_START,
+            blocks: [{ subject: "Chemistry", durationMins: 60 }],
+          },
+        ],
+      });
+      server.use(
+        http.get(rest("study_sessions"), () =>
+          HttpResponse.json([
+            {
+              id: "s-1",
+              user_id: "user-1",
+              minutes: 60,
+              folder_id: "f-chem",
+              started_at: new Date(`${PREV_WEEK_START}T10:00:00`).toISOString(),
+              task: null,
+              timer_type: null,
+              created_at: new Date(`${PREV_WEEK_START}T10:00:00`).toISOString(),
+            },
+          ]),
+        ),
+        http.get(rest("folders"), () =>
+          HttpResponse.json([
+            {
+              id: "f-chem",
+              user_id: "user-1",
+              name: "Chemistry",
+              color: "#111111",
+              created_at: "2026-01-01T00:00:00Z",
+            },
+          ]),
+        ),
+      );
+      renderPlan();
+
+      expect(await screen.findByText("100%")).toBeInTheDocument();
+      expect(
+        screen.queryByText(/the next plan will ease these back in/),
+      ).not.toBeInTheDocument();
     });
   });
 
