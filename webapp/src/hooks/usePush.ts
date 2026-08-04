@@ -25,13 +25,24 @@ export function usePush() {
     isPushSupported() ? "checking" : "unsupported",
   );
   const [row, setRow] = useState<PushSubscriptionRow | null>(null);
+  const [allSubscriptions, setAllSubscriptions] = useState<PushSubscriptionRow[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchAll = useCallback(async () => {
+    try {
+      const list = await pushApi.fetchAll();
+      setAllSubscriptions(list);
+    } catch (err) {
+      console.error("Failed to fetch all subscriptions", err);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isPushSupported()) return;
     let cancelled = false;
     void (async () => {
+      void fetchAll();
       const existing = await getExistingPushSubscription();
       if (cancelled) return;
       if (!existing) {
@@ -50,7 +61,7 @@ export function usePush() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fetchAll]);
 
   const enable = useCallback(async (vapidPublicKey: string) => {
     setPending(true);
@@ -69,6 +80,7 @@ export function usePush() {
       });
       setRow(savedRow);
       setStatus("subscribed");
+      void fetchAll();
     } catch (err) {
       setError(
         err instanceof Error
@@ -78,7 +90,7 @@ export function usePush() {
     } finally {
       setPending(false);
     }
-  }, []);
+  }, [fetchAll]);
 
   const disable = useCallback(async () => {
     setPending(true);
@@ -89,6 +101,7 @@ export function usePush() {
       await unsubscribeFromPush();
       setRow(null);
       setStatus("unsubscribed");
+      void fetchAll();
     } catch (err) {
       setError(
         err instanceof Error
@@ -98,7 +111,7 @@ export function usePush() {
     } finally {
       setPending(false);
     }
-  }, []);
+  }, [fetchAll]);
 
   const updatePreferences = useCallback(
     async (
@@ -129,5 +142,31 @@ export function usePush() {
     [row],
   );
 
-  return { status, row, pending, error, enable, disable, updatePreferences };
+  const removeSubscription = useCallback(async (id: string) => {
+    try {
+      await pushApi.removeById(id);
+      if (row && row.id === id) {
+        // If they removed the current device's sub
+        await disable();
+      } else {
+        void fetchAll();
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not remove subscription",
+      );
+    }
+  }, [row, disable, fetchAll]);
+
+  return {
+    status,
+    row,
+    allSubscriptions,
+    pending,
+    error,
+    enable,
+    disable,
+    updatePreferences,
+    removeSubscription,
+  };
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useLogSession } from "../hooks/useSessions";
 import { useToast } from "./toast";
+import { useAuth } from "./auth";
 import { useSettings } from "./settings";
 import { Storage } from "../lib/storage";
 import {
@@ -61,6 +62,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const { showToast } = useToast();
   const { settings } = useSettings();
   const logSession = useLogSession();
+  const [smartDefaultsFetchedFor, setSmartDefaultsFetchedFor] = useState<string | null>(null);
+  const { session } = useAuth();
 
   const restored = useState(() => restoreTimerState())[0];
   const [state, setState] = useState<TimerState>(restored.state);
@@ -235,6 +238,38 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const applyAndReset = useCallback(() => {
     applyConfig(draftConfig, state.stagedType ?? state.type);
   }, [applyConfig, draftConfig, state.stagedType, state.type]);
+
+  useEffect(() => {
+    const userId = session?.user.id;
+    if (!userId || smartDefaultsFetchedFor === userId) return;
+    import("../api/sessions").then(({ sessionsApi }) => {
+      sessionsApi
+        .fetchAverageSessionLengths(14)
+        .then((averages) => {
+          const avgPomo = averages["pomodoro"];
+          const avgCount = averages["countdown"];
+          let newDraft: Partial<TimerConfig> | null = null;
+
+          // If the user typically studies for a different duration than the 25m/15m defaults,
+          // and they haven't explicitly moved the sliders away from the default, adapt the slider.
+          if (avgPomo && avgPomo > 0 && avgPomo !== 25 && draftConfig.focus === 25) {
+            newDraft = { ...draftConfig, focus: avgPomo };
+          }
+          if (avgCount && avgCount > 0 && avgCount !== 15 && (newDraft || draftConfig).countdown === 15) {
+            newDraft = { ...(newDraft || draftConfig), countdown: avgCount };
+          }
+
+          if (newDraft) {
+            applyConfig(newDraft, null);
+          }
+          setSmartDefaultsFetchedFor(userId);
+        })
+        .catch((err) => {
+          console.warn("[Timer] Failed to fetch smart defaults:", err);
+          setSmartDefaultsFetchedFor(userId);
+        });
+    });
+  }, [applyConfig, draftConfig, session?.user.id, smartDefaultsFetchedFor]);
 
   const startPreset = useCallback(
     (partial: Partial<TimerConfig>, type: TimerType = "pomodoro") => {

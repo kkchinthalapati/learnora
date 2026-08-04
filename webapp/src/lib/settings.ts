@@ -18,6 +18,7 @@ export interface Settings {
   aiConciseness: AiConciseness;
   uiLanguage: string;
   aiLanguage: string;
+  timezone: string;
   notifyStudyReminders: boolean;
   notifyTimerAlerts: boolean;
 }
@@ -27,6 +28,7 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   aiConciseness: "medium",
   uiLanguage: "en",
   aiLanguage: "English",
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
   notifyStudyReminders: true,
   notifyTimerAlerts: true,
 });
@@ -120,6 +122,7 @@ export function loadSettings(): Settings {
       AI_LANGUAGE_OPTIONS,
       DEFAULT_SETTINGS.aiLanguage,
     ),
+    timezone: stored.timezone || DEFAULT_SETTINGS.timezone,
     notifyStudyReminders:
       typeof stored.notifyStudyReminders === "boolean"
         ? stored.notifyStudyReminders

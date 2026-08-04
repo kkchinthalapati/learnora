@@ -21,6 +21,7 @@
 import { callEdge } from "./ai";
 import { tasksApi } from "./tasks";
 import { examsApi } from "./exams";
+import { flashcardsApi } from "./flashcards";
 import { foldersApi } from "./folders";
 import { plansApi } from "./plans";
 import { quizzesApi } from "./quizzes";
@@ -51,6 +52,7 @@ export function buildPlanPrompt({
   pendingTasks,
   upcomingExams,
   weakTopics = "None",
+  weakFlashcardDecks = "None",
   lastWeekAdherence = "None",
 }: {
   weekStartISO: string;
@@ -63,6 +65,8 @@ export function buildPlanPrompt({
    *  (and any other caller that hasn't been updated) still get the plain
    *  task/exam prompt rather than a "None"-cluttered one by accident. */
   weakTopics?: string;
+  /** Decks with low ease-factors, indicating the student is struggling to retain them. */
+  weakFlashcardDecks?: string;
   /** `formatAdherenceNote`'s one-liner on how much of *last* week's plan
    *  actually happened, and which subjects fell short — "None" for a
    *  student's first-ever plan, when there's nothing to compare against. */
@@ -72,6 +76,7 @@ export function buildPlanPrompt({
 Pending tasks: ${pendingTasks}
 Upcoming exams: ${upcomingExams}
 Recent weak topics from quizzes: ${weakTopics}
+Weak flashcard decks: ${weakFlashcardDecks}
 Last week's adherence: ${lastWeekAdherence}
 Prioritize subjects with closer/harder exams, tasks with closer due dates, and topics the student is weak on. If last week shows a subject was under-studied, ease it back in with shorter blocks rather than repeating the exact same plan. Keep daily blocks realistic (30-90 minutes each, a couple of blocks per day at most). If there is no exam/task data, suggest light general review blocks.`;
 }
@@ -114,14 +119,16 @@ export async function loadWorkspaceContext(todayStr = localDateStr()): Promise<{
  *  sessions, folders) have nothing to do with talking to the model. */
 export async function loadAdaptiveContext(monday: Date): Promise<{
   weakTopics: string;
+  weakFlashcardDecks: string;
   lastWeekAdherence: string;
 }> {
   const prevMonday = new Date(monday);
   prevMonday.setDate(prevMonday.getDate() - 7);
   const prevWeekStartISO = localDateStr(prevMonday);
 
-  const [weakTopicRows, prevPlan, sessions, folders] = await Promise.all([
+  const [weakTopicRows, weakDeckRows, prevPlan, sessions, folders] = await Promise.all([
     quizzesApi.fetchWeakTopics(5),
+    flashcardsApi.fetchWeakDecks(5),
     plansApi.fetchForWeek(prevWeekStartISO),
     // 14 days comfortably covers "last week" regardless of which day of the
     // current week this runs on.
@@ -130,6 +137,7 @@ export async function loadAdaptiveContext(monday: Date): Promise<{
   ]);
 
   const weakTopics = weakTopicRows.map((w) => w.topic).join(", ") || "None";
+  const weakFlashcardDecks = weakDeckRows.join(", ") || "None";
 
   const prevParsed = prevPlan ? parseStoredPlan(prevPlan.plan_json) : null;
   const lastWeekAdherence =
@@ -144,7 +152,7 @@ export async function loadAdaptiveContext(monday: Date): Promise<{
         )
       : "None";
 
-  return { weakTopics, lastWeekAdherence };
+  return { weakTopics, weakFlashcardDecks, lastWeekAdherence };
 }
 
 export async function generateWeeklyPlan(
@@ -154,7 +162,7 @@ export async function generateWeeklyPlan(
   const monday = mondayOfWeek();
   const weekStartISO = localDateStr(monday);
 
-  const [{ pendingTasks, upcomingExams }, { weakTopics, lastWeekAdherence }] =
+  const [{ pendingTasks, upcomingExams }, { weakTopics, weakFlashcardDecks, lastWeekAdherence }] =
     await Promise.all([
       loadWorkspaceContext(todayStr),
       loadAdaptiveContext(monday),
@@ -170,6 +178,7 @@ export async function generateWeeklyPlan(
           pendingTasks,
           upcomingExams,
           weakTopics,
+          weakFlashcardDecks,
           lastWeekAdherence,
         }),
       },

@@ -34,6 +34,12 @@ import {
 } from "../lib/chatActions";
 import { stripActionTagBlocks, fenceUntrusted } from "../lib/actionTags";
 import { activeContextForPath, buildSystemContext } from "../lib/chatPrompt";
+import {
+  EMPTY_PERSONA_DRIFT,
+  getPersonaDriftNudge,
+  observePersonaDrift,
+  type PersonaDriftState,
+} from "../lib/personaDrift";
 import { decodeBase64UTF8, extractFlashcardJSON } from "../lib/aiJson";
 import { THEME_PRESETS, type Mode } from "../lib/appearance";
 import { useAppearance } from "./appearance";
@@ -113,6 +119,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
      holds the *clean* text (tags stripped) the vanilla pushed to
      `AI.chatHistory`, not the widgets or the injected system context. */
   const historyRef = useRef<HistoryMessage[]>([]);
+  const personaDriftRef = useRef<PersonaDriftState>(EMPTY_PERSONA_DRIFT);
 
   /* Whichever flashcard is currently on screen in the review view, if any.
      A ref rather than state: registering it must never itself trigger a
@@ -347,6 +354,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         );
 
       try {
+        personaDriftRef.current = observePersonaDrift(
+          personaDriftRef.current,
+          query,
+        );
+        const adaptiveNudge = getPersonaDriftNudge(personaDriftRef.current);
         /* Workspace context is best-effort: the chat still works when the
            tables can't be read, it just knows less (js/ai.js:911-929). */
         let pendingTasks = "None";
@@ -392,6 +404,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           activeContext: activeContextForPath(pathname, notesMarkdown),
           appendedFileContext,
           query,
+          persona: settings.aiPersona,
+          conciseness: settings.aiConciseness,
+          adaptiveNudge: adaptiveNudge?.instruction,
         });
 
         const priorHistory = trimHistory(historyRef.current);

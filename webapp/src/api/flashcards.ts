@@ -80,4 +80,27 @@ export const flashcardsApi = {
     if (error) throw new Error(error.message);
     return (data ?? []) as FlashcardDue[];
   },
+
+  async fetchWeakDecks(limit = 5): Promise<string[]> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from("flashcards")
+      .select("ease_factor, flashcard_decks!inner(title)")
+      .eq("user_id", userId)
+      .lt("ease_factor", 2.1)
+      .order("ease_factor", { ascending: true })
+      .limit(50);
+    if (error) throw new Error(error.message);
+
+    const counts: Record<string, number> = {};
+    (data ?? []).forEach((row: any) => {
+      const title = row.flashcard_decks?.title;
+      if (title) counts[title] = (counts[title] || 0) + 1;
+    });
+
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([title]) => title);
+  },
 };

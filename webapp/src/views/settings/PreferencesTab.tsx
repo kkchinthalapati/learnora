@@ -5,6 +5,10 @@ import { Icon } from "../../components/Icon";
 import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
 import { useTranslation } from "../../hooks/useTranslation";
+import { profileApi } from "../../api/profile";
+import { examsApi } from "../../api/exams";
+import { plansApi } from "../../api/plans";
+import { generateICS, downloadICS } from "../../lib/ics";
 import {
   AI_LANGUAGE_OPTIONS,
   AI_LENGTH_OPTIONS,
@@ -45,6 +49,11 @@ const LENGTH_KEYS: Record<AiConciseness, TranslationKey> = {
   detailed: "opt_long",
 };
 
+const ALL_TIMEZONES =
+  typeof Intl !== "undefined" && typeof Intl.supportedValuesOf === "function"
+    ? Intl.supportedValuesOf("timeZone")
+    : [Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"];
+
 export function PreferencesTab() {
   const { settings, setSettings, save } = useSettings();
   const { showToast } = useToast();
@@ -54,6 +63,22 @@ export function PreferencesTab() {
   const lengthId = useId();
   const uiLangId = useId();
   const aiLangId = useId();
+  const tzId = useId();
+
+  const handleExportICS = async () => {
+    try {
+      const [exams, plans] = await Promise.all([
+        examsApi.fetch(),
+        plansApi.fetchAll(),
+      ]);
+      const ics = generateICS(exams, plans);
+      downloadICS(ics);
+      showToast("Calendar exported successfully!");
+    } catch (err) {
+      console.error("Failed to export calendar", err);
+      showToast("Failed to export calendar.");
+    }
+  };
 
   return (
     <>
@@ -183,6 +208,61 @@ export function PreferencesTab() {
             </select>
           </div>
         </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={tzId}>Timezone</label>
+            <p className={styles.fieldDesc}>
+              Used for daily reminders and leaderboard deadlines
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={tzId}
+              value={settings.timezone}
+              onChange={(e) => setSettings({ timezone: e.target.value })}
+            >
+              {ALL_TIMEZONES.map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Card>
+
+      <Card
+        as="section"
+        variant="elevated"
+        radius="lg"
+        padding="lg"
+        className={styles.card}
+        aria-labelledby="settings-data-heading"
+      >
+        <div className={styles.cardHeader}>
+          <span className={styles.cardIcon}>
+            <Icon name="calendar" size={18} />
+          </span>
+          <div>
+            <h3 id="settings-data-heading">Data Management</h3>
+            <p>Export your exams and study plan to other calendar apps</p>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <span className={styles.labelText}>Calendar Export (.ics)</span>
+            <p className={styles.fieldDesc}>
+              Download a calendar file of all upcoming exams and study plans
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <Button variant="secondary" size="sm" onClick={handleExportICS}>
+              Export to Calendar
+            </Button>
+          </div>
+        </div>
       </Card>
 
       <div className={styles.actionsRight}>
@@ -190,6 +270,9 @@ export function PreferencesTab() {
           variant="primary"
           onClick={() => {
             save();
+            profileApi.updateTimezone(settings.timezone).catch((err) => {
+              console.error("Failed to sync timezone", err);
+            });
             showToast("Your settings have been saved successfully.");
           }}
         >

@@ -1,8 +1,9 @@
-# Friends Feature — Design Doc
+# Friends Feature — Shipped Design Reference
 
 A "Friends" social space for Learnora: track friends' study habits, view a leaderboard, add
 friends via a shareable personal link that prompts the recipient to confirm before anything is
-shared. This doc scopes the feature into phases; it is a design doc, not yet implemented.
+shared. The feature is implemented; this document is retained as the design and security
+reference for the shipped migration and frontend.
 
 ## Grounding: what already exists
 

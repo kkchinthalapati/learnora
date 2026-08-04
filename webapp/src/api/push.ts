@@ -21,6 +21,15 @@ export const pushApi = {
     return data;
   },
 
+  async fetchAll(): Promise<PushSubscriptionRow[]> {
+    const { data, error } = await supabase
+      .from("push_subscriptions")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
   /** Upsert on `endpoint`: re-subscribing (e.g. after clearing the toggle
    *  off and back on) replaces the row instead of erroring on the unique
    *  constraint. */
@@ -71,6 +80,14 @@ export const pushApi = {
       .from("push_subscriptions")
       .delete()
       .eq("endpoint", endpoint);
+    if (error) throw new Error(error.message);
+  },
+
+  async removeById(id: string): Promise<void> {
+    const { error } = await supabase
+      .from("push_subscriptions")
+      .delete()
+      .eq("id", id);
     if (error) throw new Error(error.message);
   },
 };

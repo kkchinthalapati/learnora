@@ -45,4 +45,24 @@ export const sessionsApi = {
     if (error) throw new Error(error.message);
     return data ?? [];
   },
+
+  async fetchAverageSessionLengths(
+    daysBack = 14,
+  ): Promise<Record<string, number>> {
+    const sessions = await this.fetchSince(daysBack);
+    const sums: Record<string, { totalMinutes: number; count: number }> = {};
+    sessions.forEach((s) => {
+      if (!s.timer_type || s.minutes <= 0) return;
+      if (!sums[s.timer_type])
+        sums[s.timer_type] = { totalMinutes: 0, count: 0 };
+      sums[s.timer_type].totalMinutes += s.minutes;
+      sums[s.timer_type].count += 1;
+    });
+
+    const averages: Record<string, number> = {};
+    for (const [type, data] of Object.entries(sums)) {
+      averages[type] = Math.round(data.totalMinutes / data.count);
+    }
+    return averages;
+  },
 };

@@ -16,6 +16,17 @@ export const plansApi = {
     return data;
   },
 
+  async fetchAll(): Promise<WeeklyPlan[]> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from("weekly_plans")
+      .select("*")
+      .eq("user_id", userId)
+      .order("week_start", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  },
+
   async upsert(weekStartISO: string, planJson: unknown): Promise<WeeklyPlan> {
     const userId = await requireUserId();
     const { data, error } = await supabase

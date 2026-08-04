@@ -128,6 +128,42 @@ describe("buildSystemContext", () => {
       `${DEFAULT_ACTIVE_CONTEXT}\n\nThe student attached a text file...`,
     );
   });
+
+  it("defaults to the tutor persona voice when none is specified", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).toContain("patient and explanatory tutor");
+  });
+
+  it("injects the coach persona voice when persona is coach", () => {
+    const prompt = buildSystemContext({ ...base, persona: "coach" });
+    expect(prompt).toContain("strict, results-driven coach");
+    expect(prompt).toContain("Keep the student accountable");
+  });
+
+  it("injects the buddy persona voice when persona is buddy", () => {
+    const prompt = buildSystemContext({ ...base, persona: "buddy" });
+    expect(prompt).toContain("casual, friendly study buddy");
+  });
+
+  it("injects the professor persona voice when persona is professor", () => {
+    const prompt = buildSystemContext({ ...base, persona: "professor" });
+    expect(prompt).toContain("formal and precise professor");
+  });
+
+  it("injects short conciseness instructions when conciseness is short", () => {
+    const prompt = buildSystemContext({ ...base, conciseness: "short" });
+    expect(prompt).toContain("2–4 sentences max");
+  });
+
+  it("injects detailed conciseness instructions when conciseness is detailed", () => {
+    const prompt = buildSystemContext({ ...base, conciseness: "detailed" });
+    expect(prompt).toContain("comprehensive, detailed responses");
+  });
+
+  it("defaults to medium conciseness when none is specified", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).toContain("Balance depth and brevity");
+  });
 });
 
 describe("activeContextForPath", () => {

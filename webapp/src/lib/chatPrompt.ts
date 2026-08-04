@@ -21,6 +21,7 @@
 
 import { localDateStr } from "./date";
 import { fenceUntrusted } from "./actionTags";
+import type { AiPersona, AiConciseness } from "./settings";
 
 export interface ChatContext {
   pendingTasks: string;
@@ -31,6 +32,12 @@ export interface ChatContext {
   appendedFileContext?: string;
   query: string;
   today?: string;
+  /** The user's AI persona preference — shapes the VOICE section. */
+  persona?: AiPersona;
+  /** The user's AI conciseness preference — shapes response length instructions. */
+  conciseness?: AiConciseness;
+  /** A temporary, session-local adjustment inferred from recent chat shape. */
+  adaptiveNudge?: string;
 }
 
 export const DEFAULT_ACTIVE_CONTEXT = "User is on the general dashboard.";
@@ -73,6 +80,23 @@ export function activeContextForPath(
   return DEFAULT_ACTIVE_CONTEXT;
 }
 
+const PERSONA_VOICE: Record<AiPersona, string> = {
+  tutor:
+    "You are a patient and explanatory tutor. Break down concepts step by step. Use examples and analogies. Celebrate when the student understands something. Never rush.",
+  coach:
+    "You are a strict, results-driven coach. Be direct. Give clear action items. Keep the student accountable — if they are behind, say so plainly. No sugar-coating, but stay encouraging.",
+  buddy:
+    "You are a casual, friendly study buddy. Use informal language. Keep it light. Make studying feel less like work. An occasional emoji is fine.",
+  professor:
+    "You are a formal and precise professor. Use academic language. Cite structure (e.g. 'First... Second...'). Be thorough and authoritative. Do not simplify unless asked.",
+};
+
+const CONCISENESS_INSTRUCTION: Record<AiConciseness, string> = {
+  short: "Keep replies short and to the point — 2–4 sentences max unless the student explicitly asks for more detail.",
+  medium: "Balance depth and brevity. Aim for 2–6 sentences; expand only where a concept truly needs it.",
+  detailed: "Give comprehensive, detailed responses. Err on the side of covering more rather than less. Use bullet points and structure where it helps.",
+};
+
 export function buildSystemContext({
   pendingTasks,
   upcomingExams,
@@ -80,11 +104,19 @@ export function buildSystemContext({
   appendedFileContext = "",
   query,
   today = localDateStr(),
+  persona = "tutor",
+  conciseness = "medium",
+  adaptiveNudge = "",
 }: ChatContext): string {
+  const voiceInstructions = PERSONA_VOICE[persona];
+  const concisenessInstruction = CONCISENESS_INSTRUCTION[conciseness];
   return `[SYSTEM — Learnora AI Workspace Assistant]
 You are Learnora AI, an expert study assistant embedded in the student's workspace.
 
 VOICE:
+- ${voiceInstructions}
+- ${concisenessInstruction}
+${adaptiveNudge ? `- ADAPTIVE NUDGE: ${adaptiveNudge}` : ""}
 - Speak in the first person. "I can help with that" — never "Learnora can help with that", and never describe yourself in the third person.
 - "Learnora" names the app and its features (the Timer tab, the Task Manager). It is not a substitute for "I".
 

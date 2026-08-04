@@ -178,7 +178,11 @@ describe("loadAdaptiveContext", () => {
     // Global default handlers already answer quiz_attempts/weekly_plans/
     // study_sessions/folders with empty results — nothing extra to mock.
     const context = await loadAdaptiveContext(mondayOfWeek());
-    expect(context).toEqual({ weakTopics: "None", lastWeekAdherence: "None" });
+    expect(context).toEqual({
+      weakTopics: "None",
+      weakFlashcardDecks: "None",
+      lastWeekAdherence: "None",
+    });
   });
 
   it("ranks weak topics by frequency and summarizes last week's adherence", async () => {
@@ -232,6 +236,7 @@ describe("loadAdaptiveContext", () => {
     const context = await loadAdaptiveContext(monday);
 
     expect(context.weakTopics).toBe("Photosynthesis, Cell division");
+    expect(context.weakFlashcardDecks).toBe("None");
     expect(context.lastWeekAdherence).toBe(
       "Followed about 0% of last week's planned study time. Under-studied relative to plan: Chemistry.",
     );

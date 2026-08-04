@@ -241,6 +241,57 @@ export function NotificationsTab() {
             </div>
           </>
         ) : null}
+
+        {push.allSubscriptions.length > 0 && (
+          <div
+            className={styles.field}
+            style={{
+              borderTop: "1px solid var(--border)",
+              paddingTop: "1rem",
+              marginTop: "1rem",
+              flexDirection: "column",
+              alignItems: "stretch",
+            }}
+          >
+            <div className={styles.fieldLabel} style={{ marginBottom: "0.5rem" }}>
+              <span className={styles.labelText}>Registered Devices</span>
+              <p className={styles.fieldDesc}>
+                Manage push notifications across your devices
+              </p>
+            </div>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {push.allSubscriptions.map((sub) => {
+                const isCurrent = push.row?.id === sub.id;
+                return (
+                  <li
+                    key={sub.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "0.75rem 0",
+                      borderBottom: "1px solid var(--border)",
+                    }}
+                  >
+                    <span className={styles.fieldDesc}>
+                      Device added on {new Date(sub.created_at).toLocaleDateString()}{" "}
+                      {isCurrent && <strong style={{ color: "var(--text-main)" }}>(This device)</strong>}
+                    </span>
+                    {!isCurrent && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => push.removeSubscription(sub.id)}
+                      >
+                        Revoke
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </Card>
     </>
   );
