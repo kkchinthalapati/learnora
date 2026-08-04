@@ -3,6 +3,7 @@ import { Icon } from "./Icon";
 import type { IconName } from "./icons";
 import { useCreateModal } from "../context/createModal";
 import { useFlashcardsDueCount } from "../hooks/useFlashcards";
+import { useIncomingFriendRequestCount } from "../hooks/useFriends";
 import { useTranslation } from "../hooks/useTranslation";
 import { isLibrarySection } from "../lib/sectionLabel";
 import type { TranslationKey } from "../lib/i18n";
@@ -69,6 +70,7 @@ export function Sidebar({
   const { pathname } = useLocation();
   const { openCreateModal } = useCreateModal();
   const { data: dueCount = 0 } = useFlashcardsDueCount();
+  const { data: incomingRequestCount = 0 } = useIncomingFriendRequestCount();
   const t = useTranslation();
 
   const classes = [styles.sidebar, collapsed ? styles.collapsed : null]
@@ -144,6 +146,9 @@ export function Sidebar({
               <span>
                 {item.translationKey ? t(item.translationKey) : item.label}
               </span>
+              {item.to === "/friends" && incomingRequestCount > 0 ? (
+                <span className={styles.badge}>{incomingRequestCount}</span>
+              ) : null}
             </NavLink>
           </li>
         ))}

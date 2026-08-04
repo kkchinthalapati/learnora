@@ -30,6 +30,19 @@ export function useFriendRequests() {
   });
 }
 
+/* Same queryKey as useFriendRequests, so the Sidebar badge and the Friends
+ * page share one cached fetch instead of issuing two — `select` runs once
+ * per subscriber against that shared result. Outgoing requests don't count:
+ * those are yours, not something to be notified about. */
+export function useIncomingFriendRequestCount() {
+  return useQuery({
+    queryKey: friendsKeys.requests,
+    queryFn: friendsApi.fetchRequests,
+    select: (requests) =>
+      requests.filter((r) => r.direction === "incoming").length,
+  });
+}
+
 export function useResolveFriendCode(code: string) {
   return useQuery({
     queryKey: friendsKeys.code(code),
