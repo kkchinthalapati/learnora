@@ -1,0 +1,25 @@
+{
+  "name": "Learnora",
+  "short_name": "Learnora",
+  "description": "A focused study workspace — tasks, exams, timers, notes and AI-assisted revision in one place.",
+  "start_url": "/app/",
+  "scope": "/app/",
+  "id": "/app/",
+  "display": "standalone",
+  "background_color": "#0a0e0d",
+  "theme_color": "#0a0e0d",
+  "icons": [
+    {
+      "src": "/learnora.jpg",
+      "sizes": "1024x1024",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/learnora.jpg",
+      "sizes": "1024x1024",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    }
+  ]
+}

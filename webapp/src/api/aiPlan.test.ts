@@ -9,6 +9,7 @@ import {
   PlanShapeError,
   buildPlanPrompt,
   generateWeeklyPlan,
+  loadAdaptiveContext,
   loadWorkspaceContext,
 } from "./aiPlan";
 
@@ -133,6 +134,108 @@ describe("buildPlanPrompt", () => {
     expect(prompt).toContain("Pending tasks: Read chapter 4");
     expect(prompt).toContain("Upcoming exams: None");
   });
+
+  it("defaults weak topics and last week's adherence to None when omitted", () => {
+    const prompt = buildPlanPrompt({
+      weekStartISO: "2026-08-03",
+      dates: ["2026-08-03"],
+      pendingTasks: "None",
+      upcomingExams: "None",
+    });
+
+    expect(prompt).toContain("Recent weak topics from quizzes: None");
+    expect(prompt).toContain("Last week's adherence: None");
+  });
+
+  it("carries weak topics and last week's adherence through when given", () => {
+    const prompt = buildPlanPrompt({
+      weekStartISO: "2026-08-03",
+      dates: ["2026-08-03"],
+      pendingTasks: "None",
+      upcomingExams: "None",
+      weakTopics: "Photosynthesis, Cell division",
+      lastWeekAdherence: "Followed about 40% of last week's plan.",
+    });
+
+    expect(prompt).toContain(
+      "Recent weak topics from quizzes: Photosynthesis, Cell division",
+    );
+    expect(prompt).toContain(
+      "Last week's adherence: Followed about 40% of last week's plan.",
+    );
+  });
+});
+
+describe("loadAdaptiveContext", () => {
+  beforeEach(() => {
+    mockAuthSession("user-1");
+    serveWorkspace();
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it("reports None for both signals when there is nothing to go on", async () => {
+    // Global default handlers already answer quiz_attempts/weekly_plans/
+    // study_sessions/folders with empty results — nothing extra to mock.
+    const context = await loadAdaptiveContext(mondayOfWeek());
+    expect(context).toEqual({ weakTopics: "None", lastWeekAdherence: "None" });
+  });
+
+  it("ranks weak topics by frequency and summarizes last week's adherence", async () => {
+    const monday = mondayOfWeek();
+    const prevMonday = new Date(monday);
+    prevMonday.setDate(prevMonday.getDate() - 7);
+    const prevWeekStartISO = localDateStr(prevMonday);
+
+    server.use(
+      http.get(rest("quiz_attempts"), () =>
+        HttpResponse.json([
+          {
+            weak_topics: ["Photosynthesis", "Photosynthesis", "Cell division"],
+          },
+        ]),
+      ),
+      http.get(rest("weekly_plans"), ({ request }) => {
+        const requestedWeek = new URL(request.url).searchParams
+          .get("week_start")
+          ?.replace(/^eq\./, "");
+        if (requestedWeek !== prevWeekStartISO) return HttpResponse.json([]);
+        return HttpResponse.json([
+          {
+            id: "prev-plan",
+            week_start: prevWeekStartISO,
+            plan_json: {
+              days: [
+                {
+                  date: prevWeekStartISO,
+                  blocks: [{ subject: "Chemistry", durationMins: 90 }],
+                },
+              ],
+            },
+          },
+        ]);
+      }),
+      http.get(rest("study_sessions"), () => HttpResponse.json([])),
+      http.get(rest("folders"), () =>
+        HttpResponse.json([
+          {
+            id: "f-chem",
+            user_id: "user-1",
+            name: "Chemistry",
+            color: "#111111",
+            created_at: "2026-01-01T00:00:00Z",
+          },
+        ]),
+      ),
+    );
+
+    const context = await loadAdaptiveContext(monday);
+
+    expect(context.weakTopics).toBe("Photosynthesis, Cell division");
+    expect(context.lastWeekAdherence).toBe(
+      "Followed about 0% of last week's planned study time. Under-studied relative to plan: Chemistry.",
+    );
+  });
 });
 
 describe("generateWeeklyPlan", () => {
@@ -161,6 +264,35 @@ describe("generateWeeklyPlan", () => {
 
     expect(body?.mode).toBe("plan");
     expect(body?.settings).toMatchObject({ aiPersona: "coach" });
+  });
+
+  it("folds weak topics into the prompt it sends the model", async () => {
+    server.use(
+      http.get(rest("quiz_attempts"), () =>
+        HttpResponse.json([{ weak_topics: ["Thermodynamics"] }]),
+      ),
+    );
+    let sentPrompt = "";
+    server.use(
+      http.post(EDGE_URL, async ({ request }) => {
+        const body = (await request.json()) as {
+          history: { content: string }[];
+        };
+        sentPrompt = body.history[0].content;
+        return HttpResponse.json({
+          text: JSON.stringify({ summary: "s", days: [] }),
+        });
+      }),
+      http.post(rest("weekly_plans"), () =>
+        HttpResponse.json({ id: "plan-1" }),
+      ),
+    );
+
+    await generateWeeklyPlan(DEFAULT_SETTINGS);
+
+    expect(sentPrompt).toContain(
+      "Recent weak topics from quizzes: Thermodynamics",
+    );
   });
 
   it("upserts the parsed plan against this week's Monday", async () => {

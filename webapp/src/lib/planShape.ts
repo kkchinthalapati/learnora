@@ -5,10 +5,15 @@
  * database — an older row, a hand-edited one, or a provider that drifted can
  * all put a string where a number belongs. The vanilla read it optimistically
  * (`d.blocks || []`, `String(b.durationMins)`) and rendered "undefinedm" when
- * it was wrong. These narrow it once, at the boundary, so the view can be
- * written against real types. */
+ * it was wrong. These narrow it once, at the boundary, so callers can be
+ * written against real types.
+ *
+ * Lives in lib/, not views/plan/ (moved here alongside planAdherence.ts):
+ * api/aiPlan.ts needs to parse a previously-stored plan too, to compare it
+ * against what actually got studied when building the next week's prompt,
+ * and api/ doesn't reach into views/ for that the way PlanView.tsx does. */
 
-import type { PlanBlock, PlanDay, WeeklyPlanJson } from "../../lib/aiJson";
+import type { PlanBlock, PlanDay, WeeklyPlanJson } from "./aiJson";
 
 /** The vanilla's fallback when a block carries no duration
  *  (js/router.js:1129 `data-plan-duration="${b.durationMins || 25}"`). */

@@ -1,8 +1,15 @@
 /* Ports `AI.generateWeeklyPlan` from js/ai.js (:420-469).
  *
- * The prompt is carried over verbatim — it is the thing the edge function's
- * `mode: "plan"` instructions were tuned against, and rewording it here would
- * silently change what the model returns for every existing user.
+ * The prompt's task/exam lines are carried over verbatim — that half is the
+ * thing the edge function's `mode: "plan"` instructions were tuned against,
+ * and rewording it would silently change what the model returns for every
+ * existing user. The weak-topics and adherence lines are new additions, not
+ * a port: the vanilla never fed either back into planning, which meant a
+ * regenerated plan was always a cold guess from tasks/exams alone, with no
+ * memory of whether last week's plan actually happened or which topics
+ * quizzes say the student is struggling with — even though both signals
+ * already existed elsewhere (fetchWeakTopics powers the Dashboard's
+ * "Struggling with" chips; study_sessions is what StreakCard reads).
  *
  * Two changes from the vanilla, both consequences of decisions already made:
  * it throws instead of showing a popup and returning null (Decision #6), and
@@ -14,9 +21,17 @@
 import { callEdge } from "./ai";
 import { tasksApi } from "./tasks";
 import { examsApi } from "./exams";
+import { foldersApi } from "./folders";
 import { plansApi } from "./plans";
+import { quizzesApi } from "./quizzes";
+import { sessionsApi } from "./sessions";
 import { extractPlanJSON, type WeeklyPlanJson } from "../lib/aiJson";
 import { localDateStr, mondayOfWeek, weekDates } from "../lib/date";
+import {
+  computeWeekAdherence,
+  formatAdherenceNote,
+} from "../lib/planAdherence";
+import { parseStoredPlan } from "../lib/planShape";
 import type { Settings } from "../lib/settings";
 import type { WeeklyPlan } from "./types";
 
@@ -35,16 +50,30 @@ export function buildPlanPrompt({
   dates,
   pendingTasks,
   upcomingExams,
+  weakTopics = "None",
+  lastWeekAdherence = "None",
 }: {
   weekStartISO: string;
   dates: string[];
   pendingTasks: string;
   upcomingExams: string;
+  /** Topics `quiz_attempts.weak_topics` has flagged most often recently —
+   *  same data the Dashboard's "Struggling with" chips already read, just
+   *  fed into the planner too now. Optional so the existing prompt tests
+   *  (and any other caller that hasn't been updated) still get the plain
+   *  task/exam prompt rather than a "None"-cluttered one by accident. */
+  weakTopics?: string;
+  /** `formatAdherenceNote`'s one-liner on how much of *last* week's plan
+   *  actually happened, and which subjects fell short — "None" for a
+   *  student's first-ever plan, when there's nothing to compare against. */
+  lastWeekAdherence?: string;
 }): string {
   return `Build a weekly study schedule for the week of ${weekStartISO} (days: ${dates.join(", ")}).
 Pending tasks: ${pendingTasks}
 Upcoming exams: ${upcomingExams}
-Prioritize subjects with closer/harder exams and tasks with closer due dates. Keep daily blocks realistic (30-90 minutes each, a couple of blocks per day at most). If there is no exam/task data, suggest light general review blocks.`;
+Recent weak topics from quizzes: ${weakTopics}
+Last week's adherence: ${lastWeekAdherence}
+Prioritize subjects with closer/harder exams, tasks with closer due dates, and topics the student is weak on. If last week shows a subject was under-studied, ease it back in with shorter blocks rather than repeating the exact same plan. Keep daily blocks realistic (30-90 minutes each, a couple of blocks per day at most). If there is no exam/task data, suggest light general review blocks.`;
 }
 
 /** The workspace summary both the planner and the chat feed to the model.
@@ -79,14 +108,57 @@ export async function loadWorkspaceContext(todayStr = localDateStr()): Promise<{
   return { pendingTasks, upcomingExams };
 }
 
+/** The two adaptive signals `buildPlanPrompt` folds in on top of tasks/exams.
+ *  Split out from `generateWeeklyPlan` so it's separately testable — the
+ *  four reads it does (weak topics, last week's stored plan, recent
+ *  sessions, folders) have nothing to do with talking to the model. */
+export async function loadAdaptiveContext(monday: Date): Promise<{
+  weakTopics: string;
+  lastWeekAdherence: string;
+}> {
+  const prevMonday = new Date(monday);
+  prevMonday.setDate(prevMonday.getDate() - 7);
+  const prevWeekStartISO = localDateStr(prevMonday);
+
+  const [weakTopicRows, prevPlan, sessions, folders] = await Promise.all([
+    quizzesApi.fetchWeakTopics(5),
+    plansApi.fetchForWeek(prevWeekStartISO),
+    // 14 days comfortably covers "last week" regardless of which day of the
+    // current week this runs on.
+    sessionsApi.fetchSince(14),
+    foldersApi.fetch(),
+  ]);
+
+  const weakTopics = weakTopicRows.map((w) => w.topic).join(", ") || "None";
+
+  const prevParsed = prevPlan ? parseStoredPlan(prevPlan.plan_json) : null;
+  const lastWeekAdherence =
+    prevParsed && prevParsed.days.length > 0
+      ? formatAdherenceNote(
+          computeWeekAdherence(
+            prevParsed.days,
+            sessions,
+            folders,
+            prevWeekStartISO,
+          ),
+        )
+      : "None";
+
+  return { weakTopics, lastWeekAdherence };
+}
+
 export async function generateWeeklyPlan(
   settings: Settings,
 ): Promise<WeeklyPlan> {
   const todayStr = localDateStr();
-  const { pendingTasks, upcomingExams } = await loadWorkspaceContext(todayStr);
-
   const monday = mondayOfWeek();
   const weekStartISO = localDateStr(monday);
+
+  const [{ pendingTasks, upcomingExams }, { weakTopics, lastWeekAdherence }] =
+    await Promise.all([
+      loadWorkspaceContext(todayStr),
+      loadAdaptiveContext(monday),
+    ]);
 
   const { text } = await callEdge({
     history: [
@@ -97,6 +169,8 @@ export async function generateWeeklyPlan(
           dates: weekDates(monday),
           pendingTasks,
           upcomingExams,
+          weakTopics,
+          lastWeekAdherence,
         }),
       },
     ],
