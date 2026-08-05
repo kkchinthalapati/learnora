@@ -4,6 +4,7 @@ import { FocusCard } from "./FocusCard";
 import { StreakCard } from "./StreakCard";
 import { TasksCard } from "./TasksCard";
 import { AIActionsCard } from "./AIActionsCard";
+import { DailyDrillCard } from "./DailyDrillCard";
 import { OnboardingBanner } from "./OnboardingBanner";
 import { SessionHistoryCard } from "./SessionHistoryCard";
 import { CommandBar } from "./CommandBar";
@@ -30,6 +31,7 @@ export function DashboardView() {
         <StreakCard />
         <TasksCard taskInputRef={taskInputRef} />
         <AIActionsCard />
+        <DailyDrillCard />
       </div>
 
       <OnboardingBanner

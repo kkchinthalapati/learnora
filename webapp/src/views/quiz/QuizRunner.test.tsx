@@ -44,6 +44,7 @@ function serveQuiz(questions: unknown = QUESTIONS, title = "Biology basics") {
         },
       ]),
     ),
+    http.post(rest("quiz_attempts"), () => new HttpResponse(null, { status: 201 }))
   );
 }
 

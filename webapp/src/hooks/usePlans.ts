@@ -45,7 +45,7 @@ export function useGenerateWeeklyPlan() {
   const qc = useQueryClient();
   const { settings } = useSettings();
   return useMutation({
-    mutationFn: () => generateWeeklyPlan(settings),
+    mutationFn: (isTriage?: boolean) => generateWeeklyPlan(settings, isTriage),
     onSuccess: (plan) =>
       qc.setQueryData(plansKeys.forWeek(plan.week_start), plan),
   });

@@ -10,6 +10,10 @@ import { useUpdateNoteHtml } from "../../hooks/useNotes";
 import { renderMarkdown } from "../../lib/markdown";
 import { NotesAiSidebar } from "./NotesAiSidebar";
 import type { Note } from "../../api/types";
+import { callEdge } from "../../api/ai";
+import { useMutation } from "@tanstack/react-query";
+import { useSettings } from "../../context/settings";
+import { useToast } from "../../context/toast";
 import styles from "./notes.module.css";
 
 export const SAVE_DEBOUNCE_MS = 2000;
@@ -71,6 +75,53 @@ export function NotesEditorPane({
      stale `note`/mutation. Same pattern useTaskActions.ts uses for its own
      flush-on-unmount. */
   const flushRef = useRef<() => void>(() => {});
+
+  const { settings } = useSettings();
+  const { showToast } = useToast();
+  const [complexity, setComplexity] = useState(3);
+  const [undoStack, setUndoStack] = useState<string[]>([]);
+
+  const rewriteMutation = useMutation({
+    mutationFn: async (level: number) => {
+      const currentHtml = editorRef.current?.getHtml() || "";
+      let levelDesc = "";
+      if (level === 1) levelDesc = "Explain it like I am 5 years old. Extremely simple language, analogies.";
+      else if (level === 2) levelDesc = "Simplified for a beginner. Clear, no jargon.";
+      else if (level === 3) levelDesc = "Standard college level. Balanced detail and clarity.";
+      else if (level === 4) levelDesc = "Advanced academic level. Highly detailed, domain-specific terminology.";
+      else if (level === 5) levelDesc = "Expert / post-graduate level. Dense, rigorous, assume deep prior knowledge.";
+
+      const prompt = `Rewrite the following notes to match this complexity level: ${levelDesc}\n\nNotes:\n${currentHtml}`;
+
+      return callEdge({
+        history: [{ role: "user", content: prompt }],
+        mode: "rewrite",
+        settings,
+      });
+    },
+    onSuccess: (result) => {
+      const currentHtml = editorRef.current?.getHtml() || "";
+      setUndoStack((prev) => [...prev, currentHtml]);
+
+      const md = result.text;
+      const html = renderMarkdown(md);
+      editorRef.current?.setHtml(html);
+      handleUserChange(html);
+      showToast("Notes rewritten!");
+    },
+    onError: (err) => {
+      showToast("Failed to rewrite notes.", { error: true });
+    }
+  });
+
+  const undoRewrite = () => {
+    if (undoStack.length === 0) return;
+    const lastHtml = undoStack[undoStack.length - 1];
+    editorRef.current?.setHtml(lastHtml);
+    handleUserChange(lastHtml);
+    setUndoStack((prev) => prev.slice(0, -1));
+    showToast("Rewrite undone.");
+  };
 
   const acknowledgeSaved = useCallback(() => {
     setStatus("saved");
@@ -163,6 +214,33 @@ export function NotesEditorPane({
             Save
           </Button>
         </div>
+      </div>
+
+      <div className={styles.complexityBar} style={{ padding: '8px 16px', background: 'var(--panel)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <span style={{ fontSize: '13px', fontWeight: 500 }}>Complexity:</span>
+        <input 
+          type="range" 
+          min="1" 
+          max="5" 
+          value={complexity} 
+          onChange={(e) => setComplexity(Number(e.target.value))}
+          style={{ flex: 1, maxWidth: '200px' }}
+        />
+        <span style={{ fontSize: '12px', color: 'var(--muted)', width: '80px' }}>
+          {complexity === 1 ? "ELI5" : complexity === 2 ? "Beginner" : complexity === 3 ? "Standard" : complexity === 4 ? "Advanced" : "Expert"}
+        </span>
+        <Button 
+          size="sm" 
+          disabled={!note || rewriteMutation.isPending}
+          onClick={() => rewriteMutation.mutate(complexity)}
+        >
+          {rewriteMutation.isPending ? "Rewriting..." : "Rewrite Notes"}
+        </Button>
+        {undoStack.length > 0 && (
+          <Button size="sm" variant="secondary" onClick={undoRewrite}>
+            Undo Rewrite
+          </Button>
+        )}
       </div>
 
       <div className={styles.splitLayout}>

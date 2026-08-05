@@ -7,6 +7,7 @@ import { useToast } from "../../context/toast";
 import { useTimer } from "../../context/timer";
 import { useGenerateWeeklyPlan, usePlanForWeek } from "../../hooks/usePlans";
 import { useTranslation } from "../../hooks/useTranslation";
+import { useExams } from "../../hooks/useExams";
 import { AiError } from "../../api/ai";
 import { PlanShapeError } from "../../api/aiPlan";
 import {
@@ -146,6 +147,14 @@ export function PlanView() {
   const { confirm } = useDialog();
   const { prepareFocus } = useTimer();
   const navigate = useNavigate();
+  const { data: exams } = useExams();
+
+  const isTriageAvailable = exams?.some(e => {
+    if (e.status === "Completed") return false;
+    const diffTime = Math.abs(new Date(e.exam_date).getTime() - new Date().getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    return diffDays <= 3; // 48h-72h window
+  });
 
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
@@ -153,6 +162,7 @@ export function PlanView() {
 
   const parsed = plan ? parseStoredPlan(plan.plan_json) : null;
   const hasPlan = !!parsed && parsed.days.length > 0;
+  const isTriageActive = plan && (plan.plan_json as any).isTriage === true;
 
   /* "Did last week's plan actually happen?" — a quiet recap, not a new
      generation input the student has to act on (that part happens inside
@@ -201,17 +211,40 @@ export function PlanView() {
       if (!ok) return;
     }
 
-    generate.mutate(undefined, {
+    generate.mutate(false, {
       onSuccess: () => showToast("Your weekly plan is ready."),
       onError: (err) => {
-        /* A refusal and a shape failure both carry wording written for the
-           student; anything else is a transport problem and gets the generic
-           line the vanilla used. */
         const message =
           err instanceof PlanShapeError ||
           (err instanceof AiError && err.refused)
             ? err.message
             : "Failed to generate your weekly plan. Please try again.";
+        showToast(message, { error: true });
+      },
+    });
+  };
+
+  const runTriage = async () => {
+    if (hasPlan) {
+      const ok = await confirm(
+        "This will replace your current weekly plan with an emergency 48-hour survival schedule. Proceed?",
+        {
+          title: "Emergency Triage",
+          confirmText: "Triage Mode",
+          danger: true,
+        },
+      );
+      if (!ok) return;
+    }
+
+    generate.mutate(true, {
+      onSuccess: () => showToast("Triage plan generated! Focus up."),
+      onError: (err) => {
+        const message =
+          err instanceof PlanShapeError ||
+          (err instanceof AiError && err.refused)
+            ? err.message
+            : "Failed to generate your triage plan. Please try again.";
         showToast(message, { error: true });
       },
     });
@@ -224,10 +257,15 @@ export function PlanView() {
           "This week's plan" text this card used to duplicate as its own
           <h1>) — this card's title is plain text now, not a second
           heading. See redesign/DESIGN_MOVES.md move #2. */}
-      <Card variant="panel" padding="none" className={styles.summaryCard}>
+      <Card variant="panel" padding="none" className={`${styles.summaryCard} ${isTriageActive ? styles.triageSummary : ''}`}>
         <div>
           <p className={styles.title}>{t("header_plan")}</p>
           <p className={styles.weekRange}>{weekRange}</p>
+          {isTriageActive && (
+            <p style={{ color: "var(--accent-red)", fontWeight: "bold", marginTop: "4px" }}>
+              <Icon name="alert-triangle" size={14} /> EMERGENCY TRIAGE ACTIVE
+            </p>
+          )}
         </div>
         <Button
           onClick={() => void runGenerate()}
@@ -240,6 +278,17 @@ export function PlanView() {
               ? "Regenerate"
               : "Generate Plan"}
         </Button>
+        {isTriageAvailable && (
+          <Button
+            onClick={() => void runTriage()}
+            disabled={generate.isPending}
+            variant="danger"
+            style={{ marginLeft: "8px" }}
+          >
+            <Icon name="zap" size={15} />
+            Triage
+          </Button>
+        )}
       </Card>
 
       {adherence ? (

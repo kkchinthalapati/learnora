@@ -11,6 +11,7 @@ import { useToast } from "../../context/toast";
 import { useAllDecks } from "../../hooks/useDecks";
 import {
   useFlashcardsByDeck,
+  useAllDueFlashcards,
   useUpdateFlashcardReview,
 } from "../../hooks/useFlashcards";
 import { fenceUntrusted } from "../../lib/actionTags";
@@ -42,8 +43,13 @@ function ExitLink() {
 
 export function ReviewView() {
   const { deckId = "" } = useParams<{ deckId: string }>();
+  const isDailyDrill = deckId === "daily-drill";
+  
   const decks = useAllDecks();
-  const cardsQuery = useFlashcardsByDeck(deckId);
+  const deckCardsQuery = useFlashcardsByDeck(deckId);
+  const allDueCardsQuery = useAllDueFlashcards(20);
+  
+  const cardsQuery = isDailyDrill ? allDueCardsQuery : deckCardsQuery;
 
   if (decks.isPending || cardsQuery.isPending) {
     return (
@@ -64,7 +70,7 @@ export function ReviewView() {
     );
   }
 
-  const deck = decks.data.find((d) => d.id === deckId);
+  const deck = isDailyDrill ? { title: "Daily 5-Minute Drill" } : decks.data.find((d) => d.id === deckId);
 
   /* The vanilla never named the deck at all — `#review-deck-title` is
      static markup nothing ever assigned to (js/router.js has no reference to
@@ -87,7 +93,7 @@ export function ReviewView() {
     );
   }
 
-  const due = dueCardsFrom(cardsQuery.data);
+  const due = isDailyDrill ? (cardsQuery.data || []) : dueCardsFrom(cardsQuery.data);
 
   if (due.length === 0) {
     return (
@@ -97,7 +103,7 @@ export function ReviewView() {
         <EmptyState
           icon="check"
           title="All caught up! 🎉"
-          message="No cards due for review in this deck right now."
+          message={isDailyDrill ? "No cards due across any deck. Take a break!" : "No cards due for review in this deck right now."}
         />
       </div>
     );
@@ -230,15 +236,24 @@ function ReviewSession({
   }, [registerFlashcardGrader, scoreCard]);
 
   if (finished) {
+    const isDrill = deckTitle === "Daily 5-Minute Drill";
     return (
       <div className={styles.view}>
         <ExitLink />
         <h1 className={styles.title}>{deckTitle}</h1>
-        <EmptyState
-          icon="brain"
-          title="Review Complete! 🧠"
-          message="Great job."
-        />
+        {isDrill ? (
+          <EmptyState
+            icon="zap"
+            title="Drill Complete! ⚡"
+            message="Great job crushing your daily 5-minute drill! You're building a solid habit."
+          />
+        ) : (
+          <EmptyState
+            icon="brain"
+            title="Review Complete! 🧠"
+            message="Great job."
+          />
+        )}
       </div>
     );
   }

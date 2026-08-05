@@ -54,6 +54,7 @@ export function buildPlanPrompt({
   weakTopics = "None",
   weakFlashcardDecks = "None",
   lastWeekAdherence = "None",
+  isTriage = false,
 }: {
   weekStartISO: string;
   dates: string[];
@@ -71,7 +72,24 @@ export function buildPlanPrompt({
    *  actually happened, and which subjects fell short — "None" for a
    *  student's first-ever plan, when there's nothing to compare against. */
   lastWeekAdherence?: string;
+  /** When true, the AI is instructed to ignore long-term tasks and focus purely on
+   * an emergency 80/20 survival schedule for the most urgent exam. */
+  isTriage?: boolean;
 }): string {
+  if (isTriage) {
+    return `Generate an EMERGENCY SURVIVAL study schedule for the next 48 hours (dates: ${dates.slice(0, 2).join(", ")}).
+Pending tasks: ${pendingTasks}
+Upcoming exams: ${upcomingExams}
+Recent weak topics from quizzes: ${weakTopics}
+
+This is a Triage situation. The student is panicking and has limited time. DO NOT generate a standard weekly plan. 
+1. Ignore all tasks and exams that are more than a week away.
+2. Identify the single most urgent exam and the student's weak topics for it.
+3. Apply the 80/20 rule: focus ONLY on high-yield, critical topics that will get them a passing grade.
+4. Schedule intense but realistic study blocks (e.g., 45-60 minutes) for these next 48 hours.
+5. Skip any "general review" blocks. Cut the fluff. Be ruthless.`;
+  }
+
   return `Build a weekly study schedule for the week of ${weekStartISO} (days: ${dates.join(", ")}).
 Pending tasks: ${pendingTasks}
 Upcoming exams: ${upcomingExams}
@@ -158,6 +176,7 @@ export async function loadAdaptiveContext(monday: Date): Promise<{
 
 export async function generateWeeklyPlan(
   settings: Settings,
+  isTriage: boolean = false
 ): Promise<WeeklyPlan> {
   const todayStr = localDateStr();
   const monday = mondayOfWeek();
@@ -183,6 +202,7 @@ export async function generateWeeklyPlan(
           weakTopics,
           weakFlashcardDecks,
           lastWeekAdherence,
+          isTriage,
         }),
       },
     ],
@@ -192,6 +212,10 @@ export async function generateWeeklyPlan(
 
   const planJson: WeeklyPlanJson | null = extractPlanJSON(text);
   if (!planJson) throw new PlanShapeError();
+
+  if (isTriage) {
+    (planJson as any).isTriage = true;
+  }
 
   return plansApi.upsert(weekStartISO, planJson);
 }

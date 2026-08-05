@@ -417,6 +417,8 @@ Deno.serve(async (req) => {
             : mode === "notes"
             // Deliberately NOT a JSON mode: this returns long-form Markdown.
             ? `\nYou are generating study notes as long-form Markdown. Output the notes only — no JSON, no preamble, no closing commentary.`
+            : mode === "rewrite"
+            ? `\nYou are rewriting the provided study notes to match a specific complexity or tone. Output the rewritten notes as long-form Markdown only — no JSON, no preamble, no closing commentary.`
             : "";
 
         const systemInstruction = `You are Learnora AI. Act as ${personaMap[s.aiPersona] || personaMap.tutor}.

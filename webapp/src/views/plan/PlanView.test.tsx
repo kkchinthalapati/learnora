@@ -79,6 +79,11 @@ function serveWorkspace() {
   server.use(
     http.get(rest("tasks"), () => HttpResponse.json([])),
     http.get(rest("exams"), () => HttpResponse.json([])),
+    http.get(rest("materials"), () => HttpResponse.json([])),
+    http.get(rest("quizzes"), () => HttpResponse.json([])),
+    http.get(rest("flashcards"), () => HttpResponse.json([])),
+    http.get(rest("study_sessions"), () => HttpResponse.json([])),
+    http.get(rest("quiz_attempts"), () => HttpResponse.json([])),
     http.get(rest("folders"), () => HttpResponse.json([])),
   );
 }
@@ -271,6 +276,69 @@ describe("PlanView", () => {
           "Couldn't generate a plan this time. Please try again.",
         ),
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("Triage Mode", () => {
+    it("shows the Triage button when an exam is less than 3 days away", async () => {
+      servePlan(planRow(SAMPLE_PLAN));
+      const closeExamDate = new Date();
+      closeExamDate.setDate(closeExamDate.getDate() + 2); // 48 hours away
+
+      server.use(
+        http.get(rest("exams"), () =>
+          HttpResponse.json([
+            {
+              id: 1,
+              exam_name: "Bio 101 Midterm",
+              exam_date: localDateStr(closeExamDate),
+              status: "Scheduled",
+            },
+          ]),
+        ),
+      );
+      renderPlan();
+
+      expect(await screen.findByRole("button", { name: /Triage/i })).toBeInTheDocument();
+    });
+
+    it("generates a triage plan when confirmed", async () => {
+      servePlan(planRow(SAMPLE_PLAN));
+      const closeExamDate = new Date();
+      closeExamDate.setDate(closeExamDate.getDate() + 2);
+
+      let wasTriage = false;
+      server.use(
+        http.get(rest("exams"), () =>
+          HttpResponse.json([
+            {
+              id: 1,
+              exam_name: "Bio 101 Midterm",
+              exam_date: localDateStr(closeExamDate),
+              status: "Scheduled",
+            },
+          ]),
+        ),
+        http.post(EDGE_URL, async ({ request }) => {
+          const body = await request.clone().json() as { history?: { content?: string }[] };
+          const content = body.history?.[0]?.content || "";
+          if (content.includes("EMERGENCY SURVIVAL")) {
+             wasTriage = true;
+          }
+          return HttpResponse.json({ text: JSON.stringify(SAMPLE_PLAN) });
+        }),
+      );
+      renderPlan();
+
+      const triageBtn = await screen.findByRole("button", { name: /Triage/i });
+      await userEvent.click(triageBtn);
+
+      const dialog = await screen.findByRole("alertdialog");
+      await userEvent.click(
+        within(dialog).getByRole("button", { name: "Triage Mode" }),
+      );
+
+      await waitFor(() => expect(wasTriage).toBe(true));
     });
   });
 

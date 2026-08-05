@@ -45,7 +45,7 @@ export interface FilePayload {
 
 /** `undefined` means free-form chat; the rest map to the edge function's
  *  `modeInstructions` switch (supabase/functions/learnora-ai/index.ts:383-397). */
-export type EdgeMode = "plan" | "quiz" | "flashcards" | "notes";
+export type EdgeMode = "plan" | "quiz" | "flashcards" | "notes" | "rewrite";
 
 export interface EdgePayload {
   history: ChatMessage[];

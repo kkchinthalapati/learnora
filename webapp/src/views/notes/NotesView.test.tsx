@@ -265,4 +265,50 @@ describe("NotesView", () => {
     await waitFor(() => expect(saved).toContain("!"));
     expect(saved).toContain("Hi");
   });
+
+  describe("Complexity Slider", () => {
+    it("renders the complexity slider and defaults to Standard", async () => {
+      serveNotes({ material: material(), notes: [note()] });
+      renderNotes();
+      expect(await screen.findByText("Complexity:")).toBeInTheDocument();
+      expect(screen.getByText("Standard")).toBeInTheDocument();
+      expect(screen.getByRole("slider")).toHaveValue("3");
+    });
+
+    it("changes the label when the slider moves", async () => {
+      serveNotes({ material: material(), notes: [note()] });
+      renderNotes();
+      await screen.findByText("Complexity:");
+
+      const slider = screen.getByRole("slider");
+      await userEvent.clear(slider);
+      await userEvent.type(slider, "5");
+
+      expect(screen.getByText("Expert")).toBeInTheDocument();
+    });
+
+    it("calls the edge function, rewrites notes, and allows undoing", async () => {
+      serveNotes({ material: material(), notes: [note({ html_content: "<p>Original</p>" })] });
+      server.use(
+        http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, async () => {
+          return HttpResponse.json({ text: "Rewritten content here" });
+        })
+      );
+
+      renderNotes();
+      await waitFor(() => expect(editorEl().textContent).toBe("Original"));
+
+      const rewriteBtn = screen.getByRole("button", { name: "Rewrite Notes" });
+      await userEvent.click(rewriteBtn);
+
+      await waitFor(() => expect(editorEl().textContent).toContain("Rewritten content here"));
+      
+      const undoBtn = await screen.findByRole("button", { name: "Undo Rewrite" });
+      expect(undoBtn).toBeInTheDocument();
+
+      await userEvent.click(undoBtn);
+      await waitFor(() => expect(editorEl().textContent).toBe("Original"));
+      expect(screen.queryByRole("button", { name: "Undo Rewrite" })).not.toBeInTheDocument();
+    });
+  });
 });

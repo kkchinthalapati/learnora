@@ -4,6 +4,7 @@ import { useLogSession } from "../hooks/useSessions";
 import { useToast } from "./toast";
 import { useAuth } from "./auth";
 import { useSettings } from "./settings";
+import { useTimerIntervention } from "../hooks/useTimerIntervention";
 import { Storage } from "../lib/storage";
 import {
   QUOTES,
@@ -80,6 +81,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
      does the logging, holds them. */
   const [activeTask, setActiveTask] = useState("None");
   const [activeFolderId, setActiveFolderId] = useState("");
+
+  const pause = useCallback(() => setState((s) => pauseT(s)), []);
+
+  useTimerIntervention(state.isRunning, settings.aiPersona, showToast, pause);
 
   /* Effects are applied outside the state updater — running them inside would
      fire them twice under StrictMode's double-invoked reducers. */
@@ -188,7 +193,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   }, [state.isRunning]);
 
   const start = useCallback(() => setState((s) => startT(s)), []);
-  const pause = useCallback(() => setState((s) => pauseT(s)), []);
   const toggle = useCallback(
     () => setState((s) => (s.isRunning ? pauseT(s) : startT(s))),
     [],

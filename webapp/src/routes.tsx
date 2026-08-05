@@ -24,6 +24,7 @@ import { DashboardView } from "./views/dashboard/DashboardView";
 import { NotesView } from "./views/notes/NotesView";
 import { PlanView } from "./views/plan/PlanView";
 import { QuizRunner } from "./views/quiz/QuizRunner";
+import { MockExamRunner } from "./views/quiz/MockExamRunner";
 import { QuizReview } from "./views/quiz/QuizReview";
 import { ReviewView } from "./views/review/ReviewView";
 import { FriendsView } from "./views/friends/FriendsView";
@@ -77,6 +78,7 @@ export function AppRoutes() {
           <Route path="/notes/:materialId" element={<NotesView />} />
           <Route path="/plan" element={<PlanView />} />
           <Route path="/quiz/:quizId" element={<QuizRunner />} />
+          <Route path="/quiz/:quizId/mock-exam" element={<MockExamRunner />} />
           <Route path="/quiz/:quizId/review" element={<QuizReview />} />
           <Route path="/review/:deckId" element={<ReviewView />} />
           <Route path="/friends" element={<FriendsView />} />
