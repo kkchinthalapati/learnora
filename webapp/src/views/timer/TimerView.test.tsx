@@ -480,6 +480,7 @@ describe("MiniTimer", () => {
   it("stays hidden while no session is live", () => {
     renderMini();
     expect(screen.queryByRole("button", { name: "Open the timer" })).toBeNull();
+    expect(document.documentElement.dataset.hasMiniTimer).toBeUndefined();
   });
 
   it("docks on another route once a count-down is part-used", () => {
@@ -495,6 +496,7 @@ describe("MiniTimer", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("05:00")).toBeInTheDocument();
     expect(screen.getByText("Focus")).toBeInTheDocument();
+    expect(document.documentElement.dataset.hasMiniTimer).toBe("true");
   });
 
   it("toggles the timer from its own button", async () => {

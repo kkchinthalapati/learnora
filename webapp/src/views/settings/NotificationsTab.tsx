@@ -253,7 +253,10 @@ export function NotificationsTab() {
               alignItems: "stretch",
             }}
           >
-            <div className={styles.fieldLabel} style={{ marginBottom: "0.5rem" }}>
+            <div
+              className={styles.fieldLabel}
+              style={{ marginBottom: "0.5rem" }}
+            >
               <span className={styles.labelText}>Registered Devices</span>
               <p className={styles.fieldDesc}>
                 Manage push notifications across your devices
@@ -274,8 +277,13 @@ export function NotificationsTab() {
                     }}
                   >
                     <span className={styles.fieldDesc}>
-                      Device added on {new Date(sub.created_at).toLocaleDateString()}{" "}
-                      {isCurrent && <strong style={{ color: "var(--text-main)" }}>(This device)</strong>}
+                      Device added on{" "}
+                      {new Date(sub.created_at).toLocaleDateString()}{" "}
+                      {isCurrent && (
+                        <strong style={{ color: "var(--text-main)" }}>
+                          (This device)
+                        </strong>
+                      )}
                     </span>
                     {!isCurrent && (
                       <Button

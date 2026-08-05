@@ -25,7 +25,9 @@ export function usePush() {
     isPushSupported() ? "checking" : "unsupported",
   );
   const [row, setRow] = useState<PushSubscriptionRow | null>(null);
-  const [allSubscriptions, setAllSubscriptions] = useState<PushSubscriptionRow[]>([]);
+  const [allSubscriptions, setAllSubscriptions] = useState<
+    PushSubscriptionRow[]
+  >([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,34 +65,37 @@ export function usePush() {
     };
   }, [fetchAll]);
 
-  const enable = useCallback(async (vapidPublicKey: string) => {
-    setPending(true);
-    setError(null);
-    try {
-      if ("Notification" in window && Notification.permission === "default") {
-        await Notification.requestPermission();
+  const enable = useCallback(
+    async (vapidPublicKey: string) => {
+      setPending(true);
+      setError(null);
+      try {
+        if ("Notification" in window && Notification.permission === "default") {
+          await Notification.requestPermission();
+        }
+        await registerServiceWorker();
+        const subscription = await subscribeToPush(vapidPublicKey);
+        const serialized = serializeSubscription(subscription);
+        const savedRow = await pushApi.save({
+          ...serialized,
+          notifyExams: true,
+          notifyFlashcards: true,
+        });
+        setRow(savedRow);
+        setStatus("subscribed");
+        void fetchAll();
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not enable push notifications.",
+        );
+      } finally {
+        setPending(false);
       }
-      await registerServiceWorker();
-      const subscription = await subscribeToPush(vapidPublicKey);
-      const serialized = serializeSubscription(subscription);
-      const savedRow = await pushApi.save({
-        ...serialized,
-        notifyExams: true,
-        notifyFlashcards: true,
-      });
-      setRow(savedRow);
-      setStatus("subscribed");
-      void fetchAll();
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Could not enable push notifications.",
-      );
-    } finally {
-      setPending(false);
-    }
-  }, [fetchAll]);
+    },
+    [fetchAll],
+  );
 
   const disable = useCallback(async () => {
     setPending(true);
@@ -142,21 +147,24 @@ export function usePush() {
     [row],
   );
 
-  const removeSubscription = useCallback(async (id: string) => {
-    try {
-      await pushApi.removeById(id);
-      if (row && row.id === id) {
-        // If they removed the current device's sub
-        await disable();
-      } else {
-        void fetchAll();
+  const removeSubscription = useCallback(
+    async (id: string) => {
+      try {
+        await pushApi.removeById(id);
+        if (row && row.id === id) {
+          // If they removed the current device's sub
+          await disable();
+        } else {
+          void fetchAll();
+        }
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Could not remove subscription",
+        );
       }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not remove subscription",
-      );
-    }
-  }, [row, disable, fetchAll]);
+    },
+    [row, disable, fetchAll],
+  );
 
   return {
     status,

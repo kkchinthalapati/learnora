@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Icon } from "../../components/Icon";
 import { useTimer } from "../../context/timer";
@@ -26,7 +27,20 @@ export function MiniTimer() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  if (!isActive(state) || location.pathname === "/timer") return null;
+  const isVisible = isActive(state) && location.pathname !== "/timer";
+
+  useEffect(() => {
+    if (isVisible) {
+      document.documentElement.dataset.hasMiniTimer = "true";
+    } else {
+      delete document.documentElement.dataset.hasMiniTimer;
+    }
+    return () => {
+      delete document.documentElement.dataset.hasMiniTimer;
+    };
+  }, [isVisible]);
+
+  if (!isVisible) return null;
 
   const seconds = isCountUp(state) ? state.elapsed : state.timeLeft;
 

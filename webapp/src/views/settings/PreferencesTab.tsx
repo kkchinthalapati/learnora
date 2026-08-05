@@ -271,7 +271,11 @@ export function PreferencesTab() {
           onClick={() => {
             save();
             profileApi.updateTimezone(settings.timezone).catch((err) => {
-              console.error("Failed to sync timezone", err);
+              if (!(
+                err instanceof Error && err.message === "Not authenticated"
+              )) {
+                console.error("Failed to sync timezone", err);
+              }
             });
             showToast("Your settings have been saved successfully.");
           }}

@@ -61,7 +61,7 @@ export function AuthShell({
                 {/* <Link>, not <a href="/terms">: the route table is mounted
                     under a basename in production, and only Link accounts for
                     it. */}
-                <Link to="/terms" target="_blank" rel="noreferrer">
+                <Link to="/terms" target="_blank" rel="noopener noreferrer">
                   Terms of Service
                 </Link>
                 .

@@ -126,15 +126,16 @@ export async function loadAdaptiveContext(monday: Date): Promise<{
   prevMonday.setDate(prevMonday.getDate() - 7);
   const prevWeekStartISO = localDateStr(prevMonday);
 
-  const [weakTopicRows, weakDeckRows, prevPlan, sessions, folders] = await Promise.all([
-    quizzesApi.fetchWeakTopics(5),
-    flashcardsApi.fetchWeakDecks(5),
-    plansApi.fetchForWeek(prevWeekStartISO),
-    // 14 days comfortably covers "last week" regardless of which day of the
-    // current week this runs on.
-    sessionsApi.fetchSince(14),
-    foldersApi.fetch(),
-  ]);
+  const [weakTopicRows, weakDeckRows, prevPlan, sessions, folders] =
+    await Promise.all([
+      quizzesApi.fetchWeakTopics(5),
+      flashcardsApi.fetchWeakDecks(5),
+      plansApi.fetchForWeek(prevWeekStartISO),
+      // 14 days comfortably covers "last week" regardless of which day of the
+      // current week this runs on.
+      sessionsApi.fetchSince(14),
+      foldersApi.fetch(),
+    ]);
 
   const weakTopics = weakTopicRows.map((w) => w.topic).join(", ") || "None";
   const weakFlashcardDecks = weakDeckRows.join(", ") || "None";
@@ -162,11 +163,13 @@ export async function generateWeeklyPlan(
   const monday = mondayOfWeek();
   const weekStartISO = localDateStr(monday);
 
-  const [{ pendingTasks, upcomingExams }, { weakTopics, weakFlashcardDecks, lastWeekAdherence }] =
-    await Promise.all([
-      loadWorkspaceContext(todayStr),
-      loadAdaptiveContext(monday),
-    ]);
+  const [
+    { pendingTasks, upcomingExams },
+    { weakTopics, weakFlashcardDecks, lastWeekAdherence },
+  ] = await Promise.all([
+    loadWorkspaceContext(todayStr),
+    loadAdaptiveContext(monday),
+  ]);
 
   const { text } = await callEdge({
     history: [

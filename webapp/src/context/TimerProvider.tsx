@@ -62,7 +62,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const { showToast } = useToast();
   const { settings } = useSettings();
   const logSession = useLogSession();
-  const [smartDefaultsFetchedFor, setSmartDefaultsFetchedFor] = useState<string | null>(null);
+  const [smartDefaultsFetchedFor, setSmartDefaultsFetchedFor] = useState<
+    string | null
+  >(null);
   const { session } = useAuth();
 
   const restored = useState(() => restoreTimerState())[0];
@@ -252,10 +254,20 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
           // If the user typically studies for a different duration than the 25m/15m defaults,
           // and they haven't explicitly moved the sliders away from the default, adapt the slider.
-          if (avgPomo && avgPomo > 0 && avgPomo !== 25 && draftConfig.focus === 25) {
+          if (
+            avgPomo &&
+            avgPomo > 0 &&
+            avgPomo !== 25 &&
+            draftConfig.focus === 25
+          ) {
             newDraft = { ...draftConfig, focus: avgPomo };
           }
-          if (avgCount && avgCount > 0 && avgCount !== 15 && (newDraft || draftConfig).countdown === 15) {
+          if (
+            avgCount &&
+            avgCount > 0 &&
+            avgCount !== 15 &&
+            (newDraft || draftConfig).countdown === 15
+          ) {
             newDraft = { ...(newDraft || draftConfig), countdown: avgCount };
           }
 
@@ -265,7 +277,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           setSmartDefaultsFetchedFor(userId);
         })
         .catch((err) => {
-          console.warn("[Timer] Failed to fetch smart defaults:", err);
+          if (!(err instanceof Error && err.message === "Not authenticated")) {
+            console.warn("[Timer] Failed to fetch smart defaults:", err);
+          }
           setSmartDefaultsFetchedFor(userId);
         });
     });

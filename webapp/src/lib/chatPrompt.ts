@@ -92,9 +92,12 @@ const PERSONA_VOICE: Record<AiPersona, string> = {
 };
 
 const CONCISENESS_INSTRUCTION: Record<AiConciseness, string> = {
-  short: "Keep replies short and to the point — 2–4 sentences max unless the student explicitly asks for more detail.",
-  medium: "Balance depth and brevity. Aim for 2–6 sentences; expand only where a concept truly needs it.",
-  detailed: "Give comprehensive, detailed responses. Err on the side of covering more rather than less. Use bullet points and structure where it helps.",
+  short:
+    "Keep replies short and to the point — 2–4 sentences max unless the student explicitly asks for more detail.",
+  medium:
+    "Balance depth and brevity. Aim for 2–6 sentences; expand only where a concept truly needs it.",
+  detailed:
+    "Give comprehensive, detailed responses. Err on the side of covering more rather than less. Use bullet points and structure where it helps.",
 };
 
 export function buildSystemContext({

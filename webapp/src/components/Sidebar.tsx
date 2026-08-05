@@ -172,7 +172,7 @@ export function Sidebar({
           <Link
             to="/terms"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className={`${styles.navLink} ${styles.termsLink}`}
           >
             <Icon name="file-text" size={18} />

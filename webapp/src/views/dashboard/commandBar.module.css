@@ -59,7 +59,9 @@
    * respected — outline would square off the corners. The accent-glow
    * matches the bar's own glow so it reads as "focused" rather than an
    * error state. */
-  box-shadow: 0 0 0 2px var(--accent), 0 0 8px var(--accent-glow);
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 0 8px var(--accent-glow);
   border-radius: var(--r-sm);
 }
 

@@ -17,7 +17,9 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: clamp(20px, 4vw, 40px) clamp(20px, 5vw, 56px);
-  padding-bottom: var(--command-bar-clearance);
+  padding-bottom: calc(
+    var(--command-bar-clearance) + var(--mini-timer-clearance, 0px)
+  );
   position: relative;
   z-index: 1;
 }
@@ -25,6 +27,8 @@
 @media (max-width: 768px) {
   .mainContent {
     padding: var(--s-5);
-    padding-bottom: var(--command-bar-clearance);
+    padding-bottom: calc(
+      var(--command-bar-clearance) + var(--mini-timer-clearance, 0px)
+    );
   }
 }

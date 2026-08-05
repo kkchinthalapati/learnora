@@ -35,7 +35,7 @@ export function generateICS(exams: Exam[], plans: WeeklyPlan[]): string {
       `DTSTART;VALUE=DATE:${formatDate(exam.exam_date)}`,
       `SUMMARY:Exam: ${exam.exam_name}`,
       `DESCRIPTION:Difficulty: ${exam.difficulty || "unspecified"}`,
-      "END:VEVENT"
+      "END:VEVENT",
     );
   }
 
@@ -50,7 +50,7 @@ export function generateICS(exams: Exam[], plans: WeeklyPlan[]): string {
         let desc = "";
         if (block.durationMins) desc += `${block.durationMins} mins. `;
         if (block.reason) desc += block.reason;
-        
+
         lines.push(
           "BEGIN:VEVENT",
           `UID:${generateUID()}`,
@@ -58,7 +58,7 @@ export function generateICS(exams: Exam[], plans: WeeklyPlan[]): string {
           `DTSTART;VALUE=DATE:${formatDate(day.date)}`,
           `SUMMARY:Study: ${block.subject}`,
           `DESCRIPTION:${desc.trim()}`,
-          "END:VEVENT"
+          "END:VEVENT",
         );
       }
     }
