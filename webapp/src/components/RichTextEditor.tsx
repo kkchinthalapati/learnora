@@ -85,6 +85,8 @@ export interface RichTextEditorHandle {
    *  autosaves through the same debounce path rather than needing a second
    *  one. A no-op before the editor has mounted or while it's read-only. */
   appendText: (text: string) => void;
+  getHtml: () => string;
+  setHtml: (html: string) => void;
 }
 
 export interface RichTextEditorProps {
@@ -129,6 +131,12 @@ export function RichTextEditor({
           "user",
         );
         quill.setSelection(quill.getLength() - 1, 0, "silent");
+      },
+      getHtml: () => quillRef.current?.root.innerHTML ?? "",
+      setHtml: (html) => {
+        const quill = quillRef.current;
+        if (!quill) return;
+        quill.clipboard.dangerouslyPasteHTML(html, "api");
       },
     }),
     [],

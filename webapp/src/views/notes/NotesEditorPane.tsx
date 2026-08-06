@@ -109,7 +109,7 @@ export function NotesEditorPane({
       handleUserChange(html);
       showToast("Notes rewritten!");
     },
-    onError: (err) => {
+    onError: (_err) => {
       showToast("Failed to rewrite notes.", { error: true });
     }
   });

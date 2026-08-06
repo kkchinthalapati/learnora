@@ -8,8 +8,7 @@ import styles from "./dashboard.module.css";
 export function DailyDrillCard() {
   const { data: dueCount } = useFlashcardsDueCount();
   const navigate = useNavigate();
-
-  const totalDue = dueCount?.total || 0;
+  const totalDue = dueCount || 0;
 
   return (
     <Card className={styles.card}>

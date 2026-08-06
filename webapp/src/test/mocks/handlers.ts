@@ -90,6 +90,11 @@ export const handlers = [
   http.post(rest("quizzes"), () => new HttpResponse(null, { status: 201 })),
   http.delete(rest("quizzes"), () => new HttpResponse(null, { status: 204 })),
   http.get(rest("quiz_attempts"), () => HttpResponse.json([])),
+  http.post(
+    rest("quiz_attempts"),
+    () => new HttpResponse(null, { status: 201 }),
+  ),
+  http.patch(rest("notes"), () => new HttpResponse(null, { status: 204 })),
 
   http.get(rest("study_sessions"), () => HttpResponse.json([])),
   http.delete(

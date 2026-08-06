@@ -15,7 +15,7 @@ import { QUIZZES_PATH } from "./QuizRunner";
 
 export function MockExamRunner() {
   const { quizId = "" } = useParams();
-  const { data: quiz, isPending, isError, error } = useQuiz(quizId);
+  const { data: quiz, isPending, isError } = useQuiz(quizId);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ export function MockExamRunner() {
       if (document.hidden) {
         // Auto-fail the exam if they switch tabs
         if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
+          document.exitFullscreen?.().catch(() => {});
         }
         setIsFullscreen(false);
         showToast("Mock Exam terminated! You left the exam tab.", { error: true });

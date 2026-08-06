@@ -187,8 +187,9 @@ describe("QuizRunner", () => {
   });
 
   describe("completion", () => {
-    async function playThrough(secondAnswer: string) {
+    async function playThrough(secondAnswer: string, setup?: () => void) {
       serveQuiz();
+      setup?.();
       renderRunner();
       await screen.findByText("Question 1 of 2");
       await userEvent.click(
@@ -224,13 +225,14 @@ describe("QuizRunner", () => {
 
     it("records the attempt with the score, answers and weak topics", async () => {
       let body: Record<string, unknown>[] | undefined;
-      server.use(
-        http.post(rest("quiz_attempts"), async ({ request }) => {
-          body = (await request.json()) as Record<string, unknown>[];
-          return new HttpResponse(null, { status: 201 });
-        }),
-      );
-      await playThrough("Dinitrogen acetate");
+      await playThrough("Dinitrogen acetate", () => {
+        server.use(
+          http.post(rest("quiz_attempts"), async ({ request }) => {
+            body = (await request.json()) as Record<string, unknown>[];
+            return new HttpResponse(null, { status: 201 });
+          }),
+        );
+      });
       await screen.findByText("1 / 2 correct");
 
       await waitFor(() => expect(body).toBeDefined());
@@ -255,12 +257,13 @@ describe("QuizRunner", () => {
     /* The student already finished — the score must show whether or not the
        save landed, but a silent failure would stop weak-topic tracking. */
     it("still shows the score when the attempt fails to save, and says so", async () => {
-      server.use(
-        http.post(rest("quiz_attempts"), () =>
-          HttpResponse.json({ message: "permission denied" }, { status: 403 }),
-        ),
-      );
-      await playThrough("Dinitrogen acetate");
+      await playThrough("Dinitrogen acetate", () => {
+        server.use(
+          http.post(rest("quiz_attempts"), () =>
+            HttpResponse.json({ message: "permission denied" }, { status: 403 }),
+          ),
+        );
+      });
 
       expect(await screen.findByText("1 / 2 correct")).toBeInTheDocument();
       expect(
@@ -270,13 +273,14 @@ describe("QuizRunner", () => {
 
     it("records the attempt exactly once", async () => {
       let posts = 0;
-      server.use(
-        http.post(rest("quiz_attempts"), () => {
-          posts++;
-          return new HttpResponse(null, { status: 201 });
-        }),
-      );
-      await playThrough("Dinitrogen acetate");
+      await playThrough("Dinitrogen acetate", () => {
+        server.use(
+          http.post(rest("quiz_attempts"), () => {
+            posts++;
+            return new HttpResponse(null, { status: 201 });
+          }),
+        );
+      });
       await screen.findByText("1 / 2 correct");
       await waitFor(() => expect(posts).toBe(1));
 

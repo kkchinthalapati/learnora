@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes } from "react-router";
@@ -177,6 +177,7 @@ describe("MockExamRunner", () => {
   });
 
   it("ends exam automatically when time is up", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     serveQuiz(SAMPLE_QUIZ); // 2 questions = 2 minutes = 120 seconds
     renderRunner();
     
@@ -188,14 +189,16 @@ describe("MockExamRunner", () => {
 
     await screen.findByText("What is mitochondria?");
 
-    vi.useFakeTimers();
-    // Advance 120 seconds
-    vi.advanceTimersByTime(120000);
+    // Advance 120 seconds, 1 second at a time to allow React state updates to flush
+    for (let i = 0; i < 120; i++) {
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+    }
+    vi.useRealTimers();
 
     expect(await screen.findByText("Exam Complete!")).toBeInTheDocument();
     expect(screen.getByText("Time's up!")).toBeInTheDocument();
     expect(screen.getByText("0 / 2 correct")).toBeInTheDocument();
-    
-    vi.useRealTimers();
   });
 });

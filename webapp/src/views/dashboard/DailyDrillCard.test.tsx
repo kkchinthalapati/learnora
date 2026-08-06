@@ -13,8 +13,8 @@ const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 
 function serveDueCount(total: number) {
   server.use(
-    http.get(rest("flashcards"), () =>
-      HttpResponse.json([{ count: total }], { headers: { "Content-Range": `0-0/${total}` } }),
+    http.head(rest("flashcards"), () =>
+      new HttpResponse(null, { headers: { "Content-Range": `0-0/${total}` } }),
     ),
   );
 }
