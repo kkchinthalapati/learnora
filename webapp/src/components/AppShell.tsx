@@ -26,6 +26,21 @@ export function AppShell() {
 
   return (
     <div className={styles.appContainer}>
+      {/* First focusable element in the whole shell: a keyboard user
+          otherwise has to tab through every sidebar link (and the Create
+          button) on *every* page before reaching what the page actually
+          says. Invisible until focused, so sighted mouse/touch users never
+          see it. Targets the wrapper around `<Outlet />` below, not `<main>`
+          itself — jumping to `<main>` would land before the page's own
+          heading, past the Header but still not "the content". */}
+      <a
+        href="#page-content"
+        className={styles.skipLink}
+        onClick={() => document.getElementById("page-content")?.focus()}
+      >
+        Skip to content
+      </a>
+
       {/* Plain global class names, not CSS-module ones: `data-bg-texture`
           disables these with a body-attribute selector in index.css, which
           can't target a module's hashed class name. Same reason the theme
@@ -41,7 +56,15 @@ export function AppShell() {
 
       <main className={styles.mainContent}>
         <Header onToggleMenu={() => setCollapsed((c) => !c)} />
-        <Outlet />
+        {/* tabIndex={-1}: not in the tab order on its own, just a valid
+            focus target for the skip link — most browsers already move
+            focus here from the `href="#page-content"` jump alone, but the
+            skip link's own onClick calls .focus() explicitly rather than
+            trusting that everywhere (Safari has a history of not doing it
+            for a same-page fragment click). */}
+        <div id="page-content" tabIndex={-1}>
+          <Outlet />
+        </div>
       </main>
     </div>
   );

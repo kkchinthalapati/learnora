@@ -76,7 +76,7 @@ export function LibraryView() {
       {/* The app shell's Header supplies the page's real <h1> ("Library",
           identical to this row's own title text) — this row's own title is
           plain text, not a second heading, so it doesn't duplicate that.
-          See redesign/DESIGN_MOVES.md move #2. */}
+          See archive/redesign/DESIGN_MOVES.md move #2. */}
       <PageHeader
         title="Library"
         sub="Your folders, materials, decks, and quizzes — all in one place."

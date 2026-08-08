@@ -94,6 +94,50 @@ describe("useTimerIntervention", () => {
     expect(showToast).not.toHaveBeenCalled();
   });
 
+  it("does nothing when disabled via settings", () => {
+    const showToast = vi.fn();
+    const pause = vi.fn();
+    renderHook(() =>
+      useTimerIntervention(true, "coach", showToast, pause, false),
+    );
+
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    act(() => {
+      vi.advanceTimersByTime(70000);
+    });
+
+    expect(showToast).not.toHaveBeenCalled();
+    expect(pause).not.toHaveBeenCalled();
+  });
+
+  it("stops mid-countdown if disabled while the tab is already hidden", () => {
+    const showToast = vi.fn();
+    const pause = vi.fn();
+    const { rerender } = renderHook(
+      ({ enabled }) => useTimerIntervention(true, "coach", showToast, pause, enabled),
+      { initialProps: { enabled: true } },
+    );
+
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
+
+    // Turned off with the 15s toast already scheduled — it must not fire.
+    rerender({ enabled: false });
+
+    act(() => {
+      vi.advanceTimersByTime(60000);
+    });
+
+    expect(showToast).not.toHaveBeenCalled();
+    expect(pause).not.toHaveBeenCalled();
+  });
+
   it("cancels timeout if timer stops while hidden", () => {
     const showToast = vi.fn();
     const pause = vi.fn();

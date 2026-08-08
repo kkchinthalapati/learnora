@@ -3,7 +3,7 @@ import Quill from "quill";
 import "quill/dist/quill.snow.css";
 import styles from "./RichTextEditor.module.css";
 
-/* Hand-rolled Quill wrapper (REACT_MIGRATION.md Decision #8) rather than
+/* Hand-rolled Quill wrapper (archive/REACT_MIGRATION.md Decision #8) rather than
  * `react-quill` — that package is unmaintained against Quill 2.x. Ports
  * js/editor.js's Quill setup and its two documented security fixes
  * (:45-63, :96-106); everything else in that file (autosave scheduling,

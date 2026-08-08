@@ -21,6 +21,12 @@ export interface Settings {
   timezone: string;
   notifyStudyReminders: boolean;
   notifyTimerAlerts: boolean;
+  /** Nudge (then auto-pause) a running timer when the tab is hidden — see
+   *  useTimerIntervention. Defaults to on, matching the behaviour this
+   *  shipped with, but it's a real productivity workflow to have reference
+   *  material open in another tab while studying, so it needs an off
+   *  switch rather than being permanently mandatory. */
+  timerFocusWatchdog: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = Object.freeze({
@@ -31,6 +37,7 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
   notifyStudyReminders: true,
   notifyTimerAlerts: true,
+  timerFocusWatchdog: true,
 });
 
 export const AI_PERSONA_OPTIONS: ReadonlyArray<{
@@ -131,6 +138,10 @@ export function loadSettings(): Settings {
       typeof stored.notifyTimerAlerts === "boolean"
         ? stored.notifyTimerAlerts
         : DEFAULT_SETTINGS.notifyTimerAlerts,
+    timerFocusWatchdog:
+      typeof stored.timerFocusWatchdog === "boolean"
+        ? stored.timerFocusWatchdog
+        : DEFAULT_SETTINGS.timerFocusWatchdog,
   };
 }
 

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import styles from "./PageHeader.module.css";
 
 /* PageHeader — the shared title+sub+actions row, extracted per the redesign
- * audit (redesign/DESIGN_MOVES.md move #5, redesign/PRIMITIVES.md).
+ * audit (archive/redesign/DESIGN_MOVES.md move #5, archive/redesign/PRIMITIVES.md).
  *
  * Built for the two views the shell's own <h1> can't cover: a subtitle and a
  * right-aligned action slot. Renders `title` as styled text, not a heading —

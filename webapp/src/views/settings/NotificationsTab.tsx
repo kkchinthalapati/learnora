@@ -42,6 +42,7 @@ export function NotificationsTab() {
 
   const remindersId = useId();
   const timerId = useId();
+  const watchdogId = useId();
   const pushExamsId = useId();
   const pushFlashcardsId = useId();
 
@@ -130,6 +131,29 @@ export function NotificationsTab() {
               labelledBy={timerId}
               onChange={(checked) =>
                 updateAndSave({ notifyTimerAlerts: checked })
+              }
+            />
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <span className={styles.labelText} id={watchdogId}>
+              Stay-Focused Nudges
+            </span>
+            <p className={styles.fieldDesc}>
+              While a timer is running, get a nudge if you switch tabs for
+              15 seconds, and an automatic pause after a full minute away.
+              Turn this off if you read reference material in another tab
+              while you study — that's not a distraction.
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <ToggleSwitch
+              checked={settings.timerFocusWatchdog}
+              labelledBy={watchdogId}
+              onChange={(checked) =>
+                updateAndSave({ timerFocusWatchdog: checked })
               }
             />
           </div>

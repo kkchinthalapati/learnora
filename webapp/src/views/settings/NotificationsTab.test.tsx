@@ -96,16 +96,19 @@ describe("NotificationsTab", () => {
     expect(await screen.findByText("✓ Enabled")).toBeInTheDocument();
   });
 
-  it("names both toggles for assistive tech", () => {
+  it("names all three toggles for assistive tech", () => {
     setNotificationPermission("granted");
     renderWithProviders(<NotificationsTab />);
 
     /* The vanilla wrapped each checkbox in an empty <label class="toggle-
-       switch">, so neither had an accessible name. */
+       switch">, so none had an accessible name. */
     expect(
       screen.getByRole("switch", { name: "Flashcard Due Reminders" }),
     ).toBeChecked();
     expect(screen.getByRole("switch", { name: "Timer Alerts" })).toBeChecked();
+    expect(
+      screen.getByRole("switch", { name: "Stay-Focused Nudges" }),
+    ).toBeChecked();
   });
 
   it("persists each toggle immediately, with no save button", async () => {
@@ -121,9 +124,10 @@ describe("NotificationsTab", () => {
       expect(loadSettings().notifyStudyReminders).toBe(false),
     );
     expect(loadSettings().notifyTimerAlerts).toBe(true);
+    expect(loadSettings().timerFocusWatchdog).toBe(true);
   });
 
-  it("keeps both toggles independent when flipped in turn", async () => {
+  it("keeps all toggles independent when flipped in turn", async () => {
     const user = userEvent.setup();
     setNotificationPermission("granted");
     renderWithProviders(<NotificationsTab />);
@@ -132,11 +136,15 @@ describe("NotificationsTab", () => {
       screen.getByRole("switch", { name: "Flashcard Due Reminders" }),
     );
     await user.click(screen.getByRole("switch", { name: "Timer Alerts" }));
+    await user.click(
+      screen.getByRole("switch", { name: "Stay-Focused Nudges" }),
+    );
 
     await waitFor(() =>
       expect(loadSettings()).toMatchObject({
         notifyStudyReminders: false,
         notifyTimerAlerts: false,
+        timerFocusWatchdog: false,
       }),
     );
   });

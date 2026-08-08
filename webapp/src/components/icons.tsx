@@ -217,6 +217,10 @@ export const ICONS = {
   flame: (
     <path d="M12 21.5c-4 0-6.5-2.6-6.5-6 0-3 2-4.8 2-4.8-.2 1.6.6 2.4.6 2.4-.6-3 1-6 4.4-8.6-.4 2 .2 3.4 1.5 4.8 1.8 1.9 4 4 4 7.2 0 3.4-2.5 5-6 5Z" />
   ),
+  /* Daily Drill card, Plan triage action, drill-complete empty state. Not in
+     js/icons.js — those flows are React-only additions with no vanilla
+     counterpart to port from. */
+  zap: <polygon points="13 2 4.5 14 11 14 10 22 19.5 10 13 10 13 2" />,
   palette: (
     <>
       <path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-2s-.6-1.7-.6-2.7c0-1.4 1.1-2.3 2.6-2.3H18a3 3 0 0 0 3-3c0-4.4-4-8-9-8Z" />

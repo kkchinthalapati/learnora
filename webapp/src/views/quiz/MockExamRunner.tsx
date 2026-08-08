@@ -18,46 +18,41 @@ export function MockExamRunner() {
   const { data: quiz, isPending, isError } = useQuiz(quizId);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
   const { showToast } = useToast();
 
+  /* Only listens for *entering* fullscreen here. Leaving mid-exam is a
+     proctoring event (terminate + record what's been answered so far), but
+     that requires the answers/score living in MockExamSession below — so
+     the exit side of this lives there instead, scoped to `!finished`. That
+     scoping also means alt-tabbing on this landing screen (before the exam
+     has started) or after finishing (while looking at the score, before
+     clicking "Review Answers") is never mistaken for leaving mid-exam. */
   useEffect(() => {
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) {
-        setIsFullscreen(false);
-        showToast("Mock Exam terminated! You exited fullscreen.", { error: true });
-        navigate(QUIZZES_PATH);
-      } else {
-        setIsFullscreen(true);
-      }
+      if (document.fullscreenElement) setIsFullscreen(true);
     };
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // Auto-fail the exam if they switch tabs
-        if (document.fullscreenElement) {
-          document.exitFullscreen?.().catch(() => {});
-        }
-        setIsFullscreen(false);
-        showToast("Mock Exam terminated! You left the exam tab.", { error: true });
-        navigate(QUIZZES_PATH);
-      }
-    };
-
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
+    return () =>
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [navigate, showToast]);
+  }, []);
 
   const enterFullscreen = () => {
-    if (containerRef.current) {
-      containerRef.current.requestFullscreen().catch(() => {
-        showToast("Failed to enter fullscreen.", { error: true });
-      });
+    if (!containerRef.current) return;
+    if (typeof containerRef.current.requestFullscreen !== "function") {
+      /* The Fullscreen API doesn't exist at all on some browsers (notably
+         iOS Safari) — calling it would throw synchronously, not reject a
+         promise, so it can't be caught below. Fall back to the exam
+         without fullscreen rather than crashing the page; the tab-switch
+         guard in MockExamSession still enforces staying on the page. */
+      showToast(
+        "Fullscreen isn't supported on this device — starting without it. Switching tabs will still end the exam.",
+      );
+      setIsFullscreen(true);
+      return;
     }
+    containerRef.current.requestFullscreen().catch(() => {
+      showToast("Failed to enter fullscreen.", { error: true });
+    });
   };
 
   if (isPending) {
@@ -136,6 +131,7 @@ function MockExamSession({
   }, [finished]);
 
   const { mutate: record } = recordAttempt;
+
   useEffect(() => {
     if (!finished) return;
     record(
@@ -152,6 +148,53 @@ function MockExamSession({
       },
     );
   }, [finished, quizId, score, total, answers, record, showToast]);
+
+  /* The proctoring guard: leaving fullscreen or switching tabs ends the
+     exam. Scoped to `!finished` so it can never fire once every question is
+     answered (or time is up) — including the moment between finishing and
+     clicking "Review Answers", when exiting fullscreen is the *expected*
+     next step, not a violation.
+
+     Unlike a plain kick-out, this still records whatever was answered
+     before the interruption (same shape as the natural-finish effect
+     above) rather than silently discarding it — leaving early costs the
+     rest of the exam, not the part already done. */
+  useEffect(() => {
+    if (finished) return;
+
+    const terminate = (message: string) => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen?.().catch(() => {});
+      }
+      record(
+        { quizId, score, total, answers, weakTopics: weakTopicsFrom(answers) },
+        {
+          onError: () =>
+            showToast("Failed to save exam attempt.", { error: true }),
+        },
+      );
+      showToast(message, { error: true });
+      navigate(QUIZZES_PATH);
+    };
+
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        terminate("Mock Exam terminated! You exited fullscreen.");
+      }
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        terminate("Mock Exam terminated! You left the exam tab.");
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [finished, quizId, score, total, answers, record, showToast, navigate]);
 
   if (finished) {
     const exitExam = () => {
@@ -196,13 +239,7 @@ function MockExamSession({
     <Card variant="panel" padding="lg" className={styles.panel}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <p className={styles.progress}>Question {index + 1} of {questions.length}</p>
-        <p 
-          style={{ 
-            fontWeight: "bold", 
-            color: isStressful ? "var(--accent-red)" : "inherit",
-            animation: isStressful ? "pulse 1s infinite" : "none"
-          }}
-        >
+        <p className={isStressful ? styles.timeLeftUrgent : styles.timeLeft}>
           Time Left: {minutes}:{seconds.toString().padStart(2, "0")}
         </p>
       </div>

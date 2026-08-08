@@ -8,7 +8,7 @@ import { AiError, callEdge, trimHistory, MAX_HISTORY } from "./ai";
 const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
 
 /* RETRY_DELAY_MS is 2s of real waiting, and fake timers are unusable here
- * (MSW paces itself off Date.now() — see REACT_MIGRATION.md's Step 9 note), so
+ * (MSW paces itself off Date.now() — see archive/REACT_MIGRATION.md's Step 9 note), so
  * the retry tests stub the delay away by asserting on request counts with a
  * one-attempt budget instead of letting the default retry run. */
 

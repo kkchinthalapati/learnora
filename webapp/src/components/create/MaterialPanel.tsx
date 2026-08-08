@@ -54,7 +54,7 @@ const PERSONALITY_DESC: Record<string, string> = {
  *
  * One deliberate difference from the vanilla submit: it closed the dialog
  * *immediately* and moved the student to a blocking full-app overlay for the
- * duration. That overlay isn't part of this app (REACT_MIGRATION.md, "Found,
+ * duration. That overlay isn't part of this app (archive/REACT_MIGRATION.md, "Found,
  * deliberately not ported"), so the dialog stays up with a live caption of the
  * stage in flight, and closes when there is somewhere to go. A run that
  * produces nothing therefore reports why in the form the student is still

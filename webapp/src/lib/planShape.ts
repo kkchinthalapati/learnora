@@ -56,5 +56,6 @@ export function parseStoredPlan(planJson: unknown): WeeklyPlanJson | null {
     summary:
       typeof planJson.summary === "string" ? planJson.summary : undefined,
     days,
+    isTriage: planJson.isTriage === true ? true : undefined,
   };
 }

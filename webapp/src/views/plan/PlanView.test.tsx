@@ -302,6 +302,31 @@ describe("PlanView", () => {
       expect(await screen.findByRole("button", { name: /Triage/i })).toBeInTheDocument();
     });
 
+    it("does not offer Triage for an exam that has already passed", async () => {
+      servePlan(planRow(SAMPLE_PLAN));
+      const pastExamDate = new Date();
+      pastExamDate.setDate(pastExamDate.getDate() - 2); // 2 days ago, never marked Completed
+
+      server.use(
+        http.get(rest("exams"), () =>
+          HttpResponse.json([
+            {
+              id: 1,
+              exam_name: "Bio 101 Midterm",
+              exam_date: localDateStr(pastExamDate),
+              status: "Scheduled",
+            },
+          ]),
+        ),
+      );
+      renderPlan();
+
+      await screen.findByText(SAMPLE_PLAN.summary);
+      expect(
+        screen.queryByRole("button", { name: /Triage/i }),
+      ).not.toBeInTheDocument();
+    });
+
     it("generates a triage plan when confirmed", async () => {
       servePlan(planRow(SAMPLE_PLAN));
       const closeExamDate = new Date();
@@ -663,7 +688,7 @@ describe("PlanView", () => {
       "permission denied",
     );
     // Not a heading anymore — the app shell's Header supplies the page's
-    // <h1> now (see redesign/DESIGN_MOVES.md move #2).
+    // <h1> now (see archive/redesign/DESIGN_MOVES.md move #2).
     expect(screen.getByText("This week's plan")).toBeInTheDocument();
   });
 });

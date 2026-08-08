@@ -84,7 +84,13 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
   const pause = useCallback(() => setState((s) => pauseT(s)), []);
 
-  useTimerIntervention(state.isRunning, settings.aiPersona, showToast, pause);
+  useTimerIntervention(
+    state.isRunning,
+    settings.aiPersona,
+    showToast,
+    pause,
+    settings.timerFocusWatchdog,
+  );
 
   /* Effects are applied outside the state updater — running them inside would
      fire them twice under StrictMode's double-invoked reducers. */

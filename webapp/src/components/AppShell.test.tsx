@@ -53,6 +53,24 @@ describe("AppShell", () => {
     vi.restoreAllMocks();
   });
 
+  it("offers a skip link ahead of the sidebar that focuses the page content", async () => {
+    serveDueCount(0);
+    renderShell("/");
+    const user = userEvent.setup();
+
+    // First Tab from a fresh page lands on the skip link, not the first
+    // sidebar item — a keyboard user shouldn't have to tab past the whole
+    // nav on every single page.
+    await user.tab();
+    const skipLink = screen.getByRole("link", { name: "Skip to content" });
+    expect(skipLink).toHaveFocus();
+    expect(skipLink).toHaveAttribute("href", "#page-content");
+
+    await user.click(skipLink);
+    expect(document.getElementById("page-content")).toHaveFocus();
+    expect(screen.getByText("Dashboard view")).toBeInTheDocument();
+  });
+
   it("renders every nav link with its label", () => {
     serveDueCount(0);
     renderShell("/");

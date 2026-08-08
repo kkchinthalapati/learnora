@@ -130,7 +130,7 @@ export const Router = {
   /* Routes cut over to the React app. The vanilla view (and its handler) is
      deleted, not just hidden — this is a full page navigation, not a rewrite,
      because /app is a disjoint origin-relative prefix the hash router never
-     sees. See LOCK_IN.md §6 and REACT_MIGRATION.md Step 21. */
+     sees. See LOCK_IN.md §6 and archive/REACT_MIGRATION.md Step 21. */
   CUTOVER_ROUTES: {
     settings: "/app/settings",
     exams: "/app/exams",

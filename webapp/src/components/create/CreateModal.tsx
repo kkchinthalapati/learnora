@@ -45,7 +45,7 @@ const TYPE_COPY: Record<CreateEntityType, { title: string; subtitle: string }> =
 const TYPE_ORDER: CreateEntityType[] = ["material", "subject", "exam", "task"];
 
 /* The one creation entry point every "+" affordance in the app opens
- * (REACT_MIGRATION.md Step 6) — a deliberate consolidation, not a straight
+ * (archive/REACT_MIGRATION.md Step 6) — a deliberate consolidation, not a straight
  * port: the vanilla app never had a single dialog spanning these four
  * entities (see the ledger's Step 6 note for why). Each panel owns its own
  * form state and submit logic; this shell only owns which panel is showing. */

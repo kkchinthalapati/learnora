@@ -241,6 +241,38 @@
   }
 }
 
+/* --- Mock Exam --- */
+
+.timeLeft {
+  font-weight: bold;
+}
+
+/* Last 30 seconds of a mock exam: a slow opacity pulse (well under the
+   3-flashes/second seizure-risk threshold — this is one cycle per second)
+   rather than a color/contrast flash, so it reads as urgency without being
+   alarming. */
+.timeLeftUrgent {
+  composes: timeLeft;
+  color: var(--accent-red);
+  animation: quiz-time-pulse 1s ease-in-out infinite;
+}
+
+@keyframes quiz-time-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeLeftUrgent {
+    animation: none;
+  }
+}
+
 /* --- Review --- */
 
 .reviewList {

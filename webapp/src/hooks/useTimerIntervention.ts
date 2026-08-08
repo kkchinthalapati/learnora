@@ -29,13 +29,18 @@ export function useTimerIntervention(
   persona: AiPersona,
   showToast: (msg: string, opts?: { error?: boolean }) => void,
   pause: () => void,
+  /** Settings > Notifications > "Stay-Focused Nudges". Reading reference
+   *  material in another tab while a timer runs is a legitimate workflow,
+   *  not just a distraction — defaults to true (unchanged behaviour) but a
+   *  student can turn it off. */
+  enabled = true,
 ) {
   const toastTimeoutRef = useRef<number | null>(null);
   const pauseTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden && isRunning) {
+      if (document.hidden && isRunning && enabled) {
         // 15 seconds: Warning toast
         toastTimeoutRef.current = window.setTimeout(() => {
           const messages = MESSAGES[persona] || MESSAGES.tutor;
@@ -82,5 +87,5 @@ export function useTimerIntervention(
       if (toastTimeoutRef.current !== null) window.clearTimeout(toastTimeoutRef.current);
       if (pauseTimeoutRef.current !== null) window.clearTimeout(pauseTimeoutRef.current);
     };
-  }, [isRunning, persona, showToast, pause]);
+  }, [isRunning, persona, showToast, pause, enabled]);
 }

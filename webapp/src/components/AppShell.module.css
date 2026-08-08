@@ -10,6 +10,33 @@
   overflow: hidden;
 }
 
+/* Off-screen until focused (Tab from the address bar lands here first),
+   then pinned to the top of the viewport above the sidebar/header —
+   10000 matches Modal's z-index, the app's other "above everything" layer. */
+.skipLink {
+  position: fixed;
+  top: -100px;
+  left: var(--s-4);
+  z-index: 10000;
+  padding: var(--s-3) var(--s-5);
+  background: var(--accent);
+  color: var(--accent-on);
+  font-weight: 600;
+  border-radius: var(--r-md);
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+
+.skipLink:focus-visible {
+  top: var(--s-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skipLink {
+    transition: none;
+  }
+}
+
 .mainContent {
   flex: 1;
   min-width: 0;

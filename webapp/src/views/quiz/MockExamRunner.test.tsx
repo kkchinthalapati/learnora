@@ -201,4 +201,88 @@ describe("MockExamRunner", () => {
     expect(screen.getByText("Time's up!")).toBeInTheDocument();
     expect(screen.getByText("0 / 2 correct")).toBeInTheDocument();
   });
+
+  it("does not terminate when the tab is switched before the exam has started", async () => {
+    serveQuiz(SAMPLE_QUIZ);
+    renderRunner();
+
+    // Still on the pre-fullscreen instructions screen — never clicked
+    // "Begin Mock Exam".
+    await screen.findByText(/This is a strict mock exam/);
+
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => true,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    expect(screen.queryByText("Quizzes tab")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Begin Mock Exam/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not terminate when the tab is switched after the exam is already finished", async () => {
+    serveQuiz(SAMPLE_QUIZ);
+    renderRunner();
+
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => document.body,
+    });
+    document.dispatchEvent(new Event("fullscreenchange"));
+
+    await userEvent.click(await screen.findByRole("button", { name: "Powerhouse" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Yes" }));
+    await screen.findByText("Exam Complete!");
+
+    // Leaving the tab to celebrate (or just breathe) before clicking
+    // "Review Answers" must not be mistaken for leaving mid-exam.
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => true,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    expect(screen.queryByText("Quizzes tab")).not.toBeInTheDocument();
+    expect(screen.getByText("Exam Complete!")).toBeInTheDocument();
+  });
+
+  it("records a partial attempt when the exam is terminated early", async () => {
+    serveQuiz(SAMPLE_QUIZ);
+    let attemptRecorded = false;
+    server.use(
+      http.post(rest("quiz_attempts"), async ({ request }) => {
+        const [row] = (await request.clone().json()) as {
+          score?: number;
+          total?: number;
+        }[];
+        expect(row.score).toBe(1);
+        expect(row.total).toBe(2);
+        attemptRecorded = true;
+        return HttpResponse.json([{}]);
+      }),
+    );
+
+    renderRunner();
+
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => document.body,
+    });
+    document.dispatchEvent(new Event("fullscreenchange"));
+
+    // Answer only the first (correct) question, then get pulled away.
+    await userEvent.click(await screen.findByRole("button", { name: "Powerhouse" }));
+    await screen.findByText("Is water wet?");
+
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => true,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    expect(await screen.findByText("Quizzes tab")).toBeInTheDocument();
+    await waitFor(() => expect(attemptRecorded).toBe(true));
+  });
 });

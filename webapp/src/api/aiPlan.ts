@@ -214,7 +214,7 @@ export async function generateWeeklyPlan(
   if (!planJson) throw new PlanShapeError();
 
   if (isTriage) {
-    (planJson as any).isTriage = true;
+    planJson.isTriage = true;
   }
 
   return plansApi.upsert(weekStartISO, planJson);

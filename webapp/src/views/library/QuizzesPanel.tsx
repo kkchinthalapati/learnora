@@ -74,6 +74,13 @@ export function QuizzesPanel() {
                 Review
               </Link>
               <Link
+                to={`/quiz/${quiz.id}/mock-exam`}
+                className={styles.footerLink}
+                title="Timed, fullscreen exam conditions — no going back, no peeking at other tabs"
+              >
+                Mock Exam
+              </Link>
+              <Link
                 to={`/quiz/${quiz.id}`}
                 className={`${styles.footerLink} ${styles.footerLinkPrimary}`}
               >

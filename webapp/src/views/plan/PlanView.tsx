@@ -149,11 +149,16 @@ export function PlanView() {
   const navigate = useNavigate();
   const { data: exams } = useExams();
 
-  const isTriageAvailable = exams?.some(e => {
+  const isTriageAvailable = exams?.some((e) => {
     if (e.status === "Completed") return false;
-    const diffTime = Math.abs(new Date(e.exam_date).getTime() - new Date().getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-    return diffDays <= 3; // 48h-72h window
+    /* Not Math.abs(): an exam that already happened (student forgot to mark
+       it Completed) has a negative diff, and Math.abs was folding that back
+       into "within 3 days", offering emergency triage for a test that's
+       already over. Only a future exam counts. */
+    const diffTime = new Date(e.exam_date).getTime() - Date.now();
+    if (diffTime < 0) return false;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 3;
   });
 
   const sunday = new Date(monday);
@@ -162,7 +167,7 @@ export function PlanView() {
 
   const parsed = plan ? parseStoredPlan(plan.plan_json) : null;
   const hasPlan = !!parsed && parsed.days.length > 0;
-  const isTriageActive = plan && (plan.plan_json as any).isTriage === true;
+  const isTriageActive = parsed?.isTriage === true;
 
   /* "Did last week's plan actually happen?" — a quiet recap, not a new
      generation input the student has to act on (that part happens inside
@@ -256,7 +261,7 @@ export function PlanView() {
           isn't defined for /plan, but sectionLabel.ts hardcodes the same
           "This week's plan" text this card used to duplicate as its own
           <h1>) — this card's title is plain text now, not a second
-          heading. See redesign/DESIGN_MOVES.md move #2. */}
+          heading. See archive/redesign/DESIGN_MOVES.md move #2. */}
       <Card variant="panel" padding="none" className={`${styles.summaryCard} ${isTriageActive ? styles.triageSummary : ''}`}>
         <div>
           <p className={styles.title}>{t("header_plan")}</p>
