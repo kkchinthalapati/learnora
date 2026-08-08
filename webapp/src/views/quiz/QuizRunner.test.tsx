@@ -7,6 +7,7 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
+import { Storage } from "../../lib/storage";
 import { QuizRunner } from "./QuizRunner";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -63,6 +64,7 @@ function renderRunner() {
 
 describe("QuizRunner", () => {
   beforeEach(() => {
+    localStorage.clear();
     mockAuthSession("user-1");
   });
 
@@ -358,5 +360,120 @@ describe("QuizRunner", () => {
     expect(
       await screen.findByRole("heading", { name: "Quizzes tab" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("QuizRunner draft autosave", () => {
+  const draftKey = "learnora_quiz_draft_quiz-1";
+
+  beforeEach(() => {
+    localStorage.clear();
+    mockAuthSession("user-1");
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("autosaves progress to localStorage a short debounce after each answer", async () => {
+    serveQuiz();
+    renderRunner();
+    await screen.findByText("Question 1 of 2");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Mitochondrion" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Next Question →" }),
+    );
+    await screen.findByText("Question 2 of 2");
+
+    await waitFor(() =>
+      expect(Storage.get(draftKey)).toMatchObject({
+        index: 1,
+        answers: [{ questionId: "q1", chosenIndex: 1, correct: true }],
+      }),
+    );
+  });
+
+  it("clears the draft once the quiz finishes", async () => {
+    serveQuiz();
+    renderRunner();
+    await screen.findByText("Question 1 of 2");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Mitochondrion" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Next Question →" }),
+    );
+    await screen.findByText("Question 2 of 2");
+    await waitFor(() => expect(Storage.get(draftKey)).not.toBeNull());
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Deoxyribonucleic acid" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "See results →" }),
+    );
+
+    await screen.findByText("Quiz Complete! 🎉");
+    expect(Storage.get(draftKey)).toBeNull();
+  });
+
+  it("offers to resume on a saved question, landing there with prior answers counted", async () => {
+    Storage.set(draftKey, {
+      index: 1,
+      answers: [{ questionId: "q1", chosenIndex: 1, correct: true, topic: "Cell biology" }],
+    });
+    serveQuiz();
+    renderRunner();
+
+    expect(
+      await screen.findByText(
+        'You have an in-progress attempt at this quiz (question 2 of 2). Resume where you left off?',
+      ),
+    ).toBeInTheDocument();
+    // Optimistically resumed already, ahead of the dialog resolving.
+    expect(screen.getByText("Question 2 of 2")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Resume" }));
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Deoxyribonucleic acid" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "See results →" }),
+    );
+
+    expect(await screen.findByText("2 / 2 correct")).toBeInTheDocument();
+  });
+
+  it("starting over drops the draft and begins again at question 1", async () => {
+    Storage.set(draftKey, {
+      index: 1,
+      answers: [{ questionId: "q1", chosenIndex: 1, correct: true, topic: "Cell biology" }],
+    });
+    serveQuiz();
+    renderRunner();
+
+    await screen.findByText(/Resume where you left off/);
+    await userEvent.click(screen.getByRole("button", { name: "Start Over" }));
+
+    await waitFor(() =>
+      expect(screen.getByText("Question 1 of 2")).toBeInTheDocument(),
+    );
+    expect(Storage.get(draftKey)).toBeNull();
+  });
+
+  it("ignores a draft whose saved index is out of range for the current quiz", async () => {
+    Storage.set(draftKey, { index: 9, answers: [] });
+    serveQuiz();
+    renderRunner();
+
+    await screen.findByText("Question 1 of 2");
+    expect(
+      screen.queryByText(/Resume where you left off/),
+    ).not.toBeInTheDocument();
   });
 });

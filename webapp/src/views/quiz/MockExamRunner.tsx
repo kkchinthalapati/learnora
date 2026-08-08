@@ -6,7 +6,10 @@ import { useToast } from "../../context/toast";
 import { useDialog } from "../../context/dialog";
 import { useQuiz, useRecordQuizAttempt } from "../../hooks/useQuizzes";
 import { useExamProctor } from "../../hooks/useExamProctor";
+import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { useQuizDraft } from "../../hooks/useQuizDraft";
 import { useSettings } from "../../context/settings";
+import { Storage } from "../../lib/storage";
 import type { QuizQuestion } from "../../lib/aiJson";
 import {
   parseStoredQuestions,
@@ -15,6 +18,28 @@ import {
 } from "./quizMeta";
 import styles from "./quiz.module.css";
 import { QUIZZES_PATH } from "./QuizRunner";
+
+interface ExamDraftState {
+  index: number;
+  answers: StoredAnswer[];
+  /** Absolute epoch ms the exam ends at — see the comment where this is
+   *  computed in MockExamSession for why it's a timestamp, not a duration. */
+  examEndAt: number;
+}
+
+function isUsableExamDraft(
+  draft: ExamDraftState | null,
+  questionCount: number,
+): draft is ExamDraftState {
+  return (
+    !!draft &&
+    typeof draft.index === "number" &&
+    draft.index >= 0 &&
+    draft.index < questionCount &&
+    Array.isArray(draft.answers) &&
+    typeof draft.examEndAt === "number"
+  );
+}
 
 export function MockExamRunner() {
   const { quizId = "" } = useParams();
@@ -119,13 +144,46 @@ function MockExamSession({
   const navigate = useNavigate();
   const settings = useSettings();
 
-  const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState<StoredAnswer[]>([]);
-  const [timeLeft, setTimeLeft] = useState(questions.length * 60); // 1 minute per question
+  const draftKey = `learnora_exam_draft_${quizId}`;
+
+  /* A refresh mid-exam drops `isFullscreen` in the parent, so the student
+     always lands back on the "Begin Mock Exam" gate first — re-entering
+     fullscreen is itself the resume gesture, so unlike QuizRunner this
+     resumes silently rather than asking. A stale/corrupt/out-of-range draft
+     is treated as no draft. */
+  const [resumedDraft] = useState(() => {
+    const stored = Storage.get<ExamDraftState>(draftKey);
+    return isUsableExamDraft(stored, questions.length) ? stored : null;
+  });
+
+  const [index, setIndex] = useState(() => resumedDraft?.index ?? 0);
+  const [answers, setAnswers] = useState<StoredAnswer[]>(
+    () => resumedDraft?.answers ?? [],
+  );
+  /* Fixed for the life of the session (not recomputed as time ticks) — the
+     wall-clock target the countdown works backward from. A raw persisted
+     countdown would let a refresh "bank" time (or unfairly lose it) relative
+     to whatever's actually left; anchoring to an absolute timestamp instead
+     makes a refresh time-neutral, which is the actual correctness
+     requirement for a timed exam. */
+  const [examEndAt] = useState(
+    () => resumedDraft?.examEndAt ?? Date.now() + questions.length * 60_000,
+  );
+  const [timeLeft, setTimeLeft] = useState(() =>
+    resumedDraft
+      ? Math.max(0, Math.round((examEndAt - Date.now()) / 1000))
+      : questions.length * 60,
+  );
 
   const finished = index >= questions.length || timeLeft <= 0;
   const score = answers.filter((a) => a.correct).length;
   const total = questions.length;
+
+  const draft = useQuizDraft<ExamDraftState>(
+    draftKey,
+    { index, answers, examEndAt },
+    { enabled: !finished, warnOnUnload: !finished && answers.length > 0 },
+  );
 
   useEffect(() => {
     if (finished) return;
@@ -139,6 +197,7 @@ function MockExamSession({
 
   useEffect(() => {
     if (!finished) return;
+    draft.clear();
     record(
       {
         quizId,
@@ -152,6 +211,7 @@ function MockExamSession({
           showToast("Failed to save exam attempt.", { error: true }),
       },
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finished, quizId, score, total, answers, record, showToast]);
 
   /* The proctoring guard: leaving fullscreen or switching tabs ends the
@@ -171,6 +231,10 @@ function MockExamSession({
     if (document.fullscreenElement) {
       document.exitFullscreen?.().catch(() => {});
     }
+    // Bypasses the `finished`-triggered effect above (index/timeLeft never
+    // actually cross the finished threshold on this path), so the draft
+    // needs clearing here too.
+    draft.clear();
     record(
       { quizId, score, total, answers, weakTopics: weakTopicsFrom(answers) },
       {
@@ -194,6 +258,47 @@ function MockExamSession({
     },
   });
 
+  /* `question` is undefined once `finished` (index runs past the end) — fine,
+     since `choose` below is only ever invoked from the keyboard-shortcut
+     handlers or the choice buttons, both gated off once finished. */
+  const question = questions[index];
+
+  const choose = (chosenIndex: number) => {
+    const correct = chosenIndex === question.correctIndex;
+    setAnswers((prev) => [
+      ...prev,
+      {
+        questionId: question.id ?? index,
+        chosenIndex,
+        correct,
+        topic: question.topic,
+      },
+    ]);
+    setIndex((i) => i + 1);
+  };
+
+  /* Keyboard shortcuts: 1-4 or A-D to choose answer (auto-advances).
+   *
+   * Must be called unconditionally on every render — it sits above the
+   * `if (finished)` early return below so the hook order never changes
+   * between renders (a hook call after a conditional return violates the
+   * Rules of Hooks: React throws "Rendered fewer hooks than expected" the
+   * moment `finished` flips true). `enabled: !finished` is what actually
+   * turns the shortcuts off once the exam ends, not the early return. */
+  useKeyboardShortcuts(
+    {
+      "1": () => choose(0),
+      "2": () => choose(1),
+      "3": () => choose(2),
+      "4": () => choose(3),
+      "a": () => choose(0),
+      "b": () => choose(1),
+      "c": () => choose(2),
+      "d": () => choose(3),
+    },
+    { enabled: !finished },
+  );
+
   if (finished) {
     const exitExam = () => {
       if (document.fullscreenElement) {
@@ -211,37 +316,6 @@ function MockExamSession({
       </Card>
     );
   }
-
-  const question = questions[index];
-
-  const choose = (chosenIndex: number) => {
-    const correct = chosenIndex === question.correctIndex;
-    setAnswers((prev) => [
-      ...prev,
-      {
-        questionId: question.id ?? index,
-        chosenIndex,
-        correct,
-        topic: question.topic,
-      },
-    ]);
-    setIndex((i) => i + 1);
-  };
-
-  /* Keyboard shortcuts: 1-4 or A-D to choose answer (auto-advances) */
-  useKeyboardShortcuts(
-    {
-      "1": () => choose(0),
-      "2": () => choose(1),
-      "3": () => choose(2),
-      "4": () => choose(3),
-      "a": () => choose(0),
-      "b": () => choose(1),
-      "c": () => choose(2),
-      "d": () => choose(3),
-    },
-    { enabled: !finished },
-  );
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;

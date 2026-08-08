@@ -7,6 +7,7 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
+import { Storage } from "../../lib/storage";
 import { MockExamRunner } from "./MockExamRunner";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -93,7 +94,7 @@ describe("MockExamRunner", () => {
   it("exits if fullscreen is exited", async () => {
     serveQuiz(SAMPLE_QUIZ);
     renderRunner();
-    
+
     Object.defineProperty(document, "fullscreenElement", {
       configurable: true,
       get: () => document.body,
@@ -101,12 +102,19 @@ describe("MockExamRunner", () => {
     document.dispatchEvent(new Event("fullscreenchange"));
     await screen.findByText("What is mitochondria?");
 
-    // Exit fullscreen
+    // Exit fullscreen — this only starts the 5s grace-period countdown
+    // (useExamProctor), it doesn't terminate immediately.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     Object.defineProperty(document, "fullscreenElement", {
       configurable: true,
       get: () => null,
     });
     document.dispatchEvent(new Event("fullscreenchange"));
+
+    act(() => {
+      vi.advanceTimersByTime(5100);
+    });
+    vi.useRealTimers();
 
     expect(await screen.findByText("Quizzes tab")).toBeInTheDocument();
   });
@@ -114,7 +122,7 @@ describe("MockExamRunner", () => {
   it("exits if tab is switched (visibilitychange)", async () => {
     serveQuiz(SAMPLE_QUIZ);
     renderRunner();
-    
+
     Object.defineProperty(document, "fullscreenElement", {
       configurable: true,
       get: () => document.body,
@@ -122,12 +130,19 @@ describe("MockExamRunner", () => {
     document.dispatchEvent(new Event("fullscreenchange"));
     await screen.findByText("What is mitochondria?");
 
-    // Switch tab
+    // Switch tab — only starts the 5s grace-period countdown, not an
+    // immediate termination.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     Object.defineProperty(document, "hidden", {
       configurable: true,
       get: () => true,
     });
     document.dispatchEvent(new Event("visibilitychange"));
+
+    act(() => {
+      vi.advanceTimersByTime(5100);
+    });
+    vi.useRealTimers();
 
     expect(await screen.findByText("Quizzes tab")).toBeInTheDocument();
   });
@@ -276,13 +291,136 @@ describe("MockExamRunner", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Powerhouse" }));
     await screen.findByText("Is water wet?");
 
+    // Only starts the 5s grace-period countdown, not an immediate
+    // termination.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     Object.defineProperty(document, "hidden", {
       configurable: true,
       get: () => true,
     });
     document.dispatchEvent(new Event("visibilitychange"));
 
+    act(() => {
+      vi.advanceTimersByTime(5100);
+    });
+    vi.useRealTimers();
+
     expect(await screen.findByText("Quizzes tab")).toBeInTheDocument();
     await waitFor(() => expect(attemptRecorded).toBe(true));
+  });
+});
+
+describe("MockExamRunner draft autosave", () => {
+  const draftKey = "learnora_exam_draft_quiz-1";
+
+  beforeEach(() => {
+    localStorage.clear();
+    mockAuthSession("user-1");
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function enterFullscreen() {
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => document.body,
+    });
+    document.dispatchEvent(new Event("fullscreenchange"));
+  }
+
+  it("autosaves index, answers, and the exam end time after answering a question", async () => {
+    serveQuiz(SAMPLE_QUIZ);
+    renderRunner();
+    enterFullscreen();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Powerhouse" }));
+    await screen.findByText("Is water wet?");
+
+    await waitFor(() => {
+      const draft = Storage.get<{
+        index: number;
+        answers: unknown[];
+        examEndAt: number;
+      }>(draftKey);
+      expect(draft).not.toBeNull();
+      expect(draft!.index).toBe(1);
+      expect(draft!.answers).toHaveLength(1);
+      expect(typeof draft!.examEndAt).toBe("number");
+    });
+  });
+
+  it("resumes on the saved question with prior answers counted and time computed from the saved end time", async () => {
+    serveQuiz(SAMPLE_QUIZ);
+    Storage.set(draftKey, {
+      index: 1,
+      answers: [{ questionId: 0, chosenIndex: 0, correct: true, topic: "Cells" }],
+      examEndAt: Date.now() + 45_000,
+    });
+
+    renderRunner();
+    enterFullscreen();
+
+    expect(await screen.findByText("Is water wet?")).toBeInTheDocument();
+    expect(screen.getByText("Question 2 of 2")).toBeInTheDocument();
+    // Computed fresh from the saved end timestamp, not a persisted countdown
+    // — should read close to the 45s that was left when the draft was saved.
+    expect(screen.getByText(/Time Left: 0:4[0-5]/)).toBeInTheDocument();
+  });
+
+  it("resumes as finished immediately when the saved end time has already passed", async () => {
+    serveQuiz(SAMPLE_QUIZ);
+    Storage.set(draftKey, {
+      index: 0,
+      answers: [],
+      examEndAt: Date.now() - 5000,
+    });
+
+    renderRunner();
+    enterFullscreen();
+
+    expect(await screen.findByText("Exam Complete!")).toBeInTheDocument();
+    expect(screen.getByText("Time's up!")).toBeInTheDocument();
+    expect(screen.getByText("0 / 2 correct")).toBeInTheDocument();
+  });
+
+  it("ignores a draft whose saved index is out of range for the current exam", async () => {
+    serveQuiz(SAMPLE_QUIZ);
+    Storage.set(draftKey, { index: 99, answers: [], examEndAt: Date.now() + 60_000 });
+
+    renderRunner();
+    enterFullscreen();
+
+    expect(await screen.findByText("What is mitochondria?")).toBeInTheDocument();
+    expect(screen.getByText("Question 1 of 2")).toBeInTheDocument();
+  });
+
+  it("clears the draft once the exam finishes normally", async () => {
+    serveQuiz(SAMPLE_QUIZ);
+    renderRunner();
+    enterFullscreen();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Powerhouse" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Yes" }));
+
+    await screen.findByText("Exam Complete!");
+    expect(Storage.get(draftKey)).toBeNull();
+  });
+
+  it("clears the draft when the exam is ended early", async () => {
+    serveQuiz(SAMPLE_QUIZ);
+    renderRunner();
+    enterFullscreen();
+
+    await screen.findByText("What is mitochondria?");
+    await waitFor(() => expect(Storage.get(draftKey)).not.toBeNull());
+
+    await userEvent.click(screen.getByRole("button", { name: "End Exam Early" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "End Exam" }),
+    );
+
+    await waitFor(() => expect(Storage.get(draftKey)).toBeNull());
   });
 });

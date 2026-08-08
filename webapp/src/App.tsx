@@ -13,6 +13,7 @@ import { ChatProvider } from "./context/ChatProvider";
 import { TurboChat } from "./components/chat/TurboChat";
 import { MiniTimer } from "./views/timer/MiniTimer";
 import { CommandBar } from "./views/dashboard/CommandBar";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AppRoutes } from "./routes";
 import { useAuth } from "./context/auth";
 
@@ -63,7 +64,16 @@ export default function App() {
                           one view. */}
                       <CreateModalProvider>
                         <ChatProvider>
-                          <AppRoutes />
+                          {/* Crash net for the route tree specifically — a bug
+                              in one view degrades to a recoverable screen
+                              instead of taking down the whole app. Deliberately
+                              doesn't wrap SignedInOverlays: the mini timer,
+                              chat, and command bar should keep working (and
+                              stay reachable as a way out) even if the current
+                              route's own component throws. */}
+                          <ErrorBoundary>
+                            <AppRoutes />
+                          </ErrorBoundary>
                           {/* Docked on every route while a session is live, so
                               they live beside the routes rather than inside one. */}
                           <SignedInOverlays />
