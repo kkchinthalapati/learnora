@@ -4,6 +4,7 @@ import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { ToggleSwitch } from "../../components/ToggleSwitch";
 import { useSettings } from "../../context/settings";
+import { useDialog } from "../../context/dialog";
 import { isPushSupported } from "../../lib/push";
 import { usePush } from "../../hooks/usePush";
 import styles from "./settings.module.css";
@@ -54,7 +55,19 @@ export function NotificationsTab() {
   }, []);
 
   const push = usePush();
+  const { confirm } = useDialog();
   const pushConfigured = isPushSupported() && !!VAPID_PUBLIC_KEY;
+
+  const handleRevokeDevice = async (deviceId: string, isCurrent: boolean) => {
+    if (isCurrent) {
+      const ok = await confirm(
+        "This will disable push notifications on this device. You can re-enable them anytime.",
+        { title: "Disable push on this device?", confirmText: "Disable", danger: true },
+      );
+      if (!ok) return;
+    }
+    await push.removeSubscription(deviceId);
+  };
 
   return (
     <>
@@ -309,15 +322,13 @@ export function NotificationsTab() {
                         </strong>
                       )}
                     </span>
-                    {!isCurrent && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => push.removeSubscription(sub.id)}
-                      >
-                        Revoke
-                      </Button>
-                    )}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleRevokeDevice(sub.id, isCurrent)}
+                    >
+                      {isCurrent ? "Disable on this device" : "Revoke"}
+                    </Button>
                   </li>
                 );
               })}

@@ -12,15 +12,17 @@ import { TimerProvider } from "./context/TimerProvider";
 import { ChatProvider } from "./context/ChatProvider";
 import { TurboChat } from "./components/chat/TurboChat";
 import { MiniTimer } from "./views/timer/MiniTimer";
+import { CommandBar } from "./views/dashboard/CommandBar";
 import { AppRoutes } from "./routes";
 import { useAuth } from "./context/auth";
 
-/* The two docked overlays, kept off the signed-out routes.
+/* The three docked overlays, kept off the signed-out routes.
  *
- * Both already self-hide most of the time — the mini timer only when a session
- * is live, the chat only when it is open — but "a session is live" is timer
- * state restored from localStorage, which outlives signing out. Without this
- * a returning visitor could get a floating timer over the login form. */
+ * All already self-hide most of the time — the mini timer only when a session
+ * is live, the chat only when it is open, the command bar always visible but
+ * (originally) on the dashboard only. "A session is live" is timer state
+ * restored from localStorage, which outlives signing out. Without this a
+ * returning visitor could get floating overlays over the login form. */
 function SignedInOverlays() {
   const { session } = useAuth();
   if (!session) return null;
@@ -28,6 +30,7 @@ function SignedInOverlays() {
     <>
       <MiniTimer />
       <TurboChat />
+      <CommandBar />
     </>
   );
 }

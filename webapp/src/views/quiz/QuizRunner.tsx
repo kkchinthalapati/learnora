@@ -6,6 +6,7 @@ import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useToast } from "../../context/toast";
 import { useQuiz, useRecordQuizAttempt } from "../../hooks/useQuizzes";
+import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import type { QuizQuestion } from "../../lib/aiJson";
 import {
   parseStoredQuestions,
@@ -208,6 +209,23 @@ function QuizSession({
     setAnswered(null);
     setIndex((i) => i + 1);
   };
+
+  /* Keyboard shortcuts: 1-4 or A-D to choose answer, Enter/Space to next */
+  useKeyboardShortcuts(
+    {
+      "1": () => !answered && choose(0),
+      "2": () => !answered && choose(1),
+      "3": () => !answered && choose(2),
+      "4": () => !answered && choose(3),
+      "a": () => !answered && choose(0),
+      "b": () => !answered && choose(1),
+      "c": () => !answered && choose(2),
+      "d": () => !answered && choose(3),
+      "Enter": () => answered && next(),
+      " ": () => answered && next(),
+    },
+    { enabled: !finished },
+  );
 
   let hostMessage = "";
   let hostTone: HostTone = null;

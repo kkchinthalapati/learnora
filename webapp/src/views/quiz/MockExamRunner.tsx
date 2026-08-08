@@ -3,7 +3,10 @@ import { Link, useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { useToast } from "../../context/toast";
+import { useDialog } from "../../context/dialog";
 import { useQuiz, useRecordQuizAttempt } from "../../hooks/useQuizzes";
+import { useExamProctor } from "../../hooks/useExamProctor";
+import { useSettings } from "../../context/settings";
 import type { QuizQuestion } from "../../lib/aiJson";
 import {
   parseStoredQuestions,
@@ -112,7 +115,9 @@ function MockExamSession({
 }) {
   const recordAttempt = useRecordQuizAttempt();
   const { showToast } = useToast();
+  const { confirm } = useDialog();
   const navigate = useNavigate();
+  const settings = useSettings();
 
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<StoredAnswer[]>([]);
@@ -158,43 +163,36 @@ function MockExamSession({
      Unlike a plain kick-out, this still records whatever was answered
      before the interruption (same shape as the natural-finish effect
      above) rather than silently discarding it — leaving early costs the
-     rest of the exam, not the part already done. */
-  useEffect(() => {
-    if (finished) return;
+     rest of the exam, not the part already done.
 
-    const terminate = (message: string) => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen?.().catch(() => {});
-      }
-      record(
-        { quizId, score, total, answers, weakTopics: weakTopicsFrom(answers) },
-        {
-          onError: () =>
-            showToast("Failed to save exam attempt.", { error: true }),
-        },
-      );
-      showToast(message, { error: true });
-      navigate(QUIZZES_PATH);
-    };
+     If settings.examTerminationGrace is enabled, shows a countdown warning
+     before terminating (see useExamProctor). */
+  const submitExam = (reason: "terminated" | "voluntary") => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
+    record(
+      { quizId, score, total, answers, weakTopics: weakTopicsFrom(answers) },
+      {
+        onError: () =>
+          showToast("Failed to save exam attempt.", { error: true }),
+      },
+    );
+    if (reason === "terminated") {
+      showToast("Mock Exam terminated!", { error: true });
+    } else {
+      showToast("Mock Exam submitted.");
+    }
+    navigate(QUIZZES_PATH);
+  };
 
-    const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) {
-        terminate("Mock Exam terminated! You exited fullscreen.");
-      }
-    };
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        terminate("Mock Exam terminated! You left the exam tab.");
-      }
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [finished, quizId, score, total, answers, record, showToast, navigate]);
+  const { graceCountdown, graceReason } = useExamProctor({
+    isActive: !finished,
+    enabled: settings.examTerminationGrace,
+    onTerminate: (reason) => {
+      submitExam("terminated");
+    },
+  });
 
   if (finished) {
     const exitExam = () => {
@@ -230,33 +228,86 @@ function MockExamSession({
     setIndex((i) => i + 1);
   };
 
+  /* Keyboard shortcuts: 1-4 or A-D to choose answer (auto-advances) */
+  useKeyboardShortcuts(
+    {
+      "1": () => choose(0),
+      "2": () => choose(1),
+      "3": () => choose(2),
+      "4": () => choose(3),
+      "a": () => choose(0),
+      "b": () => choose(1),
+      "c": () => choose(2),
+      "d": () => choose(3),
+    },
+    { enabled: !finished },
+  );
+
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
   const isStressful = timeLeft < 30;
 
-  return (
-    <Card variant="panel" padding="lg" className={styles.panel}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <p className={styles.progress}>Question {index + 1} of {questions.length}</p>
-        <p className={isStressful ? styles.timeLeftUrgent : styles.timeLeft}>
-          Time Left: {minutes}:{seconds.toString().padStart(2, "0")}
-        </p>
-      </div>
-      <h1 className={styles.question}>{question.question}</h1>
+  const endExamEarly = async () => {
+    const ok = await confirm(
+      "Are you sure you want to end the exam now? Your answers so far will be recorded, but you won't get points for unanswered questions.",
+      { title: "End Exam Early?", confirmText: "End Exam", danger: true },
+    );
+    if (ok) {
+      submitExam("voluntary");
+    }
+  };
 
-      <div className={styles.choices}>
-        {question.choices.map((choice, i) => (
-          <button
-            key={i}
-            type="button"
-            className={styles.choice}
-            onClick={() => choose(i)}
-          >
-            {choice}
-          </button>
-        ))}
-      </div>
-    </Card>
+  return (
+    <>
+      {graceCountdown !== null && (
+        <div style={{
+          background: "var(--color-error-bg)",
+          border: "1px solid var(--color-error)",
+          borderRadius: "0.5rem",
+          padding: "1rem",
+          marginBottom: "1rem",
+          color: "var(--color-error-text)",
+          textAlign: "center",
+        }}>
+          <p style={{ margin: 0, fontWeight: "bold" }}>
+            {graceReason === "fullscreen"
+              ? "You exited fullscreen!"
+              : "You left the exam tab!"}
+          </p>
+          <p style={{ margin: "0.5rem 0 0" }}>
+            Returning to the exam in {Math.ceil(graceCountdown / 1000)}s or it will be submitted.
+          </p>
+        </div>
+      )}
+      <Card variant="panel" padding="lg" className={styles.panel}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <p className={styles.progress}>Question {index + 1} of {questions.length}</p>
+          <p className={isStressful ? styles.timeLeftUrgent : styles.timeLeft}>
+            Time Left: {minutes}:{seconds.toString().padStart(2, "0")}
+          </p>
+        </div>
+        <h1 className={styles.question}>{question.question}</h1>
+
+        <div className={styles.choices}>
+          {question.choices.map((choice, i) => (
+            <button
+              key={i}
+              type="button"
+              className={styles.choice}
+              onClick={() => choose(i)}
+            >
+              {choice}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ marginTop: "2rem", display: "flex", gap: "1rem" }}>
+          <Button variant="secondary" onClick={endExamEarly}>
+            End Exam Early
+          </Button>
+        </div>
+      </Card>
+    </>
   );
 }

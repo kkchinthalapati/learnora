@@ -1,6 +1,7 @@
 import { useId } from "react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { Combobox } from "../../components/Combobox";
 import { Icon } from "../../components/Icon";
 import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
@@ -217,17 +218,15 @@ export function PreferencesTab() {
             </p>
           </div>
           <div className={styles.fieldAction}>
-            <select
-              id={tzId}
+            <Combobox
+              options={ALL_TIMEZONES.map((tz) => ({
+                value: tz,
+                label: tz,
+              }))}
               value={settings.timezone}
-              onChange={(e) => setSettings({ timezone: e.target.value })}
-            >
-              {ALL_TIMEZONES.map((tz) => (
-                <option key={tz} value={tz}>
-                  {tz}
-                </option>
-              ))}
-            </select>
+              onChange={(tz) => setSettings({ timezone: tz })}
+              placeholder="Search timezone..."
+            />
           </div>
         </div>
       </Card>

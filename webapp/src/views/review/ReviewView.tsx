@@ -14,6 +14,7 @@ import {
   useAllDueFlashcards,
   useUpdateFlashcardReview,
 } from "../../hooks/useFlashcards";
+import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { fenceUntrusted } from "../../lib/actionTags";
 import { executeActions, type ActionHandlers } from "../../lib/chatActions";
 import { dueCardsFrom, nextReviewState } from "./srs";
@@ -219,6 +220,19 @@ function ReviewSession({
       setGrading(false);
     },
     [cards, index, updateReview, showToast],
+  );
+
+  /* Keyboard shortcuts: Space to flip, 1-4 to grade (only when flipped and
+     not grading) */
+  useKeyboardShortcuts(
+    {
+      " ": () => !flipped && setFlipped(true),
+      "1": () => flipped && !grading && scoreCard(1),
+      "2": () => flipped && !grading && scoreCard(2),
+      "3": () => flipped && !grading && scoreCard(3),
+      "4": () => flipped && !grading && scoreCard(4),
+    },
+    { enabled: !finished },
   );
 
   /* Registered so a `<GRADE_FLASHCARD>` tag from the *floating* Turbo panel

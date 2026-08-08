@@ -240,11 +240,24 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
       { title: `Remove ${name}?`, confirmText: "Remove", danger: true },
     );
     if (!ok) return;
-    remove.mutate(entry.friendship_id, {
-      onSuccess: () => showToast(`Removed ${name}.`),
-      onError: (err: Error) =>
-        showToast(`Could not remove. ${err.message}`, { error: true }),
+
+    let cancelled = false;
+    showToast(`Removed ${name}.`, {
+      duration: 4000,
+      actionLabel: "Undo",
+      onAction: () => {
+        cancelled = true;
+      },
     });
+
+    setTimeout(async () => {
+      if (!cancelled) {
+        remove.mutate(entry.friendship_id, {
+          onError: (err: Error) =>
+            showToast(`Could not remove. ${err.message}`, { error: true }),
+        });
+      }
+    }, 4000);
   }
 
   return (

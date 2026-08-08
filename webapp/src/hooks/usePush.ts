@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { pushApi } from "../api/push";
 import { isPushSupported, serializeSubscription } from "../lib/push";
+import { useToast } from "../context/toast";
 import {
   getExistingPushSubscription,
   registerServiceWorker,
@@ -21,6 +22,7 @@ export type PushStatus =
   "unsupported" | "checking" | "subscribed" | "unsubscribed";
 
 export function usePush() {
+  const { showToast } = useToast();
   const [status, setStatus] = useState<PushStatus>(
     isPushSupported() ? "checking" : "unsupported",
   );
@@ -37,8 +39,9 @@ export function usePush() {
       setAllSubscriptions(list);
     } catch (err) {
       console.error("Failed to fetch all subscriptions", err);
+      showToast("Couldn't load your registered devices.", { error: true });
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     if (!isPushSupported()) return;

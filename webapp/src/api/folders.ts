@@ -30,7 +30,7 @@ export const foldersApi = {
   /* The DB cascade removes materials/quizzes/decks rows, but not the
    * uploaded files themselves — collect their storage paths before the
    * folder (and the rows referencing them) are gone. */
-  async delete(id: string): Promise<void> {
+  async delete(id: string): Promise<{ storageCleanupFailed: boolean }> {
     const materials = await materialsApi.fetch(id);
     const paths = materials.reduce<string[]>((acc, m) => {
       if (m.storage_path) acc.push(m.storage_path);
@@ -40,6 +40,7 @@ export const foldersApi = {
     const { error } = await supabase.from("folders").delete().eq("id", id);
     if (error) throw new Error(error.message);
 
+    let storageCleanupFailed = false;
     if (paths.length) {
       const { error: storageError } = await supabase.storage
         .from("materials")
@@ -47,12 +48,15 @@ export const foldersApi = {
       if (storageError) {
         // The folder is already gone and the DB is consistent — a storage
         // cleanup miss here is recoverable later, not worth failing on.
+        storageCleanupFailed = true;
         console.error(
           "[foldersApi.delete] storage cleanup failed",
           storageError.message,
         );
       }
     }
+
+    return { storageCleanupFailed };
   },
 
   async rename(id: string, name: string): Promise<void> {

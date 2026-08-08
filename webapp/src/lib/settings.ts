@@ -27,6 +27,10 @@ export interface Settings {
    *  material open in another tab while studying, so it needs an off
    *  switch rather than being permanently mandatory. */
   timerFocusWatchdog: boolean;
+  /** Show a countdown warning before auto-terminating a mock exam on
+   *  tab-switch or fullscreen exit. Defaults to on (graceful), but can be
+   *  disabled for stricter enforcement. See useExamProctor. */
+  examTerminationGrace: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = Object.freeze({
@@ -38,6 +42,7 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   notifyStudyReminders: true,
   notifyTimerAlerts: true,
   timerFocusWatchdog: true,
+  examTerminationGrace: true,
 });
 
 export const AI_PERSONA_OPTIONS: ReadonlyArray<{
@@ -142,6 +147,10 @@ export function loadSettings(): Settings {
       typeof stored.timerFocusWatchdog === "boolean"
         ? stored.timerFocusWatchdog
         : DEFAULT_SETTINGS.timerFocusWatchdog,
+    examTerminationGrace:
+      typeof stored.examTerminationGrace === "boolean"
+        ? stored.examTerminationGrace
+        : DEFAULT_SETTINGS.examTerminationGrace,
   };
 }
 
