@@ -86,12 +86,20 @@ export function AccountTab() {
     }
   }
 
-  async function onExport() {
+  async function onExportHtml() {
+    const ok = await confirm(
+      "Download an interactive HTML report of your study data?",
+      { title: "Export Report?", confirmText: "Export" },
+    );
+    if (ok) exportData.mutate({ format: "html" });
+  }
+
+  async function onExportCsv() {
     const ok = await confirm(
       "Download a CSV copy of all your study logs and tasks to your device?",
       { title: "Export Data?", confirmText: "Export" },
     );
-    if (ok) exportData.mutate();
+    if (ok) exportData.mutate({ format: "csv" });
   }
 
   return (
@@ -238,15 +246,30 @@ export function AccountTab() {
             <p>Download a copy of your study data</p>
           </div>
         </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <span className={styles.labelText}>Interactive Report</span>
+            <p className={styles.fieldDesc}>
+              Download a visual, interactive HTML report with stats, charts, and summaries
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <Button size="sm" onClick={() => void onExportHtml()}>
+              <Icon name="download" size={16} /> Export Report
+            </Button>
+          </div>
+        </div>
+
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
             <span className={styles.labelText}>CSV Export</span>
             <p className={styles.fieldDesc}>
-              Download your tasks, exams, and study logs as a CSV file
+              Download your tasks, exams, and study logs as a CSV file for spreadsheets
             </p>
           </div>
           <div className={styles.fieldAction}>
-            <Button size="sm" onClick={() => void onExport()}>
+            <Button size="sm" onClick={() => void onExportCsv()}>
               <Icon name="download" size={16} /> Export CSV
             </Button>
           </div>

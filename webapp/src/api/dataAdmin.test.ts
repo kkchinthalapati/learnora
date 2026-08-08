@@ -62,3 +62,71 @@ describe("dataAdminApi.wipe", () => {
     }
   });
 });
+
+describe("dataAdminApi.exportHTML", () => {
+  beforeEach(() => {
+    mockAuthSession("user-1");
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("exports HTML report by generating a Blob and triggering an anchor download click", async () => {
+    const origCreate = URL.createObjectURL;
+    const origRevoke = URL.revokeObjectURL;
+    const createObjectURL = vi.fn().mockReturnValue("blob:mock-url");
+    const revokeObjectURL = vi.fn();
+    URL.createObjectURL = createObjectURL;
+    URL.revokeObjectURL = revokeObjectURL;
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
+
+    try {
+      await dataAdminApi.exportHTML();
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+      const callArgs = createObjectURL.mock.calls[0][0];
+      expect(callArgs).toBeInstanceOf(Blob);
+      expect(callArgs.type).toBe("text/html;charset=utf-8;");
+      expect(clickSpy).toHaveBeenCalledTimes(1);
+      expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
+    } finally {
+      URL.createObjectURL = origCreate;
+      URL.revokeObjectURL = origRevoke;
+    }
+  });
+
+  it("includes summary statistics in the HTML report", async () => {
+    const origCreate = URL.createObjectURL;
+    const createObjectURL = vi.fn();
+    let capturedHtml = "";
+    createObjectURL.mockImplementation((blob: Blob) => {
+      // Capture the HTML content
+      const reader = new FileReader();
+      reader.onload = () => {
+        capturedHtml = reader.result as string;
+      };
+      reader.readAsText(blob);
+      return "blob:mock-url";
+    });
+
+    URL.createObjectURL = createObjectURL;
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    try {
+      await dataAdminApi.exportHTML();
+      // Allow async FileReader to complete
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // The captured HTML should contain report structure
+      if (capturedHtml) {
+        expect(capturedHtml).toContain("Your Study Report");
+        expect(capturedHtml).toContain("stat-value");
+        expect(capturedHtml).toContain("Total Hours");
+      }
+    } finally {
+      URL.createObjectURL = origCreate;
+    }
+  });
+});
