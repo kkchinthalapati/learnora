@@ -152,4 +152,10 @@
 
   /* --- Structure --- */
   --sidebar-width: 264px;
+  /* WCAG 2.1 (2.5.5, AAA) / iOS HIG floor for a tappable control. Applied
+     globally, not just under the mobile breakpoint — a pointer's precision
+     doesn't depend on viewport width, and 44px costs little at desktop
+     density either, whereas maintaining two sizes for the same control
+     would be the more expensive path. */
+  --touch-target-min: 44px;
 }

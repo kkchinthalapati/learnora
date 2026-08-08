@@ -179,10 +179,25 @@ function MockExamSession({
   const score = answers.filter((a) => a.correct).length;
   const total = questions.length;
 
+  /* submitExam (early exit / proctoring termination) records and navigates
+     away without ever flipping `index`/`timeLeft` into the "finished" shape
+     — so `finished` alone doesn't reliably disable autosave for that path.
+     Without this, a re-render landing between submitExam's draft.clear()
+     and the component actually unmounting (e.g. the toast it shows causes
+     one) would see `enabled` still true and re-arm the debounced write,
+     silently resurrecting the draft right after it was cleared. A ref
+     (not state) is enough — it only needs to be correct by the time some
+     *other* render reads it, not to cause one itself. */
+  const submittedRef = useRef(false);
+
   const draft = useQuizDraft<ExamDraftState>(
     draftKey,
     { index, answers, examEndAt },
-    { enabled: !finished, warnOnUnload: !finished && answers.length > 0 },
+    {
+      enabled: !finished && !submittedRef.current,
+      warnOnUnload:
+        !finished && !submittedRef.current && answers.length > 0,
+    },
   );
 
   useEffect(() => {
@@ -233,7 +248,10 @@ function MockExamSession({
     }
     // Bypasses the `finished`-triggered effect above (index/timeLeft never
     // actually cross the finished threshold on this path), so the draft
-    // needs clearing here too.
+    // needs clearing here too — and autosave needs to stay off from here
+    // on, or a re-render before the component unmounts (e.g. the toast
+    // below) would re-arm it. See submittedRef's declaration for why.
+    submittedRef.current = true;
     draft.clear();
     record(
       { quizId, score, total, answers, weakTopics: weakTopicsFrom(answers) },
@@ -335,21 +353,17 @@ function MockExamSession({
   return (
     <>
       {graceCountdown !== null && (
-        <div style={{
-          background: "var(--color-error-bg)",
-          border: "1px solid var(--color-error)",
-          borderRadius: "0.5rem",
-          padding: "1rem",
-          marginBottom: "1rem",
-          color: "var(--color-error-text)",
-          textAlign: "center",
-        }}>
-          <p style={{ margin: 0, fontWeight: "bold" }}>
+        // role="alert" (an assertive live region) so screen-reader users get
+        // the same interruption sighted students get from the banner
+        // appearing — without it, this warning was silent for them even
+        // though the exam clock keeps running either way.
+        <div role="alert" className={styles.graceBanner}>
+          <p>
             {graceReason === "fullscreen"
               ? "You exited fullscreen!"
               : "You left the exam tab!"}
           </p>
-          <p style={{ margin: "0.5rem 0 0" }}>
+          <p>
             Returning to the exam in {Math.ceil(graceCountdown / 1000)}s or it will be submitted.
           </p>
         </div>

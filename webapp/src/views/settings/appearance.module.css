@@ -91,6 +91,9 @@
 .fontMono {
   font-family: "JetBrains Mono", ui-monospace, monospace;
 }
+.fontDyslexic {
+  font-family: "Atkinson Hyperlegible", sans-serif;
+}
 
 .sizeSm .optionIconScale {
   font-size: 1.1rem;

@@ -45,6 +45,12 @@ const FONTS: ReadonlyArray<{
   { id: "outfit", title: "Outfit", glyph: "Aa", cls: styles.fontOutfit },
   { id: "inter", title: "Inter UI", glyph: "Aa", cls: styles.fontInter },
   { id: "mono", title: "JetBrains Mono", glyph: "{ }", cls: styles.fontMono },
+  {
+    id: "dyslexic",
+    title: "Atkinson Hyperlegible",
+    glyph: "Aa",
+    cls: styles.fontDyslexic,
+  },
 ];
 
 const SIZES: ReadonlyArray<{
@@ -223,7 +229,8 @@ export function AppearanceTab() {
           <div className={settings.fieldLabel}>
             <span className={settings.labelText}>Font Family</span>
             <p className={settings.fieldDesc}>
-              Choose a typeface style for the entire workspace
+              Choose a typeface style for the entire workspace. Atkinson
+              Hyperlegible is designed for low-vision and dyslexic readers.
             </p>
           </div>
           <div

@@ -33,6 +33,7 @@
 
 .tab {
   flex: 1 1 auto;
+  min-height: var(--touch-target-min);
   padding: 9px var(--s-4);
   background: none;
   border: none;
