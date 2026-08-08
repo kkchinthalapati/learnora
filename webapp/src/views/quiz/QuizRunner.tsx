@@ -5,8 +5,11 @@ import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useToast } from "../../context/toast";
+import { useDialog } from "../../context/dialog";
 import { useQuiz, useRecordQuizAttempt } from "../../hooks/useQuizzes";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { useQuizDraft } from "../../hooks/useQuizDraft";
+import { Storage } from "../../lib/storage";
 import type { QuizQuestion } from "../../lib/aiJson";
 import {
   parseStoredQuestions,
@@ -108,6 +111,24 @@ interface Answered {
   correct: boolean;
 }
 
+interface QuizDraftState {
+  index: number;
+  answers: StoredAnswer[];
+}
+
+function isUsableDraft(
+  draft: QuizDraftState | null,
+  questionCount: number,
+): draft is QuizDraftState {
+  return (
+    !!draft &&
+    typeof draft.index === "number" &&
+    draft.index >= 0 &&
+    draft.index < questionCount &&
+    Array.isArray(draft.answers)
+  );
+}
+
 function QuizSession({
   quizId,
   questions,
@@ -117,14 +138,60 @@ function QuizSession({
 }) {
   const recordAttempt = useRecordQuizAttempt();
   const { showToast } = useToast();
+  const { confirm } = useDialog();
 
-  const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState<StoredAnswer[]>([]);
+  const draftKey = `learnora_quiz_draft_${quizId}`;
+
+  /* A stale/corrupt/out-of-range draft (e.g. the quiz was regenerated with
+     fewer questions since the draft was written) is treated as no draft at
+     all, rather than crashing or landing on a bad index. */
+  const [resumedDraft] = useState(() => {
+    const stored = Storage.get<QuizDraftState>(draftKey);
+    return isUsableDraft(stored, questions.length) ? stored : null;
+  });
+
+  const [index, setIndex] = useState(() => resumedDraft?.index ?? 0);
+  const [answers, setAnswers] = useState<StoredAnswer[]>(
+    () => resumedDraft?.answers ?? [],
+  );
   const [answered, setAnswered] = useState<Answered | null>(null);
 
   const finished = index >= questions.length;
   const score = answers.filter((a) => a.correct).length;
   const total = questions.length;
+
+  const draft = useQuizDraft<QuizDraftState>(
+    draftKey,
+    { index, answers },
+    { enabled: !finished, warnOnUnload: !finished && answers.length > 0 },
+  );
+
+  /* Ask once, on mount, whether to keep the optimistically-resumed state or
+     start fresh — rather than blocking the first render on the dialog, which
+     would mean showing nothing (or a spinner) while it's up. Declining
+     resets back to question 1 and drops the draft; confirming just leaves
+     the already-resumed state in place. */
+  useEffect(() => {
+    if (!resumedDraft) return;
+    let cancelled = false;
+    void confirm(
+      `You have an in-progress attempt at this quiz (question ${
+        resumedDraft.index + 1
+      } of ${questions.length}). Resume where you left off?`,
+      { title: "Resume quiz?", confirmText: "Resume", cancelText: "Start Over" },
+    ).then((keep) => {
+      if (cancelled || keep) return;
+      setIndex(0);
+      setAnswers([]);
+      draft.clear();
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Mount-only: this is a one-time prompt about the draft that was present
+    // when the component first mounted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* The attempt is written once, when the run ends. Fire-and-forget on
      purpose: the student already finished, so the completion screen must not
@@ -133,6 +200,7 @@ function QuizSession({
   const { mutate: record } = recordAttempt;
   useEffect(() => {
     if (!finished) return;
+    draft.clear();
     record(
       {
         quizId,
@@ -152,6 +220,55 @@ function QuizSession({
     // Runs on the transition into "finished" only; `answers` is frozen by then.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finished]);
+
+  /* `question` is undefined once `finished` (index runs past the end) — that's
+     fine, since `choose` below is only ever invoked from the keyboard-shortcut
+     handlers or the choice buttons, both gated off once finished. */
+  const question = questions[index];
+
+  const choose = (chosenIndex: number) => {
+    if (answered) return;
+    const correct = chosenIndex === question.correctIndex;
+    setAnswered({ chosenIndex, correct });
+    setAnswers((prev) => [
+      ...prev,
+      {
+        questionId: question.id ?? index,
+        chosenIndex,
+        correct,
+        topic: question.topic,
+      },
+    ]);
+  };
+
+  const next = () => {
+    setAnswered(null);
+    setIndex((i) => i + 1);
+  };
+
+  /* Keyboard shortcuts: 1-4 or A-D to choose answer, Enter/Space to next.
+   *
+   * Must be called unconditionally on every render — it sits above the
+   * `if (finished)` early return below so the hook order never changes
+   * between renders (a hook call after a conditional return violates the
+   * Rules of Hooks: React throws "Rendered fewer hooks than expected" the
+   * moment `finished` flips true). `enabled: !finished` is what actually
+   * turns the shortcuts off once the quiz ends, not the early return. */
+  useKeyboardShortcuts(
+    {
+      "1": () => !answered && choose(0),
+      "2": () => !answered && choose(1),
+      "3": () => !answered && choose(2),
+      "4": () => !answered && choose(3),
+      "a": () => !answered && choose(0),
+      "b": () => !answered && choose(1),
+      "c": () => !answered && choose(2),
+      "d": () => !answered && choose(3),
+      "Enter": () => answered && next(),
+      " ": () => answered && next(),
+    },
+    { enabled: !finished },
+  );
 
   if (finished) {
     const weakTopics = weakTopicsFrom(answers);
@@ -187,45 +304,6 @@ function QuizSession({
       </div>
     );
   }
-
-  const question = questions[index];
-
-  const choose = (chosenIndex: number) => {
-    if (answered) return;
-    const correct = chosenIndex === question.correctIndex;
-    setAnswered({ chosenIndex, correct });
-    setAnswers((prev) => [
-      ...prev,
-      {
-        questionId: question.id ?? index,
-        chosenIndex,
-        correct,
-        topic: question.topic,
-      },
-    ]);
-  };
-
-  const next = () => {
-    setAnswered(null);
-    setIndex((i) => i + 1);
-  };
-
-  /* Keyboard shortcuts: 1-4 or A-D to choose answer, Enter/Space to next */
-  useKeyboardShortcuts(
-    {
-      "1": () => !answered && choose(0),
-      "2": () => !answered && choose(1),
-      "3": () => !answered && choose(2),
-      "4": () => !answered && choose(3),
-      "a": () => !answered && choose(0),
-      "b": () => !answered && choose(1),
-      "c": () => !answered && choose(2),
-      "d": () => !answered && choose(3),
-      "Enter": () => answered && next(),
-      " ": () => answered && next(),
-    },
-    { enabled: !finished },
-  );
 
   let hostMessage = "";
   let hostTone: HostTone = null;

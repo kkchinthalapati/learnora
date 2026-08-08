@@ -1,5 +1,6 @@
 import { Link, NavLink, useLocation } from "react-router";
 import { Icon } from "./Icon";
+import { IconButton } from "./IconButton";
 import type { IconName } from "./icons";
 import { useCreateModal } from "../context/createModal";
 import { useFlashcardsDueCount } from "../hooks/useFlashcards";
@@ -60,12 +61,23 @@ const NAV_ITEMS: NavItem[] = [
 export function Sidebar({
   collapsed,
   onNavigate,
+  onToggleCollapse,
 }: {
   collapsed: boolean;
   /** Called whenever a nav link or the Create button is activated, so the
    *  shell can auto-close the mobile drawer the same way the vanilla did
    *  (js/main.js:732-738: adds `.collapsed` back on mobile after a click). */
   onNavigate: () => void;
+  /** Same handler as Header's own menu toggle — this is a second entry
+   *  point to the identical `collapsed` state, not a separate concept.
+   *  Desktop-only in the rendered markup below: on desktop, `collapsed`
+   *  now means "retracted to an icon rail" (see Sidebar.module.css) rather
+   *  than fully hidden, so a control that lives *on* the rail itself (not
+   *  just in the header) is worth having — that's the whole idiom behind
+   *  a "retractable" sidebar. Mobile keeps relying on Header's hamburger
+   *  only, since off-canvas open/close doesn't have an equivalent
+   *  in-sidebar affordance to attach one to before it's even on screen. */
+  onToggleCollapse: () => void;
 }) {
   const { pathname } = useLocation();
   const { openCreateModal } = useCreateModal();
@@ -79,19 +91,36 @@ export function Sidebar({
 
   return (
     <nav className={classes} aria-label="Main navigation">
-      <h2 className={styles.brand}>Learnora</h2>
+      <div className={styles.brandRow}>
+        <h2 className={styles.brand}>Learnora</h2>
+        <IconButton
+          className={styles.collapseToggle}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!collapsed}
+          onClick={onToggleCollapse}
+        >
+          <Icon
+            name="chevron-down"
+            size={16}
+            className={collapsed ? styles.chevronExpand : styles.chevronCollapse}
+          />
+        </IconButton>
+      </div>
       <ul className={styles.navLinks}>
         <li>
           <NavLink
             to="/"
             end
             onClick={onNavigate}
+            aria-label={t("nav_dashboard")}
+            title={t("nav_dashboard")}
             className={({ isActive }) =>
               `${styles.navLink} ${isActive ? styles.active : ""}`
             }
           >
             <Icon name="dashboard" size={20} />
-            <span>{t("nav_dashboard")}</span>
+            <span className={styles.navLabel}>{t("nav_dashboard")}</span>
           </NavLink>
         </li>
         <hr className={styles.divider} />
@@ -102,13 +131,15 @@ export function Sidebar({
           <button
             type="button"
             className={styles.createBtn}
+            aria-label={t("nav_create")}
+            title={t("nav_create")}
             onClick={() => {
               openCreateModal();
               onNavigate();
             }}
           >
             <Icon name="plus" size={20} />
-            <span>{t("nav_create")}</span>
+            <span className={styles.navLabel}>{t("nav_create")}</span>
           </button>
         </li>
         <li>
@@ -123,46 +154,53 @@ export function Sidebar({
             to="/library"
             onClick={onNavigate}
             aria-current={isLibrarySection(pathname) ? "page" : undefined}
+            aria-label={t("nav_library")}
+            title={t("nav_library")}
             className={`${styles.navLink} ${isLibrarySection(pathname) ? styles.active : ""}`}
           >
             <Icon name="layers" size={20} />
-            <span>{t("nav_library")}</span>
+            <span className={styles.navLabel}>{t("nav_library")}</span>
             {dueCount > 0 ? (
               <span className={styles.badge}>{dueCount}</span>
             ) : null}
           </Link>
         </li>
         <hr className={styles.divider} />
-        {NAV_ITEMS.map((item) => (
-          <li key={item.to}>
-            <NavLink
-              to={item.to}
-              onClick={onNavigate}
-              className={({ isActive }) =>
-                `${styles.navLink} ${isActive ? styles.active : ""}`
-              }
-            >
-              <Icon name={item.icon} size={20} />
-              <span>
-                {item.translationKey ? t(item.translationKey) : item.label}
-              </span>
-              {item.to === "/friends" && incomingRequestCount > 0 ? (
-                <span className={styles.badge}>{incomingRequestCount}</span>
-              ) : null}
-            </NavLink>
-          </li>
-        ))}
+        {NAV_ITEMS.map((item) => {
+          const label = item.translationKey ? t(item.translationKey) : item.label;
+          return (
+            <li key={item.to}>
+              <NavLink
+                to={item.to}
+                onClick={onNavigate}
+                aria-label={label}
+                title={label}
+                className={({ isActive }) =>
+                  `${styles.navLink} ${isActive ? styles.active : ""}`
+                }
+              >
+                <Icon name={item.icon} size={20} />
+                <span className={styles.navLabel}>{label}</span>
+                {item.to === "/friends" && incomingRequestCount > 0 ? (
+                  <span className={styles.badge}>{incomingRequestCount}</span>
+                ) : null}
+              </NavLink>
+            </li>
+          );
+        })}
         <hr className={styles.divider} />
         <li>
           <NavLink
             to="/settings"
             onClick={onNavigate}
+            aria-label={t("nav_settings")}
+            title={t("nav_settings")}
             className={({ isActive }) =>
               `${styles.navLink} ${isActive ? styles.active : ""}`
             }
           >
             <Icon name="settings" size={20} />
-            <span>{t("nav_settings")}</span>
+            <span className={styles.navLabel}>{t("nav_settings")}</span>
           </NavLink>
         </li>
         <li>
@@ -173,10 +211,12 @@ export function Sidebar({
             to="/terms"
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="Terms of Service"
+            title="Terms of Service"
             className={`${styles.navLink} ${styles.termsLink}`}
           >
             <Icon name="file-text" size={18} />
-            <span>Terms of Service</span>
+            <span className={styles.navLabel}>Terms of Service</span>
           </Link>
         </li>
       </ul>

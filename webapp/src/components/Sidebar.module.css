@@ -28,13 +28,37 @@
     left var(--t) var(--ease);
 }
 
-/* Desktop: collapsed means hidden (shrinks away). */
+/* Desktop: collapsed retracts to a narrow icon-only rail rather than
+   disappearing entirely — labels hide (.navLabel), icons and their active/
+   hover states stay, and a due-count badge moves to a small corner dot on
+   the icon instead of sitting after a label that's no longer there. */
 @media (min-width: 769px) {
   .sidebar.collapsed {
-    width: 0;
-    padding: 0;
-    opacity: 0;
-    overflow: hidden;
+    width: 76px;
+    padding: var(--s-8) var(--s-2);
+  }
+
+  .sidebar.collapsed .brand,
+  .sidebar.collapsed .navLabel {
+    display: none;
+  }
+
+  .sidebar.collapsed .brandRow {
+    justify-content: center;
+  }
+
+  .sidebar.collapsed .navLink,
+  .sidebar.collapsed .createBtn {
+    justify-content: center;
+    padding: 12px;
+    position: relative;
+  }
+
+  .sidebar.collapsed .badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    margin-left: 0;
   }
 }
 
@@ -56,16 +80,48 @@
   }
 }
 
+.brandRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-6);
+}
+
 .brand {
   font-family: var(--font-head);
   font-size: 1.4rem;
   font-weight: 800;
-  margin: 0 0 var(--s-6);
+  margin: 0;
   padding: 0 var(--s-2);
   background: linear-gradient(135deg, var(--accent), var(--accent-hover));
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
+}
+
+.collapseToggle {
+  flex-shrink: 0;
+}
+
+/* The rail concept only exists on desktop — mobile's off-canvas drawer is
+   either fully open or fully off-screen, so a rail toggle here would have
+   nothing meaningful to do; Header's hamburger remains mobile's only
+   open/close control. */
+@media (max-width: 768px) {
+  .collapseToggle {
+    display: none;
+  }
+}
+
+.chevronCollapse {
+  transform: rotate(-90deg);
+  transition: transform var(--t-fast) ease;
+}
+
+.chevronExpand {
+  transform: rotate(90deg);
+  transition: transform var(--t-fast) ease;
 }
 
 .navLinks {
@@ -88,6 +144,7 @@
   display: flex;
   align-items: center;
   gap: var(--s-3);
+  min-height: var(--touch-target-min);
   padding: 12px 14px;
   border-radius: var(--r-md);
   font-weight: 600;
@@ -126,6 +183,7 @@
   display: flex;
   align-items: center;
   gap: var(--s-3);
+  min-height: var(--touch-target-min);
   padding: 12px 14px;
   border: none;
   border-radius: var(--r-sm);

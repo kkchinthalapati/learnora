@@ -33,7 +33,7 @@ export const CUSTOM_THEME_DEFAULTS = Object.freeze({
 });
 
 export type Mode = "dark" | "light" | "system";
-export type FontFamily = "jakarta" | "outfit" | "inter" | "mono";
+export type FontFamily = "jakarta" | "outfit" | "inter" | "mono" | "dyslexic";
 export type FontSize = "sm" | "md" | "lg";
 export type SidebarStyle = "glass" | "solid" | "transparent";
 export type BgTexture = "none" | "noise" | "mesh";
@@ -137,7 +137,7 @@ export function readStoredAppearance(): AppearanceState {
     ),
     font: oneOf<FontFamily>(
       Storage.get<string>("learnora_font"),
-      ["jakarta", "outfit", "inter", "mono"],
+      ["jakarta", "outfit", "inter", "mono", "dyslexic"],
       APPEARANCE_DEFAULTS.font,
     ),
     size: oneOf<FontSize>(

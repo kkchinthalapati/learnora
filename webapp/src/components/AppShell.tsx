@@ -14,15 +14,18 @@ import styles from "./AppShell.module.css";
  *
  * `collapsed` is one boolean with a breakpoint-dependent meaning, exactly
  * like the vanilla's `.sidebar.collapsed` (js/main.js:727-738): on desktop
- * it hides the sidebar, on mobile it's the sidebar's *open* state (the
- * default there is off-canvas). See Sidebar.module.css for the two
- * media-query rules that give the one class its two meanings. */
+ * it retracts the sidebar to a narrow icon-only rail, on mobile it's the
+ * sidebar's *open* state (the default there is off-canvas). See
+ * Sidebar.module.css for the two media-query rules that give the one class
+ * its two meanings. */
 export function AppShell() {
   const [collapsed, setCollapsed] = useState(false);
 
   const closeOnMobile = () => {
     if (window.innerWidth <= 768) setCollapsed(false);
   };
+
+  const toggleCollapsed = () => setCollapsed((c) => !c);
 
   return (
     <div className={styles.appContainer}>
@@ -52,10 +55,14 @@ export function AppShell() {
         <div className="liquid-blob liquid-blob--3" />
       </div>
 
-      <Sidebar collapsed={collapsed} onNavigate={closeOnMobile} />
+      <Sidebar
+        collapsed={collapsed}
+        onNavigate={closeOnMobile}
+        onToggleCollapse={toggleCollapsed}
+      />
 
       <main className={styles.mainContent}>
-        <Header onToggleMenu={() => setCollapsed((c) => !c)} />
+        <Header onToggleMenu={toggleCollapsed} />
         {/* tabIndex={-1}: not in the tab order on its own, just a valid
             focus target for the skip link — most browsers already move
             focus here from the `href="#page-content"` jump alone, but the

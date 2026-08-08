@@ -266,6 +266,50 @@ describe("AppShell", () => {
     expect(sidebar.className).not.toMatch(/collapsed/);
   });
 
+  it("retracts the sidebar to an icon rail from its own toggle, not just Header's hamburger", async () => {
+    serveDueCount(0);
+    renderShell("/");
+    const user = userEvent.setup();
+
+    const sidebar = screen.getByRole("navigation", { name: "Main navigation" });
+    const railToggle = screen.getByRole("button", { name: "Collapse sidebar" });
+    expect(railToggle).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(railToggle);
+    expect(sidebar.className).toMatch(/collapsed/);
+
+    // Same underlying state as Header's control — labelled the opposite way
+    // now that it reflects "expand" instead of "collapse".
+    const expandToggle = screen.getByRole("button", { name: "Expand sidebar" });
+    expect(expandToggle).toBe(railToggle);
+    expect(expandToggle).toHaveAttribute("aria-expanded", "false");
+
+    // And Header's hamburger toggles the very same state back.
+    await user.click(
+      screen.getByRole("button", { name: "Toggle Sidebar Menu" }),
+    );
+    expect(sidebar.className).not.toMatch(/collapsed/);
+    expect(
+      screen.getByRole("button", { name: "Collapse sidebar" }),
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("still exposes every nav item's accessible name while retracted to the icon rail", async () => {
+    serveDueCount(0);
+    renderShell("/");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Collapse sidebar" }));
+
+    // Labels are visually hidden in the rail, but aria-label keeps each
+    // link's accessible name intact for assistive tech.
+    expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Task Manager" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create" })).toBeInTheDocument();
+  });
+
   it("auto-closes the mobile menu after choosing a nav link on a narrow viewport", async () => {
     const originalWidth = window.innerWidth;
     Object.defineProperty(window, "innerWidth", {

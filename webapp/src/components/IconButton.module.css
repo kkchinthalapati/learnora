@@ -3,8 +3,8 @@
 
 .iconButton {
   flex-shrink: 0;
-  width: 42px;
-  height: 42px;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
   padding: 0;
   display: flex;
   align-items: center;

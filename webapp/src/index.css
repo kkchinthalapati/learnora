@@ -228,6 +228,39 @@ body[data-bg-texture="none"] .liquid-blobs {
   display: none;
 }
 
+/* ------------------------------------------------------------------------ *
+ * Font family override. Settings → Appearance's font picker has always set
+ * body[data-font-family] (see lib/appearance.ts), but nothing read the
+ * attribute back — --font is declared exactly once, in tokens.css, with no
+ * override anywhere. Every choice besides the default ("jakarta", already
+ * what :root's --font resolves to) silently changed nothing about the
+ * app's actual text; only the picker's own preview swatches showed the
+ * right face (appearance.module.css's .fontJakarta and siblings render
+ * themselves in the face they select, independent of --font). Each rule
+ * below re-declares --font for its case, inherited down from body the same
+ * way the base declaration already is.
+ * ------------------------------------------------------------------------ */
+
+body[data-font-family="outfit"] {
+  --font: "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body[data-font-family="inter"] {
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body[data-font-family="mono"] {
+  --font: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+}
+
+/* Atkinson Hyperlegible (OFL, Braille Institute) — designed for low-vision
+   and dyslexic readability: distinct letterforms for commonly-confused
+   pairs (b/d, p/q, 1/l/I), wider default spacing. */
+body[data-font-family="dyslexic"] {
+  --font: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .liquid-blob {
     animation: none;

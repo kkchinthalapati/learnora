@@ -18,7 +18,9 @@
 
 .exit {
   align-self: flex-start;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
   padding: 8px 16px;
   margin-bottom: var(--s-5);
   border: 1px solid var(--glass-border);
