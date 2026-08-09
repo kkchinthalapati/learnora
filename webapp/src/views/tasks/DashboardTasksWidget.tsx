@@ -1,5 +1,6 @@
 import { useState, type Ref } from "react";
 import { Button } from "../../components/Button";
+import { Skeleton } from "../../components/Skeleton";
 import { useAddTask, useTasks } from "../../hooks/useTasks";
 import { useToast } from "../../context/toast";
 import { sortTasksByUrgency } from "./sortTasks";
@@ -26,7 +27,7 @@ type DashboardTasksWidgetProps = {
 export function DashboardTasksWidget({
   inputRef,
 }: DashboardTasksWidgetProps = {}) {
-  const { data: tasks } = useTasks();
+  const { data: tasks, isPending } = useTasks();
   const addTask = useAddTask();
   const { showToast } = useToast();
   const { toggle, visible } = useTaskActions();
@@ -83,36 +84,45 @@ export function DashboardTasksWidget({
         </Button>
       </div>
 
-      <ul className={styles.dashList}>
-        {pending.length === 0 ? (
-          <li className={styles.empty}>
-            {all.length
-              ? "All caught up — nothing pending. 🎉"
-              : "No tasks yet. Add your first above."}
-          </li>
-        ) : (
-          pending.map((task) => (
-            <li
-              key={task.id}
-              className={styles.dashTask}
-              role="checkbox"
-              aria-checked={false}
-              aria-label={task.text}
-              tabIndex={0}
-              onClick={() => toggle(task)}
-              onKeyDown={(e) => {
-                if (e.key === " " || e.key === "Enter") {
-                  e.preventDefault();
-                  toggle(task);
-                }
-              }}
-            >
-              <span className={styles.dashCheck} aria-hidden="true" />
-              <span className={styles.dashLabel}>{task.text}</span>
+      {isPending ? (
+        /* `tasks` is undefined while this is in flight, which collapsed
+           straight to "No tasks yet" below — a false empty state for anyone
+           who actually has pending work. */
+        <div aria-busy="true">
+          <Skeleton label="Loading your tasks" height={64} />
+        </div>
+      ) : (
+        <ul className={styles.dashList}>
+          {pending.length === 0 ? (
+            <li className={styles.empty}>
+              {all.length
+                ? "All caught up — nothing pending. 🎉"
+                : "No tasks yet. Add your first above."}
             </li>
-          ))
-        )}
-      </ul>
+          ) : (
+            pending.map((task) => (
+              <li
+                key={task.id}
+                className={styles.dashTask}
+                role="checkbox"
+                aria-checked={false}
+                aria-label={task.text}
+                tabIndex={0}
+                onClick={() => toggle(task)}
+                onKeyDown={(e) => {
+                  if (e.key === " " || e.key === "Enter") {
+                    e.preventDefault();
+                    toggle(task);
+                  }
+                }}
+              >
+                <span className={styles.dashCheck} aria-hidden="true" />
+                <span className={styles.dashLabel}>{task.text}</span>
+              </li>
+            ))
+          )}
+        </ul>
+      )}
     </div>
   );
 }
