@@ -10,7 +10,7 @@ import { localDateStr } from "../../lib/date";
 import type { Task } from "../../api/types";
 import { TasksView } from "./TasksView";
 import { DOUBLE_CLICK_MS } from "./TaskItem";
-import { UNDO_WINDOW_MS } from "./useTaskActions";
+import { DEFERRED_DELETE_WINDOW_MS } from "../../hooks/useDeferredDelete";
 
 const REST = `${SUPABASE_URL}/rest/v1/tasks`;
 
@@ -397,7 +397,7 @@ describe("TasksView", () => {
     await user.click(screen.getByRole("button", { name: "Undo" }));
     expect(screen.getByText("Read chapter 4")).toBeInTheDocument();
 
-    await new Promise((r) => setTimeout(r, UNDO_WINDOW_MS + 500));
+    await new Promise((r) => setTimeout(r, DEFERRED_DELETE_WINDOW_MS + 500));
     expect(deleted).toBe(false);
   }, 15000);
 
@@ -419,7 +419,7 @@ describe("TasksView", () => {
       }),
     );
     await waitFor(() => expect(deletedId).toBe("eq.1"), {
-      timeout: UNDO_WINDOW_MS + 2000,
+      timeout: DEFERRED_DELETE_WINDOW_MS + 2000,
     });
   }, 15000);
 

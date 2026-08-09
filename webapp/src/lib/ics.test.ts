@@ -30,11 +30,12 @@ describe("ics utils", () => {
       const exams: Exam[] = [
         {
           id: "exam-1",
+          user_id: "user-1",
           exam_date: "2026-08-15",
           exam_name: "Math Midterm",
           difficulty: "medium",
           status: "Scheduled",
-        } as Exam,
+        } as unknown as Exam,
       ];
 
       const ics = generateICS(exams, []);
@@ -49,10 +50,12 @@ describe("ics utils", () => {
       const exams: Exam[] = [
         {
           id: "exam-1",
+          user_id: "user-1",
           exam_date: "2026-08-15",
           exam_name: "Math Midterm",
+          difficulty: "medium",
           status: "Completed",
-        } as Exam,
+        } as unknown as Exam,
       ];
 
       const ics = generateICS(exams, []);
@@ -63,10 +66,12 @@ describe("ics utils", () => {
       const exams: Exam[] = [
         {
           id: "exam-1",
+          user_id: "user-1",
           exam_date: null,
           exam_name: "Math Midterm",
+          difficulty: "medium",
           status: "Scheduled",
-        } as Exam,
+        } as unknown as Exam,
       ];
 
       const ics = generateICS(exams, []);
@@ -77,10 +82,12 @@ describe("ics utils", () => {
       const exams: Exam[] = [
         {
           id: "exam-1",
+          user_id: "user-1",
           exam_date: "2026-08-03",
           exam_name: "Test",
+          difficulty: "medium",
           status: "Scheduled",
-        } as Exam,
+        } as unknown as Exam,
       ];
 
       const ics = generateICS(exams, []);
@@ -184,16 +191,18 @@ describe("ics utils", () => {
       const exams: Exam[] = [
         {
           id: "exam-1",
+          user_id: "user-1",
           exam_date: "2026-08-15",
           exam_name: "Math Midterm",
+          difficulty: "medium",
           status: "Scheduled",
-        } as Exam,
+        } as unknown as Exam,
         {
           id: "exam-2",
           exam_date: "2026-08-20",
           exam_name: "History Final",
           status: "Scheduled",
-        } as Exam,
+        } as unknown as Exam,
       ];
 
       const plans: WeeklyPlan[] = [
@@ -227,16 +236,20 @@ describe("ics utils", () => {
       const exams: Exam[] = [
         {
           id: "exam-1",
+          user_id: "user-1",
           exam_date: "2026-08-15",
           exam_name: "Test 1",
+          difficulty: "medium",
           status: "Scheduled",
-        } as Exam,
+        } as unknown as Exam,
         {
           id: "exam-2",
+          user_id: "user-1",
           exam_date: "2026-08-20",
           exam_name: "Test 2",
+          difficulty: "medium",
           status: "Scheduled",
-        } as Exam,
+        } as unknown as Exam,
       ];
 
       const ics = generateICS(exams, []);
@@ -250,10 +263,12 @@ describe("ics utils", () => {
       const exams: Exam[] = [
         {
           id: "exam-1",
+          user_id: "user-1",
           exam_date: "2026-08-15",
           exam_name: "Test",
+          difficulty: "medium",
           status: "Scheduled",
-        } as Exam,
+        } as unknown as Exam,
       ];
 
       const ics = generateICS(exams, []);

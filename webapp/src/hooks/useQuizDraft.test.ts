@@ -47,7 +47,7 @@ describe("useQuizDraft", () => {
     const { rerender } = renderHook(
       ({ value }: { value: Draft }) =>
         useQuizDraft<Draft>("quiz-draft-c", value, { enabled: true }),
-      { initialProps: { value: { index: 0, answers: [] } } },
+      { initialProps: { value: { index: 0, answers: [] as number[] } } },
     );
 
     vi.advanceTimersByTime(300);

@@ -142,7 +142,7 @@ function MockExamSession({
   const { showToast } = useToast();
   const { confirm } = useDialog();
   const navigate = useNavigate();
-  const settings = useSettings();
+  const { settings } = useSettings();
 
   const draftKey = `learnora_exam_draft_${quizId}`;
 
@@ -271,7 +271,7 @@ function MockExamSession({
   const { graceCountdown, graceReason } = useExamProctor({
     isActive: !finished,
     enabled: settings.examTerminationGrace,
-    onTerminate: (reason) => {
+    onTerminate: () => {
       submitExam("terminated");
     },
   });
