@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDialog } from "../../context/dialog";
 import { useToast } from "../../context/toast";
@@ -55,7 +55,7 @@ export function useLibraryActions() {
   useEffect(() => {
     return () => {
       /* Flush all pending deletes on unmount. */
-      for (const [id, timer] of pendingDeletes.entries()) {
+      for (const [, timer] of pendingDeletes.entries()) {
         clearTimeout(timer);
       }
       pendingDeletes.clear();

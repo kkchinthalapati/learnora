@@ -235,6 +235,9 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
 
   async function onRemove() {
     if (!entry.friendship_id) return;
+    /* Capture friendship_id for the setTimeout closure — TypeScript doesn't
+       track the guard across async boundaries. */
+    const friendshipId = entry.friendship_id;
     const ok = await confirm(
       `${name} will no longer see your focus time, and you will not see theirs.`,
       { title: `Remove ${name}?`, confirmText: "Remove", danger: true },
@@ -252,7 +255,7 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
 
     setTimeout(async () => {
       if (!cancelled) {
-        remove.mutate(entry.friendship_id, {
+        remove.mutate(friendshipId, {
           onError: (err: Error) =>
             showToast(`Could not remove. ${err.message}`, { error: true }),
         });

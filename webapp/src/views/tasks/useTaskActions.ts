@@ -17,10 +17,10 @@ export function useTaskActions() {
   const toggleTask = useToggleTask();
   const updateText = useUpdateTaskText();
   const updateDueDate = useUpdateTaskDueDate();
-  const { remove: removePending, visible: visibleTasks, pendingIds } =
+  const { remove: removePending, visible: visibleTasks } =
     useDeferredDelete<number, Task>({
       deleteFn: (id) => tasksApi.delete(id),
-      invalidateKey: tasksKeys.all,
+      invalidateKey: [...tasksKeys.all],
       label: "Task",
     });
 

@@ -150,7 +150,7 @@ describe("useExamProctor", () => {
 
   it("calls onTerminate after grace period expires for visibility", () => {
     const onTerminate = vi.fn();
-    const { result } = renderHook(() =>
+    renderHook(() =>
       useExamProctor({
         isActive: true,
         enabled: true,
@@ -179,7 +179,7 @@ describe("useExamProctor", () => {
 
   it("calls onTerminate after grace period expires for fullscreen", () => {
     const onTerminate = vi.fn();
-    const { result } = renderHook(() =>
+    renderHook(() =>
       useExamProctor({
         isActive: true,
         enabled: true,
