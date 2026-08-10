@@ -378,6 +378,86 @@
   margin-right: var(--s-2);
 }
 
+/* ---- Study circle ------------------------------------------------------- */
+
+.circleCard {
+  gap: 0;
+}
+
+.circleEmpty {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+}
+
+.circleEmptyIcon {
+  flex: 0 0 auto;
+  color: var(--accent-text);
+}
+
+.circleList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+
+.circleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2);
+  border-radius: var(--r-md);
+}
+
+.circleRowSelf {
+  background: var(--accent-soft);
+}
+
+.circleRank {
+  flex: 0 0 auto;
+  min-width: 1.25rem;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.circleAvatar {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-pill);
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.circleMain {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.circleName {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.circleMeta {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+
 .folderMins {
   color: var(--text-muted);
 }

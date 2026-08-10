@@ -5,6 +5,7 @@ import { StreakCard } from "./StreakCard";
 import { TasksCard } from "./TasksCard";
 import { AIActionsCard } from "./AIActionsCard";
 import { DailyDrillCard } from "./DailyDrillCard";
+import { StudyCircleCard } from "./StudyCircleCard";
 import { OnboardingBanner } from "./OnboardingBanner";
 import { SessionHistoryCard } from "./SessionHistoryCard";
 import styles from "./dashboard.module.css";
@@ -24,6 +25,15 @@ export function DashboardView() {
 
   return (
     <div className={styles.view}>
+      {/* Above the grid, not below it: a brand-new account's first paint is
+          six empty-looking cards ("no exams", "no focus time", "no tasks"…),
+          and the one thing telling that student what to do about it used to
+          be the last thing on the page — scrolled past a wall of emptiness
+          rather than leading with the fix for it. */}
+      <OnboardingBanner
+        onFocusTaskInput={() => taskInputRef.current?.focus()}
+      />
+
       <div className={styles.grid}>
         <NextExamCard />
         <FocusCard />
@@ -31,11 +41,8 @@ export function DashboardView() {
         <TasksCard taskInputRef={taskInputRef} />
         <AIActionsCard />
         <DailyDrillCard />
+        <StudyCircleCard />
       </div>
-
-      <OnboardingBanner
-        onFocusTaskInput={() => taskInputRef.current?.focus()}
-      />
 
       <SessionHistoryCard />
     </div>
