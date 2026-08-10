@@ -352,6 +352,86 @@ function safetyRefusalResponse(mode: string | undefined, headers: Record<string,
   );
 }
 
+/* =========================================================================
+   RATE LIMITING
+
+   Every mode here spends a token budget against Learnora's own provider
+   keys, most of which are free-tier and quota-limited account-wide, not
+   per-user — a single runaway client (a retry loop with no backoff, or a
+   deliberately abusive one) could exhaust that shared quota for every other
+   student in minutes, and nothing before this caught it.
+
+   RATE_LIMIT_MAX requests per RATE_LIMIT_WINDOW_MS, per signed-in user.
+   Deliberately generous for a human: one request every 20s sustained is
+   plenty for chat plus the occasional quiz/notes generation, but a scripted
+   loop hits it in seconds. Both are overridable via secrets without a
+   redeploy, same pattern as the provider model overrides above.
+   ========================================================================= */
+
+const RATE_LIMIT_MAX = Number(Deno.env.get("AI_RATE_LIMIT_MAX")) || 30;
+const RATE_LIMIT_WINDOW_MS = (Number(Deno.env.get("AI_RATE_LIMIT_WINDOW_MINUTES")) || 10) * 60_000;
+
+const RATE_LIMIT_MESSAGE =
+  "You're sending requests faster than I can keep up with. Wait a few minutes and try again.";
+
+function rateLimitResponse(mode: string | undefined, headers: Record<string, string>): Response {
+  if (isJsonMode(mode)) {
+    return new Response(
+      JSON.stringify({ error: RATE_LIMIT_MESSAGE, refused: true }),
+      { status: 429, headers },
+    );
+  }
+  return new Response(
+    JSON.stringify({ text: RATE_LIMIT_MESSAGE, refused: true, modelUsed: "rate-limit" }),
+    { status: 429, headers },
+  );
+}
+
+/* Counts this user's own accepted requests in the trailing window and logs
+ * the current one — via the same client the auth gate already built with
+ * the caller's JWT, so RLS (owner-only select/insert on ai_request_log)
+ * does the actual enforcement; this is just the query shape around it.
+ * Fails open on a database error: a rate limiter that takes AI outages down
+ * with it trades one small risk (a burst slips through while the table is
+ * unreachable) for a much worse one (AI goes fully offline because a
+ * side-table had a bad moment). */
+async function checkAndLogRateLimit(
+  supabase: any,
+  userId: string,
+  mode: string | undefined,
+): Promise<boolean> {
+  try {
+    const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+    const { count, error: countError } = await supabase
+      .from("ai_request_log")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", since);
+
+    if (countError) {
+      console.error("[rate-limit] count query failed, failing open", countError);
+      return true;
+    }
+
+    if ((count ?? 0) >= RATE_LIMIT_MAX) {
+      console.warn("[rate-limit] blocked", { userId, mode, count });
+      return false;
+    }
+
+    const { error: insertError } = await supabase
+      .from("ai_request_log")
+      .insert({ user_id: userId, mode: mode ?? null });
+    if (insertError) {
+      console.error("[rate-limit] log insert failed (request still allowed)", insertError);
+    }
+
+    return true;
+  } catch (err) {
+    console.error("[rate-limit] unexpected failure, failing open", err);
+    return true;
+  }
+}
+
 Deno.serve(async (req) => {
     // Resolved per request now that the allowed origin is echoed back.
     const corsHeaders = corsHeadersFor(req);
@@ -439,9 +519,20 @@ Deno.serve(async (req) => {
 
         const currentMsg = history && history.length > 0 ? history[history.length - 1].content : "";
 
+        const jsonHeaders = { "Content-Type": "application/json", ...corsHeaders };
+
+        // Rate limit before spending a token, same as the safety screen
+        // below — this is the cheap check that protects the expensive
+        // resource. Checked (and logged) ahead of the safety screen so a
+        // flood of unsafe-topic probes counts against the sender's budget
+        // too, rather than getting a free pass because they were refused.
+        const withinRateLimit = await checkAndLogRateLimit(supabase, user.id, mode);
+        if (!withinRateLimit) {
+            return rateLimitResponse(mode, jsonHeaders);
+        }
+
         // Screen before spending a token. `history` carries the workspace
         // context prelude, so only the newest turn is checked here.
-        const jsonHeaders = { "Content-Type": "application/json", ...corsHeaders };
         if (screenForUnsafeContent(currentMsg)) {
             console.warn("[safety] Request refused by pre-flight topic screen", { mode, userId: user.id });
             return safetyRefusalResponse(mode, jsonHeaders);
