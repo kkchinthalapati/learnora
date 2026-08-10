@@ -5,8 +5,15 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta
             http-equiv="Content-Security-Policy"
-            content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://mlvgqwqiynpwpwzqufdf.supabase.co wss://mlvgqwqiynpwpwzqufdf.supabase.co https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+            content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://mlvgqwqiynpwpwzqufdf.supabase.co wss://mlvgqwqiynpwpwzqufdf.supabase.co https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
         />
+        <!-- Security headers: delivered as HTTP response headers by Vercel in production
+             (vercel.json /(.*) block). Duplicated here as meta tags for local-dev parity
+             and defence-in-depth. Note: frame-ancestors above is ignored by browsers inside
+             <meta> CSP per spec — X-Frame-Options below is what actually enforces it. -->
+        <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+        <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+        <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
         <title>Learnora | Study Workspace</title>
         <link rel="icon" href="learnora.jpg" type="image/jpeg" />
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,6 +26,7 @@
              quill@2.0.3 — update alongside the script tag below. -->
         <link href="vendor/quill.snow.css" rel="stylesheet">
         <link rel="stylesheet" href="style.css?v=3" />
+        <meta name='probely-verification' content='c76c0ed0-2db0-4673-aa19-455924a28476' />
     </head>
     <body class="dark-theme">
         <!-- GLOBAL LOADER -->
