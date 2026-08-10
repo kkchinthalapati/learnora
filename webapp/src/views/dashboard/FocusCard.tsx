@@ -9,15 +9,6 @@ import { formatFocusTime, localTotals, remoteTotals } from "./analytics";
 import { useLocalSessions } from "./useLocalSessions";
 import styles from "./dashboard.module.css";
 
-/* "Focus today" card — ports js/main.js:1975-1983 (totals), :2182-2185
- * (Supabase reconciliation) and :1252-1276 (the quick-start presets).
- *
- * Two data sources, same split as the vanilla: localStorage paints the
- * numbers instantly, and the Supabase-sourced 90-day total (the same query
- * `StreakCard` reads) is preferred the moment it resolves — the vanilla did
- * this as two sequential DOM writes (renderDashboard() then renderAnalytics());
- * here it's just "prefer the query once it's ready". */
-
 const PRESETS = [
   { key: "light" as const, label: "20m" },
   { key: "cram" as const, label: "45m" },
@@ -83,7 +74,7 @@ export function FocusCard() {
         className={styles.fullWidthBtn}
         onClick={() => void navigate("/timer")}
       >
-        Start a focus session →
+        Start a focus session
       </Button>
     </Card>
   );

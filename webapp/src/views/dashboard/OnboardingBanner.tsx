@@ -12,16 +12,9 @@ import styles from "./dashboard.module.css";
 const DISMISSED_KEY = "onboarding_dismissed";
 
 type OnboardingBannerProps = {
-  /* DashboardView owns the task-input ref (DashboardTasksWidget lives two
-   * components away, via TasksCard), so focusing it is a callback rather
-   * than a document.getElementById lookup into a sibling's DOM. */
   onFocusTaskInput: () => void;
 };
 
-/* One-time nudge for a brand-new account — ports js/main.js:2318-2354.
- * Reads the same three queries the rest of the dashboard already issues
- * (Folders/Tasks/Exams), so TanStack Query's cache means this costs no
- * extra request. */
 export function OnboardingBanner({ onFocusTaskInput }: OnboardingBannerProps) {
   const [dismissed, setDismissed] = useState(() =>
     Storage.get(DISMISSED_KEY, false),
@@ -44,9 +37,9 @@ export function OnboardingBanner({ onFocusTaskInput }: OnboardingBannerProps) {
     <Card variant="elevated" padding="none" className={styles.onboardingBanner}>
       <div className={styles.onboardingHead}>
         <div>
-          <h3>👋 Welcome to Learnora!</h3>
+          <h3>Welcome to Learnora</h3>
           <p className={styles.sub}>
-            Upload your first study material or add a task to get started —
+            Upload your first study material or add a task to get started.
             Learnora AI will build notes, flashcards, and quizzes from it.
           </p>
         </div>
@@ -59,7 +52,7 @@ export function OnboardingBanner({ onFocusTaskInput }: OnboardingBannerProps) {
             setDismissed(true);
           }}
         >
-          ✖
+          <Icon name="x" size={18} />
         </button>
       </div>
       <div className={styles.onboardingActions}>

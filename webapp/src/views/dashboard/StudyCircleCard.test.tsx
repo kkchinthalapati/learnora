@@ -60,7 +60,7 @@ describe("StudyCircleCard", () => {
     expect(
       await screen.findByText(/Add a friend to compare focus time/),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open →" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Open" })).toHaveAttribute(
       "href",
       "/friends",
     );
@@ -74,7 +74,7 @@ describe("StudyCircleCard", () => {
     expect(screen.getByText("You")).toBeInTheDocument();
     expect(screen.getByText(/4h this week/)).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Full leaderboard →" }),
+      screen.getByRole("link", { name: "Full leaderboard" }),
     ).toHaveAttribute("href", "/friends");
   });
 

@@ -24,7 +24,11 @@ function renderCard() {
     <MemoryRouter initialEntries={["/"]}>
       <Routes>
         <Route path="/" element={<DailyDrillCard />} />
-        <Route path="/review/daily-drill" element={<h1>Daily Drill Session</h1>} />
+        <Route
+          path="/review/daily-drill"
+          element={<h1>Daily Drill Session</h1>}
+        />
+        <Route path="/library/flashcards" element={<h1>Flashcards</h1>} />
       </Routes>
     </MemoryRouter>,
     { session: fakeSession() },
@@ -42,17 +46,32 @@ describe("DailyDrillCard", () => {
   });
 
   it("shows zero due state", async () => {
+    const user = userEvent.setup();
     serveDueCount(0);
     renderCard();
-    expect(await screen.findByText("You're all caught up! No cards due.")).toBeInTheDocument();
+    expect(await screen.findByText(/You're caught up/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Open flashcards" }));
+    expect(await screen.findByText("Flashcards")).toBeInTheDocument();
   });
 
   it("shows count and navigates to drill when there are cards", async () => {
+    const user = userEvent.setup();
     serveDueCount(12);
     renderCard();
     expect(await screen.findByText("12")).toBeInTheDocument();
-    
-    await userEvent.click(screen.getByRole("button", { name: "Start Drill" }));
+    expect(screen.getByText(/up to 12 across your decks/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Start drill" }));
     expect(await screen.findByText("Daily Drill Session")).toBeInTheDocument();
+  });
+
+  it("sets the expectation that a drill caps at twenty cards", async () => {
+    serveDueCount(42);
+    renderCard();
+
+    expect(
+      await screen.findByText(/up to 20 across your decks/),
+    ).toBeInTheDocument();
   });
 });

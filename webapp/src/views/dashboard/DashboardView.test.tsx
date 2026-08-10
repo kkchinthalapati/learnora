@@ -13,6 +13,7 @@ import { Storage } from "../../lib/storage";
 import type { Exam, Folder, StudySession, Task } from "../../api/types";
 import { ChatProvider } from "../../context/ChatProvider";
 import { TurboChat } from "../../components/chat/TurboChat";
+import { CommandBar } from "./CommandBar";
 import { DashboardView } from "./DashboardView";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -111,6 +112,7 @@ function renderDashboard() {
         <Route path="/plan" element={<h1>Weekly plan</h1>} />
       </Routes>
       {/* App.tsx renders the panel beside the routes, not inside a view. */}
+      <CommandBar />
       <TurboChat />
     </ChatProvider>,
     { session: fakeSession() },
@@ -163,7 +165,7 @@ describe("DashboardView", () => {
       renderDashboard();
 
       await user.click(
-        await screen.findByRole("link", { name: "Open calendar →" }),
+        await screen.findByRole("link", { name: "Open calendar" }),
       );
       expect(
         await screen.findByRole("heading", { name: "Exams" }),
@@ -282,7 +284,7 @@ describe("DashboardView", () => {
       renderDashboard();
 
       expect(await screen.findByText("Read chapter 4")).toBeInTheDocument();
-      await user.click(screen.getByRole("link", { name: "View all →" }));
+      await user.click(screen.getByRole("link", { name: "View all" }));
       expect(
         await screen.findByRole("heading", { name: "Tasks" }),
       ).toBeInTheDocument();
@@ -294,7 +296,7 @@ describe("DashboardView", () => {
       renderDashboard();
 
       expect(await screen.findByText("4 cards due today")).toBeInTheDocument();
-      await user.click(screen.getByRole("link", { name: "Review now →" }));
+      await user.click(screen.getByRole("link", { name: "Review now" }));
       expect(
         await screen.findByRole("heading", { name: "Flashcards" }),
       ).toBeInTheDocument();
@@ -455,12 +457,12 @@ describe("DashboardView", () => {
       renderDashboard();
 
       expect(
-        await screen.findByText("👋 Welcome to Learnora!"),
+        await screen.findByText("Welcome to Learnora"),
       ).toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: "Dismiss" }));
       expect(
-        screen.queryByText("👋 Welcome to Learnora!"),
+        screen.queryByText("Welcome to Learnora"),
       ).not.toBeInTheDocument();
       expect(Storage.get("onboarding_dismissed")).toBe(true);
     });
@@ -476,7 +478,7 @@ describe("DashboardView", () => {
       // instead as an equivalent "the page has rendered" signal.
       await screen.findByText("Ask Learnora AI");
       expect(
-        screen.queryByText("👋 Welcome to Learnora!"),
+        screen.queryByText("Welcome to Learnora"),
       ).not.toBeInTheDocument();
     });
 
@@ -486,7 +488,7 @@ describe("DashboardView", () => {
 
       await screen.findByText("Read chapter 4");
       expect(
-        screen.queryByText("👋 Welcome to Learnora!"),
+        screen.queryByText("Welcome to Learnora"),
       ).not.toBeInTheDocument();
     });
 

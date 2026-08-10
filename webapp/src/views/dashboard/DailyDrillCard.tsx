@@ -10,39 +10,49 @@ export function DailyDrillCard() {
   const { data: dueCount, isPending } = useFlashcardsDueCount();
   const navigate = useNavigate();
   const totalDue = dueCount || 0;
+  const drillSize = Math.min(totalDue, 20);
 
   return (
-    <Card className={styles.card}>
-      <div className={styles.cardHeader}>
-        <div className={styles.cardTitleRow}>
-          <div className={`${styles.cardIcon} ${styles.blueIcon}`}>
-            <Icon name="zap" size={16} />
-          </div>
-          <h2 className={styles.cardTitle}>Daily 5-Minute Drill</h2>
+    <Card variant="elevated" className={styles.drillCard}>
+      <div className={styles.drillHeader}>
+        <span className={styles.drillIcon} aria-hidden="true">
+          <Icon name="zap" size={17} />
+        </span>
+        <div>
+          <span className={styles.eyebrow}>Daily drill</span>
+          <h2 className={styles.drillTitle}>Five-minute recall</h2>
         </div>
       </div>
-      <div className={styles.cardBody} aria-busy={isPending || undefined}>
+      <div className={styles.drillBody} aria-busy={isPending || undefined}>
         {isPending ? (
-          /* Was previously "no cards due" during this same window — dueCount
-             defaults to undefined while the query is in flight, and `|| 0`
-             silently turned that into a false "you're all caught up". */
           <Skeleton label="Loading today's due cards" height={40} />
         ) : totalDue > 0 ? (
           <>
-            <p className={styles.cardText}>
-              You have <strong>{totalDue}</strong> cards due across all subjects.
+            <p className={styles.drillCopy}>
+              <strong>{totalDue}</strong> card{totalDue === 1 ? "" : "s"} due.
+              This drill will pull up to {drillSize} across your decks.
             </p>
             <Button
               variant="primary"
+              className={styles.drillAction}
               onClick={() => navigate("/review/daily-drill")}
             >
-              Start Drill
+              Start drill
             </Button>
           </>
         ) : (
-          <p className={styles.mutedText}>
-            You're all caught up! No cards due.
-          </p>
+          <>
+            <p className={styles.drillCopy}>
+              You&apos;re caught up. Add cards from a subject to keep recall
+              practice ready for tomorrow.
+            </p>
+            <Button
+              className={styles.drillAction}
+              onClick={() => navigate("/library/flashcards")}
+            >
+              Open flashcards
+            </Button>
+          </>
         )}
       </div>
     </Card>
