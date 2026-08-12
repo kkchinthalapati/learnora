@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta
             http-equiv="Content-Security-Policy"
-            content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://mlvgqwqiynpwpwzqufdf.supabase.co wss://mlvgqwqiynpwpwzqufdf.supabase.co https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+            content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
         />
         <!-- Security headers: delivered as HTTP response headers by Vercel in production
              (vercel.json /(.*) block). Duplicated here as meta tags for local-dev parity
@@ -1020,6 +1020,7 @@
                 integrity="sha384-utBUCeG4SYaCm4m7GQZYr8Hy8Fpy3V4KGjBZaf4WTKOcwhCYpt/0PfeEe3HNlwx8"
                 crossorigin="anonymous"
                 referrerpolicy="no-referrer"></script>
+        <script src="env.js"></script>
         <script type="module" src="./js/main.js"></script>
         <!-- ==========================================
      DASHBOARD FLOATING AI COMMAND BAR

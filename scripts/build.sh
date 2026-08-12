@@ -33,6 +33,7 @@ VANILLA_PATHS=(
   index.html
   style.css
   i18n.js
+  env.js
   js
   vendor
   learnora.jpg
@@ -53,6 +54,10 @@ for path in "${VANILLA_PATHS[@]}"; do
   fi
   cp -R "$ROOT/$path" "$OUT/"
 done
+
+echo "==> Generating production env.js"
+echo "window.NEXT_PUBLIC_SUPABASE_URL = '${NEXT_PUBLIC_SUPABASE_URL:-https://mlvgqwqiynpwpwzqufdf.supabase.co}';" > "$OUT/env.js"
+echo "window.NEXT_PUBLIC_SUPABASE_ANON_KEY = '${NEXT_PUBLIC_SUPABASE_ANON_KEY:-sb_publishable_mN1UvxPjHhn6L583LjrSFw_FWY8kRrt}';" >> "$OUT/env.js"
 
 echo "==> Building the React app"
 npm --prefix "$ROOT/webapp" ci

@@ -10,8 +10,15 @@ import { createClient } from "@supabase/supabase-js";
  * vanilla app loads supabase-js from a CDN; here it's an npm dependency so the
  * bundle is self-contained and pinned. */
 
-export const SUPABASE_URL = "https://mlvgqwqiynpwpwzqufdf.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_mN1UvxPjHhn6L583LjrSFw_FWY8kRrt";
+export const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
+  "https://mlvgqwqiynpwpwzqufdf.supabase.co";
+
+const SUPABASE_ANON_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  "sb_publishable_mN1UvxPjHhn6L583LjrSFw_FWY8kRrt";
 
 /* Captured before createClient() below gets a chance to touch it —
  * detectSessionInUrl consumes (and, on success, strips) recovery/error
