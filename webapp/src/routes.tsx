@@ -29,6 +29,7 @@ import { QuizReview } from "./views/quiz/QuizReview";
 import { ReviewView } from "./views/review/ReviewView";
 import { FriendsView } from "./views/friends/FriendsView";
 import { FriendInviteLanding } from "./views/friends/FriendInviteLanding";
+import { NotFoundView } from "./views/not-found/NotFoundView";
 
 /*
  * Route table mirroring the vanilla app's hash router (js/router.js):
@@ -45,15 +46,6 @@ import { FriendInviteLanding } from "./views/friends/FriendInviteLanding";
  *   /reset-password                    what a recovery email links to
  *   /terms                             linked from the auth screens
  */
-
-function Placeholder({ title }: { title: string }) {
-  return (
-    <div>
-      <h1>{title}</h1>
-      <p>This view has not been migrated yet.</p>
-    </div>
-  );
-}
 
 export function AppRoutes() {
   return (
@@ -87,7 +79,7 @@ export function AppRoutes() {
               `state: { from }` redirect and lands back here after login. */}
           <Route path="/friends/add/:code" element={<FriendInviteLanding />} />
           <Route path="/settings" element={<SettingsView />} />
-          <Route path="*" element={<Placeholder title="Not found" />} />
+          <Route path="*" element={<NotFoundView />} />
         </Route>
       </Route>
     </Routes>
