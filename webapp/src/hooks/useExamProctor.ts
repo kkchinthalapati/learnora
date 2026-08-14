@@ -31,18 +31,42 @@ export function useExamProctor(
   const { isActive, enabled = true, onTerminate } = options;
   const [graceCountdown, setGraceCountdown] = useState<number | null>(null);
   const [graceReason, setGraceReason] = useState<"fullscreen" | "visibility" | null>(null);
+  const onTerminateRef = useRef(onTerminate);
+  onTerminateRef.current = onTerminate;
+
   const terminateTimeoutRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
+  const graceReasonRef = useRef<"fullscreen" | "visibility" | null>(null);
 
   useEffect(() => {
-    if (!isActive || !enabled) {
+    const clearTimers = () => {
+      if (terminateTimeoutRef.current !== null) {
+        window.clearTimeout(terminateTimeoutRef.current);
+        terminateTimeoutRef.current = null;
+      }
+      if (countdownIntervalRef.current !== null) {
+        window.clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+      startTimeRef.current = null;
+    };
+
+    const cancelGracePeriod = () => {
+      clearTimers();
+      graceReasonRef.current = null;
       setGraceCountdown(null);
       setGraceReason(null);
+    };
+
+    if (!isActive || !enabled) {
+      cancelGracePeriod();
       return;
     }
 
     const startGracePeriod = (reason: "fullscreen" | "visibility") => {
+      if (graceReasonRef.current !== null) return;
+      graceReasonRef.current = reason;
       setGraceCountdown(GRACE_PERIOD_MS);
       setGraceReason(reason);
       startTimeRef.current = Date.now();
@@ -55,59 +79,43 @@ export function useExamProctor(
         setGraceCountdown(remaining);
 
         if (remaining <= 0) {
-          /* Grace period expired, terminate now */
-          if (countdownIntervalRef.current !== null) {
-            clearInterval(countdownIntervalRef.current);
-            countdownIntervalRef.current = null;
-          }
+          clearTimers();
+          const finalReason = graceReasonRef.current || reason;
+          graceReasonRef.current = null;
           setGraceReason(null);
-          onTerminate(reason);
+          setGraceCountdown(null);
+          onTerminateRef.current(finalReason);
         }
       }, 100);
 
       /* Fallback: terminate after GRACE_PERIOD_MS if interval doesn't fire */
       terminateTimeoutRef.current = window.setTimeout(() => {
+        clearTimers();
+        const finalReason = graceReasonRef.current || reason;
+        graceReasonRef.current = null;
         setGraceCountdown(null);
         setGraceReason(null);
-        onTerminate(reason);
+        onTerminateRef.current(finalReason);
       }, GRACE_PERIOD_MS);
     };
 
     const handleFullscreenChange = () => {
       /* Exited fullscreen while active */
-      if (!document.fullscreenElement && graceReason === null) {
+      if (!document.fullscreenElement && graceReasonRef.current === null) {
         startGracePeriod("fullscreen");
-      } else if (document.fullscreenElement && graceReason === "fullscreen") {
+      } else if (document.fullscreenElement && graceReasonRef.current === "fullscreen") {
         /* Re-entered fullscreen, cancel grace period */
-        if (terminateTimeoutRef.current !== null) {
-          clearTimeout(terminateTimeoutRef.current);
-          terminateTimeoutRef.current = null;
-        }
-        if (countdownIntervalRef.current !== null) {
-          clearInterval(countdownIntervalRef.current);
-          countdownIntervalRef.current = null;
-        }
-        setGraceCountdown(null);
-        setGraceReason(null);
+        cancelGracePeriod();
       }
     };
 
     const handleVisibilityChange = () => {
       /* Tab hidden while active */
-      if (document.hidden && graceReason === null) {
+      if (document.hidden && graceReasonRef.current === null) {
         startGracePeriod("visibility");
-      } else if (!document.hidden && graceReason === "visibility") {
+      } else if (!document.hidden && graceReasonRef.current === "visibility") {
         /* Tab became visible, cancel grace period */
-        if (terminateTimeoutRef.current !== null) {
-          clearTimeout(terminateTimeoutRef.current);
-          terminateTimeoutRef.current = null;
-        }
-        if (countdownIntervalRef.current !== null) {
-          clearInterval(countdownIntervalRef.current);
-          countdownIntervalRef.current = null;
-        }
-        setGraceCountdown(null);
-        setGraceReason(null);
+        cancelGracePeriod();
       }
     };
 
@@ -117,14 +125,9 @@ export function useExamProctor(
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (terminateTimeoutRef.current !== null) {
-        clearTimeout(terminateTimeoutRef.current);
-      }
-      if (countdownIntervalRef.current !== null) {
-        clearInterval(countdownIntervalRef.current);
-      }
+      clearTimers();
     };
-  }, [isActive, enabled, graceReason, onTerminate]);
+  }, [isActive, enabled]);
 
   return { graceCountdown, graceReason };
 }

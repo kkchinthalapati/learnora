@@ -1,17 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { useDialog } from "../../context/dialog";
 import { useToast } from "../../context/toast";
 import { useDeleteFolder, useRenameFolder } from "../../hooks/useFolders";
-import { foldersKeys } from "../../hooks/useFolders";
 import { useDeleteMaterial } from "../../hooks/useMaterials";
-import { materialsKeys } from "../../hooks/useMaterials";
 import { useDeleteDeck } from "../../hooks/useDecks";
-import { decksKeys } from "../../hooks/useDecks";
 import { useDeleteQuiz } from "../../hooks/useQuizzes";
-import { quizzesKeys } from "../../hooks/useQuizzes";
-
-const DEFERRED_DELETE_WINDOW_MS = 4000;
 
 /* The confirm-then-delete flows the Library tabs and a subject's workspace
  * share, ported from js/router.js:540-638 (renameFolder, deleteFolder,
@@ -19,19 +12,15 @@ const DEFERRED_DELETE_WINDOW_MS = 4000;
  * vanilla's exact wording — these are the messages that tell a student what
  * else disappears with the thing they clicked.
  *
- * Deletes now use a deferred pattern with undo (same as task delete): the row
- * hides/item disappears, a toast offers "Undo" for 4s, and the API call only
- * fires once the window closes. This gives users a safety net if they delete
- * by mistake.
- *
  * Two deliberate changes from the vanilla:
  *
  * 1. Failures surface as an error toast rather than `UI.showPopup`. The React
  *    app has no popup primitive (DialogProvider covers confirm/promptText
  *    only), and a failed delete is exactly the transient, non-blocking report
  *    a toast exists for.
- * 2. A successful delete now toasts like the others. The vanilla silently
- *    re-rendered the grid, so the only feedback was a card vanishing.
+ * 2. A successful folder delete now toasts like the other three. The vanilla
+ *    silently re-rendered the grid, so the only feedback that anything had
+ *    happened was a card vanishing.
  *
  * Nothing here re-renders a view by hand: the vanilla's four "which screen am
  * I on?" branches (each parsing `window.location.hash` for `folder-<id>` to
@@ -41,26 +30,11 @@ const DEFERRED_DELETE_WINDOW_MS = 4000;
 export function useLibraryActions() {
   const { confirm, promptText } = useDialog();
   const { showToast } = useToast();
-  const queryClient = useQueryClient();
   const deleteFolder = useDeleteFolder();
   const renameFolder = useRenameFolder();
   const deleteMaterial = useDeleteMaterial();
   const deleteDeck = useDeleteDeck();
   const deleteQuiz = useDeleteQuiz();
-
-  /* Track pending deletes and their timers so we can cancel them on undo. */
-  const [pendingDeletes] = useState(new Map<string, ReturnType<typeof setTimeout>>());
-  const [undoneIds] = useState(new Set<string>());
-
-  useEffect(() => {
-    return () => {
-      /* Flush all pending deletes on unmount. */
-      for (const [, timer] of pendingDeletes.entries()) {
-        clearTimeout(timer);
-      }
-      pendingDeletes.clear();
-    };
-  }, [pendingDeletes]);
 
   const rename = useCallback(
     async (id: string, currentName: string) => {
@@ -88,47 +62,23 @@ export function useLibraryActions() {
         { title: "Delete folder?", confirmText: "Delete", danger: true },
       );
       if (!ok) return;
-
-      let cancelled = false;
-      showToast(`Deleted "${name}".`, {
-        duration: DEFERRED_DELETE_WINDOW_MS,
-        actionLabel: "Undo",
-        onAction: () => {
-          cancelled = true;
-          undoneIds.add(id);
-          const timer = pendingDeletes.get(id);
-          if (timer) {
-            clearTimeout(timer);
-            pendingDeletes.delete(id);
-          }
-        },
-      });
-
-      const timer = setTimeout(async () => {
-        pendingDeletes.delete(id);
-        if (cancelled || undoneIds.has(id)) {
-          undoneIds.delete(id);
-          return;
+      try {
+        const result = await deleteFolder.mutateAsync(id);
+        if (result?.storageCleanupFailed) {
+          showToast(
+            `Deleted "${name}", but some files may not have been fully cleaned up.`,
+            { error: true },
+          );
+        } else {
+          showToast(`Deleted "${name}".`);
         }
-        try {
-          const result = await deleteFolder.mutateAsync(id);
-          await queryClient.invalidateQueries({ queryKey: foldersKeys.all });
-          if (result?.storageCleanupFailed) {
-            showToast(
-              `Deleted "${name}", but some files may not have been fully cleaned up.`,
-              { error: true },
-            );
-          }
-        } catch {
-          showToast("Couldn't delete that folder. Please try again.", {
-            error: true,
-          });
-        }
-      }, DEFERRED_DELETE_WINDOW_MS);
-
-      pendingDeletes.set(id, timer);
+      } catch {
+        showToast("Couldn't delete that folder. Please try again.", {
+          error: true,
+        });
+      }
     },
-    [confirm, deleteFolder, showToast, queryClient, pendingDeletes, undoneIds],
+    [confirm, deleteFolder, showToast],
   );
 
   const removeMaterial = useCallback(
@@ -142,43 +92,16 @@ export function useLibraryActions() {
         { title: "Delete file?", confirmText: "Delete", danger: true },
       );
       if (!ok) return;
-
-      let cancelled = false;
-      showToast(`Deleted "${title}".`, {
-        duration: DEFERRED_DELETE_WINDOW_MS,
-        actionLabel: "Undo",
-        onAction: () => {
-          cancelled = true;
-          undoneIds.add(id);
-          const timer = pendingDeletes.get(id);
-          if (timer) {
-            clearTimeout(timer);
-            pendingDeletes.delete(id);
-          }
-        },
-      });
-
-      const timer = setTimeout(async () => {
-        pendingDeletes.delete(id);
-        if (cancelled || undoneIds.has(id)) {
-          undoneIds.delete(id);
-          return;
-        }
-        try {
-          await deleteMaterial.mutateAsync({ id, storagePath });
-          await queryClient.invalidateQueries({
-            queryKey: materialsKeys.all,
-          });
-        } catch {
-          showToast("Couldn't delete that file. Please try again.", {
-            error: true,
-          });
-        }
-      }, DEFERRED_DELETE_WINDOW_MS);
-
-      pendingDeletes.set(id, timer);
+      try {
+        await deleteMaterial.mutateAsync({ id, storagePath });
+        showToast(`Deleted "${title}".`);
+      } catch {
+        showToast("Couldn't delete that file. Please try again.", {
+          error: true,
+        });
+      }
     },
-    [confirm, deleteMaterial, showToast, queryClient, pendingDeletes, undoneIds],
+    [confirm, deleteMaterial, showToast],
   );
 
   const removeDeck = useCallback(
@@ -188,41 +111,16 @@ export function useLibraryActions() {
         { title: "Delete deck?", confirmText: "Delete", danger: true },
       );
       if (!ok) return;
-
-      let cancelled = false;
-      showToast(`Deleted "${title}".`, {
-        duration: DEFERRED_DELETE_WINDOW_MS,
-        actionLabel: "Undo",
-        onAction: () => {
-          cancelled = true;
-          undoneIds.add(id);
-          const timer = pendingDeletes.get(id);
-          if (timer) {
-            clearTimeout(timer);
-            pendingDeletes.delete(id);
-          }
-        },
-      });
-
-      const timer = setTimeout(async () => {
-        pendingDeletes.delete(id);
-        if (cancelled || undoneIds.has(id)) {
-          undoneIds.delete(id);
-          return;
-        }
-        try {
-          await deleteDeck.mutateAsync(id);
-          await queryClient.invalidateQueries({ queryKey: decksKeys.all });
-        } catch {
-          showToast("Couldn't delete that deck. Please try again.", {
-            error: true,
-          });
-        }
-      }, DEFERRED_DELETE_WINDOW_MS);
-
-      pendingDeletes.set(id, timer);
+      try {
+        await deleteDeck.mutateAsync(id);
+        showToast(`Deleted "${title}".`);
+      } catch {
+        showToast("Couldn't delete that deck. Please try again.", {
+          error: true,
+        });
+      }
     },
-    [confirm, deleteDeck, showToast, queryClient, pendingDeletes, undoneIds],
+    [confirm, deleteDeck, showToast],
   );
 
   const removeQuiz = useCallback(
@@ -232,41 +130,16 @@ export function useLibraryActions() {
         { title: "Delete quiz?", confirmText: "Delete", danger: true },
       );
       if (!ok) return;
-
-      let cancelled = false;
-      showToast(`Deleted "${title}".`, {
-        duration: DEFERRED_DELETE_WINDOW_MS,
-        actionLabel: "Undo",
-        onAction: () => {
-          cancelled = true;
-          undoneIds.add(id);
-          const timer = pendingDeletes.get(id);
-          if (timer) {
-            clearTimeout(timer);
-            pendingDeletes.delete(id);
-          }
-        },
-      });
-
-      const timer = setTimeout(async () => {
-        pendingDeletes.delete(id);
-        if (cancelled || undoneIds.has(id)) {
-          undoneIds.delete(id);
-          return;
-        }
-        try {
-          await deleteQuiz.mutateAsync(id);
-          await queryClient.invalidateQueries({ queryKey: quizzesKeys.all });
-        } catch {
-          showToast("Couldn't delete that quiz. Please try again.", {
-            error: true,
-          });
-        }
-      }, DEFERRED_DELETE_WINDOW_MS);
-
-      pendingDeletes.set(id, timer);
+      try {
+        await deleteQuiz.mutateAsync(id);
+        showToast(`Deleted "${title}".`);
+      } catch {
+        showToast("Couldn't delete that quiz. Please try again.", {
+          error: true,
+        });
+      }
     },
-    [confirm, deleteQuiz, showToast, queryClient, pendingDeletes, undoneIds],
+    [confirm, deleteQuiz, showToast],
   );
 
   return { rename, removeFolder, removeMaterial, removeDeck, removeQuiz };

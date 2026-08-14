@@ -23,7 +23,9 @@ export function useKeyboardShortcuts(
       if (
         activeElement?.tagName === "INPUT" ||
         activeElement?.tagName === "TEXTAREA" ||
-        activeElement?.contentEditable === "true"
+        activeElement?.isContentEditable ||
+        activeElement?.contentEditable === "true" ||
+        activeElement?.getAttribute?.("contenteditable") === "true"
       ) {
         return;
       }

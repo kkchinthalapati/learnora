@@ -46,8 +46,9 @@ export function parseLocalDate(dateStr: string): Date {
 
 /** Port of js/router.js's `formatRelativeTime` (:10-18). */
 export function formatRelativeTime(isoString: string): string {
-  const mins = Math.round((Date.now() - new Date(isoString).getTime()) / 60000);
-  if (mins < 1) return "just now";
+  const diffMs = Date.now() - new Date(isoString).getTime();
+  if (diffMs < 60000) return "just now";
+  const mins = Math.round(diffMs / 60000);
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.round(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
