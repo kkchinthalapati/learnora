@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { usePush } from "./usePush";
+import { isPushSupported } from "../lib/push";
 
 /* Mock the service worker and push libraries */
 vi.mock("../lib/serviceWorker");
@@ -18,7 +19,7 @@ describe("usePush", () => {
   });
 
   it("initializes with 'checking' status when push is supported", () => {
-    vi.mocked(require("../lib/push").isPushSupported).mockReturnValue(true);
+    vi.mocked(isPushSupported).mockReturnValue(true);
 
     const { result } = renderHook(() => usePush());
 
@@ -26,7 +27,7 @@ describe("usePush", () => {
   });
 
   it("sets status to 'unsupported' when push is not supported", () => {
-    vi.mocked(require("../lib/push").isPushSupported).mockReturnValue(false);
+    vi.mocked(isPushSupported).mockReturnValue(false);
 
     const { result } = renderHook(() => usePush());
 
@@ -34,7 +35,7 @@ describe("usePush", () => {
   });
 
   it("initializes with empty subscriptions list", () => {
-    vi.mocked(require("../lib/push").isPushSupported).mockReturnValue(true);
+    vi.mocked(isPushSupported).mockReturnValue(true);
 
     const { result } = renderHook(() => usePush());
 
@@ -42,7 +43,7 @@ describe("usePush", () => {
   });
 
   it("initializes with no error", () => {
-    vi.mocked(require("../lib/push").isPushSupported).mockReturnValue(true);
+    vi.mocked(isPushSupported).mockReturnValue(true);
 
     const { result } = renderHook(() => usePush());
 
@@ -50,7 +51,7 @@ describe("usePush", () => {
   });
 
   it("starts with pending=false", () => {
-    vi.mocked(require("../lib/push").isPushSupported).mockReturnValue(true);
+    vi.mocked(isPushSupported).mockReturnValue(true);
 
     const { result } = renderHook(() => usePush());
 
@@ -58,7 +59,7 @@ describe("usePush", () => {
   });
 
   it("has a removeSubscription method", () => {
-    vi.mocked(require("../lib/push").isPushSupported).mockReturnValue(true);
+    vi.mocked(isPushSupported).mockReturnValue(true);
 
     const { result } = renderHook(() => usePush());
 
@@ -66,7 +67,7 @@ describe("usePush", () => {
   });
 
   it("has enable and disable methods", () => {
-    vi.mocked(require("../lib/push").isPushSupported).mockReturnValue(true);
+    vi.mocked(isPushSupported).mockReturnValue(true);
 
     const { result } = renderHook(() => usePush());
 
@@ -75,7 +76,7 @@ describe("usePush", () => {
   });
 
   it("has an updatePreferences method", () => {
-    vi.mocked(require("../lib/push").isPushSupported).mockReturnValue(true);
+    vi.mocked(isPushSupported).mockReturnValue(true);
 
     const { result } = renderHook(() => usePush());
 
@@ -83,7 +84,7 @@ describe("usePush", () => {
   });
 
   it("exposes row and allSubscriptions state", () => {
-    vi.mocked(require("../lib/push").isPushSupported).mockReturnValue(true);
+    vi.mocked(isPushSupported).mockReturnValue(true);
 
     const { result } = renderHook(() => usePush());
 

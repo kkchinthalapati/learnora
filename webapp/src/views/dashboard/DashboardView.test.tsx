@@ -13,6 +13,7 @@ import { Storage } from "../../lib/storage";
 import type { Exam, Folder, StudySession, Task } from "../../api/types";
 import { ChatProvider } from "../../context/ChatProvider";
 import { TurboChat } from "../../components/chat/TurboChat";
+import { CommandBar } from "./CommandBar";
 import { DashboardView } from "./DashboardView";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -110,7 +111,11 @@ function renderDashboard() {
         <Route path="/library/flashcards" element={<h1>Flashcards</h1>} />
         <Route path="/plan" element={<h1>Weekly plan</h1>} />
       </Routes>
-      {/* App.tsx renders the panel beside the routes, not inside a view. */}
+      {/* App.tsx renders both beside the routes, not inside a view — the
+          command bar isn't dashboard-only, it's a global Cmd/Ctrl+K entry
+          point (see CommandBar.tsx), so the "same conversation" tests below
+          need it mounted the same way App.tsx does. */}
+      <CommandBar />
       <TurboChat />
     </ChatProvider>,
     { session: fakeSession() },

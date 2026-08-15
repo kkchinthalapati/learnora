@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
@@ -11,6 +11,23 @@ import { FriendsView } from "./FriendsView";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 const rpc = (name: string) => `${SUPABASE_URL}/rest/v1/rpc/${name}`;
+
+/* onRemove fires the actual RPC from a setTimeout, not on confirm — a 4s
+ * "Undo" window (FriendsView.tsx's onRemove) so a misclick doesn't cost a
+ * friend outright. The setTimeout has to be *scheduled* under fake timers
+ * to be advanceable — enabling them only after the fact leaves it running
+ * on the real clock — so callers wrap the confirming click in this, then
+ * call jumpPastUndoWindow() once the toast has appeared. */
+function useFakeTimersForUndoWindow() {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+}
+
+function jumpPastUndoWindow() {
+  act(() => {
+    vi.advanceTimersByTime(4100);
+  });
+  vi.useRealTimers();
+}
 
 const ME = {
   friendship_id: null,
@@ -213,12 +230,16 @@ describe("FriendsView", () => {
     // Still nothing sent — the destructive call waits on the dialog.
     expect(called).toBe(false);
     const dialog = await screen.findByRole("alertdialog");
+    useFakeTimersForUndoWindow();
     await user.click(within(dialog).getByRole("button", { name: "Remove" }));
 
-    await waitFor(() => expect(called).toBe(true));
     expect(
       await screen.findByText("Removed Grace Hopper."),
     ).toBeInTheDocument();
+    expect(called).toBe(false); // still just the toast — the RPC waits on the undo window
+
+    jumpPastUndoWindow();
+    await waitFor(() => expect(called).toBe(true));
   });
 
   it("keeps the friend when the confirm dialog is cancelled", async () => {

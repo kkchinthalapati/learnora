@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Route, Routes } from "react-router";
@@ -11,6 +11,23 @@ import type { FlashcardDeck, Folder, Material, Quiz } from "../../api/types";
 import { SubjectDetailPage } from "./SubjectDetailPage";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
+
+/* useLibraryActions fires the actual delete from a setTimeout, not on
+ * confirm — a 4s "Undo" window so a misclick doesn't cost a material/deck
+ * outright. The setTimeout has to be *scheduled* under fake timers to be
+ * advanceable — enabling them only after the fact leaves it running on the
+ * real clock — so callers wrap the confirming click in
+ * useFakeTimersForUndoWindow(), then call jumpPastUndoWindow() right after. */
+function useFakeTimersForUndoWindow() {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+}
+
+function jumpPastUndoWindow() {
+  act(() => {
+    vi.advanceTimersByTime(4100);
+  });
+  vi.useRealTimers();
+}
 
 const biology: Folder = {
   id: "folder-1",
@@ -231,15 +248,18 @@ describe("SubjectDetailPage", () => {
         /will be permanently deleted, along with the notes and quizzes generated from it/,
       ),
     ).toBeInTheDocument();
+    useFakeTimersForUndoWindow();
     await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(
+      await screen.findByText('Deleted "Cell division".'),
+    ).toBeInTheDocument();
+    jumpPastUndoWindow();
 
     await waitFor(() =>
       expect(screen.queryByText("Cell division")).not.toBeInTheDocument(),
     );
     expect(removedPaths).toEqual({ prefixes: ["user-1/cells.pdf"] });
-    expect(
-      await screen.findByText('Deleted "Cell division".'),
-    ).toBeInTheDocument();
   });
 
   it("keeps the material when the delete is cancelled", async () => {
@@ -279,7 +299,9 @@ describe("SubjectDetailPage", () => {
     await user.click(
       await screen.findByRole("button", { name: "Delete Mitosis basics" }),
     );
+    useFakeTimersForUndoWindow();
     await user.click(screen.getByRole("button", { name: "Delete" }));
+    jumpPastUndoWindow();
 
     await waitFor(() =>
       expect(screen.queryByText("Mitosis basics")).not.toBeInTheDocument(),
