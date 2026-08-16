@@ -74,4 +74,19 @@ describe("DailyDrillCard", () => {
       await screen.findByText(/up to 20 across your decks/),
     ).toBeInTheDocument();
   });
+
+  it("surfaces struggling weak topics when cards are due", async () => {
+    serveDueCount(5);
+    server.use(
+      http.get(rest("quiz_attempts"), () =>
+        HttpResponse.json([
+          { weak_topics: ["Photosynthesis", "Mitosis"] },
+        ]),
+      ),
+    );
+    renderCard();
+
+    expect(await screen.findByText("Struggling with:")).toBeInTheDocument();
+    expect(screen.getByText("Photosynthesis")).toBeInTheDocument();
+  });
 });

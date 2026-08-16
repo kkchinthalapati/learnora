@@ -53,6 +53,22 @@
   color: var(--text-faint);
 }
 
+.kbdHint {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
+}
+
+.kbd {
+  font-family: inherit;
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+}
+
 .input:focus {
   /* A visible focus ring is required for keyboard/screen reader users.
    * Using box-shadow rather than outline so the pill border-radius is

@@ -15,7 +15,12 @@ import {
   useRespondToFriendRequest,
 } from "../../hooks/useFriends";
 import type { FriendRequest, LeaderboardEntry } from "../../api/types";
-import { displayName, initials, leaderboardMeta } from "./friendMeta";
+import {
+  displayName,
+  findClosestPaceFriend,
+  initials,
+  leaderboardMeta,
+} from "./friendMeta";
 import styles from "./friends.module.css";
 
 /* The Friends hub: your invite link, pending requests either way, and a
@@ -227,7 +232,13 @@ function RequestsSection() {
   );
 }
 
-function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
+function LeaderboardRow({
+  entry,
+  isClosestPace,
+}: {
+  entry: LeaderboardEntry;
+  isClosestPace?: boolean;
+}) {
   const remove = useRemoveFriend();
   const { showToast } = useToast();
   const { confirm } = useDialog();
@@ -260,6 +271,9 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
         <p className={styles.personName}>
           {name}
           {entry.is_self ? <span className={styles.youTag}>You</span> : null}
+          {!entry.is_self && isClosestPace ? (
+            <span className={styles.paceTag}>Closest pace</span>
+          ) : null}
         </p>
         <p className={styles.personMeta}>
           {leaderboardMeta(entry.weekly_minutes, entry.streak)}
@@ -282,6 +296,9 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
 
 function LeaderboardSection() {
   const { data: entries, isPending, isError, error } = useFriendsLeaderboard();
+
+  const friends = entries?.filter((e) => !e.is_self) ?? [];
+  const closest = friends.length > 1 && entries ? findClosestPaceFriend(entries) : null;
 
   return (
     <Card variant="panel" padding="lg" as="section" aria-labelledby="board-h">
@@ -307,7 +324,10 @@ function LeaderboardSection() {
         <ul>
           {entries.map((entry) => (
             <li key={entry.user_id}>
-              <LeaderboardRow entry={entry} />
+              <LeaderboardRow
+                entry={entry}
+                isClosestPace={closest?.user_id === entry.user_id}
+              />
             </li>
           ))}
         </ul>

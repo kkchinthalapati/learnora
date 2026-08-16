@@ -30,14 +30,24 @@ export function useExamProctor(
 ): UseExamProctorResult {
   const { isActive, enabled = true, onTerminate } = options;
   const [graceCountdown, setGraceCountdown] = useState<number | null>(null);
-  const [graceReason, setGraceReason] = useState<"fullscreen" | "visibility" | null>(null);
-  const onTerminateRef = useRef(onTerminate);
-  onTerminateRef.current = onTerminate;
+  const [graceReason, setGraceReason] = useState<
+    "fullscreen" | "visibility" | null
+  >(null);
 
   const terminateTimeoutRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const graceReasonRef = useRef<"fullscreen" | "visibility" | null>(null);
+
+  /* Same "latest ref" treatment for onTerminate: MockExamRunner passes an
+   * inline `() => submitExam("terminated")`, a fresh function identity on
+   * every render — every answer picked, every tick of the exam's own
+   * clock. If onTerminate stayed in the effect's deps, each of those
+   * re-renders would tear down and reschedule the grace-period timers
+   * mid-countdown, so a student could tab away indefinitely and never
+   * actually get auto-submitted. */
+  const onTerminateRef = useRef(onTerminate);
+  onTerminateRef.current = onTerminate;
 
   useEffect(() => {
     const clearTimers = () => {
@@ -103,7 +113,10 @@ export function useExamProctor(
       /* Exited fullscreen while active */
       if (!document.fullscreenElement && graceReasonRef.current === null) {
         startGracePeriod("fullscreen");
-      } else if (document.fullscreenElement && graceReasonRef.current === "fullscreen") {
+      } else if (
+        document.fullscreenElement &&
+        graceReasonRef.current === "fullscreen"
+      ) {
         /* Re-entered fullscreen, cancel grace period */
         cancelGracePeriod();
       }
@@ -127,6 +140,8 @@ export function useExamProctor(
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearTimers();
     };
+    /* graceReason and onTerminate deliberately excluded — see
+       graceReasonRef/onTerminateRef above. */
   }, [isActive, enabled]);
 
   return { graceCountdown, graceReason };

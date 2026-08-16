@@ -215,10 +215,10 @@ describe("FriendsView", () => {
     const dialog = await screen.findByRole("alertdialog");
     await user.click(within(dialog).getByRole("button", { name: "Remove" }));
 
-    await waitFor(() => expect(called).toBe(true));
     expect(
       await screen.findByText("Removed Grace Hopper."),
     ).toBeInTheDocument();
+    expect(called).toBe(true);
   });
 
   it("keeps the friend when the confirm dialog is cancelled", async () => {

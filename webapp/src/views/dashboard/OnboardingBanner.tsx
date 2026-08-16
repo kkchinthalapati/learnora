@@ -40,7 +40,8 @@ export function OnboardingBanner({ onFocusTaskInput }: OnboardingBannerProps) {
           <h3>Welcome to Learnora</h3>
           <p className={styles.sub}>
             Upload your first study material or add a task to get started.
-            Learnora AI will build notes, flashcards, and quizzes from it.
+            Learnora AI will build notes, flashcards, and quizzes from it — or
+            press <kbd className={styles.kbd}>⌘K</kbd> anywhere to chat with AI.
           </p>
         </div>
         <button

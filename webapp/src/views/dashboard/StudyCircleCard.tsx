@@ -5,6 +5,7 @@ import { useFriendsLeaderboard } from "../../hooks/useFriends";
 import { DashboardCardHeader } from "./DashboardCardHeader";
 import {
   displayName,
+  findClosestPaceFriend,
   initials,
   leaderboardMeta,
 } from "../friends/friendMeta";
@@ -61,6 +62,7 @@ export function StudyCircleCard() {
     );
   }
 
+  const closest = friends.length > 1 ? findClosestPaceFriend(entries) : null;
   const top = entries.slice(0, MAX_VISIBLE);
 
   return (
@@ -82,6 +84,9 @@ export function StudyCircleCard() {
             <span className={styles.circleMain}>
               <span className={styles.circleName}>
                 {entry.is_self ? "You" : displayName(entry.full_name)}
+                {!entry.is_self && closest?.user_id === entry.user_id ? (
+                  <span className={styles.circleTag}>Closest pace</span>
+                ) : null}
               </span>
               <span className={styles.circleMeta}>
                 {leaderboardMeta(entry.weekly_minutes, entry.streak)}

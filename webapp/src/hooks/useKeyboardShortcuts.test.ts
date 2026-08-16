@@ -158,6 +158,9 @@ describe("useKeyboardShortcuts", () => {
 
     const div = document.createElement("div");
     div.contentEditable = "true";
+    /* jsdom, unlike real browsers, won't move focus onto a contenteditable
+       node without an explicit tabIndex — without this, .focus() below is
+       a silent no-op and activeElement stays <body>. */
     div.tabIndex = 0;
     document.body.appendChild(div);
     div.focus();

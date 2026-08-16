@@ -4,6 +4,7 @@ import { Skeleton } from "../../components/Skeleton";
 import { useLatestQuizAttempt, useQuiz } from "../../hooks/useQuizzes";
 import {
   answerForIndex,
+  parseProctorTermination,
   parseStoredAnswers,
   parseStoredQuestions,
 } from "./quizMeta";
@@ -90,6 +91,7 @@ export function QuizReview() {
   }
 
   const answers = parseStoredAnswers(attempt.answers_json);
+  const proctorTermination = parseProctorTermination(attempt.answers_json);
   const taken = formatTaken(attempt.created_at);
 
   return (
@@ -97,6 +99,16 @@ export function QuizReview() {
       <Card variant="panel" padding="lg" className={styles.panel}>
         <ExitLink />
         <h1>{quiz.title || "Quiz"} — your answers</h1>
+        {proctorTermination ? (
+          <div role="alert" className={styles.terminatedNotice}>
+            <p>
+              ⚠️ Mock Exam ended early:{" "}
+              {proctorTermination.reason === "fullscreen"
+                ? "Exited fullscreen mode during the proctored exam."
+                : "Switched away from the exam tab."}
+            </p>
+          </div>
+        ) : null}
         <p className={styles.score}>
           {attempt.score} / {attempt.total} correct
           {taken ? <span className={styles.muted}> · {taken}</span> : null}

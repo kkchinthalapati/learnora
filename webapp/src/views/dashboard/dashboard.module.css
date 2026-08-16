@@ -270,6 +270,28 @@
   gap: 0;
 }
 
+.aiCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kbdHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.kbd {
+  font-family: inherit;
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  color: var(--text-muted);
+}
+
 .aiActions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -384,7 +406,12 @@
   align-self: flex-start;
 }
 
-/* ---- Streak & analytics ----------------------------------------------------- */
+.streakHint {
+  margin: var(--s-2) 0 0 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  line-height: 1.4;
+}
 
 .streakBars {
   display: flex;
@@ -511,6 +538,17 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.circleTag {
+  margin-left: var(--s-2);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-pill);
+  padding: 1px 6px;
 }
 
 .circleMeta {

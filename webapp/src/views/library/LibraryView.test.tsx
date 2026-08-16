@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Route, Routes, useLocation } from "react-router";
@@ -11,6 +11,24 @@ import type { FlashcardDeck, Folder, Material, Quiz } from "../../api/types";
 import { LibraryView } from "./LibraryView";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
+
+/* useLibraryActions fires the actual delete from a setTimeout, not on
+ * confirm — a 4s "Undo" window so a misclick doesn't cost a folder/deck/
+ * quiz outright. The setTimeout has to be *scheduled* under fake timers to
+ * be advanceable — enabling them only after the fact leaves it running on
+ * the real clock — so callers wrap the confirming click in
+ * useFakeTimersForUndoWindow(), then call jumpPastUndoWindow() once the
+ * toast has appeared. */
+function useFakeTimersForUndoWindow() {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+}
+
+function jumpPastUndoWindow() {
+  act(() => {
+    vi.advanceTimersByTime(4100);
+  });
+  vi.useRealTimers();
+}
 
 function folder(overrides: Partial<Folder> = {}): Folder {
   return {
@@ -362,10 +380,11 @@ describe("Library — Folders tab", () => {
       ),
     ).toBeInTheDocument();
 
+    useFakeTimersForUndoWindow();
     await user.click(screen.getByRole("button", { name: "Delete" }));
 
-    await waitFor(() => expect(deleted).toBe(true));
     expect(await screen.findByText('Deleted "Biology".')).toBeInTheDocument();
+    expect(deleted).toBe(true);
     await waitFor(() =>
       expect(screen.queryByText("Biology")).not.toBeInTheDocument(),
     );
@@ -405,7 +424,9 @@ describe("Library — Folders tab", () => {
     await user.click(
       await screen.findByRole("button", { name: "Delete Biology" }),
     );
+    useFakeTimersForUndoWindow();
     await user.click(screen.getByRole("button", { name: "Delete" }));
+    jumpPastUndoWindow();
 
     const toast = await screen.findByText(
       "Couldn't delete that folder. Please try again.",
@@ -495,7 +516,9 @@ describe("Library — Flashcards tab", () => {
     expect(
       screen.getByText(/and all its flashcards will be permanently deleted/),
     ).toBeInTheDocument();
+    useFakeTimersForUndoWindow();
     await user.click(screen.getByRole("button", { name: "Delete" }));
+    jumpPastUndoWindow();
 
     await waitFor(() =>
       expect(screen.queryByText("Mitosis basics")).not.toBeInTheDocument(),
@@ -572,7 +595,9 @@ describe("Library — Quizzes tab", () => {
     expect(
       screen.getByText(/and its attempt history will be permanently deleted/),
     ).toBeInTheDocument();
+    useFakeTimersForUndoWindow();
     await user.click(screen.getByRole("button", { name: "Delete" }));
+    jumpPastUndoWindow();
 
     await waitFor(() =>
       expect(screen.queryByText("Cell division quiz")).not.toBeInTheDocument(),

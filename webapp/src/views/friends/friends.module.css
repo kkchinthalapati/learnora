@@ -118,6 +118,17 @@
   padding: 2px var(--s-2);
 }
 
+.paceTag {
+  margin-left: var(--s-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-pill);
+  padding: 2px var(--s-2);
+}
+
 .personActions {
   flex: 0 0 auto;
   display: flex;

@@ -265,4 +265,27 @@ describe("QuizReview", () => {
     expect(url?.searchParams.get("quiz_id")).toBe("eq.quiz-1");
     expect(url?.searchParams.get("order")).toBe("created_at.desc");
   });
+
+  it("displays proctor termination explanation when exam was ended early by proctor", async () => {
+    serve({
+      attempt: {
+        ...ATTEMPT,
+        answers_json: {
+          items: ATTEMPT.answers_json,
+          proctorTermination: {
+            reason: "fullscreen",
+            timestamp: "2026-08-16T12:00:00.000Z",
+          },
+        },
+      },
+    });
+    renderReview();
+
+    expect(
+      await screen.findByText(/Mock Exam ended early/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Exited fullscreen mode during the proctored exam/),
+    ).toBeInTheDocument();
+  });
 });

@@ -46,9 +46,11 @@ export function parseLocalDate(dateStr: string): Date {
 
 /** Port of js/router.js's `formatRelativeTime` (:10-18). */
 export function formatRelativeTime(isoString: string): string {
-  const diffMs = Date.now() - new Date(isoString).getTime();
-  if (diffMs < 60000) return "just now";
-  const mins = Math.round(diffMs / 60000);
+  const mins = Math.round((Date.now() - new Date(isoString).getTime()) / 60000);
+  /* Rounding puts anything from 30s-89s at 1 minute, and that still reads
+     as "just now" to a student glancing at a timestamp — only 90s+ (which
+     rounds to 2) earns an actual "Xm ago". */
+  if (mins <= 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.round(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;

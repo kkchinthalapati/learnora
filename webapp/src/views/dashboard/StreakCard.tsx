@@ -62,6 +62,11 @@ export function StreakCard() {
         <Icon name="flame" size={30} className={styles.statIcon} />
         {streak} <span>day{streak === 1 ? "" : "s"}</span>
       </h2>
+      {streak === 0 ? (
+        <p className={styles.streakHint}>
+          Streak reset — complete a session today to start your next run!
+        </p>
+      ) : null}
       <div className={styles.streakBars}>
         {sparkline.map((d) => (
           <div
