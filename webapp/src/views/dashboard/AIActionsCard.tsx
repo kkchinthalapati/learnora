@@ -108,7 +108,12 @@ export function AIActionsCard() {
 
   return (
     <Card variant="elevated" className={styles.aiCard}>
-      <span className={styles.eyebrow}>Ask Learnora AI</span>
+      <div className={styles.aiCardHeader}>
+        <span className={styles.eyebrow}>Ask Learnora AI</span>
+        <span className={styles.kbdHint} aria-hidden="true">
+          <kbd className={styles.kbd}>⌘K</kbd>
+        </span>
+      </div>
       <p className={styles.sub}>Turn your workload into a plan in one tap.</p>
       <div className={styles.aiActions}>
         <button

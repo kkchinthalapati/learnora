@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   displayName,
+  findClosestPaceFriend,
   formatMinutes,
   initials,
   leaderboardMeta,
@@ -81,5 +82,27 @@ describe("leaderboardMeta", () => {
     expect(leaderboardMeta(0, 6)).toBe(
       "No focus time yet this week · 6 days streak",
     );
+  });
+});
+
+describe("findClosestPaceFriend", () => {
+  it("returns null when no entries or only self", () => {
+    expect(findClosestPaceFriend([])).toBeNull();
+    expect(
+      findClosestPaceFriend([
+        { user_id: "u1", weekly_minutes: 60, is_self: true },
+      ]),
+    ).toBeNull();
+  });
+
+  it("finds the friend closest in weekly focus time", () => {
+    const entries = [
+      { user_id: "u-far-ahead", weekly_minutes: 300, is_self: false },
+      { user_id: "u-close", weekly_minutes: 75, is_self: false },
+      { user_id: "u-self", weekly_minutes: 60, is_self: true },
+      { user_id: "u-far-behind", weekly_minutes: 0, is_self: false },
+    ];
+    const closest = findClosestPaceFriend(entries);
+    expect(closest?.user_id).toBe("u-close");
   });
 });

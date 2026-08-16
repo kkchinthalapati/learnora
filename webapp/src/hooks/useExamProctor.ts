@@ -33,16 +33,12 @@ export function useExamProctor(
   const [graceReason, setGraceReason] = useState<
     "fullscreen" | "visibility" | null
   >(null);
+
   const terminateTimeoutRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
-  /* Mirrors graceReason for the handlers below to read synchronously.
-   * graceReason itself can't be in this effect's dependency array: it's
-   * *set* by handlers this same effect defines, so listing it would make
-   * every grace-period start immediately re-run the effect — cleanup
-   * clears the terminateTimeout/countdownInterval that startGracePeriod
-   * had just scheduled, so onTerminate would never fire. */
   const graceReasonRef = useRef<"fullscreen" | "visibility" | null>(null);
+
   /* Same "latest ref" treatment for onTerminate: MockExamRunner passes an
    * inline `() => submitExam("terminated")`, a fresh function identity on
    * every render — every answer picked, every tick of the exam's own
@@ -51,19 +47,35 @@ export function useExamProctor(
    * mid-countdown, so a student could tab away indefinitely and never
    * actually get auto-submitted. */
   const onTerminateRef = useRef(onTerminate);
-  useEffect(() => {
-    onTerminateRef.current = onTerminate;
-  }, [onTerminate]);
+  onTerminateRef.current = onTerminate;
 
   useEffect(() => {
-    if (!isActive || !enabled) {
+    const clearTimers = () => {
+      if (terminateTimeoutRef.current !== null) {
+        window.clearTimeout(terminateTimeoutRef.current);
+        terminateTimeoutRef.current = null;
+      }
+      if (countdownIntervalRef.current !== null) {
+        window.clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+      startTimeRef.current = null;
+    };
+
+    const cancelGracePeriod = () => {
+      clearTimers();
       graceReasonRef.current = null;
       setGraceCountdown(null);
       setGraceReason(null);
+    };
+
+    if (!isActive || !enabled) {
+      cancelGracePeriod();
       return;
     }
 
     const startGracePeriod = (reason: "fullscreen" | "visibility") => {
+      if (graceReasonRef.current !== null) return;
       graceReasonRef.current = reason;
       setGraceCountdown(GRACE_PERIOD_MS);
       setGraceReason(reason);
@@ -77,23 +89,23 @@ export function useExamProctor(
         setGraceCountdown(remaining);
 
         if (remaining <= 0) {
-          /* Grace period expired, terminate now */
-          if (countdownIntervalRef.current !== null) {
-            clearInterval(countdownIntervalRef.current);
-            countdownIntervalRef.current = null;
-          }
+          clearTimers();
+          const finalReason = graceReasonRef.current || reason;
           graceReasonRef.current = null;
           setGraceReason(null);
-          onTerminateRef.current(reason);
+          setGraceCountdown(null);
+          onTerminateRef.current(finalReason);
         }
       }, 100);
 
       /* Fallback: terminate after GRACE_PERIOD_MS if interval doesn't fire */
       terminateTimeoutRef.current = window.setTimeout(() => {
+        clearTimers();
+        const finalReason = graceReasonRef.current || reason;
         graceReasonRef.current = null;
         setGraceCountdown(null);
         setGraceReason(null);
-        onTerminateRef.current(reason);
+        onTerminateRef.current(finalReason);
       }, GRACE_PERIOD_MS);
     };
 
@@ -106,17 +118,7 @@ export function useExamProctor(
         graceReasonRef.current === "fullscreen"
       ) {
         /* Re-entered fullscreen, cancel grace period */
-        if (terminateTimeoutRef.current !== null) {
-          clearTimeout(terminateTimeoutRef.current);
-          terminateTimeoutRef.current = null;
-        }
-        if (countdownIntervalRef.current !== null) {
-          clearInterval(countdownIntervalRef.current);
-          countdownIntervalRef.current = null;
-        }
-        graceReasonRef.current = null;
-        setGraceCountdown(null);
-        setGraceReason(null);
+        cancelGracePeriod();
       }
     };
 
@@ -126,17 +128,7 @@ export function useExamProctor(
         startGracePeriod("visibility");
       } else if (!document.hidden && graceReasonRef.current === "visibility") {
         /* Tab became visible, cancel grace period */
-        if (terminateTimeoutRef.current !== null) {
-          clearTimeout(terminateTimeoutRef.current);
-          terminateTimeoutRef.current = null;
-        }
-        if (countdownIntervalRef.current !== null) {
-          clearInterval(countdownIntervalRef.current);
-          countdownIntervalRef.current = null;
-        }
-        graceReasonRef.current = null;
-        setGraceCountdown(null);
-        setGraceReason(null);
+        cancelGracePeriod();
       }
     };
 
@@ -146,12 +138,7 @@ export function useExamProctor(
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (terminateTimeoutRef.current !== null) {
-        clearTimeout(terminateTimeoutRef.current);
-      }
-      if (countdownIntervalRef.current !== null) {
-        clearInterval(countdownIntervalRef.current);
-      }
+      clearTimers();
     };
     /* graceReason and onTerminate deliberately excluded — see
        graceReasonRef/onTerminateRef above. */

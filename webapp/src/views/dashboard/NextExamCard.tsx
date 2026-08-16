@@ -1,13 +1,13 @@
-import { Link } from "react-router";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useExams } from "../../hooks/useExams";
 import { localDateStr } from "../../lib/date";
+import { DashboardCardHeader } from "./DashboardCardHeader";
 import { daysUntil, nextUpcomingExam } from "./analytics";
 import styles from "./dashboard.module.css";
 
-/* "Next exam" spotlight — ports js/main.js:1988-2042. */
+/* "Next exam" spotlight. */
 export function NextExamCard() {
   const { data: exams, isPending, isError, error } = useExams();
 
@@ -22,7 +22,7 @@ export function NextExamCard() {
   if (isError) {
     return (
       <Card variant="elevated" className={styles.examCard}>
-        <span className={styles.eyebrow}>Next exam</span>
+        <DashboardCardHeader eyebrow="Next exam" />
         <p role="alert" className={styles.emptySm}>
           Could not load your exams. {(error as Error).message}
         </p>
@@ -37,14 +37,14 @@ export function NextExamCard() {
   if (!next) {
     return (
       <Card variant="elevated" className={styles.examCard}>
-        <span className={styles.eyebrow}>Next exam</span>
+        <DashboardCardHeader
+          eyebrow="Next exam"
+          action={{ to: "/exams", label: "Open calendar" }}
+        />
         <p className={styles.emptySm}>
-          No exams scheduled. You&apos;re all clear — or add one to start
+          No exams scheduled. You&apos;re all clear, or add one to start
           planning.
         </p>
-        <Link to="/exams" className={styles.link}>
-          Open calendar →
-        </Link>
       </Card>
     );
   }
@@ -66,7 +66,10 @@ export function NextExamCard() {
 
   return (
     <Card variant="elevated" className={styles.examCard}>
-      <span className={styles.eyebrow}>Next exam</span>
+      <DashboardCardHeader
+        eyebrow="Next exam"
+        action={{ to: "/exams", label: "Open calendar" }}
+      />
       <div className={styles.countdown}>
         {big}
         <span className={styles.countdownUnit}>{unit}</span>
@@ -81,9 +84,6 @@ export function NextExamCard() {
           <span className={`${styles.pill} ${diffClass}`}>{difficulty}</span>
         </div>
       </div>
-      <Link to="/exams" className={styles.link}>
-        Open calendar →
-      </Link>
     </Card>
   );
 }

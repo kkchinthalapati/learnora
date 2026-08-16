@@ -242,7 +242,10 @@ function MockExamSession({
 
      If settings.examTerminationGrace is enabled, shows a countdown warning
      before terminating (see useExamProctor). */
-  const submitExam = (reason: "terminated" | "voluntary") => {
+  const submitExam = (
+    reason: "terminated" | "voluntary",
+    proctorReason?: "fullscreen" | "visibility",
+  ) => {
     if (document.fullscreenElement) {
       document.exitFullscreen?.().catch(() => {});
     }
@@ -253,26 +256,49 @@ function MockExamSession({
     // below) would re-arm it. See submittedRef's declaration for why.
     submittedRef.current = true;
     draft.clear();
+    const storedAnswers = answers;
+    const finalAnswers = proctorReason
+      ? {
+          items: storedAnswers,
+          proctorTermination: {
+            reason: proctorReason,
+            timestamp: new Date().toISOString(),
+          },
+        }
+      : storedAnswers;
+
     record(
-      { quizId, score, total, answers, weakTopics: weakTopicsFrom(answers) },
+      {
+        quizId,
+        score,
+        total,
+        answers: finalAnswers,
+        weakTopics: weakTopicsFrom(answers),
+      },
       {
         onError: () =>
           showToast("Failed to save exam attempt.", { error: true }),
       },
     );
     if (reason === "terminated") {
-      showToast("Mock Exam terminated!", { error: true });
+      showToast(
+        proctorReason === "fullscreen"
+          ? "Mock Exam terminated: Exited fullscreen"
+          : "Mock Exam terminated: Left exam tab",
+        { error: true },
+      );
+      navigate(`/quiz/${quizId}/review`);
     } else {
       showToast("Mock Exam submitted.");
+      navigate(QUIZZES_PATH);
     }
-    navigate(QUIZZES_PATH);
   };
 
   const { graceCountdown, graceReason } = useExamProctor({
     isActive: !finished,
     enabled: settings.examTerminationGrace,
-    onTerminate: () => {
-      submitExam("terminated");
+    onTerminate: (terminateReason) => {
+      submitExam("terminated", terminateReason);
     },
   });
 
@@ -364,8 +390,25 @@ function MockExamSession({
               : "You left the exam tab!"}
           </p>
           <p>
-            Returning to the exam in {Math.ceil(graceCountdown / 1000)}s or it will be submitted.
+            Auto-submitting in <strong>{Math.ceil(graceCountdown / 1000)}s</strong> unless you return.
           </p>
+          {graceReason === "fullscreen" ? (
+            <div className={styles.graceAction}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  if (document.documentElement.requestFullscreen) {
+                    document.documentElement
+                      .requestFullscreen()
+                      .catch(() => {});
+                  }
+                }}
+              >
+                Return to fullscreen
+              </Button>
+            </div>
+          ) : null}
         </div>
       )}
       <Card variant="panel" padding="lg" className={styles.panel}>

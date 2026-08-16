@@ -90,9 +90,39 @@ function toAnswer(value: unknown): StoredAnswer | null {
   };
 }
 
+export interface ProctorTerminationInfo {
+  reason: "fullscreen" | "visibility";
+  timestamp: string;
+}
+
 export function parseStoredAnswers(answersJson: unknown): StoredAnswer[] {
-  if (!Array.isArray(answersJson)) return [];
-  return answersJson.map(toAnswer).filter((a): a is StoredAnswer => a !== null);
+  if (Array.isArray(answersJson)) {
+    return answersJson
+      .map(toAnswer)
+      .filter((a): a is StoredAnswer => a !== null);
+  }
+  if (isRecord(answersJson) && Array.isArray(answersJson.items)) {
+    return answersJson.items
+      .map(toAnswer)
+      .filter((a): a is StoredAnswer => a !== null);
+  }
+  return [];
+}
+
+export function parseProctorTermination(
+  answersJson: unknown,
+): ProctorTerminationInfo | null {
+  if (!isRecord(answersJson) || !isRecord(answersJson.proctorTermination)) {
+    return null;
+  }
+  const term = answersJson.proctorTermination;
+  if (term.reason === "fullscreen" || term.reason === "visibility") {
+    return {
+      reason: term.reason,
+      timestamp: typeof term.timestamp === "string" ? term.timestamp : "",
+    };
+  }
+  return null;
 }
 
 /** The vanilla's lookup (js/router.js:995-996): attempts are stored in

@@ -15,7 +15,12 @@ import {
   useRespondToFriendRequest,
 } from "../../hooks/useFriends";
 import type { FriendRequest, LeaderboardEntry } from "../../api/types";
-import { displayName, initials, leaderboardMeta } from "./friendMeta";
+import {
+  displayName,
+  findClosestPaceFriend,
+  initials,
+  leaderboardMeta,
+} from "./friendMeta";
 import styles from "./friends.module.css";
 
 /* The Friends hub: your invite link, pending requests either way, and a
@@ -227,7 +232,13 @@ function RequestsSection() {
   );
 }
 
-function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
+function LeaderboardRow({
+  entry,
+  isClosestPace,
+}: {
+  entry: LeaderboardEntry;
+  isClosestPace?: boolean;
+}) {
   const remove = useRemoveFriend();
   const { showToast } = useToast();
   const { confirm } = useDialog();
@@ -235,8 +246,6 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
 
   async function onRemove() {
     if (!entry.friendship_id) return;
-    /* Capture friendship_id for the setTimeout closure — TypeScript doesn't
-       track the guard across async boundaries. */
     const friendshipId = entry.friendship_id;
     const ok = await confirm(
       `${name} will no longer see your focus time, and you will not see theirs.`,
@@ -244,23 +253,11 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
     );
     if (!ok) return;
 
-    let cancelled = false;
-    showToast(`Removed ${name}.`, {
-      duration: 4000,
-      actionLabel: "Undo",
-      onAction: () => {
-        cancelled = true;
-      },
+    remove.mutate(friendshipId, {
+      onSuccess: () => showToast(`Removed ${name}.`),
+      onError: (err: Error) =>
+        showToast(`Could not remove. ${err.message}`, { error: true }),
     });
-
-    setTimeout(async () => {
-      if (!cancelled) {
-        remove.mutate(friendshipId, {
-          onError: (err: Error) =>
-            showToast(`Could not remove. ${err.message}`, { error: true }),
-        });
-      }
-    }, 4000);
   }
 
   return (
@@ -274,6 +271,9 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
         <p className={styles.personName}>
           {name}
           {entry.is_self ? <span className={styles.youTag}>You</span> : null}
+          {!entry.is_self && isClosestPace ? (
+            <span className={styles.paceTag}>Closest pace</span>
+          ) : null}
         </p>
         <p className={styles.personMeta}>
           {leaderboardMeta(entry.weekly_minutes, entry.streak)}
@@ -296,6 +296,9 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
 
 function LeaderboardSection() {
   const { data: entries, isPending, isError, error } = useFriendsLeaderboard();
+
+  const friends = entries?.filter((e) => !e.is_self) ?? [];
+  const closest = friends.length > 1 && entries ? findClosestPaceFriend(entries) : null;
 
   return (
     <Card variant="panel" padding="lg" as="section" aria-labelledby="board-h">
@@ -321,7 +324,10 @@ function LeaderboardSection() {
         <ul>
           {entries.map((entry) => (
             <li key={entry.user_id}>
-              <LeaderboardRow entry={entry} />
+              <LeaderboardRow
+                entry={entry}
+                isClosestPace={closest?.user_id === entry.user_id}
+              />
             </li>
           ))}
         </ul>

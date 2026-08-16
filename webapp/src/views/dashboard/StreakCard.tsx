@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Card } from "../../components/Card";
+import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useFolders } from "../../hooks/useFolders";
 import { useSessionsSince } from "../../hooks/useSessions";
@@ -11,10 +12,6 @@ import {
 } from "./analytics";
 import styles from "./dashboard.module.css";
 
-/* Streak, 7-day sparkline and per-folder breakdown — ports js/main.js's
- * computeStreak + renderAnalytics (:2132-2235). Reads the same
- * `useSessionsSince(90)` query as FocusCard's reconciled totals — one
- * network request, two cards. */
 export function StreakCard() {
   const { data: sessions, isPending, isError, error } = useSessionsSince(90);
   const { data: folders } = useFolders();
@@ -50,7 +47,7 @@ export function StreakCard() {
       <Card variant="elevated" className={styles.streakCard}>
         <span className={styles.eyebrow}>Streak</span>
         <p className={styles.emptySm}>
-          Start your first streak today — complete a focus session to begin.
+          Start your first streak today. Complete a focus session to begin.
         </p>
       </Card>
     );
@@ -62,8 +59,14 @@ export function StreakCard() {
     <Card variant="elevated" className={styles.streakCard}>
       <span className={styles.eyebrow}>Streak</span>
       <h2 className={styles.statNumber}>
-        🔥 {streak} <span>day{streak === 1 ? "" : "s"}</span>
+        <Icon name="flame" size={30} className={styles.statIcon} />
+        {streak} <span>day{streak === 1 ? "" : "s"}</span>
       </h2>
+      {streak === 0 ? (
+        <p className={styles.streakHint}>
+          Streak reset — complete a session today to start your next run!
+        </p>
+      ) : null}
       <div className={styles.streakBars}>
         {sparkline.map((d) => (
           <div

@@ -116,7 +116,30 @@ describe("MockExamRunner", () => {
     });
     vi.useRealTimers();
 
-    expect(await screen.findByText("Quizzes tab")).toBeInTheDocument();
+    expect(await screen.findByText("Review page")).toBeInTheDocument();
+  });
+
+  it("offers Return to fullscreen button during fullscreen grace period", async () => {
+    serveQuiz(SAMPLE_QUIZ);
+    renderRunner();
+
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => document.body,
+    });
+    document.dispatchEvent(new Event("fullscreenchange"));
+    await screen.findByText("What is mitochondria?");
+
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => null,
+    });
+    document.dispatchEvent(new Event("fullscreenchange"));
+
+    expect(
+      await screen.findByRole("button", { name: "Return to fullscreen" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("You exited fullscreen!");
   });
 
   it("exits if tab is switched (visibilitychange)", async () => {
@@ -144,7 +167,7 @@ describe("MockExamRunner", () => {
     });
     vi.useRealTimers();
 
-    expect(await screen.findByText("Quizzes tab")).toBeInTheDocument();
+    expect(await screen.findByText("Review page")).toBeInTheDocument();
   });
 
   it("automatically advances without showing right/wrong feedback", async () => {
@@ -305,7 +328,7 @@ describe("MockExamRunner", () => {
     });
     vi.useRealTimers();
 
-    expect(await screen.findByText("Quizzes tab")).toBeInTheDocument();
+    expect(await screen.findByText("Review page")).toBeInTheDocument();
     await waitFor(() => expect(attemptRecorded).toBe(true));
   });
 });

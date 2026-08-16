@@ -31,6 +31,7 @@ mkdir -p "$OUT"
 # references plus the standalone pages.
 VANILLA_PATHS=(
   index.html
+  404.html
   style.css
   i18n.js
   js

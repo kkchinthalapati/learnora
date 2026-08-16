@@ -152,10 +152,10 @@ describe("route skeleton", () => {
     ).toBeInTheDocument();
   });
 
-  it("unknown paths fall through to Not found", () => {
+  it("unknown paths fall through to Page Not Found", () => {
     renderAt("/definitely-not-a-route");
     expect(
-      screen.getByRole("heading", { level: 1, name: "Not found" }),
+      screen.getByRole("heading", { level: 1, name: "Page Not Found" }),
     ).toBeInTheDocument();
   });
 });

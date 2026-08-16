@@ -54,6 +54,9 @@ export function CommandBar() {
         aria-label="Ask Learnora AI"
         onChange={(e) => setValue(e.target.value)}
       />
+      <span className={styles.kbdHint} aria-hidden="true">
+        <kbd className={styles.kbd}>⌘K</kbd>
+      </span>
       <button
         type="submit"
         className={styles.send}

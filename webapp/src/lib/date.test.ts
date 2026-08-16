@@ -203,13 +203,13 @@ describe("date utils", () => {
     it("formats a date as 'Mon Day' (e.g., 'Aug 3')", () => {
       const date = new Date(2026, 7, 3); // August 3, 2026
       const result = formatMonthDay(date);
-      expect(result).toMatch(/Aug.*3/); // Uses locale, so just check both parts are present
+      expect(result).toMatch(/Aug.*3|3.*Aug/); // Uses locale, so just check both parts are present
     });
 
     it("works for other months", () => {
       const january = new Date(2026, 0, 15);
       const result = formatMonthDay(january);
-      expect(result).toMatch(/Jan.*15/);
+      expect(result).toMatch(/Jan.*15|15.*Jan/);
     });
 
     it("handles single-digit and double-digit days", () => {
@@ -219,8 +219,8 @@ describe("date utils", () => {
       const result1 = formatMonthDay(day1);
       const result31 = formatMonthDay(day31);
 
-      expect(result1).toMatch(/Aug.*1/);
-      expect(result31).toMatch(/Aug.*31/);
+      expect(result1).toMatch(/Aug.*1|1.*Aug/);
+      expect(result31).toMatch(/Aug.*31|31.*Aug/);
     });
   });
 });

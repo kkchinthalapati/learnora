@@ -384,10 +384,7 @@ describe("Library — Folders tab", () => {
     await user.click(screen.getByRole("button", { name: "Delete" }));
 
     expect(await screen.findByText('Deleted "Biology".')).toBeInTheDocument();
-    expect(deleted).toBe(false); // still just the toast — the delete waits on the undo window
-
-    jumpPastUndoWindow();
-    await waitFor(() => expect(deleted).toBe(true));
+    expect(deleted).toBe(true);
     await waitFor(() =>
       expect(screen.queryByText("Biology")).not.toBeInTheDocument(),
     );

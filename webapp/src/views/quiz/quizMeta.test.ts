@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   answerForIndex,
+  parseProctorTermination,
   parseStoredAnswers,
   parseStoredQuestions,
   weakTopicsFrom,
@@ -158,11 +159,37 @@ describe("weakTopicsFrom", () => {
     ).toEqual([]);
   });
 
+  it("handles empty answers", () => {
+    expect(weakTopicsFrom([])).toEqual([]);
+  });
+
   it("is empty on a perfect score", () => {
     expect(
       weakTopicsFrom([
         { questionId: 0, chosenIndex: 0, correct: true, topic: "Mitosis" },
       ]),
     ).toEqual([]);
+  });
+});
+
+describe("parseProctorTermination", () => {
+  it("extracts proctor termination details from attempt payload", () => {
+    const payload = {
+      items: [{ questionId: 0, chosenIndex: 1, correct: true }],
+      proctorTermination: {
+        reason: "fullscreen",
+        timestamp: "2026-08-16T12:00:00.000Z",
+      },
+    };
+    expect(parseStoredAnswers(payload)).toHaveLength(1);
+    expect(parseProctorTermination(payload)).toEqual({
+      reason: "fullscreen",
+      timestamp: "2026-08-16T12:00:00.000Z",
+    });
+  });
+
+  it("returns null for plain array answers without proctor termination", () => {
+    expect(parseProctorTermination([{ questionId: 0, chosenIndex: 1, correct: true }])).toBeNull();
+    expect(parseProctorTermination(null)).toBeNull();
   });
 });

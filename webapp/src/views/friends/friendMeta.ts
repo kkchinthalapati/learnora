@@ -43,3 +43,27 @@ export function leaderboardMeta(weeklyMinutes: number, streak: number): string {
       : "No focus time yet this week";
   return streak > 0 ? `${focus} · ${streakLabel(streak)} streak` : focus;
 }
+
+/** Finds the friend whose weekly focus time is closest to the current user's pace.
+ * Returns null if no friends exist or user is not found. */
+export function findClosestPaceFriend<
+  T extends { user_id: string; weekly_minutes: number; is_self: boolean },
+>(entries: T[]): T | null {
+  const self = entries.find((e) => e.is_self);
+  if (!self) return null;
+  const friends = entries.filter((e) => !e.is_self);
+  if (friends.length === 0) return null;
+
+  let closest = friends[0];
+  let minDiff = Math.abs(friends[0].weekly_minutes - self.weekly_minutes);
+
+  for (let i = 1; i < friends.length; i++) {
+    const diff = Math.abs(friends[i].weekly_minutes - self.weekly_minutes);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = friends[i];
+    }
+  }
+
+  return closest;
+}

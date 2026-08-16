@@ -168,7 +168,7 @@ describe("DashboardView", () => {
       renderDashboard();
 
       await user.click(
-        await screen.findByRole("link", { name: "Open calendar →" }),
+        await screen.findByRole("link", { name: "Open calendar" }),
       );
       expect(
         await screen.findByRole("heading", { name: "Exams" }),
@@ -287,7 +287,7 @@ describe("DashboardView", () => {
       renderDashboard();
 
       expect(await screen.findByText("Read chapter 4")).toBeInTheDocument();
-      await user.click(screen.getByRole("link", { name: "View all →" }));
+      await user.click(screen.getByRole("link", { name: "View all" }));
       expect(
         await screen.findByRole("heading", { name: "Tasks" }),
       ).toBeInTheDocument();
@@ -299,7 +299,7 @@ describe("DashboardView", () => {
       renderDashboard();
 
       expect(await screen.findByText("4 cards due today")).toBeInTheDocument();
-      await user.click(screen.getByRole("link", { name: "Review now →" }));
+      await user.click(screen.getByRole("link", { name: "Review now" }));
       expect(
         await screen.findByRole("heading", { name: "Flashcards" }),
       ).toBeInTheDocument();
@@ -460,12 +460,12 @@ describe("DashboardView", () => {
       renderDashboard();
 
       expect(
-        await screen.findByText("👋 Welcome to Learnora!"),
+        await screen.findByText("Welcome to Learnora"),
       ).toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: "Dismiss" }));
       expect(
-        screen.queryByText("👋 Welcome to Learnora!"),
+        screen.queryByText("Welcome to Learnora"),
       ).not.toBeInTheDocument();
       expect(Storage.get("onboarding_dismissed")).toBe(true);
     });
@@ -481,7 +481,7 @@ describe("DashboardView", () => {
       // instead as an equivalent "the page has rendered" signal.
       await screen.findByText("Ask Learnora AI");
       expect(
-        screen.queryByText("👋 Welcome to Learnora!"),
+        screen.queryByText("Welcome to Learnora"),
       ).not.toBeInTheDocument();
     });
 
@@ -491,7 +491,7 @@ describe("DashboardView", () => {
 
       await screen.findByText("Read chapter 4");
       expect(
-        screen.queryByText("👋 Welcome to Learnora!"),
+        screen.queryByText("Welcome to Learnora"),
       ).not.toBeInTheDocument();
     });
 

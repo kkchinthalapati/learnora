@@ -44,5 +44,6 @@ export default defineConfig({
      * come close to it, and a test that does is a bug worth looking at. */
     testTimeout: 20000,
     hookTimeout: 20000,
+    maxWorkers: 4,
   },
 });
