@@ -221,7 +221,7 @@ function RequestsSection() {
       <h2 className={styles.sectionTitle} id="requests-h">
         Requests
       </h2>
-      <ul>
+      <ul className={styles.rowList}>
         {requests.map((request) => (
           <li key={request.friendship_id}>
             <RequestRow request={request} />
@@ -298,7 +298,8 @@ function LeaderboardSection() {
   const { data: entries, isPending, isError, error } = useFriendsLeaderboard();
 
   const friends = entries?.filter((e) => !e.is_self) ?? [];
-  const closest = friends.length > 1 && entries ? findClosestPaceFriend(entries) : null;
+  const closest =
+    friends.length > 1 && entries ? findClosestPaceFriend(entries) : null;
 
   return (
     <Card variant="panel" padding="lg" as="section" aria-labelledby="board-h">
@@ -321,7 +322,7 @@ function LeaderboardSection() {
           message="Send someone your invite link. Once they accept, you will both show up here with this week's focus time."
         />
       ) : (
-        <ul>
+        <ul className={styles.rowList}>
           {entries.map((entry) => (
             <li key={entry.user_id}>
               <LeaderboardRow

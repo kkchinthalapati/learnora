@@ -88,13 +88,13 @@ const TABLES: Record<string, unknown[]> = {
 };
 
 const RPCS: Record<string, unknown> = {
-  friends_leaderboard: fx.leaderboard,
-  pending_friend_requests: fx.friendRequests,
-  list_friends: fx.leaderboard.filter((r) => !r.is_self),
+  get_friends_leaderboard: fx.leaderboard,
+  get_friend_requests: fx.friendRequests,
   regenerate_friend_code: "HARNESS2",
-  resolve_friend_code: [{ user_id: "friend-9", display_name: "Jordan" }],
+  resolve_friend_code: [{ user_id: "friend-9", full_name: "Jordan Blake" }],
   request_or_accept_friend: "pending",
   respond_to_friend_request: "accepted",
+  remove_friend: null,
 };
 
 function json(body: unknown, init: ResponseInit = {}): Response {

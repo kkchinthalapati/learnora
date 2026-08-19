@@ -276,35 +276,56 @@ export const plans = [
   },
 ];
 
+/** `get_friends_leaderboard(tz)` — friendship_id is null on your own row. */
 export const leaderboard = [
   {
-    user_id: USER_ID,
-    display_name: "You",
-    minutes_this_week: 195,
-    streak: 7,
-    is_self: true,
-  },
-  {
+    friendship_id: "fs-1",
     user_id: "friend-1",
-    display_name: "Priya",
-    minutes_this_week: 240,
+    full_name: "Priya Raman",
+    avatar_url: null,
+    weekly_minutes: 240,
     streak: 12,
     is_self: false,
+    rank: 1,
   },
   {
+    friendship_id: null,
+    user_id: USER_ID,
+    full_name: "Harness Student",
+    avatar_url: null,
+    weekly_minutes: 195,
+    streak: 7,
+    is_self: true,
+    rank: 2,
+  },
+  {
+    friendship_id: "fs-2",
     user_id: "friend-2",
-    display_name: "Sam",
-    minutes_this_week: 120,
+    full_name: "Sam Okafor",
+    avatar_url: null,
+    weekly_minutes: 120,
     streak: 3,
     is_self: false,
+    rank: 3,
   },
 ];
 
+/** `get_friend_requests()` — both directions come back from one call. */
 export const friendRequests = [
   {
-    id: "fr-1",
-    from_user_id: "friend-3",
-    display_name: "Alex",
+    friendship_id: "fs-3",
+    user_id: "friend-3",
+    full_name: "Alex Mercer",
+    avatar_url: null,
+    direction: "incoming" as const,
     created_at: daysAgo(1),
+  },
+  {
+    friendship_id: "fs-4",
+    user_id: "friend-4",
+    full_name: "Jordan Blake",
+    avatar_url: null,
+    direction: "outgoing" as const,
+    created_at: daysAgo(2),
   },
 ];

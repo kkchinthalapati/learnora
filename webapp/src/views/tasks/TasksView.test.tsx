@@ -322,13 +322,28 @@ describe("TasksView", () => {
     ]);
     renderTasks();
 
+    /* The badge reads "Due Wed, Jan 1" / "Due Today" now rather than the raw
+       column value — see lib/date's formatDueDate. */
     const overdue = await screen.findByRole("button", {
-      name: /Due date: 2020-01-01/,
+      name: /Due Wed, Jan 1/,
     });
-    const today = screen.getByRole("button", {
-      name: new RegExp(`Due date: ${localDateStr()}`),
-    });
+    const today = screen.getByRole("button", { name: /Due Today/ });
     expect(overdue.className).not.toEqual(today.className);
+  });
+
+  it("labels due dates the way a student reads them, not as raw column values", async () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    serveTasks([
+      task({ id: 1, text: "Due today", due_date: localDateStr() }),
+      task({ id: 2, text: "Due tomorrow", due_date: localDateStr(tomorrow) }),
+    ]);
+    renderTasks();
+
+    expect(await screen.findByText("Today")).toBeInTheDocument();
+    expect(screen.getByText("Tomorrow")).toBeInTheDocument();
+    expect(screen.queryByText(localDateStr())).not.toBeInTheDocument();
   });
 
   it("sets a due date from the row's badge", async () => {

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { Icon } from "../../components/Icon";
 import type { Task } from "../../api/types";
-import { localDateStr } from "../../lib/date";
+import { formatDueDate, localDateStr } from "../../lib/date";
 import styles from "./tasks.module.css";
 
 /* One row of the task list — ports js/main.js:1348-1570.
@@ -59,6 +59,7 @@ export function TaskItem({
   const today = localDateStr();
   const overdue = !!task.due_date && task.due_date < today;
   const dueToday = task.due_date === today;
+  const dueLabel = task.due_date ? formatDueDate(task.due_date, today) : null;
 
   function commitText() {
     if (cancelled.current) {
@@ -172,19 +173,17 @@ export function TaskItem({
             type="button"
             className={dueClasses}
             aria-label={
-              task.due_date
-                ? `Due date: ${task.due_date}. Click to change.`
-                : "Set a due date"
+              dueLabel ? `Due ${dueLabel}. Click to change.` : "Set a due date"
             }
             onClick={(e) => {
               e.stopPropagation();
               setEditingDue(true);
             }}
           >
-            {task.due_date ? (
+            {dueLabel ? (
               <>
                 <Icon name="calendar" size={13} />
-                {task.due_date}
+                {dueLabel}
               </>
             ) : (
               "+ due date"
