@@ -33,8 +33,25 @@ export function nextReviewState(
     ease += 0.1;
   }
 
+  /* Due dates are day-granular, not clock-granular.
+   *
+   * The vanilla scheduled `now + N days` at the exact time of review, and
+   * every due filter (`flashcardsApi.fetchDueCount`/`fetchAllDue`,
+   * `dueCardsFrom` below) compares against the current instant. So a deck
+   * reviewed at 20:00 was not due again until 20:00 on its due day — a
+   * student sitting down at 19:00 that day was told "0 due" — and because
+   * the next review then stamped an even later time, the deck drifted later
+   * every session until it fell off the end of the study day.
+   *
+   * Anchoring to local midnight makes "due in 1 day" mean "due tomorrow",
+   * whenever tomorrow's session happens to start. A missed card (interval 0)
+   * keeps the exact timestamp: it is due again in this same sitting, not at
+   * the start of today. */
   const nextDate = new Date(now);
-  nextDate.setDate(nextDate.getDate() + interval);
+  if (interval > 0) {
+    nextDate.setHours(0, 0, 0, 0);
+    nextDate.setDate(nextDate.getDate() + interval);
+  }
 
   return { interval, ease, nextReviewDate: nextDate.toISOString() };
 }

@@ -5,7 +5,9 @@ const GRACE_PERIOD_MS = 5000; // 5 seconds
 export interface UseExamProctorOptions {
   /** Whether the exam is currently in progress (not finished). */
   isActive: boolean;
-  /** Whether grace period is enabled (from settings.examTerminationGrace). */
+  /** Whether the grace period is enabled (from settings.examTerminationGrace).
+   *  `false` does not disable proctoring — it makes it stricter: a violation
+   *  terminates immediately, with no countdown to return from. */
   enabled?: boolean;
   /** Called when the grace period expires or is skipped. */
   onTerminate: (reason: "fullscreen" | "visibility") => void;
@@ -38,6 +40,7 @@ export function useExamProctor(
   const countdownIntervalRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const graceReasonRef = useRef<"fullscreen" | "visibility" | null>(null);
+  const terminatedRef = useRef(false);
 
   /* Same "latest ref" treatment for onTerminate: MockExamRunner passes an
    * inline `() => submitExam("terminated")`, a fresh function identity on
@@ -69,13 +72,37 @@ export function useExamProctor(
       setGraceReason(null);
     };
 
-    if (!isActive || !enabled) {
+    if (!isActive) {
       cancelGracePeriod();
+      terminatedRef.current = false;
       return;
     }
 
+    /* One termination per active exam. Without this, `submitExam`'s own
+     * `document.exitFullscreen()` fires a `fullscreenchange` that looks
+     * exactly like the student exiting fullscreen, and the proctor arms a
+     * second termination against an exam that is already over. The grace
+     * path mostly hid that behind its 5s window; the immediate path below
+     * has no such cushion. Cleared when `isActive` cycles (see above). */
+    const terminateNow = (reason: "fullscreen" | "visibility") => {
+      if (terminatedRef.current) return;
+      terminatedRef.current = true;
+      onTerminateRef.current(reason);
+    };
+
     const startGracePeriod = (reason: "fullscreen" | "visibility") => {
-      if (graceReasonRef.current !== null) return;
+      if (graceReasonRef.current !== null || terminatedRef.current) return;
+
+      /* Grace disabled means *stricter* enforcement, not no enforcement:
+       * terminate on the spot instead of showing a countdown. This branch
+       * used to be an early `return` above, which unregistered the
+       * listeners entirely — so turning the setting off silently made a
+       * proctored mock exam unproctorable. */
+      if (!enabled) {
+        terminateNow(reason);
+        return;
+      }
+
       graceReasonRef.current = reason;
       setGraceCountdown(GRACE_PERIOD_MS);
       setGraceReason(reason);
@@ -94,7 +121,7 @@ export function useExamProctor(
           graceReasonRef.current = null;
           setGraceReason(null);
           setGraceCountdown(null);
-          onTerminateRef.current(finalReason);
+          terminateNow(finalReason);
         }
       }, 100);
 
@@ -105,7 +132,7 @@ export function useExamProctor(
         graceReasonRef.current = null;
         setGraceCountdown(null);
         setGraceReason(null);
-        onTerminateRef.current(finalReason);
+        terminateNow(finalReason);
       }, GRACE_PERIOD_MS);
     };
 
