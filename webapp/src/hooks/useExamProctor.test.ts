@@ -239,7 +239,59 @@ describe("useExamProctor", () => {
     expect(result.current.graceCountdown).toBeGreaterThan(0);
   });
 
-  it("respects enabled flag (no termination when disabled)", () => {
+  /* `enabled: false` is the *strict* setting — no countdown to come back
+     from — so it must still terminate, and terminate sooner. The previous
+     version of this test asserted the opposite and locked in a bug where
+     turning the grace period off unregistered the proctor's listeners and
+     left a mock exam entirely unwatched. */
+  it("terminates immediately, with no countdown, when the grace period is disabled", () => {
+    const onTerminate = vi.fn();
+    const { result } = renderHook(() =>
+      useExamProctor({
+        isActive: true,
+        enabled: false,
+        onTerminate,
+      }),
+    );
+
+    act(() => {
+      Object.defineProperty(document, "hidden", {
+        configurable: true,
+        get: () => true,
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    expect(onTerminate).toHaveBeenCalledWith("visibility");
+    expect(result.current.graceCountdown).toBeNull();
+    expect(result.current.graceReason).toBeNull();
+  });
+
+  it("terminates immediately on a fullscreen exit when the grace period is disabled", () => {
+    const onTerminate = vi.fn();
+    renderHook(() =>
+      useExamProctor({
+        isActive: true,
+        enabled: false,
+        onTerminate,
+      }),
+    );
+
+    act(() => {
+      Object.defineProperty(document, "fullscreenElement", {
+        configurable: true,
+        get: () => null,
+      });
+      document.dispatchEvent(new Event("fullscreenchange"));
+    });
+
+    expect(onTerminate).toHaveBeenCalledWith("fullscreen");
+  });
+
+  /* submitExam() calls document.exitFullscreen(), which fires a
+     fullscreenchange indistinguishable from the student leaving — so
+     without a guard the proctor terminates an exam that already ended. */
+  it("terminates only once per exam, even if more violations follow", () => {
     const onTerminate = vi.fn();
     renderHook(() =>
       useExamProctor({
@@ -257,12 +309,48 @@ describe("useExamProctor", () => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
 
-    // Advance past grace period
+    act(() => {
+      Object.defineProperty(document, "fullscreenElement", {
+        configurable: true,
+        get: () => null,
+      });
+      document.dispatchEvent(new Event("fullscreenchange"));
+    });
+
+    expect(onTerminate).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not terminate twice when the grace period expires and fullscreen then exits", () => {
+    const onTerminate = vi.fn();
+    renderHook(() =>
+      useExamProctor({
+        isActive: true,
+        enabled: true,
+        onTerminate,
+      }),
+    );
+
+    act(() => {
+      Object.defineProperty(document, "hidden", {
+        configurable: true,
+        get: () => true,
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
     act(() => {
       vi.advanceTimersByTime(5100);
     });
 
-    expect(onTerminate).not.toHaveBeenCalled();
+    act(() => {
+      Object.defineProperty(document, "fullscreenElement", {
+        configurable: true,
+        get: () => null,
+      });
+      document.dispatchEvent(new Event("fullscreenchange"));
+    });
+
+    expect(onTerminate).toHaveBeenCalledTimes(1);
   });
 
   it("respects isActive flag (no termination when inactive)", () => {

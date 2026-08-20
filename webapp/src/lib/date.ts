@@ -57,6 +57,46 @@ export function formatRelativeTime(isoString: string): string {
   return `${Math.round(hrs / 24)}d ago`;
 }
 
+/* A task's due date, said the way a student would say it.
+ *
+ * The task list rendered the raw `due_date` column — "2026-08-19" — on every
+ * row: the date a student reads most often in this app, and the only one
+ * still shown as a database value. "Today" and "Tomorrow" are the two
+ * answers that actually change what they do next, so those get words;
+ * anything further out gets the short weekday format the exams views
+ * already use (examMeta's formatDayTitle), and a date in another year says
+ * so instead of being quietly ambiguous.
+ *
+ * `today` is a parameter rather than a `new Date()` inside, so a caller that
+ * already knows today's date can't disagree with this one by a
+ * midnight-crossing millisecond, and tests need no fake clock. */
+export function formatDueDate(
+  dateStr: string,
+  today: string = localDateStr(),
+): string {
+  if (dateStr === today) return "Today";
+
+  const todayDate = parseLocalDate(today);
+
+  const tomorrow = new Date(todayDate);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (dateStr === localDateStr(tomorrow)) return "Tomorrow";
+
+  const yesterday = new Date(todayDate);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (dateStr === localDateStr(yesterday)) return "Yesterday";
+
+  const due = parseLocalDate(dateStr);
+  return due.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    ...(due.getFullYear() === todayDate.getFullYear()
+      ? {}
+      : { year: "numeric" }),
+  });
+}
+
 /** "Aug 3" — the short label the plan grid and its week range both use. */
 export function formatMonthDay(d: Date): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });

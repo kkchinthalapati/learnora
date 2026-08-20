@@ -7,6 +7,7 @@ import {
   parseLocalDate,
   formatRelativeTime,
   formatMonthDay,
+  formatDueDate,
 } from "./date";
 
 describe("date utils", () => {
@@ -175,7 +176,9 @@ describe("date utils", () => {
       const now = new Date("2026-08-03T12:00:00Z");
       vi.setSystemTime(now);
 
-      const time2hAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString();
+      const time2hAgo = new Date(
+        now.getTime() - 2 * 60 * 60 * 1000,
+      ).toISOString();
       expect(formatRelativeTime(time2hAgo)).toBe("2h ago");
     });
 
@@ -183,7 +186,9 @@ describe("date utils", () => {
       const now = new Date("2026-08-03T12:00:00Z");
       vi.setSystemTime(now);
 
-      const time3dAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString();
+      const time3dAgo = new Date(
+        now.getTime() - 3 * 24 * 60 * 60 * 1000,
+      ).toISOString();
       expect(formatRelativeTime(time3dAgo)).toBe("3d ago");
     });
 
@@ -221,6 +226,45 @@ describe("date utils", () => {
 
       expect(result1).toMatch(/Aug.*1|1.*Aug/);
       expect(result31).toMatch(/Aug.*31|31.*Aug/);
+    });
+  });
+  describe("formatDueDate", () => {
+    /* Anchored to an explicit "today" rather than the real clock: these are
+       calendar-relative labels, and a suite that ran across midnight would
+       otherwise start disagreeing with itself. */
+    const TODAY = "2026-08-19";
+
+    it("says Today, Tomorrow and Yesterday for the dates a student acts on", () => {
+      expect(formatDueDate("2026-08-19", TODAY)).toBe("Today");
+      expect(formatDueDate("2026-08-20", TODAY)).toBe("Tomorrow");
+      expect(formatDueDate("2026-08-18", TODAY)).toBe("Yesterday");
+    });
+
+    it("falls back to a short weekday date further out", () => {
+      const result = formatDueDate("2026-08-25", TODAY);
+      expect(result).toMatch(/Tue/);
+      expect(result).toMatch(/Aug/);
+      expect(result).toMatch(/25/);
+      expect(result).not.toMatch(/2026/);
+    });
+
+    it("names the year only when it is not the current one", () => {
+      expect(formatDueDate("2027-01-04", TODAY)).toMatch(/2027/);
+    });
+
+    it("crosses a month boundary without reporting the wrong day", () => {
+      expect(formatDueDate("2026-09-01", "2026-08-31")).toBe("Tomorrow");
+      expect(formatDueDate("2026-08-31", "2026-09-01")).toBe("Yesterday");
+    });
+
+    it("crosses a year boundary too", () => {
+      expect(formatDueDate("2027-01-01", "2026-12-31")).toBe("Tomorrow");
+    });
+
+    it("reads a plain date as local, not UTC", () => {
+      /* parseLocalDate's whole reason for existing: `new Date("2026-08-19")`
+         is UTC midnight, which is the 18th anywhere west of Greenwich. */
+      expect(formatDueDate("2026-08-19", "2026-08-19")).toBe("Today");
     });
   });
 });

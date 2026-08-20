@@ -57,8 +57,22 @@
   gap: var(--s-4);
 }
 
-.personRow + .personRow {
-  margin-top: var(--s-3);
+/* The rows are list items, so the gap belongs to the list.
+ *
+ * This was `.personRow + .personRow { margin-top }`, which never matched a
+ * single element: every row is wrapped in its own <li>, so no two .personRow
+ * nodes are ever siblings. The list also shipped as a bare <ul>, which meant
+ * the browser's default disc markers were rendering down the left edge —
+ * every other list in this app (library grids, the sidebar nav, the plan
+ * grid, the task list) carries its own list-style: none, and Friends was the
+ * one view that missed it. */
+.rowList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
 }
 
 .rank {

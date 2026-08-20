@@ -44,6 +44,7 @@ export function NotificationsTab() {
   const remindersId = useId();
   const timerId = useId();
   const watchdogId = useId();
+  const examGraceId = useId();
   const pushExamsId = useId();
   const pushFlashcardsId = useId();
 
@@ -62,7 +63,11 @@ export function NotificationsTab() {
     if (isCurrent) {
       const ok = await confirm(
         "This will disable push notifications on this device. You can re-enable them anytime.",
-        { title: "Disable push on this device?", confirmText: "Disable", danger: true },
+        {
+          title: "Disable push on this device?",
+          confirmText: "Disable",
+          danger: true,
+        },
       );
       if (!ok) return;
     }
@@ -155,10 +160,10 @@ export function NotificationsTab() {
               Stay-Focused Nudges
             </span>
             <p className={styles.fieldDesc}>
-              While a timer is running, get a nudge if you switch tabs for
-              15 seconds, and an automatic pause after a full minute away.
-              Turn this off if you read reference material in another tab
-              while you study — that's not a distraction.
+              While a timer is running, get a nudge if you switch tabs for 15
+              seconds, and an automatic pause after a full minute away. Turn
+              this off if you read reference material in another tab while you
+              study — that's not a distraction.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -167,6 +172,34 @@ export function NotificationsTab() {
               labelledBy={watchdogId}
               onChange={(checked) =>
                 updateAndSave({ timerFocusWatchdog: checked })
+              }
+            />
+          </div>
+        </div>
+
+        {/* `examTerminationGrace` has existed in settings, and been read by
+            MockExamRunner, since the proctor shipped — with no control
+            anywhere to change it, so every student has silently had the
+            default. It belongs beside Stay-Focused Nudges: both decide how
+            hard the app polices where your attention goes. */}
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <span className={styles.labelText} id={examGraceId}>
+              Mock Exam Warning
+            </span>
+            <p className={styles.fieldDesc}>
+              During a proctored mock exam, get a 5-second countdown to return
+              before the attempt is auto-submitted. Turn this off to sit exams
+              under real conditions — leaving fullscreen or switching tabs then
+              ends the attempt immediately.
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <ToggleSwitch
+              checked={settings.examTerminationGrace}
+              labelledBy={examGraceId}
+              onChange={(checked) =>
+                updateAndSave({ examTerminationGrace: checked })
               }
             />
           </div>

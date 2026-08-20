@@ -139,13 +139,33 @@ describe("NotificationsTab", () => {
     await user.click(
       screen.getByRole("switch", { name: "Stay-Focused Nudges" }),
     );
+    await user.click(screen.getByRole("switch", { name: "Mock Exam Warning" }));
 
     await waitFor(() =>
       expect(loadSettings()).toMatchObject({
         notifyStudyReminders: false,
         notifyTimerAlerts: false,
         timerFocusWatchdog: false,
+        examTerminationGrace: false,
       }),
+    );
+  });
+
+  /* The setting was readable by MockExamRunner and writable by nothing —
+     no control existed anywhere in Settings, so it could only ever hold its
+     default. */
+  it("exposes the mock-exam grace period as a control, on by default", async () => {
+    const user = userEvent.setup();
+    setNotificationPermission("granted");
+    renderWithProviders(<NotificationsTab />);
+
+    const toggle = screen.getByRole("switch", { name: "Mock Exam Warning" });
+    expect(toggle).toBeChecked();
+
+    await user.click(toggle);
+
+    await waitFor(() =>
+      expect(loadSettings().examTerminationGrace).toBe(false),
     );
   });
 });
