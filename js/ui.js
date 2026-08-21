@@ -77,6 +77,11 @@ const Storage = {
    malformed hex from localStorage can never poison a CSS variable.
    ========================================================================= */
 
+/** Only allow safe hex colors into inline style attributes */
+function safeColor(color, fallback = "#4A90E2") {
+  return /^#[0-9a-fA-F]{3,8}$/.test(String(color || "")) ? color : fallback;
+}
+
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 
 const HEX_RE = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i;
@@ -1131,7 +1136,7 @@ export const UI = {
   },
 };
 
-export { $, $$, esc, Storage, localDateStr, mondayOfWeek, setLabelText };
+export { $, $$, esc, Storage, localDateStr, mondayOfWeek, setLabelText, safeColor };
 
 /* =========================================================================
    DOM INITIALIZATION & EVENT LISTENERS

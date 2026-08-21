@@ -6,7 +6,7 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
-import { localDateStr } from "../../lib/date";
+import { formatDueDate, localDateStr } from "../../lib/date";
 import type { Task } from "../../api/types";
 import { TasksView } from "./TasksView";
 import { DOUBLE_CLICK_MS } from "./TaskItem";
@@ -325,7 +325,7 @@ describe("TasksView", () => {
     /* The badge reads "Due Wed, Jan 1" / "Due Today" now rather than the raw
        column value — see lib/date's formatDueDate. */
     const overdue = await screen.findByRole("button", {
-      name: /Due Wed, Jan 1/,
+      name: new RegExp(`Due ${formatDueDate("2020-01-01")}`),
     });
     const today = screen.getByRole("button", { name: /Due Today/ });
     expect(overdue.className).not.toEqual(today.className);

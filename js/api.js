@@ -888,11 +888,11 @@ export const Exams = {
   async save(payload, id = null) {
     const user = await getCurrentUser();
     if (!user) return false;
-    payload.user_id = user.id;
+    const record = { ...payload, user_id: user.id };
 
     const res = id
-      ? await supabase.from("exams").update(payload).eq("id", id)
-      : await supabase.from("exams").insert([payload]);
+      ? await supabase.from("exams").update(record).eq("id", id)
+      : await supabase.from("exams").insert([record]);
 
     if (res.error) {
       UI.showPopup(res.error.message, "Database Error");

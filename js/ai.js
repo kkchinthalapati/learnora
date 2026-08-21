@@ -1,4 +1,4 @@
-import { supabase } from "./supabase.js";
+import { supabase, SUPABASE_URL } from "./supabase.js";
 import { UI, $, esc, ModalManager, localDateStr, mondayOfWeek } from "./ui.js";
 import { Tasks, Exams } from "./api.js";
 import { Icons } from "./icons.js";
@@ -21,7 +21,16 @@ const REQUEST_TIMEOUT_MS = 60000;
 
 export const AI = {
   chatHistory: [],
+  notesChatHistory: [],
   currentFile: null,
+  _activeAbortController: null,
+
+  abortInFlight() {
+    if (this._activeAbortController) {
+      this._activeAbortController.abort();
+      this._activeAbortController = null;
+    }
+  },
 
   /* =========================================================================
      FILE MANAGEMENT
@@ -61,73 +70,88 @@ export const AI = {
 
   async _callEdgeStream(payload, onChunk, retries = MAX_RETRIES) {
     // Uses raw fetch to the edge function URL so we can consume the stream
-    const edgeUrl = "https://mlvgqwqiynpwpwzqufdf.supabase.co/functions/v1/learnora-ai";
+    const edgeUrl = `${SUPABASE_URL}/functions/v1/learnora-ai`;
     const session = await supabase.auth.getSession();
     const token = session.data.session?.access_token;
     const bodyPayload = JSON.stringify(payload);
-    
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        const headers = { "Content-Type": "application/json" };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        // Without a deadline a stalled connection leaves the UI on its
-        // loading spinner indefinitely, with no error and no way back.
-        const response = await fetch(edgeUrl, {
-          method: "POST",
-          headers,
-          body: bodyPayload,
-          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
-        });
+    this.abortInFlight();
+    const controller = new AbortController();
+    this._activeAbortController = controller;
 
-        if (!response.ok) {
-          const body = await response.json().catch(() => ({}));
-          const err = new Error(body.error || "AI is temporarily unavailable. Please try again in a moment.");
-          // 4xx means the request itself is wrong (bad/expired token, bad
-          // payload) — retrying it just burns two more round trips and 6s.
-          err.retryable = response.status >= 500 || response.status === 429;
-          // A content refusal carries its own explanation and must be shown
-          // verbatim rather than flattened into "generation failed".
-          err.refused = body.refused === true;
-          throw err;
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let fullText = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          fullText += chunk;
-        }
-        
-        let parsedText = fullText;
-        let refused = false;
+    try {
+      for (let attempt = 0; attempt <= retries; attempt++) {
         try {
-          const parsed = JSON.parse(fullText);
-          if (parsed && parsed.text) parsedText = parsed.text;
-          if (parsed && parsed.refused === true) refused = true;
-        } catch (e) {}
+          const headers = { "Content-Type": "application/json" };
+          if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        if (onChunk) onChunk(parsedText, parsedText);
-        return { text: parsedText, refused };
-      } catch (err) {
-        // Hitting our own deadline means the server already spent its whole
-        // budget walking the provider chain. Replaying that costs another
-        // minute of spinner to almost certainly time out again.
-        if (err?.name === "TimeoutError" || err?.name === "AbortError") {
-          const timeoutErr = new Error(
-            "That took longer than expected and timed out. Please try again in a moment."
-          );
-          timeoutErr.retryable = false;
-          throw timeoutErr;
+          const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+          const signal = typeof AbortSignal.any === "function"
+            ? AbortSignal.any([controller.signal, timeoutSignal])
+            : controller.signal;
+
+          // Without a deadline a stalled connection leaves the UI on its
+          // loading spinner indefinitely, with no error and no way back.
+          const response = await fetch(edgeUrl, {
+            method: "POST",
+            headers,
+            body: bodyPayload,
+            signal,
+          });
+
+          if (!response.ok) {
+            const body = await response.json().catch(() => ({}));
+            const err = new Error(body.error || "AI is temporarily unavailable. Please try again in a moment.");
+            // 4xx means the request itself is wrong (bad/expired token, bad
+            // payload) — retrying it just burns two more round trips and 6s.
+            err.retryable = response.status >= 500 || response.status === 429;
+            // A content refusal carries its own explanation and must be shown
+            // verbatim rather than flattened into "generation failed".
+            err.refused = body.refused === true;
+            throw err;
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+          let fullText = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            fullText += chunk;
+          }
+          
+          let parsedText = fullText;
+          let refused = false;
+          try {
+            const parsed = JSON.parse(fullText);
+            if (parsed && parsed.text) parsedText = parsed.text;
+            if (parsed && parsed.refused === true) refused = true;
+          } catch (e) {}
+
+          if (onChunk) onChunk(parsedText, parsedText);
+          return { text: parsedText, refused };
+        } catch (err) {
+          // Hitting our own deadline means the server already spent its whole
+          // budget walking the provider chain. Replaying that costs another
+          // minute of spinner to almost certainly time out again.
+          if (err?.name === "TimeoutError" || err?.name === "AbortError") {
+            const timeoutErr = new Error(
+              "That took longer than expected and timed out. Please try again in a moment."
+            );
+            timeoutErr.retryable = false;
+            throw timeoutErr;
+          }
+          const isLast = attempt === retries;
+          if (isLast || err.retryable === false) throw err;
+          console.warn(`[AI] Retry ${attempt + 1}/${retries}: ${err.message}`);
+          await new Promise(r => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
         }
-        const isLast = attempt === retries;
-        if (isLast || err.retryable === false) throw err;
-        console.warn(`[AI] Retry ${attempt + 1}/${retries}: ${err.message}`);
-        await new Promise(r => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+      }
+    } finally {
+      if (this._activeAbortController === controller) {
+        this._activeAbortController = null;
       }
     }
   },
@@ -908,6 +932,7 @@ ${sourceText}
      ========================================================================= */
 
   async send(query) {
+    this.abortInFlight();
     const msgBox = $("chat-messages");
     const typing = $("typing-indicator");
     if (!msgBox || !typing) return;
@@ -1093,20 +1118,15 @@ User message: ${query}`;
          const mins = parseInt(match[1]);
          if (!isNaN(mins)) {
              // Autonomously start the timer
-             const focusInput = $("config-focus");
-             if (focusInput) focusInput.value = mins;
-             const typeRadio = document.querySelector('input[name="timer-type"][value="countdown"]');
-             if (typeRadio) typeRadio.checked = true;
+             const { Timer } = await import("./timer.js");
+             Timer.applyNow({ countdown: mins }, "countdown");
+             Timer.start();
              window.location.hash = "timer";
-             
-             const applyBtn = $("btn-apply-timer");
-             const startBtn = $("btn-timer-start");
-             if (applyBtn) applyBtn.click();
-             setTimeout(() => { if (startBtn) startBtn.click(); }, 300);
              timerStarted = true;
              startedTimerMins = mins;
          }
       }
+      startTimerRegex.lastIndex = 0;
       
       let themeChangedTo = "";
       // Parse <SET_THEME>
@@ -1125,6 +1145,7 @@ User message: ${query}`;
              themeChangedTo = theme;
          }
       }
+      themeRegex.lastIndex = 0;
       
       let navigatedTo = "";
       // Parse <NAVIGATE>
@@ -1134,6 +1155,7 @@ User message: ${query}`;
           window.location.hash = view;
           navigatedTo = view;
       }
+      navigateRegex.lastIndex = 0;
       
       let flashcardGraded = "";
       // Parse <GRADE_FLASHCARD>
@@ -1147,6 +1169,7 @@ User message: ${query}`;
               flashcardGraded = score;
           }
       }
+      gradeRegex.lastIndex = 0;
 
       let generatedQuizTopic = "";
       // Parse <ADD_QUIZ>
@@ -1167,6 +1190,7 @@ User message: ${query}`;
             }
          }
       }
+      quizRegex.lastIndex = 0;
 
       let generatedPlan = false;
       // Parse <ADD_PLAN>
@@ -1183,6 +1207,7 @@ User message: ${query}`;
              generatedPlan = true;
           }
       }
+      planRegex.lastIndex = 0;
 
       // Replace tags with beautiful action widgets. The widget HTML is
       // app-built and trusted, so it is parked in `widgets[]` behind an
@@ -1386,12 +1411,13 @@ User message: ${query}`;
   },
 
   async sendNotesChat(query) {
+    this.abortInFlight();
     const msgBox = $("notes-chat-messages");
     const typing = $("notes-typing-indicator");
     if (!msgBox || !typing) return;
 
-    if (this.chatHistory.length > MAX_HISTORY) {
-      this.chatHistory = this.chatHistory.slice(-MAX_HISTORY);
+    if (this.notesChatHistory.length > MAX_HISTORY) {
+      this.notesChatHistory = this.notesChatHistory.slice(-MAX_HISTORY);
     }
 
     // Get plain text from the Quill editor for context.
@@ -1443,7 +1469,7 @@ GROUNDING RULES:
 
 User message: ${query}`;
 
-    this.chatHistory.push({ role: "user", content: query });
+    this.notesChatHistory.push({ role: "user", content: query });
 
     const userContent = this.notesFile
       ? `${Icons.svg("paperclip", { size: 13 })} <em>${esc(this.notesFile.name)}</em><br/><br/>${esc(query)}`
@@ -1456,7 +1482,7 @@ User message: ${query}`;
     msgBox.scrollTop = msgBox.scrollHeight;
 
     const requestHistory = [
-      ...this.chatHistory.slice(0, -1),
+      ...this.notesChatHistory.slice(0, -1),
       { role: "user", content: systemContext }
     ];
 
@@ -1488,7 +1514,7 @@ User message: ${query}`;
 
       const cleanHistoryText = this._stripActionTagBlocks(currentText).trim();
 
-      this.chatHistory.push({ role: "model", content: cleanHistoryText });
+      this.notesChatHistory.push({ role: "model", content: cleanHistoryText });
       if (currentText.length > 0) {
         typingBubble.innerHTML = this.renderMarkdown(cleanHistoryText);
       } else {
@@ -1503,7 +1529,7 @@ User message: ${query}`;
         "ai-bubble ai-bubble-error",
         true
       );
-      this.chatHistory.pop();
+      this.notesChatHistory.pop();
     } finally {
       const sendBtn = $("notes-btn-send");
       if (sendBtn) sendBtn.disabled = false;

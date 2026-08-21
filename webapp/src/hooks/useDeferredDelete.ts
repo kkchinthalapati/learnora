@@ -48,6 +48,13 @@ export function useDeferredDelete<TId extends string | number, T = never>(
   );
   const timers = useRef(new Map<TId, ReturnType<typeof setTimeout>>());
   const undone = useRef(new Set<TId>());
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const commitDelete = useCallback(
     async (id: TId) => {
@@ -60,11 +67,13 @@ export function useDeferredDelete<TId extends string | number, T = never>(
         await deleteFn(id);
         await queryClient.invalidateQueries({ queryKey: invalidateKey });
       } catch (err) {
-        setPendingDelete((prev) => {
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
+        if (isMounted.current) {
+          setPendingDelete((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        }
         showToast(`Failed to delete. ${(err as Error).message}`, {
           error: true,
         });

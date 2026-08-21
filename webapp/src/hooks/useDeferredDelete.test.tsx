@@ -92,4 +92,27 @@ describe("useDeferredDelete", () => {
     // Unmount flushes the mutation so it is never dropped
     expect(deleteFn).toHaveBeenCalledWith(42);
   });
+
+  it("handles delete failure gracefully when unmounted without updating unmounted state", async () => {
+    const deleteFn = vi.fn().mockRejectedValue(new Error("Network error"));
+    const { result, unmount } = renderHook(
+      () =>
+        useDeferredDelete<number, { id: number; name: string }>({
+          deleteFn,
+          invalidateKey: ["items"],
+          label: "Item",
+        }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.remove(99);
+    });
+
+    act(() => {
+      unmount();
+    });
+
+    expect(deleteFn).toHaveBeenCalledWith(99);
+  });
 });

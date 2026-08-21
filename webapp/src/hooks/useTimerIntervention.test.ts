@@ -163,4 +163,22 @@ describe("useTimerIntervention", () => {
 
     expect(showToast).not.toHaveBeenCalled();
   });
+
+  it("arms timeouts immediately if the tab is already hidden when timer starts", () => {
+    const showToast = vi.fn();
+    const pause = vi.fn();
+
+    // Tab is hidden before hook is rendered/started
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+
+    renderHook(() => useTimerIntervention(true, "coach", showToast, pause));
+
+    // Notice we do NOT dispatch "visibilitychange" event!
+    act(() => {
+      vi.advanceTimersByTime(15000);
+    });
+
+    expect(showToast).toHaveBeenCalledTimes(1);
+    expect(showToast).toHaveBeenCalledWith(expect.any(String), { error: true });
+  });
 });

@@ -56,9 +56,11 @@ pwInput?.addEventListener("input", () => {
     const val = pwInput.value;
     if (!val) {
         strengthContainer?.classList.add("hidden");
+        strengthContainer?.classList.remove("strength-weak", "strength-fair", "strength-good", "strength-strong");
         return;
     }
     strengthContainer?.classList.remove("hidden");
+    strengthContainer?.classList.remove("strength-weak", "strength-fair", "strength-good", "strength-strong");
 
     let score = 0;
     if (val.length >= 8) score++;
@@ -66,19 +68,18 @@ pwInput?.addEventListener("input", () => {
     if (/\d/.test(val)) score++;
     if (/[^A-Za-z0-9]/.test(val)) score++;
 
-    strengthContainer.className = "password-strength-container";
     if (score <= 1 || val.length < 8) {
-        strengthContainer.classList.add("strength-weak");
-        strengthText.textContent = "Too Weak (Need 8+ chars & mix)";
+        strengthContainer?.classList.add("strength-weak");
+        if (strengthText) strengthText.textContent = "Too Weak (Need 8+ chars & mix)";
     } else if (score === 2) {
-        strengthContainer.classList.add("strength-fair");
-        strengthText.textContent = "Fair";
+        strengthContainer?.classList.add("strength-fair");
+        if (strengthText) strengthText.textContent = "Fair";
     } else if (score === 3) {
-        strengthContainer.classList.add("strength-good");
-        strengthText.textContent = "Good";
+        strengthContainer?.classList.add("strength-good");
+        if (strengthText) strengthText.textContent = "Good";
     } else {
-        strengthContainer.classList.add("strength-strong");
-        strengthText.textContent = "Strong";
+        strengthContainer?.classList.add("strength-strong");
+        if (strengthText) strengthText.textContent = "Strong";
     }
 });
 
@@ -99,28 +100,44 @@ function setLoading(isLoading) {
 let recoverySessionReady = false;
 let authCheckTimeout = null;
 
+function showRecoveryForm() {
+    if (authCheckTimeout) {
+        clearTimeout(authCheckTimeout);
+        authCheckTimeout = null;
+    }
+    recoverySessionReady = true;
+    hide("reset-loading-view");
+    hide("reset-error-view");
+    show("reset-form");
+    if ($("reset-heading")) $("reset-heading").textContent = "Reset Password";
+    if ($("reset-subtitle")) $("reset-subtitle").textContent = "Choose a strong, new password for your account.";
+}
+
 supabase.auth.onAuthStateChange((event, session) => {
     // Supabase fires PASSWORD_RECOVERY when the reset link token is valid
     if (event === "PASSWORD_RECOVERY" && session) {
-        recoverySessionReady = true;
-        clearTimeout(authCheckTimeout);
-        hide("reset-loading-view");
-        show("reset-form");
-        $("reset-heading").textContent = "Reset Password";
-        $("reset-subtitle").textContent = "Choose a strong, new password for your account.";
+        showRecoveryForm();
     }
 });
 
-// If no PASSWORD_RECOVERY event fires within 3 seconds,
+// Check if session is already established on load (e.g. from URL token)
+supabase.auth.getSession().then(({ data: { session } }) => {
+    const url = window.location.href;
+    if (session && (url.includes("type=recovery") || url.includes("#access_token"))) {
+        showRecoveryForm();
+    }
+}).catch(() => {});
+
+// If no PASSWORD_RECOVERY event fires within 5 seconds,
 // the link is invalid/expired
 authCheckTimeout = setTimeout(() => {
     if (!recoverySessionReady) {
         hide("reset-loading-view");
         show("reset-error-view");
-        $("reset-heading").textContent = "Link Expired";
-        $("reset-subtitle").textContent = "This reset link is no longer valid.";
+        if ($("reset-heading")) $("reset-heading").textContent = "Link Expired";
+        if ($("reset-subtitle")) $("reset-subtitle").textContent = "This reset link is no longer valid.";
     }
-}, 3000);
+}, 5000);
 
 // =============================================
 // FORM SUBMISSION

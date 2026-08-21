@@ -1,4 +1,4 @@
-import { UI, $, $$, esc, Storage, ModalManager, localDateStr, mondayOfWeek } from "./ui.js";
+import { UI, $, $$, esc, Storage, ModalManager, localDateStr, mondayOfWeek, safeColor } from "./ui.js";
 import { Auth, Tasks, Exams, DataAdmin, Folders, Materials, Sessions, Flashcards, Quizzes } from "./api.js";
 import { Timer } from "./timer.js";
 import { AI } from "./ai.js";
@@ -31,10 +31,6 @@ function getGreeting(name) {
   return `${period}, ${name}! 👋`;
 }
 
-function formatDateStr(y, m, d) {
-  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-}
-
 // Pending tasks with the soonest/overdue due date first, undated pending
 // tasks after (in their original order), completed tasks last.
 function sortTasksByUrgency(tasks) {
@@ -53,6 +49,18 @@ const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
+
+function evaluatePasswordStrength(val) {
+  let score = 0;
+  if (val.length >= 8) score++;
+  if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+  if (/\d/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  if (score <= 1 || val.length < 8) return { class: "strength-weak", text: "Too Weak (Need 8+ chars & mix)" };
+  if (score === 2) return { class: "strength-fair", text: "Fair" };
+  if (score === 3) return { class: "strength-good", text: "Good" };
+  return { class: "strength-strong", text: "Strong" };
+}
 
 /* =========================================================================
    BOOT
@@ -508,26 +516,9 @@ function bindAuth() {
       }
       containerEl.classList.remove("hidden");
       
-      let score = 0;
-      if (val.length >= 8) score++;
-      if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
-      if (/\d/.test(val)) score++;
-      if (/[^A-Za-z0-9]/.test(val)) score++;
-
-      containerEl.className = "password-strength-container"; // reset
-      if (score <= 1 || val.length < 8) {
-        containerEl.classList.add("strength-weak");
-        textEl.textContent = "Too Weak (Need 8+ chars & mix)";
-      } else if (score === 2) {
-        containerEl.classList.add("strength-fair");
-        textEl.textContent = "Fair";
-      } else if (score === 3) {
-        containerEl.classList.add("strength-good");
-        textEl.textContent = "Good";
-      } else {
-        containerEl.classList.add("strength-strong");
-        textEl.textContent = "Strong";
-      }
+      const { class: cls, text } = evaluatePasswordStrength(val);
+      containerEl.className = `password-strength-container ${cls}`;
+      textEl.textContent = text;
     });
   };
 
@@ -1056,26 +1047,9 @@ function bindSettings() {
       if (!val) { containerEl.classList.add("hidden"); return; }
       containerEl.classList.remove("hidden");
 
-      let score = 0;
-      if (val.length >= 8) score++;
-      if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
-      if (/\d/.test(val)) score++;
-      if (/[^A-Za-z0-9]/.test(val)) score++;
-
-      containerEl.className = "password-strength-container";
-      if (score <= 1 || val.length < 8) {
-        containerEl.classList.add("strength-weak");
-        textEl.textContent = "Too Weak (Need 8+ chars & mix)";
-      } else if (score === 2) {
-        containerEl.classList.add("strength-fair");
-        textEl.textContent = "Fair";
-      } else if (score === 3) {
-        containerEl.classList.add("strength-good");
-        textEl.textContent = "Good";
-      } else {
-        containerEl.classList.add("strength-strong");
-        textEl.textContent = "Strong";
-      }
+      const { class: cls, text } = evaluatePasswordStrength(val);
+      containerEl.className = `password-strength-container ${cls}`;
+      textEl.textContent = text;
     });
   };
   bindSettingsStrength();
@@ -1374,7 +1348,7 @@ async function loadTasks() {
       dueBadge.setAttribute("aria-label", t.due_date ? `Due date: ${t.due_date}. Click to change.` : "Set a due date");
 
       const renderDueBadge = () => {
-        const today = formatDateStr(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+        const today = localDateStr();
         dueBadge.classList.remove("overdue", "due-today", "unset");
         if (t.due_date) {
           dueBadge.innerHTML = `${Icons.svg("calendar", { size: 13 })} ${t.due_date}`;
@@ -1665,7 +1639,7 @@ function renderCalendar() {
   const firstDay = new Date(y, m, 1).getDay();
   const totalDays = new Date(y, m + 1, 0).getDate();
   const today = new Date();
-  const todayStr = formatDateStr(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayStr = localDateStr(today);
 
   // Empty cells before first day
   for (let i = 0; i < firstDay; i++) {
@@ -1676,7 +1650,7 @@ function renderCalendar() {
   }
 
   for (let d = 1; d <= totalDays; d++) {
-    const dateStr = formatDateStr(y, m, d);
+    const dateStr = localDateStr(new Date(y, m, d));
     const isToday = dateStr === todayStr;
 
     const cell = document.createElement("div");
@@ -1831,13 +1805,10 @@ function openDayDetailModal(dateStr, exams) {
 
   const btnAdd = $("btn-add-exam-for-day");
   if (btnAdd) {
-    // Replace element to clear old listeners
-    const newBtn = btnAdd.cloneNode(true);
-    btnAdd.parentNode.replaceChild(newBtn, btnAdd);
-    newBtn.addEventListener("click", () => {
+    btnAdd.onclick = () => {
       ModalManager.close("day-detail-modal");
       openExamModal(null, dateStr);
-    });
+    };
   }
 }
 
@@ -1946,7 +1917,7 @@ function renderDashboard() {
         li.className = "log-item";
 
         const left = document.createElement("span");
-        left.innerHTML = `<strong class="text-primary">${formatFocusTime(log.minutes)} Focus</strong>${
+        left.innerHTML = `<strong class="text-primary">${esc(formatFocusTime(log.minutes))} Focus</strong>${
           log.task !== "General Study" ? ` on ${esc(log.task)}` : ""
         }`;
 
@@ -1972,7 +1943,7 @@ function renderDashboard() {
 
   const totalDisplay = $("total-hours-display");
   if (totalDisplay) {
-    totalDisplay.innerHTML = `${formatFocusTime(totalMins)} <span>total</span>`;
+    totalDisplay.innerHTML = `${esc(formatFocusTime(totalMins))} <span>total</span>`;
   }
 
   const todayDisplay = $("dash-today-focus");
@@ -1991,7 +1962,7 @@ function renderNextExam() {
   today.setHours(0, 0, 0, 0);
   // Use local-date formatting (matches the calendar). toISOString() converts to
   // UTC and returns the wrong day for positive-offset timezones (e.g. IST).
-  const todayStr = formatDateStr(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayStr = localDateStr(today);
 
   const next = cachedExams
     .filter((e) => e.status !== "Completed" && e.exam_date >= todayStr)
@@ -2106,10 +2077,6 @@ function renderDashboardTasks(tasks) {
    ANALYTICS & STREAKS (Area 1)
    ========================================================================= */
 
-function safeColorLocal(color) {
-  return /^#[0-9a-fA-F]{3,8}$/.test(String(color || "")) ? color : "#4A90E2";
-}
-
 async function loadActiveFolderSelect() {
   const select = $("active-folder-select");
   if (!select) return;
@@ -2178,7 +2145,7 @@ async function renderAnalytics() {
     if (new Date(s.started_at) >= startOfToday) todayMins += s.minutes || 0;
   });
   const totalDisplay = $("total-hours-display");
-  if (totalDisplay) totalDisplay.innerHTML = `${formatFocusTime(totalMins)} <span>total</span>`;
+  if (totalDisplay) totalDisplay.innerHTML = `${esc(formatFocusTime(totalMins))} <span>total</span>`;
   const todayDisplay = $("dash-today-focus");
   if (todayDisplay) todayDisplay.textContent = formatFocusTime(todayMins);
 
@@ -2197,7 +2164,7 @@ async function renderAnalytics() {
   });
   const maxMins = Math.max(1, ...days.map((d) => d.mins));
   const barsHTML = days.map((d) => `
-    <div class="dash-streak-bar-col" title="${formatFocusTime(d.mins)}">
+    <div class="dash-streak-bar-col" title="${esc(formatFocusTime(d.mins))}">
       <div class="dash-streak-bar" style="height:${Math.max(4, Math.round((d.mins / maxMins) * 40))}px"></div>
       <span class="dash-streak-bar-label">${esc(d.label)}</span>
     </div>
@@ -2213,20 +2180,20 @@ async function renderAnalytics() {
     folderTotals[key] = (folderTotals[key] || 0) + (s.minutes || 0);
   });
   const breakdownHTML = Object.entries(folderTotals)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 4)
-    .map(([id, mins]) => {
-      const info = folderInfo[id] || { name: "Unassigned", color: "#888" };
-      return `
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 4)
+  .map(([id, mins]) => {
+    const info = folderInfo[id] || { name: "Unassigned", color: "#888" };
+    return `
         <div class="dash-folder-row flex-between">
-          <span><span class="dash-folder-dot" style="background:${safeColorLocal(info.color)};"></span>${esc(info.name)}</span>
-          <span class="text-muted">${formatFocusTime(mins)}</span>
+          <span><span class="dash-folder-dot" style="background:${safeColor(info.color)};"></span>${esc(info.name)}</span>
+          <span class="text-muted">${esc(formatFocusTime(mins))}</span>
         </div>`;
-    }).join("");
+  }).join("");
 
   card.innerHTML = `
     <span class="dash-eyebrow">Streak</span>
-    <h2 class="stat-number">🔥 ${streak} <span>day${streak === 1 ? "" : "s"}</span></h2>
+    <h2 class="stat-number">🔥 ${esc(streak)} <span>day${streak === 1 ? "" : "s"}</span></h2>
     <div class="dash-streak-bars mt-16">${barsHTML}</div>
     ${breakdownHTML ? `<div class="dash-folder-breakdown mt-16">${breakdownHTML}</div>` : ""}
   `;
@@ -2375,6 +2342,7 @@ function bindAI() {
   });
 
   $("btn-ai-close")?.addEventListener("click", () => {
+    AI.abortInFlight();
     $("turbo-chat")?.classList.remove("fullscreen");
     ModalManager.close("turbo-chat");
     // Ensure no orphaned teal ghosts
@@ -2468,7 +2436,12 @@ function bindAI() {
      choice; now it opens the one Create dialog with that material merely
      pre-selected in a dropdown. */
   $("dash-quiz-me-btn")?.addEventListener("click", async () => {
-    const material = await Materials.fetchMostRecent();
+    let material = null;
+    try {
+      material = await Materials.fetchMostRecent();
+    } catch (err) {
+      console.error("Failed to fetch most recent material:", err);
+    }
     UI.showCreateModal({
       title: "Quiz me",
       // Falls back to a topic-only quiz when there is nothing saved yet,

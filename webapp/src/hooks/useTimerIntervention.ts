@@ -42,19 +42,23 @@ export function useTimerIntervention(
     const handleVisibilityChange = () => {
       if (document.hidden && isRunning && enabled) {
         // 15 seconds: Warning toast
-        toastTimeoutRef.current = window.setTimeout(() => {
-          const messages = MESSAGES[persona] || MESSAGES.tutor;
-          const msg = messages[Math.floor(Math.random() * messages.length)];
-          if (msg) {
-             showToast(msg, { error: true });
-          }
-        }, 15000);
+        if (toastTimeoutRef.current === null) {
+          toastTimeoutRef.current = window.setTimeout(() => {
+            const messages = MESSAGES[persona] || MESSAGES.tutor;
+            const msg = messages[Math.floor(Math.random() * messages.length)];
+            if (msg) {
+               showToast(msg, { error: true });
+            }
+          }, 15000);
+        }
 
         // 60 seconds: Auto-pause timer to prevent fake studying
-        pauseTimeoutRef.current = window.setTimeout(() => {
-          pause();
-          showToast("Timer auto-paused due to inactivity.", { error: true });
-        }, 60000);
+        if (pauseTimeoutRef.current === null) {
+          pauseTimeoutRef.current = window.setTimeout(() => {
+            pause();
+            showToast("Timer auto-paused due to inactivity.", { error: true });
+          }, 60000);
+        }
 
       } else {
         // Came back: Clear timeouts
@@ -70,6 +74,7 @@ export function useTimerIntervention(
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    handleVisibilityChange();
     
     if (!isRunning) {
         if (toastTimeoutRef.current !== null) {
@@ -84,8 +89,14 @@ export function useTimerIntervention(
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (toastTimeoutRef.current !== null) window.clearTimeout(toastTimeoutRef.current);
-      if (pauseTimeoutRef.current !== null) window.clearTimeout(pauseTimeoutRef.current);
+      if (toastTimeoutRef.current !== null) {
+        window.clearTimeout(toastTimeoutRef.current);
+        toastTimeoutRef.current = null;
+      }
+      if (pauseTimeoutRef.current !== null) {
+        window.clearTimeout(pauseTimeoutRef.current);
+        pauseTimeoutRef.current = null;
+      }
     };
   }, [isRunning, persona, showToast, pause, enabled]);
 }

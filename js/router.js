@@ -1,11 +1,6 @@
-import { UI, $, esc, localDateStr, mondayOfWeek } from "./ui.js";
+import { UI, $, esc, localDateStr, mondayOfWeek, safeColor } from "./ui.js";
 import { Folders, Materials, Decks, Notes, Flashcards, Quizzes } from "./api.js";
 import { Icons } from "./icons.js";
-
-/** Only allow safe hex colors into inline style attributes */
-function safeColor(color, fallback = "#4A90E2") {
-  return /^#[0-9a-fA-F]{3,8}$/.test(String(color || "")) ? color : fallback;
-}
 
 function formatRelativeTime(isoString) {
   const diffMs = Date.now() - new Date(isoString).getTime();

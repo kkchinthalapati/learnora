@@ -136,7 +136,7 @@ export function RichTextEditor({
       setHtml: (html) => {
         const quill = quillRef.current;
         if (!quill) return;
-        quill.clipboard.dangerouslyPasteHTML(html, "api");
+        setContentsFromHtml(quill, html);
       },
     }),
     [],

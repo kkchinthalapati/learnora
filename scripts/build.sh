@@ -55,6 +55,37 @@ for path in "${VANILLA_PATHS[@]}"; do
   cp -R "$ROOT/$path" "$OUT/"
 done
 
+echo "==> Optimizing CSS assets"
+NODE_BIN=""
+if command -v node >/dev/null 2>&1; then
+  NODE_BIN="node"
+elif command -v npx >/dev/null 2>&1; then
+  NODE_BIN="npx node"
+fi
+
+if [[ -n "$NODE_BIN" ]] && [[ -f "$OUT/style.css" ]]; then
+  $NODE_BIN -e '
+    const fs = require("fs");
+    const file = process.argv[1];
+    try {
+      const src = fs.readFileSync(file, "utf8");
+      const min = src
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/\s+/g, " ")
+        .replace(/\s*([{};:,>])\s*/g, "$1")
+        .replace(/;}/g, "}")
+        .trim();
+      fs.writeFileSync(file, min, "utf8");
+      const saved = ((1 - min.length / src.length) * 100).toFixed(1);
+      console.log(`    Optimized style.css: ${src.length} -> ${min.length} bytes (${saved}% reduction)`);
+    } catch (err) {
+      console.warn("    Warning: CSS minification skipped:", err.message);
+    }
+  ' "$OUT/style.css" || echo "    Notice: CSS optimization step bypassed."
+else
+  echo "    Notice: Node/npx not available or style.css missing; skipping CSS minification."
+fi
+
 echo "==> Building the React app"
 npm --prefix "$ROOT/webapp" ci
 npm --prefix "$ROOT/webapp" run build
