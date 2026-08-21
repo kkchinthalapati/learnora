@@ -1,109 +1,74 @@
 # Feature backlog — student-experience revamp ideas
 
 Written 2026-08-15, after a pass through `webapp/src` and the live test
-suite to fix the bugs listed at the bottom. Nothing in this file has been
-built — it's a parking lot of ideas for later, written from "I'm a student,
-what would make me use Learnora more effectively?"
+suite to fix the bugs listed at the bottom. Re-verified 2026-08-21 (see
+below) — everything in the original "Quick wins," "Daily-loop,"
+"Exam integrity" and "Trust & polish" sections had already shipped by
+then, so this file has been trimmed to the one idea that's still
+actually open. Full text of the resolved sections is in git history
+(this file as of the previous commit) if the reasoning behind any of
+them is worth revisiting.
 
 Learnora's core loop is already solid and complete: upload material → AI
 generates notes/flashcards/quizzes → weekly AI plan → SM-2 spaced-repetition
 review → proctored mock exams → focus/streak tracking → friends leaderboard.
-These ideas are about *tightening* that loop, not replacing it — the app
-doesn't need a new pillar feature, it needs the daily-use edges sanded down.
+This idea is about *tightening* that loop, not replacing it.
 
-## Quick wins (small, concrete, high value-per-effort)
-
-- **Surface "struggling with" topics outside the AI card.** `AIActionsCard`
-  already computes `weakTopics` from quiz history and shows a small pill row
-  — but only there. A student skimming the dashboard for "what should I
-  study today" has to notice that one card. Consider echoing the top 1-2
-  weak topics into the Daily Drill or Next Exam card copy, so the nudge
-  shows up wherever the student's eye actually lands.
-- **Command bar discoverability.** `CommandBar` (global, Cmd/Ctrl+K) and
-  `AIActionsCard`'s buttons (dashboard-only) are two separate entry points
-  into the same chat. A first-time student has no obvious way to learn the
-  keyboard shortcut exists — there's no `kbd`-style hint anywhere in the UI.
-  A one-line "⌘K" hint near the AI card, or in the onboarding banner copy,
-  would connect the two.
-- **Undo-window consistency check.** The deferred-delete/undo pattern (4s
-  window before a folder/deck/quiz/friend delete actually hits the server)
-  is good, forgiving UX — but verify what happens if the student navigates
-  away or closes the tab inside that window. If the pending `setTimeout`
-  lives only in a component's closure, a route change could either lose the
-  delete entirely (item silently comes back) or leak it (fires after the
-  component watching it is gone, no toast, no confirmation it worked). Worth
-  an explicit test for "delete, then navigate before the undo window closes."
-- **Daily Drill due-count zero state.** Already fixed once (see
-  `DailyDrillCard.tsx`'s comment on the `dueCount ?? 0` bug), but worth a
-  once-over on sibling cards (`NextExamCard`, `StreakCard`, `TasksCard`) for
-  the same "loading momentarily reads as empty" class of bug — it's an easy
-  pattern to reintroduce piecemeal.
-
-## Daily-loop / motivation
+## Still open
 
 - **Weekly plan ↔ actual adherence feedback loop.** The plan generator
   already feeds weak topics and past adherence into new plans (per git
   history). The missing piece from a student's chair: a plain-language "you
   stuck to 60% of last week's plan, mostly missing evening sessions" summary
   *before* generating the next one, not just silently baked into the prompt.
-  Seeing the AI's diagnosis builds trust in the plan it hands back.
-- **Streak recovery framing.** Streak mechanics are usually a source of
-  anxiety once broken ("why bother restarting"). Worth checking whether
-  `StreakCard` distinguishes "streak broken" from "no streak yet" in tone —
-  a broken 12-day streak and a fresh account showing "0" read very
-  differently to the student even if the number is the same.
-- **Study Circle framing beyond leaderboard.** `StudyCircleCard` +
-  `FriendsView`'s leaderboard is a solid accountability mechanic, but
-  leaderboards alone can demotivate students who are behind rather than
-  motivate them. Consider a secondary framing — "closest to your pace" or
-  "most improved this week" — alongside raw minutes/streak rank.
+  Seeing the AI's diagnosis builds trust in the plan it hands back. This is
+  a real feature (new copy generation + adherence computation surfaced in
+  the UI, not a bug fix or a small polish item) — worth scoping deliberately
+  rather than folding into a cleanup pass.
 
-## Notes & AI
+## Verified 2026-08-21
 
-- **`NotesAiSidebar` grounding.** Worth confirming the AI sidebar's answers
-  are scoped to the note/material the student has open, not the whole
-  library — a student asking "explain this paragraph" needs the AI reading
-  the same page they are, not free-associating across every uploaded PDF.
-  (Not verified broken — flagging as worth a deliberate check, since it's
-  the kind of scoping bug that's invisible until a student notices an answer
-  that doesn't fit what they were looking at.)
-- **Quill contenteditable + shortcuts interaction.** The
-  `useKeyboardShortcuts` contenteditable guard is correct (confirmed while
-  fixing its test — see below), but it's worth an explicit pass over which
-  global shortcuts exist and whether any of Quill's *own* shortcuts
-  (bold/italic/etc.) can collide with app-level ones when the notes editor
-  has focus vs. when it doesn't.
+A pass specifically to check the items this file had flagged as "worth
+checking, not verified broken." Findings:
 
-## Exam integrity
+- **NotesAiSidebar grounding** — fine. Reads the editor's live text via a
+  ref and keys the chat session per-material, so it can't answer from a
+  different document than the one on screen.
+- **Quill contenteditable + shortcuts interaction** — fine.
+  `useKeyboardShortcuts` fully excludes any focused `contenteditable`
+  element, so there's no collision surface with Quill's own shortcuts.
+- **Undo-window + navigate-away** — fine. `useDeferredDelete`'s unmount
+  cleanup flushes any pending delete via a ref rather than cancelling it, so
+  navigating away inside the 4s window still commits the delete; it can't
+  silently come back or leak un-actioned.
+- **Command bar discoverability, weak-topic surfacing, streak
+  broken-vs-fresh framing, Study Circle "closest pace" framing, the
+  proctor grace-period countdown UI, and the proctor audit trail in
+  QuizReview** — all already implemented (confirmed by reading the
+  current code, not assumed from the commit log).
+- **Push notification flow** — exercised by hand against the dev harness
+  (`webapp/harness.html`) via a scripted Chromium session: the
+  not-configured state (no `VITE_VAPID_PUBLIC_KEY`), the browser-permission
+  grant flow, and the denied-permission state all render correctly and
+  match the code path that produces them.
+- **Accessibility on Friends, Study Circle, and the command bar** — tab
+  order and focus-visibility swept across both surfaces (55 focusable
+  elements checked); every one had a visible focus indicator. One real gap
+  found and fixed: the small header-action links (`NextExamCard`'s "Open
+  calendar", `TasksCard`'s "View all", `StudyCircleCard`'s "Full
+  leaderboard" — one shared `.link` style in `dashboard.module.css`)
+  rendered at ~21px tall, under the WCAG 2.5.8 (AA) 24px minimum and short
+  of this app's own `--touch-target-min` convention used everywhere else.
+  Fixed with padding offset by an equal negative margin, so the hit area
+  grew without shifting any card's visible layout.
 
-- **Grace-period UX polish.** Now that `useExamProctor`'s countdown timer
-  actually counts down (see bug fix below), it's worth checking the visible
-  countdown UI itself: does the student get a clear, calm "5... 4... 3..."
-  with an obvious "return to fullscreen" affordance, or just a number? This
-  is a stressful moment (a proctored exam about to auto-submit) and the
-  copy/visual treatment matters as much as the mechanism now that the
-  mechanism works.
-- **Proctor audit trail.** For a strict mock exam, consider logging
-  *why* an exam was auto-terminated (tab switch vs. fullscreen exit, and
-  how many warnings) into the attempt record shown in `QuizReview`, so a
-  student reviewing a terminated attempt understands what happened instead
-  of just seeing an abrupt "Mock Exam terminated!" toast.
-
-## Trust & polish
-
-- **Push notification coverage.** `usePush`'s test coverage was completely
-  broken (see below) until this session — now that it's real again, it'd be
-  worth actually exercising the enable/disable/preferences flow by hand
-  once, since it's had no working safety net for however long that bug sat.
-- **Accessibility follow-through.** The a11y work already done (WCAG touch
-  targets, dyslexia-friendly font option, retractable sidebar) is a strong
-  foundation — a natural next step is a pass specifically on the newer
-  surfaces (Friends, Study Circle, the command bar) to confirm they got the
-  same treatment as the original redesign batches.
+Dependency audit: `npm audit` clean (0 known vulnerabilities); safe
+in-range updates applied. Full suite (1183 tests), lint, and typecheck
+all green after both the dependency bump and the touch-target fix.
 
 ---
 
-## Bugs fixed this session (for context, not backlog)
+## Bugs fixed 2026-08-15 (for context, not backlog)
 
 1. `formatRelativeTime` (`lib/date.ts`) rounded 30-89s timestamps up to
    "1m ago" instead of "just now".
@@ -116,7 +81,7 @@ doesn't need a new pillar feature, it needs the daily-use edges sanded down.
    with a "latest ref" pattern for both.
 3. Test-only fixes (no app behavior changed): `usePush.test.ts`'s
    `require()` calls didn't resolve under Vite's ESM test runner (9 tests
-   erroring); the Friends/Library/SubjectDetailPage delete-confirmation
+   erroring on load); the Friends/Library/SubjectDetailPage delete-confirmation
    tests didn't advance fake timers past the 4s undo window; the
    `useKeyboardShortcuts` contenteditable test relied on a `.focus()` call
    jsdom silently no-ops without an explicit `tabIndex`; `DashboardView`'s
