@@ -30,7 +30,6 @@ mkdir -p "$OUT"
 # Everything the vanilla app serves. Checked against index.html's asset
 # references plus the standalone pages.
 VANILLA_PATHS=(
-  index.html
   404.html
   style.css
   i18n.js
@@ -38,6 +37,16 @@ VANILLA_PATHS=(
   vendor
   learnora.jpg
   study-planner-imageandlogo.jpg
+  public.css
+  about.html
+  contact.html
+  privacy.html
+  developers.html
+  llms.txt
+  openapi.json
+  sitemap.xml
+  robots.txt
+  .well-known
   terms.html
   verify.html
   verify.js

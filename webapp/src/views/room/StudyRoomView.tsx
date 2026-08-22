@@ -294,31 +294,22 @@ export function StudyRoomView() {
 
       {/* Room Chat Section */}
       <section
-        className={styles.deskCard}
+        className={`${styles.deskCard} ${styles.chatSection}`}
         role="region"
         aria-label="Room Chat"
       >
-        <h3 className={styles.roomTitle} style={{ fontSize: "18px" }}>
-          Room Chat
-        </h3>
+        <h3 className={styles.chatTitle}>Room Chat</h3>
 
         {messages.length === 0 ? (
-          <p className={styles.roomSub}>
-            Welcome to the study room! Say hello or share your focus goals for today
+          <p className={styles.chatEmpty}>
+            Welcome to the study room! Say hello or share your focus goals for today.
           </p>
         ) : (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px",
-              maxHeight: "220px",
-              overflowY: "auto",
-            }}
-          >
+          <div className={styles.chatMessages}>
             {messages.map((msg) => (
-              <div key={msg.id} style={{ fontSize: "14px" }}>
-                <strong>{msg.userName}:</strong> <span>{msg.text}</span>
+              <div key={msg.id} className={styles.chatMessage}>
+                <strong>{msg.userName}:</strong>
+                <span>{msg.text}</span>
               </div>
             ))}
           </div>
@@ -326,19 +317,12 @@ export function StudyRoomView() {
 
         <form
           onSubmit={(e) => void handleSendChat(e)}
-          style={{ display: "flex", gap: "8px", marginTop: "12px" }}
+          className={styles.chatForm}
         >
           <input
             type="text"
-            className={styles.syncBtn}
-            style={{
-              flex: 1,
-              background: "var(--surface)",
-              color: "var(--text)",
-              cursor: "text",
-              padding: "8px 12px",
-            }}
-            placeholder="Send a quiet message..."
+            className={styles.chatInput}
+            placeholder="Send a quiet message…"
             aria-label="Room chat message"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}

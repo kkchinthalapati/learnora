@@ -476,21 +476,26 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--s-3);
-  padding: 8px 12px;
+  padding: 9px 14px;
   margin-top: var(--s-3);
   margin-bottom: var(--s-1);
-  border-radius: var(--r-md);
-  background: var(--success-soft);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: var(--r-lg);
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.1) 0%,
+    rgba(16, 185, 129, 0.04) 100%
+  );
+  border: 1px solid rgba(16, 185, 129, 0.22);
   font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text);
+  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.06);
 }
 
 .circleLiveBadge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   color: var(--success);
   font-weight: 700;
 }
@@ -500,7 +505,15 @@
   height: 7px;
   border-radius: 50%;
   background: var(--success);
-  box-shadow: 0 0 6px var(--success);
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: dashCircleDotPulse 2s infinite ease;
+  flex-shrink: 0;
+}
+
+@keyframes dashCircleDotPulse {
+  0%  { box-shadow: 0 0 0 0   rgba(16, 185, 129, 0.6); }
+  60% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100%{ box-shadow: 0 0 0 0   rgba(16, 185, 129, 0); }
 }
 
 .circleLiveAction {
@@ -510,11 +523,18 @@
   color: var(--success);
   font-weight: 700;
   text-decoration: none;
-  transition: transform var(--t-fast) ease;
+  font-size: var(--fs-xs);
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  transition: all var(--t-fast) ease;
 }
 
 .circleLiveAction:hover {
-  text-decoration: underline;
+  background: var(--success);
+  color: #fff;
+  border-color: var(--success);
   transform: translateX(2px);
 }
 

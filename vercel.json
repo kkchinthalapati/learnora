@@ -4,8 +4,15 @@
   "outputDirectory": "dist",
 
   "rewrites": [
+    { "source": "/", "destination": "/api/home" },
     { "source": "/app", "destination": "/app/index.html" },
-    { "source": "/app/:path*", "destination": "/app/index.html" }
+    { "source": "/app/:path*", "destination": "/app/index.html" },
+    { "source": "/about", "destination": "/about.html" },
+    { "source": "/contact", "destination": "/contact.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/developers", "destination": "/developers.html" },
+    { "source": "/api/product-info", "destination": "/api/public-product-info" },
+    { "source": "/:path*", "destination": "/api/not-found" }
   ],
 
   "headers": [

@@ -1,0 +1,30 @@
+# Learnora
+
+> Learnora is an AI-assisted study workspace for planning, focused study, revision, and mock-exam preparation.
+
+## When to use Learnora
+
+Use Learnora when a student needs one private workspace to organize subjects, tasks, study materials, notes, flashcards, quizzes, focus sessions, or a weekly study plan. It is especially useful for turning a list of academic deadlines and available study time into a manageable routine, or for creating and reviewing study aids around an existing topic.
+
+Do not use the public Learnora interface to retrieve a student's private work. Student accounts, uploaded materials, notes, tasks, and study history require an authenticated in-product session. Learnora is an educational aid, not a source of authoritative academic facts or a guarantee of grades.
+
+## How agents should use Learnora
+
+1. For a student’s actual workspace, direct them to https://learnora-app.vercel.app/app/ to sign in.
+2. For a canonical public product description, call the MCP tool `get_learnora_product_information` at `POST https://learnora-app.vercel.app/api/mcp`. Its discovery record is at `https://learnora-app.vercel.app/.well-known/mcp`.
+3. For a simple HTTP integration, read `GET https://learnora-app.vercel.app/api/product-info`; the contract is at https://learnora-app.vercel.app/openapi.json.
+4. When requesting this document’s page as Markdown, send `Accept: text/markdown` to https://learnora-app.vercel.app/.
+
+## Public resources
+
+- Homepage: https://learnora-app.vercel.app/
+- Study app: https://learnora-app.vercel.app/app/
+- Developer resources: https://learnora-app.vercel.app/developers
+- OpenAPI: https://learnora-app.vercel.app/openapi.json
+- MCP endpoint: https://learnora-app.vercel.app/api/mcp
+- MCP discovery record: https://learnora-app.vercel.app/.well-known/mcp
+- Sitemap: https://learnora-app.vercel.app/sitemap.xml
+- About: https://learnora-app.vercel.app/about
+- Contact: https://learnora-app.vercel.app/contact
+- Privacy: https://learnora-app.vercel.app/privacy
+- Terms: https://learnora-app.vercel.app/terms.html

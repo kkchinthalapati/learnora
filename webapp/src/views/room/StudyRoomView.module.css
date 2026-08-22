@@ -1,3 +1,5 @@
+/* StudyRoomView secondary layout styles — matches room.module.css design system */
+
 .view {
   padding: var(--s-6) var(--s-6) var(--s-8);
   max-width: 1280px;
@@ -22,31 +24,38 @@
 .title {
   margin: 0;
   font-size: var(--fs-2xl);
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--text) 40%, rgba(20, 184, 166, 0.85) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .roomBadge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: var(--r-pill);
   background: var(--accent-soft);
   color: var(--accent-text);
   font-size: var(--fs-xs);
-  font-weight: 600;
+  font-weight: 700;
+  border: 1px solid rgba(20, 184, 166, 0.25);
 }
 
 .liveIndicator {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
+  padding: 5px 12px;
   border-radius: var(--r-pill);
-  background: var(--success-soft);
+  background: rgba(16, 185, 129, 0.12);
   color: var(--success);
   font-size: var(--fs-xs);
   font-weight: 700;
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .liveDot {
@@ -54,13 +63,14 @@
   height: 8px;
   border-radius: 50%;
   background: var(--success);
-  box-shadow: 0 0 8px var(--success);
-  animation: pulse-dot 2s infinite ease-in-out;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  animation: pulseDot 2s infinite ease-in-out;
+  flex-shrink: 0;
 }
 
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
+  50%       { opacity: 0.7; transform: scale(0.85); box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
 }
 
 .actions {
@@ -78,11 +88,11 @@
 
 .stageCard {
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
   border: 1px solid var(--glass-border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-sm), 0 1px 0 rgba(255,255,255,0.05) inset;
   padding: var(--s-6);
   display: flex;
   flex-direction: column;
@@ -102,10 +112,11 @@
 .stageTitle {
   margin: 0;
   font-size: var(--fs-lg);
-  font-weight: 600;
+  font-weight: 700;
   display: flex;
   align-items: center;
   gap: var(--s-2);
+  letter-spacing: -0.01em;
 }
 
 .presenceGrid {
@@ -116,25 +127,26 @@
 
 .participantCard {
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-lg);
   padding: var(--s-4);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   position: relative;
-  transition: transform var(--t-fast) ease, border-color var(--t-fast) ease;
+  transition: transform var(--t-fast) ease, border-color var(--t-fast) ease, box-shadow var(--t-fast) ease;
 }
 
 .participantCard:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent);
+  transform: translateY(-3px);
+  border-color: var(--accent-ring);
+  box-shadow: var(--shadow-sm);
 }
 
 .participantCard.isSelf {
-  border-color: var(--accent);
-  background: var(--surface-2);
+  border-color: rgba(20, 184, 166, 0.3);
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.08), var(--surface));
 }
 
 .avatarWrapper {
@@ -146,53 +158,60 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--accent-soft);
+  background: linear-gradient(135deg, var(--accent-soft), rgba(20, 184, 166, 0.15));
   color: var(--accent-text);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 800;
   font-size: var(--fs-lg);
-  border: 3px solid transparent;
+  border: 2px solid rgba(20, 184, 166, 0.15);
+  transition: border-color var(--t) ease, box-shadow var(--t) ease;
 }
 
 .avatar.focusing {
   border-color: var(--success);
-  box-shadow: 0 0 12px var(--success-soft);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15), 0 0 16px rgba(16, 185, 129, 0.2);
 }
 
 .avatar.break {
   border-color: var(--warning, #f59e0b);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
 }
 
 .statusPill {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
   border-radius: var(--r-pill);
   margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .statusPill.focusing {
-  background: var(--success-soft);
+  background: rgba(16, 185, 129, 0.12);
   color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .statusPill.break {
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(245, 158, 11, 0.12);
   color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
 .statusPill.idle {
   background: var(--surface-2);
-  color: var(--text-muted);
+  color: var(--text-faint);
+  border: 1px solid var(--glass-border-subtle);
 }
 
 .participantName {
-  font-weight: 600;
+  font-weight: 700;
   font-size: var(--fs-sm);
   margin-top: var(--s-1);
   max-width: 140px;
@@ -216,10 +235,11 @@
   align-items: center;
   justify-content: center;
   gap: var(--s-2);
-  padding: var(--s-3);
+  padding: var(--s-3) var(--s-4);
   background: var(--surface-2);
   border-radius: var(--r-pill);
   flex-wrap: wrap;
+  border: 1px solid var(--glass-border-subtle);
 }
 
 .reactionBtn {
@@ -227,27 +247,28 @@
   border: none;
   font-size: 20px;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 5px 8px;
   border-radius: var(--r-sm);
-  transition: transform var(--t-fast) ease, background var(--t-fast) ease;
+  transition: transform var(--t-fast) var(--ease-spring), background var(--t-fast) ease;
+  line-height: 1;
 }
 
 .reactionBtn:hover {
-  transform: scale(1.25);
+  transform: scale(1.3);
   background: var(--surface);
 }
 
 .reactionBtn:active {
-  transform: scale(0.95);
+  transform: scale(0.9);
 }
 
 .chatSidebar {
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
   border: 1px solid var(--glass-border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-sm), 0 1px 0 rgba(255,255,255,0.05) inset;
   padding: var(--s-4);
   display: flex;
   flex-direction: column;
@@ -266,7 +287,8 @@
 .chatHeader h3 {
   margin: 0;
   font-size: var(--fs-md);
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .messagesList {
@@ -305,17 +327,18 @@
 }
 
 .messageAuthor {
-  font-weight: 600;
-  color: var(--text);
+  font-weight: 700;
+  color: var(--accent-text);
 }
 
 .messageBubble {
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: var(--r-md);
   padding: var(--s-2) var(--s-3);
   font-size: var(--fs-sm);
   word-break: break-word;
+  line-height: 1.5;
 }
 
 .chatForm {
@@ -328,17 +351,24 @@
 
 .chatInput {
   flex: 1;
-  padding: 8px 12px;
-  border: 1px solid var(--line);
+  padding: 9px 13px;
+  border: 1px solid var(--glass-border);
   border-radius: var(--r-md);
   background: var(--surface);
   color: var(--text);
   font-size: var(--fs-sm);
+  font-family: inherit;
+  transition: border-color var(--t-fast) ease, box-shadow var(--t-fast) ease;
+}
+
+.chatInput::placeholder {
+  color: var(--text-faint);
 }
 
 .chatInput:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
 }
 
 .ambientBar {
@@ -351,24 +381,31 @@
   margin-bottom: var(--s-4);
   font-size: var(--fs-xs);
   color: var(--text-muted);
+  border: 1px solid var(--glass-border-subtle);
 }
 
 .ambientSoundBtn {
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: var(--r-sm);
-  padding: 4px 8px;
+  padding: 4px 9px;
   font-size: var(--fs-xs);
   cursor: pointer;
   color: var(--text);
   transition: all var(--t-fast) ease;
+  font-family: inherit;
+}
+
+.ambientSoundBtn:hover {
+  border-color: var(--accent-ring);
+  background: var(--surface-hover);
 }
 
 .ambientSoundBtn.active {
-  background: var(--accent-soft);
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.15), rgba(20, 184, 166, 0.08));
   border-color: var(--accent);
   color: var(--accent-text);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 @media (max-width: 900px) {

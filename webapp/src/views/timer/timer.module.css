@@ -368,11 +368,16 @@
   width: 100%;
   max-width: 460px;
   margin-top: var(--s-6);
-  padding: var(--s-3) var(--s-4);
-  background: var(--surface-2);
-  border: 1px solid var(--glass-border-subtle);
-  border-radius: var(--r-md);
+  padding: var(--s-4) var(--s-5);
+  background: linear-gradient(
+    135deg,
+    rgba(15, 118, 110, 0.07) 0%,
+    var(--surface-2) 100%
+  );
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  border-radius: var(--r-lg);
   text-align: left;
+  box-shadow: 0 2px 16px rgba(20, 184, 166, 0.06);
 }
 
 .studyRoomWidgetHeader {
@@ -396,7 +401,15 @@
   height: 7px;
   border-radius: 50%;
   background: var(--success);
-  box-shadow: 0 0 6px var(--success);
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: timerRoomDotPulse 2.2s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+@keyframes timerRoomDotPulse {
+  0%  { box-shadow: 0 0 0 0   rgba(16, 185, 129, 0.6); }
+  60% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100%{ box-shadow: 0 0 0 0   rgba(16, 185, 129, 0); }
 }
 
 .studyRoomCta {
@@ -404,12 +417,18 @@
   font-weight: 700;
   color: var(--accent-text);
   text-decoration: none;
-  transition: transform var(--t-fast) ease;
+  padding: 3px 8px;
+  border-radius: var(--r-pill);
+  background: rgba(20, 184, 166, 0.1);
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  transition: all var(--t-fast) ease;
 }
 
 .studyRoomCta:hover {
-  text-decoration: underline;
-  transform: translateX(2px);
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  transform: translateX(1px);
 }
 
 .studyBuddiesList {
@@ -422,17 +441,24 @@
 
 .studyBuddyAvatar {
   position: relative;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: var(--accent-soft);
+  background: linear-gradient(135deg, var(--accent-soft), rgba(20, 184, 166, 0.15));
   color: var(--accent-text);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--success);
+  border: 2px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+  transition: border-color var(--t) ease;
+}
+
+.studyBuddyAvatar:hover {
+  border-color: var(--success);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
 }
 
 .buddyLiveIndicator {
@@ -444,6 +470,7 @@
   border-radius: 50%;
   background: var(--success);
   border: 1.5px solid var(--surface);
+  box-shadow: 0 0 4px rgba(16, 185, 129, 0.6);
 }
 
 .studyRoomEmpty {
@@ -455,6 +482,7 @@
 .studyRoomEmpty a {
   color: var(--accent-text);
   text-decoration: underline;
+  font-weight: 600;
 }
 
 @media (max-width: 1024px) {

@@ -1,0 +1,7 @@
+{
+  "name": "Learnora public information MCP server",
+  "transport": "streamable-http",
+  "endpoint": "https://learnora-app.vercel.app/api/mcp",
+  "documentation": "https://learnora-app.vercel.app/developers",
+  "llms": "https://learnora-app.vercel.app/llms.txt"
+}

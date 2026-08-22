@@ -1,0 +1,48 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Learnora Public API",
+    "version": "1.0.0",
+    "description": "Read-only public product information for Learnora. This API does not expose student accounts or private study data."
+  },
+  "servers": [{ "url": "https://learnora-app.vercel.app" }],
+  "paths": {
+    "/api/product-info": {
+      "get": {
+        "operationId": "getLearnoraProductInfo",
+        "summary": "Get public Learnora product information",
+        "responses": {
+          "200": {
+            "description": "Canonical public product information",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProductInfo" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ProductInfo": {
+        "type": "object",
+        "required": ["name", "description", "url", "applicationUrl", "developerDocumentation", "llms", "openapi", "mcp", "mcpDiscovery", "publicApiScope"],
+        "properties": {
+          "name": { "type": "string", "example": "Learnora" },
+          "description": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "applicationUrl": { "type": "string", "format": "uri" },
+          "developerDocumentation": { "type": "string", "format": "uri" },
+          "llms": { "type": "string", "format": "uri" },
+          "openapi": { "type": "string", "format": "uri" },
+          "mcp": { "type": "string", "format": "uri" },
+          "mcpDiscovery": { "type": "string", "format": "uri" },
+          "support": { "type": "string" },
+          "publicApiScope": { "type": "string" }
+        }
+      }
+    }
+  }
+}
