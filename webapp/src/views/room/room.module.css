@@ -23,34 +23,26 @@
   flex-wrap: wrap;
   gap: var(--s-4);
   padding: var(--s-5) var(--s-6);
-  background: linear-gradient(
-    135deg,
-    rgba(15, 118, 110, 0.06) 0%,
-    var(--glass-bg) 60%
-  );
+  background:
+    radial-gradient(
+      circle at calc(100% - 40px) 0,
+      rgba(20, 184, 166, 0.12) 0%,
+      transparent 150px
+    ),
+    linear-gradient(135deg, rgba(15, 118, 110, 0.06) 0%, var(--glass-bg) 60%);
   backdrop-filter: blur(var(--glass-blur)) saturate(160%);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
   box-shadow:
-    0 1px 0 rgba(255,255,255,0.06) inset,
-    var(--shadow-sm),
-    0 0 0 1px rgba(15, 118, 110, 0.08);
-  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease);
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    var(--shadow-sm);
+  transition:
+    border-color var(--t) var(--ease),
+    box-shadow var(--t) var(--ease);
   position: relative;
-  overflow: hidden;
-}
-
-.roomHeader::before {
-  content: "";
-  position: absolute;
-  top: -40px;
-  right: -60px;
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(20, 184, 166, 0.12) 0%, transparent 70%);
-  pointer-events: none;
+  /* The sound menu is anchored inside the header and needs to escape it. */
+  overflow: visible;
 }
 
 .roomHeaderLeft {
@@ -58,6 +50,8 @@
   flex-direction: column;
   gap: var(--s-1);
   position: relative;
+  min-width: 0;
+  flex: 1 1 420px;
 }
 
 .roomTitleRow {
@@ -74,7 +68,11 @@
   color: var(--text);
   margin: 0;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--text) 40%, rgba(20, 184, 166, 0.8) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 40%,
+    rgba(20, 184, 166, 0.8) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -132,6 +130,7 @@
   gap: var(--s-3);
   flex-wrap: wrap;
   position: relative;
+  z-index: 2;
 }
 
 /* ---- Sound Ambiance Control --------------------------------------------- */
@@ -156,6 +155,15 @@
   white-space: nowrap;
 }
 
+.ambianceChevron {
+  flex: 0 0 auto;
+  transition: transform var(--t-fast) ease;
+}
+
+.ambianceChevronOpen {
+  transform: rotate(180deg);
+}
+
 .ambianceTrigger:hover {
   background: var(--surface-hover);
   border-color: var(--accent-ring);
@@ -164,7 +172,11 @@
 }
 
 .ambianceTriggerActive {
-  background: linear-gradient(135deg, rgba(20, 184, 166, 0.15), rgba(20, 184, 166, 0.08));
+  background: linear-gradient(
+    135deg,
+    rgba(20, 184, 166, 0.15),
+    rgba(20, 184, 166, 0.08)
+  );
   border-color: var(--accent);
   color: var(--accent-text);
   box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
@@ -174,13 +186,13 @@
   position: absolute;
   top: calc(100% + var(--s-2));
   right: 0;
-  width: 290px;
+  width: min(310px, calc(100vw - var(--s-4) - var(--s-4)));
   background: var(--surface);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
   box-shadow:
     var(--shadow-lg),
-    0 0 0 1px rgba(255,255,255,0.04) inset;
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
   padding: var(--s-4);
   z-index: 200;
   display: flex;
@@ -192,8 +204,14 @@
 }
 
 @keyframes menuFadeIn {
-  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .ambianceTitle {
@@ -250,6 +268,7 @@
 
 .ambianceVolumeSlider {
   flex: 1;
+  min-width: 0;
   accent-color: var(--accent);
   cursor: pointer;
   height: 4px;
@@ -269,7 +288,9 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
-  box-shadow: var(--shadow-sm), 0 1px 0 rgba(255,255,255,0.04) inset;
+  box-shadow:
+    var(--shadow-sm),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
 }
 
 .roomCheerPrompt {
@@ -285,6 +306,8 @@
 .roomCheerEmojis {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
@@ -319,7 +342,7 @@
   border-radius: var(--r-xl);
   box-shadow:
     var(--shadow-sm),
-    0 1px 0 rgba(255,255,255,0.05) inset;
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
   transition:
     transform var(--t) var(--ease),
     box-shadow var(--t) var(--ease),
@@ -334,7 +357,7 @@
   border-radius: var(--r-xl);
   background: radial-gradient(
     ellipse 80% 60% at 50% 0%,
-    rgba(255,255,255,0.025) 0%,
+    rgba(255, 255, 255, 0.025) 0%,
     transparent 70%
   );
   pointer-events: none;
@@ -345,21 +368,20 @@
   box-shadow:
     var(--shadow-md),
     0 0 0 1px var(--accent-ring),
-    0 12px 40px rgba(0,0,0,0.18);
+    0 12px 40px rgba(0, 0, 0, 0.18);
   border-color: var(--accent-ring);
 }
 
 .deskCardSelf {
   background: linear-gradient(
     150deg,
-    rgba(15, 118, 110, 0.10) 0%,
+    rgba(15, 118, 110, 0.1) 0%,
     rgba(15, 118, 110, 0.04) 50%,
     var(--glass-bg) 100%
   );
   border-color: rgba(20, 184, 166, 0.3);
   box-shadow:
     var(--shadow-sm),
-    0 0 0 1px rgba(20, 184, 166, 0.15),
     0 8px 32px rgba(20, 184, 166, 0.08);
 }
 
@@ -388,7 +410,11 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-soft), rgba(20, 184, 166, 0.2));
+  background: linear-gradient(
+    135deg,
+    var(--accent-soft),
+    rgba(20, 184, 166, 0.2)
+  );
   border: 2px solid rgba(20, 184, 166, 0.2);
   display: flex;
   align-items: center;
@@ -399,7 +425,9 @@
   overflow: hidden;
   box-shadow: var(--shadow-sm);
   user-select: none;
-  transition: border-color var(--t) ease, box-shadow var(--t) ease;
+  transition:
+    border-color var(--t) ease,
+    box-shadow var(--t) ease;
 }
 
 .deskAvatar img {
@@ -454,21 +482,39 @@
 }
 
 @keyframes pulseGreen {
-  0%  { box-shadow: 0 0 0 0   rgba(16, 185, 129, 0.7); }
-  65% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-  100%{ box-shadow: 0 0 0 0   rgba(16, 185, 129, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  65% {
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
 }
 
 @keyframes pulseAmber {
-  0%  { box-shadow: 0 0 0 0   rgba(245, 158, 11, 0.7); }
-  65% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
-  100%{ box-shadow: 0 0 0 0   rgba(245, 158, 11, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  }
+  65% {
+    box-shadow: 0 0 0 8px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
 }
 
 @keyframes pulseBlue {
-  0%  { box-shadow: 0 0 0 0   rgba(14, 165, 233, 0.7); }
-  65% { box-shadow: 0 0 0 8px rgba(14, 165, 233, 0); }
-  100%{ box-shadow: 0 0 0 0   rgba(14, 165, 233, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7);
+  }
+  65% {
+    box-shadow: 0 0 0 8px rgba(14, 165, 233, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0);
+  }
 }
 
 .deskNameCol {
@@ -491,13 +537,23 @@
   gap: var(--s-2);
 }
 
+.deskNameText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .youBadge {
   display: inline-flex;
   align-items: center;
   font-size: 10px;
   font-weight: 700;
   padding: 2px 8px;
-  background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(20, 184, 166, 0.1));
+  background: linear-gradient(
+    135deg,
+    rgba(20, 184, 166, 0.2),
+    rgba(20, 184, 166, 0.1)
+  );
   color: var(--accent-text);
   border-radius: var(--r-pill);
   border: 1px solid rgba(20, 184, 166, 0.3);
@@ -657,12 +713,14 @@
   padding-top: var(--s-3);
   border-top: 1px solid var(--line);
   margin-top: auto;
+  flex-wrap: wrap;
 }
 
 .cheerBar {
   display: flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
 }
 
 .cheerBtn {
@@ -690,8 +748,16 @@
   transform: scale(1.28);
   background: var(--surface-hover);
   border-color: var(--accent-ring);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   z-index: 2;
+}
+
+.ambianceTrigger:focus-visible,
+.ambiancePresetBtn:focus-visible,
+.cheerBtn:focus-visible,
+.syncBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .cheerBtn:active {
@@ -703,10 +769,18 @@
 }
 
 @keyframes cheerPop {
-  0%   { transform: scale(1); }
-  45%  { transform: scale(1.5) rotate(-8deg); }
-  75%  { transform: scale(0.9) rotate(5deg); }
-  100% { transform: scale(1) rotate(0deg); }
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.5) rotate(-8deg);
+  }
+  75% {
+    transform: scale(0.9) rotate(5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
 }
 
 .syncBtn {
@@ -718,7 +792,11 @@
   font-size: var(--fs-xs);
   font-weight: 700;
   border: 1px solid rgba(20, 184, 166, 0.3);
-  background: linear-gradient(135deg, rgba(20, 184, 166, 0.12), rgba(20, 184, 166, 0.06));
+  background: linear-gradient(
+    135deg,
+    rgba(20, 184, 166, 0.12),
+    rgba(20, 184, 166, 0.06)
+  );
   color: var(--accent-text);
   cursor: pointer;
   transition: all var(--t-fast) ease;
@@ -743,6 +821,14 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
+}
+
+.chatSection:hover {
+  transform: none;
+  border-color: var(--glass-border);
+  box-shadow:
+    var(--shadow-sm),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
 }
 
 .chatTitle {
@@ -790,6 +876,7 @@
 
 .chatInput {
   flex: 1;
+  min-width: 0;
   padding: 10px 14px;
   border: 1px solid var(--glass-border);
   border-radius: var(--r-md);
@@ -797,7 +884,9 @@
   color: var(--text);
   font-size: var(--fs-sm);
   font-family: inherit;
-  transition: border-color var(--t-fast) ease, box-shadow var(--t-fast) ease;
+  transition:
+    border-color var(--t-fast) ease,
+    box-shadow var(--t-fast) ease;
 }
 
 .chatInput::placeholder {
@@ -831,25 +920,41 @@
 }
 
 @keyframes floatUpAndFade {
-  0%   { transform: translateY(0)    scale(0.5) rotate(0deg);   opacity: 0; }
-  12%  { transform: translateY(-40px) scale(1.4) rotate(-12deg); opacity: 1; }
-  40%  { transform: translateY(-160px) scale(1.15) rotate(8deg); opacity: 0.95; }
-  80%  { transform: translateY(-310px) scale(1) rotate(-5deg);  opacity: 0.6; }
-  100% { transform: translateY(-460px) scale(0.6) rotate(14deg); opacity: 0; }
+  0% {
+    transform: translateY(0) scale(0.5) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    transform: translateY(-40px) scale(1.4) rotate(-12deg);
+    opacity: 1;
+  }
+  40% {
+    transform: translateY(-160px) scale(1.15) rotate(8deg);
+    opacity: 0.95;
+  }
+  80% {
+    transform: translateY(-310px) scale(1) rotate(-5deg);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-460px) scale(0.6) rotate(14deg);
+    opacity: 0;
+  }
 }
 
 /* ---- Cheer Feed / Activity Stream --------------------------------------- */
 
 .cheerFeed {
   position: fixed;
-  bottom: 24px;
+  bottom: calc(var(--command-bar-clearance, 104px) + var(--s-3));
   left: 24px;
+  right: 24px;
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
   z-index: 9000;
   pointer-events: none;
-  max-width: 380px;
+  width: min(380px, calc(100vw - 48px));
 }
 
 .cheerToast {
@@ -864,7 +969,7 @@
   border-radius: var(--r-lg);
   box-shadow:
     var(--shadow-md),
-    0 1px 0 rgba(255,255,255,0.06) inset;
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
   color: var(--text);
   font-size: var(--fs-sm);
   font-weight: 500;
@@ -888,8 +993,14 @@
 }
 
 @keyframes slideInToast {
-  0%   { transform: translateX(-20px) scale(0.92); opacity: 0; }
-  100% { transform: translateX(0)     scale(1);    opacity: 1; }
+  0% {
+    transform: translateX(-20px) scale(0.92);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
 }
 
 /* ---- Empty State -------------------------------------------------------- */
@@ -917,7 +1028,11 @@
   width: 300px;
   height: 300px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(20, 184, 166, 0.06) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(20, 184, 166, 0.06) 0%,
+    transparent 70%
+  );
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -932,8 +1047,13 @@
 }
 
 @keyframes floatIcon {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 .emptyTitle {
@@ -968,9 +1088,143 @@
   .ambianceMenu {
     animation: none;
   }
+  .ambianceChevron {
+    transition: none;
+  }
   .deskCard:hover,
   .ambianceTrigger:hover,
   .syncBtn:hover {
     transform: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .roomView {
+    padding: var(--s-4) var(--s-4) var(--command-bar-clearance, 104px);
+    gap: var(--s-4);
+  }
+
+  .roomHeader {
+    align-items: stretch;
+    padding: var(--s-4);
+  }
+
+  .roomHeaderLeft,
+  .roomActions,
+  .ambianceWrapper,
+  .ambianceTrigger,
+  .inviteButton {
+    width: 100%;
+  }
+
+  .roomTitleRow {
+    align-items: flex-start;
+  }
+
+  .roomTitle {
+    font-size: var(--fs-lg);
+  }
+
+  .roomStats {
+    white-space: normal;
+  }
+
+  .roomActions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .ambianceTrigger,
+  .inviteButton {
+    min-height: 44px;
+  }
+
+  .ambianceTrigger {
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .ambianceTrigger > span:nth-child(2),
+  .inviteButton > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ambianceMenu {
+    left: 0;
+    right: auto;
+  }
+
+  .roomCheerBar {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: var(--s-3) var(--s-4);
+  }
+
+  .roomCheerPrompt {
+    white-space: normal;
+  }
+
+  .roomCheerEmojis {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .deskCard {
+    padding: var(--s-4);
+  }
+
+  .deskHeader {
+    align-items: flex-start;
+  }
+
+  .deskTimer {
+    padding: var(--s-4) var(--s-3);
+  }
+
+  .cheerFeed {
+    left: var(--s-4);
+    right: var(--s-4);
+    width: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .roomActions {
+    grid-template-columns: 1fr;
+  }
+
+  .ambianceVolumeRow {
+    gap: var(--s-2);
+  }
+
+  .ambianceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .deskActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cheerBar {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .cheerBtn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .syncBtn {
+    justify-content: center;
+    min-height: 40px;
+  }
+
+  .chatForm > button {
+    min-width: 44px;
+    min-height: 44px;
   }
 }

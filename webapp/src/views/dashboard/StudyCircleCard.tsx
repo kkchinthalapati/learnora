@@ -19,17 +19,18 @@ export function StudyCircleCard() {
   const { data: entries, isPending, isError, error } = useFriendsLeaderboard();
   const { activeCount } = useStudyRoom();
 
-  const liveBanner = activeCount > 0 ? (
-    <div className={styles.circleLiveBanner}>
-      <span className={styles.circleLiveBadge}>
-        <span className={styles.circleLiveDot} />
-        🟢 {activeCount} studying right now
-      </span>
-      <Link to="/room" className={styles.circleLiveAction}>
-        Join Room →
-      </Link>
-    </div>
-  ) : null;
+  const liveBanner =
+    activeCount > 0 ? (
+      <div className={styles.circleLiveBanner}>
+        <span className={styles.circleLiveBadge}>
+          <span className={styles.circleLiveDot} />
+          🟢 {activeCount} studying right now
+        </span>
+        <Link to="/room" className={styles.circleLiveAction}>
+          Join Room →
+        </Link>
+      </div>
+    ) : null;
 
   if (isPending) {
     return (
@@ -102,7 +103,9 @@ export function StudyCircleCard() {
             </span>
             <span className={styles.circleMain}>
               <span className={styles.circleName}>
-                {entry.is_self ? "You" : displayName(entry.full_name)}
+                <span className={styles.circleNameText}>
+                  {entry.is_self ? "You" : displayName(entry.full_name)}
+                </span>
                 {!entry.is_self && closest?.user_id === entry.user_id ? (
                   <span className={styles.circleTag}>Closest pace</span>
                 ) : null}

@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { createRef } from "react";
+import { act, render, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { RichTextEditor } from "./RichTextEditor";
+import { RichTextEditor, type RichTextEditorHandle } from "./RichTextEditor";
 
 function editorEl(): HTMLElement {
   return document.querySelector(".ql-editor") as HTMLElement;
@@ -98,6 +99,63 @@ describe("RichTextEditor", () => {
     await waitFor(() =>
       expect(editorEl()).toHaveAttribute("contenteditable", "false"),
     );
+  });
+
+  it("exposes selection text and HTML through the imperative handle", async () => {
+    const user = userEvent.setup();
+    const ref = createRef<RichTextEditorHandle>();
+    const onSelectionChange = vi.fn();
+    render(
+      <RichTextEditor
+        ref={ref}
+        initialHtml="<p><strong>Selected passage</strong> continues here</p>"
+      />,
+    );
+    await waitFor(() => expect(ref.current).not.toBeNull());
+    ref.current?.onSelectionChange(onSelectionChange);
+
+    await user.click(editorEl());
+    await user.keyboard("{Control>}a{/Control}");
+
+    await waitFor(() =>
+      expect(onSelectionChange).toHaveBeenCalledWith(
+        expect.objectContaining({ index: 0 }),
+      ),
+    );
+    expect(ref.current?.getSelection()?.length).toBeGreaterThan(10);
+    expect(ref.current?.getSelectedText()).toContain("Selected passage");
+    expect(ref.current?.getSelectedHtml()).toContain("<strong>");
+  });
+
+  it("replaces and inserts HTML ranges as user edits", async () => {
+    const ref = createRef<RichTextEditorHandle>();
+    const onUserChange = vi.fn();
+    render(
+      <RichTextEditor
+        ref={ref}
+        initialHtml="<p>Alpha passage</p>"
+        onUserChange={onUserChange}
+      />,
+    );
+    await waitFor(() => expect(editorEl().textContent).toBe("Alpha passage"));
+
+    act(() => ref.current?.replaceRange(0, 5, "<strong>Better</strong>"));
+    await waitFor(() =>
+      expect(editorEl().textContent).toContain("Better passage"),
+    );
+    expect(editorEl().querySelector("strong")).toHaveTextContent("Better");
+
+    act(() =>
+      ref.current?.insertAfterRange(
+        0,
+        6,
+        "<blockquote>Why it matters</blockquote>",
+      ),
+    );
+    await waitFor(() =>
+      expect(editorEl().textContent).toContain("Why it matters"),
+    );
+    expect(onUserChange).toHaveBeenCalled();
   });
 
   it("removes the toolbar and editor from the DOM on unmount", async () => {

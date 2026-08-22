@@ -87,7 +87,8 @@ export function StudyDeskCard({
               : participant.startedAt;
           const elapsedSec = Math.max(0, Math.floor((now - startTime) / 1000));
           return (
-            (participant.elapsedSeconds ?? participant.elapsed ?? 0) + elapsedSec
+            (participant.elapsedSeconds ?? participant.elapsed ?? 0) +
+            elapsedSec
           );
         }
         return participant.elapsedSeconds ?? participant.elapsed ?? 0;
@@ -96,7 +97,7 @@ export function StudyDeskCard({
         if (participant.targetEndTime && participant.isRunning !== false) {
           const remainingSec = Math.max(
             0,
-            Math.ceil((participant.targetEndTime - now) / 1000)
+            Math.ceil((participant.targetEndTime - now) / 1000),
           );
           return remainingSec;
         }
@@ -161,10 +162,7 @@ export function StudyDeskCard({
           ? "Paused"
           : "Idle";
 
-  const cardClasses = [
-    styles.deskCard,
-    isSelf ? styles.deskCardSelf : null,
-  ]
+  const cardClasses = [styles.deskCard, isSelf ? styles.deskCardSelf : null]
     .filter(Boolean)
     .join(" ");
 
@@ -214,14 +212,16 @@ export function StudyDeskCard({
 
           <div className={styles.deskNameCol}>
             <div className={styles.deskName}>
-              <span>{participantName}</span>
+              <span className={styles.deskNameText}>{participantName}</span>
               {isSelf && <span className={styles.youBadge}>(You)</span>}
             </div>
-            {typeof participant.streak === "number" && participant.streak > 0 && (
-              <span className={styles.streakPill}>
-                🔥 {participant.streak} day{participant.streak === 1 ? "" : "s"}
-              </span>
-            )}
+            {typeof participant.streak === "number" &&
+              participant.streak > 0 && (
+                <span className={styles.streakPill}>
+                  🔥 {participant.streak} day
+                  {participant.streak === 1 ? "" : "s"}
+                </span>
+              )}
           </div>
         </div>
 

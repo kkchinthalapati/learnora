@@ -87,6 +87,27 @@ export interface RichTextEditorHandle {
   appendText: (text: string) => void;
   getHtml: () => string;
   setHtml: (html: string) => void;
+  getSelection: () => EditorRange | null;
+  getSelectedText: () => string | null;
+  getSelectedHtml: () => string | null;
+  getSelectionRect: () => EditorSelectionRect | null;
+  replaceRange: (index: number, length: number, html: string) => void;
+  insertAfterRange: (index: number, length: number, html: string) => void;
+  onSelectionChange: (cb: (range: EditorRange | null) => void) => void;
+}
+
+export interface EditorRange {
+  index: number;
+  length: number;
+}
+
+export interface EditorSelectionRect {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+  width: number;
+  height: number;
 }
 
 export interface RichTextEditorProps {
@@ -112,6 +133,9 @@ export function RichTextEditor({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const quillRef = useRef<Quill | null>(null);
   const onUserChangeRef = useRef(onUserChange);
+  const onSelectionChangeRef = useRef<
+    ((range: EditorRange | null) => void) | null
+  >(null);
   onUserChangeRef.current = onUserChange;
 
   useImperativeHandle(
@@ -137,6 +161,71 @@ export function RichTextEditor({
         const quill = quillRef.current;
         if (!quill) return;
         setContentsFromHtml(quill, html);
+      },
+      getSelection: () => {
+        const range = quillRef.current?.getSelection() ?? null;
+        return range ? { index: range.index, length: range.length } : null;
+      },
+      getSelectedText: () => {
+        const quill = quillRef.current;
+        const range = quill?.getSelection();
+        if (!quill || !range || range.length === 0) return null;
+        return quill.getText(range.index, range.length);
+      },
+      getSelectedHtml: () => {
+        const quill = quillRef.current;
+        const range = quill?.getSelection();
+        if (!quill || !range || range.length === 0) return null;
+        return quill.getSemanticHTML(range.index, range.length);
+      },
+      getSelectionRect: () => {
+        const quill = quillRef.current;
+        const range = quill?.getSelection();
+        if (!quill || !range || range.length === 0) return null;
+        const bounds = quill.getBounds(range.index, range.length);
+        if (!bounds) return null;
+        const editorRect = quill.root.getBoundingClientRect();
+        const top = editorRect.top + bounds.top;
+        const left = editorRect.left + bounds.left;
+        return {
+          top,
+          left,
+          right: left + bounds.width,
+          bottom: top + bounds.height,
+          width: bounds.width,
+          height: bounds.height,
+        };
+      },
+      replaceRange: (index, length, html) => {
+        const quill = quillRef.current;
+        if (!quill || !quill.isEnabled()) return;
+        const safeIndex = Math.max(0, Math.min(index, quill.getLength() - 1));
+        const safeLength = Math.max(
+          0,
+          Math.min(length, quill.getLength() - 1 - safeIndex),
+        );
+        if (safeLength > 0) quill.deleteText(safeIndex, safeLength, "user");
+        if (html) {
+          quill.clipboard.dangerouslyPasteHTML(safeIndex, html, "user");
+        }
+        quill.setSelection(safeIndex, 0, "silent");
+      },
+      insertAfterRange: (index, length, html) => {
+        const quill = quillRef.current;
+        if (!quill || !quill.isEnabled() || !html) return;
+        const insertAt = Math.max(
+          0,
+          Math.min(index + length, quill.getLength() - 1),
+        );
+        quill.clipboard.dangerouslyPasteHTML(
+          insertAt,
+          `<p><br></p>${html}`,
+          "user",
+        );
+        quill.setSelection(insertAt, 0, "silent");
+      },
+      onSelectionChange: (cb) => {
+        onSelectionChangeRef.current = cb;
       },
     }),
     [],
@@ -170,8 +259,15 @@ export function RichTextEditor({
       onUserChangeRef.current?.(quill.root.innerHTML);
     });
 
+    quill.on("selection-change", (range) => {
+      onSelectionChangeRef.current?.(
+        range ? { index: range.index, length: range.length } : null,
+      );
+    });
+
     return () => {
       quillRef.current = null;
+      onSelectionChangeRef.current = null;
       wrapper.innerHTML = "";
     };
     // Mount-once by design — see the component comment above.

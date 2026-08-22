@@ -9,13 +9,14 @@ import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import styles from "./room.module.css";
 
-const AMBIANCE_PRESETS: { id: AmbiancePreset; label: string; icon: string }[] = [
-  { id: "rain", label: "Gentle Rain", icon: "🌧️" },
-  { id: "white_noise", label: "Brown Noise", icon: "📻" },
-  { id: "cafe", label: "Cafe Murmur", icon: "☕" },
-  { id: "waves", label: "Ocean Waves", icon: "🌊" },
-  { id: "binaural", label: "Alpha Waves (10Hz)", icon: "🧠" },
-];
+const AMBIANCE_PRESETS: { id: AmbiancePreset; label: string; icon: string }[] =
+  [
+    { id: "rain", label: "Gentle Rain", icon: "🌧️" },
+    { id: "white_noise", label: "Brown Noise", icon: "📻" },
+    { id: "cafe", label: "Cafe Murmur", icon: "☕" },
+    { id: "waves", label: "Ocean Waves", icon: "🌊" },
+    { id: "binaural", label: "Alpha Waves (10Hz)", icon: "🧠" },
+  ];
 
 const QUICK_GLOBAL_CHEERS = ["🔥", "👏", "☕", "🧠", "💪", "✨", "🎉"];
 
@@ -41,7 +42,8 @@ export function StudyRoomView() {
 
   // Sound ambiance state
   const [isAmbianceOpen, setIsAmbianceOpen] = useState<boolean>(false);
-  const [currentAmbiance, setCurrentAmbiance] = useState<AmbiancePreset>("none");
+  const [currentAmbiance, setCurrentAmbiance] =
+    useState<AmbiancePreset>("none");
   const [ambianceVolume, setAmbianceVolume] = useState<number>(0.5);
   const ambianceMenuRef = useRef<HTMLDivElement>(null);
 
@@ -95,7 +97,7 @@ export function StudyRoomView() {
   };
 
   const activeAmbianceMeta = AMBIANCE_PRESETS.find(
-    (p) => p.id === currentAmbiance
+    (p) => p.id === currentAmbiance,
   );
 
   return (
@@ -140,6 +142,13 @@ export function StudyRoomView() {
                   ? activeAmbianceMeta.label
                   : "Sound Ambiance"}
               </span>
+              <Icon
+                name="chevron-down"
+                size={14}
+                className={`${styles.ambianceChevron} ${
+                  isAmbianceOpen ? styles.ambianceChevronOpen : ""
+                }`}
+              />
             </button>
 
             {isAmbianceOpen && (
@@ -161,6 +170,7 @@ export function StudyRoomView() {
                         }`}
                         onClick={() => handleSelectAmbiance(preset.id)}
                         aria-label={preset.label}
+                        aria-pressed={isSelected}
                       >
                         <span>{preset.icon}</span>
                         <span>{preset.label}</span>
@@ -171,7 +181,10 @@ export function StudyRoomView() {
 
                 <div className={styles.ambianceVolumeRow}>
                   <Icon name="clock" size={14} />
-                  <label htmlFor="ambiance-vol" className={styles.ambianceTitle}>
+                  <label
+                    htmlFor="ambiance-vol"
+                    className={styles.ambianceTitle}
+                  >
                     Volume
                   </label>
                   <input
@@ -205,11 +218,14 @@ export function StudyRoomView() {
           <Button
             variant="primary"
             size="md"
+            className={styles.inviteButton}
             onClick={() => void copyInviteLink()}
             aria-label="Copy study room invite link"
           >
             <Icon name="link" size={16} />
-            <span>{isCopied ? "Link Copied!" : "Copy study room invite link"}</span>
+            <span>
+              {isCopied ? "Link Copied!" : "Copy study room invite link"}
+            </span>
           </Button>
         </div>
       </header>
@@ -240,10 +256,7 @@ export function StudyRoomView() {
       </section>
 
       {/* Desks Grid */}
-      <section
-        className={styles.desksGrid}
-        aria-label="Student Study Desks"
-      >
+      <section className={styles.desksGrid} aria-label="Student Study Desks">
         {/* Current User Self Desk */}
         {selfParticipant && (
           <StudyDeskCard
@@ -302,7 +315,8 @@ export function StudyRoomView() {
 
         {messages.length === 0 ? (
           <p className={styles.chatEmpty}>
-            Welcome to the study room! Say hello or share your focus goals for today.
+            Welcome to the study room! Say hello or share your focus goals for
+            today.
           </p>
         ) : (
           <div className={styles.chatMessages}>
@@ -327,7 +341,12 @@ export function StudyRoomView() {
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
           />
-          <Button type="submit" variant="primary" size="sm" aria-label="Send message">
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            aria-label="Send message"
+          >
             <Icon name="send" size={16} />
           </Button>
         </form>

@@ -92,6 +92,35 @@
   color: var(--danger);
 }
 
+.complexityBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-4);
+  margin-top: var(--s-2);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+}
+
+.complexityLabel {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.complexitySlider {
+  flex: 1 1 160px;
+  max-width: 220px;
+  accent-color: var(--accent);
+}
+
+.complexityValue {
+  width: 76px;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
 /* Shell mostly comes from <Card variant="elevated" padding="none">, but this
    is a documented one-off hybrid (redesign/PRIMITIVES.md): --r-xl + the
    inner-bottom shadow layer (both elevated), but --shadow-sm instead of
@@ -114,9 +143,377 @@
   box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-sm);
 }
 
+.editorPane :global(.ql-editor blockquote:has(> strong:first-child)) {
+  position: relative;
+  margin: var(--s-4) 0;
+  padding: var(--s-4) var(--s-5);
+  color: var(--text);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+  border-left: 4px solid var(--accent);
+  border-radius: 0 var(--r-lg) var(--r-lg) 0;
+}
+
+/* Selection action UI lives outside the clipped editor card, so it can float
+   over Quill's scrolling surface without being cut off by the card shell. */
+.inlineToolbarAnchor {
+  position: fixed;
+  z-index: 4200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  width: min(620px, calc(100vw - 32px));
+}
+
+.inlineToolbarAbove {
+  transform: translate(-50%, -100%);
+}
+
+.inlineToolbarBelow {
+  transform: translateX(-50%);
+}
+
+.inlineToolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  overflow-x: auto;
+  padding: 5px;
+  background: color-mix(in srgb, var(--surface-active) 92%, transparent);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-lg), var(--glass-inner);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  scrollbar-width: none;
+}
+
+.inlineToolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.inlineToolbarBtn {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color var(--t-fast) ease,
+    background var(--t-fast) ease,
+    border-color var(--t-fast) ease,
+    transform var(--t-fast) ease;
+}
+
+.inlineToolbarBtn:hover:not(:disabled),
+.inlineToolbarBtn:focus-visible {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border-color: var(--accent-ring);
+  outline: none;
+}
+
+.inlineToolbarBtn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.inlineToolbarBtn:disabled {
+  opacity: 0.52;
+  cursor: wait;
+}
+
+.inlineToolbarLoading {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: inlineAiSpin 700ms linear infinite;
+}
+
+@keyframes inlineAiSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.inlineMiniChat {
+  width: min(520px, calc(100vw - 32px));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px 38px;
+  gap: var(--s-2);
+  padding: var(--s-2);
+  background: var(--surface);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg), var(--glass-inner);
+}
+
+.inlineMiniChatInput {
+  min-width: 0;
+  height: 38px;
+  padding: 0 var(--s-3);
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+  font: inherit;
+  font-size: var(--fs-sm);
+}
+
+.inlineMiniChatInput:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.inlineMiniChatSend,
+.inlineMiniChatClose {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.inlineMiniChatSend {
+  color: var(--accent-on);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.inlineMiniChatSend:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inlineMiniChatSend:focus-visible,
+.inlineMiniChatClose:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.inlineDiffPreview {
+  position: fixed;
+  z-index: 4300;
+  display: flex;
+  flex-direction: column;
+  max-height: min(420px, calc(100vh - 32px));
+  overflow: hidden;
+  transform: translateX(-50%);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg), var(--glass-inner);
+}
+
+.inlineDiffPreviewAbove {
+  transform: translate(-50%, -100%);
+}
+
+.diffHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  border-bottom: 1px solid var(--line);
+}
+
+.diffTimer {
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+}
+
+.diffOriginal,
+.diffNew {
+  padding: var(--s-3) var(--s-4);
+  overflow-y: auto;
+}
+
+.diffOriginal {
+  color: var(--text-faint);
+  background: var(--danger-soft);
+}
+
+.diffOriginal p {
+  margin: var(--s-1) 0 0;
+  text-decoration: line-through;
+  white-space: pre-wrap;
+}
+
+.diffNew {
+  color: var(--text);
+  background: var(--accent-soft);
+  border-top: 1px solid var(--accent-ring);
+}
+
+.diffNew p {
+  margin: var(--s-1) 0 0;
+  white-space: pre-wrap;
+}
+
+.diffLabel {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.diffActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border-top: 1px solid var(--line);
+}
+
+.diffAccept,
+.diffReject {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px var(--s-3);
+  border-radius: var(--r-md);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.diffAccept {
+  color: var(--accent-on);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.diffReject {
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+}
+
+.diffAccept:focus-visible,
+.diffReject:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.explainCallout {
+  position: fixed;
+  z-index: 4100;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 6px 8px 6px var(--s-3);
+  transform: translateX(-50%);
+  color: var(--accent-text);
+  background: var(--surface);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-md), var(--glass-inner);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.explainCallout button {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.explainCallout button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 @media (max-width: 900px) {
   .editorPane {
     min-height: 55vh;
+  }
+}
+
+@media (max-width: 640px) {
+  .view {
+    padding: var(--s-4);
+  }
+
+  .toolbar {
+    align-items: flex-start;
+    padding: var(--s-3);
+  }
+
+  .toolbarRight {
+    align-items: flex-end;
+    flex-direction: column-reverse;
+    gap: var(--s-1);
+  }
+
+  .complexityBar {
+    align-items: stretch;
+  }
+
+  .complexitySlider {
+    order: 3;
+    max-width: none;
+    flex-basis: 100%;
+  }
+
+  .inlineToolbarBtn {
+    min-height: 40px;
+  }
+
+  .diffHeader {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .diffActions > button {
+    flex: 1 1 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inlineToolbarBtn {
+    transition: none;
+  }
+
+  .inlineToolbarLoading {
+    animation: none;
+    border-right-color: currentColor;
   }
 }
 

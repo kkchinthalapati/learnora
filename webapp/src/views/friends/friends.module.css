@@ -193,3 +193,42 @@
   gap: var(--s-3);
   justify-content: center;
 }
+
+@media (max-width: 560px) {
+  .view {
+    padding: var(--s-4) var(--s-4) var(--command-bar-clearance, 104px);
+    gap: var(--s-4);
+  }
+
+  .inviteRow > button {
+    flex: 1 1 0;
+  }
+
+  .personRow {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+  }
+
+  .rank {
+    min-width: 1.5rem;
+  }
+
+  .personActions {
+    width: 100%;
+  }
+
+  .personActions > button {
+    flex: 1 1 0;
+  }
+
+  .personName {
+    white-space: normal;
+  }
+
+  .paceTag,
+  .youTag {
+    display: inline-flex;
+    margin-top: var(--s-1);
+  }
+}
