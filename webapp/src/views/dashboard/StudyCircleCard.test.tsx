@@ -8,6 +8,10 @@ import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { StudyCircleCard } from "./StudyCircleCard";
 
+vi.mock("../../hooks/useStudyRoom", () => ({
+  useStudyRoom: () => ({ activeCount: 0 }),
+}));
+
 const rpc = (name: string) => `${SUPABASE_URL}/rest/v1/rpc/${name}`;
 
 const ME = {
@@ -45,6 +49,7 @@ function renderCard() {
       <StudyCircleCard />
     </MemoryRouter>,
     { session: fakeSession() },
+    { withTimer: true },
   );
 }
 

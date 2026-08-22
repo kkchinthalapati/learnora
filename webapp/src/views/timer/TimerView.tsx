@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { Link } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
@@ -6,6 +7,7 @@ import { useDialog } from "../../context/dialog";
 import { useTimer } from "../../context/timer";
 import { useFolders } from "../../hooks/useFolders";
 import { useTasks } from "../../hooks/useTasks";
+import { useStudyRoom } from "../../hooks/useStudyRoom";
 import { useTranslation } from "../../hooks/useTranslation";
 import type { TranslationKey } from "../../lib/i18n";
 import {
@@ -79,6 +81,7 @@ export function TimerView() {
   const { confirm, promptText } = useDialog();
   const { data: tasks } = useTasks();
   const { data: folders } = useFolders();
+  const { focusParticipants, activeCount } = useStudyRoom();
   const t = useTranslation();
 
   const focusId = useId();
@@ -434,6 +437,46 @@ export function TimerView() {
             >
               {stopAndLog ? "Stop & log" : t("btn_reset")}
             </Button>
+          </div>
+
+          <div className={styles.studyRoomWidget}>
+            <div className={styles.studyRoomWidgetHeader}>
+              <span className={styles.studyRoomTitle}>
+                <span className={styles.studyRoomDot} />
+                Study Room · {activeCount > 0 ? `${activeCount} focusing` : "Live Room"}
+              </span>
+              <Link to="/room" className={styles.studyRoomCta}>
+                Open Study Room →
+              </Link>
+            </div>
+            {focusParticipants.length > 0 ? (
+              <div className={styles.studyBuddiesList}>
+                {focusParticipants.slice(0, 5).map((p) => {
+                  const displayName = p.name || "Student";
+                  const initials =
+                    displayName
+                      .split(" ")
+                      .map((n: string) => n[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase() || "?";
+                  return (
+                    <div
+                      key={p.id}
+                      className={styles.studyBuddyAvatar}
+                      title={`${displayName}${p.task ? ` (${p.task})` : ""}`}
+                    >
+                      {initials}
+                      <span className={styles.buddyLiveIndicator} />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className={styles.studyRoomEmpty}>
+                Study alongside friends in real time. <Link to="/room">Join the room</Link> to focus together.
+              </p>
+            )}
           </div>
         </div>
       </div>

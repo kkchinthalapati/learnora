@@ -185,3 +185,11 @@ export interface PushSubscriptionRow {
   notify_flashcards: boolean;
   created_at: string;
 }
+
+export type {
+  StudyParticipant,
+  RoomReaction,
+  TimerSyncPayload,
+  TimerStatus,
+} from "./studyRoom";
+

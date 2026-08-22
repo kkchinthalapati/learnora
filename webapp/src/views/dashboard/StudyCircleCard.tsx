@@ -1,7 +1,9 @@
+import { Link } from "react-router";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useFriendsLeaderboard } from "../../hooks/useFriends";
+import { useStudyRoom } from "../../hooks/useStudyRoom";
 import { DashboardCardHeader } from "./DashboardCardHeader";
 import {
   displayName,
@@ -15,6 +17,19 @@ const MAX_VISIBLE = 3;
 
 export function StudyCircleCard() {
   const { data: entries, isPending, isError, error } = useFriendsLeaderboard();
+  const { activeCount } = useStudyRoom();
+
+  const liveBanner = activeCount > 0 ? (
+    <div className={styles.circleLiveBanner}>
+      <span className={styles.circleLiveBadge}>
+        <span className={styles.circleLiveDot} />
+        🟢 {activeCount} studying right now
+      </span>
+      <Link to="/room" className={styles.circleLiveAction}>
+        Join Room →
+      </Link>
+    </div>
+  ) : null;
 
   if (isPending) {
     return (
@@ -23,6 +38,7 @@ export function StudyCircleCard() {
           eyebrow="Study circle"
           action={{ to: "/friends", label: "Open" }}
         />
+        {liveBanner}
         <Skeleton label="Loading your study circle" height={88} />
       </Card>
     );
@@ -35,6 +51,7 @@ export function StudyCircleCard() {
           eyebrow="Study circle"
           action={{ to: "/friends", label: "Open" }}
         />
+        {liveBanner}
         <p role="alert" className={styles.emptySm}>
           Could not load your study circle. {(error as Error).message}
         </p>
@@ -51,6 +68,7 @@ export function StudyCircleCard() {
           eyebrow="Study circle"
           action={{ to: "/friends", label: "Open" }}
         />
+        {liveBanner}
         <div className={styles.circleEmpty}>
           <Icon name="users" size={22} className={styles.circleEmptyIcon} />
           <p className={styles.sub}>
@@ -71,6 +89,7 @@ export function StudyCircleCard() {
         eyebrow="Study circle"
         action={{ to: "/friends", label: "Full leaderboard" }}
       />
+      {liveBanner}
       <ul className={styles.circleList}>
         {top.map((entry) => (
           <li

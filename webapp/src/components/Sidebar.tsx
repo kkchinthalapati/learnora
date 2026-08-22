@@ -52,6 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   { to: "/plan", icon: "calendar", label: "This week's plan" },
   { to: "/exams", icon: "calendar", label: "Exams" },
+  { to: "/room", icon: "users", label: "Study Room" },
   /* Plain English like its two neighbours above: i18n.js has no key for this
      feature, and inventing one here would leave every non-English locale
      falling through to the key name. */
