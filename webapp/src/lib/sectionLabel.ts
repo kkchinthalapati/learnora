@@ -36,6 +36,7 @@ export function sectionLabel(
   if (pathname.startsWith("/timer")) return t("nav_timer");
   if (pathname.startsWith("/tasks")) return t("nav_tasks");
   if (pathname.startsWith("/analytics")) return "Analytics";
+  if (pathname.startsWith("/graph")) return "Concept Graph";
   if (pathname.startsWith("/plan")) return "This week's plan";
   if (pathname.startsWith("/exams")) return "Exams";
   if (pathname.startsWith("/room")) return "Study Room";

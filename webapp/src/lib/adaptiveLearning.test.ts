@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { Exam, Flashcard, FlashcardDeck, Folder, QuizAttempt, StudySession } from "../api/types";
+import type {
+  Exam,
+  Flashcard,
+  FlashcardDeck,
+  Folder,
+  QuizAttempt,
+  StudySession,
+} from "../api/types";
 import {
   calculateRetentionRisk,
   calculateSubjectBalance,
@@ -147,7 +154,10 @@ describe("adaptiveLearning Engine", () => {
         created_at: new Date("2026-08-10T12:00:00Z").toISOString(),
       };
 
-      expect(computeRetentionProbability(freshCard, baseDate)).toBeCloseTo(1.0, 4);
+      expect(computeRetentionProbability(freshCard, baseDate)).toBeCloseTo(
+        1.0,
+        4,
+      );
       expect(computeRetentionProbability(oldCard, baseDate)).toBeLessThan(0.1);
     });
   });
@@ -273,7 +283,13 @@ describe("adaptiveLearning Engine", () => {
         },
       ];
 
-      const mastery = computeSubjectMastery("f1", "Calculus", cards, attempts, baseDate);
+      const mastery = computeSubjectMastery(
+        "f1",
+        "Calculus",
+        cards,
+        attempts,
+        baseDate,
+      );
 
       expect(mastery.folderId).toBe("f1");
       expect(mastery.folderName).toBe("Calculus");
@@ -284,40 +300,61 @@ describe("adaptiveLearning Engine", () => {
     });
 
     it("assigns correct tiers based on score thresholds", () => {
-      const novice = computeSubjectMastery("f1", "F", [], [{
-        id: "qa",
-        user_id: "u",
-        quiz_id: "q",
-        score: 4,
-        total: 10,
-        answers_json: {},
-        weak_topics: null,
-        created_at: baseDate.toISOString(),
-      }]);
+      const novice = computeSubjectMastery(
+        "f1",
+        "F",
+        [],
+        [
+          {
+            id: "qa",
+            user_id: "u",
+            quiz_id: "q",
+            score: 4,
+            total: 10,
+            answers_json: {},
+            weak_topics: null,
+            created_at: baseDate.toISOString(),
+          },
+        ],
+      );
       expect(novice.tier).toBe("Novice");
 
-      const developing = computeSubjectMastery("f1", "F", [], [{
-        id: "qa",
-        user_id: "u",
-        quiz_id: "q",
-        score: 6,
-        total: 10,
-        answers_json: {},
-        weak_topics: null,
-        created_at: baseDate.toISOString(),
-      }]);
+      const developing = computeSubjectMastery(
+        "f1",
+        "F",
+        [],
+        [
+          {
+            id: "qa",
+            user_id: "u",
+            quiz_id: "q",
+            score: 6,
+            total: 10,
+            answers_json: {},
+            weak_topics: null,
+            created_at: baseDate.toISOString(),
+          },
+        ],
+      );
       expect(developing.tier).toBe("Developing");
 
-      const competent = computeSubjectMastery("f1", "F", [], [{
-        id: "qa",
-        user_id: "u",
-        quiz_id: "q",
-        score: 75,
-        total: 100,
-        answers_json: {},
-        weak_topics: null,
-        created_at: baseDate.toISOString(),
-      }]);
+      const competent = computeSubjectMastery(
+        "f1",
+        "F",
+        [],
+        [
+          {
+            id: "qa",
+            user_id: "u",
+            quiz_id: "q",
+            score: 75,
+            total: 100,
+            answers_json: {},
+            weak_topics: null,
+            created_at: baseDate.toISOString(),
+          },
+        ],
+      );
       expect(competent.tier).toBe("Competent");
     });
   });
@@ -369,13 +406,37 @@ describe("adaptiveLearning Engine", () => {
   describe("getPreExamSurgeQueue", () => {
     it("boosts priority for cards related to upcoming exams within 14 days", () => {
       const folders: Folder[] = [
-        { id: "f-bio", user_id: "u1", name: "Biology", color: "#10b981", created_at: baseDate.toISOString() },
-        { id: "f-hist", user_id: "u1", name: "History", color: "#f59e0b", created_at: baseDate.toISOString() },
+        {
+          id: "f-bio",
+          user_id: "u1",
+          name: "Biology",
+          color: "#10b981",
+          created_at: baseDate.toISOString(),
+        },
+        {
+          id: "f-hist",
+          user_id: "u1",
+          name: "History",
+          color: "#f59e0b",
+          created_at: baseDate.toISOString(),
+        },
       ];
 
       const decks: FlashcardDeck[] = [
-        { id: "d-bio", user_id: "u1", folder_id: "f-bio", title: "Cell Biology", created_at: baseDate.toISOString() },
-        { id: "d-hist", user_id: "u1", folder_id: "f-hist", title: "World War II", created_at: baseDate.toISOString() },
+        {
+          id: "d-bio",
+          user_id: "u1",
+          folder_id: "f-bio",
+          title: "Cell Biology",
+          created_at: baseDate.toISOString(),
+        },
+        {
+          id: "d-hist",
+          user_id: "u1",
+          folder_id: "f-hist",
+          title: "World War II",
+          created_at: baseDate.toISOString(),
+        },
       ];
 
       const exams: Exam[] = [
@@ -383,7 +444,7 @@ describe("adaptiveLearning Engine", () => {
           id: 1,
           user_id: "u1",
           exam_name: "Biology Midterm",
-          exam_date: new Date("2026-08-25T09:00:00Z").toISOString(),
+          exam_date: "2026-08-25",
           difficulty: "Hard",
           status: "Upcoming",
         },
@@ -413,8 +474,52 @@ describe("adaptiveLearning Engine", () => {
         created_at: new Date("2026-08-01T12:00:00Z").toISOString(),
       };
 
-      const surge = getPreExamSurgeQueue([histCard, bioCard], exams, folders, baseDate, decks);
-      expect(surge[0].id).toBe("c-bio");
+      const surge = getPreExamSurgeQueue(
+        [histCard, bioCard],
+        exams,
+        folders,
+        baseDate,
+        decks,
+      );
+      expect(surge.map((card) => card.id)).toEqual(["c-bio"]);
+    });
+
+    it("returns no cards when there is no related upcoming exam", () => {
+      const cards: Flashcard[] = [
+        {
+          id: "c-1",
+          user_id: "u1",
+          deck_id: "d-1",
+          front: "Question",
+          back: "Answer",
+          srs_interval: 0,
+          ease_factor: 2.5,
+          next_review_date: null,
+          created_at: "2026-08-01T00:00:00Z",
+        },
+      ];
+      const folders: Folder[] = [
+        {
+          id: "f-1",
+          user_id: "u1",
+          name: "Biology",
+          color: "#10b981",
+          created_at: "2026-08-01T00:00:00Z",
+        },
+      ];
+      const decks: FlashcardDeck[] = [
+        {
+          id: "d-1",
+          user_id: "u1",
+          folder_id: "f-1",
+          title: "Cells",
+          created_at: "2026-08-01T00:00:00Z",
+        },
+      ];
+
+      expect(getPreExamSurgeQueue(cards, [], folders, baseDate, decks)).toEqual(
+        [],
+      );
     });
   });
 
@@ -423,7 +528,9 @@ describe("adaptiveLearning Engine", () => {
       const health = computeAdaptiveHealth({});
       expect(health.overallScore).toBeGreaterThanOrEqual(0);
       expect(health.overallScore).toBeLessThanOrEqual(100);
-      expect(["optimal", "good", "needs-attention", "at-risk"]).toContain(health.grade);
+      expect(["optimal", "good", "needs-attention", "at-risk"]).toContain(
+        health.grade,
+      );
       expect(health.burnoutRisk).toBe("low");
     });
 
@@ -441,7 +548,9 @@ describe("adaptiveLearning Engine", () => {
 
       const health = computeAdaptiveHealth({
         sessions,
-        flashcards: [flashcard({ next_review_date: "2026-08-25", srs_interval: 10 })],
+        flashcards: [
+          flashcard({ next_review_date: "2026-08-25", srs_interval: 10 }),
+        ],
         now,
       });
 
@@ -489,10 +598,30 @@ describe("adaptiveLearning Engine", () => {
     it("identifies overdue and critical cards accurately", () => {
       const now = new Date("2026-08-20T12:00:00Z");
       const cards = [
-        flashcard({ id: "c1", next_review_date: "2026-08-10", ease_factor: 1.8, srs_interval: 1 }),
-        flashcard({ id: "c2", next_review_date: "2026-08-15", ease_factor: 2.5, srs_interval: 4 }),
-        flashcard({ id: "c3", next_review_date: "2026-08-20", ease_factor: 2.5, srs_interval: 6 }),
-        flashcard({ id: "c4", next_review_date: "2026-08-25", ease_factor: 2.5, srs_interval: 10 }),
+        flashcard({
+          id: "c1",
+          next_review_date: "2026-08-10",
+          ease_factor: 1.8,
+          srs_interval: 1,
+        }),
+        flashcard({
+          id: "c2",
+          next_review_date: "2026-08-15",
+          ease_factor: 2.5,
+          srs_interval: 4,
+        }),
+        flashcard({
+          id: "c3",
+          next_review_date: "2026-08-20",
+          ease_factor: 2.5,
+          srs_interval: 6,
+        }),
+        flashcard({
+          id: "c4",
+          next_review_date: "2026-08-25",
+          ease_factor: 2.5,
+          srs_interval: 10,
+        }),
       ];
 
       const risk = calculateRetentionRisk(cards, now);
@@ -521,9 +650,21 @@ describe("adaptiveLearning Engine", () => {
       const f3 = folder({ id: "f3", name: "History" });
 
       const sessions = [
-        session({ folder_id: "f1", minutes: 300, started_at: now.toISOString() }),
-        session({ folder_id: "f2", minutes: 20, started_at: now.toISOString() }),
-        session({ folder_id: "f3", minutes: 100, started_at: now.toISOString() }),
+        session({
+          folder_id: "f1",
+          minutes: 300,
+          started_at: now.toISOString(),
+        }),
+        session({
+          folder_id: "f2",
+          minutes: 20,
+          started_at: now.toISOString(),
+        }),
+        session({
+          folder_id: "f3",
+          minutes: 100,
+          started_at: now.toISOString(),
+        }),
       ];
 
       const balance = calculateSubjectBalance(sessions, [f1, f2, f3], 14, now);
@@ -583,7 +724,15 @@ describe("adaptiveLearning Engine", () => {
 
     it("recommends focus sprints for pending tasks", () => {
       const recs = getAdaptiveRecommendations({
-        tasks: [{ id: 1, user_id: "u1", text: "Read Chapter 4", is_done: false, due_date: null }],
+        tasks: [
+          {
+            id: 1,
+            user_id: "u1",
+            text: "Read Chapter 4",
+            is_done: false,
+            due_date: null,
+          },
+        ],
       });
 
       expect(recs.some((r) => r.category === "focus_sprint")).toBe(true);

@@ -105,18 +105,26 @@ export function computeAdaptiveHealth(params: {
     return !isNaN(d.getTime()) && d >= sevenDaysAgo && d <= now;
   });
 
-  const totalRecentMinutes = recentSessions.reduce((acc, s) => acc + (s.minutes || 0), 0);
+  const totalRecentMinutes = recentSessions.reduce(
+    (acc, s) => acc + (s.minutes || 0),
+    0,
+  );
   const targetWeeklyMinutes = targetMinutesPerDay * 7;
-  const volumeRatio = Math.min(totalRecentMinutes / Math.max(targetWeeklyMinutes, 1), 1);
+  const volumeRatio = Math.min(
+    totalRecentMinutes / Math.max(targetWeeklyMinutes, 1),
+    1,
+  );
 
   // Count distinct active days in last 7 days
   const activeDaysSet = new Set(
     recentSessions
       .filter((s) => s.minutes >= 5)
-      .map((s) => new Date(s.started_at).toDateString())
+      .map((s) => new Date(s.started_at).toDateString()),
   );
   const activeDaysRatio = activeDaysSet.size / 7;
-  const consistencyScore = Math.round((volumeRatio * 0.5 + activeDaysRatio * 0.5) * 100);
+  const consistencyScore = Math.round(
+    (volumeRatio * 0.5 + activeDaysRatio * 0.5) * 100,
+  );
 
   // 2. Retention Score (0-100)
   let retentionScore = 80; // default baseline
@@ -133,7 +141,7 @@ export function computeAdaptiveHealth(params: {
       const avgScore =
         recentAttempts.reduce(
           (acc, a) => acc + (a.total > 0 ? (a.score / a.total) * 100 : 75),
-          0
+          0,
         ) / recentAttempts.length;
       quizHealth = Math.round(avgScore);
     }
@@ -148,7 +156,7 @@ export function computeAdaptiveHealth(params: {
     if (validSessions.length > 0) {
       // Reward sessions between 20 and 60 minutes (optimal Pomodoro & ultradian rhythms)
       const optimalSessionCount = validSessions.filter(
-        (s) => s.minutes >= 20 && s.minutes <= 60
+        (s) => s.minutes >= 20 && s.minutes <= 60,
       ).length;
       const sessionQualityRatio = optimalSessionCount / validSessions.length;
 
@@ -158,7 +166,9 @@ export function computeAdaptiveHealth(params: {
         taskCompletionRatio = completed / tasks.length;
       }
 
-      focusScore = Math.round((sessionQualityRatio * 0.6 + taskCompletionRatio * 0.4) * 100);
+      focusScore = Math.round(
+        (sessionQualityRatio * 0.6 + taskCompletionRatio * 0.4) * 100,
+      );
     }
   }
 
@@ -172,7 +182,7 @@ export function computeAdaptiveHealth(params: {
 
   if (upcomingExams.length > 0) {
     const nearestDays = Math.min(
-      ...upcomingExams.map((e) => daysUntil(e.exam_date, now))
+      ...upcomingExams.map((e) => daysUntil(e.exam_date, now)),
     );
     if (nearestDays <= 3) {
       // Within 3 days: pacing depends on recent study minutes
@@ -202,9 +212,9 @@ export function computeAdaptiveHealth(params: {
         consistencyScore * 0.3 +
           retentionScore * 0.25 +
           focusScore * 0.25 +
-          pacingScore * 0.2
-      )
-    )
+          pacingScore * 0.2,
+      ),
+    ),
   );
 
   let grade: HealthGrade = "optimal";
@@ -217,7 +227,8 @@ export function computeAdaptiveHealth(params: {
     summary = "Review overdue flashcards and maintain regular study sessions.";
   } else if (overallScore < 85) {
     grade = "good";
-    summary = "Solid study rhythm! Reinforce weak quiz topics to achieve mastery.";
+    summary =
+      "Solid study rhythm! Reinforce weak quiz topics to achieve mastery.";
   }
 
   return {
@@ -237,7 +248,7 @@ export function computeAdaptiveHealth(params: {
  */
 export function calculateRetentionRisk(
   flashcards: Flashcard[],
-  now: Date = new Date()
+  now: Date = new Date(),
 ): RetentionRisk {
   if (flashcards.length === 0) {
     return {
@@ -277,7 +288,7 @@ export function calculateRetentionRisk(
   const criticalPenalty = (criticalCardsCount / total) * 40;
   const retentionRate = Math.max(
     10,
-    Math.round(100 - overduePenalty - criticalPenalty)
+    Math.round(100 - overduePenalty - criticalPenalty),
   );
 
   let status: RetentionRisk["status"] = "healthy";
@@ -303,7 +314,7 @@ export function calculateSubjectBalance(
   sessions: StudySession[],
   folders: Folder[],
   lookbackDays = 14,
-  now: Date = new Date()
+  now: Date = new Date(),
 ): SubjectBalanceItem[] {
   const cutoff = new Date(now);
   cutoff.setDate(cutoff.getDate() - lookbackDays);
@@ -380,7 +391,7 @@ export function calculateSubjectBalance(
  * Predicts the user's optimal study hour window based on historical session starts.
  */
 export function predictOptimalStudyTime(
-  sessions: StudySession[]
+  sessions: StudySession[],
 ): OptimalStudyTime {
   if (sessions.length === 0) {
     return {
@@ -418,7 +429,8 @@ export function predictOptimalStudyTime(
     // Smoothed 3-hour window weight
     const prev = (h + 23) % 24;
     const next = (h + 1) % 24;
-    const weight = hourCounts[prev] * 0.5 + hourCounts[h] + hourCounts[next] * 0.5;
+    const weight =
+      hourCounts[prev] * 0.5 + hourCounts[h] + hourCounts[next] * 0.5;
     if (weight > maxWeight) {
       maxWeight = weight;
       peakHour = h;
@@ -485,7 +497,10 @@ export function getAdaptiveRecommendations(params: {
       description: `Active recall now will prevent memory decay on ${retention.criticalCardsCount} high-risk items.`,
       actionUrl: "/library/flashcards",
       actionLabel: "Start Flashcard Review",
-      estimatedMinutes: Math.min(25, Math.max(5, Math.ceil(retention.overdueCount * 0.8))),
+      estimatedMinutes: Math.min(
+        25,
+        Math.max(5, Math.ceil(retention.overdueCount * 0.8)),
+      ),
     });
   }
 
@@ -506,7 +521,8 @@ export function getAdaptiveRecommendations(params: {
       category: "exam_prep",
       priority: du <= 3 ? "high" : "medium",
       title: `${nextExam.exam_name} in ${du === 0 ? "Today" : `${du} Day${du > 1 ? "s" : ""}`}`,
-      description: "Review key summaries, mock tests, and high-yield notes to maximize exam readiness.",
+      description:
+        "Review key summaries, mock tests, and high-yield notes to maximize exam readiness.",
       actionUrl: "/exams",
       actionLabel: "Open Exam Prep",
       estimatedMinutes: du <= 2 ? 45 : 30,
@@ -517,7 +533,7 @@ export function getAdaptiveRecommendations(params: {
   if (quizAttempts.length > 0) {
     const recentAttempts = quizAttempts.slice(-5);
     const lowScoreAttempts = recentAttempts.filter(
-      (a) => a.total > 0 && (a.score / a.total) < 0.7
+      (a) => a.total > 0 && a.score / a.total < 0.7,
     );
     if (lowScoreAttempts.length > 0) {
       recommendations.push({
@@ -525,7 +541,8 @@ export function getAdaptiveRecommendations(params: {
         category: "quiz_drill",
         priority: "medium",
         title: "Target Weak Quiz Concepts",
-        description: "Your recent quiz scores show room for growth. Run a quick 10-question practice drill.",
+        description:
+          "Your recent quiz scores show room for growth. Run a quick 10-question practice drill.",
         actionUrl: "/library/quizzes",
         actionLabel: "Take Practice Quiz",
         estimatedMinutes: 15,
@@ -549,14 +566,22 @@ export function getAdaptiveRecommendations(params: {
   }
 
   // 5. Recovery Break (if heavy study volume recently)
-  const health = computeAdaptiveHealth({ sessions, flashcards, quizAttempts, tasks, exams, now });
+  const health = computeAdaptiveHealth({
+    sessions,
+    flashcards,
+    quizAttempts,
+    tasks,
+    exams,
+    now,
+  });
   if (health.burnoutRisk === "high") {
     recommendations.unshift({
       id: "rec-burnout-recovery",
       category: "recovery_break",
       priority: "high",
       title: "Pacing Warning: Schedule a Recharge",
-      description: "High cognitive load detected over recent sessions. Take a 15-minute restorative break.",
+      description:
+        "High cognitive load detected over recent sessions. Take a 15-minute restorative break.",
       actionUrl: "/timer",
       actionLabel: "Take Short Break",
       estimatedMinutes: 15,
@@ -566,7 +591,9 @@ export function getAdaptiveRecommendations(params: {
   // 6. Understudied Subject Rebalance
   if (folders.length > 1 && sessions.length > 0) {
     const balance = calculateSubjectBalance(sessions, folders, 14, now);
-    const understudied = balance.find((b) => b.status === "understudied" && b.folderId !== "unassigned");
+    const understudied = balance.find(
+      (b) => b.status === "understudied" && b.folderId !== "unassigned",
+    );
     if (understudied) {
       recommendations.push({
         id: `rec-subject-${understudied.folderId}`,
@@ -608,7 +635,8 @@ export function computeRetentionProbability(
   stabilityFactor = 1.0,
 ): number {
   const interval = Math.max(0, card.srs_interval ?? 0);
-  const ease = card.ease_factor && card.ease_factor > 0 ? card.ease_factor : 2.5;
+  const ease =
+    card.ease_factor && card.ease_factor > 0 ? card.ease_factor : 2.5;
   const stability = Math.max(1, interval * (ease / 2.5) * stabilityFactor);
 
   let t = 0;
@@ -649,7 +677,8 @@ export function getCardsAtForgettingRisk(
     .filter((card) => computeRetentionProbability(card, now) < threshold)
     .sort(
       (a, b) =>
-        computeRetentionProbability(a, now) - computeRetentionProbability(b, now),
+        computeRetentionProbability(a, now) -
+        computeRetentionProbability(b, now),
     );
 }
 
@@ -788,15 +817,11 @@ export function getPreExamSurgeQueue(
   now = new Date(),
   decks?: FlashcardDeck[],
 ): Flashcard[] {
-  const nowMs = now.getTime();
-  const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
-
   // Filter exams in next 14 days
   const upcomingExams = (exams || []).filter((exam) => {
     if (!exam.exam_date) return false;
-    const examMs = new Date(exam.exam_date).getTime();
-    const diffMs = examMs - nowMs;
-    return diffMs >= -24 * 60 * 60 * 1000 && diffMs <= fourteenDaysMs;
+    const daysLeft = daysUntil(exam.exam_date, now);
+    return Number.isFinite(daysLeft) && daysLeft >= 0 && daysLeft <= 14;
   });
 
   // Map decks to folder ids
@@ -808,8 +833,7 @@ export function getPreExamSurgeQueue(
   // Calculate exam urgency per folder (closer exam = higher boost)
   const folderUrgencyMap: Record<string, number> = {};
   upcomingExams.forEach((exam) => {
-    const examMs = new Date(exam.exam_date).getTime();
-    const daysLeft = Math.max(0, (examMs - nowMs) / (24 * 60 * 60 * 1000));
+    const daysLeft = daysUntil(exam.exam_date, now);
     const urgency = Math.max(0.1, (14 - daysLeft) / 14);
 
     const examNameClean = exam.exam_name.toLowerCase();
@@ -827,28 +851,24 @@ export function getPreExamSurgeQueue(
   });
 
   // Calculate priority score for each card
-  const scoredCards = (cards || []).map((card) => {
+  const scoredCards = (cards || []).flatMap((card) => {
     const retention = computeRetentionProbability(card, now);
     const decayRisk = 1.0 - retention; // 0.0 to 1.0
 
-    let examBoost = 0;
-    if (card.deck_id && deckToFolderId[card.deck_id]) {
-      const folderId = deckToFolderId[card.deck_id];
-      if (folderUrgencyMap[folderId]) {
-        examBoost = folderUrgencyMap[folderId] * 1.5;
-      }
-    }
+    const folderId = card.deck_id ? deckToFolderId[card.deck_id] : undefined;
+    const folderUrgency = folderId ? folderUrgencyMap[folderId] : undefined;
 
-    const priority = decayRisk * 1.2 + examBoost;
+    // A surge queue represents exam-related work, not every card in the
+    // library. Returning unrelated cards made the dashboard announce an
+    // active pre-exam surge even when no exam was upcoming.
+    if (!folderUrgency) return [];
 
-    return {
-      card,
-      priority,
-    };
+    const examBoost = folderUrgency * 1.5;
+
+    return [{ card, priority: decayRisk * 1.2 + examBoost }];
   });
 
   return scoredCards
     .sort((a, b) => b.priority - a.priority)
     .map((item) => item.card);
 }
-

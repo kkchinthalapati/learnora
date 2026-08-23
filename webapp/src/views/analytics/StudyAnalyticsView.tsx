@@ -52,7 +52,9 @@ export function StudyAnalyticsView() {
   // Derived Summary Metrics
   const totalHours = Math.floor(heatData.totalMinutes / 60);
   const remainingMins = heatData.totalMinutes % 60;
-  const consistencyPercent = Math.round((heatData.activeDays / activeRange) * 100);
+  const consistencyPercent = Math.round(
+    (heatData.activeDays / activeRange) * 100,
+  );
 
   const avgQuizScore = useMemo(() => {
     if (quizAttempts.length === 0) return null;
@@ -107,7 +109,9 @@ export function StudyAnalyticsView() {
           </p>
           <div className={styles.statSub}>
             <span>{sessions.length} total sessions</span>
-            <span className={styles.statBadge}>+{heatData.totalMinutes}m logged</span>
+            <span className={styles.statBadge}>
+              +{heatData.totalMinutes}m logged
+            </span>
           </div>
         </Card>
 
@@ -120,11 +124,22 @@ export function StudyAnalyticsView() {
             </div>
           </div>
           <p className={styles.statValue}>
-            {heatData.activeDays} <span style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-muted)" }}>/ {activeRange}d</span>
+            {heatData.activeDays}{" "}
+            <span
+              style={{
+                fontSize: "16px",
+                fontWeight: 600,
+                color: "var(--text-muted)",
+              }}
+            >
+              / {activeRange}d
+            </span>
           </p>
           <div className={styles.statSub}>
             <span>{consistencyPercent}% consistency</span>
-            <span className={styles.statBadge}>{heatData.currentStreak}d streak</span>
+            <span className={styles.statBadge}>
+              {heatData.currentStreak}d streak
+            </span>
           </div>
         </Card>
 
@@ -137,10 +152,13 @@ export function StudyAnalyticsView() {
             </div>
           </div>
           <p className={styles.statValue} style={{ fontSize: "20px" }}>
-            {formatHour(peakWindow.startHour)} – {formatHour(peakWindow.endHour)}
+            {formatHour(peakWindow.startHour)} –{" "}
+            {formatHour(peakWindow.endHour)}
           </p>
           <div className={styles.statSub}>
-            <span className={styles.statBadge}>{peakWindow.label.split("(")[0].trim()}</span>
+            <span className={styles.statBadge}>
+              {peakWindow.label.split("(")[0].trim()}
+            </span>
           </div>
         </Card>
 
@@ -156,9 +174,17 @@ export function StudyAnalyticsView() {
             {avgQuizScore !== null ? `${avgQuizScore}%` : "—"}
           </p>
           <div className={styles.statSub}>
-            <span>{quizAttempts.length} quiz attempt{quizAttempts.length === 1 ? "" : "s"}</span>
+            <span>
+              {quizAttempts.length} quiz attempt
+              {quizAttempts.length === 1 ? "" : "s"}
+            </span>
             {avgQuizScore !== null && avgQuizScore >= 80 && (
-              <span className={styles.statBadge} style={{ color: "var(--success)" }}>High Mastery</span>
+              <span
+                className={styles.statBadge}
+                style={{ color: "var(--success)" }}
+              >
+                High Mastery
+              </span>
             )}
           </div>
         </Card>
@@ -170,21 +196,31 @@ export function StudyAnalyticsView() {
           <div>
             <h3 className={styles.sectionTitle}>Study Activity Heatmap</h3>
             <p className={styles.sectionSub}>
-              Visualizing daily focus distribution across the past year (52 weeks)
+              Visualizing daily focus distribution across the past {activeRange}{" "}
+              days
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: "6px" }}>
+          <div
+            style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}
+            role="group"
+            aria-label="Analytics date range"
+          >
             <button
               type="button"
               className={styles.statBadge}
               style={{
                 cursor: "pointer",
                 border: "none",
-                background: activeRange === 365 ? "var(--accent)" : "var(--surface-2)",
-                color: activeRange === 365 ? "var(--accent-on)" : "var(--text-muted)",
+                background:
+                  activeRange === 365 ? "var(--accent)" : "var(--surface-2)",
+                color:
+                  activeRange === 365
+                    ? "var(--accent-on)"
+                    : "var(--text-muted)",
               }}
               onClick={() => setActiveRange(365)}
+              aria-pressed={activeRange === 365}
             >
               52 Weeks (1Y)
             </button>
@@ -194,12 +230,31 @@ export function StudyAnalyticsView() {
               style={{
                 cursor: "pointer",
                 border: "none",
-                background: activeRange === 90 ? "var(--accent)" : "var(--surface-2)",
-                color: activeRange === 90 ? "var(--accent-on)" : "var(--text-muted)",
+                background:
+                  activeRange === 90 ? "var(--accent)" : "var(--surface-2)",
+                color:
+                  activeRange === 90 ? "var(--accent-on)" : "var(--text-muted)",
               }}
               onClick={() => setActiveRange(90)}
+              aria-pressed={activeRange === 90}
             >
               90 Days
+            </button>
+            <button
+              type="button"
+              className={styles.statBadge}
+              style={{
+                cursor: "pointer",
+                border: "none",
+                background:
+                  activeRange === 30 ? "var(--accent)" : "var(--surface-2)",
+                color:
+                  activeRange === 30 ? "var(--accent-on)" : "var(--text-muted)",
+              }}
+              onClick={() => setActiveRange(30)}
+              aria-pressed={activeRange === 30}
+            >
+              30 Days
             </button>
           </div>
         </div>
@@ -225,19 +280,35 @@ export function StudyAnalyticsView() {
             </div>
 
             <div className={styles.chartContainer}>
-              <div className={styles.barsContainer} role="img" aria-label="Hourly study distribution bar chart">
+              <div
+                className={styles.barsContainer}
+                role="group"
+                aria-label="Hourly study distribution bar chart"
+              >
                 {hourlyStats.map((h) => {
-                  const heightPercent = Math.max(4, Math.round((h.totalMinutes / maxHourlyMinutes) * 100));
+                  const heightPercent = Math.max(
+                    4,
+                    Math.round((h.totalMinutes / maxHourlyMinutes) * 100),
+                  );
                   const isPeak = isPeakHour(h.hour);
                   const isSelected = selectedHour?.hour === h.hour;
 
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={`hour-${h.hour}`}
                       className={styles.barCol}
                       title={`${formatHour(h.hour)}: ${h.totalMinutes} mins (${h.sessionCount} sessions)${
-                        h.avgQuizScore !== null ? `, Quiz avg: ${h.avgQuizScore}%` : ""
+                        h.avgQuizScore !== null
+                          ? `, Quiz avg: ${h.avgQuizScore}%`
+                          : ""
                       }`}
+                      aria-label={`${formatHour(h.hour)}: ${h.totalMinutes} minutes, ${h.sessionCount} sessions${
+                        h.avgQuizScore !== null
+                          ? `, quiz average ${h.avgQuizScore}%`
+                          : ""
+                      }`}
+                      aria-pressed={isSelected}
                       onClick={() => setSelectedHour(h)}
                     >
                       <div
@@ -252,13 +323,26 @@ export function StudyAnalyticsView() {
                       />
                       {/* Show labels every 3 hours */}
                       {h.hour % 3 === 0 && (
-                        <span className={styles.barLabel}>{formatHour(h.hour)}</span>
+                        <span className={styles.barLabel}>
+                          {formatHour(h.hour)}
+                        </span>
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
             </div>
+            {selectedHour && (
+              <p className={styles.hourDetail} role="status">
+                <strong>{formatHour(selectedHour.hour)}</strong>:{" "}
+                {selectedHour.totalMinutes} minutes across{" "}
+                {selectedHour.sessionCount} session
+                {selectedHour.sessionCount === 1 ? "" : "s"}
+                {selectedHour.avgQuizScore !== null
+                  ? `, with a ${selectedHour.avgQuizScore}% quiz average.`
+                  : "."}
+              </p>
+            )}
           </div>
 
           {/* Chronotype Insights Banner */}
@@ -300,20 +384,31 @@ export function StudyAnalyticsView() {
       <Card variant="panel" padding="lg">
         <div className={styles.sectionHeader}>
           <div>
-            <h3 className={styles.sectionTitle}>Subject Balance & Exam Urgency Matrix</h3>
+            <h3 className={styles.sectionTitle}>
+              Subject Balance & Exam Urgency Matrix
+            </h3>
             <p className={styles.sectionSub}>
-              Balancing your study allocation against approaching examination deadlines
+              Balancing your study allocation against approaching examination
+              deadlines
             </p>
           </div>
           <span className={styles.statBadge}>
-            {subjectMatrix.length} Subject{subjectMatrix.length === 1 ? "" : "s"} Tracked
+            {subjectMatrix.length} Subject
+            {subjectMatrix.length === 1 ? "" : "s"} Tracked
           </span>
         </div>
 
         {subjectMatrix.length === 0 ? (
           <div className={styles.emptyMatrix}>
-            <Icon name="folder" size={32} style={{ margin: "0 auto var(--s-2)", opacity: 0.5 }} />
-            <p>No subjects found. Create subjects in your Library to track allocation matrix.</p>
+            <Icon
+              name="folder"
+              size={32}
+              style={{ margin: "0 auto var(--s-2)", opacity: 0.5 }}
+            />
+            <p>
+              No subjects found. Create subjects in your Library to track
+              allocation matrix.
+            </p>
           </div>
         ) : (
           <div className={styles.matrixWrapper}>
@@ -364,10 +459,17 @@ export function StudyAnalyticsView() {
                           <div className={styles.progressBarBg}>
                             <div
                               className={styles.progressBarFill}
-                              style={{ width: `${Math.max(4, progressWidth)}%` }}
+                              style={{
+                                width: `${Math.max(4, progressWidth)}%`,
+                              }}
                             />
                           </div>
-                          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              color: "var(--text-muted)",
+                            }}
+                          >
                             {progressWidth}%
                           </span>
                         </div>
@@ -376,7 +478,9 @@ export function StudyAnalyticsView() {
                         {row.examName ? (
                           <span>{row.examName}</span>
                         ) : (
-                          <span style={{ color: "var(--text-muted)" }}>None scheduled</span>
+                          <span style={{ color: "var(--text-muted)" }}>
+                            None scheduled
+                          </span>
                         )}
                       </td>
                       <td className={styles.td}>
@@ -384,7 +488,10 @@ export function StudyAnalyticsView() {
                           <span
                             style={{
                               fontWeight: 700,
-                              color: row.daysUntilExam <= 7 ? "var(--danger)" : "var(--text)",
+                              color:
+                                row.daysUntilExam <= 7
+                                  ? "var(--danger)"
+                                  : "var(--text)",
                             }}
                           >
                             {row.daysUntilExam === 0

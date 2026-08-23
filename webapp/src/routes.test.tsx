@@ -45,6 +45,7 @@ describe("route skeleton", () => {
     ["/plan", "This week's plan"],
     ["/friends", "Friends"],
     ["/analytics", "Analytics"],
+    ["/graph", "Concept Graph"],
     ["/settings", "Settings"],
   ])("%s renders the %s view for a signed-in user", (path, heading) => {
     renderAt(path);

@@ -13,6 +13,8 @@ const TASKS_REST = `${SUPABASE_URL}/rest/v1/tasks`;
 const MATERIALS_REST = `${SUPABASE_URL}/rest/v1/materials`;
 const FOLDERS_REST = `${SUPABASE_URL}/rest/v1/folders`;
 const FLASHCARDS_REST = `${SUPABASE_URL}/rest/v1/flashcards`;
+const DECKS_REST = `${SUPABASE_URL}/rest/v1/flashcard_decks`;
+const QUIZZES_REST = `${SUPABASE_URL}/rest/v1/quizzes`;
 const QUIZ_ATTEMPTS_REST = `${SUPABASE_URL}/rest/v1/quiz_attempts`;
 const SESSIONS_REST = `${SUPABASE_URL}/rest/v1/study_sessions`;
 
@@ -73,6 +75,30 @@ describe("ExamPrepModal", () => {
             next_review_date: "2026-09-01T00:00:00Z",
             srs_interval: 4,
             ease_factor: 2.5,
+            created_at: "2026-08-01T00:00:00Z",
+          },
+        ]),
+      ),
+      http.get(DECKS_REST, () =>
+        HttpResponse.json([
+          {
+            id: "d-1",
+            user_id: "user-1",
+            folder_id: "f-1",
+            title: "Molecular Biology",
+            created_at: "2026-08-01T00:00:00Z",
+          },
+        ]),
+      ),
+      http.get(QUIZZES_REST, () =>
+        HttpResponse.json([
+          {
+            id: "q-1",
+            user_id: "user-1",
+            material_id: "m-1",
+            folder_id: "f-1",
+            title: "Molecular Biology Quiz",
+            questions_json: [],
             created_at: "2026-08-01T00:00:00Z",
           },
         ]),
@@ -185,6 +211,51 @@ describe("ExamPrepModal", () => {
     expect(
       await screen.findByText(/Added \d+ prep tasks to Task Manager!/i),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "All Prep Tasks Added" }),
+    ).toBeDisabled();
+  });
+
+  it("retries a partially failed bulk add without duplicating completed tasks", async () => {
+    const user = userEvent.setup();
+    const successfulTitles: string[] = [];
+    let requestCount = 0;
+
+    server.use(
+      http.post(TASKS_REST, async ({ request }) => {
+        requestCount++;
+        const body = (await request.json()) as Record<string, unknown>[];
+        if (requestCount === 2) {
+          return HttpResponse.json(
+            { message: "temporary failure" },
+            { status: 500 },
+          );
+        }
+        successfulTitles.push(String(body[0]?.text));
+        return HttpResponse.json(body, { status: 201 });
+      }),
+    );
+
+    renderWithAuth(
+      <ExamPrepModal open exam={mockExam} onClose={vi.fn()} />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
+
+    const addAllBtn = await screen.findByRole("button", {
+      name: "Add All Prep Tasks to Task Manager",
+    });
+    await user.click(addAllBtn);
+
+    expect(
+      await screen.findByText(/Added 1 prep task, but the next task failed/i),
+    ).toBeInTheDocument();
+
+    await user.click(addAllBtn);
+    await screen.findByText(/Added 7 prep tasks to Task Manager!/i);
+
+    expect(successfulTitles).toHaveLength(8);
+    expect(new Set(successfulTitles).size).toBe(8);
   });
 
   it("calls onClose when close button is clicked", async () => {

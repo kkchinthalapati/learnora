@@ -300,7 +300,9 @@ export function formatHour(hour: number): string {
 /**
  * Detects the user's peak focus window using sliding 3-hour analysis.
  */
-export function detectPeakFocusWindow(hourlyStats: HourlyStats[]): PeakFocusWindow {
+export function detectPeakFocusWindow(
+  hourlyStats: HourlyStats[],
+): PeakFocusWindow {
   let maxScore = -1;
   let bestStartHour = 9; // Default 9 AM
 
@@ -310,10 +312,8 @@ export function detectPeakFocusWindow(hourlyStats: HourlyStats[]): PeakFocusWind
     const h2 = hourlyStats[(h + 1) % 24];
     const h3 = hourlyStats[(h + 2) % 24];
 
-    const windowMinutes =
-      h1.totalMinutes + h2.totalMinutes + h3.totalMinutes;
-    const windowSessions =
-      h1.sessionCount + h2.sessionCount + h3.sessionCount;
+    const windowMinutes = h1.totalMinutes + h2.totalMinutes + h3.totalMinutes;
+    const windowSessions = h1.sessionCount + h2.sessionCount + h3.sessionCount;
 
     // Weight minutes and session density
     const score = windowMinutes + windowSessions * 15;
@@ -399,7 +399,11 @@ export function computeSubjectUrgencyMatrix(
   }
 
   const now = new Date();
-  const todayTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const todayTime = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  ).getTime();
 
   // Map each folder to its upcoming exam and urgency
   const rows: SubjectBalanceRow[] = folders.map((folder) => {
@@ -516,15 +520,15 @@ export function generateStudyInsights(
   }
 
   // 2. Chronotype & Peak window
-  insights.push(
-    `⚡ Prime Focus Window: ${peak.label}. ${peak.description}`,
-  );
+  insights.push(`⚡ Prime Focus Window: ${peak.label}. ${peak.description}`);
 
   // 3. Focus Volume & Pacing
   const hours = Math.floor(heatData.totalMinutes / 60);
   const mins = heatData.totalMinutes % 60;
   if (heatData.totalMinutes > 0) {
-    const avgMinsPerActiveDay = Math.round(heatData.totalMinutes / Math.max(1, heatData.activeDays));
+    const avgMinsPerActiveDay = Math.round(
+      heatData.totalMinutes / Math.max(1, heatData.activeDays),
+    );
     insights.push(
       `⏱️ Study Volume: You have logged ${hours}h ${mins}m across ${sessions.length} total sessions, averaging ~${avgMinsPerActiveDay} mins per active day.`,
     );
@@ -536,7 +540,10 @@ export function generateStudyInsights(
 
   // 4. Quiz mastery & Active Recall
   if (quizAttempts.length > 0) {
-    const totalScore = quizAttempts.reduce((acc, q) => acc + (q.total > 0 ? (q.score / q.total) * 100 : 0), 0);
+    const totalScore = quizAttempts.reduce(
+      (acc, q) => acc + (q.total > 0 ? (q.score / q.total) * 100 : 0),
+      0,
+    );
     const avgScore = Math.round(totalScore / quizAttempts.length);
 
     if (avgScore >= 80) {

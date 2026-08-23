@@ -11,6 +11,8 @@ export function useAllDecks() {
   return useQuery({ queryKey: decksKeys.all, queryFn: decksApi.fetchAll });
 }
 
+export const useDecks = useAllDecks;
+
 export function useDecksByFolder(folderId: string) {
   return useQuery({
     queryKey: decksKeys.byFolder(folderId),

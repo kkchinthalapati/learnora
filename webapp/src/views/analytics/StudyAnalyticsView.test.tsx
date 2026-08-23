@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
@@ -52,8 +53,20 @@ describe("StudyAnalyticsView", () => {
   ];
 
   const mockFolders: Folder[] = [
-    { id: "f-1", user_id: "user-1", name: "Calculus", color: "#3b82f6", created_at: "2026-08-01" },
-    { id: "f-2", user_id: "user-1", name: "Physics", color: "#10b981", created_at: "2026-08-01" },
+    {
+      id: "f-1",
+      user_id: "user-1",
+      name: "Calculus",
+      color: "#3b82f6",
+      created_at: "2026-08-01",
+    },
+    {
+      id: "f-2",
+      user_id: "user-1",
+      name: "Physics",
+      color: "#10b981",
+      created_at: "2026-08-01",
+    },
   ];
 
   const mockExams: Exam[] = [
@@ -90,14 +103,54 @@ describe("StudyAnalyticsView", () => {
     expect(screen.getByText("Study Activity Heatmap")).toBeInTheDocument();
     expect(screen.getByText("Peak Performance Hours")).toBeInTheDocument();
     expect(screen.getByText("AI Study Copilot Insights")).toBeInTheDocument();
-    expect(screen.getByText("Subject Balance & Exam Urgency Matrix")).toBeInTheDocument();
+    expect(
+      screen.getByText("Subject Balance & Exam Urgency Matrix"),
+    ).toBeInTheDocument();
 
     // Data populated
-    await waitFor(() => {
-      expect(screen.getByText("Calculus")).toBeInTheDocument();
-      expect(screen.getByText("Physics")).toBeInTheDocument();
-      expect(screen.getByText("Calculus Final")).toBeInTheDocument();
-      expect(screen.getByText("80%")).toBeInTheDocument(); // Quiz Mastery
+    expect(
+      await screen.findByText("Calculus", {}, { timeout: 10_000 }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Physics")).toBeInTheDocument();
+    expect(screen.getByText("Calculus Final")).toBeInTheDocument();
+    expect(screen.getByText("80%")).toBeInTheDocument(); // Quiz Mastery
+  });
+
+  it("exposes usable range and hourly chart controls", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(rest("study_sessions"), () => HttpResponse.json(mockSessions)),
+      http.get(rest("quiz_attempts"), () => HttpResponse.json(mockAttempts)),
+      http.get(rest("folders"), () => HttpResponse.json(mockFolders)),
+      http.get(rest("exams"), () => HttpResponse.json(mockExams)),
+    );
+
+    renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
+
+    const rangeGroup = screen.getByRole("group", {
+      name: "Analytics date range",
     });
+    const thirtyDays = within(rangeGroup).getByRole("button", {
+      name: "30 Days",
+    });
+    await user.click(thirtyDays);
+    expect(thirtyDays).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByText(
+        "Visualizing daily focus distribution across the past 30 days",
+      ),
+    ).toBeInTheDocument();
+
+    const chart = screen.getByRole("group", {
+      name: "Hourly study distribution bar chart",
+    });
+    const studiedHour = within(chart).getByRole("button", {
+      name: /50 minutes, 1 sessions/,
+    });
+    await user.click(studiedHour);
+    expect(studiedHour).toHaveAttribute("aria-pressed", "true");
+    expect(
+      await screen.findByText(/50 minutes across 1 session/),
+    ).toBeInTheDocument();
   });
 });

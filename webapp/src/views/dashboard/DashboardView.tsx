@@ -7,6 +7,7 @@ import { AIActionsCard } from "./AIActionsCard";
 import { DailyDrillCard } from "./DailyDrillCard";
 import { StudyCircleCard } from "./StudyCircleCard";
 import { AdaptiveHealthWidget } from "./AdaptiveHealthWidget";
+import { ResumeLearningCard } from "./ResumeLearningCard";
 import { OnboardingBanner } from "./OnboardingBanner";
 import { SessionHistoryCard } from "./SessionHistoryCard";
 import styles from "./dashboard.module.css";
@@ -36,6 +37,7 @@ export function DashboardView() {
       />
 
       <div className={styles.grid}>
+        <ResumeLearningCard />
         <NextExamCard />
         <FocusCard />
         <StreakCard />

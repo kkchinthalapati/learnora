@@ -46,7 +46,10 @@ export function useAdaptiveLearning(): UseAdaptiveLearningResult {
     quizAttemptsQuery.isPending ||
     sessionsQuery.isPending;
 
-  const cards = useMemo(() => flashcardsQuery.data ?? [], [flashcardsQuery.data]);
+  const cards = useMemo(
+    () => flashcardsQuery.data ?? [],
+    [flashcardsQuery.data],
+  );
   const decks = useMemo(() => decksQuery.data ?? [], [decksQuery.data]);
   const folders = useMemo(() => foldersQuery.data ?? [], [foldersQuery.data]);
   const exams = useMemo(() => examsQuery.data ?? [], [examsQuery.data]);

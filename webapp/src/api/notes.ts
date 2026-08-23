@@ -25,6 +25,17 @@ export const notesApi = {
     return data ?? [];
   },
 
+  async fetchAll(): Promise<Note[]> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from("notes")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  },
+
   async add(materialId: string, markdownContent: string): Promise<Note> {
     const userId = await requireUserId();
     const { data, error } = await supabase

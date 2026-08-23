@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Outlet } from "react-router";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
+import { OfflineBanner } from "./OfflineBanner";
 import styles from "./AppShell.module.css";
 
 const MOBILE_BREAKPOINT = 768;
@@ -76,6 +77,7 @@ export function AppShell() {
 
   return (
     <div className={styles.appContainer}>
+      <OfflineBanner />
       {/* First focusable element in the whole shell: a keyboard user
           otherwise has to tab through every sidebar link (and the Create
           button) on *every* page before reaching what the page actually

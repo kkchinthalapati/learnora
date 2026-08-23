@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { HeatmapData, HeatmapCell } from "../../lib/analyticsEngine";
 import styles from "./analytics.module.css";
 
@@ -15,6 +15,20 @@ interface TooltipState {
 
 export function StudyHeatmap({ data, className }: StudyHeatmapProps) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [focusIndex, setFocusIndex] = useState(0);
+  const cellRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  useEffect(() => {
+    const latestActiveIndex = data.cells.reduce(
+      (latest, cell, index) => (cell.minutes > 0 ? index : latest),
+      -1,
+    );
+    setFocusIndex(
+      latestActiveIndex >= 0
+        ? latestActiveIndex
+        : Math.max(0, data.cells.length - 1),
+    );
+  }, [data.cells]);
 
   // Group cells into 7-day columns (weeks)
   const weeks: HeatmapCell[][] = [];
@@ -24,7 +38,8 @@ export function StudyHeatmap({ data, className }: StudyHeatmapProps) {
 
   const handleCellHover = (
     cell: HeatmapCell,
-    e: React.MouseEvent<HTMLButtonElement> | React.FocusEvent<HTMLButtonElement>,
+    e:
+      React.MouseEvent<HTMLButtonElement> | React.FocusEvent<HTMLButtonElement>,
   ) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setTooltip({
@@ -36,6 +51,28 @@ export function StudyHeatmap({ data, className }: StudyHeatmapProps) {
 
   const handleCellLeave = () => {
     setTooltip(null);
+  };
+
+  const handleCellKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLButtonElement>,
+  ) => {
+    let nextIndex: number | null = null;
+    if (e.key === "ArrowUp") nextIndex = index - 1;
+    if (e.key === "ArrowDown") nextIndex = index + 1;
+    if (e.key === "ArrowLeft") nextIndex = index - 7;
+    if (e.key === "ArrowRight") nextIndex = index + 7;
+    if (e.key === "Home") nextIndex = index - (index % 7);
+    if (e.key === "End") nextIndex = index - (index % 7) + 6;
+    if (nextIndex === null) return;
+
+    e.preventDefault();
+    const boundedIndex = Math.min(
+      Math.max(nextIndex, 0),
+      data.cells.length - 1,
+    );
+    setFocusIndex(boundedIndex);
+    cellRefs.current[boundedIndex]?.focus();
   };
 
   const formatTooltipDate = (d: Date) => {
@@ -72,7 +109,9 @@ export function StudyHeatmap({ data, className }: StudyHeatmapProps) {
   };
 
   return (
-    <div className={[styles.heatmapContainer, className].filter(Boolean).join(" ")}>
+    <div
+      className={[styles.heatmapContainer, className].filter(Boolean).join(" ")}
+    >
       <div className={styles.heatmapWrapper}>
         <div className={styles.heatmapRoot}>
           {/* Month labels row */}
@@ -106,10 +145,19 @@ export function StudyHeatmap({ data, className }: StudyHeatmapProps) {
             </div>
 
             {/* Columns of weeks */}
-            <div className={styles.gridColumns} role="grid" aria-label="Study activity calendar">
+            <div
+              className={styles.gridColumns}
+              role="grid"
+              aria-label="Study activity calendar"
+            >
               {weeks.map((week, weekIdx) => (
-                <div key={`week-${weekIdx}`} className={styles.weekCol} role="row">
-                  {week.map((cell) => {
+                <div
+                  key={`week-${weekIdx}`}
+                  className={styles.weekCol}
+                  role="row"
+                >
+                  {week.map((cell, dayIdx) => {
+                    const cellIndex = weekIdx * 7 + dayIdx;
                     const ariaLabel = `${formatTooltipDate(cell.date)}: ${
                       cell.minutes > 0
                         ? `${cell.minutes} minutes (${cell.count} session${cell.count === 1 ? "" : "s"})`
@@ -122,10 +170,15 @@ export function StudyHeatmap({ data, className }: StudyHeatmapProps) {
                         className={`${styles.cell} ${getLevelClass(cell.level)}`}
                         role="gridcell"
                         aria-label={ariaLabel}
+                        tabIndex={cellIndex === focusIndex ? 0 : -1}
+                        ref={(element) => {
+                          cellRefs.current[cellIndex] = element;
+                        }}
                         onMouseEnter={(e) => handleCellHover(cell, e)}
                         onMouseLeave={handleCellLeave}
                         onFocus={(e) => handleCellHover(cell, e)}
                         onBlur={handleCellLeave}
+                        onKeyDown={(e) => handleCellKeyDown(cellIndex, e)}
                       />
                     );
                   })}
@@ -181,7 +234,8 @@ export function StudyHeatmap({ data, className }: StudyHeatmapProps) {
           </div>
           <div className={styles.tooltipStats}>
             {formatMinutes(tooltip.cell.minutes)}
-            {tooltip.cell.count > 0 && ` • ${tooltip.cell.count} session${tooltip.cell.count === 1 ? "" : "s"}`}
+            {tooltip.cell.count > 0 &&
+              ` • ${tooltip.cell.count} session${tooltip.cell.count === 1 ? "" : "s"}`}
           </div>
         </div>
       )}

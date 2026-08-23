@@ -7,6 +7,7 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
+import { localDateStr } from "../../lib/date";
 import { AdaptiveHealthWidget } from "./AdaptiveHealthWidget";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -48,7 +49,9 @@ describe("AdaptiveHealthWidget", () => {
 
     renderWidget();
 
-    expect(await screen.findByText("Memory Decay & Retention")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Memory Decay & Retention"),
+    ).toBeInTheDocument();
     expect(await screen.findByText("No cards created yet")).toBeInTheDocument();
     expect(screen.getByText("100")).toBeInTheDocument();
     expect(screen.getByText("All memory stable")).toBeInTheDocument();
@@ -58,18 +61,34 @@ describe("AdaptiveHealthWidget", () => {
     const user = userEvent.setup();
 
     const now = new Date();
-    const futureReview = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString();
-    const pastReview = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString();
+    const futureReview = new Date(
+      now.getTime() + 5 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const pastReview = new Date(
+      now.getTime() - 10 * 24 * 60 * 60 * 1000,
+    ).toISOString();
 
     server.use(
       http.get(rest("folders"), () =>
         HttpResponse.json([
-          { id: "f1", user_id: "user-1", name: "Neuroscience", color: "#0f766e", created_at: now.toISOString() },
+          {
+            id: "f1",
+            user_id: "user-1",
+            name: "Neuroscience",
+            color: "#0f766e",
+            created_at: now.toISOString(),
+          },
         ]),
       ),
       http.get(rest("flashcard_decks"), () =>
         HttpResponse.json([
-          { id: "d1", user_id: "user-1", folder_id: "f1", title: "Synaptic Plasticity", created_at: now.toISOString() },
+          {
+            id: "d1",
+            user_id: "user-1",
+            folder_id: "f1",
+            title: "Synaptic Plasticity",
+            created_at: now.toISOString(),
+          },
         ]),
       ),
       http.get(rest("flashcards"), () =>
@@ -116,20 +135,28 @@ describe("AdaptiveHealthWidget", () => {
 
     renderWidget();
 
-    expect(await screen.findByText("Memory Decay & Retention")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Memory Decay & Retention"),
+    ).toBeInTheDocument();
     expect(await screen.findByText("Neuroscience")).toBeInTheDocument();
     expect(await screen.findByText("NMDA Receptors (1)")).toBeInTheDocument();
 
-    const reviewBtn = screen.getByRole("button", { name: /Smart Adaptive Review/i });
+    const reviewBtn = screen.getByRole("button", {
+      name: /Smart Adaptive Review/i,
+    });
     expect(reviewBtn).toBeInTheDocument();
 
     await user.click(reviewBtn);
-    expect(await screen.findByText("Daily Drill Review Screen")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Daily Drill Review Screen"),
+    ).toBeInTheDocument();
   });
 
   it("displays pre-exam surge alert when exams are upcoming within 14 days", async () => {
     const now = new Date();
-    const examDate = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString();
+    const examDate = localDateStr(
+      new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000),
+    );
 
     server.use(
       http.get(rest("exams"), () =>
@@ -146,12 +173,24 @@ describe("AdaptiveHealthWidget", () => {
       ),
       http.get(rest("folders"), () =>
         HttpResponse.json([
-          { id: "f1", user_id: "user-1", name: "Neuroscience", color: "#0f766e", created_at: now.toISOString() },
+          {
+            id: "f1",
+            user_id: "user-1",
+            name: "Neuroscience",
+            color: "#0f766e",
+            created_at: now.toISOString(),
+          },
         ]),
       ),
       http.get(rest("flashcard_decks"), () =>
         HttpResponse.json([
-          { id: "d1", user_id: "user-1", folder_id: "f1", title: "Deck 1", created_at: now.toISOString() },
+          {
+            id: "d1",
+            user_id: "user-1",
+            folder_id: "f1",
+            title: "Deck 1",
+            created_at: now.toISOString(),
+          },
         ]),
       ),
       http.get(rest("flashcards"), () =>
@@ -173,6 +212,8 @@ describe("AdaptiveHealthWidget", () => {
 
     renderWidget();
 
-    expect(await screen.findByText(/Pre-Exam Surge Active:/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Pre-Exam Surge Active:/i),
+    ).toBeInTheDocument();
   });
 });

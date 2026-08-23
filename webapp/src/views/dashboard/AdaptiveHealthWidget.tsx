@@ -90,7 +90,9 @@ export function AdaptiveHealthWidget() {
             <h2 className={styles.title}>Memory Decay & Retention</h2>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)" }}>
+        <div
+          style={{ display: "flex", alignItems: "center", gap: "var(--s-3)" }}
+        >
           <Link to="/analytics" className={styles.analyticsLink}>
             Full Analytics →
           </Link>
@@ -104,7 +106,13 @@ export function AdaptiveHealthWidget() {
       </div>
 
       {isPending ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--s-3)",
+          }}
+        >
           <Skeleton label="Loading adaptive retention metrics" height={70} />
           <Skeleton label="Loading subject mastery" height={100} />
         </div>
@@ -142,7 +150,8 @@ export function AdaptiveHealthWidget() {
                 <Icon name="zap" size={16} />
               </span>
               <span>
-                <strong>Pre-Exam Surge Active:</strong> {surgeCount} cards prioritized for upcoming exams.
+                <strong>Pre-Exam Surge Active:</strong> {surgeCount} cards
+                prioritized for upcoming exams.
               </span>
             </div>
           )}
@@ -154,7 +163,9 @@ export function AdaptiveHealthWidget() {
                 {subjectMasteries.slice(0, 3).map((mastery) => (
                   <div key={mastery.folderId} className={styles.masteryItem}>
                     <div className={styles.masteryItemHead}>
-                      <span className={styles.masteryName}>{mastery.folderName}</span>
+                      <span className={styles.masteryName}>
+                        {mastery.folderName}
+                      </span>
                       <span
                         className={`${styles.tierBadge} ${getTierBadgeClass(mastery.tier)}`}
                       >
@@ -166,12 +177,17 @@ export function AdaptiveHealthWidget() {
                         className={styles.progressBarFill}
                         style={{
                           width: `${mastery.masteryScore}%`,
-                          backgroundColor: getProgressBarColor(mastery.masteryScore),
+                          backgroundColor: getProgressBarColor(
+                            mastery.masteryScore,
+                          ),
                         }}
                       />
                     </div>
                     <div className={styles.masteryMeta}>
-                      <span>{mastery.cardsCount} cards ({mastery.retentionRate}% retention)</span>
+                      <span>
+                        {mastery.cardsCount} cards ({mastery.retentionRate}%
+                        retention)
+                      </span>
                       {mastery.atRiskCount > 0 && (
                         <span style={{ color: "var(--warning)" }}>
                           {mastery.atRiskCount} at risk
@@ -184,7 +200,8 @@ export function AdaptiveHealthWidget() {
             </div>
           ) : (
             <p className={styles.emptyPrompt}>
-              Organize study decks into subjects to track individual mastery curves and weak areas.
+              Organize study decks into subjects to track individual mastery
+              curves and weak areas.
             </p>
           )}
 
@@ -214,8 +231,14 @@ export function AdaptiveHealthWidget() {
                 }
               }}
             >
-              <Icon name="zap" size={16} style={{ marginRight: "var(--s-1)" }} />
-              {atRiskCount > 0 ? `Smart Adaptive Review (${atRiskCount})` : "Smart Adaptive Review"}
+              <Icon
+                name="zap"
+                size={16}
+                style={{ marginRight: "var(--s-1)" }}
+              />
+              {atRiskCount > 0
+                ? `Smart Adaptive Review (${atRiskCount})`
+                : "Smart Adaptive Review"}
             </Button>
           </div>
         </>

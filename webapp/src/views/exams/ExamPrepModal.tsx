@@ -20,9 +20,12 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
   const { readiness, roadmap, isPending } = useExamReadiness(exam);
   const addTask = useAddTask();
 
-  const [checkedTaskIds, setCheckedTaskIds] = useState<Record<string, boolean>>({});
+  const [checkedTaskIds, setCheckedTaskIds] = useState<Record<string, boolean>>(
+    {},
+  );
   const [addingAll, setAddingAll] = useState(false);
   const [addedSuccessMsg, setAddedSuccessMsg] = useState<string | null>(null);
+  const [addErrorMsg, setAddErrorMsg] = useState<string | null>(null);
   const [addedTaskIds, setAddedTaskIds] = useState<Record<string, boolean>>({});
 
   if (!open || !exam) return null;
@@ -35,6 +38,7 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
   };
 
   const handleAddSingleTask = async (task: PrepMilestoneTask) => {
+    setAddErrorMsg(null);
     try {
       await addTask.mutateAsync({
         text: `[${exam.exam_name}] ${task.title}`,
@@ -42,7 +46,7 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
       });
       setAddedTaskIds((prev) => ({ ...prev, [task.id]: true }));
     } catch {
-      // Handled by react query
+      setAddErrorMsg(`Could not add "${task.title}". Please try again.`);
     }
   };
 
@@ -50,29 +54,31 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
     if (!roadmap || roadmap.length === 0) return;
     setAddingAll(true);
     setAddedSuccessMsg(null);
+    setAddErrorMsg(null);
 
     const allTasks = roadmap.flatMap((p) => p.tasks);
     let count = 0;
+    const newAdded: Record<string, boolean> = { ...addedTaskIds };
 
     try {
       for (const task of allTasks) {
-        if (!addedTaskIds[task.id]) {
+        if (!newAdded[task.id]) {
           await addTask.mutateAsync({
             text: `[${exam.exam_name}] ${task.title}`,
             dueDate: task.dueDate,
           });
+          newAdded[task.id] = true;
+          setAddedTaskIds({ ...newAdded });
           count++;
         }
       }
-      const newAdded: Record<string, boolean> = { ...addedTaskIds };
-      allTasks.forEach((t) => {
-        newAdded[t.id] = true;
-      });
-      setAddedTaskIds(newAdded);
       setAddedSuccessMsg(`Added ${count} prep tasks to Task Manager!`);
-      setTimeout(() => setAddedSuccessMsg(null), 4000);
     } catch {
-      // Handled by react query
+      setAddErrorMsg(
+        count > 0
+          ? `Added ${count} prep task${count === 1 ? "" : "s"}, but the next task failed. Retry to continue without duplicates.`
+          : "Could not add prep tasks. Please try again.",
+      );
     } finally {
       setAddingAll(false);
     }
@@ -101,6 +107,11 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
         ? styles.tierProgress
         : styles.tierGap;
 
+  const allRoadmapTasks = roadmap.flatMap((phase) => phase.tasks);
+  const allTasksAdded =
+    allRoadmapTasks.length > 0 &&
+    allRoadmapTasks.every((task) => addedTaskIds[task.id]);
+
   const prettyDate = new Date(`${exam.exam_date}T00:00:00`).toLocaleDateString(
     undefined,
     { weekday: "short", month: "short", day: "numeric", year: "numeric" },
@@ -112,10 +123,15 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
       onClose={onClose}
       title="Exam Countdown & AI Prep Roadmap"
       subtitle="Intelligent readiness score and adaptive multi-phase prep blueprint"
+      contentClassName={styles.modalDialog}
       closeOnOverlayClick
       footer={
         <div className={styles.modalFooter}>
-          {addedSuccessMsg ? (
+          {addErrorMsg ? (
+            <span className={styles.footerFeedback} role="alert">
+              <Icon name="alert-triangle" size={16} /> {addErrorMsg}
+            </span>
+          ) : addedSuccessMsg ? (
             <span className={styles.footerFeedback} role="status">
               <Icon name="check" size={16} /> {addedSuccessMsg}
             </span>
@@ -127,10 +143,16 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
             <Button
               variant="primary"
               onClick={handleAddAllTasks}
-              disabled={addingAll || !roadmap || roadmap.length === 0}
+              disabled={
+                addingAll || allRoadmapTasks.length === 0 || allTasksAdded
+              }
             >
               <Icon name="list-checks" size={16} />
-              {addingAll ? "Adding..." : "Add All Prep Tasks to Task Manager"}
+              {addingAll
+                ? "Adding..."
+                : allTasksAdded
+                  ? "All Prep Tasks Added"
+                  : "Add All Prep Tasks to Task Manager"}
             </Button>
           </div>
         </div>
@@ -165,8 +187,7 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
                     <>
                       <span>•</span>
                       <span>
-                        Target:{" "}
-                        {Math.round(readiness.targetStudyMinutes / 60)}h
+                        Target: {Math.round(readiness.targetStudyMinutes / 60)}h
                         ({readiness.targetHoursRemaining}h remaining)
                       </span>
                     </>

@@ -155,11 +155,9 @@ export function computeExamReadiness(
   let cardMaturityRate: number | null = null;
   const cards = flashcards || [];
   if (cards.length > 0) {
-    const matureCards = cards.filter(
-      (c) =>
-        (c.srs_interval && c.srs_interval >= 3) ||
-        (c.ease_factor && c.ease_factor >= 2.4),
-    );
+    // Ease is a difficulty multiplier and defaults to 2.5 on brand-new
+    // cards, so it cannot establish that a card has actually been learned.
+    const matureCards = cards.filter((c) => c.srs_interval >= 3);
     cardMaturityRate = (matureCards.length / cards.length) * 100;
   }
 
@@ -314,20 +312,24 @@ export function generatePrepRoadmap(
     if (days === 0) return phaseIdx === 4 ? "current" : "completed";
     if (phaseIdx === 1)
       return readiness.breakdown.coverage >= 80 ? "completed" : "current";
-    if (phaseIdx === 2)
-      return readiness.breakdown.coverage >= 80 &&
+    if (phaseIdx === 2) {
+      if (readiness.breakdown.coverage < 80) return "upcoming";
+      return readiness.breakdown.mastery >= 70 ? "completed" : "current";
+    }
+    if (phaseIdx === 3) {
+      if (
+        readiness.breakdown.coverage < 80 ||
         readiness.breakdown.mastery < 70
-        ? "current"
-        : readiness.breakdown.mastery >= 70
-          ? "completed"
-          : "upcoming";
-    if (phaseIdx === 3)
-      return readiness.breakdown.mastery >= 70 && readiness.score < 85
-        ? "current"
-        : readiness.score >= 85
-          ? "completed"
-          : "upcoming";
-    return readiness.score >= 85 ? "current" : "upcoming";
+      ) {
+        return "upcoming";
+      }
+      return readiness.score >= 85 ? "completed" : "current";
+    }
+    return readiness.breakdown.coverage >= 80 &&
+      readiness.breakdown.mastery >= 70 &&
+      readiness.score >= 85
+      ? "current"
+      : "upcoming";
   };
 
   const p1Tasks: PrepMilestoneTask[] = [
@@ -492,7 +494,8 @@ export function generatePrepRoadmap(
     {
       phaseNumber: 4,
       title: "Phase 4: Final Memory Lock & Review",
-      subtitle: "Cheat sheet skimming, confidence lock, and pre-exam readiness.",
+      subtitle:
+        "Cheat sheet skimming, confidence lock, and pre-exam readiness.",
       daysRange: phase4RangeStr,
       startDate: p4StartDate,
       endDate: p4EndDate,

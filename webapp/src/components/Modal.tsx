@@ -16,6 +16,7 @@ interface ModalProps {
      no overlay-click dismissal — so that stays the default here. */
   closeOnOverlayClick?: boolean;
   closeLabel?: string;
+  contentClassName?: string;
 }
 
 export function Modal({
@@ -27,6 +28,7 @@ export function Modal({
   footer,
   closeOnOverlayClick = false,
   closeLabel = "Close",
+  contentClassName,
 }: ModalProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -48,7 +50,7 @@ export function Modal({
     >
       <div
         ref={contentRef}
-        className={styles.content}
+        className={[styles.content, contentClassName].filter(Boolean).join(" ")}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

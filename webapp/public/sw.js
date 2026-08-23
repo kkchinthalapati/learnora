@@ -1,32 +1,43 @@
-/* Learnora's service worker.
+/* Learnora's Service Worker
  *
- * Two jobs, kept deliberately small:
- *  1. Installability + a tiny offline app-shell cache, so reopening the app
- *     with no connection doesn't just show the browser's own offline page.
- *  2. Turn a Web Push message from the scheduled reminder edge function
- *     (see PUSH_NOTIFICATIONS.md) into a system notification, and route a
- *     click on it back into the app.
- *
- * Not a build artifact — Vite serves everything under webapp/public/
- * untouched, at the same path, in both dev and prod. That matters here
- * specifically: a service worker's scope is fixed to the directory it's
- * served from, so this has to be a static file next to index.html, not a
- * bundled asset with a hashed filename that would change its URL (and
- * therefore silently orphan the previous registration) on every deploy.
+ * Capabilities:
+ *  1. Enhanced offline caching strategy:
+ *     - App-shell navigation: Network-first with offline cache fallback.
+ *     - Static assets (JS, CSS, fonts, images, webmanifest): Stale-While-Revalidate with dynamic caching.
+ *     - Dynamic/API/Edge requests: Network-only pass-through (managed by offlineSync & React Query).
+ *  2. Web Push notifications & notification click routing.
  */
 
-const SHELL_CACHE = "learnora-shell-v1";
-const SHELL_URL = "/app/";
+const SHELL_CACHE = "learnora-shell-v2";
+const ASSETS_CACHE = "learnora-assets-v2";
+const CURRENT_CACHES = [SHELL_CACHE, ASSETS_CACHE];
+
+const PRECACHE_ASSETS = [
+  "/app/",
+  "/app/index.html",
+  "/learnora.jpg",
+  "/manifest.webmanifest",
+];
+
+const STATIC_EXTENSIONS = /\.(?:js|css|woff2?|ttf|png|jpe?g|gif|svg|ico|webp)$/i;
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches
       .open(SHELL_CACHE)
-      .then((cache) => cache.add(SHELL_URL))
-      .catch(() => {
-        /* Offline during install (e.g. first load over a flaky connection) —
-           the shell just isn't cached yet; nothing else here depends on it. */
+      .then((cache) => {
+        return Promise.allSettled(
+          PRECACHE_ASSETS.map((url) =>
+            fetch(url)
+              .then((res) => {
+                if (res.ok) return cache.put(url, res);
+              })
+              .catch(() => {
+                /* Offline during install - will cache on first navigation */
+              }),
+          ),
+        );
       }),
   );
 });
@@ -38,7 +49,7 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key !== SHELL_CACHE)
+            .filter((key) => !CURRENT_CACHES.includes(key))
             .map((key) => caches.delete(key)),
         ),
       )
@@ -46,19 +57,71 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-/* Network-first for the app shell's own navigation, falling back to the
- * cached shell only when the network is unreachable. Everything else
- * (API calls, hashed JS/CSS bundles, fonts) passes straight through — the
- * hashed asset URLs already give the browser's normal HTTP cache correct
- * long-lived caching (see vercel.json's Cache-Control header), so a second
- * cache layer here would only add staleness risk for zero benefit. */
 self.addEventListener("fetch", (event) => {
-  if (event.request.mode !== "navigate") return;
-  event.respondWith(
-    fetch(event.request).catch(
-      () => caches.match(SHELL_URL) ?? fetch(event.request),
-    ),
-  );
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Only intercept GET requests
+  if (request.method !== "GET") return;
+
+  // Never cache Supabase API, Edge Functions, or auth endpoints
+  if (
+    url.hostname.includes("supabase.co") ||
+    url.pathname.startsWith("/functions/v1") ||
+    url.pathname.startsWith("/rest/v1") ||
+    url.pathname.startsWith("/auth/v1")
+  ) {
+    return;
+  }
+
+  // 1. Navigation requests: Network-first with Shell fallback
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const copy = response.clone();
+            caches.open(SHELL_CACHE).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cached =
+            (await caches.match(request)) ||
+            (await caches.match("/app/")) ||
+            (await caches.match("/app/index.html")) ||
+            (await caches.match("/index.html"));
+          if (cached) return cached;
+          throw new Error("Offline and no shell cache available.");
+        }),
+    );
+    return;
+  }
+
+  // 2. Static assets & bundle chunks: Stale-While-Revalidate
+  const isStaticAsset =
+    STATIC_EXTENSIONS.test(url.pathname) ||
+    url.pathname.includes("/assets/") ||
+    url.pathname.endsWith("/manifest.webmanifest");
+
+  if (isStaticAsset) {
+    event.respondWith(
+      caches.open(ASSETS_CACHE).then(async (cache) => {
+        const cachedResponse = await cache.match(request);
+
+        const fetchPromise = fetch(request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              cache.put(request, networkResponse.clone());
+            }
+            return networkResponse;
+          })
+          .catch(() => cachedResponse);
+
+        return cachedResponse || fetchPromise;
+      }),
+    );
+  }
 });
 
 self.addEventListener("push", (event) => {
@@ -80,9 +143,6 @@ self.addEventListener("push", (event) => {
   );
 });
 
-/* Focuses an already-open Learnora tab rather than always opening a new one
- * — the common case is "I have it open in another tab and forgot", not "I
- * have no tabs open at all". */
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || "/app/";

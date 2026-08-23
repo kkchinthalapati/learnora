@@ -165,6 +165,32 @@ describe("examReadiness", () => {
       expect(readiness.targetHoursRemaining).toBe(12);
     });
 
+    it("does not treat a brand-new card's default ease factor as mastery", () => {
+      const newCard: Flashcard = {
+        id: "new-card",
+        user_id: "user-123",
+        deck_id: "d-1",
+        front: "Unreviewed question",
+        back: "Unreviewed answer",
+        next_review_date: null,
+        srs_interval: 0,
+        ease_factor: 2.5,
+        created_at: "2026-09-01T00:00:00Z",
+      };
+
+      const readiness = computeExamReadiness(
+        baseExam,
+        folder,
+        [],
+        [newCard],
+        [],
+        [],
+        new Date("2026-09-01T00:00:00"),
+      );
+
+      expect(readiness.breakdown.mastery).toBe(0);
+    });
+
     it("identifies weak topics from quiz attempts and calculates Exam Ready tier", () => {
       const materials: Material[] = [
         {
@@ -332,6 +358,29 @@ describe("examReadiness", () => {
 
       expect(weakTask.description).toContain("Krebs Cycle");
       expect(weakTask.description).toContain("Electron Transport Chain");
+    });
+
+    it("keeps phases sequential when later mastery is high but coverage is incomplete", () => {
+      const now = new Date("2026-09-01T00:00:00");
+      const readiness = {
+        score: 65,
+        tier: "In Progress" as const,
+        breakdown: { coverage: 40, mastery: 90, studyTime: 60 },
+        weakTopics: [],
+        daysRemaining: 9,
+        targetHoursRemaining: 8,
+        totalStudyMinutes: 720,
+        targetStudyMinutes: 1200,
+      };
+
+      const phases = generatePrepRoadmap(baseExam, readiness, now);
+
+      expect(phases.map((phase) => phase.status)).toEqual([
+        "current",
+        "upcoming",
+        "upcoming",
+        "upcoming",
+      ]);
     });
   });
 

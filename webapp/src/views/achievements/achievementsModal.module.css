@@ -1,0 +1,472 @@
+.modalDialog {
+  max-width: 900px;
+  width: 95vw;
+  scrollbar-color: var(--glass-border) transparent;
+  scrollbar-width: thin;
+}
+
+.modalDialog::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modalDialog::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modalDialog::-webkit-scrollbar-thumb {
+  border-radius: var(--r-pill);
+  background: var(--glass-border);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  padding: var(--s-1) 0;
+}
+
+/* ---- Overview Hero Banner ---- */
+
+.heroBanner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4) var(--s-5);
+  background: linear-gradient(
+    135deg,
+    var(--surface-2) 0%,
+    var(--surface-1) 100%
+  );
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.heroHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+
+.heroTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.heroTrophyIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-md);
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border: 1px solid var(--accent-ring);
+  flex-shrink: 0;
+}
+
+.heroTitle {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.heroSubtitle {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.heroStatPill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.totalProgressBar {
+  width: 100%;
+  height: 8px;
+  background: var(--surface-3);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.totalProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, #f59e0b 100%);
+  border-radius: var(--r-pill);
+  transition: width var(--t-normal) ease;
+}
+
+/* ---- Goals Customization Section ---- */
+
+.goalsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4) var(--s-5);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.goalsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.savedPill {
+  font-size: var(--fs-xs);
+  color: var(--success);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.goalsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-3);
+}
+
+@media (max-width: 700px) {
+  .goalsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.goalCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  background: var(--surface-1);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+}
+
+.goalCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.goalIcon {
+  color: var(--accent-text);
+}
+
+.goalInputRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.goalInput {
+  flex: 1;
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.goalInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.goalUnit {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.goalPresets {
+  display: flex;
+  gap: 4px;
+}
+
+.presetBtn {
+  flex: 1;
+  padding: 3px 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--t-fast) ease;
+}
+
+.presetBtn:hover,
+.presetBtnActive {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent-ring);
+}
+
+.goalCardStatus {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 4px;
+}
+
+/* ---- Filter Pills ---- */
+
+.filtersRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.filterPill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--t-fast) ease;
+  font-family: inherit;
+}
+
+.filterPill:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.filterPillActive {
+  background: var(--accent);
+  color: var(--accent-on);
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.filterCount {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.filterPillActive .filterCount {
+  background: rgba(255, 255, 255, 0.25);
+  color: var(--accent-on);
+}
+
+/* ---- Trophy Cabinet Grid ---- */
+
+.cabinetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--s-3);
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: var(--s-1);
+}
+
+.badgeCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  transition: transform var(--t-fast) ease, box-shadow var(--t-fast) ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.badgeCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.badgeUnlocked {
+  background: linear-gradient(
+    135deg,
+    var(--surface-2) 0%,
+    rgba(245, 158, 11, 0.08) 100%
+  );
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.08);
+}
+
+.badgeLocked {
+  opacity: 0.82;
+  background: var(--surface-2);
+  border-style: dashed;
+}
+
+.badgeTop {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-start;
+}
+
+.badgeIconBox {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: transform var(--t-fast) ease;
+}
+
+.badgeUnlocked .badgeIconBox {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);
+}
+
+.badgeLocked .badgeIconBox {
+  background: var(--surface-3);
+  color: var(--text-faint);
+  border: 1px solid var(--line);
+}
+
+.badgeInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.badgeTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.badgeTitle {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.categoryTag {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--surface-3);
+  color: var(--text-muted);
+}
+
+.badgeDesc {
+  margin: var(--s-1) 0 0 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.badgeBottom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: auto;
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+.badgeProgressBar {
+  width: 100%;
+  height: 6px;
+  background: var(--surface-3);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.badgeProgressFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--r-pill);
+  transition: width var(--t-normal) ease;
+}
+
+.badgeProgressText {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.unlockedChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: #d97706;
+}
+
+.unlockedChipDark {
+  color: #f59e0b;
+}
+
+.emptyState {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-8) var(--s-4);
+  text-align: center;
+  color: var(--text-muted);
+}

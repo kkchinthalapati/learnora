@@ -17,10 +17,16 @@ describe("StudyHeatmap", () => {
   };
 
   it("renders the 52-week activity grid, streak metrics, and legend", () => {
-    const data = generateActivityHeatmap([fakeSession], 365, new Date("2026-08-23T12:00:00"));
+    const data = generateActivityHeatmap(
+      [fakeSession],
+      365,
+      new Date("2026-08-23T12:00:00"),
+    );
     render(<StudyHeatmap data={data} />);
 
-    expect(screen.getByRole("grid", { name: "Study activity calendar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("grid", { name: "Study activity calendar" }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Current Streak:/i)).toBeInTheDocument();
     expect(screen.getByText(/Longest Streak:/i)).toBeInTheDocument();
     expect(screen.getByText(/Active Days:/i)).toBeInTheDocument();
@@ -29,7 +35,11 @@ describe("StudyHeatmap", () => {
   });
 
   it("shows tooltip on cell mouse enter and clears on mouse leave", () => {
-    const data = generateActivityHeatmap([fakeSession], 365, new Date("2026-08-23T12:00:00"));
+    const data = generateActivityHeatmap(
+      [fakeSession],
+      365,
+      new Date("2026-08-23T12:00:00"),
+    );
     render(<StudyHeatmap data={data} />);
 
     const cells = screen.getAllByRole("gridcell");
@@ -43,5 +53,26 @@ describe("StudyHeatmap", () => {
 
     fireEvent.mouseLeave(firstCell);
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  });
+
+  it("uses one tab stop and arrow-key navigation for the large grid", () => {
+    const data = generateActivityHeatmap(
+      [fakeSession],
+      365,
+      new Date("2026-08-23T12:00:00"),
+    );
+    render(<StudyHeatmap data={data} />);
+
+    const cells = screen.getAllByRole("gridcell");
+    const tabbableCells = cells.filter((cell) => cell.tabIndex === 0);
+    expect(tabbableCells).toHaveLength(1);
+
+    tabbableCells[0].focus();
+    fireEvent.keyDown(tabbableCells[0], { key: "ArrowLeft" });
+
+    expect(document.activeElement).toBe(
+      cells[cells.indexOf(tabbableCells[0]) - 7],
+    );
+    expect(cells.filter((cell) => cell.tabIndex === 0)).toHaveLength(1);
   });
 });

@@ -16,6 +16,13 @@ export function useNotesByMaterial(materialId: string) {
   });
 }
 
+export function useNotes() {
+  return useQuery({
+    queryKey: notesKeys.all,
+    queryFn: notesApi.fetchAll,
+  });
+}
+
 export function useAddNote() {
   const qc = useQueryClient();
   return useMutation({

@@ -459,8 +459,129 @@
   color: var(--text);
 }
 
-.drillAction {
-  align-self: flex-start;
+.streakCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--s-1);
+}
+
+.trophyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--t-fast) ease;
+}
+
+.trophyBtn:hover {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent-ring);
+  transform: translateY(-1px);
+}
+
+.streakMainRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-top: var(--s-1);
+}
+
+.dailyGoalRingContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-lg);
+}
+
+.svgWrapper {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.goalSvgRing {
+  width: 56px;
+  height: 56px;
+  transform: rotate(-90deg);
+}
+
+.goalTrackRing {
+  stroke: var(--surface-3);
+}
+
+.goalProgressRing {
+  stroke: var(--accent);
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1), stroke var(--t-fast) ease;
+}
+
+.goalProgressComplete {
+  stroke: #f59e0b;
+}
+
+.ringCenterIcon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.ringIconActive {
+  color: var(--accent-text);
+}
+
+.ringIconComplete {
+  color: #f59e0b;
+}
+
+.goalInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.goalLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.goalValue {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.goalStatusBadge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.goalStatusAchieved {
+  color: #d97706;
+  font-weight: 700;
 }
 
 .streakHint {

@@ -486,7 +486,9 @@
   background: var(--surface);
   border: 1px solid var(--glass-border-subtle);
   border-radius: var(--r-md);
-  transition: transform var(--t-fast) ease, border-color var(--t-fast) ease;
+  transition:
+    transform var(--t-fast) ease,
+    border-color var(--t-fast) ease;
 }
 
 .upcomingCard:hover {

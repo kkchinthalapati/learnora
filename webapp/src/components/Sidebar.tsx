@@ -44,6 +44,7 @@ interface NavItem {
    other item here is a plain, unambiguous path prefix. */
 const NAV_ITEMS: NavItem[] = [
   { to: "/analytics", icon: "activity", label: "Analytics" },
+  { to: "/graph", icon: "share-2", label: "Concept Graph" },
   { to: "/timer", icon: "clock", label: "Timer", translationKey: "nav_timer" },
   {
     to: "/tasks",

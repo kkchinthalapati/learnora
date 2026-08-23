@@ -10,7 +10,9 @@ import {
 import type { StudySession, QuizAttempt, Folder, Exam } from "../api/types";
 
 describe("analyticsEngine", () => {
-  const fakeSession = (overrides: Partial<StudySession> = {}): StudySession => ({
+  const fakeSession = (
+    overrides: Partial<StudySession> = {},
+  ): StudySession => ({
     id: "sess-1",
     user_id: "user-1",
     task: "Study chapter 1",
@@ -39,9 +41,9 @@ describe("analyticsEngine", () => {
       const now = new Date("2026-08-23T12:00:00");
       const sessions: StudySession[] = [
         fakeSession({ started_at: "2026-08-23T10:00:00.000Z", minutes: 130 }), // level 4
-        fakeSession({ started_at: "2026-08-22T10:00:00.000Z", minutes: 75 }),  // level 3
-        fakeSession({ started_at: "2026-08-21T10:00:00.000Z", minutes: 35 }),  // level 2
-        fakeSession({ started_at: "2026-08-20T10:00:00.000Z", minutes: 15 }),  // level 1
+        fakeSession({ started_at: "2026-08-22T10:00:00.000Z", minutes: 75 }), // level 3
+        fakeSession({ started_at: "2026-08-21T10:00:00.000Z", minutes: 35 }), // level 2
+        fakeSession({ started_at: "2026-08-20T10:00:00.000Z", minutes: 15 }), // level 1
       ];
 
       const data = generateActivityHeatmap(sessions, 30, now);
@@ -155,14 +157,46 @@ describe("analyticsEngine", () => {
 
   describe("computeSubjectUrgencyMatrix", () => {
     const folders: Folder[] = [
-      { id: "f-1", user_id: "user-1", name: "Calculus", color: "#3b82f6", created_at: "2026-08-01" },
-      { id: "f-2", user_id: "user-1", name: "Physics", color: "#10b981", created_at: "2026-08-01" },
-      { id: "f-3", user_id: "user-1", name: "History", color: "#f59e0b", created_at: "2026-08-01" },
+      {
+        id: "f-1",
+        user_id: "user-1",
+        name: "Calculus",
+        color: "#3b82f6",
+        created_at: "2026-08-01",
+      },
+      {
+        id: "f-2",
+        user_id: "user-1",
+        name: "Physics",
+        color: "#10b981",
+        created_at: "2026-08-01",
+      },
+      {
+        id: "f-3",
+        user_id: "user-1",
+        name: "History",
+        color: "#f59e0b",
+        created_at: "2026-08-01",
+      },
     ];
 
     const exams: Exam[] = [
-      { id: 1, user_id: "user-1", exam_name: "Calculus Final", exam_date: "2026-08-26", difficulty: "hard", status: "upcoming" },
-      { id: 2, user_id: "user-1", exam_name: "Physics Midterm", exam_date: "2026-09-15", difficulty: "medium", status: "upcoming" },
+      {
+        id: 1,
+        user_id: "user-1",
+        exam_name: "Calculus Final",
+        exam_date: "2026-08-26",
+        difficulty: "hard",
+        status: "upcoming",
+      },
+      {
+        id: 2,
+        user_id: "user-1",
+        exam_name: "Physics Midterm",
+        exam_date: "2026-09-15",
+        difficulty: "medium",
+        status: "upcoming",
+      },
     ];
 
     it("marks subjects as High Urgency when exam is near and minutes studied are low", () => {
@@ -194,7 +228,12 @@ describe("analyticsEngine", () => {
       const heatData = generateActivityHeatmap(sessions, 30);
       const hourly = computeHourlyDistribution(sessions, attempts);
 
-      const insights = generateStudyInsights(sessions, attempts, heatData, hourly);
+      const insights = generateStudyInsights(
+        sessions,
+        attempts,
+        heatData,
+        hourly,
+      );
       expect(insights.length).toBeGreaterThanOrEqual(4);
       expect(insights.some((i) => i.includes("Focus Window"))).toBe(true);
       expect(insights.some((i) => i.includes("Study Volume"))).toBe(true);

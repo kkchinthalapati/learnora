@@ -11,7 +11,9 @@
   padding: var(--s-5);
   position: relative;
   overflow: hidden;
-  transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease);
+  transition:
+    transform var(--t) var(--ease),
+    box-shadow var(--t) var(--ease);
 }
 
 .widget::before {
@@ -174,7 +176,11 @@
   align-items: center;
   gap: var(--s-2);
   padding: var(--s-2) var(--s-3);
-  background: linear-gradient(135deg, rgba(201, 138, 46, 0.12), rgba(15, 118, 110, 0.08));
+  background: linear-gradient(
+    135deg,
+    rgba(201, 138, 46, 0.12),
+    rgba(15, 118, 110, 0.08)
+  );
   border: 1px solid rgba(201, 138, 46, 0.25);
   border-radius: var(--r-md);
   font-size: var(--fs-xs);

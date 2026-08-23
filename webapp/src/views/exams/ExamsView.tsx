@@ -350,9 +350,15 @@ export function ExamsView() {
                     <UpcomingExamCard
                       key={exam.id}
                       exam={exam}
-                      onOpenPrep={(ex) => setOverlay({ kind: "prep", exam: ex })}
+                      onOpenPrep={(ex) =>
+                        setOverlay({ kind: "prep", exam: ex })
+                      }
                       onEdit={(ex) =>
-                        setOverlay({ kind: "exam", exam: ex, date: ex.exam_date })
+                        setOverlay({
+                          kind: "exam",
+                          exam: ex,
+                          date: ex.exam_date,
+                        })
                       }
                     />
                   ))}
@@ -388,18 +394,12 @@ export function ExamsView() {
           onAddExam={() =>
             setOverlay({ kind: "exam", exam: null, date: overlay.date })
           }
-          onOpenPrepRoadmap={(exam) =>
-            setOverlay({ kind: "prep", exam })
-          }
+          onOpenPrepRoadmap={(exam) => setOverlay({ kind: "prep", exam })}
         />
       )}
 
       {overlay.kind === "prep" && (
-        <ExamPrepModal
-          open
-          exam={overlay.exam}
-          onClose={closeOverlay}
-        />
+        <ExamPrepModal open exam={overlay.exam} onClose={closeOverlay} />
       )}
     </div>
   );
