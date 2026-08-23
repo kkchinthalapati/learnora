@@ -139,8 +139,11 @@ export function computeFolderBreakdown(
 /* `exam_date` is a plain YYYY-MM-DD string, so lexicographic comparison
  * against another YYYY-MM-DD string sorts and filters correctly with no
  * Date parsing needed — same reasoning the calendar view uses. */
-export function nextUpcomingExam(exams: Exam[], todayStr: string): Exam | null {
-  const upcoming = exams
+export function nextUpcomingExam(
+  exams: Exam[] = [],
+  todayStr: string,
+): Exam | null {
+  const upcoming = (exams || [])
     .filter((e) => e.status !== "Completed" && e.exam_date >= todayStr)
     .sort((a, b) => a.exam_date.localeCompare(b.exam_date));
   return upcoming[0] ?? null;

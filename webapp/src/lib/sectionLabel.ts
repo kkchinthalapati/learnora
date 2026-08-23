@@ -35,6 +35,7 @@ export function sectionLabel(
   if (isLibrarySection(pathname)) return t("nav_library");
   if (pathname.startsWith("/timer")) return t("nav_timer");
   if (pathname.startsWith("/tasks")) return t("nav_tasks");
+  if (pathname.startsWith("/analytics")) return "Analytics";
   if (pathname.startsWith("/plan")) return "This week's plan";
   if (pathname.startsWith("/exams")) return "Exams";
   if (pathname.startsWith("/room")) return "Study Room";

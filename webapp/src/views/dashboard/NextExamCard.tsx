@@ -1,15 +1,25 @@
+import { useState } from "react";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useExams } from "../../hooks/useExams";
+import { useExamReadiness } from "../../hooks/useExamReadiness";
 import { localDateStr } from "../../lib/date";
+import { ExamPrepModal } from "../exams/ExamPrepModal";
 import { DashboardCardHeader } from "./DashboardCardHeader";
 import { daysUntil, nextUpcomingExam } from "./analytics";
 import styles from "./dashboard.module.css";
 
 /* "Next exam" spotlight. */
 export function NextExamCard() {
-  const { data: exams, isPending, isError, error } = useExams();
+  const { data: exams = [], isPending, isError, error } = useExams();
+  const [prepModalOpen, setPrepModalOpen] = useState(false);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const next = nextUpcomingExam(exams, localDateStr());
+
+  const { readiness } = useExamReadiness(next);
 
   if (isPending) {
     return (
@@ -29,10 +39,6 @@ export function NextExamCard() {
       </Card>
     );
   }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const next = nextUpcomingExam(exams, localDateStr());
 
   if (!next) {
     return (
@@ -64,26 +70,55 @@ export function NextExamCard() {
         ? styles.diffHard
         : styles.diffMedium;
 
+  const readinessTierClass =
+    readiness?.tier === "Exam Ready"
+      ? styles.readinessTierReady
+      : readiness?.tier === "In Progress"
+        ? styles.readinessTierProgress
+        : styles.readinessTierGap;
+
   return (
-    <Card variant="elevated" className={styles.examCard}>
-      <DashboardCardHeader
-        eyebrow="Next exam"
-        action={{ to: "/exams", label: "Open calendar" }}
-      />
-      <div className={styles.countdown}>
-        {big}
-        <span className={styles.countdownUnit}>{unit}</span>
-      </div>
-      <div>
-        <div className={styles.examName}>{next.exam_name}</div>
-        <div className={styles.examMeta}>
-          <span className={styles.examMetaDate}>
-            <Icon name="calendar" size={14} />
-            {prettyDate}
-          </span>
-          <span className={`${styles.pill} ${diffClass}`}>{difficulty}</span>
+    <>
+      <Card variant="elevated" className={styles.examCard}>
+        <DashboardCardHeader
+          eyebrow="Next exam"
+          action={{ to: "/exams", label: "Open calendar" }}
+        />
+        <div className={styles.countdown}>
+          {big}
+          <span className={styles.countdownUnit}>{unit}</span>
         </div>
-      </div>
-    </Card>
+        <div>
+          <div className={styles.examName}>{next.exam_name}</div>
+          <div className={styles.examMeta}>
+            <span className={styles.examMetaDate}>
+              <Icon name="calendar" size={14} />
+              {prettyDate}
+            </span>
+            <span className={`${styles.pill} ${diffClass}`}>{difficulty}</span>
+            {readiness && (
+              <button
+                type="button"
+                className={`${styles.readinessPillBtn} ${readinessTierClass}`}
+                onClick={() => setPrepModalOpen(true)}
+                title="View AI Exam Readiness & Prep Roadmap"
+                aria-label={`Exam readiness: ${readiness.score}% ready. Click to open AI Prep Roadmap.`}
+              >
+                <Icon name="brain" size={13} />
+                {readiness.score}% Ready
+              </button>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {prepModalOpen && (
+        <ExamPrepModal
+          open={prepModalOpen}
+          exam={next}
+          onClose={() => setPrepModalOpen(false)}
+        />
+      )}
+    </>
   );
 }

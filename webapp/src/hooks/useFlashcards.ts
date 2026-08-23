@@ -2,10 +2,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { flashcardsApi } from "../api/flashcards";
 
 export const flashcardsKeys = {
+  all: ["flashcards"] as const,
   byDeck: (deckId: string) => ["flashcards", "deck", deckId] as const,
   dueCount: ["flashcards", "due-count"] as const,
   allDue: (limit: number) => ["flashcards", "all-due", limit] as const,
 };
+
+export function useFlashcards() {
+  return useQuery({
+    queryKey: flashcardsKeys.all,
+    queryFn: flashcardsApi.fetchAll,
+  });
+}
+
+export const useAllFlashcards = useFlashcards;
 
 export function useFlashcardsByDeck(deckId: string) {
   return useQuery({

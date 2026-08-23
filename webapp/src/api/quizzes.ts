@@ -1,6 +1,6 @@
 import { supabase } from "../lib/supabase";
 import { requireUserId } from "./session";
-import type { Quiz, WeakTopic } from "./types";
+import type { Quiz, QuizAttempt, WeakTopic } from "./types";
 
 /* Direct port of js/api.js's `Quizzes` object (:1006-1123). */
 export const quizzesApi = {
@@ -73,6 +73,17 @@ export const quizzesApi = {
       },
     ]);
     if (error) throw new Error(error.message);
+  },
+
+  async fetchAllAttempts(): Promise<QuizAttempt[]> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from("quiz_attempts")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
   },
 
   /* The most recent attempt at one quiz, for the review screen — reading

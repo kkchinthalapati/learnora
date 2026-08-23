@@ -567,4 +567,21 @@ describe("DashboardView", () => {
       );
     });
   });
+
+  describe("Adaptive health widget", () => {
+    it("renders cognitive health score and navigates to analytics", async () => {
+      serveDashboard({
+        sessions: [studySession({ minutes: 45 })],
+      });
+      renderDashboard();
+
+      expect(
+        await screen.findByRole("region", { name: "Adaptive learning health" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Learning Health & AI")).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: /Full Analytics/i }),
+      ).toHaveAttribute("href", "/analytics");
+    });
+  });
 });

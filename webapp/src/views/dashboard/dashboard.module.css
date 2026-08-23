@@ -181,6 +181,63 @@
   color: var(--danger);
 }
 
+.readinessPillBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border: 1px solid var(--accent-ring);
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform var(--t-fast) ease, box-shadow var(--t-fast) ease, background var(--t-fast) ease;
+}
+
+.readinessPillBtn:hover {
+  transform: translateY(-1px);
+  background: var(--accent);
+  color: var(--accent-on);
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.readinessTierReady {
+  background: var(--success-soft);
+  color: var(--success);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.readinessTierReady:hover {
+  background: var(--success);
+  color: #fff;
+}
+
+.readinessTierProgress {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.readinessTierProgress:hover {
+  background: var(--warning);
+  color: #fff;
+}
+
+.readinessTierGap {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.readinessTierGap:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
 /* ---- Focus card ---------------------------------------------------------- */
 
 .focusCard {

@@ -5,6 +5,7 @@ interface IconProps {
   size?: number;
   className?: string;
   strokeWidth?: number;
+  style?: React.CSSProperties;
   /* Icons are decorative by default (the vanilla registry hard-codes
      aria-hidden). Pass a label only when the icon is the sole content of a
      control and nothing else names it. */
@@ -16,10 +17,12 @@ export function Icon({
   size = 20,
   className = "",
   strokeWidth = 1.75,
+  style,
   label,
 }: IconProps) {
   return (
     <svg
+      style={style}
       className={`icon icon-${name}${className ? ` ${className}` : ""}`}
       width={size}
       height={size}

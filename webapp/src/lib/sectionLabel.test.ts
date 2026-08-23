@@ -40,6 +40,7 @@ describe("sectionLabel", () => {
 
   it("labels the remaining top-level sections", () => {
     expect(sectionLabel("/timer", t)).toBe("Timer");
+    expect(sectionLabel("/analytics", t)).toBe("Analytics");
     expect(sectionLabel("/tasks", t)).toBe("Task Manager");
     expect(sectionLabel("/plan", t)).toBe("This week's plan");
     expect(sectionLabel("/exams", t)).toBe("Exams");

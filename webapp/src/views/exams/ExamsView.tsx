@@ -1,14 +1,18 @@
 import { useMemo, useState } from "react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useExams } from "../../hooks/useExams";
+import { useExamReadiness } from "../../hooks/useExamReadiness";
 import { useTranslation } from "../../hooks/useTranslation";
 import { MONTH_NAMES, formatDateStr, localDateStr } from "../../lib/date";
+import { getDaysRemaining } from "../../lib/examReadiness";
 import type { TranslationKey } from "../../lib/i18n";
 import type { Exam } from "../../api/types";
 import { DayDetailModal } from "./DayDetailModal";
 import { ExamModal } from "./ExamModal";
+import { ExamPrepModal } from "./ExamPrepModal";
 import { MAX_EXAM_BARS_PER_DAY } from "./examMeta";
 import styles from "./exams.module.css";
 
@@ -36,7 +40,8 @@ const WEEKDAY_KEYS: readonly TranslationKey[] = [
 type Overlay =
   | { kind: "none" }
   | { kind: "exam"; exam: Exam | null; date: string }
-  | { kind: "day"; date: string };
+  | { kind: "day"; date: string }
+  | { kind: "prep"; exam: Exam };
 
 interface MonthCell {
   day: number;
@@ -62,6 +67,83 @@ function difficultyClass(difficulty: string | null): string {
     default:
       return styles.diffMedium;
   }
+}
+
+interface UpcomingExamCardProps {
+  exam: Exam;
+  onOpenPrep: (exam: Exam) => void;
+  onEdit: (exam: Exam) => void;
+}
+
+function UpcomingExamCard({ exam, onOpenPrep, onEdit }: UpcomingExamCardProps) {
+  const { readiness } = useExamReadiness(exam);
+  const days = Math.max(0, getDaysRemaining(exam.exam_date));
+  const countdownPill =
+    days === 0 ? "Today" : days === 1 ? "1 day away" : `${days} days away`;
+
+  const prettyDate = new Date(`${exam.exam_date}T00:00:00`).toLocaleDateString(
+    undefined,
+    { weekday: "short", month: "short", day: "numeric" },
+  );
+
+  const badgeClass =
+    readiness?.tier === "Exam Ready"
+      ? styles.badgeReady
+      : readiness?.tier === "In Progress"
+        ? styles.badgeProgress
+        : styles.badgeGap;
+
+  return (
+    <div className={styles.upcomingCard}>
+      <div className={styles.upcomingLeft}>
+        <div className={styles.upcomingName}>{exam.exam_name}</div>
+        <div className={styles.upcomingMeta}>
+          <span>{prettyDate}</span>
+          <span>•</span>
+          <span>{exam.difficulty || "Medium"}</span>
+          <span>•</span>
+          <span>{countdownPill}</span>
+        </div>
+      </div>
+
+      <div className={styles.upcomingRight}>
+        {readiness && (
+          <span
+            className={`${styles.readinessBadge} ${badgeClass}`}
+            title={`Readiness: ${readiness.score}% (${readiness.tier})`}
+          >
+            <Icon name="brain" size={12} />
+            {readiness.score}%
+          </span>
+        )}
+        <button
+          type="button"
+          className={styles.dayItemPrepBtn}
+          onClick={() => onOpenPrep(exam)}
+          title="Open AI Prep Roadmap"
+          aria-label={`Open AI Prep Roadmap for ${exam.exam_name}`}
+        >
+          <Icon name="compass" size={14} />
+          Prep Roadmap
+        </button>
+        <button
+          type="button"
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "var(--text-muted)",
+            display: "inline-flex",
+            padding: "4px",
+          }}
+          onClick={() => onEdit(exam)}
+          aria-label={`Edit ${exam.exam_name}`}
+        >
+          <Icon name="pencil" size={15} />
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function ExamsView() {
@@ -91,6 +173,16 @@ export function ExamsView() {
     }
     return map;
   }, [exams]);
+
+  const upcomingExams = useMemo(() => {
+    return (exams ?? [])
+      .filter(
+        (e) =>
+          (e.status || "Scheduled").toLowerCase() !== "completed" &&
+          e.exam_date >= today,
+      )
+      .sort((a, b) => a.exam_date.localeCompare(b.exam_date));
+  }, [exams, today]);
 
   function shiftMonth(delta: number) {
     setViewMonth(({ year, month }) => {
@@ -243,6 +335,30 @@ export function ExamsView() {
                 );
               })}
             </div>
+
+            {/* Upcoming Exams & AI Prep Readiness Section */}
+            {upcomingExams.length > 0 && (
+              <div className={styles.upcomingSection}>
+                <div className={styles.upcomingTitleRow}>
+                  <h3>
+                    <Icon name="brain" size={18} />
+                    Upcoming Exams & Readiness Intelligence
+                  </h3>
+                </div>
+                <div className={styles.upcomingGrid}>
+                  {upcomingExams.map((exam) => (
+                    <UpcomingExamCard
+                      key={exam.id}
+                      exam={exam}
+                      onOpenPrep={(ex) => setOverlay({ kind: "prep", exam: ex })}
+                      onEdit={(ex) =>
+                        setOverlay({ kind: "exam", exam: ex, date: ex.exam_date })
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
       </Card>
@@ -272,6 +388,17 @@ export function ExamsView() {
           onAddExam={() =>
             setOverlay({ kind: "exam", exam: null, date: overlay.date })
           }
+          onOpenPrepRoadmap={(exam) =>
+            setOverlay({ kind: "prep", exam })
+          }
+        />
+      )}
+
+      {overlay.kind === "prep" && (
+        <ExamPrepModal
+          open
+          exam={overlay.exam}
+          onClose={closeOverlay}
         />
       )}
     </div>

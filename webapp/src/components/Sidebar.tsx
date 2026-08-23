@@ -43,6 +43,7 @@ interface NavItem {
    `isLibrarySection` check above instead of NavLink's own comparison. Every
    other item here is a plain, unambiguous path prefix. */
 const NAV_ITEMS: NavItem[] = [
+  { to: "/analytics", icon: "activity", label: "Analytics" },
   { to: "/timer", icon: "clock", label: "Timer", translationKey: "nav_timer" },
   {
     to: "/tasks",

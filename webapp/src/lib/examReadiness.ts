@@ -1,0 +1,868 @@
+import type {
+  Exam,
+  Folder,
+  Flashcard,
+  Material,
+  Quiz,
+  QuizAttempt,
+  StudySession,
+  Task,
+} from "../api/types";
+import { daysUntil } from "../views/dashboard/analytics";
+import { formatDateStr } from "./date";
+
+/* =========================================================================
+ * 1. Exam Readiness & Milestone Roadmap Architecture (Prompt Specification)
+ * ========================================================================= */
+
+export type ReadinessTier = "Critical Gap" | "In Progress" | "Exam Ready";
+
+export interface ExamReadinessBreakdown {
+  coverage: number; // 0-100 (30% weight)
+  mastery: number; // 0-100 (40% weight)
+  studyTime: number; // 0-100 (30% weight)
+}
+
+export interface ExamReadiness {
+  score: number; // 0-100
+  tier: ReadinessTier;
+  breakdown: ExamReadinessBreakdown;
+  weakTopics: string[];
+  daysRemaining: number;
+  targetHoursRemaining: number;
+  totalStudyMinutes: number;
+  targetStudyMinutes: number;
+}
+
+export interface PrepMilestoneTask {
+  id: string;
+  title: string;
+  description: string;
+  dueDate: string; // YYYY-MM-DD
+  daysBeforeExam: number;
+  phase: number;
+  completed: boolean;
+  category: "materials" | "flashcards" | "quizzes" | "review" | "general";
+}
+
+export interface PrepMilestonePhase {
+  phaseNumber: number; // 1, 2, 3, 4
+  title: string;
+  subtitle: string;
+  daysRange: string;
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  status: "completed" | "current" | "upcoming";
+  tasks: PrepMilestoneTask[];
+}
+
+/**
+ * Calculates days between now and target date (local midnight-safe).
+ */
+export function getDaysRemaining(
+  targetDateStr: string,
+  now: Date = new Date(),
+): number {
+  const current = new Date(now);
+  current.setHours(0, 0, 0, 0);
+
+  const parts = targetDateStr.split("-").map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) {
+    return 0;
+  }
+  const target = new Date(parts[0], parts[1] - 1, parts[2]);
+  target.setHours(0, 0, 0, 0);
+
+  const msDiff = target.getTime() - current.getTime();
+  return Math.max(0, Math.ceil(msDiff / (1000 * 60 * 60 * 24)));
+}
+
+/**
+ * Adds integer days to a base date, returning a YYYY-MM-DD string.
+ */
+function addDaysDateStr(base: Date, days: number): string {
+  const d = new Date(base);
+  d.setDate(d.getDate() + days);
+  return formatDateStr(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+/**
+ * Calculates target study minutes according to exam difficulty.
+ */
+export function getTargetStudyMinutes(
+  difficulty: string | null | undefined,
+): number {
+  const diff = (difficulty || "Medium").toLowerCase();
+  switch (diff) {
+    case "easy":
+      return 10 * 60; // 10 hours
+    case "hard":
+      return 35 * 60; // 35 hours
+    case "medium":
+    default:
+      return 20 * 60; // 20 hours
+  }
+}
+
+/**
+ * Computes the multi-factor Exam Readiness Index (0-100) and diagnostics.
+ * Factors:
+ *  - Material Coverage (30%)
+ *  - Retention & Quiz Mastery (40%)
+ *  - Study Time Investment (30%)
+ */
+export function computeExamReadiness(
+  exam: Exam,
+  folder?: Folder | null,
+  materials?: Material[],
+  flashcards?: Flashcard[],
+  quizAttempts?: QuizAttempt[],
+  sessions?: StudySession[],
+  now: Date = new Date(),
+): ExamReadiness {
+  const daysRemaining = getDaysRemaining(exam.exam_date, now);
+
+  // 1. Material Coverage (30% weight)
+  const relevantMaterials = folder
+    ? (materials || []).filter((m) => m.folder_id === folder.id)
+    : materials || [];
+
+  let coverage = 0;
+  if (relevantMaterials.length > 0) {
+    const baseQuantity = Math.min(70, relevantMaterials.length * 25);
+    const hasRichContent = relevantMaterials.some(
+      (m) => m.raw_content && m.raw_content.length > 40,
+    );
+    const hasFlashcards = (flashcards || []).length > 0;
+    const contentBonus = (hasRichContent ? 15 : 0) + (hasFlashcards ? 15 : 0);
+    coverage = Math.min(100, baseQuantity + contentBonus);
+  } else if ((flashcards || []).length > 0) {
+    coverage = Math.min(60, (flashcards || []).length * 6);
+  }
+
+  // 2. Retention & Quiz Mastery (40% weight)
+  let avgQuizScore: number | null = null;
+  const attempts = quizAttempts || [];
+  const validAttempts = attempts.filter((a) => a.total > 0);
+  if (validAttempts.length > 0) {
+    const totalPercentage = validAttempts.reduce(
+      (acc, a) => acc + (a.score / a.total) * 100,
+      0,
+    );
+    avgQuizScore = totalPercentage / validAttempts.length;
+  }
+
+  let cardMaturityRate: number | null = null;
+  const cards = flashcards || [];
+  if (cards.length > 0) {
+    const matureCards = cards.filter(
+      (c) =>
+        (c.srs_interval && c.srs_interval >= 3) ||
+        (c.ease_factor && c.ease_factor >= 2.4),
+    );
+    cardMaturityRate = (matureCards.length / cards.length) * 100;
+  }
+
+  let mastery = 0;
+  if (avgQuizScore !== null && cardMaturityRate !== null) {
+    mastery = Math.round(avgQuizScore * 0.55 + cardMaturityRate * 0.45);
+  } else if (avgQuizScore !== null) {
+    mastery = Math.round(avgQuizScore);
+  } else if (cardMaturityRate !== null) {
+    mastery = Math.round(cardMaturityRate);
+  } else {
+    mastery = 0;
+  }
+  mastery = Math.min(100, Math.max(0, mastery));
+
+  // 3. Study Time Investment (30% weight)
+  const targetStudyMinutes = getTargetStudyMinutes(exam.difficulty);
+  const relevantSessions = folder
+    ? (sessions || []).filter((s) => s.folder_id === folder.id)
+    : sessions || [];
+  const totalStudyMinutes = relevantSessions.reduce(
+    (acc, s) => acc + (s.minutes || 0),
+    0,
+  );
+  const studyTime = Math.min(
+    100,
+    Math.round((totalStudyMinutes / targetStudyMinutes) * 100),
+  );
+  const targetHoursRemaining = Math.max(
+    0,
+    Number(((targetStudyMinutes - totalStudyMinutes) / 60).toFixed(1)),
+  );
+
+  // Aggregate weighted score
+  const score = Math.min(
+    100,
+    Math.max(0, Math.round(coverage * 0.3 + mastery * 0.4 + studyTime * 0.3)),
+  );
+
+  // Tier classification: 80+ is Exam Ready, 45-79 is In Progress, < 45 is Critical Gap
+  let tier: ReadinessTier = "Critical Gap";
+  if (score >= 80) {
+    tier = "Exam Ready";
+  } else if (score >= 45) {
+    tier = "In Progress";
+  }
+
+  // Extract weak topics
+  const topicCounts: Record<string, number> = {};
+  attempts.forEach((a) => {
+    (a.weak_topics || []).forEach((topic) => {
+      if (topic && typeof topic === "string") {
+        topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+      }
+    });
+  });
+
+  if (Object.keys(topicCounts).length === 0 && cards.length > 0) {
+    cards
+      .filter((c) => c.ease_factor < 2.1)
+      .slice(0, 4)
+      .forEach((c) => {
+        const snippet = c.front.trim().slice(0, 35);
+        if (snippet) topicCounts[snippet] = 1;
+      });
+  }
+
+  const weakTopics = Object.entries(topicCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([topic]) => topic);
+
+  return {
+    score,
+    tier,
+    breakdown: {
+      coverage,
+      mastery,
+      studyTime,
+    },
+    weakTopics,
+    daysRemaining,
+    targetHoursRemaining,
+    totalStudyMinutes,
+    targetStudyMinutes,
+  };
+}
+
+/**
+ * Generates an adaptive 4-phase milestone prep countdown roadmap tailored to the exam timeline & readiness.
+ */
+export function generatePrepRoadmap(
+  exam: Exam,
+  readiness: ExamReadiness,
+  now: Date = new Date(),
+): PrepMilestonePhase[] {
+  const days = Math.max(0, readiness.daysRemaining);
+  const examName = exam.exam_name || "Exam";
+  const weak = readiness.weakTopics;
+  const isReady = readiness.score >= 75;
+
+  let p1EndOffset = 0;
+  let p2StartOffset = 0;
+  let p2EndOffset = 0;
+  let p3StartOffset = 0;
+  let p3EndOffset = 0;
+  let p4StartOffset = 0;
+  let p4EndOffset = days;
+
+  if (days >= 14) {
+    p1EndOffset = Math.max(1, days - 10);
+    p2StartOffset = p1EndOffset;
+    p2EndOffset = Math.max(p2StartOffset + 1, days - 5);
+    p3StartOffset = p2EndOffset;
+    p3EndOffset = Math.max(p3StartOffset + 1, days - 2);
+    p4StartOffset = p3EndOffset;
+    p4EndOffset = days;
+  } else if (days >= 4) {
+    p1EndOffset = Math.max(1, Math.floor(days * 0.35));
+    p2StartOffset = p1EndOffset;
+    p2EndOffset = Math.max(p2StartOffset + 1, Math.floor(days * 0.65));
+    p3StartOffset = p2EndOffset;
+    p3EndOffset = Math.max(p3StartOffset + 1, days - 1);
+    p4StartOffset = p3EndOffset;
+    p4EndOffset = days;
+  } else {
+    p1EndOffset = 0;
+    p2StartOffset = 0;
+    p2EndOffset = Math.min(1, days);
+    p3StartOffset = p2EndOffset;
+    p3EndOffset = Math.max(p3StartOffset, days - 1);
+    p4StartOffset = p3EndOffset;
+    p4EndOffset = days;
+  }
+
+  const p1StartDate = addDaysDateStr(now, 0);
+  const p1EndDate = addDaysDateStr(now, p1EndOffset);
+
+  const p2StartDate = addDaysDateStr(now, p2StartOffset);
+  const p2EndDate = addDaysDateStr(now, p2EndOffset);
+
+  const p3StartDate = addDaysDateStr(now, p3StartOffset);
+  const p3EndDate = addDaysDateStr(now, p3EndOffset);
+
+  const p4StartDate = addDaysDateStr(now, p4StartOffset);
+  const p4EndDate = addDaysDateStr(now, p4EndOffset);
+
+  const getPhaseStatus = (
+    phaseIdx: number,
+  ): "completed" | "current" | "upcoming" => {
+    if (readiness.score === 100) return "completed";
+    if (days === 0) return phaseIdx === 4 ? "current" : "completed";
+    if (phaseIdx === 1)
+      return readiness.breakdown.coverage >= 80 ? "completed" : "current";
+    if (phaseIdx === 2)
+      return readiness.breakdown.coverage >= 80 &&
+        readiness.breakdown.mastery < 70
+        ? "current"
+        : readiness.breakdown.mastery >= 70
+          ? "completed"
+          : "upcoming";
+    if (phaseIdx === 3)
+      return readiness.breakdown.mastery >= 70 && readiness.score < 85
+        ? "current"
+        : readiness.score >= 85
+          ? "completed"
+          : "upcoming";
+    return readiness.score >= 85 ? "current" : "upcoming";
+  };
+
+  const p1Tasks: PrepMilestoneTask[] = [
+    {
+      id: `${exam.id}-p1-1`,
+      title: `Structure & synthesize core syllabus for ${examName}`,
+      description:
+        "Upload all syllabus notes, lecture slides, and reference summaries.",
+      dueDate: addDaysDateStr(now, Math.floor(p1EndOffset * 0.5)),
+      daysBeforeExam: Math.max(0, days - Math.floor(p1EndOffset * 0.5)),
+      phase: 1,
+      completed: readiness.breakdown.coverage >= 60,
+      category: "materials",
+    },
+    {
+      id: `${exam.id}-p1-2`,
+      title: `Generate AI flashcard decks for foundational topics`,
+      description:
+        "Convert lecture notes and formulas into high-yield flashcard decks.",
+      dueDate: p1EndDate,
+      daysBeforeExam: Math.max(0, days - p1EndOffset),
+      phase: 1,
+      completed: readiness.breakdown.coverage >= 90,
+      category: "flashcards",
+    },
+  ];
+
+  const p2Tasks: PrepMilestoneTask[] = [
+    {
+      id: `${exam.id}-p2-1`,
+      title: `Daily spaced active recall drill on ${examName} flashcards`,
+      description:
+        "Review all due cards to build retrieval strength and card maturity.",
+      dueDate: addDaysDateStr(
+        now,
+        Math.floor((p2StartOffset + p2EndOffset) / 2),
+      ),
+      daysBeforeExam: Math.max(
+        0,
+        days - Math.floor((p2StartOffset + p2EndOffset) / 2),
+      ),
+      phase: 2,
+      completed: readiness.breakdown.mastery >= 50,
+      category: "flashcards",
+    },
+    {
+      id: `${exam.id}-p2-2`,
+      title: `Complete topical mini-quizzes to identify weak spots`,
+      description:
+        "Take quick 10-question AI knowledge checks across key chapters.",
+      dueDate: p2EndDate,
+      daysBeforeExam: Math.max(0, days - p2EndOffset),
+      phase: 2,
+      completed: readiness.breakdown.mastery >= 75,
+      category: "quizzes",
+    },
+  ];
+
+  const p3WeakTaskDescription =
+    weak.length > 0
+      ? `Targeted drill on identified weak topics: ${weak.slice(0, 3).join(", ")}.`
+      : `Deep dive into difficult problem sets and formula memorization for ${examName}.`;
+
+  const p3Tasks: PrepMilestoneTask[] = [
+    {
+      id: `${exam.id}-p3-1`,
+      title: `Targeted remediation on weak topics`,
+      description: p3WeakTaskDescription,
+      dueDate: addDaysDateStr(
+        now,
+        Math.floor((p3StartOffset + p3EndOffset) / 2),
+      ),
+      daysBeforeExam: Math.max(
+        0,
+        days - Math.floor((p3StartOffset + p3EndOffset) / 2),
+      ),
+      phase: 3,
+      completed: weak.length === 0 && readiness.breakdown.mastery >= 80,
+      category: "quizzes",
+    },
+    {
+      id: `${exam.id}-p3-2`,
+      title: `Simulated full-length timed mock exam`,
+      description: "Complete a timed mock exam under strict exam conditions.",
+      dueDate: p3EndDate,
+      daysBeforeExam: Math.max(0, days - p3EndOffset),
+      phase: 3,
+      completed: isReady,
+      category: "quizzes",
+    },
+  ];
+
+  const p4Tasks: PrepMilestoneTask[] = [
+    {
+      id: `${exam.id}-p4-1`,
+      title: `Final high-yield formula & summary cheat sheet review`,
+      description:
+        "Lightweight glance through key definitions, formulas, and mnemonics.",
+      dueDate: addDaysDateStr(now, Math.max(0, days - 1)),
+      daysBeforeExam: 1,
+      phase: 4,
+      completed: false,
+      category: "review",
+    },
+    {
+      id: `${exam.id}-p4-2`,
+      title: `Pre-exam routine: logistics, restful sleep & confidence lock`,
+      description: "Prepare exam stationery/ID, rest well, and avoid cramming.",
+      dueDate: addDaysDateStr(now, days),
+      daysBeforeExam: 0,
+      phase: 4,
+      completed: false,
+      category: "general",
+    },
+  ];
+
+  const phase1RangeStr =
+    days >= 14 ? `T-${days} to T-10` : `Day 1 to ${p1EndOffset + 1}`;
+  const phase2RangeStr =
+    days >= 14
+      ? `T-9 to T-5`
+      : `Day ${p2StartOffset + 1} to ${p2EndOffset + 1}`;
+  const phase3RangeStr =
+    days >= 14
+      ? `T-4 to T-2`
+      : `Day ${p3StartOffset + 1} to ${p3EndOffset + 1}`;
+  const phase4RangeStr = days >= 1 ? `T-1 to Exam Day` : `Exam Day`;
+
+  return [
+    {
+      phaseNumber: 1,
+      title: "Phase 1: Foundation & Material Synthesis",
+      subtitle: "Organize notes, syllabus materials, and create core decks.",
+      daysRange: phase1RangeStr,
+      startDate: p1StartDate,
+      endDate: p1EndDate,
+      status: getPhaseStatus(1),
+      tasks: p1Tasks,
+    },
+    {
+      phaseNumber: 2,
+      title: "Phase 2: Active Recall & Spaced Practice",
+      subtitle:
+        "Build retention via spaced flashcard intervals and topical drills.",
+      daysRange: phase2RangeStr,
+      startDate: p2StartDate,
+      endDate: p2EndDate,
+      status: getPhaseStatus(2),
+      tasks: p2Tasks,
+    },
+    {
+      phaseNumber: 3,
+      title: "Phase 3: High-Yield Mock Exams & Weak Topic Polish",
+      subtitle:
+        "Isolate knowledge gaps, tackle weak concepts, and simulate mock exams.",
+      daysRange: phase3RangeStr,
+      startDate: p3StartDate,
+      endDate: p3EndDate,
+      status: getPhaseStatus(3),
+      tasks: p3Tasks,
+    },
+    {
+      phaseNumber: 4,
+      title: "Phase 4: Final Memory Lock & Review",
+      subtitle: "Cheat sheet skimming, confidence lock, and pre-exam readiness.",
+      daysRange: phase4RangeStr,
+      startDate: p4StartDate,
+      endDate: p4EndDate,
+      status: getPhaseStatus(4),
+      tasks: p4Tasks,
+    },
+  ];
+}
+
+/* =========================================================================
+ * 2. Backward-Compatible Analytics Helpers
+ * ========================================================================= */
+
+export type ReadinessLevel = "ready" | "on_track" | "behind" | "critical";
+
+export interface ExamReadinessScore {
+  overallReadiness: number;
+  level: ReadinessLevel;
+  confidence: "high" | "medium" | "low";
+  daysRemaining: number;
+  hoursStudied: number;
+  targetHours: number;
+  recommendedDailyHours: number;
+  passProbability: number;
+  distinctionProbability: number;
+  quizMasteryScore: number | null;
+  flashcardMasteryScore: number | null;
+  summary: string;
+}
+
+export interface ExamStudyMilestone {
+  id: string;
+  title: string;
+  targetDate: string;
+  targetHours: number;
+  completed: boolean;
+  description: string;
+}
+
+export interface CramRisk {
+  isCramming: boolean;
+  cramRiskScore: number;
+  message: string;
+  severity: "low" | "medium" | "high";
+}
+
+export interface RevisionPlanDay {
+  dayOffset: number;
+  date: string;
+  topic: string;
+  focusMode: "review" | "deep_dive" | "practice_test" | "light_recall";
+  targetMinutes: number;
+}
+
+export function calculateExamReadiness(
+  exam: Exam,
+  params: {
+    sessions?: StudySession[];
+    quizzes?: Quiz[];
+    quizAttempts?: QuizAttempt[];
+    flashcards?: Flashcard[];
+    tasks?: Task[];
+    folderId?: string | null;
+    targetHours?: number;
+    now?: Date;
+  } = {},
+): ExamReadinessScore {
+  const {
+    sessions = [],
+    quizAttempts = [],
+    flashcards = [],
+    targetHours: customTargetHours,
+    folderId = null,
+    now = new Date(),
+  } = params;
+
+  const daysRemaining = daysUntil(exam.exam_date, now);
+
+  let defaultTargetHours = 20;
+  const difficulty = (exam.difficulty || "medium").toLowerCase();
+  if (difficulty === "hard" || difficulty === "difficult") {
+    defaultTargetHours = 35;
+  } else if (difficulty === "easy") {
+    defaultTargetHours = 12;
+  }
+  const targetHours = customTargetHours ?? defaultTargetHours;
+
+  const relevantSessions = sessions.filter((s) => {
+    if (folderId && s.folder_id === folderId) return true;
+    if (s.task && s.task.toLowerCase().includes(exam.exam_name.toLowerCase())) {
+      return true;
+    }
+    return false;
+  });
+
+  const candidateSessions =
+    relevantSessions.length > 0 ? relevantSessions : sessions;
+
+  const totalMinutesStudied = candidateSessions.reduce(
+    (sum, s) => sum + (s.minutes || 0),
+    0,
+  );
+  const hoursStudied = Number((totalMinutesStudied / 60).toFixed(1));
+
+  const hoursRatio = Math.min(hoursStudied / Math.max(targetHours, 1), 1.2);
+  const studyVolumeScore = Math.min(100, Math.round(hoursRatio * 100));
+
+  let quizMasteryScore: number | null = null;
+  if (quizAttempts.length > 0) {
+    const validAttempts = quizAttempts.filter((a) => a.total > 0);
+    if (validAttempts.length > 0) {
+      const avg =
+        validAttempts.reduce((sum, a) => sum + (a.score / a.total) * 100, 0) /
+        validAttempts.length;
+      quizMasteryScore = Math.round(avg);
+    }
+  }
+
+  let flashcardMasteryScore: number | null = null;
+  if (flashcards.length > 0) {
+    const matureCount = flashcards.filter((f) => f.srs_interval > 14).length;
+    flashcardMasteryScore = Math.round((matureCount / flashcards.length) * 100);
+  }
+
+  let weightedReadiness = studyVolumeScore * 0.5;
+  let weightSum = 0.5;
+
+  if (quizMasteryScore !== null) {
+    weightedReadiness += quizMasteryScore * 0.3;
+    weightSum += 0.3;
+  }
+
+  if (flashcardMasteryScore !== null) {
+    weightedReadiness += flashcardMasteryScore * 0.2;
+    weightSum += 0.2;
+  }
+
+  const normalizedReadiness = Math.min(
+    100,
+    Math.max(0, Math.round(weightedReadiness / weightSum)),
+  );
+
+  let level: ReadinessLevel = "ready";
+  if (daysRemaining < 0) {
+    level = exam.status === "Completed" ? "ready" : "behind";
+  } else if (normalizedReadiness >= 80) {
+    level = "ready";
+  } else if (normalizedReadiness >= 55) {
+    level = "on_track";
+  } else if (daysRemaining <= 3 && normalizedReadiness < 50) {
+    level = "critical";
+  } else {
+    level = "behind";
+  }
+
+  const safeDays = Math.max(1, daysRemaining);
+  const remainingHours = Math.max(0, targetHours - hoursStudied);
+  const recommendedDailyHours = Number((remainingHours / safeDays).toFixed(1));
+
+  const passProbability = Math.min(
+    99,
+    Math.max(20, Math.round(normalizedReadiness * 0.8 + 20)),
+  );
+  const distinctionProbability = Math.min(
+    95,
+    Math.max(5, Math.round(normalizedReadiness * 0.9 - 10)),
+  );
+
+  let confidence: "high" | "medium" | "low" = "low";
+  if (candidateSessions.length >= 8 && quizMasteryScore !== null) {
+    confidence = "high";
+  } else if (candidateSessions.length >= 3 || quizMasteryScore !== null) {
+    confidence = "medium";
+  }
+
+  let summary = `You have completed ${hoursStudied}h of ${targetHours}h targeted study.`;
+  if (level === "ready") {
+    summary += " Excellent prep! Maintain recall with light daily review.";
+  } else if (level === "on_track") {
+    summary += ` You're on pace. Aim for ${recommendedDailyHours}h daily until the exam.`;
+  } else if (level === "critical") {
+    summary +=
+      " High urgency! Prioritize high-yield mock tests and key concepts.";
+  } else {
+    summary += ` Boost your daily pace to ${recommendedDailyHours}h to close the study gap.`;
+  }
+
+  return {
+    overallReadiness: normalizedReadiness,
+    level,
+    confidence,
+    daysRemaining,
+    hoursStudied,
+    targetHours,
+    recommendedDailyHours,
+    passProbability,
+    distinctionProbability,
+    quizMasteryScore,
+    flashcardMasteryScore,
+    summary,
+  };
+}
+
+export function generateExamStudyMilestones(
+  exam: Exam,
+  targetHours = 20,
+  startDate?: Date,
+  now: Date = new Date(),
+): ExamStudyMilestone[] {
+  const examDate = new Date(exam.exam_date + "T00:00:00");
+  const start = startDate ? new Date(startDate) : new Date(now);
+  start.setHours(0, 0, 0, 0);
+
+  const totalTime = examDate.getTime() - start.getTime();
+  const totalDays = Math.max(1, Math.round(totalTime / (1000 * 60 * 60 * 24)));
+
+  const formatDate = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+  const m1Date = new Date(start.getTime() + totalDays * 0.25 * 86400000);
+  const m2Date = new Date(start.getTime() + totalDays * 0.5 * 86400000);
+  const m3Date = new Date(start.getTime() + totalDays * 0.75 * 86400000);
+  const m4Date = new Date(examDate.getTime() - 86400000);
+
+  return [
+    {
+      id: "m-1",
+      title: "Phase 1: Syllabus & Foundation",
+      targetDate: formatDate(m1Date),
+      targetHours: Math.round(targetHours * 0.25),
+      completed: now >= m1Date,
+      description: "Read main notes and establish core subject glossary.",
+    },
+    {
+      id: "m-2",
+      title: "Phase 2: Deep Dive & Active Recall",
+      targetDate: formatDate(m2Date),
+      targetHours: Math.round(targetHours * 0.5),
+      completed: now >= m2Date,
+      description: "Complete chapter drills and convert notes into flashcards.",
+    },
+    {
+      id: "m-3",
+      title: "Phase 3: Timed Mock Tests",
+      targetDate: formatDate(m3Date),
+      targetHours: Math.round(targetHours * 0.75),
+      completed: now >= m3Date,
+      description:
+        "Take at least 2 full-length simulated mock exams under proctoring.",
+    },
+    {
+      id: "m-4",
+      title: "Phase 4: High-Yield Final Polish",
+      targetDate: formatDate(m4Date),
+      targetHours: targetHours,
+      completed: now >= m4Date,
+      description:
+        "Light review of weak formulas, diagrams, and summary sheets.",
+    },
+  ];
+}
+
+export function calculateCramRisk(
+  exam: Exam,
+  sessions: StudySession[],
+  now: Date = new Date(),
+): CramRisk {
+  const daysLeft = daysUntil(exam.exam_date, now);
+  if (daysLeft < 0 || daysLeft > 14) {
+    return {
+      isCramming: false,
+      cramRiskScore: 10,
+      message: "Study schedule is distributed normally.",
+      severity: "low",
+    };
+  }
+
+  const twoDaysAgo = new Date(now);
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+  const recentSessions = sessions.filter((s) => {
+    const d = new Date(s.started_at);
+    return !isNaN(d.getTime()) && d >= twoDaysAgo && d <= now;
+  });
+
+  const recentMinutes = recentSessions.reduce(
+    (sum, s) => sum + (s.minutes || 0),
+    0,
+  );
+  const totalMinutes = sessions.reduce((sum, s) => sum + (s.minutes || 0), 0);
+
+  if (
+    daysLeft <= 3 &&
+    totalMinutes > 0 &&
+    recentMinutes / totalMinutes > 0.6 &&
+    recentMinutes > 240
+  ) {
+    return {
+      isCramming: true,
+      cramRiskScore: 85,
+      message:
+        "High cramming risk detected. Space out sessions and get adequate rest before test day.",
+      severity: "high",
+    };
+  }
+
+  if (daysLeft <= 2 && recentMinutes > 300) {
+    return {
+      isCramming: true,
+      cramRiskScore: 70,
+      message:
+        "Intense pre-exam study detected. Incorporate short memory consolidation breaks.",
+      severity: "medium",
+    };
+  }
+
+  return {
+    isCramming: false,
+    cramRiskScore: 25,
+    message: "Pacing is steady with low cramming risk.",
+    severity: "low",
+  };
+}
+
+export function recommendRevisionSchedule(
+  exam: Exam,
+  topics: string[] = [],
+  remainingDays?: number,
+  now: Date = new Date(),
+): RevisionPlanDay[] {
+  const days = remainingDays ?? Math.max(1, daysUntil(exam.exam_date, now));
+  const effectiveDays = Math.min(14, Math.max(1, days));
+
+  const fallbackTopics =
+    topics.length > 0
+      ? topics
+      : ["Core Concepts", "Problem Solving", "Mock Practice", "Formula Review"];
+
+  const plan: RevisionPlanDay[] = [];
+
+  for (let i = 0; i < effectiveDays; i++) {
+    const targetDateObj = new Date(now);
+    targetDateObj.setDate(targetDateObj.getDate() + i);
+    const dateStr = `${targetDateObj.getFullYear()}-${String(targetDateObj.getMonth() + 1).padStart(2, "0")}-${String(targetDateObj.getDate()).padStart(2, "0")}`;
+
+    const topicIndex = i % fallbackTopics.length;
+    const topic = fallbackTopics[topicIndex];
+
+    let focusMode: RevisionPlanDay["focusMode"] = "review";
+    let targetMinutes = 45;
+
+    if (i === effectiveDays - 1) {
+      focusMode = "light_recall";
+      targetMinutes = 30;
+    } else if (i === effectiveDays - 2) {
+      focusMode = "practice_test";
+      targetMinutes = 60;
+    } else if (i % 2 === 1) {
+      focusMode = "deep_dive";
+      targetMinutes = 50;
+    }
+
+    plan.push({
+      dayOffset: i,
+      date: dateStr,
+      topic,
+      focusMode,
+      targetMinutes,
+    });
+  }
+
+  return plan;
+}

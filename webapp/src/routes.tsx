@@ -30,6 +30,7 @@ import { ReviewView } from "./views/review/ReviewView";
 import { FriendsView } from "./views/friends/FriendsView";
 import { FriendInviteLanding } from "./views/friends/FriendInviteLanding";
 import { StudyRoomView } from "./views/room/StudyRoomView";
+import { StudyAnalyticsView } from "./views/analytics/StudyAnalyticsView";
 import { NotFoundView } from "./views/not-found/NotFoundView";
 
 /*
@@ -77,6 +78,7 @@ export function AppRoutes() {
           <Route path="/friends" element={<FriendsView />} />
           <Route path="/room" element={<StudyRoomView />} />
           <Route path="/room/:roomId" element={<StudyRoomView />} />
+          <Route path="/analytics" element={<StudyAnalyticsView />} />
           {/* Inside the guard on purpose: an invite link opened by someone
               who is signed out goes through ProtectedRoute's existing
               `state: { from }` redirect and lands back here after login. */}

@@ -6,11 +6,19 @@ export const quizzesKeys = {
   byId: (id: string) => ["quizzes", id] as const,
   latestAttempt: (quizId: string) =>
     ["quizzes", quizId, "latest-attempt"] as const,
+  attempts: ["quizzes", "attempts"] as const,
   weakTopics: (limit: number) => ["quizzes", "weak-topics", limit] as const,
 };
 
 export function useQuizzes() {
   return useQuery({ queryKey: quizzesKeys.all, queryFn: quizzesApi.fetchAll });
+}
+
+export function useQuizAttempts() {
+  return useQuery({
+    queryKey: quizzesKeys.attempts,
+    queryFn: quizzesApi.fetchAllAttempts,
+  });
 }
 
 export function useQuiz(id: string) {

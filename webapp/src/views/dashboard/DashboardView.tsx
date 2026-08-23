@@ -6,6 +6,7 @@ import { TasksCard } from "./TasksCard";
 import { AIActionsCard } from "./AIActionsCard";
 import { DailyDrillCard } from "./DailyDrillCard";
 import { StudyCircleCard } from "./StudyCircleCard";
+import { AdaptiveHealthWidget } from "./AdaptiveHealthWidget";
 import { OnboardingBanner } from "./OnboardingBanner";
 import { SessionHistoryCard } from "./SessionHistoryCard";
 import styles from "./dashboard.module.css";
@@ -39,6 +40,7 @@ export function DashboardView() {
         <FocusCard />
         <StreakCard />
         <TasksCard taskInputRef={taskInputRef} />
+        <AdaptiveHealthWidget />
         <AIActionsCard />
         <DailyDrillCard />
         <StudyCircleCard />

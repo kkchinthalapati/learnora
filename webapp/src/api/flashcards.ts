@@ -103,4 +103,14 @@ export const flashcardsApi = {
       .slice(0, limit)
       .map(([title]) => title);
   },
+
+  async fetchAll(): Promise<Flashcard[]> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from("flashcards")
+      .select("*")
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  },
 };
