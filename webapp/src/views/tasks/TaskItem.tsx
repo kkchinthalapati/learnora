@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
+import { UNSAFE_NavigationContext } from "react-router";
 import { Icon } from "../../components/Icon";
+import { useOptionalTimer } from "../../context/timer";
 import type { Task } from "../../api/types";
 import {
   createRecurringWeeklyText,
@@ -39,6 +41,8 @@ export function TaskItem({
   onSetDueDate,
   onDelete,
 }: TaskItemProps) {
+  const timer = useOptionalTimer();
+  const navCtx = useContext(UNSAFE_NavigationContext);
   const isRecurring = isRecurringWeekly(task.text);
   const displayText = formatRecurrenceCleanText(task.text) || task.text;
 
@@ -214,6 +218,22 @@ export function TaskItem({
           )}
 
           <div className={styles.quickActions}>
+            <button
+              type="button"
+              className={styles.quickFocusBtn}
+              aria-label={`Focus on task: ${task.text}`}
+              title="Start a 25-minute focus session for this task"
+              onClick={(e) => {
+                e.stopPropagation();
+                timer?.prepareFocus(25, task.text);
+                if (navCtx?.navigator) {
+                  navCtx.navigator.push("/timer");
+                }
+              }}
+            >
+              <Icon name="clock" size={12} />
+              Focus
+            </button>
             <button
               type="button"
               className={styles.quickBtn}

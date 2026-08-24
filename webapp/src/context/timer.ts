@@ -33,9 +33,9 @@ export interface TimerApi {
   applyAndReset: () => void;
   /** Apply a preset and start it running, for the dashboard quick-starts. */
   startPreset: (partial: Partial<TimerConfig>, type?: TimerType) => void;
-  /** Pre-stage a duration (and optionally the task) without starting, for the
-   *  Weekly Plan's per-block "Start →" handoff to /timer. */
-  prepareFocus: (mins: number, task?: string) => void;
+  /** Pre-stage a duration (and optionally the task and folder) without starting,
+   *  for the Weekly Plan, Tasks, and Review handoffs to /timer. */
+  prepareFocus: (mins: number, task?: string, folderId?: string | null) => void;
 
   /** Task this session is bound to; "None" logs as General Study. */
   activeTask: string;
@@ -59,4 +59,8 @@ export function useTimer(): TimerApi {
   const ctx = useContext(TimerContext);
   if (!ctx) throw new Error("useTimer must be used inside <TimerProvider>");
   return ctx;
+}
+
+export function useOptionalTimer(): TimerApi | null {
+  return useContext(TimerContext);
 }

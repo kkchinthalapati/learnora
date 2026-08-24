@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
+import { Route, Routes } from "react-router";
 import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
@@ -229,5 +230,25 @@ describe("DashboardTasksWidget", () => {
       ),
     ).toBeInTheDocument();
   });
-});
 
+  it("renders Focus button and navigates to the timer when clicked", async () => {
+    const user = userEvent.setup();
+    serveTasks([task(1, "Biology homework")]);
+    renderWithAuth(
+      <Routes>
+        <Route path="/" element={<DashboardTasksWidget />} />
+        <Route path="/timer" element={<h1>Timer view</h1>} />
+      </Routes>,
+      { session: fakeSession() },
+      { initialEntries: ["/"], withTimer: true },
+    );
+
+    const focusBtn = await screen.findByRole("button", {
+      name: "Focus on Biology homework",
+    });
+    expect(focusBtn).toBeInTheDocument();
+    await user.click(focusBtn);
+
+    expect(await screen.findByText("Timer view")).toBeInTheDocument();
+  });
+});

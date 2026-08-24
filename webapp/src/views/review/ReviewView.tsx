@@ -1,21 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { callEdge } from "../../api/ai";
 import type { Flashcard } from "../../api/types";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
+import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useChat } from "../../context/chat";
 import { useSettings } from "../../context/settings";
+import { useOptionalTimer } from "../../context/timer";
 import { useToast } from "../../context/toast";
 import { useAllDecks } from "../../hooks/useDecks";
 import { useContinuity } from "../../hooks/useContinuity";
+import { useAddTask } from "../../hooks/useTasks";
 import {
   useFlashcardsByDeck,
   useAllDueFlashcards,
   useUpdateFlashcardReview,
 } from "../../hooks/useFlashcards";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { dateInDays } from "../../lib/date";
 import { fenceUntrusted } from "../../lib/actionTags";
 import { executeActions, type ActionHandlers } from "../../lib/chatActions";
 import {
@@ -82,7 +86,7 @@ export function ReviewView() {
   }
 
   const deck = isDailyDrill
-    ? { title: "Daily 5-Minute Drill" }
+    ? { title: "Daily 5-Minute Drill", folder_id: null as string | null }
     : decks.data.find((d) => d.id === deckId);
 
   /* The vanilla never named the deck at all — `#review-deck-title` is
@@ -133,6 +137,7 @@ export function ReviewView() {
       key={deckId}
       deckId={deckId}
       deckTitle={deck.title}
+      folderId={deck.folder_id ?? null}
       dueCards={due}
     />
   );
@@ -141,10 +146,12 @@ export function ReviewView() {
 function ReviewLauncher({
   deckId,
   deckTitle,
+  folderId,
   dueCards,
 }: {
   deckId: string;
   deckTitle: string;
+  folderId?: string | null;
   dueCards: Flashcard[];
 }) {
   const [sessionCards, setSessionCards] = useState<Flashcard[] | null>(null);
@@ -154,6 +161,7 @@ function ReviewLauncher({
       <ReviewSession
         deckId={deckId}
         deckTitle={deckTitle}
+        folderId={folderId}
         cards={sessionCards}
       />
     );
@@ -309,10 +317,12 @@ function gradeOnlyHandlers(scoreCard: (score: number) => void): ActionHandlers {
 function ReviewSession({
   deckId,
   deckTitle,
+  folderId,
   cards: initialCards,
 }: {
   deckId: string;
   deckTitle: string;
+  folderId?: string | null;
   cards: Flashcard[];
 }) {
   /* Grading invalidates `useFlashcardsByDeck`'s query (see
@@ -430,7 +440,9 @@ function ReviewSession({
 
     return (
       <ReviewRecap
+        deckId={deckId}
         deckTitle={deckTitle}
+        folderId={folderId}
         results={results}
         practiceComplete={practiceRound}
         onRepeatDifficult={
@@ -634,20 +646,62 @@ function getGradeInfo(quality: number): {
 type GradeFilter = "all" | "again" | "hard" | "good" | "easy";
 
 function ReviewRecap({
+  deckId: _deckId,
   deckTitle,
+  folderId,
   results,
   practiceComplete,
   onRepeatDifficult,
 }: {
+  deckId: string;
   deckTitle: string;
+  folderId?: string | null;
   results: ReviewResult[];
   practiceComplete: boolean;
   onRepeatDifficult?: () => void;
 }) {
+  const navigate = useNavigate();
+  const timer = useOptionalTimer();
+  const addTask = useAddTask();
+  const { showToast } = useToast();
+  const [taskAdded, setTaskAdded] = useState(false);
   const recap = recapFrom(results);
   const isDrill = deckTitle === "Daily 5-Minute Drill";
   const [selectedGrade, setSelectedGrade] = useState<GradeFilter>("all");
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+
+  const startFocusSession = () => {
+    const focusTask =
+      recap.weakTopics.length > 0
+        ? `Focus: ${recap.weakTopics.slice(0, 2).map((t) => t.topic).join(", ")} (${deckTitle})`
+        : `Focus: ${deckTitle}`;
+    timer?.prepareFocus(25, focusTask, folderId);
+    showToast(`25m Focus session staged for ${deckTitle}!`);
+    void navigate("/timer");
+  };
+
+  const handleAddRevisionTask = () => {
+    if (taskAdded) return;
+    const taskName =
+      recap.weakTopics.length > 0
+        ? `Revise weak topics: ${recap.weakTopics.map((t) => t.topic).join(", ")} (${deckTitle})`
+        : `Review cards again: ${deckTitle}`;
+    addTask.mutate(
+      {
+        text: taskName,
+        dueDate: dateInDays(1),
+      },
+      {
+        onSuccess: () => {
+          setTaskAdded(true);
+          showToast("Added revision task for tomorrow!");
+        },
+        onError: (err) => {
+          showToast(`Could not add task: ${err.message}`, { error: true });
+        },
+      },
+    );
+  };
 
   const filteredResults = results.filter(({ card, quality }) => {
     const gradeInfo = getGradeInfo(quality);
@@ -871,26 +925,59 @@ function ReviewRecap({
           </div>
         </div>
 
-        {/* Action Button: Review Difficult Cards Again */}
-        {onRepeatDifficult ? (
-          <div className={styles.repeatPanel}>
+        {/* Next Study Actions & Remediation Loop */}
+        <div className={styles.nextStepsSection}>
+          <h3 className={styles.nextStepsTitle}>Next Study Actions</h3>
+          <div className={styles.recapActionsGrid}>
             <Button
               variant="primary"
-              onClick={onRepeatDifficult}
-              className={styles.repeatButton}
+              onClick={startFocusSession}
+              className={styles.recapActionBtn}
             >
-              Review Difficult Cards Again
+              <Icon name="clock" size={16} />
+              <span>Focus on Gaps (25m Timer)</span>
             </Button>
-            <p>
-              This is a practice-only pass. Your saved review schedule will not
-              change.
-            </p>
+            {recap.weakTopics.length > 0 && (
+              <Button
+                variant="secondary"
+                onClick={handleAddRevisionTask}
+                disabled={taskAdded || addTask.isPending}
+                className={styles.recapActionBtn}
+              >
+                <Icon name="list-checks" size={16} />
+                <span>{taskAdded ? "Revision Task Scheduled ✓" : "Add Revision Task for Tomorrow"}</span>
+              </Button>
+            )}
+            {onRepeatDifficult ? (
+              <Button
+                variant="secondary"
+                onClick={onRepeatDifficult}
+                className={styles.recapActionBtn}
+              >
+                <Icon name="refresh-cw" size={16} />
+                <span>Review Difficult Cards Again</span>
+              </Button>
+            ) : null}
+            <Button
+              variant="secondary"
+              onClick={() => void navigate(folderId ? `/library/subject/${folderId}` : "/library/flashcards")}
+              className={styles.recapActionBtn}
+            >
+              <Icon name={folderId ? "folder" : "layers"} size={16} />
+              <span>{folderId ? "Back to Subject Hub" : "Back to Flashcards"}</span>
+            </Button>
           </div>
-        ) : (
-          <p className={styles.strongFinish}>
-            Strong session — no difficult cards need another pass.
-          </p>
-        )}
+          {onRepeatDifficult && (
+            <p className={styles.practiceNoticeSmall}>
+              Practicing difficult cards is a repeat pass that preserves your scheduled SRS intervals.
+            </p>
+          )}
+          {!onRepeatDifficult && (
+            <p className={styles.strongFinish}>
+              Strong session — no difficult cards need another pass.
+            </p>
+          )}
+        </div>
       </section>
     </div>
   );

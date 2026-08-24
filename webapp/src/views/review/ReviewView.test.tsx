@@ -65,6 +65,7 @@ function renderReview(deckId = "d-1", autoStart = true) {
         <Routes>
           <Route path="/review/:deckId" element={<ReviewView />} />
           <Route path="/library/flashcards" element={<h1>Flashcards tab</h1>} />
+          <Route path="/timer" element={<h1>Timer view</h1>} />
         </Routes>
       </ChatProvider>
     </MemoryRouter>,
@@ -515,6 +516,75 @@ describe("ReviewView", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Card 1 of 2")).toBeInTheDocument();
     expect(screen.getByText(/Practice round/)).toBeInTheDocument();
+  });
+
+  it("stages a 25m focus session and navigates to the timer when Focus on Gaps is clicked", async () => {
+    serve({
+      cards: [card({ id: "c-1", front: "Q1", back: "A1" })],
+    });
+    renderReview();
+    await screen.findByText("Q1");
+
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: "Flip card to see the answer" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Again (1)" }));
+
+    expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+
+    const focusBtn = screen.getByRole("button", {
+      name: "Focus on Gaps (25m Timer)",
+    });
+    expect(focusBtn).toBeInTheDocument();
+    await user.click(focusBtn);
+
+    expect(await screen.findByText("Timer view")).toBeInTheDocument();
+  });
+
+  it("adds a revision task for tomorrow when Add Revision Task is clicked in recap", async () => {
+    serve({
+      cards: [
+        card({
+          id: "c-1",
+          front: "What is Photosynthesis in plant cells?",
+          back: "Converts light to chemical energy.",
+        }),
+      ],
+    });
+    let taskInserted: any = null;
+    server.use(
+      http.post(rest("tasks"), async ({ request }) => {
+        const body = await request.json();
+        taskInserted = Array.isArray(body) ? body[0] : body;
+        return HttpResponse.json([
+          { id: 99, ...(Array.isArray(body) ? body[0] : (body as any)) },
+        ]);
+      }),
+    );
+    renderReview();
+    await screen.findByText("What is Photosynthesis in plant cells?");
+
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: "Flip card to see the answer" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Hard (2)" }));
+
+    expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+
+    const addTaskBtn = screen.getByRole("button", {
+      name: "Add Revision Task for Tomorrow",
+    });
+    expect(addTaskBtn).toBeInTheDocument();
+    await user.click(addTaskBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Revision Task Scheduled ✓")).toBeInTheDocument();
+    });
+    expect(taskInserted).not.toBeNull();
+    expect(taskInserted.text).toContain("Revise weak topics");
+    expect(taskInserted.text).toContain("Photosynthesis");
   });
 
   it("surfaces a toast when saving a grade fails, without blocking on it", async () => {

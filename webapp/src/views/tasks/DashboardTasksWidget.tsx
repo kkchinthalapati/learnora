@@ -1,6 +1,8 @@
-import { useState, type Ref } from "react";
+import { useContext, useState, type Ref } from "react";
+import { UNSAFE_NavigationContext } from "react-router";
 import { Button } from "../../components/Button";
 import { Skeleton } from "../../components/Skeleton";
+import { useOptionalTimer } from "../../context/timer";
 import { useAddTask, useTasks } from "../../hooks/useTasks";
 import { useToast } from "../../context/toast";
 import { sortTasksByUrgency } from "./sortTasks";
@@ -35,6 +37,8 @@ export function DashboardTasksWidget({
 }: DashboardTasksWidgetProps = {}) {
   const { data: tasks, isPending } = useTasks();
   const addTask = useAddTask();
+  const timer = useOptionalTimer();
+  const navCtx = useContext(UNSAFE_NavigationContext);
   const { showToast } = useToast();
   const { toggle, setDueDate, visible } = useTaskActions();
 
@@ -153,6 +157,21 @@ export function DashboardTasksWidget({
                     </div>
                   </div>
                   <div className={styles.dashActions}>
+                    <button
+                      type="button"
+                      className={styles.dashFocusBtn}
+                      aria-label={`Focus on ${task.text}`}
+                      title="Focus on this task (25m Timer)"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        timer?.prepareFocus(25, task.text);
+                        if (navCtx?.navigator) {
+                          navCtx.navigator.push("/timer");
+                        }
+                      }}
+                    >
+                      Focus
+                    </button>
                     <button
                       type="button"
                       className={styles.dashSnoozeBtn}

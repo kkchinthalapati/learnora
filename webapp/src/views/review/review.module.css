@@ -710,6 +710,50 @@
   font-size: var(--fs-sm);
 }
 
+/* --- Next Study Actions & Remediation --- */
+.nextStepsSection {
+  width: 100%;
+  padding: var(--s-5);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.nextStepsTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  margin: 0;
+}
+
+.recapActionsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--s-3);
+}
+
+.recapActionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  width: 100%;
+}
+
+.practiceNoticeSmall {
+  margin: var(--s-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
 @media (max-width: 520px) {
   .view {
     padding-inline: var(--s-3);

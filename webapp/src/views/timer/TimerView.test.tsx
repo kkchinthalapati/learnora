@@ -447,6 +447,24 @@ describe("TimerView", () => {
     expect(body![0]).toMatchObject({ task: "Read chapter 4", minutes: 2 });
   });
 
+  it("selects active folder and unlisted task when bound to a subject", async () => {
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/folders`, () =>
+        HttpResponse.json([
+          { id: "f-1", name: "Biology", user_id: "user-1", color: "#4A90E2" },
+        ]),
+      ),
+    );
+    const user = userEvent.setup();
+    renderTimer("/timer");
+
+    const folderSelect = await screen.findByLabelText("Subject (optional):");
+    expect(folderSelect).toBeInTheDocument();
+    await user.selectOptions(folderSelect, "Biology");
+
+    expect(folderSelect).toHaveValue("f-1");
+  });
+
   it("does not dock the mini-timer on the timer route itself", async () => {
     const user = userEvent.setup();
     renderTimer("/timer");

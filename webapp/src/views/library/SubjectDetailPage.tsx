@@ -7,7 +7,10 @@ import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
 import { Skeleton } from "../../components/Skeleton";
 import { useCreateModal } from "../../context/createModal";
+import { useOptionalTimer } from "../../context/timer";
+import { useToast } from "../../context/toast";
 import { useAllDecks } from "../../hooks/useDecks";
+import { useAllDueFlashcards } from "../../hooks/useFlashcards";
 import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useQuizzes } from "../../hooks/useQuizzes";
@@ -71,12 +74,15 @@ export function SubjectDetailPage() {
   const { folderId = "" } = useParams<{ folderId: string }>();
   const navigate = useNavigate();
   const { openCreateModal } = useCreateModal();
+  const timer = useOptionalTimer();
+  const { showToast } = useToast();
   const { removeMaterial, removeDeck, removeQuiz } = useLibraryActions();
 
   const folders = useFolders();
   const materials = useMaterials(folderId);
   const decks = useAllDecks();
   const quizzes = useQuizzes();
+  const allDueCards = useAllDueFlashcards(100);
   const retryMutation = useRetryStudyPackage();
   const processingRecords = useAllMaterialProcessing();
 
@@ -89,6 +95,23 @@ export function SubjectDetailPage() {
     () => (quizzes.data ?? []).filter((q) => q.folder_id === folderId),
     [quizzes.data, folderId],
   );
+
+  const dueInFolder = useMemo(() => {
+    if (!allDueCards.data || !folderDecks.length) return [];
+    const folderDeckIds = new Set(folderDecks.map((d) => d.id));
+    return allDueCards.data.filter(
+      (c) => Boolean(c.deck_id && folderDeckIds.has(c.deck_id)),
+    );
+  }, [allDueCards.data, folderDecks]);
+
+  const targetDueDeckId = dueInFolder[0]?.deck_id ?? folderDecks[0]?.id;
+
+  const handleStartFocus = () => {
+    if (!folder) return;
+    timer?.prepareFocus(25, folder.name, folder.id);
+    showToast(`25m Focus session staged for ${folder.name}!`);
+    void navigate("/timer");
+  };
 
   if (folders.isPending) {
     return (
@@ -126,20 +149,36 @@ export function SubjectDetailPage() {
   return (
     <div className={styles.view}>
       <div className={styles.workspaceHeader}>
-        <Link to="/library" className={styles.backLink}>
-          ← Back to Library
-        </Link>
-        <h1 className={styles.workspaceTitle}>{folder.name}</h1>
-        {/* The vanilla also pre-selected the folder's newest material here, to
-            seed "generate a deck/quiz from this material". That flow is AI-
-            driven and lands with the AI layer (ledger step 14); the folder
-            pre-selection is the part that exists today. */}
-        <Button
-          variant="primary"
-          onClick={() => openCreateModal({ folderId, type: "material" })}
-        >
-          + Create
-        </Button>
+        <div className={styles.workspaceTitleGroup}>
+          <Link to="/library" className={styles.backLink}>
+            ← Back to Library
+          </Link>
+          <h1 className={styles.workspaceTitle}>{folder.name}</h1>
+        </div>
+        <div className={styles.workspaceActions}>
+          {dueInFolder.length > 0 && targetDueDeckId ? (
+            <Button
+              variant="primary"
+              onClick={() => void navigate(`/review/${targetDueDeckId}`)}
+            >
+              <Icon name="refresh-cw" size={16} />
+              Review {dueInFolder.length} Due {dueInFolder.length === 1 ? "Card" : "Cards"}
+            </Button>
+          ) : null}
+          <Button
+            variant="secondary"
+            onClick={handleStartFocus}
+          >
+            <Icon name="clock" size={16} />
+            Focus on Subject (25m)
+          </Button>
+          <Button
+            variant={dueInFolder.length > 0 ? "secondary" : "primary"}
+            onClick={() => openCreateModal({ folderId, type: "material" })}
+          >
+            + Create
+          </Button>
+        </div>
       </div>
 
       <div className={styles.workspaceGrid}>

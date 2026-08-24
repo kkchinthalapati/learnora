@@ -345,6 +345,20 @@
   margin-bottom: var(--s-6);
 }
 
+.workspaceTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+
+.workspaceActions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
 .workspaceTitle {
   font-family: var(--font-head);
   font-size: var(--fs-2xl);

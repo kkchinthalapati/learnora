@@ -80,6 +80,7 @@ function serveSubject({
   materials = [] as Material[],
   decks = [] as FlashcardDeck[],
   quizzes = [] as Quiz[],
+  flashcards = [] as { id: string; deck_id: string; next_review_date?: string | null }[],
 } = {}) {
   server.use(
     http.get(rest("folders"), () => HttpResponse.json(folders)),
@@ -95,6 +96,7 @@ function serveSubject({
     }),
     http.get(rest("flashcard_decks"), () => HttpResponse.json(decks)),
     http.get(rest("quizzes"), () => HttpResponse.json(quizzes)),
+    http.get(rest("flashcards"), () => HttpResponse.json(flashcards)),
   );
 }
 
@@ -106,10 +108,11 @@ function renderSubject(folderId = "folder-1") {
       <Route path="/notes/:materialId" element={<h1>Notes editor</h1>} />
       <Route path="/review/:deckId" element={<h1>Deck review</h1>} />
       <Route path="/quiz/:quizId" element={<h1>Quiz runner</h1>} />
+      <Route path="/timer" element={<h1>Timer view</h1>} />
     </Routes>,
     { session: fakeSession() },
     // The router lives above the create-dialog provider — see test/render.tsx.
-    { initialEntries: [`/folders/${folderId}`] },
+    { initialEntries: [`/folders/${folderId}`], withTimer: true },
   );
 }
 
@@ -324,5 +327,38 @@ describe("SubjectDetailPage", () => {
       });
       expect(within(summary).getByText("Biology")).toBeInTheDocument();
     });
+  });
+
+  it("stages a 25m Focus session and navigates to the timer when Focus on Subject is clicked", async () => {
+    const user = userEvent.setup();
+    serveSubject();
+    renderSubject();
+
+    const focusBtn = await screen.findByRole("button", {
+      name: "Focus on Subject (25m)",
+    });
+    expect(focusBtn).toBeInTheDocument();
+    await user.click(focusBtn);
+
+    expect(await screen.findByText("Timer view")).toBeInTheDocument();
+  });
+
+  it("renders Review Due Cards button when folder has due flashcards and navigates to review", async () => {
+    const user = userEvent.setup();
+    const decks = [deck({ id: "deck-1", title: "Mitosis basics" })];
+    const flashcards = [
+      { id: "c-1", deck_id: "deck-1", next_review_date: "2020-01-01T00:00:00.000Z" },
+      { id: "c-2", deck_id: "deck-1", next_review_date: "2020-01-01T00:00:00.000Z" },
+    ];
+    serveSubject({ decks, flashcards });
+    renderSubject();
+
+    const reviewBtn = await screen.findByRole("button", {
+      name: /Review 2 Due Cards/,
+    });
+    expect(reviewBtn).toBeInTheDocument();
+    await user.click(reviewBtn);
+
+    expect(await screen.findByText("Deck review")).toBeInTheDocument();
   });
 });

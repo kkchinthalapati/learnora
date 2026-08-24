@@ -5,6 +5,7 @@ import { useToast } from "./toast";
 import { useAuth } from "./auth";
 import { useSettings } from "./settings";
 import { useTimerIntervention } from "../hooks/useTimerIntervention";
+import { useFolders } from "../hooks/useFolders";
 import { Storage } from "../lib/storage";
 import { recordFocusGoal, saveStudySnapshot } from "../lib/continuity";
 import {
@@ -68,6 +69,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     string | null
   >(null);
   const { session } = useAuth();
+  const { data: folders } = useFolders();
 
   const restored = useState(() => restoreTimerState())[0];
   const [state, setState] = useState<TimerState>(restored.state);
@@ -361,17 +363,34 @@ export function TimerProvider({ children }: { children: ReactNode }) {
      depends on the current timer type (lib/timer.ts `focusSeconds`) — setting
      only `focus` left a student on the Countdown type staring at an unchanged
      duration with no indication the button had done anything. */
-  const prepareFocus = useCallback((mins: number, task?: string) => {
-    const partial: Partial<TimerConfig> = { focus: mins, countdown: mins };
-    setDraft((prev) => ({ ...prev, ...partial }));
-    setState((s) => {
-      if (s.isRunning) return stagePresetT(s, partial, s.stagedType ?? s.type);
-      const { state: next, effects } = applyNowT(s, partial, s.type);
-      queueMicrotask(() => effectsRef.current(effects));
-      return next;
-    });
-    if (task) setActiveTask(task);
-  }, []);
+  const prepareFocus = useCallback(
+    (mins: number, task?: string, folderId?: string | null) => {
+      const partial: Partial<TimerConfig> = { focus: mins, countdown: mins };
+      setDraft((prev) => ({ ...prev, ...partial }));
+      setState((s) => {
+        if (s.isRunning) return stagePresetT(s, partial, s.stagedType ?? s.type);
+        const { state: next, effects } = applyNowT(s, partial, s.type);
+        queueMicrotask(() => effectsRef.current(effects));
+        return next;
+      });
+      if (task) setActiveTask(task);
+      if (folderId !== undefined) {
+        setActiveFolderId(folderId ?? "");
+      } else if (task && folders && folders.length > 0) {
+        const taskLower = task.toLowerCase();
+        const matched = folders.find(
+          (f) =>
+            f.name.toLowerCase() === taskLower ||
+            taskLower.includes(f.name.toLowerCase()) ||
+            f.name.toLowerCase().includes(taskLower),
+        );
+        if (matched) {
+          setActiveFolderId(matched.id);
+        }
+      }
+    },
+    [folders],
+  );
 
   const saveFav = useCallback(
     (name: string) => {

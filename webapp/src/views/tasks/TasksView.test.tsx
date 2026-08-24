@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
+import { Route, Routes } from "react-router";
 import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
@@ -625,6 +626,27 @@ describe("TasksView", () => {
           `Scheduled next weekly task for ${formatted}`,
         ),
       ).toBeInTheDocument();
+    });
+
+    it("renders Focus button on task item and navigates to timer with session prepared", async () => {
+      const user = userEvent.setup();
+      serveTasks([task({ id: 1, text: "Math assignment" })]);
+      renderWithAuth(
+        <Routes>
+          <Route path="/tasks" element={<TasksView />} />
+          <Route path="/timer" element={<h1>Timer view</h1>} />
+        </Routes>,
+        { session: fakeSession() },
+        { initialEntries: ["/tasks"], withTimer: true },
+      );
+
+      const focusBtn = await screen.findByRole("button", {
+        name: "Focus on task: Math assignment",
+      });
+      expect(focusBtn).toBeInTheDocument();
+      await user.click(focusBtn);
+
+      expect(await screen.findByText("Timer view")).toBeInTheDocument();
     });
   });
 });
