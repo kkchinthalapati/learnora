@@ -48,6 +48,16 @@
 }
 
 .link {
+  /* WCAG 2.5.8 (AA) needs a 24px-tall hit target; the text box alone renders
+     at ~21px. Padding grows the clickable/focusable area, offset by an equal
+     negative margin so `.cardHead`'s layout (and the card's visible spacing)
+     doesn't shift — same technique other controls in this app get via
+     `--touch-target-min`, sized down here since this sits in a compact card
+     header rather than the sidebar's full-height nav row. */
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 2px;
+  margin: -4px -2px;
   font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--accent-text);
