@@ -170,6 +170,39 @@
   margin: 0;
 }
 
+.dayHeadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.addBlockButton {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 30px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--accent-text);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.addBlockButton:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.addBlockButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .isToday .dayHeader {
   color: var(--accent-text);
 }
@@ -222,6 +255,90 @@
   padding: 4px 10px;
   font-size: var(--fs-xs);
   flex-shrink: 0;
+}
+
+.blockActions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  flex-shrink: 0;
+}
+
+.blockEdit {
+  padding: 4px 8px;
+  font-size: var(--fs-xs);
+}
+
+.editorModal {
+  max-width: 560px;
+}
+
+.editorForm {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.editorForm label {
+  display: grid;
+  gap: var(--s-2);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+}
+
+.editorForm input,
+.editorForm select {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+}
+
+.editorForm input:focus,
+.editorForm select:focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 1px;
+}
+
+.editorRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-3);
+}
+
+.inputWithSuffix {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.inputWithSuffix > span {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+}
+
+.optional {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+@media (max-width: 560px) {
+  .editorRow {
+    grid-template-columns: 1fr;
+  }
+
+  .blockHead {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 /* --- Loading skeleton --- */

@@ -5,6 +5,12 @@ import { useAddTask, useTasks } from "../../hooks/useTasks";
 import { useToast } from "../../context/toast";
 import { sortTasksByUrgency } from "./sortTasks";
 import { useTaskActions } from "./useTaskActions";
+import {
+  dateInDays,
+  formatDueDate,
+  formatRecurrenceCleanText,
+  isRecurringWeekly,
+} from "../../lib/date";
 import styles from "./tasks.module.css";
 
 /* The dashboard's compact task widget — ports js/main.js:2045-2100 (the list)
@@ -30,7 +36,7 @@ export function DashboardTasksWidget({
   const { data: tasks, isPending } = useTasks();
   const addTask = useAddTask();
   const { showToast } = useToast();
-  const { toggle, visible } = useTaskActions();
+  const { toggle, setDueDate, visible } = useTaskActions();
 
   const [text, setText] = useState("");
   const [shake, setShake] = useState(false);
@@ -100,29 +106,85 @@ export function DashboardTasksWidget({
                 : "No tasks yet. Add your first above."}
             </li>
           ) : (
-            pending.map((task) => (
-              <li
-                key={task.id}
-                className={styles.dashTask}
-                role="checkbox"
-                aria-checked={false}
-                aria-label={task.text}
-                tabIndex={0}
-                onClick={() => toggle(task)}
-                onKeyDown={(e) => {
-                  if (e.key === " " || e.key === "Enter") {
-                    e.preventDefault();
+            pending.map((task) => {
+              const isRecurring = isRecurringWeekly(task.text);
+              const displayText =
+                formatRecurrenceCleanText(task.text) || task.text;
+              const dueLabel = task.due_date
+                ? formatDueDate(task.due_date)
+                : null;
+
+              return (
+                <li
+                  key={task.id}
+                  className={styles.dashTask}
+                  role="checkbox"
+                  aria-checked={false}
+                  aria-label={task.text}
+                  tabIndex={0}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest("button")) return;
                     toggle(task);
-                  }
-                }}
-              >
-                <span className={styles.dashCheck} aria-hidden="true" />
-                <span className={styles.dashLabel}>{task.text}</span>
-              </li>
-            ))
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === " " || e.key === "Enter") {
+                      e.preventDefault();
+                      toggle(task);
+                    }
+                  }}
+                >
+                  <span className={styles.dashCheck} aria-hidden="true" />
+                  <div className={styles.dashContent}>
+                    <span className={styles.dashLabel}>{displayText}</span>
+                    <div className={styles.dashMeta}>
+                      {isRecurring && (
+                        <span
+                          className={styles.dashRecurring}
+                          aria-label="Recurring weekly"
+                          title="Recurring weekly"
+                        >
+                          🔁 Weekly
+                        </span>
+                      )}
+                      {dueLabel && (
+                        <span className={styles.dashDue}>{dueLabel}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className={styles.dashActions}>
+                    <button
+                      type="button"
+                      className={styles.dashSnoozeBtn}
+                      aria-label="Tomorrow"
+                      title="Snooze to tomorrow"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDueDate(task, dateInDays(1));
+                      }}
+                    >
+                      Tomorrow
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.dashSnoozeBtn}
+                      aria-label="Next week"
+                      title="Snooze to next week"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDueDate(task, dateInDays(7));
+                      }}
+                    >
+                      Next week
+                    </button>
+                  </div>
+                </li>
+              );
+            })
           )}
         </ul>
       )}
     </div>
   );
 }
+

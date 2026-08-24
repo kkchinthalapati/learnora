@@ -8,6 +8,10 @@ import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import type { FlashcardDeck, Folder, Material, Quiz } from "../../api/types";
+import {
+  clearMaterialProcessing,
+  setMaterialProcessing,
+} from "../../lib/materialProcessing";
 import { LibraryView } from "./LibraryView";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -104,6 +108,7 @@ function serveLibrary({
     }),
     http.get(rest("flashcard_decks"), () => HttpResponse.json(decks)),
     http.get(rest("quizzes"), () => HttpResponse.json(quizzes)),
+    http.get(rest("notes"), () => HttpResponse.json([])),
     http.head(
       rest("flashcards"),
       () =>
@@ -164,6 +169,71 @@ describe("LibraryView shell", () => {
     ]);
     expect(tab("Folders")).toHaveAttribute("aria-selected", "true");
     expect(await screen.findByText("Biology")).toBeInTheDocument();
+  });
+
+  it("searches every library type and opens the matching destination", async () => {
+    serveLibrary({
+      folders: [folder()],
+      materials: [material()],
+      decks: [deck()],
+      quizzes: [quiz()],
+    });
+    renderLibrary();
+    await screen.findByText("Biology");
+
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByRole("searchbox", { name: "Search your library" }),
+      "cell division",
+    );
+
+    expect(
+      await screen.findByText("Materials", { selector: "h2" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Quizzes", { selector: "h2" })).toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+
+    const materialResult = screen.getByText("Cell division").closest("a");
+    expect(materialResult).not.toBeNull();
+    await user.click(materialResult!);
+    expect(
+      await screen.findByRole("heading", { name: "Notes editor" }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("path")).toHaveTextContent("/notes/mat-1");
+  });
+
+  it("keeps deck and quiz queries lazy until the student starts searching", async () => {
+    let deckRequests = 0;
+    let quizRequests = 0;
+    serveLibrary({ folders: [folder()], materials: [material()] });
+    server.use(
+      http.get(rest("flashcard_decks"), () => {
+        deckRequests += 1;
+        return HttpResponse.json([deck()]);
+      }),
+      http.get(rest("quizzes"), () => {
+        quizRequests += 1;
+        return HttpResponse.json([quiz()]);
+      }),
+    );
+    renderLibrary();
+    await screen.findByText("Biology");
+    expect(deckRequests).toBe(0);
+    expect(quizRequests).toBe(0);
+
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByRole("searchbox", { name: "Search your library" }),
+      "mitosis",
+    );
+    expect(await screen.findByText("Mitosis basics")).toBeInTheDocument();
+    expect(deckRequests).toBe(1);
+    expect(quizRequests).toBe(1);
+
+    await user.click(
+      screen.getByRole("button", { name: "Clear library search" }),
+    );
+    expect(await screen.findByRole("tablist")).toBeInTheDocument();
   });
 
   it("selects the tab named in the URL on a deep link", async () => {
@@ -473,6 +543,82 @@ describe("Library — Materials tab", () => {
     expect(
       screen.getByRole("button", { name: "Create study resources" }),
     ).toBeInTheDocument();
+  });
+
+  it("renders a processing badge when material is being processed", async () => {
+    serveLibrary({ materials: [material({ id: "mat-proc-1", title: "Chemistry Lab" })] });
+    setMaterialProcessing({
+      materialId: "mat-proc-1",
+      status: "processing",
+    });
+    renderLibrary("/library/materials");
+
+    expect(await screen.findByText("Chemistry Lab")).toBeInTheDocument();
+    expect(screen.getByText("Processing...")).toBeInTheDocument();
+    clearMaterialProcessing("mat-proc-1");
+  });
+
+  it("renders partially processed badge with warning and retry button", async () => {
+    const user = userEvent.setup();
+    serveLibrary({
+      materials: [material({ id: "mat-part-1", title: "Organic Chemistry" })],
+    });
+    setMaterialProcessing({
+      materialId: "mat-part-1",
+      status: "partially_processed",
+      error: "Quiz generation failed",
+      stageFailures: [{ stage: "quiz", message: "Quiz generation failed" }],
+    });
+    renderLibrary("/library/materials");
+
+    expect(await screen.findByText("Organic Chemistry")).toBeInTheDocument();
+    expect(screen.getByText("Partially processed")).toBeInTheDocument();
+    expect(screen.getAllByText(/Quiz generation failed/)[0]).toBeInTheDocument();
+
+    const retryBtn = screen.getByRole("button", { name: "Retry" });
+    expect(retryBtn).toBeInTheDocument();
+
+    server.use(
+      http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () => {
+        return HttpResponse.json({ text: "[]" });
+      }),
+      http.get(rest("notes"), () => {
+        return HttpResponse.json([{ id: "n-1", markdown_content: "Notes" }]);
+      }),
+    );
+
+    await user.click(retryBtn);
+    clearMaterialProcessing("mat-part-1");
+  });
+
+  it("renders failed badge with error explanation and retry button", async () => {
+    const user = userEvent.setup();
+    serveLibrary({
+      materials: [material({ id: "mat-fail-1", title: "Physics Mechanics" })],
+    });
+    setMaterialProcessing({
+      materialId: "mat-fail-1",
+      status: "failed",
+      error: "AI model timed out",
+      stageFailures: [{ stage: "notes", message: "AI model timed out" }],
+    });
+    renderLibrary("/library/materials");
+
+    expect(await screen.findByText("Physics Mechanics")).toBeInTheDocument();
+    expect(screen.getByText("Processing failed")).toBeInTheDocument();
+    expect(screen.getAllByText(/AI model timed out/)[0]).toBeInTheDocument();
+
+    const retryBtn = screen.getByRole("button", { name: "Retry" });
+    expect(retryBtn).toBeInTheDocument();
+
+    server.use(
+      http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () => {
+        return HttpResponse.json({ text: "## Physics notes" });
+      }),
+    );
+
+    await user.click(retryBtn);
+    clearMaterialProcessing("mat-fail-1");
   });
 });
 

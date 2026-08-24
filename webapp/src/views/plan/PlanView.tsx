@@ -1,11 +1,17 @@
+import { useId, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
+import { Modal } from "../../components/Modal";
 import { useDialog } from "../../context/dialog";
 import { useToast } from "../../context/toast";
 import { useTimer } from "../../context/timer";
-import { useGenerateWeeklyPlan, usePlanForWeek } from "../../hooks/usePlans";
+import {
+  useGenerateWeeklyPlan,
+  usePlanForWeek,
+  useUpdatePlan,
+} from "../../hooks/usePlans";
 import { useTranslation } from "../../hooks/useTranslation";
 import { useExams } from "../../hooks/useExams";
 import { AiError } from "../../api/ai";
@@ -23,6 +29,15 @@ import { DEFAULT_BLOCK_MINUTES, parseStoredPlan } from "../../lib/planShape";
 import { useFolders } from "../../hooks/useFolders";
 import { useSessionsSince } from "../../hooks/useSessions";
 import { computeWeekAdherence } from "../../lib/planAdherence";
+import {
+  addStoredPlanBlock,
+  PlanEditError,
+  removeStoredPlanBlock,
+  toPlanBlockInput,
+  updateStoredPlanBlock,
+  type PlanBlockInput,
+  type PlanBlockLocation,
+} from "./planEdits";
 import styles from "./plan.module.css";
 
 /* The Weekly Plan — ports index.html:942-955 + js/router.js's `loadPlanView`
@@ -38,6 +53,20 @@ import styles from "./plan.module.css";
 
 const SKELETON_CARDS = 5;
 
+interface WeekDateOption {
+  date: string;
+  label: string;
+}
+
+type BlockEditorState =
+  | {
+      kind: "edit";
+      location: PlanBlockLocation;
+      initial: PlanBlockInput;
+    }
+  | { kind: "add"; initial: PlanBlockInput }
+  | null;
+
 function DaySkeleton() {
   return (
     <div className={`${styles.dayCard} ${styles.skeleton}`} aria-hidden="true">
@@ -51,9 +80,13 @@ function DaySkeleton() {
 function BlockCard({
   block,
   onStart,
+  onEdit,
+  saving,
 }: {
   block: PlanBlock;
   onStart: (block: PlanBlock) => void;
+  onEdit: () => void;
+  saving: boolean;
 }) {
   const mins = block.durationMins ?? DEFAULT_BLOCK_MINUTES;
   return (
@@ -63,14 +96,26 @@ function BlockCard({
         {/* The subject is in the accessible name because a week of blocks
             otherwise ships a dozen identically-named "Start" buttons, which is
             unusable from a screen reader's control list. */}
-        <Button
-          size="sm"
-          className={styles.blockStart}
-          aria-label={`Start a ${mins} minute focus session for ${block.subject}`}
-          onClick={() => onStart(block)}
-        >
-          Start →
-        </Button>
+        <span className={styles.blockActions}>
+          <Button
+            size="sm"
+            className={styles.blockEdit}
+            aria-label={`Edit ${block.subject} plan block`}
+            onClick={onEdit}
+            disabled={saving}
+          >
+            <Icon name="pencil" size={13} />
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            className={styles.blockStart}
+            aria-label={`Start a ${mins} minute focus session for ${block.subject}`}
+            onClick={() => onStart(block)}
+          >
+            Start →
+          </Button>
+        </span>
       </div>
       <div className={styles.blockMeta}>
         {mins}m{block.startHint ? ` · ${block.startHint}` : ""}
@@ -84,12 +129,20 @@ function BlockCard({
 
 function DayCard({
   day,
+  dayIndex,
   today,
   onStart,
+  onEdit,
+  onAdd,
+  saving,
 }: {
   day: PlanDay;
+  dayIndex: number;
   today: string;
   onStart: (block: PlanBlock) => void;
+  onEdit: (location: PlanBlockLocation, block: PlanBlock, date: string) => void;
+  onAdd: (date: string) => void;
+  saving: boolean;
 }) {
   const isToday = day.date === today;
   const isPast = day.date < today;
@@ -112,7 +165,19 @@ function DayCard({
     <li className={classes} aria-current={isToday ? "date" : undefined}>
       {/* "is-today" and "is-past" are colour-only in the vanilla, so the
           distinction never reached assistive tech; aria-current carries it. */}
-      <h3 className={styles.dayHeader}>{label}</h3>
+      <div className={styles.dayHeadingRow}>
+        <h3 className={styles.dayHeader}>{label}</h3>
+        <button
+          type="button"
+          className={styles.addBlockButton}
+          onClick={() => onAdd(day.date)}
+          disabled={saving}
+          aria-label={`Add a study block on ${label}`}
+          title="Add study block"
+        >
+          +
+        </button>
+      </div>
       <div className={styles.dayBlocks}>
         {blocks.length > 0 ? (
           blocks.map((block, i) => (
@@ -120,6 +185,10 @@ function DayCard({
               key={`${block.subject}-${i}`}
               block={block}
               onStart={onStart}
+              onEdit={() =>
+                onEdit({ dayIndex, blockIndex: i }, block, day.date)
+              }
+              saving={saving}
             />
           ))
         ) : (
@@ -127,6 +196,145 @@ function DayCard({
         )}
       </div>
     </li>
+  );
+}
+
+function BlockEditor({
+  state,
+  weekDates,
+  saving,
+  onClose,
+  onSave,
+  onRemove,
+}: {
+  state: Exclude<BlockEditorState, null>;
+  weekDates: WeekDateOption[];
+  saving: boolean;
+  onClose: () => void;
+  onSave: (input: PlanBlockInput) => void;
+  onRemove: () => void;
+}) {
+  const formId = useId();
+  const subjectId = useId();
+  const durationId = useId();
+  const hintId = useId();
+  const dateId = useId();
+  const [draft, setDraft] = useState(state.initial);
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const subject = draft.subject.trim();
+    if (!subject || !Number.isFinite(draft.durationMins)) return;
+    onSave({
+      ...draft,
+      subject,
+      durationMins: Math.max(5, Math.min(240, Math.round(draft.durationMins))),
+    });
+  };
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={state.kind === "edit" ? "Edit study block" : "Add study block"}
+      subtitle="Adjust this block without regenerating the rest of your week."
+      contentClassName={styles.editorModal}
+      footer={
+        <>
+          {state.kind === "edit" ? (
+            <Button variant="danger" onClick={onRemove} disabled={saving}>
+              Remove block
+            </Button>
+          ) : null}
+          <Button onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form={formId}
+            variant="primary"
+            disabled={saving || !draft.subject.trim()}
+          >
+            {saving ? "Saving…" : "Save block"}
+          </Button>
+        </>
+      }
+    >
+      <form id={formId} className={styles.editorForm} onSubmit={submit}>
+        <label htmlFor={subjectId}>
+          Subject or focus
+          <input
+            id={subjectId}
+            value={draft.subject}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                subject: event.target.value,
+              }))
+            }
+            placeholder="e.g. Organic chemistry"
+            autoFocus
+            required
+          />
+        </label>
+        <div className={styles.editorRow}>
+          <label htmlFor={durationId}>
+            Duration
+            <span className={styles.inputWithSuffix}>
+              <input
+                id={durationId}
+                type="number"
+                min={5}
+                max={240}
+                step={5}
+                value={draft.durationMins}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    durationMins: Number(event.target.value),
+                  }))
+                }
+                required
+              />
+              <span>minutes</span>
+            </span>
+          </label>
+          <label htmlFor={dateId}>
+            Day
+            <select
+              id={dateId}
+              value={draft.date}
+              onChange={(event) =>
+                setDraft((current) => ({
+                  ...current,
+                  date: event.target.value,
+                }))
+              }
+            >
+              {weekDates.map((option) => (
+                <option key={option.date} value={option.date}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <label htmlFor={hintId}>
+          Preferred time <span className={styles.optional}>(optional)</span>
+          <input
+            id={hintId}
+            value={draft.startHint ?? ""}
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                startHint: event.target.value,
+              }))
+            }
+            placeholder="e.g. After class or 7:00 PM"
+          />
+        </label>
+      </form>
+    </Modal>
   );
 }
 
@@ -143,6 +351,8 @@ export function PlanView() {
     error,
   } = usePlanForWeek(weekStartISO);
   const generate = useGenerateWeeklyPlan();
+  const updatePlan = useUpdatePlan();
+  const [editor, setEditor] = useState<BlockEditorState>(null);
   const { showToast } = useToast();
   const { confirm } = useDialog();
   const { prepareFocus } = useTimer();
@@ -164,6 +374,14 @@ export function PlanView() {
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
   const weekRange = `${formatMonthDay(monday)} – ${formatMonthDay(sunday)}`;
+  const weekDates: WeekDateOption[] = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + index);
+    return {
+      date: localDateStr(date),
+      label: `${WEEKDAY_NAMES[date.getDay()]}, ${formatMonthDay(date)}`,
+    };
+  });
 
   const parsed = plan ? parseStoredPlan(plan.plan_json) : null;
   const hasPlan = !!parsed && parsed.days.length > 0;
@@ -197,6 +415,69 @@ export function PlanView() {
   const startBlock = (block: PlanBlock) => {
     prepareFocus(block.durationMins ?? DEFAULT_BLOCK_MINUTES, block.subject);
     void navigate("/timer");
+  };
+
+  const saveEditedPlan = (nextPlanJson: unknown, message: string) => {
+    updatePlan.mutate(
+      { weekStartISO, planJson: nextPlanJson },
+      {
+        onSuccess: () => {
+          setEditor(null);
+          showToast(message);
+        },
+        onError: (saveError) =>
+          showToast(
+            saveError instanceof PlanEditError
+              ? saveError.message
+              : "Could not save your plan change. Please try again.",
+            { error: true },
+          ),
+      },
+    );
+  };
+
+  const saveBlock = (input: PlanBlockInput) => {
+    if (!plan || !editor) return;
+    try {
+      const nextPlanJson =
+        editor.kind === "edit"
+          ? updateStoredPlanBlock(plan.plan_json, editor.location, input)
+          : addStoredPlanBlock(plan.plan_json, input);
+      saveEditedPlan(
+        nextPlanJson,
+        editor.kind === "edit" ? "Study block updated." : "Study block added.",
+      );
+    } catch (editError) {
+      showToast(
+        editError instanceof PlanEditError
+          ? editError.message
+          : "Could not prepare that plan change.",
+        { error: true },
+      );
+    }
+  };
+
+  const removeBlock = async () => {
+    if (!plan || editor?.kind !== "edit") return;
+    const ok = await confirm("Remove this study block from your week?", {
+      title: "Remove Study Block",
+      confirmText: "Remove",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      saveEditedPlan(
+        removeStoredPlanBlock(plan.plan_json, editor.location),
+        "Study block removed.",
+      );
+    } catch (editError) {
+      showToast(
+        editError instanceof PlanEditError
+          ? editError.message
+          : "Could not prepare that plan change.",
+        { error: true },
+      );
+    }
   };
 
   /* Regenerating overwrites this week's row (`Plans.upsert` is keyed on
@@ -262,12 +543,22 @@ export function PlanView() {
           "This week's plan" text this card used to duplicate as its own
           <h1>) — this card's title is plain text now, not a second
           heading. See archive/redesign/DESIGN_MOVES.md move #2. */}
-      <Card variant="panel" padding="none" className={`${styles.summaryCard} ${isTriageActive ? styles.triageSummary : ''}`}>
+      <Card
+        variant="panel"
+        padding="none"
+        className={`${styles.summaryCard} ${isTriageActive ? styles.triageSummary : ""}`}
+      >
         <div>
           <p className={styles.title}>{t("header_plan")}</p>
           <p className={styles.weekRange}>{weekRange}</p>
           {isTriageActive && (
-            <p style={{ color: "var(--accent-red)", fontWeight: "bold", marginTop: "4px" }}>
+            <p
+              style={{
+                color: "var(--accent-red)",
+                fontWeight: "bold",
+                marginTop: "4px",
+              }}
+            >
               <Icon name="alert-triangle" size={14} /> EMERGENCY TRIAGE ACTIVE
             </p>
           )}
@@ -347,12 +638,27 @@ export function PlanView() {
         </div>
       ) : hasPlan ? (
         <ul className={styles.weekGrid}>
-          {parsed.days.map((day) => (
+          {parsed.days.map((day, dayIndex) => (
             <DayCard
               key={day.date}
               day={day}
+              dayIndex={dayIndex}
               today={today}
               onStart={startBlock}
+              saving={updatePlan.isPending}
+              onAdd={(date) =>
+                setEditor({
+                  kind: "add",
+                  initial: { subject: "", durationMins: 25, date },
+                })
+              }
+              onEdit={(location, block, date) =>
+                setEditor({
+                  kind: "edit",
+                  location,
+                  initial: toPlanBlockInput(block, date),
+                })
+              }
             />
           ))}
         </ul>
@@ -378,6 +684,20 @@ export function PlanView() {
           </Card>
         </div>
       )}
+
+      {editor ? (
+        <BlockEditor
+          key={`${editor.kind}-${editor.initial.date}-${editor.kind === "edit" ? `${editor.location.dayIndex}-${editor.location.blockIndex}` : "new"}`}
+          state={editor}
+          weekDates={weekDates}
+          saving={updatePlan.isPending}
+          onClose={() => {
+            if (!updatePlan.isPending) setEditor(null);
+          }}
+          onSave={saveBlock}
+          onRemove={() => void removeBlock()}
+        />
+      ) : null}
     </div>
   );
 }

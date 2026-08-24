@@ -30,6 +30,24 @@ export function useUpsertPlan() {
   });
 }
 
+/** Saves a student-authored edit to an existing plan. The returned row is
+ * written straight into the shared cache so the plan and dashboard repaint
+ * together without waiting for a follow-up request. */
+export function useUpdatePlan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      weekStartISO,
+      planJson,
+    }: {
+      weekStartISO: string;
+      planJson: unknown;
+    }) => plansApi.updatePlanJson(weekStartISO, planJson),
+    onSuccess: (plan) =>
+      qc.setQueryData(plansKeys.forWeek(plan.week_start), plan),
+  });
+}
+
 /* The AI generation round trip. `plansApi.upsert` runs inside
  * `generateWeeklyPlan`, so the row this resolves with is the saved one, read
  * back from the database — writing it into the cache is enough, and there is

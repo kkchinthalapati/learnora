@@ -6,7 +6,7 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
-import { formatDueDate, localDateStr } from "../../lib/date";
+import { formatDueDate, localDateStr, dateInDays, createNextWeeklyDate } from "../../lib/date";
 import type { Task } from "../../api/types";
 import { TasksView } from "./TasksView";
 import { DOUBLE_CLICK_MS } from "./TaskItem";
@@ -450,4 +450,182 @@ describe("TasksView", () => {
       "permission denied",
     );
   });
+
+  describe("Quick snooze and recurrence actions", () => {
+    it("pre-fills due date using quick action pills (Today, Tomorrow, Next week)", async () => {
+      const user = userEvent.setup();
+      serveTasks([]);
+      renderTasks();
+      await screen.findByText("No tasks yet - add one above!");
+
+      const dueInput = screen.getByLabelText(/Due date/);
+
+      await user.click(screen.getByRole("button", { name: "Today" }));
+      expect(dueInput).toHaveValue(localDateStr());
+
+      await user.click(screen.getByRole("button", { name: "Tomorrow" }));
+      expect(dueInput).toHaveValue(dateInDays(1));
+
+      await user.click(screen.getByRole("button", { name: "Next week" }));
+      expect(dueInput).toHaveValue(dateInDays(7));
+    });
+
+    it("adds a recurring weekly task when Repeat weekly pill is toggled", async () => {
+      const user = userEvent.setup();
+      let body: Record<string, unknown>[] | undefined;
+      serveTasks([]);
+      server.use(
+        http.post(REST, async ({ request }) => {
+          body = (await request.json()) as Record<string, unknown>[];
+          return HttpResponse.json(null, { status: 201 });
+        }),
+      );
+      renderTasks();
+      await screen.findByText("No tasks yet - add one above!");
+
+      await user.type(
+        screen.getByRole("textbox", { name: "New Task Input" }),
+        "Review biology",
+      );
+      await user.click(
+        screen.getByRole("button", { name: "🔁 Repeat weekly" }),
+      );
+      await user.click(screen.getByRole("button", { name: "Add Task" }));
+
+      await waitFor(() => expect(body).toBeDefined());
+      expect(body![0]).toMatchObject({
+        text: "Review biology [🔁 Weekly]",
+        due_date: null,
+      });
+    });
+
+    it("displays 🔁 Weekly badge and clean title for recurring task", async () => {
+      serveTasks([
+        task({ id: 1, text: "Chemistry practice [🔁 Weekly]" }),
+      ]);
+      renderTasks();
+
+      expect(
+        await screen.findByText("Chemistry practice"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByLabelText("Recurring weekly"),
+      ).toBeInTheDocument();
+    });
+
+    it("snoozes a task to tomorrow from task item quick button", async () => {
+      const user = userEvent.setup();
+      let patched: Record<string, unknown> | undefined;
+      serveTasks([task({ id: 1, text: "Math assignment" })]);
+      server.use(
+        http.patch(REST, async ({ request }) => {
+          patched = (await request.json()) as Record<string, unknown>;
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+      renderTasks();
+
+      const row = await screen.findByRole("checkbox", {
+        name: "Math assignment",
+      });
+      const tomorrowBtn = within(row).getByRole("button", {
+        name: "Tomorrow",
+      });
+      await user.click(tomorrowBtn);
+
+      await waitFor(() =>
+        expect(patched).toEqual({ due_date: dateInDays(1) }),
+      );
+    });
+
+    it("snoozes a task to next week from task item quick button", async () => {
+      const user = userEvent.setup();
+      let patched: Record<string, unknown> | undefined;
+      serveTasks([task({ id: 1, text: "Math assignment" })]);
+      server.use(
+        http.patch(REST, async ({ request }) => {
+          patched = (await request.json()) as Record<string, unknown>;
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+      renderTasks();
+
+      const row = await screen.findByRole("checkbox", {
+        name: "Math assignment",
+      });
+      const nextWeekBtn = within(row).getByRole("button", {
+        name: "Next week",
+      });
+      await user.click(nextWeekBtn);
+
+      await waitFor(() =>
+        expect(patched).toEqual({ due_date: dateInDays(7) }),
+      );
+    });
+
+    it("toggles weekly recurrence from task item Repeat weekly button", async () => {
+      const user = userEvent.setup();
+      let patched: Record<string, unknown> | undefined;
+      serveTasks([task({ id: 1, text: "Physics lab" })]);
+      server.use(
+        http.patch(REST, async ({ request }) => {
+          patched = (await request.json()) as Record<string, unknown>;
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+      renderTasks();
+
+      const row = await screen.findByRole("checkbox", {
+        name: "Physics lab",
+      });
+      const repeatBtn = within(row).getByRole("button", {
+        name: "Repeat weekly",
+      });
+      await user.click(repeatBtn);
+
+      await waitFor(() =>
+        expect(patched).toEqual({ text: "Physics lab [🔁 Weekly]" }),
+      );
+    });
+
+    it("automatically creates the next occurrence when completing a recurring weekly task", async () => {
+      const user = userEvent.setup();
+      let postedBody: Record<string, unknown>[] | undefined;
+      serveTasks([
+        task({
+          id: 1,
+          text: "Weekly quiz [🔁 Weekly]",
+          due_date: "2026-08-20",
+          is_done: false,
+        }),
+      ]);
+      server.use(
+        http.post(REST, async ({ request }) => {
+          postedBody = (await request.json()) as Record<string, unknown>[];
+          return HttpResponse.json(null, { status: 201 });
+        }),
+      );
+      renderTasks();
+
+      const row = await screen.findByRole("checkbox", {
+        name: "Weekly quiz [🔁 Weekly]",
+      });
+      await user.click(row);
+
+      const nextDueDate = createNextWeeklyDate("2026-08-20");
+      await waitFor(() => expect(postedBody).toBeDefined());
+      expect(postedBody![0]).toMatchObject({
+        text: "Weekly quiz [🔁 Weekly]",
+        due_date: nextDueDate,
+      });
+
+      const formatted = formatDueDate(nextDueDate);
+      expect(
+        await screen.findByText(
+          `Scheduled next weekly task for ${formatted}`,
+        ),
+      ).toBeInTheDocument();
+    });
+  });
 });
+

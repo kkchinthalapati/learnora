@@ -17,12 +17,17 @@
    doesn't have a flat 20px slot for ("md" is a responsive clamp). */
 .inputCard {
   display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-5);
+}
+
+.inputMainRow {
+  display: flex;
   gap: var(--s-3);
   flex-wrap: wrap;
-  /* The due-date field carries a label above it; aligning on the baseline of
-     the controls keeps the text box, date box and button on one line. */
   align-items: flex-end;
-  padding: var(--s-5);
+  width: 100%;
 }
 
 .textInput {
@@ -53,6 +58,53 @@
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
+}
+
+.pillRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.pillLabel {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.pillBtn {
+  font-family: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--glass-border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition:
+    background var(--t-fast) ease,
+    color var(--t-fast) ease,
+    border-color var(--t-fast) ease;
+}
+
+.pillBtn:hover {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.pillBtnActive {
+  background: var(--accent);
+  color: var(--accent-contrast, #ffffff);
+  border-color: var(--accent);
+  font-weight: 600;
 }
 
 .list {
@@ -107,6 +159,63 @@
 .text {
   flex: 1;
   min-width: 0;
+}
+
+.itemControls {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.recurringBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border: 1px solid var(--glass-border-subtle);
+}
+
+.quickActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.quickBtn {
+  font-family: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    color var(--t-fast) ease,
+    border-color var(--t-fast) ease;
+}
+
+.quickBtn:hover {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.quickBtnActive {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent);
+  font-weight: 600;
 }
 
 .editInput {
@@ -220,6 +329,9 @@
 @media (prefers-reduced-motion: reduce) {
   .item,
   .due,
+  .pillBtn,
+  .quickBtn,
+  .dashSnoozeBtn,
   .inputError {
     transition: none;
     animation: none;
@@ -284,6 +396,61 @@
   color: var(--text-faint);
 }
 
+.dashContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashRecurring {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.dashDue {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.dashActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.dashSnoozeBtn {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 6px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    color var(--t-fast) ease,
+    border-color var(--t-fast) ease;
+}
+
+.dashSnoozeBtn:hover {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
 .dashLabel {
   font-size: var(--fs-sm);
   font-weight: 500;
@@ -302,3 +469,4 @@
   flex: 1;
   min-width: 0;
 }
+

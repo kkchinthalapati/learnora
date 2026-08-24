@@ -6,6 +6,7 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
+import { createNextWeeklyDate, dateInDays, formatDueDate } from "../../lib/date";
 import type { Task } from "../../api/types";
 import { DashboardTasksWidget } from "./DashboardTasksWidget";
 import { TasksView } from "./TasksView";
@@ -150,4 +151,83 @@ describe("DashboardTasksWidget", () => {
       screen.getByRole("checkbox", { name: "Shared task", checked: true }),
     ).toBeInTheDocument();
   });
+
+  it("snoozes a task to tomorrow using the quick button in the widget", async () => {
+    const user = userEvent.setup();
+    let patched: Record<string, unknown> | undefined;
+    serveTasks([task(1, "Study history")]);
+    server.use(
+      http.patch(REST, async ({ request }) => {
+        patched = (await request.json()) as Record<string, unknown>;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    renderWithAuth(<DashboardTasksWidget />, { session: fakeSession() });
+    await screen.findByText("Study history");
+
+    const tomorrowBtn = screen.getByRole("button", { name: "Tomorrow" });
+    await user.click(tomorrowBtn);
+
+    await waitFor(() =>
+      expect(patched).toEqual({ due_date: dateInDays(1) }),
+    );
+  });
+
+  it("snoozes a task to next week using the quick button in the widget", async () => {
+    const user = userEvent.setup();
+    let patched: Record<string, unknown> | undefined;
+    serveTasks([task(1, "Study history")]);
+    server.use(
+      http.patch(REST, async ({ request }) => {
+        patched = (await request.json()) as Record<string, unknown>;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    renderWithAuth(<DashboardTasksWidget />, { session: fakeSession() });
+    await screen.findByText("Study history");
+
+    const nextWeekBtn = screen.getByRole("button", { name: "Next week" });
+    await user.click(nextWeekBtn);
+
+    await waitFor(() =>
+      expect(patched).toEqual({ due_date: dateInDays(7) }),
+    );
+  });
+
+  it("spawns next weekly recurrence when completing a recurring task from the widget", async () => {
+    const user = userEvent.setup();
+    let postedBody: Record<string, unknown>[] | undefined;
+    serveTasks([
+      task(1, "Weekly problem set [🔁 Weekly]", {
+        due_date: "2026-08-20",
+      }),
+    ]);
+    server.use(
+      http.post(REST, async ({ request }) => {
+        postedBody = (await request.json()) as Record<string, unknown>[];
+        return HttpResponse.json(null, { status: 201 });
+      }),
+    );
+    renderWithAuth(<DashboardTasksWidget />, { session: fakeSession() });
+
+    const checkbox = await screen.findByRole("checkbox", {
+      name: "Weekly problem set [🔁 Weekly]",
+    });
+    await user.click(checkbox);
+
+    const nextDueDate = createNextWeeklyDate("2026-08-20");
+    await waitFor(() => expect(postedBody).toBeDefined());
+    expect(postedBody![0]).toMatchObject({
+      text: "Weekly problem set [🔁 Weekly]",
+      due_date: nextDueDate,
+    });
+
+    const formatted = formatDueDate(nextDueDate);
+    expect(
+      await screen.findByText(
+        `Scheduled next weekly task for ${formatted}`,
+      ),
+    ).toBeInTheDocument();
+  });
 });
+

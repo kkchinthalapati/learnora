@@ -676,3 +676,45 @@
     animation-duration: 1.5s;
   }
 }
+
+.failureBreakdown {
+  margin-top: var(--s-4);
+  padding: var(--s-4);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--r-md);
+  background: var(--danger-soft);
+  color: var(--danger);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.failureHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+
+.failureList {
+  margin: 0;
+  padding-left: var(--s-4);
+  font-size: var(--fs-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.failureStage {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.failureActions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-1);
+}
+

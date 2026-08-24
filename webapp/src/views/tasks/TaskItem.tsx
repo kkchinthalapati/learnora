@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { Icon } from "../../components/Icon";
 import type { Task } from "../../api/types";
-import { formatDueDate, localDateStr } from "../../lib/date";
+import {
+  createRecurringWeeklyText,
+  dateInDays,
+  formatDueDate,
+  formatRecurrenceCleanText,
+  isRecurringWeekly,
+  localDateStr,
+} from "../../lib/date";
 import styles from "./tasks.module.css";
 
 /* One row of the task list — ports js/main.js:1348-1570.
@@ -32,6 +39,9 @@ export function TaskItem({
   onSetDueDate,
   onDelete,
 }: TaskItemProps) {
+  const isRecurring = isRecurringWeekly(task.text);
+  const displayText = formatRecurrenceCleanText(task.text) || task.text;
+
   const [editingText, setEditingText] = useState(false);
   const [draftText, setDraftText] = useState(task.text);
   const [editingDue, setEditingDue] = useState(false);
@@ -145,51 +155,105 @@ export function TaskItem({
             setEditingText(true);
           }}
         >
-          {task.text}
+          {displayText}
         </span>
       )}
 
       {/* The vanilla omitted the due badge entirely on completed tasks. */}
-      {!task.is_done &&
-        (editingDue ? (
-          <input
-            type="date"
-            className={styles.dueEditInput}
-            aria-label="Due date"
-            autoFocus
-            defaultValue={task.due_date ?? ""}
-            onChange={(e) => {
-              setEditingDue(false);
-              const next = e.target.value || null;
-              if (next !== task.due_date) onSetDueDate(task, next);
-            }}
-            onBlur={() => setEditingDue(false)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") setEditingDue(false);
-            }}
-          />
-        ) : (
-          <button
-            type="button"
-            className={dueClasses}
-            aria-label={
-              dueLabel ? `Due ${dueLabel}. Click to change.` : "Set a due date"
-            }
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditingDue(true);
-            }}
-          >
-            {dueLabel ? (
-              <>
-                <Icon name="calendar" size={13} />
-                {dueLabel}
-              </>
-            ) : (
-              "+ due date"
-            )}
-          </button>
-        ))}
+      {!task.is_done && (
+        <div className={styles.itemControls}>
+          {isRecurring && (
+            <span
+              className={styles.recurringBadge}
+              aria-label="Recurring weekly"
+            >
+              🔁 Weekly
+            </span>
+          )}
+
+          {editingDue ? (
+            <input
+              type="date"
+              className={styles.dueEditInput}
+              aria-label="Due date"
+              autoFocus
+              defaultValue={task.due_date ?? ""}
+              onChange={(e) => {
+                setEditingDue(false);
+                const next = e.target.value || null;
+                if (next !== task.due_date) onSetDueDate(task, next);
+              }}
+              onBlur={() => setEditingDue(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setEditingDue(false);
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              className={dueClasses}
+              aria-label={
+                dueLabel
+                  ? `Due ${dueLabel}. Click to change.`
+                  : "Set a due date"
+              }
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingDue(true);
+              }}
+            >
+              {dueLabel ? (
+                <>
+                  <Icon name="calendar" size={13} />
+                  {dueLabel}
+                </>
+              ) : (
+                "+ due date"
+              )}
+            </button>
+          )}
+
+          <div className={styles.quickActions}>
+            <button
+              type="button"
+              className={styles.quickBtn}
+              aria-label="Tomorrow"
+              title="Set due date to tomorrow"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSetDueDate(task, dateInDays(1));
+              }}
+            >
+              Tomorrow
+            </button>
+            <button
+              type="button"
+              className={styles.quickBtn}
+              aria-label="Next week"
+              title="Set due date to next week"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSetDueDate(task, dateInDays(7));
+              }}
+            >
+              Next week
+            </button>
+            <button
+              type="button"
+              className={`${styles.quickBtn}${isRecurring ? ` ${styles.quickBtnActive}` : ""}`}
+              aria-label={isRecurring ? "Remove weekly repeat" : "Repeat weekly"}
+              aria-pressed={isRecurring}
+              title={isRecurring ? "Turn off weekly recurrence" : "Repeat weekly"}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRename(task, createRecurringWeeklyText(task.text));
+              }}
+            >
+              Repeat weekly
+            </button>
+          </div>
+        </div>
+      )}
 
       <button
         type="button"
@@ -205,3 +269,4 @@ export function TaskItem({
     </li>
   );
 }
+

@@ -1,9 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   createStudyPackage,
+  type CreateOptions,
   type StudyPackageRequest,
   type StudyPackageResult,
 } from "../api/studyPackage";
+import {
+  getMaterialProcessing,
+  setMaterialProcessing,
+} from "../lib/materialProcessing";
 import { useSettings } from "../context/settings";
 import { decksKeys } from "./useDecks";
 import { flashcardsKeys } from "./useFlashcards";
@@ -19,6 +24,49 @@ import { quizzesKeys } from "./useQuizzes";
  *  `useGenerateWeeklyPlan`. */
 export type StudyPackageInput = Omit<StudyPackageRequest, "settings">;
 
+function handleProcessingStatusUpdate(
+  materialId: string,
+  result: StudyPackageResult,
+  input?: unknown,
+) {
+  if (result.failures.length > 0) {
+    const notesFailed = result.failures.some((f) => f.stage === "notes");
+    if (!notesFailed && result.notes !== null) {
+      setMaterialProcessing({
+        materialId,
+        status: "partially_processed",
+        stageFailures: result.failures,
+        error: result.failures.map((f) => f.message).join(" "),
+        requestPayload: input,
+      });
+    } else if (notesFailed) {
+      setMaterialProcessing({
+        materialId,
+        status: "failed",
+        stageFailures: result.failures,
+        error:
+          result.failures.find((f) => f.stage === "notes")?.message ??
+          "Notes generation failed.",
+        requestPayload: input,
+      });
+    } else {
+      setMaterialProcessing({
+        materialId,
+        status: "partially_processed",
+        stageFailures: result.failures,
+        error: result.failures.map((f) => f.message).join(" "),
+        requestPayload: input,
+      });
+    }
+  } else {
+    setMaterialProcessing({
+      materialId,
+      status: "completed",
+      requestPayload: input,
+    });
+  }
+}
+
 /* One run can write rows in five tables, and a partial run writes a subset of
  * them — so rather than reason about which, every list the run could have
  * touched is invalidated once at the end. Cheap: these are the same queries a
@@ -30,8 +78,37 @@ export function useCreateStudyPackage() {
   const { settings } = useSettings();
 
   return useMutation({
-    mutationFn: (input: StudyPackageInput) =>
-      createStudyPackage({ ...input, settings }),
+    mutationFn: async (input: StudyPackageInput) => {
+      const startingMaterialId =
+        input.source.kind === "material" ? input.source.materialId : null;
+      if (startingMaterialId) {
+        setMaterialProcessing({
+          materialId: startingMaterialId,
+          status: "processing",
+          requestPayload: input,
+        });
+      }
+
+      try {
+        const result = await createStudyPackage({ ...input, settings });
+        const targetMaterialId = result.material?.id ?? startingMaterialId;
+        if (targetMaterialId) {
+          handleProcessingStatusUpdate(targetMaterialId, result, input);
+        }
+        return result;
+      } catch (err) {
+        const targetMaterialId = startingMaterialId;
+        if (targetMaterialId) {
+          setMaterialProcessing({
+            materialId: targetMaterialId,
+            status: "failed",
+            error: err instanceof Error ? err.message : "Processing failed.",
+            requestPayload: input,
+          });
+        }
+        throw err;
+      }
+    },
     onSuccess: (result: StudyPackageResult) => {
       if (result.material) {
         qc.invalidateQueries({ queryKey: materialsKeys.all });
@@ -54,6 +131,109 @@ export function useCreateStudyPackage() {
       }
       if (result.quiz) qc.invalidateQueries({ queryKey: quizzesKeys.all });
       // Subject cards count the materials, decks and quizzes filed under them.
+      if (result.material || result.deck || result.quiz) {
+        qc.invalidateQueries({ queryKey: foldersKeys.all });
+      }
+    },
+  });
+}
+
+export interface RetryStudyPackageOptions {
+  materialId: string;
+  outputs?: { flashcards?: boolean; quiz?: boolean };
+  options?: CreateOptions;
+  folderId?: string | null;
+  title?: string;
+  onProgress?: (message: string) => void;
+}
+
+export function useRetryStudyPackage() {
+  const qc = useQueryClient();
+  const { settings } = useSettings();
+
+  return useMutation({
+    mutationFn: async (
+      args: string | RetryStudyPackageOptions,
+    ): Promise<StudyPackageResult> => {
+      const materialId = typeof args === "string" ? args : args.materialId;
+      const prevRecord = getMaterialProcessing(materialId);
+      const prevPayload = prevRecord?.requestPayload as
+        | StudyPackageInput
+        | undefined;
+
+      const outputs =
+        typeof args !== "string" && args.outputs
+          ? args.outputs
+          : prevPayload?.outputs ?? { flashcards: true, quiz: true };
+
+      const options =
+        typeof args !== "string" && args.options
+          ? args.options
+          : prevPayload?.options;
+
+      const folderId =
+        typeof args !== "string" && args.folderId !== undefined
+          ? args.folderId
+          : prevPayload?.folderId;
+
+      const title =
+        typeof args !== "string" && args.title !== undefined
+          ? args.title
+          : prevPayload?.title;
+
+      const onProgress = typeof args !== "string" ? args.onProgress : undefined;
+
+      setMaterialProcessing({
+        materialId,
+        status: "processing",
+      });
+
+      try {
+        const result = await createStudyPackage({
+          source: { kind: "material", materialId },
+          folderId,
+          title,
+          outputs,
+          options,
+          settings,
+          onProgress,
+        });
+
+        handleProcessingStatusUpdate(materialId, result, {
+          source: { kind: "material", materialId },
+          folderId,
+          title,
+          outputs,
+          options,
+        });
+
+        return result;
+      } catch (err) {
+        setMaterialProcessing({
+          materialId,
+          status: "failed",
+          error: err instanceof Error ? err.message : "Processing failed.",
+        });
+        throw err;
+      }
+    },
+    onSuccess: (result: StudyPackageResult) => {
+      if (result.material) {
+        qc.invalidateQueries({ queryKey: materialsKeys.all });
+        qc.invalidateQueries({
+          queryKey: notesKeys.byMaterial(result.material.id),
+        });
+      }
+      if (result.deck) {
+        qc.invalidateQueries({ queryKey: decksKeys.all });
+        if (result.deck.folder_id) {
+          qc.invalidateQueries({
+            queryKey: decksKeys.byFolder(result.deck.folder_id),
+          });
+        }
+        qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
+      }
+      if (result.quiz) qc.invalidateQueries({ queryKey: quizzesKeys.all });
       if (result.material || result.deck || result.quiz) {
         qc.invalidateQueries({ queryKey: foldersKeys.all });
       }

@@ -299,7 +299,9 @@ describe("PlanView", () => {
       );
       renderPlan();
 
-      expect(await screen.findByRole("button", { name: /Triage/i })).toBeInTheDocument();
+      expect(
+        await screen.findByRole("button", { name: /Triage/i }),
+      ).toBeInTheDocument();
     });
 
     it("does not offer Triage for an exam that has already passed", async () => {
@@ -345,10 +347,12 @@ describe("PlanView", () => {
           ]),
         ),
         http.post(EDGE_URL, async ({ request }) => {
-          const body = await request.clone().json() as { history?: { content?: string }[] };
+          const body = (await request.clone().json()) as {
+            history?: { content?: string }[];
+          };
           const content = body.history?.[0]?.content || "";
           if (content.includes("EMERGENCY SURVIVAL")) {
-             wasTriage = true;
+            wasTriage = true;
           }
           return HttpResponse.json({ text: JSON.stringify(SAMPLE_PLAN) });
         }),
@@ -379,6 +383,56 @@ describe("PlanView", () => {
       expect(screen.getByText("45m · after dinner")).toBeInTheDocument();
       expect(screen.getByText("exam on Friday")).toBeInTheDocument();
       expect(screen.getByText("30m")).toBeInTheDocument();
+    });
+
+    it("edits and persists a study block without regenerating the week", async () => {
+      servePlan(planRow(SAMPLE_PLAN));
+      let savedPlanJson: unknown;
+      server.use(
+        http.patch(rest("weekly_plans"), async ({ request }) => {
+          const body = (await request.json()) as { plan_json: unknown };
+          savedPlanJson = body.plan_json;
+          return HttpResponse.json(planRow(body.plan_json));
+        }),
+      );
+      renderPlan();
+
+      const user = userEvent.setup();
+      await user.click(
+        await screen.findByRole("button", {
+          name: "Edit Biology plan block",
+        }),
+      );
+      const subject = screen.getByLabelText("Subject or focus");
+      await user.clear(subject);
+      await user.type(subject, "Cell biology");
+      const duration = screen.getByRole("spinbutton", { name: /Duration/ });
+      await user.clear(duration);
+      await user.type(duration, "55");
+      await user.selectOptions(screen.getByLabelText("Day"), dayOffset(1));
+      await user.click(screen.getByRole("button", { name: "Save block" }));
+
+      expect(await screen.findByText("Cell biology")).toBeInTheDocument();
+      expect(screen.getByText("55m · after dinner")).toBeInTheDocument();
+      expect(savedPlanJson).toMatchObject({
+        summary: SAMPLE_PLAN.summary,
+        days: [
+          {
+            date: dayOffset(0),
+            blocks: [{ subject: "Maths" }],
+          },
+          {
+            date: dayOffset(1),
+            blocks: [
+              {
+                subject: "Cell biology",
+                durationMins: 55,
+                reason: "exam on Friday",
+              },
+            ],
+          },
+        ],
+      });
     });
 
     it("labels each day with its weekday, and calls an empty day free", async () => {

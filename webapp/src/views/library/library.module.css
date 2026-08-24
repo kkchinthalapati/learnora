@@ -459,3 +459,107 @@
   background: var(--danger-soft);
   color: var(--danger);
 }
+
+/* ---- Material Processing Status Badges & Retries ----------------------- */
+
+.badgeProcessing,
+.badgePartial,
+.badgeFailed,
+.badgeCompleted {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: var(--r-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.badgeProcessing {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border: 1px solid var(--accent-ring);
+}
+
+.badgePartial {
+  background: rgba(226, 168, 74, 0.15);
+  color: #d97706;
+  border: 1px solid rgba(226, 168, 74, 0.35);
+}
+
+.badgeFailed {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.badgeCompleted {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-2);
+  width: 100%;
+}
+
+.cardErrorBox {
+  margin-top: var(--s-2);
+  padding: 8px 12px;
+  background: var(--danger-soft);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--r-md);
+  color: var(--danger);
+  font-size: var(--fs-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cardWarningBox {
+  margin-top: var(--s-2);
+  padding: 8px 12px;
+  background: rgba(226, 168, 74, 0.1);
+  border: 1px solid rgba(226, 168, 74, 0.3);
+  border-radius: var(--r-md);
+  color: #b45309;
+  font-size: var(--fs-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cardActionsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+

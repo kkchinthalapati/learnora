@@ -18,6 +18,7 @@ import {
   MAX_UPLOAD_BYTES,
   summarizeStudyPackage,
   studyPackageDestination,
+  type StageFailure,
   type StudySource,
 } from "../../api/studyPackage";
 import { AI_PERSONA_QUIZ_HOST } from "../../lib/settings";
@@ -129,6 +130,10 @@ export function MaterialPanel({
     AI_PERSONA_QUIZ_HOST[settings.aiPersona],
   );
   const [error, setError] = useState<string | null>(null);
+  const [stageFailures, setStageFailures] = useState<StageFailure[]>([]);
+  const [createdMaterialId, setCreatedMaterialId] = useState<string | null>(
+    initialMaterialId ?? null,
+  );
   const [progress, setProgress] = useState<string | null>(null);
   const [extraFolder, setExtraFolder] = useState<Folder | null>(null);
 
@@ -322,16 +327,30 @@ export function MaterialPanel({
     }
 
     setError(null);
+    setStageFailures([]);
     setProgress("Getting started…");
     try {
+      const sourceToUse =
+        createdMaterialId && isNewMaterial
+          ? { kind: "material" as const, materialId: createdMaterialId }
+          : buildSource();
+
       const result = await create.mutateAsync({
-        source: buildSource(),
+        source: sourceToUse,
         folderId: source === "topic" ? null : folderId || null,
         title: titleOverride,
         outputs: { flashcards: wantFlashcards, quiz: wantQuiz },
         options: { cardCount, questionCount, difficulty, personality },
         onProgress: setProgress,
       });
+
+      if (result.material) {
+        setCreatedMaterialId(result.material.id);
+      }
+
+      if (result.failures.length > 0) {
+        setStageFailures(result.failures);
+      }
 
       const summary = summarizeStudyPackage(result);
       if (!summary) {
@@ -353,6 +372,76 @@ export function MaterialPanel({
         caught instanceof Error && caught.message
           ? caught.message
           : "Something went wrong. Please try again.",
+      );
+    } finally {
+      setProgress(null);
+    }
+  };
+
+  const handleRetryFailedStages = async () => {
+    if (create.isPending) return;
+    setError(null);
+    setProgress("Retrying failed stages…");
+    try {
+      const failedNotes = stageFailures.some((f) => f.stage === "notes");
+      const failedFlashcards = stageFailures.some(
+        (f) => f.stage === "flashcards",
+      );
+      const failedQuiz = stageFailures.some((f) => f.stage === "quiz");
+
+      const retryFlashcards =
+        failedNotes || stageFailures.length === 0
+          ? wantFlashcards
+          : failedFlashcards;
+      const retryQuiz =
+        failedNotes || stageFailures.length === 0
+          ? wantQuiz
+          : failedQuiz;
+
+      const sourceToUse =
+        createdMaterialId && !failedNotes
+          ? { kind: "material" as const, materialId: createdMaterialId }
+          : buildSource();
+
+      const result = await create.mutateAsync({
+        source: sourceToUse,
+        folderId: source === "topic" ? null : folderId || null,
+        title: titleOverride,
+        outputs: { flashcards: retryFlashcards, quiz: retryQuiz },
+        options: { cardCount, questionCount, difficulty, personality },
+        onProgress: setProgress,
+      });
+
+      if (result.material) {
+        setCreatedMaterialId(result.material.id);
+      }
+
+      if (result.failures.length > 0) {
+        setStageFailures(result.failures);
+      } else {
+        setStageFailures([]);
+      }
+
+      const summary = summarizeStudyPackage(result);
+      if (!summary) {
+        setError(
+          result.failures[0]?.message ??
+            "Retry failed. Please check your options and try again.",
+        );
+        return;
+      }
+      showToast(summary);
+      const refusal = result.failures.find((failure) => failure.refused);
+      if (refusal) showToast(refusal.message, { error: true });
+      onDone?.();
+      onClose();
+      const destination = studyPackageDestination(result);
+      if (destination) void navigate(destination);
+    } catch (caught) {
+      setError(
+        caught instanceof Error && caught.message
+          ? caught.message
+          : "Retry failed. Please try again.",
       );
     } finally {
       setProgress(null);
@@ -851,10 +940,52 @@ export function MaterialPanel({
             </section>
           ) : null}
 
-          {error ? (
-            <p className={shared.error} role="alert">
-              {error}
-            </p>
+          {stageFailures.length > 0 ? (
+            <div className={styles.failureBreakdown} role="alert">
+              <div className={styles.failureHead}>
+                <Icon name="alert-circle" size={18} />
+                <span>Some stages encountered errors during generation:</span>
+              </div>
+              <ul className={styles.failureList}>
+                {stageFailures.map((failure, idx) => (
+                  <li key={idx}>
+                    <span className={styles.failureStage}>
+                      {failure.stage}:
+                    </span>{" "}
+                    {failure.message}
+                  </li>
+                ))}
+              </ul>
+              <div className={styles.failureActions}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={create.isPending}
+                  onClick={() => void handleRetryFailedStages()}
+                >
+                  {create.isPending ? "Retrying..." : "Retry Failed Stages"}
+                </Button>
+              </div>
+            </div>
+          ) : error ? (
+            <div className={styles.failureBreakdown} role="alert">
+              <div className={styles.failureHead}>
+                <Icon name="alert-circle" size={18} />
+                <span>{error}</span>
+              </div>
+              <div className={styles.failureActions}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={create.isPending}
+                  onClick={() => void handleRetryFailedStages()}
+                >
+                  {create.isPending ? "Retrying..." : "Retry Failed Stages"}
+                </Button>
+              </div>
+            </div>
           ) : null}
           {progress ? (
             <div className={styles.progress} role="status" aria-live="polite">

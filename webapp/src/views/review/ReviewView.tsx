@@ -18,6 +18,15 @@ import {
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { fenceUntrusted } from "../../lib/actionTags";
 import { executeActions, type ActionHandlers } from "../../lib/chatActions";
+import {
+  availableReviewLengths,
+  createReviewSnapshot,
+  defaultReviewLength,
+  recapFrom,
+  type ReviewLength,
+  type ReviewOrder,
+  type ReviewResult,
+} from "./session";
 import { dueCardsFrom, nextReviewState } from "./srs";
 import styles from "./review.module.css";
 
@@ -46,11 +55,11 @@ function ExitLink() {
 export function ReviewView() {
   const { deckId = "" } = useParams<{ deckId: string }>();
   const isDailyDrill = deckId === "daily-drill";
-  
+
   const decks = useAllDecks();
   const deckCardsQuery = useFlashcardsByDeck(deckId);
   const allDueCardsQuery = useAllDueFlashcards(20);
-  
+
   const cardsQuery = isDailyDrill ? allDueCardsQuery : deckCardsQuery;
 
   if (decks.isPending || cardsQuery.isPending) {
@@ -72,7 +81,9 @@ export function ReviewView() {
     );
   }
 
-  const deck = isDailyDrill ? { title: "Daily 5-Minute Drill" } : decks.data.find((d) => d.id === deckId);
+  const deck = isDailyDrill
+    ? { title: "Daily 5-Minute Drill" }
+    : decks.data.find((d) => d.id === deckId);
 
   /* The vanilla never named the deck at all — `#review-deck-title` is
      static markup nothing ever assigned to (js/router.js has no reference to
@@ -95,7 +106,9 @@ export function ReviewView() {
     );
   }
 
-  const due = isDailyDrill ? (cardsQuery.data || []) : dueCardsFrom(cardsQuery.data);
+  const due = isDailyDrill
+    ? cardsQuery.data || []
+    : dueCardsFrom(cardsQuery.data);
 
   if (due.length === 0) {
     return (
@@ -105,19 +118,143 @@ export function ReviewView() {
         <EmptyState
           icon="check"
           title="All caught up! 🎉"
-          message={isDailyDrill ? "No cards due across any deck. Take a break!" : "No cards due for review in this deck right now."}
+          message={
+            isDailyDrill
+              ? "No cards due across any deck. Take a break!"
+              : "No cards due for review in this deck right now."
+          }
         />
       </div>
     );
   }
 
   return (
-    <ReviewSession
+    <ReviewLauncher
       key={deckId}
       deckId={deckId}
       deckTitle={deck.title}
-      cards={due}
+      dueCards={due}
     />
+  );
+}
+
+function ReviewLauncher({
+  deckId,
+  deckTitle,
+  dueCards,
+}: {
+  deckId: string;
+  deckTitle: string;
+  dueCards: Flashcard[];
+}) {
+  const [sessionCards, setSessionCards] = useState<Flashcard[] | null>(null);
+
+  if (sessionCards) {
+    return (
+      <ReviewSession
+        deckId={deckId}
+        deckTitle={deckTitle}
+        cards={sessionCards}
+      />
+    );
+  }
+
+  return (
+    <ReviewSetup
+      deckTitle={deckTitle}
+      dueCards={dueCards}
+      onStart={(length, order) =>
+        setSessionCards(createReviewSnapshot(dueCards, length, order))
+      }
+    />
+  );
+}
+
+function ReviewSetup({
+  deckTitle,
+  dueCards,
+  onStart,
+}: {
+  deckTitle: string;
+  dueCards: Flashcard[];
+  onStart: (length: ReviewLength, order: ReviewOrder) => void;
+}) {
+  const [length, setLength] = useState<ReviewLength>(() =>
+    defaultReviewLength(dueCards.length),
+  );
+  const [order, setOrder] = useState<ReviewOrder>("due");
+  const lengths = availableReviewLengths(dueCards.length);
+
+  return (
+    <div className={styles.view}>
+      <ExitLink />
+      <div className={styles.setup}>
+        <p className={styles.eyebrow}>Ready to review</p>
+        <h1 className={styles.title}>{deckTitle}</h1>
+        <p className={styles.setupIntro}>
+          {dueCards.length} {dueCards.length === 1 ? "card is" : "cards are"}{" "}
+          due. Choose a focused session that fits the time you have.
+        </p>
+
+        <fieldset className={styles.optionGroup}>
+          <legend>Session length</legend>
+          <div className={styles.choiceGrid}>
+            {lengths.map((option) => {
+              const label =
+                option === "all" ? `All (${dueCards.length})` : String(option);
+              return (
+                <label className={styles.choice} key={String(option)}>
+                  <input
+                    type="radio"
+                    name="review-length"
+                    value={String(option)}
+                    checked={length === option}
+                    onChange={() => setLength(option)}
+                  />
+                  <span>{label}</span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <fieldset className={styles.optionGroup}>
+          <legend>Card order</legend>
+          <div className={styles.orderChoices}>
+            <label className={styles.orderChoice}>
+              <input
+                type="radio"
+                name="review-order"
+                value="due"
+                checked={order === "due"}
+                onChange={() => setOrder("due")}
+              />
+              <span>
+                <strong>Due order</strong>
+                <small>Oldest due cards first</small>
+              </span>
+            </label>
+            <label className={styles.orderChoice}>
+              <input
+                type="radio"
+                name="review-order"
+                value="difficult"
+                checked={order === "difficult"}
+                onChange={() => setOrder("difficult")}
+              />
+              <span>
+                <strong>Difficult first</strong>
+                <small>Lower-ease cards get priority</small>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+        <Button variant="primary" onClick={() => onStart(length, order)}>
+          Start review
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -188,8 +325,10 @@ function ReviewSession({
      a refetch landing between two grades would shrink `cards` while `index`
      stayed put, which can make `index >= cards.length` true early and end
      the session before the student has actually seen every due card. */
-  const [cards] = useState(initialCards);
+  const [cards, setCards] = useState(initialCards);
   const [index, setIndex] = useState(0);
+  const [results, setResults] = useState<ReviewResult[]>([]);
+  const [practiceRound, setPracticeRound] = useState(false);
   const [flipped, setFlipped] = useState(false);
   const [answer, setAnswer] = useState("");
   const [grading, setGrading] = useState(false);
@@ -227,24 +366,30 @@ function ReviewSession({
     (quality: number) => {
       const card = cards[index];
       if (!card) return;
-      const { interval, ease, nextReviewDate } = nextReviewState(card, quality);
-      updateReview.mutate(
-        { cardId: card.id, nextReviewDate, interval, ease },
-        {
-          onError: () =>
-            showToast(
-              "Couldn't save this card's review — it may come up again sooner than it should.",
-              { error: true },
-            ),
-        },
-      );
+      if (!practiceRound) {
+        const { interval, ease, nextReviewDate } = nextReviewState(
+          card,
+          quality,
+        );
+        updateReview.mutate(
+          { cardId: card.id, nextReviewDate, interval, ease },
+          {
+            onError: () =>
+              showToast(
+                "Couldn't save this card's review — it may come up again sooner than it should.",
+                { error: true },
+              ),
+          },
+        );
+        setResults((current) => [...current, { card, quality }]);
+      }
       aiGradeInFlight.current = false;
       setIndex((i) => i + 1);
       setFlipped(false);
       setAnswer("");
       setGrading(false);
     },
-    [cards, index, updateReview, showToast],
+    [cards, index, practiceRound, updateReview, showToast],
   );
 
   /* Keyboard shortcuts: Space to flip, 1-4 to grade (only when flipped and
@@ -270,30 +415,37 @@ function ReviewSession({
      fresh on every click (js/router.js:777-789) rather than the card that was
      current when the button was first bound. */
   useEffect(() => {
+    if (finished) {
+      registerFlashcardGrader(null);
+      return;
+    }
     registerFlashcardGrader(scoreCard);
     return () => registerFlashcardGrader(null);
-  }, [registerFlashcardGrader, scoreCard]);
+  }, [finished, registerFlashcardGrader, scoreCard]);
 
   if (finished) {
-    const isDrill = deckTitle === "Daily 5-Minute Drill";
+    const difficultCards = results
+      .filter(({ quality }) => quality < 3)
+      .map(({ card }) => card);
+
     return (
-      <div className={styles.view}>
-        <ExitLink />
-        <h1 className={styles.title}>{deckTitle}</h1>
-        {isDrill ? (
-          <EmptyState
-            icon="zap"
-            title="Drill Complete! ⚡"
-            message="Great job crushing your daily 5-minute drill! You're building a solid habit."
-          />
-        ) : (
-          <EmptyState
-            icon="brain"
-            title="Review Complete! 🧠"
-            message="Great job."
-          />
-        )}
-      </div>
+      <ReviewRecap
+        deckTitle={deckTitle}
+        results={results}
+        practiceComplete={practiceRound}
+        onRepeatDifficult={
+          difficultCards.length && !practiceRound
+            ? () => {
+                setCards(difficultCards);
+                setIndex(0);
+                setPracticeRound(true);
+                setFlipped(false);
+                setAnswer("");
+                setGrading(false);
+              }
+            : undefined
+        }
+      />
     );
   }
 
@@ -352,6 +504,11 @@ function ReviewSession({
         <p className={styles.progress}>
           Card {index + 1} of {cards.length}
         </p>
+        {practiceRound ? (
+          <p className={styles.practiceNotice} role="status">
+            Practice round — these grades won&apos;t change your schedule.
+          </p>
+        ) : null}
       </div>
 
       <div className={styles.scene}>
@@ -449,6 +606,292 @@ function ReviewSession({
           </Button>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function getRetentionBadgeClass(label: string): string {
+  if (label === "Excellent Retention") return styles.badgeExcellent;
+  if (label === "Good Retention") return styles.badgeGood;
+  if (label === "Needs Review") return styles.badgeNeedsReview;
+  return styles.badgeCritical;
+}
+
+function getGradeInfo(quality: number): {
+  key: "again" | "hard" | "good" | "easy";
+  label: string;
+  badgeClass: string;
+} {
+  if (quality <= 1)
+    return { key: "again", label: "Again", badgeClass: styles.gradeBadgeAgain };
+  if (quality === 2)
+    return { key: "hard", label: "Hard", badgeClass: styles.gradeBadgeHard };
+  if (quality === 3)
+    return { key: "good", label: "Good", badgeClass: styles.gradeBadgeGood };
+  return { key: "easy", label: "Easy", badgeClass: styles.gradeBadgeEasy };
+}
+
+type GradeFilter = "all" | "again" | "hard" | "good" | "easy";
+
+function ReviewRecap({
+  deckTitle,
+  results,
+  practiceComplete,
+  onRepeatDifficult,
+}: {
+  deckTitle: string;
+  results: ReviewResult[];
+  practiceComplete: boolean;
+  onRepeatDifficult?: () => void;
+}) {
+  const recap = recapFrom(results);
+  const isDrill = deckTitle === "Daily 5-Minute Drill";
+  const [selectedGrade, setSelectedGrade] = useState<GradeFilter>("all");
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+
+  const filteredResults = results.filter(({ card, quality }) => {
+    const gradeInfo = getGradeInfo(quality);
+    if (selectedGrade !== "all" && gradeInfo.key !== selectedGrade) {
+      return false;
+    }
+    if (selectedTopic) {
+      const query = selectedTopic.toLowerCase();
+      const frontMatch = card.front.toLowerCase().includes(query);
+      const backMatch = card.back.toLowerCase().includes(query);
+      if (!frontMatch && !backMatch) return false;
+    }
+    return true;
+  });
+
+  return (
+    <div className={styles.view}>
+      <ExitLink />
+      <section className={styles.recap} aria-labelledby="review-recap-title">
+        <p className={styles.eyebrow}>Session recap</p>
+        <h1 className={styles.title}>{deckTitle}</h1>
+        <h2 id="review-recap-title" className={styles.recapTitle}>
+          {isDrill ? "Drill Complete! ⚡" : "Review Complete! 🧠"}
+        </h2>
+
+        {practiceComplete ? (
+          <p className={styles.practiceComplete} role="status">
+            Practice round complete. Your original review schedule was
+            preserved.
+          </p>
+        ) : null}
+
+        {/* Estimated Retention Card */}
+        <div className={styles.retentionCard}>
+          <div className={styles.retentionHeader}>
+            <h3 className={styles.retentionTitle}>Estimated 7-Day Retention</h3>
+            <span
+              className={`${styles.retentionBadge} ${getRetentionBadgeClass(
+                recap.retentionLabel,
+              )}`}
+            >
+              {recap.retentionLabel}
+            </span>
+          </div>
+          <div className={styles.retentionScoreRow}>
+            <div className={styles.retentionScore}>
+              {recap.estimatedRetention}%
+            </div>
+          </div>
+          <div
+            className={styles.retentionMeter}
+            role="progressbar"
+            aria-valuenow={recap.estimatedRetention}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Estimated retention meter"
+          >
+            <div
+              className={styles.retentionBar}
+              style={{ width: `${recap.estimatedRetention}%` }}
+            />
+          </div>
+          <p className={styles.retentionExplanation}>
+            Estimated retention over the next 7 days based on your recall speed &amp; accuracy
+          </p>
+        </div>
+
+        {/* Recall Accuracy */}
+        <div className={styles.recallSummary}>
+          <strong>{recap.recallPercent}%</strong>
+          <span>recall accuracy</span>
+        </div>
+        <p className={styles.recapMessage}>
+          {recap.confident} of {results.length} cards were recalled confidently
+          with a Good or Easy grade.
+        </p>
+
+        {/* Grade Breakdown Summary Grid */}
+        <dl className={styles.scoreGrid} aria-label="Grade breakdown">
+          <div className={styles.scoreAgain}>
+            <dt>Again</dt>
+            <dd aria-label="Again count">{recap.counts.again}</dd>
+          </div>
+          <div className={styles.scoreHard}>
+            <dt>Hard</dt>
+            <dd aria-label="Hard count">{recap.counts.hard}</dd>
+          </div>
+          <div className={styles.scoreGood}>
+            <dt>Good</dt>
+            <dd aria-label="Good count">{recap.counts.good}</dd>
+          </div>
+          <div className={styles.scoreEasy}>
+            <dt>Easy</dt>
+            <dd aria-label="Easy count">{recap.counts.easy}</dd>
+          </div>
+        </dl>
+
+        {/* Weak Topics Section */}
+        {recap.weakTopics.length > 0 ? (
+          <div className={styles.weakTopicsSection}>
+            <div className={styles.weakTopicsHeader}>
+              <h3 className={styles.weakTopicsTitle}>Weak Topics Identified</h3>
+              <p className={styles.weakTopicsSubtext}>
+                Topics from cards marked Again or Hard. Click a topic to filter cards:
+              </p>
+            </div>
+            <div className={styles.topicBadges} role="list" aria-label="Weak topics">
+              {recap.weakTopics.map(({ topic, count }) => {
+                const isActive = selectedTopic === topic;
+                return (
+                  <button
+                    key={topic}
+                    type="button"
+                    className={`${styles.topicBadge} ${
+                      isActive ? styles.topicBadgeActive : ""
+                    }`}
+                    onClick={() =>
+                      setSelectedTopic(isActive ? null : topic)
+                    }
+                    aria-pressed={isActive}
+                  >
+                    <span>{topic}</span>
+                    <span className={styles.topicCount}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Cards Graded Breakdown */}
+        <div className={styles.breakdownSection}>
+          <h3 className={styles.breakdownTitle}>Cards Breakdown</h3>
+          <div className={styles.gradeTabs} role="tablist" aria-label="Filter cards by grade">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedGrade === "all"}
+              className={`${styles.gradeTab} ${
+                selectedGrade === "all" ? styles.gradeTabActive : ""
+              }`}
+              onClick={() => setSelectedGrade("all")}
+            >
+              All ({results.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedGrade === "again"}
+              className={`${styles.gradeTab} ${
+                selectedGrade === "again" ? styles.gradeTabActive : ""
+              }`}
+              onClick={() => setSelectedGrade("again")}
+            >
+              Again ({recap.counts.again})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedGrade === "hard"}
+              className={`${styles.gradeTab} ${
+                selectedGrade === "hard" ? styles.gradeTabActive : ""
+              }`}
+              onClick={() => setSelectedGrade("hard")}
+            >
+              Hard ({recap.counts.hard})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedGrade === "good"}
+              className={`${styles.gradeTab} ${
+                selectedGrade === "good" ? styles.gradeTabActive : ""
+              }`}
+              onClick={() => setSelectedGrade("good")}
+            >
+              Good ({recap.counts.good})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedGrade === "easy"}
+              className={`${styles.gradeTab} ${
+                selectedGrade === "easy" ? styles.gradeTabActive : ""
+              }`}
+              onClick={() => setSelectedGrade("easy")}
+            >
+              Easy ({recap.counts.easy})
+            </button>
+          </div>
+
+          <div className={styles.cardBreakdownList}>
+            {filteredResults.length === 0 ? (
+              <p className={styles.emptyFilterNotice}>
+                No cards match the selected filter.
+              </p>
+            ) : (
+              filteredResults.map(({ card, quality }) => {
+                const info = getGradeInfo(quality);
+                return (
+                  <div key={card.id} className={styles.cardBreakdownItem}>
+                    <div className={styles.cardBreakdownHeader}>
+                      <span
+                        className={`${styles.gradeBadge} ${info.badgeClass}`}
+                      >
+                        {info.label}
+                      </span>
+                    </div>
+                    <div className={styles.cardFrontPreview}>
+                      <span className={styles.cardPreviewLabel}>Q:</span>
+                      {card.front}
+                    </div>
+                    <div className={styles.cardBackPreview}>
+                      <span className={styles.cardPreviewLabel}>A:</span>
+                      {card.back}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Action Button: Review Difficult Cards Again */}
+        {onRepeatDifficult ? (
+          <div className={styles.repeatPanel}>
+            <Button
+              variant="primary"
+              onClick={onRepeatDifficult}
+              className={styles.repeatButton}
+            >
+              Review Difficult Cards Again
+            </Button>
+            <p>
+              This is a practice-only pass. Your saved review schedule will not
+              change.
+            </p>
+          </div>
+        ) : (
+          <p className={styles.strongFinish}>
+            Strong session — no difficult cards need another pass.
+          </p>
+        )}
+      </section>
     </div>
   );
 }

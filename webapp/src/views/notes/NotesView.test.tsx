@@ -8,6 +8,10 @@ import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import type { Material, Note } from "../../api/types";
+import {
+  clearMaterialProcessing,
+  setMaterialProcessing,
+} from "../../lib/materialProcessing";
 import { NotesView } from "./NotesView";
 import { SAVE_DEBOUNCE_MS } from "./NotesEditorPane";
 
@@ -133,6 +137,42 @@ describe("NotesView", () => {
       screen.getByText("Notes aren't ready to edit yet"),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Retry Generation" })).toBeInTheDocument();
+  });
+
+  it("shows an error banner with explanation and allows retrying generation", async () => {
+    const user = userEvent.setup();
+    setMaterialProcessing({
+      materialId: "mat-1",
+      status: "failed",
+      error: "Edge function failed to generate notes",
+      stageFailures: [{ stage: "notes", message: "Edge function failed to generate notes" }],
+    });
+    serveNotes({ material: material({ raw_content: "http://example.com" }), notes: [] });
+    server.use(
+      http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () => {
+        return HttpResponse.json({
+          text: "## Newly generated notes for study\nComprehensive content about mitosis and cell division that is well over fifty characters long.",
+        });
+      }),
+      http.post(rest("notes"), () => {
+        return HttpResponse.json({
+          id: "note-new",
+          markdown_content:
+            "## Newly generated notes for study\nComprehensive content about mitosis and cell division that is well over fifty characters long.",
+        });
+      }),
+    );
+    renderNotes();
+
+    expect(await screen.findByText("Note generation failed")).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Edge function failed to generate notes/)[0],
+    ).toBeInTheDocument();
+
+    const retryBtn = screen.getByRole("button", { name: "Retry Generation" });
+    await user.click(retryBtn);
+    clearMaterialProcessing("mat-1");
   });
 
   it("falls back to rendering markdown when html_content is empty", async () => {

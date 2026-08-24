@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { Navigate, useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
@@ -8,6 +8,7 @@ import { FoldersPanel } from "./FoldersPanel";
 import { MaterialsPanel } from "./MaterialsPanel";
 import { FlashcardsPanel } from "./FlashcardsPanel";
 import { QuizzesPanel } from "./QuizzesPanel";
+import { LibrarySearch } from "./LibrarySearch";
 import {
   LIBRARY_TABS,
   isLibraryTab,
@@ -47,6 +48,7 @@ export function LibraryView() {
   const navigate = useNavigate();
   const { openCreateModal } = useCreateModal();
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [isSearching, setIsSearching] = useState(false);
 
   if (tab !== undefined && !isLibraryTab(tab)) {
     return <Navigate to="/library" replace />;
@@ -87,37 +89,47 @@ export function LibraryView() {
         }
       />
 
-      <div role="tablist" aria-label="Library sections" className={styles.tabs}>
-        {LIBRARY_TABS.map((t, i) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            id={`library-tab-${t.id}`}
-            aria-selected={active === t.id}
-            aria-controls={`library-panel-${t.id}`}
-            tabIndex={active === t.id ? 0 : -1}
-            ref={(el) => {
-              tabRefs.current[t.id] = el;
-            }}
-            className={`${styles.tab}${active === t.id ? ` ${styles.tabActive}` : ""}`}
-            onClick={() => void navigate(pathForTab(t.id))}
-            onKeyDown={(e) => onTabKeyDown(e, i)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <LibrarySearch onActiveChange={setIsSearching} />
 
-      <div
-        role="tabpanel"
-        id={`library-panel-${active}`}
-        aria-labelledby={`library-tab-${active}`}
-        tabIndex={0}
-        className={styles.panel}
-      >
-        <Panel />
-      </div>
+      {!isSearching ? (
+        <>
+          <div
+            role="tablist"
+            aria-label="Library sections"
+            className={styles.tabs}
+          >
+            {LIBRARY_TABS.map((t, i) => (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                id={`library-tab-${t.id}`}
+                aria-selected={active === t.id}
+                aria-controls={`library-panel-${t.id}`}
+                tabIndex={active === t.id ? 0 : -1}
+                ref={(el) => {
+                  tabRefs.current[t.id] = el;
+                }}
+                className={`${styles.tab}${active === t.id ? ` ${styles.tabActive}` : ""}`}
+                onClick={() => void navigate(pathForTab(t.id))}
+                onKeyDown={(e) => onTabKeyDown(e, i)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div
+            role="tabpanel"
+            id={`library-panel-${active}`}
+            aria-labelledby={`library-tab-${active}`}
+            tabIndex={0}
+            className={styles.panel}
+          >
+            <Panel />
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

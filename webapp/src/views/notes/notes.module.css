@@ -520,3 +520,87 @@
 .loadError {
   color: var(--danger);
 }
+
+/* ---- Processing / Failure Banner --------------------------------------- */
+
+.processingBanner,
+.warningBanner,
+.errorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  padding: 12px 18px;
+  margin-top: var(--s-3);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.processingBanner {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+  color: var(--accent-text);
+}
+
+.warningBanner {
+  background: rgba(226, 168, 74, 0.12);
+  border: 1px solid rgba(226, 168, 74, 0.35);
+  color: #b45309;
+}
+
+.errorBanner {
+  background: var(--danger-soft);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: var(--danger);
+}
+
+.bannerContent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.bannerIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.bannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--fs-sm);
+}
+
+.bannerTitle {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+
+.bannerStageFailures {
+  margin-top: 4px;
+  font-size: var(--fs-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bannerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-shrink: 0;
+}
+
+.bannerSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: inlineAiSpin 0.75s linear infinite;
+}
+

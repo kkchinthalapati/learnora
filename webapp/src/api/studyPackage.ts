@@ -40,6 +40,8 @@ import { materialsApi } from "./materials";
 import { notesApi } from "./notes";
 import { decodeBase64UTF8, extractFlashcardJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
+import { supabase } from "../lib/supabase";
+import { setMaterialProcessing } from "../lib/materialProcessing";
 import type { Settings } from "../lib/settings";
 import type { FlashcardDeck, Material, Quiz } from "./types";
 
@@ -432,6 +434,11 @@ export async function createStudyPackage(
         AUDIO_FILE.test(file.name) ? "audio" : "pdf",
         baseTitle || undefined,
       );
+      setMaterialProcessing({
+        materialId: result.material.id,
+        status: "processing",
+        requestPayload: request,
+      });
       notesSource = { file };
     } else {
       const raw = (source.kind === "link" ? source.url : source.text).trim();
@@ -447,6 +454,11 @@ export async function createStudyPackage(
         folderId,
         baseTitle || undefined,
       );
+      setMaterialProcessing({
+        materialId: result.material.id,
+        status: "processing",
+        requestPayload: request,
+      });
       /* Straight through as text. The vanilla base64-encoded it into a
          `text/plain` payload here and decoded it again inside `_generateNotes`
          (js/ai.js:723-727, :529-537) — a round trip with no observable effect,
@@ -479,13 +491,60 @@ export async function createStudyPackage(
     folderId = folderId || material.folder_id || null;
     baseTitle = baseTitle || material.title;
     topic = material.title;
+    setMaterialProcessing({
+      materialId: material.id,
+      status: "processing",
+      requestPayload: request,
+    });
 
     step("Loading your saved notes…");
     sourceText = await loadSourceText(material.id);
     if (!sourceText) {
-      throw new Error(
-        "No notes are available for this material yet — wait for AI processing to finish, then try again.",
-      );
+      if (material.storage_path) {
+        step(`Downloading ${material.title}…`);
+        const { data: blob, error: downloadError } = await supabase.storage
+          .from("materials")
+          .download(material.storage_path);
+        if (downloadError || !blob) {
+          throw new Error(
+            "Could not download original material file to write notes.",
+          );
+        }
+        const file = new File([blob], material.title, { type: blob.type });
+        step("Reading your material and writing notes…");
+        try {
+          result.notes = await generateNotes({
+            material,
+            source: { file },
+            settings,
+          });
+        } catch (err) {
+          fail("notes", err);
+          return result;
+        }
+        sourceText = fenceUntrusted(
+          result.notes.substring(0, MAX_SOURCE_CHARS),
+        );
+      } else if (material.raw_content) {
+        step("Reading your material and writing notes…");
+        try {
+          result.notes = await generateNotes({
+            material,
+            source: { inlineText: material.raw_content },
+            settings,
+          });
+        } catch (err) {
+          fail("notes", err);
+          return result;
+        }
+        sourceText = fenceUntrusted(
+          result.notes.substring(0, MAX_SOURCE_CHARS),
+        );
+      } else {
+        throw new Error(
+          "No notes are available for this material yet — wait for AI processing to finish, then try again.",
+        );
+      }
     }
   } else {
     const trimmed = source.topic.trim();

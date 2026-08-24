@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { Icon } from "../../components/Icon";
 import {
   RichTextEditor,
   type EditorRange,
@@ -9,6 +10,8 @@ import {
   type RichTextEditorHandle,
 } from "../../components/RichTextEditor";
 import { useUpdateNoteHtml } from "../../hooks/useNotes";
+import { useRetryStudyPackage } from "../../hooks/useStudyPackage";
+import { useMaterialProcessing } from "../../lib/materialProcessing";
 import { renderMarkdown } from "../../lib/markdown";
 import { NotesAiSidebar } from "./NotesAiSidebar";
 import type { Note } from "../../api/types";
@@ -125,6 +128,22 @@ export function NotesEditorPane({
 
   const { settings } = useSettings();
   const { showToast } = useToast();
+  const processingRecord = useMaterialProcessing(materialId);
+  const retryMutation = useRetryStudyPackage();
+  const isRetrying = retryMutation.isPending;
+
+  useEffect(() => {
+    if (note && editorRef.current) {
+      const html =
+        note.html_content ||
+        (note.markdown_content ? renderMarkdown(note.markdown_content) : "");
+      if (html) {
+        editorRef.current.setHtml(html);
+        setStatus("idle");
+      }
+    }
+  }, [note]);
+
   const [complexity, setComplexity] = useState(3);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
   const [activeSelection, setActiveSelection] =
@@ -540,11 +559,102 @@ ${fenceUntrusted(currentHtml)}
         {undoStack.length > 0 && (
           <Button size="sm" variant="secondary" onClick={undoLastAiEdit}>
             {undoStack.at(-1)?.source === "inline"
-              ? "Undo Last AI Edit"
-              : "Undo Rewrite"}
+               ? "Undo Last AI Edit"
+               : "Undo Rewrite"}
           </Button>
         )}
       </div>
+
+      {isRetrying || processingRecord?.status === "processing" ? (
+        <div className={styles.processingBanner} role="status">
+          <div className={styles.bannerContent}>
+            <span className={styles.bannerSpinner} aria-hidden="true" />
+            <div className={styles.bannerText}>
+              <strong className={styles.bannerTitle}>
+                Processing study notes…
+              </strong>
+              <span>
+                Learnora is reading your material and writing notes.
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : processingRecord?.status === "failed" ||
+        (!note && processingRecord?.status !== "completed") ? (
+        <div className={styles.errorBanner} role="alert">
+          <div className={styles.bannerContent}>
+            <span className={styles.bannerIcon}>
+              <Icon name="alert-circle" size={18} />
+            </span>
+            <div className={styles.bannerText}>
+              <strong className={styles.bannerTitle}>
+                Note generation failed
+              </strong>
+              <span>
+                {processingRecord?.error ||
+                  "Could not generate notes from this material."}
+              </span>
+              {processingRecord?.stageFailures &&
+                processingRecord.stageFailures.length > 0 && (
+                  <div className={styles.bannerStageFailures}>
+                    {processingRecord.stageFailures.map((f, idx) => (
+                      <div key={idx}>
+                        <strong>{f.stage}:</strong> {f.message}
+                      </div>
+                    ))}
+                  </div>
+                )}
+            </div>
+          </div>
+          <div className={styles.bannerActions}>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={isRetrying}
+              onClick={() => retryMutation.mutate(materialId)}
+            >
+              {isRetrying ? "Retrying..." : "Retry Generation"}
+            </Button>
+          </div>
+        </div>
+      ) : processingRecord?.status === "partially_processed" ? (
+        <div className={styles.warningBanner} role="status">
+          <div className={styles.bannerContent}>
+            <span className={styles.bannerIcon}>
+              <Icon name="alert-triangle" size={18} />
+            </span>
+            <div className={styles.bannerText}>
+              <strong className={styles.bannerTitle}>
+                Some resources failed to generate
+              </strong>
+              <span>
+                {processingRecord?.error ||
+                  "Notes were created, but flashcards or quiz generation failed."}
+              </span>
+              {processingRecord?.stageFailures &&
+                processingRecord.stageFailures.length > 0 && (
+                  <div className={styles.bannerStageFailures}>
+                    {processingRecord.stageFailures.map((f, idx) => (
+                      <div key={idx}>
+                        <strong>{f.stage}:</strong> {f.message}
+                      </div>
+                    ))}
+                  </div>
+                )}
+            </div>
+          </div>
+          <div className={styles.bannerActions}>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={isRetrying}
+              onClick={() => retryMutation.mutate(materialId)}
+            >
+              {isRetrying ? "Retrying..." : "Retry Generation"}
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <div className={styles.splitLayout}>
         <Card variant="elevated" padding="none" className={styles.editorPane}>

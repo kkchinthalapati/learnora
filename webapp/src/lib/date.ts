@@ -126,3 +126,43 @@ export const WEEKDAY_NAMES = [
   "Fri",
   "Sat",
 ] as const;
+
+/** Compute a local date string offset by `days` from `fromDate` (or today). */
+export function dateInDays(days: number, fromDate?: string): string {
+  const base = fromDate
+    ? parseLocalDate(fromDate)
+    : parseLocalDate(localDateStr());
+  const target = new Date(base);
+  target.setDate(target.getDate() + days);
+  return localDateStr(target);
+}
+
+const RECURRING_WEEKLY_REGEX = /\[🔁\s*Weekly\]|\[Weekly\]|🔁\s*Weekly/i;
+
+/** Checks if a task is marked for weekly recurrence. */
+export function isRecurringWeekly(taskText: string): boolean {
+  return RECURRING_WEEKLY_REGEX.test(taskText);
+}
+
+/** Strips recurrence tags from a task description for clean display. */
+export function formatRecurrenceCleanText(taskText: string): string {
+  return taskText
+    .replace(/\[🔁\s*Weekly\]|\[Weekly\]|🔁\s*Weekly/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/** Calculates +7 days from the current due date (or +7 days from today). */
+export function createNextWeeklyDate(currentDueDate?: string | null): string {
+  return dateInDays(7, currentDueDate || undefined);
+}
+
+/** Appends or toggles the weekly recurrence tag on a task description. */
+export function createRecurringWeeklyText(taskText: string): string {
+  if (isRecurringWeekly(taskText)) {
+    return formatRecurrenceCleanText(taskText);
+  }
+  const clean = taskText.trim();
+  return clean ? `${clean} [🔁 Weekly]` : "[🔁 Weekly]";
+}
+

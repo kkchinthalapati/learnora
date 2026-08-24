@@ -355,4 +355,39 @@ describe("MaterialPanel guided creation", () => {
       expect(screen.getByLabelText("Subject")).toHaveValue("folder-2"),
     );
   });
+
+  it("displays detailed stage breakdown of errors and a direct 'Retry Failed Stages' button without losing user state", async () => {
+    serveDb();
+    let attempt = 0;
+    server.use(
+      http.post(EDGE_URL, async ({ request }) => {
+        const { mode } = (await request.json()) as { mode: string };
+        attempt++;
+        if (attempt === 1) {
+          // Fail initially
+          return HttpResponse.json({ text: "Short" });
+        }
+        return HttpResponse.json({
+          text: mode === "notes" ? NOTES_MARKDOWN : JSON.stringify(CARDS),
+        });
+      }),
+    );
+    const user = await openDialog();
+    await chooseText(user);
+    await continueToResults(user);
+    await continueToDetails(user);
+    await user.click(screen.getByRole("button", { name: "Create study kit" }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry Failed Stages" })).toBeInTheDocument();
+
+    // State is preserved
+    expect(screen.getByLabelText("Subject")).toHaveValue("folder-1");
+
+    // Click retry
+    await user.click(screen.getByRole("button", { name: "Retry Failed Stages" }));
+    expect(
+      await screen.findByText("Created notes, flashcards."),
+    ).toBeInTheDocument();
+  });
 });

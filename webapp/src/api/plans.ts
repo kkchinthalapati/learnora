@@ -40,4 +40,20 @@ export const plansApi = {
     if (error) throw new Error(error.message);
     return data;
   },
+
+  async updatePlanJson(
+    weekStartISO: string,
+    planJson: unknown,
+  ): Promise<WeeklyPlan> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from("weekly_plans")
+      .update({ plan_json: planJson })
+      .eq("user_id", userId)
+      .eq("week_start", weekStartISO)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  },
 };

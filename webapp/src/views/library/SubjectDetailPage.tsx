@@ -11,6 +11,11 @@ import { useAllDecks } from "../../hooks/useDecks";
 import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useQuizzes } from "../../hooks/useQuizzes";
+import { useRetryStudyPackage } from "../../hooks/useStudyPackage";
+import {
+  deriveMaterialStatus,
+  useAllMaterialProcessing,
+} from "../../lib/materialProcessing";
 import type { MaterialType } from "../../api/types";
 import { useLibraryActions } from "./useLibraryActions";
 import styles from "./library.module.css";
@@ -72,6 +77,8 @@ export function SubjectDetailPage() {
   const materials = useMaterials(folderId);
   const decks = useAllDecks();
   const quizzes = useQuizzes();
+  const retryMutation = useRetryStudyPackage();
+  const processingRecords = useAllMaterialProcessing();
 
   const folder = folders.data?.find((f) => f.id === folderId);
   const folderDecks = useMemo(
@@ -151,32 +158,92 @@ export function SubjectDetailPage() {
             <EmptyState size="sm" message="No materials yet." />
           ) : (
             <ul className={styles.rowList}>
-              {materials.data.map((material) => (
-                <li key={material.id} className={styles.row}>
-                  <Link to={`/notes/${material.id}`} className={styles.rowLink}>
-                    <Icon
-                      name={MATERIAL_ICONS[material.type] ?? "file-text"}
-                      size={16}
-                    />
-                    <span className={styles.rowTitle}>{material.title}</span>
-                  </Link>
-                  <button
-                    type="button"
-                    className={styles.rowDelete}
-                    aria-label={`Delete ${material.title}`}
-                    title="Delete this file"
-                    onClick={() =>
-                      void removeMaterial(
-                        material.id,
-                        material.title,
-                        material.storage_path,
-                      )
-                    }
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
+              {materials.data.map((material) => {
+                const record = processingRecords[material.id];
+                const derived = deriveMaterialStatus(material, 1, record);
+                const isRetrying =
+                  retryMutation.isPending &&
+                  retryMutation.variables !== undefined &&
+                  (typeof retryMutation.variables === "string"
+                    ? retryMutation.variables === material.id
+                    : retryMutation.variables.materialId === material.id);
+
+                const status = isRetrying ? "processing" : derived.status;
+
+                return (
+                  <li key={material.id} className={styles.row}>
+                    <Link
+                      to={`/notes/${material.id}`}
+                      className={styles.rowLink}
+                    >
+                      <Icon
+                        name={MATERIAL_ICONS[material.type] ?? "file-text"}
+                        size={16}
+                      />
+                      <span className={styles.rowTitle}>{material.title}</span>
+                      {status === "processing" && (
+                        <span
+                          className={styles.badgeProcessing}
+                          role="status"
+                          aria-label="Processing"
+                        >
+                          <span
+                            className={styles.spinner}
+                            aria-hidden="true"
+                          />
+                          <span>Processing...</span>
+                        </span>
+                      )}
+                      {status === "partially_processed" && (
+                        <span
+                          className={styles.badgePartial}
+                          role="status"
+                          aria-label="Partially processed"
+                        >
+                          <Icon name="alert-triangle" size={13} />
+                          <span>Partially processed</span>
+                        </span>
+                      )}
+                      {status === "failed" && (
+                        <span
+                          className={styles.badgeFailed}
+                          role="alert"
+                          aria-label="Processing failed"
+                        >
+                          <Icon name="alert-circle" size={13} />
+                          <span>Processing failed</span>
+                        </span>
+                      )}
+                    </Link>
+                    {(status === "failed" ||
+                      status === "partially_processed") && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={isRetrying}
+                        onClick={() => retryMutation.mutate(material.id)}
+                      >
+                        {isRetrying ? "Retrying..." : "Retry"}
+                      </Button>
+                    )}
+                    <button
+                      type="button"
+                      className={styles.rowDelete}
+                      aria-label={`Delete ${material.title}`}
+                      title="Delete this file"
+                      onClick={() =>
+                        void removeMaterial(
+                          material.id,
+                          material.title,
+                          material.storage_path,
+                        )
+                      }
+                    >
+                      ✕
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Section>

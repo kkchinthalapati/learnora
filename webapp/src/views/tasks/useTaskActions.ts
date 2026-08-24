@@ -3,11 +3,18 @@ import { tasksApi } from "../../api/tasks";
 import type { Task } from "../../api/types";
 import {
   tasksKeys,
+  useAddTask,
   useToggleTask,
   useUpdateTaskDueDate,
   useUpdateTaskText,
 } from "../../hooks/useTasks";
 import { useDeferredDelete } from "../../hooks/useDeferredDelete";
+import { useToast } from "../../context/toast";
+import {
+  createNextWeeklyDate,
+  formatDueDate,
+  isRecurringWeekly,
+} from "../../lib/date";
 
 /* The mutations shared by the Tasks view and the dashboard widget.
  *
@@ -15,8 +22,10 @@ import { useDeferredDelete } from "../../hooks/useDeferredDelete";
  * (now in useDeferredDelete.ts). */
 export function useTaskActions() {
   const toggleTask = useToggleTask();
+  const addTask = useAddTask();
   const updateText = useUpdateTaskText();
   const updateDueDate = useUpdateTaskDueDate();
+  const { showToast } = useToast();
   const { remove: removePending, visible: visibleTasks } =
     useDeferredDelete<number, Task>({
       deleteFn: (id) => tasksApi.delete(id),
@@ -26,9 +35,19 @@ export function useTaskActions() {
 
   const toggle = useCallback(
     (task: Task) => {
+      const willComplete = !task.is_done;
       toggleTask.mutate({ id: task.id, currentStatus: task.is_done });
+      if (willComplete && isRecurringWeekly(task.text)) {
+        const nextDueDate = createNextWeeklyDate(task.due_date);
+        addTask.mutate({
+          text: task.text,
+          dueDate: nextDueDate,
+        });
+        const formattedDate = formatDueDate(nextDueDate);
+        showToast(`Scheduled next weekly task for ${formattedDate}`);
+      }
     },
-    [toggleTask],
+    [toggleTask, addTask, showToast],
   );
 
   const rename = useCallback(

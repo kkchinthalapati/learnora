@@ -8,6 +8,7 @@ import { useToast } from "../../context/toast";
 import { TaskItem } from "./TaskItem";
 import { sortTasksByUrgency } from "./sortTasks";
 import { useTaskActions } from "./useTaskActions";
+import { dateInDays, isRecurringWeekly, localDateStr } from "../../lib/date";
 import styles from "./tasks.module.css";
 
 /* Tasks view — ports index.html:846-877 + js/main.js:1329-1645.
@@ -26,6 +27,7 @@ export function TasksView() {
 
   const [text, setText] = useState("");
   const [dueDate, setDueDate_] = useState("");
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [shake, setShake] = useState(false);
   const dueId = useId();
 
@@ -40,10 +42,16 @@ export function TasksView() {
       requestAnimationFrame(() => setShake(true));
       return;
     }
+    const finalText =
+      repeatWeekly && !isRecurringWeekly(trimmed)
+        ? `${trimmed} [🔁 Weekly]`
+        : trimmed;
+
     setText("");
     setDueDate_("");
+    setRepeatWeekly(false);
     addTask.mutate(
-      { text: trimmed, dueDate: dueDate || null },
+      { text: finalText, dueDate: dueDate || null },
       {
         onError: (err) =>
           showToast(`Could not add task. ${err.message}`, { error: true }),
@@ -62,35 +70,73 @@ export function TasksView() {
         }}
       >
         <Card variant="panel" padding="none" className={styles.inputCard}>
-          <input
-            type="text"
-            className={`${styles.textInput}${shake ? ` ${styles.inputError}` : ""}`}
-            placeholder={t("placeholder_task")}
-            autoComplete="off"
-            aria-label="New Task Input"
-            value={text}
-            onAnimationEnd={() => setShake(false)}
-            onChange={(e) => setText(e.target.value)}
-          />
-
-          {/* The bare date box read as ambiguous ("is this the due date or the
-              date I'm adding the task?"), so the field says what it sets. */}
-          <div className={styles.dueField}>
-            <label className={styles.dueLabel} htmlFor={dueId}>
-              Due date <span className="text-faint">(optional)</span>
-            </label>
+          <div className={styles.inputMainRow}>
             <input
-              id={dueId}
-              type="date"
-              className={styles.dueInput}
-              value={dueDate}
-              onChange={(e) => setDueDate_(e.target.value)}
+              type="text"
+              className={`${styles.textInput}${shake ? ` ${styles.inputError}` : ""}`}
+              placeholder={t("placeholder_task")}
+              autoComplete="off"
+              aria-label="New Task Input"
+              value={text}
+              onAnimationEnd={() => setShake(false)}
+              onChange={(e) => setText(e.target.value)}
             />
+
+            {/* The bare date box read as ambiguous ("is this the due date or the
+                date I'm adding the task?"), so the field says what it sets. */}
+            <div className={styles.dueField}>
+              <label className={styles.dueLabel} htmlFor={dueId}>
+                Due date <span className="text-faint">(optional)</span>
+              </label>
+              <input
+                id={dueId}
+                type="date"
+                className={styles.dueInput}
+                value={dueDate}
+                onChange={(e) => setDueDate_(e.target.value)}
+              />
+            </div>
+
+            <Button type="submit" variant="primary" disabled={addTask.isPending}>
+              {t("btn_add")}
+            </Button>
           </div>
 
-          <Button type="submit" variant="primary" disabled={addTask.isPending}>
-            {t("btn_add")}
-          </Button>
+          <div
+            className={styles.pillRow}
+            aria-label="Quick due date and recurrence options"
+          >
+            <span className={styles.pillLabel}>Quick due:</span>
+            <button
+              type="button"
+              className={`${styles.pillBtn}${dueDate === localDateStr() ? ` ${styles.pillBtnActive}` : ""}`}
+              onClick={() => setDueDate_(localDateStr())}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              className={`${styles.pillBtn}${dueDate === dateInDays(1) ? ` ${styles.pillBtnActive}` : ""}`}
+              onClick={() => setDueDate_(dateInDays(1))}
+            >
+              Tomorrow
+            </button>
+            <button
+              type="button"
+              className={`${styles.pillBtn}${dueDate === dateInDays(7) ? ` ${styles.pillBtnActive}` : ""}`}
+              onClick={() => setDueDate_(dateInDays(7))}
+            >
+              Next week
+            </button>
+            <button
+              type="button"
+              className={`${styles.pillBtn}${repeatWeekly ? ` ${styles.pillBtnActive}` : ""}`}
+              aria-pressed={repeatWeekly}
+              onClick={() => setRepeatWeekly((prev) => !prev)}
+            >
+              🔁 Repeat weekly
+            </button>
+          </div>
         </Card>
       </form>
 

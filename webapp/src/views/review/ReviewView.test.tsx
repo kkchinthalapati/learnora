@@ -52,8 +52,8 @@ function serve({
   );
 }
 
-function renderReview(deckId = "d-1") {
-  return renderWithAuth(
+function renderReview(deckId = "d-1", autoStart = true) {
+  const rendered = renderWithAuth(
     <MemoryRouter initialEntries={[`/review/${deckId}`]}>
       {/* ReviewView still calls useChat() for registerFlashcardGrader — a
           <GRADE_FLASHCARD> tag from the floating Turbo panel needs somewhere
@@ -71,6 +71,24 @@ function renderReview(deckId = "d-1") {
     { session: fakeSession() },
     { withTimer: true },
   );
+
+  if (autoStart) {
+    const clickStart = () => {
+      const button = screen.queryByRole("button", { name: "Start review" });
+      if (!button) return false;
+      button.click();
+      return true;
+    };
+    if (!clickStart()) {
+      const observer = new MutationObserver(() => {
+        if (!rendered.container.isConnected || clickStart())
+          observer.disconnect();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+  }
+
+  return rendered;
 }
 
 describe("ReviewView", () => {
@@ -282,7 +300,221 @@ describe("ReviewView", () => {
     await user.click(screen.getByRole("button", { name: "Easy (4)" }));
 
     expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
-    expect(screen.getByText("Great job.")).toBeInTheDocument();
+    expect(screen.getByText("100%")).toBeInTheDocument();
+    expect(screen.getByLabelText("Easy count")).toHaveTextContent("1");
+    expect(
+      screen.getByText(
+        "Strong session — no difficult cards need another pass.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("lets the student choose a session length and difficult-first order", async () => {
+    serve({
+      cards: Array.from({ length: 12 }, (_, index) =>
+        card({
+          id: "c-" + (index + 1),
+          front: "Q" + (index + 1),
+          back: "A" + (index + 1),
+          ease_factor: index === 8 ? 1.4 : 2.5,
+        }),
+      ),
+    });
+    renderReview("d-1", false);
+
+    expect(
+      await screen.findByText(
+        (_content, element) =>
+          element?.tagName === "P" &&
+          element.textContent?.includes("12 cards are due.") === true,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "5" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "10" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "All (12)" })).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("radio", { name: /Difficult first/ }));
+    await user.click(screen.getByRole("button", { name: "Start review" }));
+
+    expect(await screen.findByText("Q9")).toBeInTheDocument();
+    expect(screen.getByText("Card 1 of 5")).toBeInTheDocument();
+  });
+
+  it("recaps grades and repeats difficult cards without saving them twice", async () => {
+    serve({
+      cards: [
+        card({ id: "c-1", front: "Q1", back: "A1" }),
+        card({ id: "c-2", front: "Q2", back: "A2" }),
+      ],
+    });
+    let patchCalls = 0;
+    server.use(
+      http.patch(rest("flashcards"), () => {
+        patchCalls += 1;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    renderReview();
+    await screen.findByText("Q1");
+
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: "Flip card to see the answer" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Again (1)" }));
+    await screen.findByText("Q2");
+    await user.click(
+      screen.getByRole("button", { name: "Flip card to see the answer" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Good (3)" }));
+
+    expect(await screen.findByText("50%")).toBeInTheDocument();
+    expect(screen.getByLabelText("Again count")).toHaveTextContent("1");
+    expect(screen.getByLabelText("Good count")).toHaveTextContent("1");
+    await waitFor(() => expect(patchCalls).toBe(2));
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Review Difficult Cards Again",
+      }),
+    );
+    expect(await screen.findByText("Q1")).toBeInTheDocument();
+    expect(screen.getByText(/Practice round/)).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Flip card to see the answer" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Easy (4)" }));
+
+    expect(
+      await screen.findByText(
+        "Practice round complete. Your original review schedule was preserved.",
+      ),
+    ).toBeInTheDocument();
+    expect(patchCalls).toBe(2);
+    expect(
+      screen.queryByRole("button", { name: "Review Difficult Cards Again" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("displays the estimated retention forecast, weak topics, and categorized card breakdown", async () => {
+    serve({
+      cards: [
+        card({
+          id: "c-1",
+          front: "What is Photosynthesis in plant cells?",
+          back: "Converts light to chemical energy.",
+        }),
+        card({
+          id: "c-2",
+          front: "Explain the Photosynthesis Calvin cycle",
+          back: "Fixes carbon dioxide into sugar.",
+        }),
+        card({
+          id: "c-3",
+          front: "What is Mitochondria function?",
+          back: "Cellular power generation.",
+        }),
+      ],
+    });
+    renderReview();
+    await screen.findByText("What is Photosynthesis in plant cells?");
+
+    const user = userEvent.setup();
+
+    // Card 1: Again (25)
+    await user.click(
+      screen.getByRole("button", { name: "Flip card to see the answer" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Again (1)" }));
+
+    // Card 2: Hard (55)
+    await screen.findByText("Explain the Photosynthesis Calvin cycle");
+    await user.click(
+      screen.getByRole("button", { name: "Flip card to see the answer" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Hard (2)" }));
+
+    // Card 3: Easy (95)
+    await screen.findByText("What is Mitochondria function?");
+    await user.click(
+      screen.getByRole("button", { name: "Flip card to see the answer" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Easy (4)" }));
+
+    // Recap screen is shown
+    expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+
+    // Retention Card: (25 + 55 + 95) / 3 = 58% -> Needs Review
+    expect(screen.getByText("Estimated 7-Day Retention")).toBeInTheDocument();
+    expect(screen.getByText("58%")).toBeInTheDocument();
+    expect(screen.getByText("Needs Review")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Estimated retention over the next 7 days based on your recall speed & accuracy",
+      ),
+    ).toBeInTheDocument();
+    const meter = screen.getByRole("progressbar", {
+      name: "Estimated retention meter",
+    });
+    expect(meter).toHaveAttribute("aria-valuenow", "58");
+
+    // Weak Topics: "Photosynthesis" should appear in weak topics
+    expect(screen.getByText("Weak Topics Identified")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Photosynthesis/ }),
+    ).toBeInTheDocument();
+
+    // Card Breakdown Tabs
+    expect(screen.getByRole("tab", { name: "All (3)" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Again (1)" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Hard (1)" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Good (0)" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Easy (1)" })).toBeInTheDocument();
+
+    // Card previews Q and A
+    expect(
+      screen.getByText("What is Photosynthesis in plant cells?"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Converts light to chemical energy."),
+    ).toBeInTheDocument();
+
+    // Switch tab to "Again (1)"
+    await user.click(screen.getByRole("tab", { name: "Again (1)" }));
+    expect(
+      screen.getByText("What is Photosynthesis in plant cells?"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("What is Mitochondria function?"),
+    ).not.toBeInTheDocument();
+
+    // Filter by topic badge
+    await user.click(screen.getByRole("tab", { name: "All (3)" }));
+    await user.click(screen.getByRole("button", { name: /Photosynthesis/ }));
+    expect(
+      screen.getByText("What is Photosynthesis in plant cells?"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Explain the Photosynthesis Calvin cycle"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("What is Mitochondria function?"),
+    ).not.toBeInTheDocument();
+
+    // Repeat difficult cards action button is present and clickable
+    const repeatButton = screen.getByRole("button", {
+      name: "Review Difficult Cards Again",
+    });
+    expect(repeatButton).toBeInTheDocument();
+    await user.click(repeatButton);
+
+    // Practice session launches with the 2 difficult cards
+    expect(
+      await screen.findByText("What is Photosynthesis in plant cells?"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Card 1 of 2")).toBeInTheDocument();
+    expect(screen.getByText(/Practice round/)).toBeInTheDocument();
   });
 
   it("surfaces a toast when saving a grade fails, without blocking on it", async () => {
