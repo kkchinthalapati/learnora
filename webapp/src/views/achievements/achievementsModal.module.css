@@ -221,6 +221,7 @@
 
 .presetBtn {
   flex: 1;
+  min-height: var(--touch-target-min);
   padding: 3px 6px;
   background: var(--surface-2);
   border: 1px solid var(--glass-border-subtle);
@@ -352,8 +353,8 @@
 }
 
 .badgeIconBox {
-  width: 44px;
-  height: 44px;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
   border-radius: var(--r-md);
   display: grid;
   place-items: center;

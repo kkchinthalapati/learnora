@@ -727,8 +727,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
   border-radius: var(--r-pill);
   border: 1px solid var(--glass-border-subtle);
   background: var(--surface);
@@ -1214,13 +1214,13 @@
   }
 
   .cheerBtn {
-    width: 34px;
-    height: 34px;
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
   }
 
   .syncBtn {
     justify-content: center;
-    min-height: 40px;
+    min-height: var(--touch-target-min);
   }
 
   .chatForm > button {

@@ -69,6 +69,20 @@ describe("AchievementsModal", () => {
     expect(loadStudyGoals().dailyCardsGoal).toBe(25);
   });
 
+  it("exposes the selected preset via aria-pressed, for assistive tech", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AchievementsModal open={true} onClose={vi.fn()} />);
+
+    const preset45 = screen.getByRole("button", { name: "45m" });
+    const preset30 = screen.getByRole("button", { name: "30m" });
+    expect(preset45).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(preset45);
+
+    expect(preset45).toHaveAttribute("aria-pressed", "true");
+    expect(preset30).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("calls onClose when close button is clicked", async () => {
     const user = userEvent.setup();
     const handleClose = vi.fn();

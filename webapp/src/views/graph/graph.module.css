@@ -322,6 +322,12 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .nodeGapRing {
+    animation: none;
+  }
+}
+
 /* Hover Tooltip */
 .tooltip {
   position: absolute;

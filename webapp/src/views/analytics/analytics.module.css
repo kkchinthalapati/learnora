@@ -579,3 +579,14 @@
   color: var(--text-muted);
   font-size: var(--fs-sm);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .cell:hover,
+  .cell:focus-visible {
+    transform: none;
+  }
+
+  .barFill {
+    transition: none;
+  }
+}

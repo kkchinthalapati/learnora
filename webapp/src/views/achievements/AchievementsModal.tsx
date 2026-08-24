@@ -255,6 +255,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
                         ? styles.presetBtnActive
                         : ""
                     }`}
+                    aria-pressed={goals.dailyMinutesGoal === mins}
                     onClick={() =>
                       handleGoalChange("dailyMinutesGoal", mins)
                     }
@@ -304,6 +305,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
                         ? styles.presetBtnActive
                         : ""
                     }`}
+                    aria-pressed={goals.dailyCardsGoal === cards}
                     onClick={() => handleGoalChange("dailyCardsGoal", cards)}
                   >
                     {cards}
@@ -351,6 +353,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
                         ? styles.presetBtnActive
                         : ""
                     }`}
+                    aria-pressed={goals.dailyTasksGoal === num}
                     onClick={() => handleGoalChange("dailyTasksGoal", num)}
                   >
                     {num}
