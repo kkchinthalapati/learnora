@@ -300,6 +300,19 @@ export async function flushOfflineQueue(): Promise<FlushResult> {
   }
 }
 
+/* Only a failure where the request never got a fair send belongs in the
+ * replay queue. If the server ANSWERED — the api layer surfaces its error
+ * payloads as plain Errors — the rejection is authoritative: replaying the
+ * identical write later would be rejected identically, so we rethrow and let
+ * the caller's onError roll the optimistic UI back. Silently queueing those
+ * would show success while the action quietly dies after MAX_RETRIES.
+ * Transport-level failures (offline, DNS, refused socket) surface from fetch
+ * as TypeError, sometimes after navigator.onLine has already flipped false. */
+function isConnectivityFailure(error: unknown): boolean {
+  if (typeof navigator !== "undefined" && !navigator.onLine) return true;
+  return error instanceof TypeError;
+}
+
 /**
  * Helper to submit SRS review: attempts online execution first;
  * if offline or on network error, enqueues to offline queue.
@@ -319,6 +332,7 @@ export async function submitSrsReview(payload: SrsReviewPayload): Promise<{ queu
     queryClient.invalidateQueries({ queryKey: ["flashcards"] });
     return { queued: false };
   } catch (error) {
+    if (!isConnectivityFailure(error)) throw error;
     console.warn("[offlineSync] submitSrsReview failed, queuing offline:", error);
     enqueueOfflineAction("submitSrsReview", payload);
     return { queued: true };
@@ -339,6 +353,7 @@ export async function logSession(payload: LogSessionPayload): Promise<{ queued: 
     queryClient.invalidateQueries({ queryKey: ["sessions"] });
     return { queued: false };
   } catch (error) {
+    if (!isConnectivityFailure(error)) throw error;
     console.warn("[offlineSync] logSession failed, queuing offline:", error);
     enqueueOfflineAction("logSession", payload);
     return { queued: true };
@@ -359,6 +374,7 @@ export async function toggleTask(payload: ToggleTaskPayload): Promise<{ queued: 
     queryClient.invalidateQueries({ queryKey: ["tasks"] });
     return { queued: false };
   } catch (error) {
+    if (!isConnectivityFailure(error)) throw error;
     console.warn("[offlineSync] toggleTask failed, queuing offline:", error);
     enqueueOfflineAction("toggleTask", payload);
     return { queued: true };

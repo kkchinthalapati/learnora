@@ -15,8 +15,12 @@ const CURRENT_CACHES = [SHELL_CACHE, ASSETS_CACHE];
 const PRECACHE_ASSETS = [
   "/app/",
   "/app/index.html",
-  "/learnora.jpg",
-  "/manifest.webmanifest",
+  /* The app is served under /app/ (see vite.config's base), so its public
+   * assets resolve there too — the bare "/learnora.jpg" and
+   * "/manifest.webmanifest" 404'd, leaving the icon and manifest out of the
+   * offline shell. */
+  "/app/learnora.jpg",
+  "/app/manifest.webmanifest",
 ];
 
 const STATIC_EXTENSIONS = /\.(?:js|css|woff2?|ttf|png|jpe?g|gif|svg|ico|webp)$/i;

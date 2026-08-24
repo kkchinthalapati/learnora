@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { flashcardsApi } from "../api/flashcards";
+import { submitSrsReview } from "../lib/offlineSync";
 
 export const flashcardsKeys = {
   all: ["flashcards"] as const,
@@ -56,6 +57,12 @@ export function useAddFlashcardBatch() {
   });
 }
 
+/* The write goes through the offline queue's helper (online-first, enqueue on
+ * failure), so a review graded with no connection is replayed on reconnect
+ * instead of lost — the queue re-invalidates these same keys after each
+ * successful replay. While an action sits queued the cache must NOT be
+ * invalidated: a refetch would return the server's not-yet-reviewed state and
+ * un-grade the card in the UI. */
 export function useUpdateFlashcardReview() {
   const qc = useQueryClient();
   return useMutation({
@@ -69,8 +76,9 @@ export function useUpdateFlashcardReview() {
       nextReviewDate: string;
       interval: number;
       ease: number;
-    }) => flashcardsApi.updateReview(cardId, nextReviewDate, interval, ease),
-    onSuccess: () => {
+    }) => submitSrsReview({ cardId, nextReviewDate, interval, ease }),
+    onSuccess: ({ queued }) => {
+      if (queued) return;
       qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
       qc.invalidateQueries({ queryKey: ["flashcards", "all-due"] });
       qc.invalidateQueries({ queryKey: ["flashcards", "deck"] });

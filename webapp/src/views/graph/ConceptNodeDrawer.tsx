@@ -1,8 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Link } from "react-router";
 import { Icon } from "../../components/Icon";
 import type { ConceptNode } from "../../lib/conceptGraph";
 import { useCreateModal } from "../../context/createModal";
+import { useOverlayBehavior } from "../../context/overlayStack";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import styles from "./graph.module.css";
 
 interface ConceptNodeDrawerProps {
@@ -21,18 +23,14 @@ export function ConceptNodeDrawer({
   onSelectRelated,
 }: ConceptNodeDrawerProps) {
   const { openCreateModal } = useCreateModal();
-  const drawerRef = useRef<HTMLDivElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
 
-  // Handle ESC key to close drawer
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  /* The repo-standard overlay pair, as Modal.tsx uses it: joins the overlay
+   * stack (ESC closes, focus moves in on open and returns to the trigger on
+   * close), and traps Tab inside the drawer instead of letting it escape
+   * into the graph behind a dialog marked aria-modal. */
+  useOverlayBehavior({ ref: drawerRef, open: isOpen && !!node, onClose });
+  useFocusTrap(drawerRef, isOpen && !!node);
 
   if (!node) return null;
 
@@ -214,11 +212,19 @@ export function ConceptNodeDrawer({
               Practice Concept Now
             </Link>
           ) : (
+            /* Scoped to this concept — the bare openCreateModal() this used
+             * to call opened the generic panel with quiz off and nothing
+             * preselected, doing neither of the things its label promised. */
             <button
               type="button"
               className={styles.practiceBtn}
               onClick={() => {
-                openCreateModal();
+                openCreateModal({
+                  outputs: { flashcards: true, quiz: false },
+                  folderId: node.folderId,
+                  materialId: node.materialId ?? undefined,
+                  title: `Generate flashcards for ${node.label}`,
+                });
                 onClose();
               }}
             >
@@ -242,7 +248,12 @@ export function ConceptNodeDrawer({
               type="button"
               className={styles.secondaryBtn}
               onClick={() => {
-                openCreateModal();
+                openCreateModal({
+                  outputs: { flashcards: false, quiz: true },
+                  folderId: node.folderId,
+                  materialId: node.materialId ?? undefined,
+                  title: `Quiz on ${node.label}`,
+                });
                 onClose();
               }}
             >

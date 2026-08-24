@@ -183,7 +183,7 @@
   padding: var(--s-4);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
-  background: var(--surface-1);
+  background: var(--surface);
 }
 
 .factorHeader {
@@ -202,7 +202,7 @@
   margin: var(--s-3) 0;
   overflow: hidden;
   border-radius: var(--r-pill);
-  background: var(--surface-3);
+  background: var(--surface-hover);
 }
 
 .barFill {
@@ -279,7 +279,7 @@
   padding: var(--s-4);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
-  background: var(--surface-1);
+  background: var(--surface);
 }
 
 .phaseCardCurrent {

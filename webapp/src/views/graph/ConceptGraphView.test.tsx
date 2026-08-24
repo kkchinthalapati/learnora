@@ -84,7 +84,21 @@ describe("ConceptGraphView", () => {
     },
   ];
 
-  const mockAttempts: QuizAttempt[] = [];
+  /* A badly-failed attempt makes "Enzymes" a measured knowledge gap (weak
+     topic + ~49% blended mastery) — the gap-filter test needs a real gap to
+     reveal, not one inferred from absent evidence. */
+  const mockAttempts: QuizAttempt[] = [
+    {
+      id: "qa-1",
+      user_id: "user-1",
+      quiz_id: "q-1",
+      score: 2,
+      total: 10,
+      answers_json: {},
+      weak_topics: ["Enzymes"],
+      created_at: "2026-01-02",
+    },
+  ];
 
   it("renders toolbar controls, summary statistics, and interactive SVG canvas", async () => {
     server.use(
@@ -104,8 +118,11 @@ describe("ConceptGraphView", () => {
       { session: fakeSession() },
     );
 
-    // Toolbar & Search
-    expect(screen.getByPlaceholderText("Search concepts or notes…")).toBeInTheDocument();
+    /* The view shows a skeleton until its seven queries resolve, so the
+       first lookup awaits the loaded state; everything after it is stable. */
+    expect(
+      await screen.findByPlaceholderText("Search concepts or notes…"),
+    ).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Filter by subject folder" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Knowledge Gaps/ })).toBeInTheDocument();
 
@@ -137,7 +154,9 @@ describe("ConceptGraphView", () => {
       { session: fakeSession() },
     );
 
-    const searchInput = screen.getByPlaceholderText("Search concepts or notes…");
+    const searchInput = await screen.findByPlaceholderText(
+      "Search concepts or notes…",
+    );
     await user.type(searchInput, "NonExistentConceptXYZ");
 
     // Empty state when search yields no matches
@@ -169,7 +188,9 @@ describe("ConceptGraphView", () => {
       { session: fakeSession() },
     );
 
-    const gapToggle = screen.getByRole("button", { name: /Knowledge Gaps/ });
+    const gapToggle = await screen.findByRole("button", {
+      name: /Knowledge Gaps/,
+    });
     await user.click(gapToggle);
     expect(gapToggle).toHaveAttribute("aria-pressed", "true");
 

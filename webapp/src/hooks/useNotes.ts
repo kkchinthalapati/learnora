@@ -33,8 +33,12 @@ export function useAddNote() {
       materialId: string;
       markdownContent: string;
     }) => notesApi.add(materialId, markdownContent),
-    onSuccess: (_data, { materialId }) =>
-      qc.invalidateQueries({ queryKey: notesKeys.byMaterial(materialId) }),
+    onSuccess: () =>
+      /* ["notes"] prefix-matches every notes query — the per-material list
+       * for this material AND the global ["notes"] list the Concept Graph
+       * builds its nodes from. Invalidation by byMaterial(materialId) alone
+       * left the graph rendering stale nodes until something else refetched. */
+      qc.invalidateQueries({ queryKey: notesKeys.all }),
   });
 }
 
@@ -45,9 +49,9 @@ export function useUpdateNoteHtml() {
       notesApi.updateHtml(id, htmlContent),
     onSuccess: (data) => {
       if (data.material_id) {
-        qc.invalidateQueries({
-          queryKey: notesKeys.byMaterial(data.material_id),
-        });
+        // Same prefix sweep as useAddNote — covers the edited material's
+        // list and the graph's global snapshot in one go.
+        qc.invalidateQueries({ queryKey: notesKeys.all });
       }
     },
   });

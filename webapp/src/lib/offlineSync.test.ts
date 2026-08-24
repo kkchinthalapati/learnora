@@ -241,8 +241,8 @@ describe("offlineSync", () => {
       expect(getOfflineQueueSize()).toBe(1);
     });
 
-    it("enqueues into offline queue on online failure", async () => {
-      vi.mocked(tasksApi.toggle).mockRejectedValueOnce(new Error("503 Service Unavailable"));
+    it("enqueues into offline queue on a transport failure while online", async () => {
+      vi.mocked(tasksApi.toggle).mockRejectedValueOnce(new TypeError("Failed to fetch"));
 
       const res = await toggleTask({
         id: 7,
@@ -251,6 +251,19 @@ describe("offlineSync", () => {
 
       expect(res.queued).toBe(true);
       expect(getOfflineQueueSize()).toBe(1);
+    });
+
+    /* A server that answered has rejected this exact write; replaying it
+       later would be rejected identically. Rethrow so the caller rolls the
+       optimistic UI back instead of showing success over a doomed queue
+       entry. */
+    it("rethrows an HTTP rejection instead of queueing it", async () => {
+      vi.mocked(tasksApi.toggle).mockRejectedValueOnce(new Error("503 Service Unavailable"));
+
+      await expect(
+        toggleTask({ id: 7, currentStatus: false }),
+      ).rejects.toThrow("503 Service Unavailable");
+      expect(getOfflineQueueSize()).toBe(0);
     });
   });
 });

@@ -3,6 +3,7 @@ import {
   normalizeConceptLabel,
   buildConceptGraph,
   filterConceptGraph,
+  generateSampleGraph,
   applyClusterLayout,
   type ConceptNode,
 } from "./conceptGraph";
@@ -150,23 +151,59 @@ describe("conceptGraph", () => {
       expect(enzymeNode?.x).toBeGreaterThan(0);
       expect(enzymeNode?.y).toBeGreaterThan(0);
 
-      // Verify knowledge gap detection
-      const denatureNode = graph.nodes.find((n) => n.label.toLowerCase().includes("denaturation"));
-      if (denatureNode) {
-        expect(denatureNode.isKnowledgeGap).toBe(true);
-      }
+      // Verify knowledge gap detection: "Denaturation" has card evidence with
+      // low mastery AND is a weak topic — measured-but-low, so a real gap.
+      const denatureNode = graph.nodes.find((n) =>
+        n.label.toLowerCase().includes("denaturation"),
+      );
+      expect(denatureNode).toBeDefined();
+      expect(denatureNode?.isKnowledgeGap).toBe(true);
     });
 
-    it("returns sample fallback graph if input has no study materials", () => {
+    it("returns an empty graph (not the demo) for an account with no study data", () => {
       const graph = buildConceptGraph({});
+      expect(graph.nodes).toHaveLength(0);
+      expect(graph.edges).toHaveLength(0);
+      expect(graph.stats.totalConcepts).toBe(0);
+      expect(graph.stats.averageMastery).toBe(0);
+    });
+
+    it("does not flag note-only concepts as knowledge gaps — no evidence is not low mastery", () => {
+      // Notes and a material title only: no cards, no quizzes, no weak topics.
+      const graph = buildConceptGraph({
+        folders: mockFolders,
+        materials: mockMaterials,
+        notes: mockNotes,
+      });
       expect(graph.nodes.length).toBeGreaterThan(0);
-      expect(graph.edges.length).toBeGreaterThan(0);
-      expect(graph.stats.totalConcepts).toBe(graph.nodes.length);
+      graph.nodes.forEach((node) => {
+        expect(node.isKnowledgeGap).toBe(false);
+      });
+    });
+
+    it("mints distinct ids for keys that collapse to the same slug", () => {
+      // "atp energy" and "atp-energy" both slug to "atp-energy"; their node
+      // ids must still differ or edge dedup and React keys corrupt.
+      const graph = buildConceptGraph({
+        notes: [
+          {
+            id: "n-a",
+            user_id: "u-1",
+            material_id: null,
+            markdown_content: "## Atp energy\n- Atp-energy: a distinct term",
+            html_content: null,
+            created_at: "2026-01-01",
+          },
+        ],
+      });
+      const ids = graph.nodes.map((n) => n.id);
+      expect(new Set(ids).size).toBe(ids.length);
+      expect(ids.length).toBeGreaterThanOrEqual(2);
     });
   });
 
   describe("filterConceptGraph", () => {
-    const sampleGraph = buildConceptGraph({});
+    const sampleGraph = generateSampleGraph();
 
     it("filters by folder ID", () => {
       const filtered = filterConceptGraph(sampleGraph, { folderId: "f-bio" });

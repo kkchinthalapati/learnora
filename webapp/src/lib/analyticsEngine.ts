@@ -1,5 +1,6 @@
 import type { StudySession, QuizAttempt, Folder, Exam } from "../api/types";
 import { localDateStr, parseLocalDate, formatDateStr } from "./date";
+import { STREAK_MIN_MINUTES, computeStudyStreak } from "./streak";
 
 export interface HeatmapCell {
   date: Date;
@@ -174,47 +175,21 @@ export function generateActivityHeatmap(
     cur.setDate(cur.getDate() + 1);
   }
 
-  // Calculate streaks
-  let currentStreak = 0;
+  // Calculate streaks. Current streak uses the canonical lib/streak.ts
+  // definition — a day qualifies at STREAK_MIN_MINUTES, and today is a grace
+  // day. This heatmap used to run its own walk counting any >0-minute day,
+  // so the same history read "12 day streak" here and "9 day streak" on the
+  // dashboard's StreakCard, which requires ≥5 minutes.
+  const currentStreak = computeStudyStreak(sessions, STREAK_MIN_MINUTES, endDate);
+
   let longestStreak = 0;
   let tempStreak = 0;
 
-  // Streak across all chronological days
-  const checkDate = new Date(endDate);
-  const todayMins = minutesByDate.get(todayStr) || 0;
-
-  if (todayMins > 0) {
-    while (true) {
-      const dStr = localDateStr(checkDate);
-      const m = minutesByDate.get(dStr) || 0;
-      if (m > 0) {
-        currentStreak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else {
-        break;
-      }
-    }
-  } else {
-    checkDate.setDate(checkDate.getDate() - 1);
-    const yestStr = localDateStr(checkDate);
-    if ((minutesByDate.get(yestStr) || 0) > 0) {
-      while (true) {
-        const dStr = localDateStr(checkDate);
-        const m = minutesByDate.get(dStr) || 0;
-        if (m > 0) {
-          currentStreak++;
-          checkDate.setDate(checkDate.getDate() - 1);
-        } else {
-          break;
-        }
-      }
-    }
-  }
-
-  // Longest streak across the generated cell range
+  // Longest streak across the generated cell range, at the same qualifying
+  // bar as currentStreak — not merely "touched the app" days.
   for (const cell of cells) {
     if (cell.date >= startDate && cell.date <= endDate) {
-      if (cell.minutes > 0) {
+      if (cell.minutes >= STREAK_MIN_MINUTES) {
         tempStreak++;
         if (tempStreak > longestStreak) {
           longestStreak = tempStreak;

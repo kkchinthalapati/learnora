@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal } from "../../components/Modal";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
@@ -27,6 +27,14 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
   const [addedSuccessMsg, setAddedSuccessMsg] = useState<string | null>(null);
   const [addErrorMsg, setAddErrorMsg] = useState<string | null>(null);
   const [addedTaskIds, setAddedTaskIds] = useState<Record<string, boolean>>({});
+
+  /* Success feedback auto-dismisses; it used to sit in the footer forever,
+   * outliving the action it described and masquerading as fresh state. */
+  useEffect(() => {
+    if (!addedSuccessMsg) return;
+    const t = setTimeout(() => setAddedSuccessMsg(null), 4000);
+    return () => clearTimeout(t);
+  }, [addedSuccessMsg]);
 
   if (!open || !exam) return null;
 

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback, type MouseEvent, type WheelEvent } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect, type MouseEvent } from "react";
 import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useNotes } from "../../hooks/useNotes";
@@ -8,25 +8,79 @@ import { useQuizzes, useQuizAttempts } from "../../hooks/useQuizzes";
 import {
   buildConceptGraph,
   filterConceptGraph,
+  generateSampleGraph,
   type ConceptNode,
 } from "../../lib/conceptGraph";
 import { Icon } from "../../components/Icon";
+import { Skeleton } from "../../components/Skeleton";
 import { ConceptNodeDrawer } from "./ConceptNodeDrawer";
 import styles from "./graph.module.css";
 
 export function ConceptGraphView() {
-  const { data: folders = [] } = useFolders();
-  const { data: materials = [] } = useMaterials();
-  const { data: notes = [] } = useNotes();
-  const { data: flashcards = [] } = useFlashcards();
-  const { data: decks = [] } = useDecks();
-  const { data: quizzes = [] } = useQuizzes();
-  const { data: quizAttempts = [] } = useQuizAttempts();
+  const {
+    data: folders = [],
+    isPending: foldersPending,
+    isError: foldersError,
+  } = useFolders();
+  const {
+    data: materials = [],
+    isPending: materialsPending,
+    isError: materialsError,
+  } = useMaterials();
+  const {
+    data: notes = [],
+    isPending: notesPending,
+    isError: notesError,
+  } = useNotes();
+  const {
+    data: flashcards = [],
+    isPending: flashcardsPending,
+    isError: flashcardsError,
+  } = useFlashcards();
+  const {
+    data: decks = [],
+    isPending: decksPending,
+    isError: decksError,
+  } = useDecks();
+  const {
+    data: quizzes = [],
+    isPending: quizzesPending,
+    isError: quizzesError,
+  } = useQuizzes();
+  const {
+    data: quizAttempts = [],
+    isPending: attemptsPending,
+    isError: attemptsError,
+  } = useQuizAttempts();
+
+  /* Every query must resolve before the graph is built: defaulting to []
+     while pending used to feed buildConceptGraph empty arrays, which
+     rendered the fabricated demo graph as if it were the user's real data
+     on first paint — and permanently, on a silent fetch error. */
+  const isPending =
+    foldersPending ||
+    materialsPending ||
+    notesPending ||
+    flashcardsPending ||
+    decksPending ||
+    quizzesPending ||
+    attemptsPending;
+  const isError =
+    foldersError ||
+    materialsError ||
+    notesError ||
+    flashcardsError ||
+    decksError ||
+    quizzesError ||
+    attemptsError;
 
   // Filters State
   const [selectedFolder, setSelectedFolder] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [knowledgeGapsOnly, setKnowledgeGapsOnly] = useState<boolean>(false);
+  /* The demo graph is opt-in from the empty state — it is sample data, and
+   * must never be mistaken for the user's own (empty) graph. */
+  const [showDemo, setShowDemo] = useState(false);
 
   // Selection & Hover State
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -53,22 +107,37 @@ export function ConceptGraphView() {
     });
   }, [folders, materials, notes, flashcards, decks, quizzes, quizAttempts]);
 
+  /* Opt-in demo data for an account with no concepts yet — clearly labelled
+   * while active (see the banner below the toolbar). */
+  const demoGraph = useMemo(
+    () => (showDemo ? generateSampleGraph(folders) : null),
+    [showDemo, folders],
+  );
+  const activeGraph = demoGraph ?? rawGraph;
+
   // 2. Filter Graph
   const graphData = useMemo(() => {
-    return filterConceptGraph(rawGraph, {
+    return filterConceptGraph(activeGraph, {
       folderId: selectedFolder,
       searchQuery,
       knowledgeGapsOnly,
     });
-  }, [rawGraph, selectedFolder, searchQuery, knowledgeGapsOnly]);
+  }, [activeGraph, selectedFolder, searchQuery, knowledgeGapsOnly]);
+
+  // Node lookup by id — O(1) per edge instead of a find() over all nodes for
+  // every edge on every render (hover re-renders included).
+  const nodeById = useMemo(
+    () => new Map(graphData.nodes.map((n) => [n.id, n])),
+    [graphData.nodes],
+  );
 
   const selectedNode = useMemo(() => {
-    return rawGraph.nodes.find((n) => n.id === selectedNodeId) || null;
-  }, [rawGraph.nodes, selectedNodeId]);
+    return activeGraph.nodes.find((n) => n.id === selectedNodeId) || null;
+  }, [activeGraph.nodes, selectedNodeId]);
 
   const hoveredNode = useMemo(() => {
-    return rawGraph.nodes.find((n) => n.id === hoveredNodeId) || null;
-  }, [rawGraph.nodes, hoveredNodeId]);
+    return activeGraph.nodes.find((n) => n.id === hoveredNodeId) || null;
+  }, [activeGraph.nodes, hoveredNodeId]);
 
   // Connected nodes to the hovered or selected node
   const activeNodeId = hoveredNodeId || selectedNodeId;
@@ -104,10 +173,35 @@ export function ConceptGraphView() {
     setIsPanning(false);
   }, []);
 
-  const handleWheel = useCallback((e: WheelEvent<SVGSVGElement>) => {
-    e.preventDefault();
-    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-    setZoom((prev) => Math.min(2.8, Math.max(0.4, Number((prev * zoomFactor).toFixed(2)))));
+  /* Ending the drag outside the SVG (button released past the canvas edge,
+   * or the window losing focus) must still stop panning — an svg-level
+   * onMouseUp alone left the graph stuck to the cursor afterwards. */
+  useEffect(() => {
+    if (!isPanning) return;
+    const stop = () => setIsPanning(false);
+    window.addEventListener("mouseup", stop);
+    window.addEventListener("blur", stop);
+    return () => {
+      window.removeEventListener("mouseup", stop);
+      window.removeEventListener("blur", stop);
+    };
+  }, [isPanning]);
+
+  /* React attaches onWheel as a passive listener, where preventDefault is a
+   * no-op — the page scrolled while zooming and every tick logged a console
+   * error. A native non-passive listener is required to own the gesture. */
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      setZoom((prev) =>
+        Math.min(2.8, Math.max(0.4, Number((prev * zoomFactor).toFixed(2)))),
+      );
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
   const handleZoomIn = () => setZoom((z) => Math.min(2.8, Number((z + 0.2).toFixed(1))));
@@ -138,8 +232,43 @@ export function ConceptGraphView() {
     setTooltipPos(null);
   };
 
+  if (isPending) {
+    return (
+      <div className={styles.container} aria-busy="true">
+        <Skeleton label="Building your concept graph" height={480} />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className={styles.container}>
+        <p role="alert" className={styles.loadError}>
+          Could not load your study data, so the concept map can&apos;t be
+          built. Try refreshing the page.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
+      {/* Demo banner — sample data is on screen, say so */}
+      {demoGraph && (
+        <div className={styles.demoBanner} role="note">
+          <span>
+            Demo data — a sample of how your own concept map will look as you
+            add notes, decks, and quizzes.
+          </span>
+          <button
+            type="button"
+            className={styles.demoBannerExit}
+            onClick={() => setShowDemo(false)}
+          >
+            Back to my graph
+          </button>
+        </div>
+      )}
       {/* Header Toolbar */}
       <header className={styles.toolbar} role="region" aria-label="Concept Graph Controls">
         <div className={styles.filterGroup}>
@@ -225,24 +354,45 @@ export function ConceptGraphView() {
       {/* SVG Canvas Area */}
       <main className={styles.canvasWrapper}>
         {graphData.nodes.length === 0 ? (
-          <div className={styles.emptyState}>
-            <Icon name="share-2" size={48} />
-            <h2 className={styles.emptyStateTitle}>No Concepts Match Your Filter</h2>
-            <p className={styles.emptyStateDesc}>
-              Try clearing your search query or toggling off the knowledge gaps filter to view all connected concepts in your study graph.
-            </p>
-            <button
-              type="button"
-              className={styles.gapToggleBtn}
-              onClick={() => {
-                setSearchQuery("");
-                setSelectedFolder("all");
-                setKnowledgeGapsOnly(false);
-              }}
-            >
-              Reset Filters
-            </button>
-          </div>
+          activeGraph.nodes.length === 0 ? (
+            /* Nothing to draw at all — a brand-new account, not a filter
+               result. Offer the demo instead of an empty canvas. */
+            <div className={styles.emptyState}>
+              <Icon name="share-2" size={48} />
+              <h2 className={styles.emptyStateTitle}>Your Concept Map Is Empty</h2>
+              <p className={styles.emptyStateDesc}>
+                Concepts appear here automatically as you add materials,
+                notes, flashcard decks, and quizzes — connected by the topics
+                they share.
+              </p>
+              <button
+                type="button"
+                className={styles.gapToggleBtn}
+                onClick={() => setShowDemo(true)}
+              >
+                Explore a Demo Graph
+              </button>
+            </div>
+          ) : (
+            <div className={styles.emptyState}>
+              <Icon name="share-2" size={48} />
+              <h2 className={styles.emptyStateTitle}>No Concepts Match Your Filter</h2>
+              <p className={styles.emptyStateDesc}>
+                Try clearing your search query or toggling off the knowledge gaps filter to view all connected concepts in your study graph.
+              </p>
+              <button
+                type="button"
+                className={styles.gapToggleBtn}
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedFolder("all");
+                  setKnowledgeGapsOnly(false);
+                }}
+              >
+                Reset Filters
+              </button>
+            </div>
+          )
         ) : (
           <>
             <svg
@@ -253,7 +403,6 @@ export function ConceptGraphView() {
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
-              onWheel={handleWheel}
               role="img"
               aria-label="Interactive concept map visualization"
             >
@@ -278,8 +427,8 @@ export function ConceptGraphView() {
                 {/* 1. Render Edges */}
                 <g className="edges-layer">
                   {graphData.edges.map((edge) => {
-                    const sourceNode = graphData.nodes.find((n) => n.id === edge.source);
-                    const targetNode = graphData.nodes.find((n) => n.id === edge.target);
+                    const sourceNode = nodeById.get(edge.source);
+                    const targetNode = nodeById.get(edge.target);
                     if (!sourceNode || !targetNode) return null;
 
                     const isConnectedToHovered =
@@ -507,7 +656,7 @@ export function ConceptGraphView() {
       {/* Slide-Over Drawer */}
       <ConceptNodeDrawer
         node={selectedNode}
-        allNodes={rawGraph.nodes}
+        allNodes={activeGraph.nodes}
         isOpen={Boolean(selectedNode)}
         onClose={() => setSelectedNodeId(null)}
         onSelectRelated={(id) => setSelectedNodeId(id)}

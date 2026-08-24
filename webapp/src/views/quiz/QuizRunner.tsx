@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
@@ -6,6 +6,7 @@ import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useToast } from "../../context/toast";
 import { useDialog } from "../../context/dialog";
+import { useContinuity } from "../../hooks/useContinuity";
 import { useQuiz, useRecordQuizAttempt } from "../../hooks/useQuizzes";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { useQuizDraft } from "../../hooks/useQuizDraft";
@@ -98,6 +99,7 @@ export function QuizRunner() {
   return (
     <QuizSession
       quizId={quiz.id}
+      quizTitle={quiz.title || "Quiz"}
       questions={questions}
       /* A fresh quiz is a fresh run: keying on the id resets index, answers
          and the recorded flag when the route changes between two quizzes. */
@@ -131,14 +133,17 @@ function isUsableDraft(
 
 function QuizSession({
   quizId,
+  quizTitle,
   questions,
 }: {
   quizId: string;
+  quizTitle: string;
   questions: QuizQuestion[];
 }) {
   const recordAttempt = useRecordQuizAttempt();
   const { showToast } = useToast();
   const { confirm } = useDialog();
+  const { recordQuiz } = useContinuity();
 
   const draftKey = `learnora_quiz_draft_${quizId}`;
 
@@ -155,6 +160,14 @@ function QuizSession({
     () => resumedDraft?.answers ?? [],
   );
   const [answered, setAnswered] = useState<Answered | null>(null);
+
+  /* When the current question went on screen — choose() stamps the elapsed
+   * seconds into the stored answer, which is the Speed Demon achievement's
+   * speed signal (achievements.ts consumes it via fastQuizCompleted). */
+  const questionShownAt = useRef(Date.now());
+  useEffect(() => {
+    questionShownAt.current = Date.now();
+  }, [index]);
 
   const finished = index >= questions.length;
   const score = answers.filter((a) => a.correct).length;
@@ -192,6 +205,21 @@ function QuizSession({
     // when the component first mounted.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* Feed the dashboard's "Resume Learning" card: the quiz currently in
+   * progress, with the question position, becomes the pick-up-where-you-left-off
+   * candidate until another activity replaces it. (The localStorage quiz draft
+   * above already survives the gap on its own; this surfaces it on the
+   * dashboard too.) */
+  useEffect(() => {
+    if (finished) return;
+    recordQuiz({
+      id: quizId,
+      title: quizTitle,
+      questionIndex: index,
+      totalQuestions: questions.length,
+    });
+  }, [finished, index, questions.length, quizId, quizTitle, recordQuiz]);
 
   /* The attempt is written once, when the run ends. Fire-and-forget on
      purpose: the student already finished, so the completion screen must not
@@ -237,6 +265,10 @@ function QuizSession({
         chosenIndex,
         correct,
         topic: question.topic,
+        secondsSpent: Math.max(
+          0,
+          Math.round((Date.now() - questionShownAt.current) / 1000),
+        ),
       },
     ]);
   };

@@ -718,6 +718,41 @@
   line-height: 1.6;
 }
 
+/* Load failure — same convention as the other views' role="alert" blocks */
+.loadError {
+  padding: var(--s-5);
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--fs-sm);
+}
+
+/* Strip shown while the opt-in demo graph is on screen so sample data can
+   never be mistaken for the user's own */
+.demoBanner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-4);
+  margin-bottom: var(--s-3);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--warning) 45%, transparent);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+.demoBannerExit {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent-text);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .toolbar {

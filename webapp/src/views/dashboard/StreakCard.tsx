@@ -97,10 +97,9 @@ export function StreakCard() {
         <p role="alert" className={styles.emptySm}>
           Could not load your study history. {(error as Error).message}
         </p>
-        <AchievementsModal
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-        />
+        {modalOpen && (
+          <AchievementsModal open onClose={() => setModalOpen(false)} />
+        )}
       </Card>
     );
   }
@@ -123,10 +122,9 @@ export function StreakCard() {
         <p className={styles.emptySm}>
           Start your first streak today. Complete a focus session to begin.
         </p>
-        <AchievementsModal
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-        />
+        {modalOpen && (
+          <AchievementsModal open onClose={() => setModalOpen(false)} />
+        )}
       </Card>
     );
   }
@@ -265,10 +263,13 @@ export function StreakCard() {
         </div>
       ) : null}
 
-      <AchievementsModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-      />
+      {/* Mounted only while open: the modal's own data hooks (sessions,
+          flashcards, quiz attempts, tasks, exams) must not fire on every
+          dashboard render just because the trophy button exists, and mounting
+          fresh re-reads goals saved in another tab since last open. */}
+      {modalOpen && (
+        <AchievementsModal open onClose={() => setModalOpen(false)} />
+      )}
     </Card>
   );
 }

@@ -251,8 +251,15 @@ describe("QuizRunner", () => {
           chosenIndex: 1,
           correct: true,
           topic: "Cell biology",
+          secondsSpent: expect.any(Number),
         },
-        { questionId: "q2", chosenIndex: 1, correct: false, topic: "Genetics" },
+        {
+          questionId: "q2",
+          chosenIndex: 1,
+          correct: false,
+          topic: "Genetics",
+          secondsSpent: expect.any(Number),
+        },
       ]);
     });
 

@@ -9,6 +9,7 @@ import { useChat } from "../../context/chat";
 import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
 import { useAllDecks } from "../../hooks/useDecks";
+import { useContinuity } from "../../hooks/useContinuity";
 import {
   useFlashcardsByDeck,
   useAllDueFlashcards,
@@ -110,7 +111,14 @@ export function ReviewView() {
     );
   }
 
-  return <ReviewSession key={deckId} deckTitle={deck.title} cards={due} />;
+  return (
+    <ReviewSession
+      key={deckId}
+      deckId={deckId}
+      deckTitle={deck.title}
+      cards={due}
+    />
+  );
 }
 
 /* Card text and the student's typed answer are fenced before entering the
@@ -162,9 +170,11 @@ function gradeOnlyHandlers(scoreCard: (score: number) => void): ActionHandlers {
 }
 
 function ReviewSession({
+  deckId,
   deckTitle,
   cards: initialCards,
 }: {
+  deckId: string;
   deckTitle: string;
   cards: Flashcard[];
 }) {
@@ -193,8 +203,23 @@ function ReviewSession({
   const { registerFlashcardGrader } = useChat();
   const { settings } = useSettings();
   const { showToast } = useToast();
+  const { recordDeck } = useContinuity();
 
   const finished = index >= cards.length;
+
+  /* Feed the dashboard's "Resume Learning" card: the deck currently being
+   * reviewed, with the card position, becomes the pick-up-where-you-left-off
+   * candidate until another activity replaces it. */
+  useEffect(() => {
+    if (finished) return;
+    if (!cards[index]) return;
+    recordDeck({
+      id: deckId,
+      title: deckTitle,
+      cardIndex: index,
+      totalCards: cards.length,
+    });
+  }, [deckId, deckTitle, index, cards, finished, recordDeck]);
 
   /* Shared by the manual score buttons and the AI-grading tag: both are just
      "grade whichever card is showing right now". */

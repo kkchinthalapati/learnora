@@ -328,6 +328,32 @@ export function computeDaysGoalMetInWeek(
   return count;
 }
 
+/* Thresholds for the Speed Demon badge ("complete a rapid quiz attempt with
+ * flying colors"): at most 10 seconds per question on average, and at least
+ * 80% correct. */
+export const FAST_QUIZ_MAX_AVG_SECONDS = 10;
+export const FAST_QUIZ_MIN_PERCENT = 80;
+
+/** Whether one quiz attempt counts for Speed Demon. Requires per-question
+ *  timing (`secondsSpent`, stamped by QuizRunner): attempts recorded before
+ *  timing existed carry no speed evidence and never count — the badge used to
+ *  fall back to "any attempt with a correct answer", which was no threshold
+ *  at all. */
+export function isFastQuizAttempt(attempt: {
+  score: number;
+  total: number;
+  answers: Array<{ secondsSpent?: number }>;
+}): boolean {
+  if (attempt.total <= 0) return false;
+  if (attempt.score / attempt.total < FAST_QUIZ_MIN_PERCENT / 100) return false;
+  const timed = attempt.answers.filter(
+    (a) => typeof a.secondsSpent === "number",
+  );
+  if (timed.length === 0) return false;
+  const totalSeconds = timed.reduce((sum, a) => sum + (a.secondsSpent ?? 0), 0);
+  return totalSeconds / timed.length <= FAST_QUIZ_MAX_AVG_SECONDS;
+}
+
 export function evaluateAchievements(
   input: AchievementEvaluationInput = {},
 ): EvaluatedAchievement[] {
@@ -355,9 +381,13 @@ export function evaluateAchievements(
     return Math.max(max, pct);
   }, 0);
 
-  const hasFastQuiz =
-    fastQuizCompleted ||
-    quizAttempts.some((q) => q.total > 0 && q.score > 0);
+  /* "Rapid" must come from a real speed signal (`fastQuizCompleted`, computed
+   * by the caller from per-question timing stored in an attempt's answers).
+   * It used to fall back to "any attempt with at least one correct answer",
+   * which unlocked the badge for a slow 1/10 — a threshold no better than
+   * none. Attempts recorded before per-question timing existed simply never
+   * count, which is honest: there is no evidence they were rapid. */
+  const hasFastQuiz = fastQuizCompleted;
 
   const results: EvaluatedAchievement[] = ACHIEVEMENT_BADGES.map((badge) => {
     let current = 0;
@@ -433,7 +463,11 @@ export function evaluateAchievements(
         break;
       case "perfect-week":
         current = Math.min(badge.maxProgress, daysGoalMetInWeek);
-        unlocked = daysGoalMetInWeek >= 7 || streak >= 7;
+        /* Goal-days only. It used to also unlock on streak >= 7, but the
+         * streak counts a day at ≥5 minutes while the goal defaults to 30 —
+         * a week of 10-minute days earned "met your daily goal 7/7" without
+         * ever meeting it. */
+        unlocked = daysGoalMetInWeek >= 7;
         if (unlocked) current = 7;
         break;
 

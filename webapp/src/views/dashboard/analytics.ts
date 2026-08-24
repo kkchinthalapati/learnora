@@ -1,5 +1,6 @@
 import type { Exam, Folder, StudySession } from "../../api/types";
 import type { LocalSessionEntry } from "./useLocalSessions";
+import { computeStudyStreak } from "../../lib/streak";
 
 /* Pure functions behind the dashboard's numbers — ported out of
  * js/main.js's renderDashboard/renderAnalytics/renderNextExam (:1921-2235,
@@ -48,28 +49,12 @@ export function remoteTotals(sessions: StudySession[]): FocusTotals {
   return { total, today };
 }
 
-const STREAK_MIN_MINUTES = 5;
-
-/* Today is a grace day: the streak shouldn't read 0 every morning just
- * because the user hasn't studied *yet*. If today doesn't qualify, counting
- * starts from yesterday; only a fully missed day actually breaks the streak. */
+/* Delegates to the one canonical streak in lib/streak.ts. This used to be a
+ * private copy until the analytics heatmap grew a second, divergent streak
+ * (any >0-minute day counts) and the same study history showed two different
+ * numbers depending on which card you looked at. */
 export function computeStreak(sessions: StudySession[]): number {
-  const dayTotals = new Map<string, number>();
-  for (const s of sessions) {
-    const day = new Date(s.started_at).toDateString();
-    dayTotals.set(day, (dayTotals.get(day) ?? 0) + (s.minutes || 0));
-  }
-
-  let streak = 0;
-  const cursor = startOfToday();
-  if ((dayTotals.get(cursor.toDateString()) ?? 0) < STREAK_MIN_MINUTES) {
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  while ((dayTotals.get(cursor.toDateString()) ?? 0) >= STREAK_MIN_MINUTES) {
-    streak++;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return streak;
+  return computeStudyStreak(sessions);
 }
 
 export interface SparklineDay {

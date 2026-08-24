@@ -6,6 +6,7 @@ import { useAuth } from "./auth";
 import { useSettings } from "./settings";
 import { useTimerIntervention } from "../hooks/useTimerIntervention";
 import { Storage } from "../lib/storage";
+import { recordFocusGoal, saveStudySnapshot } from "../lib/continuity";
 import {
   QUOTES,
   TIMER_END_KEY,
@@ -128,6 +129,12 @@ export function TimerProvider({ children }: { children: ReactNode }) {
               ),
           },
         );
+
+        /* Every logged phase is a finished focus phase (breaks never emit
+         * logMinutes) — there's nothing left on the clock to resume, so drop
+         * the dashboard's focus-goal card rather than leave it pointing at
+         * minutes that no longer exist. */
+        saveStudySnapshot({ lastFocusGoal: null });
       }
 
       if (effects.toast) showToast(effects.toast.message);
@@ -168,6 +175,30 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     persistTimerState(state);
   }, [state]);
 
+  /* Feed the dashboard's "Resume Learning" card: a running focus session,
+   * with the minutes still on the clock and the subject it's attributed to,
+   * becomes the pick-up-where-you-left-off candidate until another activity
+   * replaces it (a finished session clears it in applyEffects; a reset
+   * clears it below). Breaks are not study to resume.
+   *
+   * Keyed on the run/pause and phase transitions only: `timeLeft` changes
+   * every second and must not trigger a localStorage write per tick, so the
+   * recorded count is the minutes left when the run (re)started — pausing and
+   * resuming refreshes it, ticking does not. */
+  useEffect(() => {
+    if (!state.isRunning || state.mode !== "Focus") return;
+    recordFocusGoal({
+      task: activeTask !== "None" ? activeTask : "General Study",
+      folderId: activeFolderId || null,
+      minutesRemaining: isCountUp(state)
+        ? state.config.focus
+        : Math.max(1, Math.ceil(state.timeLeft / 60)),
+    });
+    // Only the isRunning/mode transitions may fire the write; everything else
+    // this reads is intentionally sampled at those moments.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.isRunning, state.mode]);
+
   /* A count-down that expired while the tab was closed still owes the user a
      logged session and a toast. */
   const handledAwayEnd = useRef(false);
@@ -207,7 +238,11 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const reset = useCallback(() => {
     setState((s) => {
       const { state: next, effects } = resetT(s);
-      queueMicrotask(() => effectsRef.current(effects));
+      queueMicrotask(() => {
+        effectsRef.current(effects);
+        /* A reset abandons whatever was on the clock — nothing to resume. */
+        saveStudySnapshot({ lastFocusGoal: null });
+      });
       return next;
     });
   }, []);

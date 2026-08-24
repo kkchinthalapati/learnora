@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tasksApi } from "../api/tasks";
 import type { Task } from "../api/types";
+import { toggleTask as toggleTaskOffline } from "../lib/offlineSync";
 
 export const tasksKeys = { all: ["tasks"] as const };
 
@@ -25,7 +26,13 @@ export function useAddTask() {
 /* Optimistic, because the vanilla was: it flipped the row's class on click and
  * only rolled back if the write failed (js/main.js:1451-1473). Waiting for the
  * round trip instead would make every checkbox feel broken on a slow
- * connection. Step 8 added the optimistic path when this hook first got a UI. */
+ * connection. Step 8 added the optimistic path when this hook first got a UI.
+ *
+ * The write goes through the offline queue's helper (online-first, enqueue on
+ * failure), so toggling with no connection keeps the optimistic flip in place
+ * and replays on reconnect — the queue re-invalidates ["tasks"] after each
+ * successful replay. While queued we must NOT invalidate: a refetch would
+ * return the server's not-yet-toggled state and visibly un-flip the row. */
 export function useToggleTask() {
   const qc = useQueryClient();
   return useMutation({
@@ -35,7 +42,7 @@ export function useToggleTask() {
     }: {
       id: number;
       currentStatus: boolean;
-    }) => tasksApi.toggle(id, currentStatus),
+    }) => toggleTaskOffline({ id, currentStatus }),
     onMutate: async ({ id }) => {
       await qc.cancelQueries({ queryKey: tasksKeys.all });
       const previous = qc.getQueryData<Task[]>(tasksKeys.all);
@@ -47,7 +54,10 @@ export function useToggleTask() {
     onError: (_err, _vars, context) => {
       if (context?.previous) qc.setQueryData(tasksKeys.all, context.previous);
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: tasksKeys.all }),
+    onSuccess: ({ queued }) => {
+      if (queued) return;
+      qc.invalidateQueries({ queryKey: tasksKeys.all });
+    },
   });
 }
 

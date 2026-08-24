@@ -17,6 +17,10 @@ export interface StoredAnswer {
   chosenIndex: number;
   correct: boolean;
   topic?: string;
+  /** Seconds the student spent on this question, stamped by QuizRunner since
+   *  the Speed Demon achievement needed a real speed signal. Optional because
+   *  attempts recorded before it existed don't carry it. */
+  secondsSpent?: number;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -87,6 +91,12 @@ function toAnswer(value: unknown): StoredAnswer | null {
     chosenIndex,
     correct: value.correct === true,
     topic: typeof value.topic === "string" ? value.topic : undefined,
+    secondsSpent:
+      typeof value.secondsSpent === "number" &&
+      Number.isFinite(value.secondsSpent) &&
+      value.secondsSpent >= 0
+        ? value.secondsSpent
+        : undefined,
   };
 }
 

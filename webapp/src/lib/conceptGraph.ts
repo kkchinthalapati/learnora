@@ -140,6 +140,18 @@ interface RawConceptCollector {
   coOccurrences: Map<string, { count: number; hint: RelationshipType }>;
 }
 
+/** Stable, collision-free node id. Distinct keys ("atp energy" vs
+ *  "atp-energy") collapse to the same slug, so a base-36 hash of the full key
+ *  is appended — duplicate ids would corrupt edge dedup and React keys. */
+function conceptIdFor(key: string): string {
+  const slug = key.replace(/[^a-z0-9]+/g, "-").replace(/(^-+|-+$)/g, "") || "x";
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  }
+  return `concept-${slug}-${hash.toString(36)}`;
+}
+
 function getOrInitConcept(
   map: Map<string, RawConceptCollector>,
   label: string,
@@ -150,7 +162,7 @@ function getOrInitConcept(
 
   let existing = map.get(key);
   if (!existing) {
-    const id = `concept-${key.replace(/[^a-z0-9]+/g, "-")}`;
+    const id = conceptIdFor(key);
     existing = {
       id,
       label: norm || label,
@@ -191,6 +203,19 @@ function linkConcepts(
   current2.count += 1;
   if (hint !== "related_to") current2.hint = hint;
   c2.coOccurrences.set(k2, current2);
+}
+
+/** Mastery (0-100) of one flashcard from its SM-2 state: ease drives the
+ *  base, interval the retention bonus. Shared by the deck-card and
+ *  orphan-card paths, which used to drift apart and score the same card
+ *  differently depending on whether its deck row had loaded. */
+function flashcardMastery(card: Pick<Flashcard, "ease_factor" | "srs_interval">): number {
+  const ease = card.ease_factor || 2.5;
+  const interval = card.srs_interval || 0;
+  return Math.min(
+    100,
+    Math.max(10, Math.round(((ease - 1.3) / 1.7) * 55 + Math.min(interval * 9, 45))),
+  );
 }
 
 /** Extracts concepts and snippets from markdown or HTML notes */
@@ -367,13 +392,7 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
 
     const deckCards = flashcards.filter((c) => c.deck_id === deck.id);
     for (const card of deckCards) {
-      // Calculate individual card mastery from ease_factor & interval
-      const ease = card.ease_factor || 2.5;
-      const interval = card.srs_interval || 0;
-      const cardMastery = Math.min(
-        100,
-        Math.max(10, Math.round(((ease - 1.3) / 1.7) * 55 + Math.min(interval * 9, 45))),
-      );
+      const cardMastery = flashcardMastery(card);
 
       const frontTerms = parseQuestionConcepts(card.front);
       const backTerms = parseQuestionConcepts(card.back);
@@ -411,9 +430,7 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
     for (const term of terms) {
       const collector = getOrInitConcept(conceptCollectors, term, null);
       collector.flashcardsCount += 1;
-      const ease = card.ease_factor || 2.5;
-      const cardMastery = Math.round(((ease - 1.3) / 1.7) * 50 + Math.min((card.srs_interval || 0) * 8, 50));
-      collector.flashcardMasteryList.push(cardMastery);
+      collector.flashcardMasteryList.push(flashcardMastery(card));
     }
   }
 
@@ -462,10 +479,11 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
     }
   }
 
-  // Fallback / Sample Graph if database is totally empty so the graph is never a dead blank
-  if (conceptCollectors.size === 0) {
-    return generateSampleGraph(folders);
-  }
+  /* An empty account yields an empty graph. This used to fall back to a
+   * fabricated sample graph — invented concepts with invented mastery scores,
+   * rendered exactly like real data during loading and on silent fetch
+   * errors. The demo now lives behind an explicit affordance in
+   * ConceptGraphView instead of impersonating the user's data here. */
 
   // Compute final node mastery and build nodes
   const nodes: ConceptNode[] = [];
@@ -499,12 +517,14 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
 
     mastery = Math.max(0, Math.min(100, mastery));
 
-    // Knowledge gap criteria:
-    // Low mastery (<60) OR untested notes/materials (quizzes === 0 && flashcards === 0) OR marked weak topic
+    /* Knowledge gap = measured-but-low recall: a weak topic from attempts, or
+     * cards/quizzes averaging under 60%. A concept with neither cards nor
+     * quizzes has no evidence either way — flagging it purely because its
+     * untested baseline sat below the threshold used to mark almost every
+     * node in a notes-heavy graph as a gap. */
+    const hasEvidence = hasCards || hasQuizzes;
     const isKnowledgeGap =
-      mastery < 60 ||
-      collector.isWeakTopic ||
-      (collector.quizzesCount === 0 && collector.flashcardsCount === 0 && collector.notesCount > 0);
+      collector.isWeakTopic || (hasEvidence && mastery < 60);
 
     const relatedList = Array.from(collector.coOccurrences.keys());
 
@@ -546,11 +566,15 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
     }
   }
 
-  // Filter edges to only those connecting existing nodes
+  // Filter edges to only those connecting existing nodes. A few dense notes
+  // can produce thousands of pairwise co-occurrence edges — more than the SVG
+  // can render smoothly — so keep the strongest connections only.
+  const MAX_EDGES = 400;
   const nodeIds = new Set(nodes.map((n) => n.id));
-  const edges = Array.from(edgeMap.values()).filter(
-    (e) => nodeIds.has(e.source) && nodeIds.has(e.target),
-  );
+  const edges = Array.from(edgeMap.values())
+    .filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target))
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, MAX_EDGES);
 
   // Compute degree from filtered edges
   const degreeCount = new Map<string, number>();
@@ -730,8 +754,9 @@ export function filterConceptGraph(
   };
 }
 
-/** Built-in demo/sample concept graph for previewing */
-function generateSampleGraph(folders: Folder[]): ConceptGraphData {
+/** Built-in demo graph, offered explicitly by ConceptGraphView's empty state
+ *  ("Explore a demo graph") — never rendered as if it were the user's data. */
+export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
   const bioFolder = folders.find((f) => f.name.toLowerCase().includes("bio")) || {
     id: "f-bio",
     user_id: "",

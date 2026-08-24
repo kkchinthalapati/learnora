@@ -524,7 +524,7 @@
 }
 
 .goalTrackRing {
-  stroke: var(--surface-3);
+  stroke: var(--surface-hover);
 }
 
 .goalProgressRing {

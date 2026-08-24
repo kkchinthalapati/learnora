@@ -3,6 +3,7 @@ import { Modal } from "../../components/Modal";
 import { Icon } from "../../components/Icon";
 import {
   evaluateAchievements,
+  isFastQuizAttempt,
   loadStudyGoals,
   saveStudyGoals,
   computeDaysGoalMetInWeek,
@@ -15,6 +16,8 @@ import { useFlashcards } from "../../hooks/useFlashcards";
 import { useQuizAttempts } from "../../hooks/useQuizzes";
 import { useTasks } from "../../hooks/useTasks";
 import { useExams } from "../../hooks/useExams";
+import { useExamReadiness } from "../../hooks/useExamReadiness";
+import { parseStoredAnswers } from "../quiz/quizMeta";
 import { computeStreak, remoteTotals } from "../dashboard/analytics";
 import styles from "./achievementsModal.module.css";
 
@@ -68,12 +71,43 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
     return tasks.filter((t) => t.is_done).length;
   }, [tasks]);
 
-  // Exam readiness evaluation: compute readiness if exams are registered
-  const examReadinessScore = useMemo(() => {
-    if (exams.length === 0) return 0;
-    // If there are exams completed or with high score, estimate readiness
-    return exams.some((e) => e.status === "Completed") ? 100 : 80;
+  /* Exam Ready runs on the real readiness engine (lib/examReadiness), scoped
+   * to the soonest upcoming exam. The stub this replaced handed every user
+   * with a registered exam a flat 80 — exactly the badge threshold — so
+   * adding an exam and studying nothing unlocked "Exam Ready". */
+  const upcomingExam = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return (
+      exams
+        .filter((e) => {
+          if (e.status === "Completed") return false;
+          const date = new Date(e.exam_date);
+          return !Number.isNaN(date.getTime()) && date >= today;
+        })
+        .sort(
+          (a, b) =>
+            new Date(a.exam_date).getTime() - new Date(b.exam_date).getTime(),
+        )[0] ?? null
+    );
   }, [exams]);
+
+  const { readiness: examReadiness } = useExamReadiness(upcomingExam);
+  const examReadinessScore = examReadiness?.score ?? 0;
+
+  /* Speed Demon consumes the per-question timing QuizRunner stamps into each
+   * stored answer; attempts without timing never count (isFastQuizAttempt). */
+  const fastQuizCompleted = useMemo(
+    () =>
+      quizAttempts.some((q) =>
+        isFastQuizAttempt({
+          score: q.score,
+          total: q.total,
+          answers: parseStoredAnswers(q.answers_json),
+        }),
+      ),
+    [quizAttempts],
+  );
 
   const achievements: EvaluatedAchievement[] = useMemo(() => {
     return evaluateAchievements({
@@ -86,6 +120,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
         created_at: q.created_at,
       })),
       examReadinessScore,
+      fastQuizCompleted,
       daysGoalMetInWeek,
     });
   }, [
@@ -94,6 +129,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
     cardsReviewed,
     quizAttempts,
     examReadinessScore,
+    fastQuizCompleted,
     daysGoalMetInWeek,
   ]);
 

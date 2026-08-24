@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
 import { Skeleton } from "../../components/Skeleton";
+import { useContinuity } from "../../hooks/useContinuity";
 import { useMaterial } from "../../hooks/useMaterials";
 import { useNotesByMaterial } from "../../hooks/useNotes";
 import { NotesEditorPane } from "./NotesEditorPane";
@@ -22,6 +24,20 @@ export function NotesView() {
   const navigate = useNavigate();
   const material = useMaterial(materialId);
   const notes = useNotesByMaterial(materialId);
+  const { recordMaterial } = useContinuity();
+
+  /* Feed the dashboard's "Resume Learning" card: an opened document becomes
+   * the pick-up-where-you-left-off candidate until another activity replaces
+   * it. Scroll depth isn't tracked (the editor doesn't expose a scroll
+   * container), so the card shows "Just opened" rather than a fake percentage. */
+  useEffect(() => {
+    if (!material.data) return;
+    recordMaterial({
+      id: materialId,
+      title: material.data.title,
+      folderId: material.data.folder_id ?? null,
+    });
+  }, [materialId, material.data, recordMaterial]);
 
   if (material.isPending || notes.isPending) {
     return (
