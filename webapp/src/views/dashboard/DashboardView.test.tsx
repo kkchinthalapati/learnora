@@ -265,7 +265,9 @@ describe("DashboardView", () => {
       renderDashboard();
 
       await screen.findAllByText("Biology");
-      expect(screen.getByRole("heading", { name: /\d+\s*days?/ })).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: /\d+\s*days?/ }),
+      ).toBeInTheDocument();
       expect(screen.getAllByText("Biology").length).toBeGreaterThan(0);
     });
 
@@ -463,9 +465,7 @@ describe("DashboardView", () => {
       ).toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: "Dismiss" }));
-      expect(
-        screen.queryByText("Welcome to Learnora"),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText("Welcome to Learnora")).not.toBeInTheDocument();
       expect(Storage.get("onboarding_dismissed")).toBe(true);
     });
 
@@ -479,9 +479,7 @@ describe("DashboardView", () => {
       // archive/redesign/DESIGN_MOVES.md); wait on AIActionsCard's static label
       // instead as an equivalent "the page has rendered" signal.
       await screen.findByText("Ask Learnora AI");
-      expect(
-        screen.queryByText("Welcome to Learnora"),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText("Welcome to Learnora")).not.toBeInTheDocument();
     });
 
     it("does not appear once the account has real data", async () => {
@@ -489,9 +487,7 @@ describe("DashboardView", () => {
       renderDashboard();
 
       await screen.findByText("Read chapter 4");
-      expect(
-        screen.queryByText("Welcome to Learnora"),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText("Welcome to Learnora")).not.toBeInTheDocument();
     });
 
     it("opens the create dialog from its own button", async () => {
@@ -503,7 +499,7 @@ describe("DashboardView", () => {
         await screen.findByRole("button", { name: /Create study material/ }),
       );
       expect(
-        await screen.findByRole("heading", { name: "Create study material" }),
+        await screen.findByRole("heading", { name: "Build study resources" }),
       ).toBeInTheDocument();
     });
 

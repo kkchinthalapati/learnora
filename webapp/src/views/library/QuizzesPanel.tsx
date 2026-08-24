@@ -1,8 +1,10 @@
 import { Link } from "react-router";
+import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useQuizzes } from "../../hooks/useQuizzes";
+import { useCreateModal } from "../../context/createModal";
 import { formatCreatedShort } from "./libraryMeta";
 import { useLibraryActions } from "./useLibraryActions";
 import styles from "./library.module.css";
@@ -20,6 +22,7 @@ import styles from "./library.module.css";
 export function QuizzesPanel() {
   const { data: quizzes, isPending, isError, error } = useQuizzes();
   const { removeQuiz } = useLibraryActions();
+  const { openCreateModal } = useCreateModal();
 
   if (isPending) {
     return (
@@ -42,8 +45,21 @@ export function QuizzesPanel() {
       <EmptyState
         icon="help-circle"
         title="No quizzes yet."
-        message='Use "+ Create" above to test yourself on any topic — or open a folder to quiz yourself on a specific material.'
-      />
+        message="Create a practice quiz from a file, saved material, link, pasted text, or any topic."
+      >
+        <Button
+          variant="primary"
+          onClick={() =>
+            openCreateModal({
+              type: "material",
+              outputs: { flashcards: false, quiz: true },
+              title: "Create a practice quiz",
+            })
+          }
+        >
+          Create a quiz →
+        </Button>
+      </EmptyState>
     );
   }
 

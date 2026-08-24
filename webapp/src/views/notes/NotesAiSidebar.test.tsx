@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Route, Routes } from "react-router";
@@ -306,17 +306,29 @@ describe("NotesAiSidebar", () => {
     expect(
       await screen.findByRole("heading", { name: "Quiz on this document" }),
     ).toBeInTheDocument();
-    // Building from the open material, not from a fresh upload.
-    await waitFor(() =>
-      expect(screen.getByLabelText("Saved material")).toHaveValue("mat-1"),
-    );
-    expect(screen.getByRole("radio", { name: "Saved" })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: /Quiz/ })).toBeChecked();
+    // It skips the already-known source step and opens on the result choice.
+    expect(
+      screen.getByRole("heading", { name: "What should Learnora make?" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: /Practice quiz/ }),
+    ).toBeChecked();
     expect(
       screen.getByRole("checkbox", { name: /Flashcards/ }),
     ).not.toBeChecked();
-    // Filed alongside its source material.
-    expect(screen.getByLabelText("Folder")).toHaveValue("folder-9");
+    // The persistent summary keeps the source and filing destination clear.
+    const summary = screen.getByRole("complementary", {
+      name: "Creation summary",
+    });
+    expect(within(summary).getByText("Cell division")).toBeInTheDocument();
+    expect(within(summary).getByText("Biology")).toBeInTheDocument();
+
+    // Going back confirms the exact saved material is selected.
+    await user.click(screen.getByRole("button", { name: "Add a source" }));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Saved material")).toHaveValue("mat-1"),
+    );
+    expect(screen.getByRole("radio", { name: /Saved material/ })).toBeChecked();
   });
 
   it("pre-ticks flashcards instead when that card is used", async () => {
@@ -331,7 +343,9 @@ describe("NotesAiSidebar", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: /Flashcards/ })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: /Quiz/ })).not.toBeChecked();
+    expect(
+      screen.getByRole("checkbox", { name: /Practice quiz/ }),
+    ).not.toBeChecked();
   });
 
   it("says the podcast card does not exist yet rather than pretending", async () => {

@@ -251,7 +251,7 @@ describe("LibraryView shell", () => {
     await user.click(screen.getByRole("button", { name: "+ Create" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Create study material" }),
+      await screen.findByRole("heading", { name: "Create something new" }),
     ).toBeInTheDocument();
   });
 });
@@ -304,7 +304,7 @@ describe("Library — Folders tab", () => {
     await user.click(screen.getByRole("button", { name: "+ Create Folder" }));
 
     expect(
-      await screen.findByRole("heading", { name: "New subject" }),
+      await screen.findByRole("heading", { name: "Create a subject" }),
     ).toBeInTheDocument();
   });
 
@@ -465,8 +465,14 @@ describe("Library — Materials tab", () => {
     renderLibrary("/library/materials");
 
     expect(await screen.findByText("No materials yet.")).toBeInTheDocument();
-    // The header's button and the empty state's, both opening the same dialog.
-    expect(screen.getAllByRole("button", { name: "+ Create" })).toHaveLength(2);
+    // The header opens the hub; this contextual action skips straight to the
+    // guided study-resource flow.
+    expect(
+      screen.getByRole("button", { name: "+ Create" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Create study resources" }),
+    ).toBeInTheDocument();
   });
 });
 

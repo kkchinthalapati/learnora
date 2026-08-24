@@ -58,7 +58,16 @@ export function FlashcardsPanel() {
           title="No flashcards yet."
           message="Generate flashcards from your study materials using Learnora AI."
         >
-          <Button variant="primary" onClick={() => openCreateModal()}>
+          <Button
+            variant="primary"
+            onClick={() =>
+              openCreateModal({
+                type: "material",
+                outputs: { flashcards: true, quiz: false },
+                title: "Create flashcards",
+              })
+            }
+          >
             Create flashcards →
           </Button>
         </EmptyState>

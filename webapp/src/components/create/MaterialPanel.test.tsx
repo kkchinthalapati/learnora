@@ -11,8 +11,6 @@ import { Storage } from "../../lib/storage";
 import { useLocation } from "react-router";
 import { useCreateModal } from "../../context/createModal";
 
-/* Renders the current path too: a successful create navigates the student to
- * whatever it produced, and `withRouter` puts the router above this. */
 function Harness() {
   const { openCreateModal } = useCreateModal();
   const { pathname } = useLocation();
@@ -29,15 +27,14 @@ function Harness() {
 const folderFixture = [
   { id: "folder-1", user_id: "user-1", name: "Biology", color: "#4A90E2" },
 ];
-
 const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
-
 const NOTES_MARKDOWN =
   "## Photosynthesis\nEnough notes to clear the fifty-character floor comfortably.";
 const CARDS = [{ front: "What is chlorophyll?", back: "A pigment." }];
+const LONG_TEXT =
+  "A full paragraph of text that is definitely long enough to pass validation.";
 
-/** Echoes each inserted row back the way PostgREST does for `.select()`. */
 function serveDb() {
   const echo = (table: string, id: string) =>
     http.post(rest(table), async ({ request }) => {
@@ -45,7 +42,7 @@ function serveDb() {
       return HttpResponse.json(
         rows.length === 1
           ? { id, ...rows[0] }
-          : rows.map((r) => ({ id, ...r })),
+          : rows.map((row) => ({ id, ...row })),
         { status: 201 },
       );
     });
@@ -57,7 +54,7 @@ function serveDb() {
   );
 }
 
-describe("MaterialPanel", () => {
+describe("MaterialPanel guided creation", () => {
   beforeEach(() => {
     mockAuthSession("user-1");
     server.use(
@@ -68,8 +65,6 @@ describe("MaterialPanel", () => {
   });
 
   afterEach(() => {
-    // The quiz-host-persona test writes to learnora_settings; clearing here
-    // keeps it from leaking into whichever test runs next.
     localStorage.clear();
     vi.restoreAllMocks();
   });
@@ -87,256 +82,257 @@ describe("MaterialPanel", () => {
     const user = userEvent.setup();
     renderWithProviders(<Harness />, undefined, { withRouter: true });
     await user.click(screen.getByRole("button", { name: "Open create" }));
-    // Let the folders query resolve so the default-folder effect settles.
-    await waitFor(() =>
-      expect(screen.getByLabelText("Folder")).toHaveValue("folder-1"),
-    );
+    await screen.findByRole("heading", { name: "What are you learning from?" });
     return user;
   }
 
-  it("defaults to the File source with Notes forced on", async () => {
-    await openDialog();
-    expect(screen.getByRole("radio", { name: "File" })).toBeChecked();
-    expect(outputCheckbox("Notes")).toBeChecked();
-    expect(outputCheckbox("Notes")).toBeDisabled();
-  });
+  async function chooseText(
+    user: ReturnType<typeof userEvent.setup>,
+    value = LONG_TEXT,
+  ) {
+    await user.click(screen.getByRole("radio", { name: /Paste text/ }));
+    await user.type(screen.getByLabelText("Paste your notes or text"), value);
+  }
 
-  it("hides the Saved source option when there are no saved materials", async () => {
-    server.use(
-      http.get(`${SUPABASE_URL}/rest/v1/materials`, () =>
-        HttpResponse.json([]),
-      ),
+  async function continueToResults(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(
+      screen.getByRole("button", { name: "Continue to results" }),
     );
+  }
+
+  async function continueToDetails(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole("button", { name: "Review and create" }));
+    await screen.findByRole("heading", { name: "Put it in the right place" });
+  }
+
+  it("starts with one source decision and locks later steps", async () => {
     await openDialog();
     expect(
-      screen.queryByRole("radio", { name: "Saved" }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("radio", { name: /Document or recording/ }),
+    ).toBeChecked();
+    expect(
+      screen.getByRole("button", { name: /Choose results/ }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /Review & create/ }),
+    ).toBeDisabled();
   });
 
-  it("shows the Saved source option once a material exists", async () => {
+  it("accepts a file, then shows Notes as an included result", async () => {
+    const user = await openDialog();
+    const file = new File(["study content"], "chapter.pdf", {
+      type: "application/pdf",
+    });
+    await user.upload(screen.getByLabelText("Browse files"), file);
+    expect(screen.getAllByText("chapter.pdf")).toHaveLength(2);
+    await continueToResults(user);
+    expect(outputCheckbox("Smart notes")).toBeChecked();
+    expect(outputCheckbox("Smart notes")).toBeDisabled();
+  });
+
+  it("only offers Saved material when the student has one", async () => {
     server.use(
       http.get(`${SUPABASE_URL}/rest/v1/materials`, () =>
         HttpResponse.json([{ id: "m1", title: "Chapter 4 notes" }]),
       ),
     );
     const user = await openDialog();
-    await user.click(await screen.findByRole("radio", { name: "Saved" }));
+    await user.click(
+      await screen.findByRole("radio", { name: /Saved material/ }),
+    );
     expect(
       screen.getByRole("option", { name: "Chapter 4 notes" }),
     ).toBeInTheDocument();
   });
 
-  it("requires a file for the File source", async () => {
-    const user = await openDialog();
-    await user.click(screen.getByRole("button", { name: "Create" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Choose a file to create from",
+  it("hides Saved material when the library is empty", async () => {
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/materials`, () =>
+        HttpResponse.json([]),
+      ),
+    );
+    await openDialog();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("radio", { name: /Saved material/ }),
+      ).not.toBeInTheDocument(),
     );
   });
 
-  it("requires at least a paragraph of text for the Text source", async () => {
+  it("validates the active source before moving forward", async () => {
     const user = await openDialog();
-    await user.click(screen.getByRole("radio", { name: "Text" }));
-    await user.type(
-      screen.getByLabelText("Paste your notes or text"),
-      "Too short",
-    );
-    await user.click(screen.getByRole("button", { name: "Create" }));
+    await continueToResults(user);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Choose a file");
+    expect(
+      screen.getByRole("heading", { name: "What are you learning from?" }),
+    ).toBeInTheDocument();
+  });
+
+  it("requires enough pasted text", async () => {
+    const user = await openDialog();
+    await chooseText(user, "Too short");
+    await continueToResults(user);
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "a bit short to study from",
     );
   });
 
-  it("rejects a non-http(s) link", async () => {
+  it("rejects unsafe and malformed links", async () => {
     const user = await openDialog();
-    await user.click(screen.getByRole("radio", { name: "Link" }));
-    await user.type(
-      screen.getByRole("textbox", { name: "Link" }),
-      "javascript:alert(1)",
-    );
-    await user.click(screen.getByRole("button", { name: "Create" }));
+    await user.click(screen.getByRole("radio", { name: /Web or video link/ }));
+    const input = screen.getByRole("textbox", { name: "Web or YouTube link" });
+    await user.type(input, "javascript:alert(1)");
+    await continueToResults(user);
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Links have to start with http:// or https://",
     );
-  });
-
-  it("rejects text that isn't a URL at all", async () => {
-    const user = await openDialog();
-    await user.click(screen.getByRole("radio", { name: "Link" }));
-    await user.type(
-      screen.getByRole("textbox", { name: "Link" }),
-      "not a link",
-    );
-    await user.click(screen.getByRole("button", { name: "Create" }));
+    await user.clear(input);
+    await user.type(input, "not a link");
+    await continueToResults(user);
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "doesn't look like a link",
     );
   });
 
-  it("requires a topic for the Topic source and hides the folder picker", async () => {
+  it("explains YouTube limitations and accepts a bare topic", async () => {
     const user = await openDialog();
-    await user.click(screen.getByRole("radio", { name: "Topic" }));
-    expect(screen.queryByLabelText("Folder")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Create" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Enter a topic to create from",
-    );
+    await user.click(screen.getByRole("radio", { name: /Web or video link/ }));
+    expect(screen.getByText(/not its full transcript/)).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: /Just a topic/ }));
+    await user.type(screen.getByLabelText("Topic"), "Ionic bonding");
+    await continueToResults(user);
+    expect(
+      screen.getByRole("heading", { name: "What should Learnora make?" }),
+    ).toHaveFocus();
   });
 
-  it("requires at least one output for the Topic source (notes isn't implicit)", async () => {
+  it("requires an output when notes are not implicit", async () => {
     const user = await openDialog();
-    await user.click(screen.getByRole("radio", { name: "Topic" }));
-    await user.type(
-      screen.getByRole("textbox", { name: "Topic" }),
-      "Ionic bonding",
-    );
-    // Flashcards default on, Quiz defaults off — unchecking the former
-    // without touching the latter leaves both false.
+    await user.click(screen.getByRole("radio", { name: /Just a topic/ }));
+    await user.type(screen.getByLabelText("Topic"), "Ionic bonding");
+    await continueToResults(user);
     await user.click(outputCheckbox("Flashcards"));
-    await user.click(screen.getByRole("button", { name: "Create" }));
+    await user.click(screen.getByRole("button", { name: "Review and create" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Pick at least one thing to create",
+      "Pick at least one thing",
     );
   });
 
-  it("requires a folder for a new-material source", async () => {
+  it("keeps required filing visible on the final step", async () => {
     server.use(
       http.get(`${SUPABASE_URL}/rest/v1/folders`, () => HttpResponse.json([])),
     );
-    const user = userEvent.setup();
-    renderWithProviders(<Harness />, undefined, { withRouter: true });
-    await user.click(screen.getByRole("button", { name: "Open create" }));
-    await user.click(screen.getByRole("radio", { name: "Text" }));
-    await user.type(
-      screen.getByLabelText("Paste your notes or text"),
-      "A full paragraph of text that is definitely long enough to pass validation.",
-    );
-    await user.click(screen.getByRole("button", { name: "Create" }));
+    const user = await openDialog();
+    await chooseText(user);
+    await continueToResults(user);
+    await continueToDetails(user);
+    expect(screen.getByLabelText("Subject")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Create study kit" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Choose a folder to save this into",
+      "Choose a subject to save this into",
     );
   });
 
-  it("only shows quiz tuning options once Quiz is checked", async () => {
+  it("reveals only relevant generation settings", async () => {
     const user = await openDialog();
-    await user.click(screen.getByText("Options"));
+    await chooseText(user);
+    await continueToResults(user);
     expect(screen.queryByText("Quiz difficulty")).not.toBeInTheDocument();
-    await user.click(outputCheckbox("Quiz"));
+    await user.click(outputCheckbox("Practice quiz"));
+    await continueToDetails(user);
+    await user.click(screen.getByText("Fine-tune generation"));
     expect(screen.getByText("Quiz difficulty")).toBeInTheDocument();
   });
 
-  /* Before AI_PERSONA_QUIZ_HOST existed, this picker always opened on
-     "Friendly Tutor" regardless of what the student had set in Preferences —
-     two independent persona vocabularies that happened to share four of the
-     same underlying ideas but never agreed with each other. */
-  it("seeds the quiz host from the student's global AI persona", async () => {
+  it("seeds the quiz host from the student's AI persona", async () => {
     Storage.set(SETTINGS_KEY, { ...DEFAULT_SETTINGS, aiPersona: "coach" });
     const user = await openDialog();
-    await user.click(outputCheckbox("Quiz"));
-    await user.click(screen.getByText("Options"));
+    await chooseText(user);
+    await continueToResults(user);
+    await user.click(outputCheckbox("Practice quiz"));
+    await continueToDetails(user);
+    await user.click(screen.getByText("Fine-tune generation"));
     expect(screen.getByLabelText("Quiz host")).toHaveValue("Strict Coach");
   });
 
-  describe("submitting for real", () => {
-    async function fillText(user: ReturnType<typeof userEvent.setup>) {
-      await user.click(screen.getByRole("radio", { name: "Text" }));
-      await user.type(
-        screen.getByLabelText("Paste your notes or text"),
-        "A full paragraph of text that is definitely long enough to pass validation.",
-      );
-    }
-
-    it("creates the package, then closes and lands on what it made", async () => {
-      serveDb();
-      server.use(
-        http.post(EDGE_URL, async ({ request }) => {
-          const { mode } = (await request.json()) as { mode: string };
-          return HttpResponse.json({
-            text: mode === "notes" ? NOTES_MARKDOWN : JSON.stringify(CARDS),
-          });
-        }),
-      );
-
-      const user = await openDialog();
-      await fillText(user);
-      await user.click(screen.getByRole("button", { name: "Create" }));
-
-      expect(
-        await screen.findByText("Created notes, flashcards."),
-      ).toBeInTheDocument();
-      await waitFor(() =>
-        expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
-      );
-      // Notes written in this run are the most specific thing to show, since
-      // no quiz was asked for.
-      expect(screen.getByText("path:/notes/mat-1")).toBeInTheDocument();
-    });
-
-    /* The dialog is where the student is looking, so a run that produced
-       nothing says why there — rather than in a popup over a page they were
-       already thrown back to, which is what the vanilla did. */
-    it("keeps the dialog open and explains a run that produced nothing", async () => {
-      serveDb();
-      server.use(
-        http.post(EDGE_URL, () =>
-          HttpResponse.json(
-            { error: "That topic isn't supported.", refused: true },
-            { status: 400 },
-          ),
-        ),
-      );
-
-      const user = await openDialog();
-      await fillText(user);
-      await user.click(screen.getByRole("button", { name: "Create" }));
-
-      expect(await screen.findByRole("alert")).toHaveTextContent(
-        "That topic isn't supported.",
-      );
-      expect(screen.getByRole("dialog")).toBeInTheDocument();
-    });
-
-    /* Two overlapping runs used to produce an error from the one that failed
-       to parse plus a working deck from the one that didn't — both from a
-       single click (js/main.js:299-307). */
-    it("captions the stage in flight and refuses a second submit until it ends", async () => {
-      serveDb();
-      let release: (() => void) | undefined;
-      const held = new Promise<void>((resolve) => {
-        release = resolve;
-      });
-      let edgeCalls = 0;
-      server.use(
-        http.post(EDGE_URL, async () => {
-          edgeCalls++;
-          await held;
-          return HttpResponse.json({ text: NOTES_MARKDOWN });
-        }),
-      );
-
-      const user = await openDialog();
-      await fillText(user);
-      await user.click(screen.getByRole("button", { name: "Create" }));
-
-      const busy = await screen.findByRole("button", { name: "Creating…" });
-      expect(busy).toBeDisabled();
-      expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
-      // Scoped to the dialog: the toast region is a live region too.
-      expect(
-        within(screen.getByRole("dialog")).getByRole("status"),
-      ).toHaveTextContent("Reading your material and writing notes…");
-
-      await user.click(busy);
-      expect(edgeCalls).toBe(1);
-
-      release?.();
-      await waitFor(() =>
-        expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
-      );
-    });
+  it("creates the package, closes, and lands on what it made", async () => {
+    serveDb();
+    server.use(
+      http.post(EDGE_URL, async ({ request }) => {
+        const { mode } = (await request.json()) as { mode: string };
+        return HttpResponse.json({
+          text: mode === "notes" ? NOTES_MARKDOWN : JSON.stringify(CARDS),
+        });
+      }),
+    );
+    const user = await openDialog();
+    await chooseText(user);
+    await continueToResults(user);
+    await continueToDetails(user);
+    await user.click(screen.getByRole("button", { name: "Create study kit" }));
+    expect(
+      await screen.findByText("Created notes, flashcards."),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText("path:/notes/mat-1")).toBeInTheDocument();
   });
 
-  it("creates a folder inline via the dialog prompt and selects it", async () => {
+  it("keeps the wizard open and explains a failed run", async () => {
+    serveDb();
+    server.use(
+      http.post(EDGE_URL, () =>
+        HttpResponse.json(
+          { error: "That topic isn't supported.", refused: true },
+          { status: 400 },
+        ),
+      ),
+    );
+    const user = await openDialog();
+    await chooseText(user);
+    await continueToResults(user);
+    await continueToDetails(user);
+    await user.click(screen.getByRole("button", { name: "Create study kit" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "That topic isn't supported.",
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("announces progress and blocks duplicate submission", async () => {
+    serveDb();
+    let release: (() => void) | undefined;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let edgeCalls = 0;
+    server.use(
+      http.post(EDGE_URL, async () => {
+        edgeCalls++;
+        await held;
+        return HttpResponse.json({ text: NOTES_MARKDOWN });
+      }),
+    );
+    const user = await openDialog();
+    await chooseText(user);
+    await continueToResults(user);
+    await continueToDetails(user);
+    await user.click(screen.getByRole("button", { name: "Create study kit" }));
+    const busy = await screen.findByRole("button", { name: "Creating…" });
+    expect(busy).toBeDisabled();
+    expect(
+      within(screen.getByRole("dialog")).getByRole("status"),
+    ).toHaveTextContent("Reading your material and writing notes…");
+    await user.click(busy);
+    expect(edgeCalls).toBe(1);
+    release?.();
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+  });
+
+  it("creates a subject inline and selects it", async () => {
     server.use(
       http.post(`${SUPABASE_URL}/rest/v1/folders`, async ({ request }) => {
         const [body] = (await request.json()) as Record<string, unknown>[];
@@ -344,18 +340,19 @@ describe("MaterialPanel", () => {
       }),
     );
     const user = await openDialog();
-    await user.click(screen.getByRole("button", { name: "+ New" }));
-
+    await chooseText(user);
+    await continueToResults(user);
+    await continueToDetails(user);
+    await user.click(screen.getByRole("button", { name: "New subject" }));
     const promptDialog = await screen.findByRole("alertdialog", {
-      name: "New folder",
+      name: "New subject",
     });
     await user.type(within(promptDialog).getByRole("textbox"), "Chemistry");
     await user.click(
-      within(promptDialog).getByRole("button", { name: "Create folder" }),
+      within(promptDialog).getByRole("button", { name: "Create subject" }),
     );
-
     await waitFor(() =>
-      expect(screen.getByLabelText("Folder")).toHaveValue("folder-2"),
+      expect(screen.getByLabelText("Subject")).toHaveValue("folder-2"),
     );
   });
 });

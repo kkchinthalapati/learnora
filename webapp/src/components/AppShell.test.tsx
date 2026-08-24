@@ -175,7 +175,7 @@ describe("AppShell", () => {
     await user.click(screen.getByRole("button", { name: "Create" }));
 
     expect(
-      screen.getByRole("dialog", { name: "Create study material" }),
+      screen.getByRole("dialog", { name: "Create something new" }),
     ).toBeInTheDocument();
   });
 

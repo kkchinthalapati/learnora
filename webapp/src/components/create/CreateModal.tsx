@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Modal } from "../Modal";
+import { Icon } from "../Icon";
+import type { IconName } from "../icons";
 import type {
   CreateEntityType,
   OpenCreateModalOptions,
@@ -8,100 +10,171 @@ import { MaterialPanel } from "./MaterialPanel";
 import { SubjectPanel } from "./SubjectPanel";
 import { ExamPanel } from "./ExamPanel";
 import { TaskPanel } from "./TaskPanel";
-import shared from "./formShared.module.css";
+import styles from "./CreateModal.module.css";
 
 interface CreateModalProps {
   options: OpenCreateModalOptions | null;
   onClose: () => void;
 }
 
-const TYPE_LABELS: Record<CreateEntityType, string> = {
-  material: "Material",
-  subject: "Subject",
-  exam: "Exam",
-  task: "Task",
-};
+type CreateView = "home" | CreateEntityType;
 
 const TYPE_COPY: Record<CreateEntityType, { title: string; subtitle: string }> =
   {
     material: {
-      title: "Create study material",
-      subtitle: "Turn anything into notes, flashcards, and quizzes.",
+      title: "Build study resources",
+      subtitle:
+        "Turn a source into clear notes, flashcards, or a practice quiz.",
     },
     subject: {
-      title: "New subject",
-      subtitle: "A folder to keep its materials, decks, and quizzes together.",
+      title: "Create a subject",
+      subtitle: "Keep related materials, decks, and quizzes in one place.",
     },
     exam: {
-      title: "New exam",
-      subtitle: "Add it to your calendar and we'll count down to the day.",
+      title: "Add an exam",
+      subtitle:
+        "Put an important date on your calendar and start the countdown.",
     },
     task: {
-      title: "New task",
-      subtitle: "Add something to your to-do list.",
+      title: "Add a task",
+      subtitle: "Capture the next thing you need to get done.",
     },
   };
 
-const TYPE_ORDER: CreateEntityType[] = ["material", "subject", "exam", "task"];
+const QUICK_CREATES: Array<{
+  type: Exclude<CreateEntityType, "material">;
+  icon: IconName;
+  title: string;
+  description: string;
+}> = [
+  {
+    type: "task",
+    icon: "list-checks",
+    title: "Task",
+    description: "Add a to-do and optional due date.",
+  },
+  {
+    type: "subject",
+    icon: "folder",
+    title: "Subject",
+    description: "Organize resources for a class or topic.",
+  },
+  {
+    type: "exam",
+    icon: "calendar",
+    title: "Exam",
+    description: "Save a date and track your preparation.",
+  },
+];
 
-/* The one creation entry point every "+" affordance in the app opens
- * (archive/REACT_MIGRATION.md Step 6) — a deliberate consolidation, not a straight
- * port: the vanilla app never had a single dialog spanning these four
- * entities (see the ledger's Step 6 note for why). Each panel owns its own
- * form state and submit logic; this shell only owns which panel is showing. */
 export function CreateModal({ options, onClose }: CreateModalProps) {
   const open = options !== null;
-  const openedOn = options?.type ?? "material";
-  const [type, setType] = useState<CreateEntityType>(openedOn);
-  const { title: defaultTitle, subtitle } = TYPE_COPY[type];
-  /* A caller-supplied heading describes the form it opened on. Switching
-     panels leaves that form, so the heading goes back to describing whatever
-     is now on screen rather than mislabelling it. */
+  const openedOn: CreateView = options?.type ?? "home";
+  const [view, setView] = useState<CreateView>(openedOn);
+  const cameFromHome = openedOn === "home";
+
   const title =
-    options?.title && type === openedOn ? options.title : defaultTitle;
+    view === "home"
+      ? "Create something new"
+      : options?.title && view === openedOn
+        ? options.title
+        : TYPE_COPY[view].title;
+  const subtitle =
+    view === "home"
+      ? "Choose what you want to accomplish. Learnora will guide the rest."
+      : TYPE_COPY[view].subtitle;
+  const isWide = view === "home" || view === "material";
 
   return (
-    <Modal open={open} onClose={onClose} title={title} subtitle={subtitle}>
-      <div className={shared.inputGroup}>
-        <label id="create-type-label">What are you creating?</label>
-        <div
-          className={shared.segmented}
-          role="radiogroup"
-          aria-labelledby="create-type-label"
-        >
-          {TYPE_ORDER.map((t) => (
-            <label key={t} className={shared.segmentedOption}>
-              <input
-                type="radio"
-                name="create-type"
-                value={t}
-                checked={type === t}
-                onChange={() => setType(t)}
-              />
-              <span>{TYPE_LABELS[t]}</span>
-            </label>
-          ))}
-        </div>
-      </div>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={title}
+      subtitle={subtitle}
+      contentClassName={isWide ? styles.wideModal : undefined}
+    >
+      {view === "home" ? (
+        <div className={styles.hub}>
+          <button
+            type="button"
+            className={styles.studyCard}
+            onClick={() => setView("material")}
+          >
+            <span className={styles.heroIcon} aria-hidden="true">
+              <Icon name="sparkles" size={26} />
+            </span>
+            <span className={styles.studyCopy}>
+              <span className={styles.eyebrow}>Most popular</span>
+              <strong>Build study resources</strong>
+              <span>
+                Upload a document or recording, paste text, add a link, or start
+                with a topic.
+              </span>
+              <span
+                className={styles.outputPills}
+                aria-label="Creates notes, flashcards, and quizzes"
+              >
+                <span>Notes</span>
+                <span>Flashcards</span>
+                <span>Quiz</span>
+              </span>
+            </span>
+            <Icon name="chevron-down" size={20} className={styles.cardArrow} />
+          </button>
 
-      {type === "material" ? (
-        <MaterialPanel
-          folderId={options?.folderId}
-          materialId={options?.materialId}
-          outputs={options?.outputs}
-          onClose={onClose}
-          onDone={options?.onDone}
-        />
-      ) : null}
-      {type === "subject" ? (
-        <SubjectPanel onClose={onClose} onDone={options?.onDone} />
-      ) : null}
-      {type === "exam" ? (
-        <ExamPanel onClose={onClose} onDone={options?.onDone} />
-      ) : null}
-      {type === "task" ? (
-        <TaskPanel onClose={onClose} onDone={options?.onDone} />
-      ) : null}
+          <div className={styles.divider}>
+            <span>Or create a quick item</span>
+          </div>
+
+          <div className={styles.quickGrid}>
+            {QUICK_CREATES.map((item) => (
+              <button
+                type="button"
+                key={item.type}
+                className={styles.quickCard}
+                onClick={() => setView(item.type)}
+              >
+                <span className={styles.quickIcon} aria-hidden="true">
+                  <Icon name={item.icon} size={21} />
+                </span>
+                <strong>{item.title}</strong>
+                <span>{item.description}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
+          {cameFromHome ? (
+            <button
+              type="button"
+              className={styles.backLink}
+              onClick={() => setView("home")}
+            >
+              <span aria-hidden="true">←</span> All create options
+            </button>
+          ) : null}
+
+          {view === "material" ? (
+            <MaterialPanel
+              folderId={options?.folderId}
+              materialId={options?.materialId}
+              outputs={options?.outputs}
+              onClose={onClose}
+              onDone={options?.onDone}
+            />
+          ) : null}
+          {view === "subject" ? (
+            <SubjectPanel onClose={onClose} onDone={options?.onDone} />
+          ) : null}
+          {view === "exam" ? (
+            <ExamPanel onClose={onClose} onDone={options?.onDone} />
+          ) : null}
+          {view === "task" ? (
+            <TaskPanel onClose={onClose} onDone={options?.onDone} />
+          ) : null}
+        </>
+      )}
     </Modal>
   );
 }

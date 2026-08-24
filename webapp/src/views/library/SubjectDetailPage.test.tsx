@@ -316,10 +316,13 @@ describe("SubjectDetailPage", () => {
     await user.click(await screen.findByRole("button", { name: "+ Create" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Create study material" }),
+      await screen.findByRole("heading", { name: "Build study resources" }),
     ).toBeInTheDocument();
-    await waitFor(() =>
-      expect(screen.getByLabelText(/Folder/)).toHaveValue("folder-1"),
-    );
+    await waitFor(() => {
+      const summary = screen.getByRole("complementary", {
+        name: "Creation summary",
+      });
+      expect(within(summary).getByText("Biology")).toBeInTheDocument();
+    });
   });
 });

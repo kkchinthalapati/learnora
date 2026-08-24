@@ -1,33 +1,253 @@
-/* Ported from style.css :6329-6516 (.create-* rules) — see formShared.module.css
- * for the generic input/segmented/error pieces this reuses. */
-
-.sourcePicker {
-  grid-template-columns: repeat(4, 1fr);
+.stepper {
+  margin-bottom: var(--s-3);
 }
 
-@media (max-width: 520px) {
-  .sourcePicker {
-    grid-template-columns: repeat(3, 1fr);
-  }
+.stepper ol {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  list-style: none;
 }
 
-.sourcePanel {
-  margin-bottom: var(--s-4);
+.stepper li {
+  position: relative;
 }
 
-.select {
+.stepper li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 14px;
+  left: calc(50% + 16px);
+  width: calc(100% - 32px);
+  height: 2px;
+  background: var(--line);
+}
+
+.stepper li.completeStep::after {
+  background: var(--accent);
+}
+
+.stepper button {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text-faint);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.stepper button:not(:disabled) {
   cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
+}
+
+.stepper button[aria-current="step"],
+.completeStep button {
+  color: var(--accent-text);
+}
+
+.stepNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+.stepper button[aria-current="step"] .stepNumber {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-on);
+  box-shadow: 0 0 0 4px var(--accent-ring);
+}
+
+.completeStep .stepNumber {
+  background: var(--accent-soft);
+  border-color: var(--accent-ring);
+  color: var(--accent-text);
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: var(--s-6);
+  min-height: 370px;
+}
+
+.stage {
+  min-width: 0;
+}
+
+.stageHead {
+  margin-bottom: var(--s-5);
+}
+
+.stageHead h3 {
+  margin: 2px 0 var(--s-1);
+  font-family: var(--font-head);
+  font-size: clamp(19px, 2.5vw, 23px);
+  outline: none;
+}
+
+.stageHead p {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.stepKicker,
+.summaryEyebrow {
+  color: var(--accent-text);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sourceChoices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-2);
+  margin: 0 0 var(--s-4);
+  padding: 0;
+  border: 0;
+}
+
+.choiceCard {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 60px;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+  background: var(--glass-bg);
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    border-color var(--t-fast) ease,
+    transform var(--t-fast) ease;
+}
+
+.choiceCard:hover {
+  transform: translateY(-1px);
+  background: var(--surface);
+  border-color: var(--accent-ring);
+}
+
+.choiceCard:has(input:checked) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.choiceCard:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.choiceCard > input,
+.outputCard > input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.choiceIcon,
+.outputIcon,
+.summaryIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-text);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+}
+
+.choiceIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-md);
+}
+
+.choiceCard:has(input:checked) .choiceIcon {
+  background: var(--surface);
+  border-color: var(--accent-ring);
+}
+
+.choiceCopy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.choiceCopy strong {
+  padding-right: 16px;
+  font-size: var(--fs-sm);
+}
+
+.choiceCopy > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.choiceMark,
+.checkboxVisual {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  color: transparent;
+}
+
+.choiceMark {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+}
+
+.choiceCard:has(input:checked) .choiceMark,
+.outputCard:has(input:checked) .checkboxVisual {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-on);
+}
+
+.sourceInput {
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line);
 }
 
 .dropzone {
-  border: 2px dashed var(--glass-border-subtle);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-4);
+  min-height: 105px;
+  padding: var(--s-5);
+  border: 1.5px dashed var(--glass-border);
   border-radius: var(--r-lg);
-  padding: 32px 20px;
-  text-align: center;
-  cursor: pointer;
-  background: var(--glass-bg);
+  background: var(--surface-2);
+  color: var(--accent-text);
   transition:
     border-color var(--t-fast) ease,
     background var(--t-fast) ease;
@@ -35,158 +255,345 @@
 
 .dropzone.dragging {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  background: var(--accent-soft);
 }
 
-.dropzoneTitle {
-  font-weight: 650;
-  margin-bottom: var(--s-1);
+.dropzone strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.outputs {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
+.dropzone p {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 0.76rem;
 }
 
-.outputRow {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--s-3);
-  padding: var(--s-3) var(--s-4);
-  background: var(--surface-2);
-  border: 1px solid var(--glass-border-subtle);
-  border-radius: var(--r-sm);
+.fileButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 9px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
   cursor: pointer;
-  transition:
-    border-color var(--t-fast) ease,
-    background var(--t-fast) ease;
+  box-shadow: var(--shadow-sm);
 }
 
-.outputRow:hover {
-  border-color: var(--accent);
-}
-
-.outputRow:has(input:checked) {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
-}
-
-.outputRow:has(input:disabled) {
-  cursor: default;
-  opacity: 0.75;
-}
-
-.outputRow:has(input:focus-visible) {
+.fileButton:has(input:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.outputRow input[type="checkbox"] {
-  margin-top: 3px;
-  width: 17px;
-  height: 17px;
-  accent-color: var(--accent);
-  flex-shrink: 0;
-  cursor: inherit;
-}
-
-.outputText {
+.infoNote {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.outputName {
-  font-weight: 650;
-}
-
-.outputDesc {
-  font-size: var(--fs-sm);
-  color: var(--text-muted);
-}
-
-.folderRow {
-  display: flex;
+  align-items: flex-start;
   gap: var(--s-2);
-  align-items: center;
-}
-
-.folderRow .select {
-  flex: 1;
-}
-
-.options {
-  margin-top: var(--s-4);
-  border-top: 1px solid var(--glass-border-subtle);
-  padding-top: var(--s-3);
-}
-
-.options > summary {
-  font-size: var(--fs-sm);
-  font-weight: 650;
+  margin: 0;
+  padding: var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
   color: var(--text-muted);
-  cursor: pointer;
-  padding: var(--s-2) 0;
-  list-style: none;
+  font-size: 0.76rem;
+  line-height: 1.45;
 }
 
-.options > summary::-webkit-details-marker {
+.infoNote svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--accent-text);
+}
+
+.outputChoices {
+  display: grid;
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.outputCard {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-4);
+  min-height: 82px;
+  padding: var(--s-4);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-lg);
+  background: var(--glass-bg);
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    border-color var(--t-fast) ease,
+    transform var(--t-fast) ease;
+}
+
+.outputCard:hover:not(.requiredOutput) {
+  transform: translateY(-1px);
+  border-color: var(--accent-ring);
+}
+
+.outputCard:has(input:checked) {
+  background: var(--accent-soft);
+  border-color: var(--accent-ring);
+}
+
+.outputCard:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.requiredOutput {
+  cursor: default;
+}
+
+.outputIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.outputCopy {
+  display: grid;
+  gap: 3px;
+}
+
+.outputCopy > span:last-child {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.outputTitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.outputTitle small {
+  padding: 3px 7px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.detailFields {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.labelRow button {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 0;
+  background: transparent;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.advanced {
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+  background: var(--glass-bg);
+}
+
+.advanced summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  list-style: none;
+  cursor: pointer;
+}
+
+.advanced summary::-webkit-details-marker {
   display: none;
 }
 
-.options > summary::before {
-  content: "▸";
-  display: inline-block;
-  margin-right: var(--s-2);
+.advanced summary > span {
+  display: grid;
+  gap: 2px;
+}
+
+.advanced summary small {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.advanced summary svg {
   transition: transform var(--t-fast) ease;
 }
 
-.options[open] > summary::before {
-  transform: rotate(90deg);
+.advanced[open] summary svg {
+  transform: rotate(180deg);
 }
 
-.optionsBody {
-  padding-top: var(--s-2);
-}
-
-.optionsBody input[type="range"] {
-  width: 100%;
-  accent-color: var(--accent);
-}
-
-.stickyActions {
-  position: sticky;
-  bottom: 0;
-  background: var(--glass-bg-strong);
+.advancedBody {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 var(--s-5);
+  padding: 0 var(--s-4) var(--s-4);
+  border-top: 1px solid var(--line);
   padding-top: var(--s-4);
 }
 
-/* The live caption for a generation in flight. The vanilla showed this in a
-   full-app blocking overlay; this branch dropped that overlay deliberately
-   (REACT_MIGRATION.md, "Found, deliberately not ported"), so the stage is
-   reported where the student started the run instead. */
+.summary {
+  align-self: start;
+  position: sticky;
+  top: 0;
+  display: grid;
+  gap: var(--s-4);
+  padding: var(--s-4);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+
+.summaryItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--s-3);
+}
+
+.summaryIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+
+.summaryItem > span:last-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.summaryItem small {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.summaryItem strong {
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.summary > p {
+  display: flex;
+  gap: var(--s-2);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.summary > p svg {
+  flex: 0 0 auto;
+  color: var(--accent-text);
+}
+
 .progress {
   display: flex;
   align-items: center;
   gap: var(--s-3);
   margin-top: var(--s-4);
-  padding: var(--s-3) var(--s-4);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--r-sm);
+  padding: var(--s-4);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
   color: var(--text-muted);
   font-size: var(--fs-sm);
 }
 
+.progress > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.progress strong {
+  color: var(--text);
+}
+
 .spinner {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  border: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border: 2px solid var(--accent-ring);
   border-top-color: var(--accent);
   border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: spin 0.75s linear infinite;
+}
+
+.actions {
+  position: sticky;
+  bottom: calc(clamp(22px, 3vw, 34px) * -1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin: var(--s-5) calc(clamp(22px, 3vw, 34px) * -1)
+    calc(clamp(22px, 3vw, 34px) * -1);
+  padding: var(--s-4) clamp(22px, 3vw, 34px);
+  border-top: 1px solid var(--glass-border-subtle);
+  background: color-mix(in srgb, var(--glass-bg-strong) 92%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.primaryActions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.cancelLink.cancelLink {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @keyframes spin {
@@ -195,10 +602,77 @@
   }
 }
 
-/* Respects the same reduced-motion contract the rest of the app honours: the
-   caption text already carries the information, so the spin is decoration. */
+@media (max-width: 760px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .summary {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    order: 2;
+  }
+
+  .summaryEyebrow,
+  .summary > p {
+    grid-column: 1 / -1;
+  }
+
+  .sourceChoices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .stepper button > span:last-child {
+    font-size: 0.68rem;
+  }
+
+  .sourceChoices,
+  .advancedBody,
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryEyebrow,
+  .summary > p {
+    grid-column: auto;
+  }
+
+  .dropzone {
+    grid-template-columns: auto 1fr;
+  }
+
+  .fileButton {
+    grid-column: 1 / -1;
+  }
+
+  .actions {
+    align-items: stretch;
+  }
+
+  .primaryActions {
+    justify-content: flex-end;
+  }
+
+  .cancelLink.cancelLink {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .choiceCard,
+  .outputCard,
+  .advanced summary svg {
+    transition: none;
+  }
+
+  .choiceCard:hover,
+  .outputCard:hover:not(.requiredOutput) {
+    transform: none;
+  }
+
   .spinner {
-    animation: none;
+    animation-duration: 1.5s;
   }
 }

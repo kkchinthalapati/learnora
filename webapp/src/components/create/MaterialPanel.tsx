@@ -22,15 +22,15 @@ import {
 } from "../../api/studyPackage";
 import { AI_PERSONA_QUIZ_HOST } from "../../lib/settings";
 import type { Folder } from "../../api/types";
+import type { IconName } from "../icons";
 import shared from "./formShared.module.css";
 import styles from "./MaterialPanel.module.css";
 import { Button } from "../Button";
+import { Icon } from "../Icon";
 
 interface MaterialPanelProps {
   folderId?: string | null;
-  /** Opens on the "Saved" source with this material already chosen. */
   materialId?: string;
-  /** Pre-ticked outputs; omitted keys keep the panel's own defaults. */
   outputs?: { flashcards?: boolean; quiz?: boolean };
   onClose: () => void;
   onDone?: () => void;
@@ -38,27 +38,60 @@ interface MaterialPanelProps {
 
 type SourceKind = StudySource["kind"];
 type Difficulty = typeof CREATE_DEFAULTS.difficulty;
+type WizardStep = "source" | "results" | "details";
 
+const STEP_ORDER: WizardStep[] = ["source", "results", "details"];
+const STEP_LABELS: Record<WizardStep, string> = {
+  source: "Add a source",
+  results: "Choose results",
+  details: "Review & create",
+};
 const FOLDER_COLORS = ["#4A90E2", "#E24A4A", "#4AE283", "#E2A84A", "#9B4AE2"];
 const PERSONALITY_DESC: Record<string, string> = {
-  "Friendly Tutor": "Patient, supportive, explains things step by step.",
-  "Strict Coach": "Tough love, no-nonsense, pushes you to improve.",
-  "Sarcastic Buddy": "Casual, funny, roasts your wrong answers.",
-  "Academic Professor": "Formal, precise, textbook-style explanations.",
+  "Friendly Tutor": "Patient and supportive, with step-by-step explanations.",
+  "Strict Coach": "Direct and challenging, with a focus on improvement.",
+  "Sarcastic Buddy": "Casual and playful, with light humour.",
+  "Academic Professor": "Formal, precise, and textbook-style.",
 };
 
-/* Full port of the vanilla #create-modal's Material flow (index.html:2060-
- * 2250, js/main.js:111-422, js/ui.js:508-681) — source picker, dropzone,
- * outputs, folder filing, the collapsed Options tuning block, and (as of
- * Step 24) the submit itself, which runs `api/studyPackage.ts`'s pipeline.
- *
- * One deliberate difference from the vanilla submit: it closed the dialog
- * *immediately* and moved the student to a blocking full-app overlay for the
- * duration. That overlay isn't part of this app (archive/REACT_MIGRATION.md, "Found,
- * deliberately not ported"), so the dialog stays up with a live caption of the
- * stage in flight, and closes when there is somewhere to go. A run that
- * produces nothing therefore reports why in the form the student is still
- * looking at, rather than in a popup over a page they've been thrown back to. */
+const SOURCE_OPTIONS: Array<{
+  kind: SourceKind;
+  label: string;
+  description: string;
+  icon: IconName;
+}> = [
+  {
+    kind: "file",
+    label: "Document or recording",
+    description: "PDF, Word, text, audio, or video",
+    icon: "upload-cloud",
+  },
+  {
+    kind: "text",
+    label: "Paste text",
+    description: "Lecture notes, an article, or a transcript",
+    icon: "file-text",
+  },
+  {
+    kind: "link",
+    label: "Web or video link",
+    description: "A web page or YouTube URL",
+    icon: "link",
+  },
+  {
+    kind: "material",
+    label: "Saved material",
+    description: "Build from something already in Learnora",
+    icon: "folder",
+  },
+  {
+    kind: "topic",
+    label: "Just a topic",
+    description: "No source needed — start from general knowledge",
+    icon: "brain",
+  },
+];
+
 export function MaterialPanel({
   folderId: initialFolderId,
   materialId: initialMaterialId,
@@ -66,10 +99,10 @@ export function MaterialPanel({
   onClose,
   onDone,
 }: MaterialPanelProps) {
-  /* A caller that named a material is asking to build from *that* document
-     ("Quiz me" in the notes sidebar), so the panel opens on Saved with it
-     chosen instead of on an empty dropzone. */
   const { settings } = useSettings();
+  const initialStep: WizardStep = initialMaterialId ? "results" : "source";
+  const [step, setStep] = useState<WizardStep>(initialStep);
+  const [maxStep, setMaxStep] = useState(initialMaterialId ? 1 : 0);
   const [source, setSource] = useState<SourceKind>(
     initialMaterialId ? "material" : "file",
   );
@@ -92,19 +125,11 @@ export function MaterialPanel({
   const [difficulty, setDifficulty] = useState<Difficulty>(
     CREATE_DEFAULTS.difficulty,
   );
-  /* Seeded from the student's global AI-persona setting rather than a fixed
-     "Friendly Tutor" default, so the two independent persona pickers in this
-     app — this one and Preferences' — agree unless the student deliberately
-     overrides one for a single quiz. See AI_PERSONA_QUIZ_HOST's own comment. */
   const [personality, setPersonality] = useState(
     AI_PERSONA_QUIZ_HOST[settings.aiPersona],
   );
   const [error, setError] = useState<string | null>(null);
-  // The stage the pipeline reports it is on, or null when nothing is running.
   const [progress, setProgress] = useState<string | null>(null);
-  // A folder created via the "+ New" dialog needs to be selectable
-  // immediately, without waiting on the list query's background refetch —
-  // mirrors the vanilla's `select.appendChild(opt)` (js/main.js:204-211).
   const [extraFolder, setExtraFolder] = useState<Folder | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -114,7 +139,7 @@ export function MaterialPanel({
   const topicRef = useRef<HTMLInputElement>(null);
   const folderSelectRef = useRef<HTMLSelectElement>(null);
   const flashcardsRef = useRef<HTMLInputElement>(null);
-  const browseButtonRef = useRef<HTMLButtonElement>(null);
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const foldersQuery = useFolders();
   const materialsQuery = useMaterials();
@@ -126,18 +151,16 @@ export function MaterialPanel({
 
   const fetchedFolders = foldersQuery.data ?? [];
   const folders =
-    extraFolder && !fetchedFolders.some((f) => f.id === extraFolder.id)
+    extraFolder &&
+    !fetchedFolders.some((folder) => folder.id === extraFolder.id)
       ? [...fetchedFolders, extraFolder]
       : fetchedFolders;
   const savedMaterials = materialsQuery.data ?? [];
   const hasSavedMaterials = savedMaterials.length > 0;
-
   const isNewMaterial =
     source === "file" || source === "text" || source === "link";
+  const activeStepIndex = STEP_ORDER.indexOf(step);
 
-  // Mirrors showCreateModal()'s "pre-select a folder, or default to the
-  // first one" — but only once, so picking a different folder afterward
-  // isn't stomped by the folders query settling later.
   const didDefaultFolder = useRef(false);
   useEffect(() => {
     const loaded = foldersQuery.data;
@@ -146,25 +169,36 @@ export function MaterialPanel({
     if (!initialFolderId) setFolderId(loaded[0].id);
   }, [foldersQuery.data, initialFolderId]);
 
-  const showChosenFile = (f: File | null) => setFile(f);
+  useEffect(() => {
+    stepHeadingRef.current?.focus();
+  }, [step]);
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files.length) showChosenFile(e.dataTransfer.files[0]);
+  const chooseSource = (kind: SourceKind) => {
+    setSource(kind);
+    setError(null);
   };
 
-  const handleFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    showChosenFile(e.target.files?.[0] ?? null);
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+    if (event.dataTransfer.files.length) {
+      setFile(event.dataTransfer.files[0]);
+      setError(null);
+    }
+  };
+
+  const handleFileInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setFile(event.target.files?.[0] ?? null);
+    setError(null);
   };
 
   const handleNewFolder = async () => {
     const name = await promptText(
       "Give it a name so it's easy to find later.",
       {
-        title: "New folder",
+        title: "New subject",
         placeholder: "e.g. CS101, Biology",
-        confirmText: "Create folder",
+        confirmText: "Create subject",
       },
     );
     if (!name) return;
@@ -175,60 +209,39 @@ export function MaterialPanel({
     setFolderId(created.id);
   };
 
-  /* Exact port of validateSource() (js/main.js:244-297) — same messages, same
-   * per-source rules, so a student switching from the vanilla app never sees
-   * different wording for the same mistake. */
   const validateSource = (): { message: string; focus: () => void } | null => {
     if (source === "file") {
       if (!file) {
         return {
           message: "Choose a file to create from.",
-          focus: () => browseButtonRef.current?.focus(),
+          focus: () => fileInputRef.current?.focus(),
         };
       }
       if (file.size > MAX_UPLOAD_BYTES) {
         const mb = (file.size / (1024 * 1024)).toFixed(1);
         return {
-          message: `"${file.name}" is ${mb}MB — the limit is 10MB. Try a smaller file.`,
-          focus: () => browseButtonRef.current?.focus(),
+          message: `That file is ${mb}MB. The limit is 10MB.`,
+          focus: () => fileInputRef.current?.focus(),
         };
       }
-      return null;
     }
 
-    if (source === "text") {
-      const trimmed = text.trim();
-      if (!trimmed) {
-        return {
-          message: "Paste the text you want to study from.",
-          focus: () => textareaRef.current?.focus(),
-        };
-      }
-      if (trimmed.length < 40) {
-        return {
-          message:
-            "That's a bit short to study from — paste at least a paragraph.",
-          focus: () => textareaRef.current?.focus(),
-        };
-      }
-      return null;
+    if (source === "text" && text.trim().length < 50) {
+      return {
+        message:
+          "That text is a bit short to study from. Add at least a paragraph.",
+        focus: () => textareaRef.current?.focus(),
+      };
     }
 
     if (source === "link") {
       const raw = link.trim();
-      if (!raw) {
-        return {
-          message: "Add a link to create from.",
-          focus: () => linkRef.current?.focus(),
-        };
-      }
       let parsed: URL;
       try {
         parsed = new URL(raw);
       } catch {
         return {
-          message:
-            "That doesn't look like a link. Include the https:// prefix.",
+          message: "That doesn't look like a link.",
           focus: () => linkRef.current?.focus(),
         };
       }
@@ -238,35 +251,24 @@ export function MaterialPanel({
           focus: () => linkRef.current?.focus(),
         };
       }
-      return null;
     }
 
-    if (source === "material") {
-      if (!materialId) {
-        return {
-          message: "Choose which saved material to build from.",
-          focus: () => materialSelectRef.current?.focus(),
-        };
-      }
-      return null;
+    if (source === "material" && !materialId) {
+      return {
+        message: "Choose which saved material to build from.",
+        focus: () => materialSelectRef.current?.focus(),
+      };
     }
 
-    if (source === "topic") {
-      if (!topic.trim()) {
-        return {
-          message: "Enter a topic to create from.",
-          focus: () => topicRef.current?.focus(),
-        };
-      }
-      return null;
+    if (source === "topic" && !topic.trim()) {
+      return {
+        message: "Enter a topic to create from.",
+        focus: () => topicRef.current?.focus(),
+      };
     }
-
     return null;
   };
 
-  /* The form's five source panels collapse into the one discriminated union
-   * the pipeline takes. Validation above has already guaranteed the field this
-   * reads is filled in. */
   const buildSource = (): StudySource => {
     if (source === "file") return { kind: "file", file };
     if (source === "text") return { kind: "text", text };
@@ -275,42 +277,55 @@ export function MaterialPanel({
     return { kind: "topic", topic };
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    // Guards a second submit landing while the first is in flight. Two
-    // overlapping generations used to produce an error from the run that
-    // failed to parse plus a working quiz from the one that succeeded — both
-    // from a single click (js/main.js:299-307).
+  const moveTo = (nextStep: WizardStep) => {
+    setError(null);
+    setStep(nextStep);
+    setMaxStep((current) => Math.max(current, STEP_ORDER.indexOf(nextStep)));
+  };
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     if (create.isPending) return;
 
-    if (!wantFlashcards && !wantQuiz && !isNewMaterial) {
-      setError("Pick at least one thing to create.");
-      flashcardsRef.current?.focus();
+    if (step === "source") {
+      const problem = validateSource();
+      if (problem) {
+        setError(problem.message);
+        problem.focus();
+        return;
+      }
+      moveTo("results");
       return;
     }
 
-    const problem = validateSource();
-    if (problem) {
-      setError(problem.message);
-      problem.focus();
+    if (step === "results") {
+      if (!wantFlashcards && !wantQuiz && !isNewMaterial) {
+        setError("Pick at least one thing to create.");
+        flashcardsRef.current?.focus();
+        return;
+      }
+      moveTo("details");
       return;
     }
 
+    const sourceProblem = validateSource();
+    if (sourceProblem) {
+      setError(sourceProblem.message);
+      setStep("source");
+      window.setTimeout(sourceProblem.focus, 0);
+      return;
+    }
     if (isNewMaterial && !folderId) {
-      setError("Choose a folder to save this into, or create one.");
+      setError("Choose a subject to save this into, or create one.");
       folderSelectRef.current?.focus();
       return;
     }
 
     setError(null);
     setProgress("Getting started…");
-
     try {
       const result = await create.mutateAsync({
         source: buildSource(),
-        /* A topic-only run files nothing, and its folder picker is hidden — so
-           don't quietly attach the quiz to whichever folder happened to be
-           selected in a dropdown the student never saw. */
         folderId: source === "topic" ? null : folderId || null,
         title: titleOverride,
         outputs: { flashcards: wantFlashcards, quiz: wantQuiz },
@@ -320,32 +335,23 @@ export function MaterialPanel({
 
       const summary = summarizeStudyPackage(result);
       if (!summary) {
-        // Nothing was produced. The first failure carries the only specific
-        // explanation there is — a refusal especially, which says *why*.
         setError(
           result.failures[0]?.message ??
             "Nothing could be generated this time. Please try again in a moment.",
         );
         return;
       }
-
       showToast(summary);
-      // A refusal alongside a partial success is its own message: the summary
-      // says a stage didn't generate, only this says the topic was declined.
-      const refusal = result.failures.find((f) => f.refused);
+      const refusal = result.failures.find((failure) => failure.refused);
       if (refusal) showToast(refusal.message, { error: true });
-
       onDone?.();
       onClose();
-
       const destination = studyPackageDestination(result);
       if (destination) void navigate(destination);
-    } catch (err) {
-      // Only source-resolution problems reach here (see createStudyPackage) —
-      // nothing was created, so the dialog stays open on the field to fix.
+    } catch (caught) {
       setError(
-        err instanceof Error && err.message
-          ? err.message
+        caught instanceof Error && caught.message
+          ? caught.message
           : "Something went wrong. Please try again.",
       );
     } finally {
@@ -353,358 +359,596 @@ export function MaterialPanel({
     }
   };
 
+  const selectedSource = SOURCE_OPTIONS.find(
+    (option) => option.kind === source,
+  );
+  const selectedFolder = folders.find((folder) => folder.id === folderId);
+  const selectedMaterial = savedMaterials.find(
+    (material) => material.id === materialId,
+  );
+  const sourceSummary =
+    source === "file" && file
+      ? file.name
+      : source === "text" && text.trim()
+        ? `${text.trim().slice(0, 38)}${text.trim().length > 38 ? "…" : ""}`
+        : source === "link" && link.trim()
+          ? link.trim()
+          : source === "material" && selectedMaterial
+            ? selectedMaterial.title
+            : source === "topic" && topic.trim()
+              ? topic.trim()
+              : selectedSource?.label;
+  const resultSummary = [
+    ...(isNewMaterial ? ["Notes"] : []),
+    ...(wantFlashcards ? [`${cardCount} flashcards`] : []),
+    ...(wantQuiz ? [`${questionCount}-question quiz`] : []),
+  ];
+  const createLabel =
+    resultSummary.length > 1
+      ? "Create study kit"
+      : `Create ${resultSummary[0]?.toLowerCase() ?? "resources"}`;
+
   return (
-    // novalidate: source panels are shown one at a time, so a leftover value
-    // in a hidden field (a URL typed into Link, then switching to Topic)
-    // could block native submit on a control the student can't even see —
-    // matches the vanilla #create-form's own `novalidate` (index.html:2074)
-    // for exactly this reason. Every field is validated in JS instead.
-    <form onSubmit={(e) => void handleSubmit(e)} noValidate>
-      <div className={shared.inputGroup}>
-        <label id="material-source-label">Start from</label>
-        <div
-          className={`${shared.segmented} ${styles.sourcePicker}`}
-          role="radiogroup"
-          aria-labelledby="material-source-label"
-        >
-          {(
-            [
-              ["file", "File"],
-              ["text", "Text"],
-              ["link", "Link"],
-              ...(hasSavedMaterials ? [["material", "Saved"] as const] : []),
-              ["topic", "Topic"],
-            ] as [SourceKind, string][]
-          ).map(([kind, label]) => (
-            <label key={kind} className={shared.segmentedOption}>
-              <input
-                type="radio"
-                name="material-source"
-                value={kind}
-                checked={source === kind}
-                onChange={() => setSource(kind)}
-              />
-              <span>{label}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {source === "file" ? (
-        <div className={styles.sourcePanel}>
-          <div
-            className={`${styles.dropzone} ${isDragging ? styles.dragging : ""}`}
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragging(true);
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-          >
-            <p className={styles.dropzoneTitle}>
-              {file ? file.name : "Drag & drop a file"}
-            </p>
-            <p className={shared.fieldDesc}>
-              PDF, Word, text, or audio — up to 10MB
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              hidden
-              accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg"
-              onChange={handleFileInputChange}
-            />
-            <Button
-              ref={browseButtonRef}
-              type="button"
-              onClick={(e) => {
-                // Without this the click bubbles to the dropzone and opens
-                // the picker twice.
-                e.stopPropagation();
-                fileInputRef.current?.click();
-              }}
+    <form onSubmit={(event) => void handleSubmit(event)} noValidate>
+      <nav className={styles.stepper} aria-label="Creation progress">
+        <ol>
+          {STEP_ORDER.map((item, index) => (
+            <li
+              key={item}
+              className={index < activeStepIndex ? styles.completeStep : ""}
             >
-              Browse files
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      {source === "text" ? (
-        <div className={`${styles.sourcePanel} ${shared.inputGroup}`}>
-          <label htmlFor="material-text">Paste your notes or text</label>
-          <textarea
-            ref={textareaRef}
-            id="material-text"
-            className={shared.field}
-            rows={7}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Paste lecture notes, an article, a transcript…"
-          />
-        </div>
-      ) : null}
-
-      {source === "link" ? (
-        <div className={`${styles.sourcePanel} ${shared.inputGroup}`}>
-          <label htmlFor="material-link">Link</label>
-          <input
-            ref={linkRef}
-            id="material-link"
-            className={shared.field}
-            type="url"
-            value={link}
-            onChange={(e) => setLink(e.target.value)}
-            placeholder="https://youtube.com/watch?v=…"
-          />
-          <p className={shared.fieldDesc}>
-            YouTube links are summarised from the video's topic, not its
-            transcript.
-          </p>
-        </div>
-      ) : null}
-
-      {source === "material" ? (
-        <div className={`${styles.sourcePanel} ${shared.inputGroup}`}>
-          <label htmlFor="material-select">Saved material</label>
-          <select
-            ref={materialSelectRef}
-            id="material-select"
-            className={`${shared.field} ${styles.select}`}
-            value={materialId}
-            onChange={(e) => setMaterialId(e.target.value)}
-          >
-            <option value="" disabled>
-              {materialsQuery.isLoading
-                ? "Loading your materials…"
-                : "Choose a material…"}
-            </option>
-            {savedMaterials.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.title}
-              </option>
-            ))}
-          </select>
-          <p className={shared.fieldDesc}>
-            Reuses the notes already made for it — nothing is re-uploaded.
-          </p>
-        </div>
-      ) : null}
-
-      {source === "topic" ? (
-        <div className={`${styles.sourcePanel} ${shared.inputGroup}`}>
-          <label htmlFor="material-topic">Topic</label>
-          <input
-            ref={topicRef}
-            id="material-topic"
-            className={shared.field}
-            type="text"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            placeholder="e.g. Ionic bonding"
-          />
-          <p className={shared.fieldDesc}>
-            No material needed — generated from general knowledge.
-          </p>
-        </div>
-      ) : null}
-
-      <div className={shared.inputGroup}>
-        <label id="material-outputs-label">Create</label>
-        <div
-          className={styles.outputs}
-          role="group"
-          aria-labelledby="material-outputs-label"
-        >
-          {isNewMaterial ? (
-            <label className={styles.outputRow}>
-              <input type="checkbox" checked disabled />
-              <span className={styles.outputText}>
-                <span className={styles.outputName}>Notes</span>
-                <span className={styles.outputDesc}>
-                  Always created — flashcards and quizzes are built from them
+              <button
+                type="button"
+                onClick={() => moveTo(item)}
+                disabled={index > maxStep || create.isPending}
+                aria-current={step === item ? "step" : undefined}
+              >
+                <span className={styles.stepNumber} aria-hidden="true">
+                  {index < activeStepIndex ? (
+                    <Icon name="check" size={14} />
+                  ) : (
+                    index + 1
+                  )}
                 </span>
-              </span>
-            </label>
-          ) : null}
-          <label className={styles.outputRow}>
-            <input
-              ref={flashcardsRef}
-              type="checkbox"
-              checked={wantFlashcards}
-              onChange={(e) => setWantFlashcards(e.target.checked)}
-            />
-            <span className={styles.outputText}>
-              <span className={styles.outputName}>Flashcards</span>
-              <span className={styles.outputDesc}>
-                A deck for spaced review
-              </span>
-            </span>
-          </label>
-          <label className={styles.outputRow}>
-            <input
-              type="checkbox"
-              checked={wantQuiz}
-              onChange={(e) => setWantQuiz(e.target.checked)}
-            />
-            <span className={styles.outputText}>
-              <span className={styles.outputName}>Quiz</span>
-              <span className={styles.outputDesc}>
-                Auto-graded multiple choice
-              </span>
-            </span>
-          </label>
-        </div>
-      </div>
+                <span>{STEP_LABELS[item]}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      </nav>
 
-      {source !== "topic" ? (
-        <div className={shared.inputGroup}>
-          <label htmlFor="material-folder">Folder</label>
-          <div className={styles.folderRow}>
-            <select
-              ref={folderSelectRef}
-              id="material-folder"
-              className={`${shared.field} ${styles.select}`}
-              value={folderId}
-              onChange={(e) => setFolderId(e.target.value)}
-            >
-              <option value="" disabled>
-                {folders.length
-                  ? "Select a folder…"
-                  : "No folders yet — create one →"}
-              </option>
-              {folders.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-            <Button type="button" onClick={handleNewFolder}>
-              + New
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      <details className={styles.options}>
-        <summary>Options</summary>
-        <div className={styles.optionsBody}>
-          <div className={shared.inputGroup}>
-            <label htmlFor="material-title">
-              Title <span className={shared.fieldDesc}>(optional)</span>
-            </label>
-            <input
-              id="material-title"
-              className={shared.field}
-              type="text"
-              value={titleOverride}
-              onChange={(e) => setTitleOverride(e.target.value)}
-              placeholder="Defaults to the file or topic name"
-            />
-          </div>
-
-          {wantFlashcards ? (
-            <div className={shared.inputGroup}>
-              <label htmlFor="material-card-count">
-                Flashcards: {cardCount} cards
-              </label>
-              <input
-                id="material-card-count"
-                type="range"
-                min={5}
-                max={30}
-                step={1}
-                value={cardCount}
-                onChange={(e) => setCardCount(Number(e.target.value))}
-              />
-            </div>
-          ) : null}
-
-          {wantQuiz ? (
-            <>
-              <div className={shared.inputGroup}>
-                <label htmlFor="material-question-count">
-                  Quiz: {questionCount} questions
-                </label>
-                <input
-                  id="material-question-count"
-                  type="range"
-                  min={5}
-                  max={20}
-                  step={1}
-                  value={questionCount}
-                  onChange={(e) => setQuestionCount(Number(e.target.value))}
-                />
-              </div>
-
-              <div className={shared.inputGroup}>
-                <label id="material-difficulty-label">Quiz difficulty</label>
-                <div
-                  className={shared.segmented}
-                  role="radiogroup"
-                  aria-labelledby="material-difficulty-label"
-                >
-                  {(["Easy", "Medium", "Hard"] as const).map((d) => (
-                    <label key={d} className={shared.segmentedOption}>
-                      <input
-                        type="radio"
-                        name="material-difficulty"
-                        value={d}
-                        checked={difficulty === d}
-                        onChange={() => setDifficulty(d)}
-                      />
-                      <span>{d}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className={shared.inputGroup}>
-                <label htmlFor="material-personality">Quiz host</label>
-                <select
-                  id="material-personality"
-                  className={`${shared.field} ${styles.select}`}
-                  value={personality}
-                  onChange={(e) => setPersonality(e.target.value)}
-                >
-                  {Object.keys(PERSONALITY_DESC).map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-                <p className={shared.fieldDesc}>
-                  {PERSONALITY_DESC[personality]}
+      <div className={styles.workspace}>
+        <main className={styles.stage}>
+          {step === "source" ? (
+            <section aria-labelledby="source-step-heading">
+              <div className={styles.stageHead}>
+                <span className={styles.stepKicker}>Step 1 of 3</span>
+                <h3 id="source-step-heading" ref={stepHeadingRef} tabIndex={-1}>
+                  What are you learning from?
+                </h3>
+                <p>
+                  Choose one source. You can decide what Learnora makes next.
                 </p>
               </div>
-            </>
+
+              <fieldset className={styles.sourceChoices}>
+                <legend className={styles.srOnly}>Choose a source</legend>
+                {SOURCE_OPTIONS.filter(
+                  (option) => option.kind !== "material" || hasSavedMaterials,
+                ).map((option) => (
+                  <label key={option.kind} className={styles.choiceCard}>
+                    <input
+                      type="radio"
+                      name="material-source"
+                      value={option.kind}
+                      checked={source === option.kind}
+                      onChange={() => chooseSource(option.kind)}
+                    />
+                    <span className={styles.choiceIcon} aria-hidden="true">
+                      <Icon name={option.icon} size={19} />
+                    </span>
+                    <span className={styles.choiceCopy}>
+                      <strong>{option.label}</strong>
+                      <span>{option.description}</span>
+                    </span>
+                    <span className={styles.choiceMark} aria-hidden="true">
+                      <Icon name="check" size={13} />
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+
+              <div className={styles.sourceInput}>
+                {source === "file" ? (
+                  <div
+                    className={`${styles.dropzone} ${isDragging ? styles.dragging : ""}`}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      setIsDragging(true);
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleDrop}
+                  >
+                    <Icon name={file ? "check" : "upload-cloud"} size={27} />
+                    <div>
+                      <strong>{file ? file.name : "Drop a file here"}</strong>
+                      <p>
+                        {file
+                          ? `${Math.max(0.1, file.size / (1024 * 1024)).toFixed(1)}MB selected`
+                          : "PDF, Word, text, audio, or video · up to 10MB"}
+                      </p>
+                    </div>
+                    <label className={styles.fileButton}>
+                      {file ? "Replace file" : "Browse files"}
+                      <input
+                        ref={fileInputRef}
+                        className={styles.srOnly}
+                        type="file"
+                        accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg"
+                        onChange={handleFileInputChange}
+                      />
+                    </label>
+                  </div>
+                ) : null}
+
+                {source === "text" ? (
+                  <div className={shared.inputGroup}>
+                    <label htmlFor="material-text">
+                      Paste your notes or text
+                    </label>
+                    <textarea
+                      ref={textareaRef}
+                      id="material-text"
+                      className={shared.field}
+                      rows={7}
+                      value={text}
+                      onChange={(event) => setText(event.target.value)}
+                      placeholder="Paste lecture notes, an article, or a transcript…"
+                      autoFocus
+                    />
+                    <p className={shared.fieldDesc}>
+                      At least one paragraph works best.
+                    </p>
+                  </div>
+                ) : null}
+
+                {source === "link" ? (
+                  <div className={shared.inputGroup}>
+                    <label htmlFor="material-link">Web or YouTube link</label>
+                    <input
+                      ref={linkRef}
+                      id="material-link"
+                      className={shared.field}
+                      type="url"
+                      value={link}
+                      onChange={(event) => setLink(event.target.value)}
+                      placeholder="https://youtube.com/watch?v=…"
+                      autoFocus
+                    />
+                    <p className={styles.infoNote}>
+                      <Icon name="help-circle" size={16} />
+                      YouTube links use the video's title and topic, not its
+                      full transcript. For spoken content, upload the audio or
+                      video file instead.
+                    </p>
+                  </div>
+                ) : null}
+
+                {source === "material" ? (
+                  <div className={shared.inputGroup}>
+                    <label htmlFor="material-select">Saved material</label>
+                    <select
+                      ref={materialSelectRef}
+                      id="material-select"
+                      className={shared.field}
+                      value={materialId}
+                      onChange={(event) => setMaterialId(event.target.value)}
+                      autoFocus
+                    >
+                      <option value="" disabled>
+                        {materialsQuery.isLoading
+                          ? "Loading your materials…"
+                          : "Choose a material…"}
+                      </option>
+                      {savedMaterials.map((material) => (
+                        <option key={material.id} value={material.id}>
+                          {material.title}
+                        </option>
+                      ))}
+                    </select>
+                    <p className={shared.fieldDesc}>
+                      Nothing is uploaded again.
+                    </p>
+                  </div>
+                ) : null}
+
+                {source === "topic" ? (
+                  <div className={shared.inputGroup}>
+                    <label htmlFor="material-topic">Topic</label>
+                    <input
+                      ref={topicRef}
+                      id="material-topic"
+                      className={shared.field}
+                      type="text"
+                      value={topic}
+                      onChange={(event) => setTopic(event.target.value)}
+                      placeholder="e.g. Ionic bonding"
+                      autoFocus
+                    />
+                    <p className={shared.fieldDesc}>
+                      Learnora will use general knowledge.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            </section>
           ) : null}
+
+          {step === "results" ? (
+            <section aria-labelledby="results-step-heading">
+              <div className={styles.stageHead}>
+                <span className={styles.stepKicker}>Step 2 of 3</span>
+                <h3
+                  id="results-step-heading"
+                  ref={stepHeadingRef}
+                  tabIndex={-1}
+                >
+                  What should Learnora make?
+                </h3>
+                <p>
+                  Select everything you want. You can edit it after it is
+                  created.
+                </p>
+              </div>
+
+              <fieldset className={styles.outputChoices}>
+                <legend className={styles.srOnly}>Choose results</legend>
+                {isNewMaterial ? (
+                  <label
+                    className={`${styles.outputCard} ${styles.requiredOutput}`}
+                  >
+                    <input type="checkbox" checked disabled />
+                    <span className={styles.outputIcon} aria-hidden="true">
+                      <Icon name="file-text" size={22} />
+                    </span>
+                    <span className={styles.outputCopy}>
+                      <span className={styles.outputTitle}>
+                        <strong>Smart notes</strong>
+                        <small>Always included</small>
+                      </span>
+                      <span>
+                        A clean, structured document built from your source.
+                      </span>
+                    </span>
+                  </label>
+                ) : null}
+                <label className={styles.outputCard}>
+                  <input
+                    ref={flashcardsRef}
+                    type="checkbox"
+                    checked={wantFlashcards}
+                    onChange={(event) => {
+                      setWantFlashcards(event.target.checked);
+                      setError(null);
+                    }}
+                  />
+                  <span className={styles.outputIcon} aria-hidden="true">
+                    <Icon name="layers" size={22} />
+                  </span>
+                  <span className={styles.outputCopy}>
+                    <span className={styles.outputTitle}>
+                      <strong>Flashcards</strong>
+                      <small>{cardCount} cards</small>
+                    </span>
+                    <span>A ready-to-review deck for active recall.</span>
+                  </span>
+                  <span className={styles.checkboxVisual} aria-hidden="true">
+                    <Icon name="check" size={14} />
+                  </span>
+                </label>
+                <label className={styles.outputCard}>
+                  <input
+                    type="checkbox"
+                    checked={wantQuiz}
+                    onChange={(event) => {
+                      setWantQuiz(event.target.checked);
+                      setError(null);
+                    }}
+                  />
+                  <span className={styles.outputIcon} aria-hidden="true">
+                    <Icon name="help-circle" size={22} />
+                  </span>
+                  <span className={styles.outputCopy}>
+                    <span className={styles.outputTitle}>
+                      <strong>Practice quiz</strong>
+                      <small>{questionCount} questions</small>
+                    </span>
+                    <span>
+                      Multiple-choice questions with instant feedback.
+                    </span>
+                  </span>
+                  <span className={styles.checkboxVisual} aria-hidden="true">
+                    <Icon name="check" size={14} />
+                  </span>
+                </label>
+              </fieldset>
+            </section>
+          ) : null}
+
+          {step === "details" ? (
+            <section aria-labelledby="details-step-heading">
+              <div className={styles.stageHead}>
+                <span className={styles.stepKicker}>Step 3 of 3</span>
+                <h3
+                  id="details-step-heading"
+                  ref={stepHeadingRef}
+                  tabIndex={-1}
+                >
+                  Put it in the right place
+                </h3>
+                <p>
+                  A clear title and subject make this much easier to find later.
+                </p>
+              </div>
+
+              <div className={styles.detailFields}>
+                {source !== "topic" ? (
+                  <div className={shared.inputGroup}>
+                    <div className={styles.labelRow}>
+                      <label htmlFor="material-folder">Subject</label>
+                      <button
+                        type="button"
+                        onClick={() => void handleNewFolder()}
+                      >
+                        <Icon name="plus" size={14} /> New subject
+                      </button>
+                    </div>
+                    <select
+                      ref={folderSelectRef}
+                      id="material-folder"
+                      className={shared.field}
+                      value={folderId}
+                      onChange={(event) => setFolderId(event.target.value)}
+                    >
+                      <option value="" disabled>
+                        {folders.length
+                          ? "Choose a subject…"
+                          : "No subjects yet"}
+                      </option>
+                      {folders.map((folder) => (
+                        <option key={folder.id} value={folder.id}>
+                          {folder.name}
+                        </option>
+                      ))}
+                    </select>
+                    {!foldersQuery.isLoading && folders.length === 0 ? (
+                      <p className={styles.infoNote}>
+                        <Icon name="folder" size={16} />
+                        Create a subject first so this resource has a home.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className={shared.inputGroup}>
+                  <label htmlFor="material-title">
+                    Title <span className={shared.fieldDesc}>(optional)</span>
+                  </label>
+                  <input
+                    id="material-title"
+                    className={shared.field}
+                    type="text"
+                    value={titleOverride}
+                    onChange={(event) => setTitleOverride(event.target.value)}
+                    placeholder="Learnora will make a title if left blank"
+                  />
+                </div>
+
+                {wantFlashcards || wantQuiz ? (
+                  <details className={styles.advanced}>
+                    <summary>
+                      <span>
+                        <strong>Fine-tune generation</strong>
+                        <small>
+                          Optional counts, difficulty, and quiz style
+                        </small>
+                      </span>
+                      <Icon name="chevron-down" size={17} />
+                    </summary>
+                    <div className={styles.advancedBody}>
+                      {wantFlashcards ? (
+                        <div className={shared.inputGroup}>
+                          <label htmlFor="material-card-count">
+                            Flashcards: {cardCount}
+                          </label>
+                          <input
+                            id="material-card-count"
+                            type="range"
+                            min={5}
+                            max={30}
+                            step={1}
+                            value={cardCount}
+                            onChange={(event) =>
+                              setCardCount(Number(event.target.value))
+                            }
+                          />
+                        </div>
+                      ) : null}
+                      {wantQuiz ? (
+                        <>
+                          <div className={shared.inputGroup}>
+                            <label htmlFor="material-question-count">
+                              Quiz questions: {questionCount}
+                            </label>
+                            <input
+                              id="material-question-count"
+                              type="range"
+                              min={5}
+                              max={20}
+                              step={1}
+                              value={questionCount}
+                              onChange={(event) =>
+                                setQuestionCount(Number(event.target.value))
+                              }
+                            />
+                          </div>
+                          <div className={shared.inputGroup}>
+                            <label id="material-difficulty-label">
+                              Quiz difficulty
+                            </label>
+                            <div
+                              className={shared.segmented}
+                              role="radiogroup"
+                              aria-labelledby="material-difficulty-label"
+                            >
+                              {(["Easy", "Medium", "Hard"] as const).map(
+                                (level) => (
+                                  <label
+                                    key={level}
+                                    className={shared.segmentedOption}
+                                  >
+                                    <input
+                                      type="radio"
+                                      name="material-difficulty"
+                                      value={level}
+                                      checked={difficulty === level}
+                                      onChange={() => setDifficulty(level)}
+                                    />
+                                    <span>{level}</span>
+                                  </label>
+                                ),
+                              )}
+                            </div>
+                          </div>
+                          <div className={shared.inputGroup}>
+                            <label htmlFor="material-personality">
+                              Quiz host
+                            </label>
+                            <select
+                              id="material-personality"
+                              className={shared.field}
+                              value={personality}
+                              onChange={(event) =>
+                                setPersonality(event.target.value)
+                              }
+                            >
+                              {Object.keys(PERSONALITY_DESC).map((host) => (
+                                <option key={host} value={host}>
+                                  {host}
+                                </option>
+                              ))}
+                            </select>
+                            <p className={shared.fieldDesc}>
+                              {PERSONALITY_DESC[personality]}
+                            </p>
+                          </div>
+                        </>
+                      ) : null}
+                    </div>
+                  </details>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
+
+          {error ? (
+            <p className={shared.error} role="alert">
+              {error}
+            </p>
+          ) : null}
+          {progress ? (
+            <div className={styles.progress} role="status" aria-live="polite">
+              <span className={styles.spinner} aria-hidden="true" />
+              <span>
+                <strong>Creating your resources</strong>
+                {progress}
+              </span>
+            </div>
+          ) : null}
+        </main>
+
+        <aside className={styles.summary} aria-label="Creation summary">
+          <span className={styles.summaryEyebrow}>Your study kit</span>
+          <div className={styles.summaryItem}>
+            <span className={styles.summaryIcon}>
+              <Icon name={selectedSource?.icon ?? "file-text"} size={17} />
+            </span>
+            <span>
+              <small>Source</small>
+              <strong>{sourceSummary || "Not added yet"}</strong>
+            </span>
+          </div>
+          <div className={styles.summaryItem}>
+            <span className={styles.summaryIcon}>
+              <Icon name="sparkles" size={17} />
+            </span>
+            <span>
+              <small>Creating</small>
+              <strong>
+                {resultSummary.length
+                  ? resultSummary.join(", ")
+                  : "Choose your results"}
+              </strong>
+            </span>
+          </div>
+          {source !== "topic" ? (
+            <div className={styles.summaryItem}>
+              <span className={styles.summaryIcon}>
+                <Icon name="folder" size={17} />
+              </span>
+              <span>
+                <small>Saving to</small>
+                <strong>{selectedFolder?.name ?? "Choose a subject"}</strong>
+              </span>
+            </div>
+          ) : null}
+          <p>
+            <Icon name="sparkles" size={15} /> You can edit everything Learnora
+            creates.
+          </p>
+        </aside>
+      </div>
+
+      <div className={styles.actions}>
+        <div>
+          {activeStepIndex > 0 ? (
+            <Button
+              type="button"
+              onClick={() => moveTo(STEP_ORDER[activeStepIndex - 1])}
+              disabled={create.isPending}
+            >
+              Back
+            </Button>
+          ) : (
+            <Button type="button" onClick={onClose} disabled={create.isPending}>
+              Cancel
+            </Button>
+          )}
         </div>
-      </details>
-
-      {error ? (
-        <p className={shared.error} role="alert">
-          {error}
-        </p>
-      ) : null}
-
-      {/* aria-live, not role="alert": these captions arrive every few seconds
-          and would otherwise interrupt whatever a screen reader is saying. */}
-      {progress ? (
-        <p className={styles.progress} role="status" aria-live="polite">
-          <span className={styles.spinner} aria-hidden="true" />
-          {progress}
-        </p>
-      ) : null}
-
-      <div className={`${shared.actions} ${styles.stickyActions}`}>
-        <Button type="button" onClick={onClose} disabled={create.isPending}>
-          Cancel
-        </Button>
-        <Button type="submit" variant="primary" disabled={create.isPending}>
-          {create.isPending ? "Creating…" : "Create"}
-        </Button>
+        <div className={styles.primaryActions}>
+          {activeStepIndex > 0 ? (
+            <Button
+              type="button"
+              className={styles.cancelLink}
+              onClick={onClose}
+              disabled={create.isPending}
+            >
+              Cancel
+            </Button>
+          ) : null}
+          <Button type="submit" variant="primary" disabled={create.isPending}>
+            {create.isPending
+              ? "Creating…"
+              : step === "source"
+                ? "Continue to results"
+                : step === "results"
+                  ? "Review and create"
+                  : createLabel}
+            {!create.isPending && step !== "details" ? (
+              <span aria-hidden="true">→</span>
+            ) : null}
+          </Button>
+        </div>
       </div>
     </form>
   );

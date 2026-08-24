@@ -37,8 +37,11 @@ export function MaterialsPanel() {
         title="No materials yet."
         message="Add a file, some text, a link, or just a topic — Learnora AI turns it into notes you can study from."
       >
-        <Button variant="primary" onClick={() => openCreateModal()}>
-          + Create
+        <Button
+          variant="primary"
+          onClick={() => openCreateModal({ type: "material" })}
+        >
+          Create study resources
         </Button>
       </EmptyState>
     );

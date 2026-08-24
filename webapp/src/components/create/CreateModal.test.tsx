@@ -31,17 +31,18 @@ describe("CreateModal", () => {
     vi.restoreAllMocks();
   });
 
-  it("opens on the Material panel by default", async () => {
+  it("opens on a clear creation hub by default", async () => {
     const user = userEvent.setup();
     renderModal(<Harness />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     expect(
-      screen.getByRole("dialog", { name: "Create study material" }),
+      screen.getByRole("dialog", { name: "Create something new" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("radiogroup", { name: "Start from" }),
+      screen.getByRole("button", { name: /Build study resources/ }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Task/ })).toBeInTheDocument();
   });
 
   it("opens directly on the requested panel", async () => {
@@ -50,21 +51,24 @@ describe("CreateModal", () => {
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     expect(
-      screen.getByRole("dialog", { name: "New task" }),
+      screen.getByRole("dialog", { name: "Add a task" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Task" })).toBeInTheDocument();
   });
 
-  it("switches panels via the type picker without closing the dialog", async () => {
+  it("moves from the hub into a quick-create form without closing", async () => {
     const user = userEvent.setup();
     renderModal(<Harness />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
-    await user.click(screen.getByRole("radio", { name: "Subject" }));
+    await user.click(screen.getByRole("button", { name: /Subject/ }));
     expect(
-      screen.getByRole("dialog", { name: "New subject" }),
+      screen.getByRole("dialog", { name: "Create a subject" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "All create options" }),
+    ).toBeInTheDocument();
   });
 
   it("resets to a fresh panel every time it's reopened", async () => {
@@ -72,15 +76,15 @@ describe("CreateModal", () => {
     renderModal(<Harness />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
-    // Switch to Subject and type a name, then cancel.
-    await user.click(screen.getByRole("radio", { name: "Subject" }));
+    // Open Subject and type a name, then cancel.
+    await user.click(screen.getByRole("button", { name: /Subject/ }));
     await user.type(screen.getByLabelText("Name"), "Half-typed name");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
-    // Reopen — should be back on Material, not Subject with stale text.
+    // Reopen — should be back on the hub, not Subject with stale text.
     await user.click(screen.getByRole("button", { name: "Open create" }));
     expect(
-      screen.getByRole("dialog", { name: "Create study material" }),
+      screen.getByRole("dialog", { name: "Create something new" }),
     ).toBeInTheDocument();
   });
 });

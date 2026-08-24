@@ -57,7 +57,10 @@ export function OnboardingBanner({ onFocusTaskInput }: OnboardingBannerProps) {
         </button>
       </div>
       <div className={styles.onboardingActions}>
-        <Button variant="primary" onClick={() => openCreateModal()}>
+        <Button
+          variant="primary"
+          onClick={() => openCreateModal({ type: "material" })}
+        >
           <Icon name="upload-cloud" size={15} /> Create study material
         </Button>
         <Button onClick={onFocusTaskInput}>

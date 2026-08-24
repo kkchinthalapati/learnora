@@ -1,0 +1,221 @@
+.wideModal {
+  max-width: 920px;
+  padding: clamp(22px, 3vw, 34px);
+}
+
+.wideModal > div:first-child {
+  margin-bottom: var(--s-3);
+}
+
+.hub {
+  display: grid;
+  gap: var(--s-5);
+}
+
+.studyCard,
+.quickCard {
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.studyCard {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-4);
+  width: 100%;
+  padding: clamp(20px, 3vw, 28px);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--r-lg);
+  background:
+    radial-gradient(circle at 90% 10%, var(--accent-soft), transparent 42%),
+    var(--surface);
+  box-shadow: var(--glass-inner), var(--shadow-md);
+  transition:
+    transform var(--t-fast) ease,
+    border-color var(--t-fast) ease,
+    box-shadow var(--t-fast) ease;
+}
+
+.studyCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: var(--glass-inner), var(--shadow-lg);
+}
+
+.heroIcon,
+.quickIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+}
+
+.heroIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-lg);
+}
+
+.studyCopy {
+  display: grid;
+  gap: var(--s-1);
+}
+
+.studyCopy strong {
+  font-family: var(--font-head);
+  font-size: clamp(19px, 2.5vw, 23px);
+}
+
+.studyCopy > span:not(.eyebrow):not(.outputPills) {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.eyebrow {
+  width: fit-content;
+  color: var(--accent-text);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.outputPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+
+.outputPills span {
+  padding: 4px 9px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.cardArrow {
+  transform: rotate(-90deg);
+  color: var(--text-muted);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  color: var(--text-faint);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--line);
+}
+
+.quickGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+
+.quickCard {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  min-height: 132px;
+  padding: var(--s-4);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-lg);
+  background: var(--glass-bg);
+  transition:
+    transform var(--t-fast) ease,
+    background var(--t-fast) ease,
+    border-color var(--t-fast) ease;
+}
+
+.quickCard:hover {
+  transform: translateY(-2px);
+  background: var(--surface);
+  border-color: var(--accent-ring);
+}
+
+.quickCard strong {
+  font-size: var(--fs-base);
+}
+
+.quickCard > span:last-child {
+  grid-column: 1 / -1;
+  align-self: start;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+
+.quickIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-2);
+  padding: var(--s-1) 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.backLink:hover {
+  color: var(--accent-text);
+}
+
+@media (max-width: 640px) {
+  .quickGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .quickCard {
+    min-height: 0;
+  }
+
+  .studyCard {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .cardArrow {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studyCard,
+  .quickCard {
+    transition: none;
+  }
+
+  .studyCard:hover,
+  .quickCard:hover {
+    transform: none;
+  }
+}
