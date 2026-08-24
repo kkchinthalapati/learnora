@@ -403,8 +403,8 @@ export function ConceptGraphView() {
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
-              role="img"
-              aria-label="Interactive concept map visualization"
+              role="group"
+              aria-label="Interactive concept map. Use Tab to move between concept nodes; press Enter to open a node's details."
             >
               {/* Background Rect for Click-To-Pan */}
               <rect width="1000" height="800" fill="transparent" />

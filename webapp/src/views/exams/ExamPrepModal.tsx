@@ -368,9 +368,9 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
                     >
                       <div className={styles.phaseHeaderRow}>
                         <div className={styles.phaseTitleGroup}>
-                          <span className={styles.phaseTitle}>
+                          <h5 className={styles.phaseTitle}>
                             {phase.title}
-                          </span>
+                          </h5>
                           <span className={styles.phaseSubtitle}>
                             {phase.subtitle}
                           </span>
@@ -402,22 +402,24 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
 
                           return (
                             <div key={task.id} className={styles.taskRow}>
-                              <input
-                                type="checkbox"
-                                checked={isDone}
-                                onChange={() => toggleTaskCheck(task.id)}
-                                className={styles.taskCheck}
-                                aria-label={`Mark task completed: ${task.title}`}
-                              />
                               <div className={styles.taskInfo}>
                                 <div className={styles.taskTitleRow}>
-                                  <span
-                                    className={`${styles.taskTitle} ${
-                                      isDone ? styles.taskTitleDone : ""
-                                    }`}
-                                  >
-                                    {task.title}
-                                  </span>
+                                  <label className={styles.taskLabel}>
+                                    <input
+                                      type="checkbox"
+                                      checked={isDone}
+                                      onChange={() => toggleTaskCheck(task.id)}
+                                      className={styles.taskCheck}
+                                      aria-label={`Mark task completed: ${task.title}`}
+                                    />
+                                    <span
+                                      className={`${styles.taskTitle} ${
+                                        isDone ? styles.taskTitleDone : ""
+                                      }`}
+                                    >
+                                      {task.title}
+                                    </span>
+                                  </label>
                                   <span className={styles.taskCategoryPill}>
                                     {task.category}
                                   </span>

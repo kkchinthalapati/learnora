@@ -208,7 +208,7 @@ export function StudyAnalyticsView() {
           >
             <button
               type="button"
-              className={styles.statBadge}
+              className={styles.rangeBtn}
               style={{
                 cursor: "pointer",
                 border: "none",
@@ -226,7 +226,7 @@ export function StudyAnalyticsView() {
             </button>
             <button
               type="button"
-              className={styles.statBadge}
+              className={styles.rangeBtn}
               style={{
                 cursor: "pointer",
                 border: "none",
@@ -242,7 +242,7 @@ export function StudyAnalyticsView() {
             </button>
             <button
               type="button"
-              className={styles.statBadge}
+              className={styles.rangeBtn}
               style={{
                 cursor: "pointer",
                 border: "none",

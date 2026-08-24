@@ -116,6 +116,78 @@ describe("StudyAnalyticsView", () => {
     expect(screen.getByText("80%")).toBeInTheDocument(); // Quiz Mastery
   });
 
+  it("switches active date range and updates heatmap subtext and consistency metrics", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(rest("study_sessions"), () => HttpResponse.json(mockSessions)),
+      http.get(rest("quiz_attempts"), () => HttpResponse.json(mockAttempts)),
+      http.get(rest("folders"), () => HttpResponse.json(mockFolders)),
+      http.get(rest("exams"), () => HttpResponse.json(mockExams)),
+    );
+
+    renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
+
+    const rangeGroup = screen.getByRole("group", {
+      name: "Analytics date range",
+    });
+    const yearBtn = within(rangeGroup).getByRole("button", {
+      name: "52 Weeks (1Y)",
+    });
+    const ninetyDaysBtn = within(rangeGroup).getByRole("button", {
+      name: "90 Days",
+    });
+    const thirtyDaysBtn = within(rangeGroup).getByRole("button", {
+      name: "30 Days",
+    });
+
+    // Default state (365 days / 52 Weeks)
+    expect(yearBtn).toHaveAttribute("aria-pressed", "true");
+    expect(ninetyDaysBtn).toHaveAttribute("aria-pressed", "false");
+    expect(thirtyDaysBtn).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.getByText(
+        "Visualizing daily focus distribution across the past 365 days",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("/ 365d")).toBeInTheDocument();
+
+    // Switch to 90 Days
+    await user.click(ninetyDaysBtn);
+    expect(yearBtn).toHaveAttribute("aria-pressed", "false");
+    expect(ninetyDaysBtn).toHaveAttribute("aria-pressed", "true");
+    expect(thirtyDaysBtn).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.getByText(
+        "Visualizing daily focus distribution across the past 90 days",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("/ 90d")).toBeInTheDocument();
+
+    // Switch to 30 Days
+    await user.click(thirtyDaysBtn);
+    expect(yearBtn).toHaveAttribute("aria-pressed", "false");
+    expect(ninetyDaysBtn).toHaveAttribute("aria-pressed", "false");
+    expect(thirtyDaysBtn).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByText(
+        "Visualizing daily focus distribution across the past 30 days",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("/ 30d")).toBeInTheDocument();
+
+    // Switch back to 52 Weeks (1Y)
+    await user.click(yearBtn);
+    expect(yearBtn).toHaveAttribute("aria-pressed", "true");
+    expect(ninetyDaysBtn).toHaveAttribute("aria-pressed", "false");
+    expect(thirtyDaysBtn).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.getByText(
+        "Visualizing daily focus distribution across the past 365 days",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("/ 365d")).toBeInTheDocument();
+  });
+
   it("exposes usable range and hourly chart controls", async () => {
     const user = userEvent.setup();
     server.use(

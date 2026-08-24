@@ -7,6 +7,8 @@ import { ambianceEngine } from "./audioAmbiance";
 import type { AmbiancePreset } from "./types";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
+import { useOverlayBehavior } from "../../context/overlayStack";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import styles from "./room.module.css";
 
 const AMBIANCE_PRESETS: { id: AmbiancePreset; label: string; icon: string }[] =
@@ -46,6 +48,14 @@ export function StudyRoomView() {
     useState<AmbiancePreset>("none");
   const [ambianceVolume, setAmbianceVolume] = useState<number>(0.5);
   const ambianceMenuRef = useRef<HTMLDivElement>(null);
+  const ambiancePopoverRef = useRef<HTMLDivElement>(null);
+
+  useOverlayBehavior({
+    ref: ambiancePopoverRef,
+    open: isAmbianceOpen,
+    onClose: () => setIsAmbianceOpen(false),
+  });
+  useFocusTrap(ambiancePopoverRef, isAmbianceOpen);
 
   // Close ambiance popover on click outside
   useEffect(() => {
@@ -153,8 +163,10 @@ export function StudyRoomView() {
 
             {isAmbianceOpen && (
               <div
+                ref={ambiancePopoverRef}
                 className={styles.ambianceMenu}
                 role="dialog"
+                aria-modal="true"
                 aria-label="Sound ambiance settings"
               >
                 <p className={styles.ambianceTitle}>Focus Soundscapes</p>
@@ -239,7 +251,7 @@ export function StudyRoomView() {
           <Icon name="zap" size={16} />
           <span>Cheer everyone in the room:</span>
         </div>
-        <div className={styles.roomCheerEmojis} role="toolbar">
+        <div className={styles.roomCheerEmojis}>
           {QUICK_GLOBAL_CHEERS.map((emoji) => (
             <button
               key={emoji}

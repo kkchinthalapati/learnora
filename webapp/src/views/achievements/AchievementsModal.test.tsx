@@ -93,4 +93,64 @@ describe("AchievementsModal", () => {
     await user.click(screen.getByRole("button", { name: "Close" }));
     await waitFor(() => expect(handleClose).toHaveBeenCalledTimes(1));
   });
+
+  it("supports roving tabindex and arrow/home/end navigation on category tabs", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AchievementsModal open={true} onClose={vi.fn()} />);
+
+    const allTab = screen.getByRole("tab", { name: /^All/ });
+    const consistencyTab = screen.getByRole("tab", { name: /^Consistency/ });
+    const focusTab = screen.getByRole("tab", { name: /^Focus/ });
+    const masteryTab = screen.getByRole("tab", { name: /^Mastery/ });
+    const excellenceTab = screen.getByRole("tab", { name: /^Excellence/ });
+
+    // Initial roving tab indices
+    expect(allTab).toHaveAttribute("tabindex", "0");
+    expect(consistencyTab).toHaveAttribute("tabindex", "-1");
+    expect(focusTab).toHaveAttribute("tabindex", "-1");
+    expect(masteryTab).toHaveAttribute("tabindex", "-1");
+    expect(excellenceTab).toHaveAttribute("tabindex", "-1");
+
+    // All tabs point to the single tabpanel
+    expect(allTab).toHaveAttribute("aria-controls", "achievements-badge-grid");
+    expect(consistencyTab).toHaveAttribute(
+      "aria-controls",
+      "achievements-badge-grid",
+    );
+
+    const panel = screen.getByRole("tabpanel");
+    expect(panel).toHaveAttribute("id", "achievements-badge-grid");
+    expect(panel).toHaveAttribute("aria-labelledby", "achievements-tab-all");
+
+    // ArrowRight navigates to next tab
+    allTab.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(consistencyTab).toHaveFocus();
+    expect(consistencyTab).toHaveAttribute("tabindex", "0");
+    expect(allTab).toHaveAttribute("tabindex", "-1");
+    expect(panel).toHaveAttribute(
+      "aria-labelledby",
+      "achievements-tab-consistency",
+    );
+
+    // End jumps to the last tab
+    await user.keyboard("{End}");
+    expect(excellenceTab).toHaveFocus();
+    expect(excellenceTab).toHaveAttribute("tabindex", "0");
+
+    // ArrowRight on last tab wraps to first tab
+    await user.keyboard("{ArrowRight}");
+    expect(allTab).toHaveFocus();
+    expect(allTab).toHaveAttribute("tabindex", "0");
+
+    // ArrowLeft on first tab wraps to last tab
+    await user.keyboard("{ArrowLeft}");
+    expect(excellenceTab).toHaveFocus();
+    expect(excellenceTab).toHaveAttribute("tabindex", "0");
+
+    // Home jumps to the first tab
+    await user.keyboard("{Home}");
+    expect(allTab).toHaveFocus();
+    expect(allTab).toHaveAttribute("tabindex", "0");
+  });
 });

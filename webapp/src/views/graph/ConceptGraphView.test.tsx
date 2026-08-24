@@ -131,8 +131,10 @@ describe("ConceptGraphView", () => {
     expect(screen.getByText("Edges:")).toBeInTheDocument();
     expect(screen.getByText("Avg Mastery:")).toBeInTheDocument();
 
-    // SVG Map
-    expect(screen.getByRole("img", { name: "Interactive concept map visualization" })).toBeInTheDocument();
+    // SVG Map & interactive nodes
+    expect(screen.getByRole("group", { name: /Interactive concept map/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Concept Enzymes, mastery/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^Concept /i }).length).toBeGreaterThan(0);
   });
 
   it("supports searching and filtering concepts", async () => {
@@ -166,7 +168,7 @@ describe("ConceptGraphView", () => {
     const resetBtn = screen.getByRole("button", { name: "Reset Filters" });
     await user.click(resetBtn);
 
-    expect(screen.getByRole("img", { name: "Interactive concept map visualization" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /Interactive concept map/i })).toBeInTheDocument();
   });
 
   it("toggles knowledge gaps filter and opens drawer on node click", async () => {

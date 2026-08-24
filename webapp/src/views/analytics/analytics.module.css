@@ -95,6 +95,22 @@
   color: var(--accent-text);
 }
 
+.rangeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  min-height: var(--touch-target-min);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border: none;
+  cursor: pointer;
+}
+
 /* ---- Generic Section Header --------------------------------------------- */
 
 .sectionHeader {

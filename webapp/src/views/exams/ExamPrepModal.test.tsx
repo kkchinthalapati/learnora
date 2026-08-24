@@ -167,17 +167,56 @@ describe("ExamPrepModal", () => {
     );
 
     expect(
-      await screen.findByText(/Phase 1: Foundation & Material Synthesis/i),
+      await screen.findByRole("heading", {
+        level: 5,
+        name: /Phase 1: Foundation & Material Synthesis/i,
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Phase 2: Active Recall & Spaced Practice/i),
+      screen.getByRole("heading", {
+        level: 5,
+        name: /Phase 2: Active Recall & Spaced Practice/i,
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Phase 3: High-Yield Mock Exams & Weak Topic Polish/i),
+      screen.getByRole("heading", {
+        level: 5,
+        name: /Phase 3: High-Yield Mock Exams & Weak Topic Polish/i,
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Phase 4: Final Memory Lock & Review/i),
+      screen.getByRole("heading", {
+        level: 5,
+        name: /Phase 4: Final Memory Lock & Review/i,
+      }),
     ).toBeInTheDocument();
+  });
+
+  it("toggles task completion checkbox when clicking the task title label", async () => {
+    const user = userEvent.setup();
+
+    renderWithAuth(
+      <ExamPrepModal open exam={mockExam} onClose={vi.fn()} />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
+
+    const taskTitleText =
+      "Pre-exam routine: logistics, restful sleep & confidence lock";
+    const taskTitle = await screen.findByText(taskTitleText);
+    const checkbox = screen.getByRole("checkbox", {
+      name: `Mark task completed: ${taskTitleText}`,
+    });
+
+    expect(checkbox).not.toBeChecked();
+
+    // Clicking the title text (wrapped inside label) toggles the checkbox
+    await user.click(taskTitle);
+    expect(checkbox).toBeChecked();
+
+    // Clicking it again unchecks the checkbox
+    await user.click(taskTitle);
+    expect(checkbox).not.toBeChecked();
   });
 
   it("adds all prep tasks to task manager via 1-click CTA", async () => {

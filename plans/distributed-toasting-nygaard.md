@@ -10,16 +10,27 @@
       `achievementsModal.module.css`; `aria-pressed` added to the three
       Achievements preset-button groups + a test. Full suite green
       (1456/1456), typecheck/lint clean.
-- [ ] Batch 2 — Achievements category tabs (roving tabindex)
-- [ ] Batch 3 — Study Room ambiance popover overlay fix + drop `role="toolbar"`
-- [ ] Batch 4 — Exam Prep Modal (checkbox hit-area, phase headings)
-- [ ] Batch 5 — Analytics date-range button touch target
-- [ ] Batch 6 — Concept Graph `role="img"` → `role="group"`
+- [x] **Batch 2** — Achievements category tabs (roving tabindex). Done 2026-08-24.
+      Roving tabindex and arrow-key nav (Left/Right/Up/Down/Home/End) added to
+      AchievementsModal category tabs, plus single `role="tabpanel"` pairing with
+      `aria-controls` / `aria-labelledby`.
+- [x] **Batch 3** — Study Room ambiance popover overlay fix + drop `role="toolbar"`.
+      Done 2026-08-24. `useOverlayBehavior` and `useFocusTrap` added to ambiance
+      popover (`aria-modal="true"`), Escape-to-close and focus return tested;
+      `role="toolbar"` removed from cheer reaction rows.
+- [x] **Batch 4** — Exam Prep Modal (checkbox hit-area, phase headings). Done 2026-08-25.
+      Phase titles converted to `<h5>` headings; checklist checkbox and `.taskTitle`
+      wrapped in `<label>` for larger hit-area; tests added and passing.
+- [x] **Batch 5** — Analytics date-range button touch target. Done 2026-08-25.
+      Added `.rangeBtn` with `min-height: var(--touch-target-min)` in `analytics.module.css`;
+      updated date-range buttons in `StudyAnalyticsView.tsx` to use `.rangeBtn`;
+      added comprehensive date-range switching test in `StudyAnalyticsView.test.tsx`.
+- [x] **Batch 6** — Concept Graph `role="img"` → `role="group"`. Done 2026-08-25.
+      Replaced SVG `role="img"` with `role="group"` and added descriptive keyboard interaction instructions in `aria-label`.
 - [ ] Batch 7 — Concept Graph textual/list fallback
 
-Pick up at Batch 2 next. Batches 2, 4, 5, 6 are independent of each other
-and of Batch 3; Batch 7 depends on Batch 6 landing first (both touch
-`ConceptGraphView.tsx`).
+Pick up at Batch 4 next. Batches 4, 5, 6 are independent of each other;
+Batch 7 depends on Batch 6 landing first (both touch `ConceptGraphView.tsx`).
 
 ## Context
 

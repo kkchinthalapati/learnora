@@ -303,6 +303,8 @@
 }
 
 .phaseTitle {
+  margin: 0;
+  font-size: var(--fs-base);
   font-weight: 800;
   line-height: 1.3;
 }
@@ -359,7 +361,7 @@
 
 .taskRow {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   gap: var(--s-3);
   padding: var(--s-3) 0;
@@ -371,11 +373,22 @@
   border-bottom: 0;
 }
 
+.taskLabel {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  min-width: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
 .taskCheck {
+  flex: none;
   width: 18px;
   height: 18px;
   margin-top: 2px;
   accent-color: var(--accent);
+  cursor: pointer;
 }
 
 .taskInfo {
@@ -408,6 +421,7 @@
 .taskDesc {
   display: block;
   margin-top: 4px;
+  margin-left: calc(18px + var(--s-2));
   color: var(--text-muted);
   font-size: var(--fs-xs);
   line-height: 1.45;
@@ -417,6 +431,7 @@
   flex-wrap: wrap;
   gap: var(--s-2);
   margin-top: var(--s-2);
+  margin-left: calc(18px + var(--s-2));
   color: var(--text-muted);
   font-size: 0.7rem;
 }
@@ -488,12 +503,12 @@
   }
 
   .taskRow {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: 1fr;
   }
 
   .taskAddBtn {
-    grid-column: 2;
     justify-self: start;
+    margin-left: calc(18px + var(--s-2));
   }
 
   .modalFooter > div:last-child {

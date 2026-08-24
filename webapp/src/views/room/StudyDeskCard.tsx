@@ -265,7 +265,6 @@ export function StudyDeskCard({
       <div className={styles.deskActions}>
         <div
           className={styles.cheerBar}
-          role="toolbar"
           aria-label={`Send cheer to ${participantName}`}
         >
           {CHEER_EMOJIS.map(({ emoji, label }) => {

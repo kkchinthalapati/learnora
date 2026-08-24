@@ -233,4 +233,32 @@ describe("StudyRoomView", () => {
     await user.click(rainPresetBtn);
     expect(stopSpy).toHaveBeenCalled();
   });
+
+  it("handles overlay behavior (Escape to close, focus return, aria-modal) for ambiance dialog", async () => {
+    const { user } = renderView("/room");
+
+    const ambianceBtn = screen.getByRole("button", {
+      name: "Sound ambiance focus generator",
+    });
+    await user.click(ambianceBtn);
+
+    const dialog = screen.getByRole("dialog", {
+      name: "Sound ambiance settings",
+    });
+    expect(dialog).toBeInTheDocument();
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+
+    // Pressing Escape closes the popover and returns focus to the trigger button
+    await user.keyboard("{Escape}");
+    expect(
+      screen.queryByRole("dialog", { name: "Sound ambiance settings" }),
+    ).not.toBeInTheDocument();
+    expect(ambianceBtn).toHaveFocus();
+  });
+
+  it("does not expose cheer emoji rows as role='toolbar'", () => {
+    renderView("/room");
+
+    expect(screen.queryByRole("toolbar")).not.toBeInTheDocument();
+  });
 });

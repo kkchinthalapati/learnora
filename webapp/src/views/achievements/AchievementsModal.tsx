@@ -1,4 +1,5 @@
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 import { Modal } from "../../components/Modal";
 import { Icon } from "../../components/Icon";
 import {
@@ -42,6 +43,28 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
     useState<AchievementFilterCategory>("all");
   const [goals, setGoals] = useState<StudyGoals>(loadStudyGoals);
   const [savedFeedback, setSavedFeedback] = useState(false);
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  /* Roving arrow-key navigation, per the WAI-ARIA tabs pattern. Home/End
+     jump to the ends; Left/Right/Up/Down wrap. */
+  function onCategoryTabKeyDown(
+    e: KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) {
+    const count = CATEGORIES.length;
+    let next: number | null = null;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown")
+      next = (index + 1) % count;
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp")
+      next = (index - 1 + count) % count;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = count - 1;
+    if (next === null) return;
+    e.preventDefault();
+    const nextCat = CATEGORIES[next].key;
+    setSelectedCategory(nextCat);
+    tabRefs.current[nextCat]?.focus();
+  }
 
   const minutesInputId = useId();
   const cardsInputId = useId();
@@ -370,7 +393,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
 
         {/* Category Filters */}
         <div className={styles.filtersRow} role="tablist" aria-label="Achievement Categories">
-          {CATEGORIES.map(({ key, label }) => {
+          {CATEGORIES.map(({ key, label }, i) => {
             const count =
               key === "all"
                 ? achievements.length
@@ -379,13 +402,20 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
             return (
               <button
                 key={key}
+                id={`achievements-tab-${key}`}
                 type="button"
                 role="tab"
                 aria-selected={isSelected}
+                aria-controls="achievements-badge-grid"
+                tabIndex={isSelected ? 0 : -1}
+                ref={(el) => {
+                  tabRefs.current[key] = el;
+                }}
                 className={`${styles.filterPill} ${
                   isSelected ? styles.filterPillActive : ""
                 }`}
                 onClick={() => setSelectedCategory(key)}
+                onKeyDown={(e) => onCategoryTabKeyDown(e, i)}
               >
                 <span>{label}</span>
                 <span className={styles.filterCount}>{count}</span>
@@ -395,7 +425,13 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
         </div>
 
         {/* Badges Cabinet Grid */}
-        <div className={styles.cabinetGrid}>
+        <div
+          id="achievements-badge-grid"
+          role="tabpanel"
+          aria-labelledby={`achievements-tab-${selectedCategory}`}
+          tabIndex={0}
+          className={styles.cabinetGrid}
+        >
           {filteredBadges.map((badge) => {
             const isUnlocked = badge.unlocked;
             return (
