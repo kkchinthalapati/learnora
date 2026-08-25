@@ -232,4 +232,71 @@ describe("AdaptiveHealthWidget", () => {
       await screen.findByText(/Pre-Exam Surge Active:/i),
     ).toBeInTheDocument();
   });
+
+  it("computes and displays unified Exam Readiness Score with breakdown", async () => {
+    const now = new Date();
+    server.use(
+      http.get(rest("materials"), () =>
+        HttpResponse.json([
+          {
+            id: "m1",
+            user_id: "user-1",
+            folder_id: "f1",
+            title: "Cell Biology Notes",
+            type: "text",
+            raw_content: "Extensive study guide covering membrane transport and organelles.",
+            created_at: now.toISOString(),
+          },
+        ]),
+      ),
+      http.get(rest("folders"), () =>
+        HttpResponse.json([
+          {
+            id: "f1",
+            user_id: "user-1",
+            name: "Biology",
+            color: "#0f766e",
+            created_at: now.toISOString(),
+          },
+        ]),
+      ),
+      http.get(rest("flashcards"), () =>
+        HttpResponse.json([
+          {
+            id: "c1",
+            user_id: "user-1",
+            deck_id: "d1",
+            front: "Organelle",
+            back: "Function",
+            srs_interval: 5,
+            ease_factor: 2.5,
+            next_review_date: new Date(now.getTime() + 86400000).toISOString(),
+            created_at: now.toISOString(),
+          },
+        ]),
+      ),
+      http.get(rest("quiz_attempts"), () =>
+        HttpResponse.json([
+          {
+            id: "qa1",
+            user_id: "user-1",
+            quiz_id: "q1",
+            score: 9,
+            total: 10,
+            answers_json: {},
+            weak_topics: [],
+            created_at: now.toISOString(),
+          },
+        ]),
+      ),
+    );
+
+    renderWidget();
+
+    expect(await screen.findByText("Exam Readiness Score")).toBeInTheDocument();
+    expect(screen.getByText(/Syllabus:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Stability:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Quiz:/i)).toBeInTheDocument();
+  });
 });
+

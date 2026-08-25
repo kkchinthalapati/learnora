@@ -267,11 +267,11 @@ body[data-font-family="dyslexic"] {
   }
 }
 
-/* ------------------------------------------------------------------------ *
+/* ------------------------------------------------------------------------
  * Interface font scaling. Same story as the font-family override above:
  * Settings → Appearance's "Interface Font Scaling" picker has always set
  * body[data-font-size] (see lib/appearance.ts), and nothing read it back.
- * The --fs-*/--s-* tokens (tokens.css) are hardcoded px, not rem-derived, so
+ * The font-size / spacing tokens (tokens.css) are hardcoded px, not rem-derived, so
  * scaling :root's font-size wouldn't reach them (and would instead have
  * unrelated side effects on the handful of components that use literal rem
  * values) — overriding the tokens directly is the correct fix. Factors are

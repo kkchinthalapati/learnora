@@ -16,11 +16,13 @@ const editorMock = vi.hoisted(() => ({
   setHtml: vi.fn(),
 }));
 const runInlineActionMock = vi.hoisted(() => vi.fn());
+const createCardFromSnippetMock = vi.hoisted(() => vi.fn());
 const showToastMock = vi.hoisted(() => vi.fn());
 const updateMutateMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../api/aiInlineActions", () => ({
   runInlineAction: runInlineActionMock,
+  createCardFromSnippet: createCardFromSnippetMock,
 }));
 
 vi.mock("../../hooks/useNotes", () => ({
@@ -153,6 +155,7 @@ describe("NotesEditorPane inline AI", () => {
     editorMock.insertAfterRange.mockReset();
     editorMock.setHtml.mockReset();
     runInlineActionMock.mockReset();
+    createCardFromSnippetMock.mockReset();
     showToastMock.mockReset();
     updateMutateMock.mockReset();
   });
@@ -251,5 +254,47 @@ describe("NotesEditorPane inline AI", () => {
         selectedText: "Original selected passage",
       }),
     );
+  });
+
+  it("captures selected snippet and material metadata to create a flashcard", async () => {
+    createCardFromSnippetMock.mockResolvedValue({
+      deck: { id: "d-1", title: "Cell division Flashcards" },
+      cards: [
+        {
+          id: "c-1",
+          front: "What is mitosis?",
+          back: "Cell division producing 2 daughter cells.",
+        },
+      ],
+    });
+    renderPane();
+    await selectPassage();
+
+    const makeCardBtn = screen.getByRole("button", {
+      name: "Make Flashcard selected text",
+    });
+    fireEvent.click(makeCardBtn);
+
+    await waitFor(() => {
+      expect(createCardFromSnippetMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          selectedText: "Original selected passage",
+          materialId: "material-1",
+          materialTitle: "Cell division",
+          folderId: null,
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(showToastMock).toHaveBeenCalledWith(
+        'Created flashcard in "Cell division Flashcards"!',
+      );
+    });
+
+    // Toolbar should be dismissed
+    expect(
+      screen.queryByRole("toolbar", { name: "AI actions for selected text" }),
+    ).not.toBeInTheDocument();
   });
 });

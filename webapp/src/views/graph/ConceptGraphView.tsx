@@ -5,6 +5,7 @@ import { useNotes } from "../../hooks/useNotes";
 import { useFlashcards } from "../../hooks/useFlashcards";
 import { useDecks } from "../../hooks/useDecks";
 import { useQuizzes, useQuizAttempts } from "../../hooks/useQuizzes";
+import { useExams } from "../../hooks/useExams";
 import {
   buildConceptGraph,
   filterConceptGraph,
@@ -52,11 +53,12 @@ export function ConceptGraphView() {
     isPending: attemptsPending,
     isError: attemptsError,
   } = useQuizAttempts();
+  const {
+    data: exams = [],
+    isPending: examsPending,
+    isError: examsError,
+  } = useExams();
 
-  /* Every query must resolve before the graph is built: defaulting to []
-     while pending used to feed buildConceptGraph empty arrays, which
-     rendered the fabricated demo graph as if it were the user's real data
-     on first paint — and permanently, on a silent fetch error. */
   const isPending =
     foldersPending ||
     materialsPending ||
@@ -64,7 +66,8 @@ export function ConceptGraphView() {
     flashcardsPending ||
     decksPending ||
     quizzesPending ||
-    attemptsPending;
+    attemptsPending ||
+    examsPending;
   const isError =
     foldersError ||
     materialsError ||
@@ -72,19 +75,20 @@ export function ConceptGraphView() {
     flashcardsError ||
     decksError ||
     quizzesError ||
-    attemptsError;
+    attemptsError ||
+    examsError;
 
   // Filters State
   const [selectedFolder, setSelectedFolder] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [knowledgeGapsOnly, setKnowledgeGapsOnly] = useState<boolean>(false);
-  /* The demo graph is opt-in from the empty state — it is sample data, and
-   * must never be mistaken for the user's own (empty) graph. */
+  const [prerequisitesOnly, setPrerequisitesOnly] = useState<boolean>(false);
   const [showDemo, setShowDemo] = useState(false);
 
   // Selection & Hover State
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [isDrillOpen, setIsDrillOpen] = useState<boolean>(false);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
 
   // SVG Pan & Zoom State
@@ -104,11 +108,10 @@ export function ConceptGraphView() {
       decks,
       quizzes,
       quizAttempts,
+      exams,
     });
-  }, [folders, materials, notes, flashcards, decks, quizzes, quizAttempts]);
+  }, [folders, materials, notes, flashcards, decks, quizzes, quizAttempts, exams]);
 
-  /* Opt-in demo data for an account with no concepts yet — clearly labelled
-   * while active (see the banner below the toolbar). */
   const demoGraph = useMemo(
     () => (showDemo ? generateSampleGraph(folders) : null),
     [showDemo, folders],
@@ -121,11 +124,10 @@ export function ConceptGraphView() {
       folderId: selectedFolder,
       searchQuery,
       knowledgeGapsOnly,
+      prerequisitesOnly,
     });
-  }, [activeGraph, selectedFolder, searchQuery, knowledgeGapsOnly]);
+  }, [activeGraph, selectedFolder, searchQuery, knowledgeGapsOnly, prerequisitesOnly]);
 
-  // Node lookup by id — O(1) per edge instead of a find() over all nodes for
-  // every edge on every render (hover re-renders included).
   const nodeById = useMemo(
     () => new Map(graphData.nodes.map((n) => [n.id, n])),
     [graphData.nodes],
@@ -151,9 +153,21 @@ export function ConceptGraphView() {
     return ids;
   }, [activeNodeId, graphData.edges]);
 
-  // --- Pan & Zoom Handlers ---
+  // 1-Click Remediate Top Knowledge Gap handler
+  const handleRemediateTopGap = useCallback(() => {
+    const gapNodes = activeGraph.nodes.filter((n) => n.isKnowledgeGap);
+    if (gapNodes.length === 0) return;
+    const topGap = [...gapNodes].sort(
+      (a, b) => (b.gapScore ?? (100 - b.masteryScore)) - (a.gapScore ?? (100 - a.masteryScore)),
+    )[0];
+    if (topGap) {
+      setSelectedNodeId(topGap.id);
+      setIsDrillOpen(true);
+    }
+  }, [activeGraph.nodes]);
+
+  // Pan & Zoom Handlers
   const handleMouseDown = useCallback((e: MouseEvent<SVGSVGElement>) => {
-    // Only pan on background click, not node click
     if ((e.target as HTMLElement).tagName === "svg" || (e.target as HTMLElement).tagName === "rect") {
       setIsPanning(true);
       panStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
@@ -173,9 +187,6 @@ export function ConceptGraphView() {
     setIsPanning(false);
   }, []);
 
-  /* Ending the drag outside the SVG (button released past the canvas edge,
-   * or the window losing focus) must still stop panning — an svg-level
-   * onMouseUp alone left the graph stuck to the cursor afterwards. */
   useEffect(() => {
     if (!isPanning) return;
     const stop = () => setIsPanning(false);
@@ -187,9 +198,6 @@ export function ConceptGraphView() {
     };
   }, [isPanning]);
 
-  /* React attaches onWheel as a passive listener, where preventDefault is a
-   * no-op — the page scrolled while zooming and every tick logged a console
-   * error. A native non-passive listener is required to own the gesture. */
   useEffect(() => {
     const el = svgRef.current;
     if (!el) return;
@@ -214,6 +222,7 @@ export function ConceptGraphView() {
   const handleNodeClick = (node: ConceptNode, e: MouseEvent) => {
     e.stopPropagation();
     setSelectedNodeId(node.id);
+    setIsDrillOpen(false);
   };
 
   const handleNodeMouseEnter = (node: ConceptNode, e: MouseEvent) => {
@@ -253,7 +262,7 @@ export function ConceptGraphView() {
 
   return (
     <div className={styles.container}>
-      {/* Demo banner — sample data is on screen, say so */}
+      {/* Demo banner */}
       {demoGraph && (
         <div className={styles.demoBanner} role="note">
           <span>
@@ -269,6 +278,7 @@ export function ConceptGraphView() {
           </button>
         </div>
       )}
+
       {/* Header Toolbar */}
       <header className={styles.toolbar} role="region" aria-label="Concept Graph Controls">
         <div className={styles.filterGroup}>
@@ -315,6 +325,37 @@ export function ConceptGraphView() {
               </span>
             )}
           </button>
+
+          {/* Prerequisite Hierarchy Filter */}
+          <button
+            type="button"
+            className={`${styles.prereqToggleBtn} ${prerequisitesOnly ? styles.prereqToggleBtnActive : ""}`}
+            onClick={() => setPrerequisitesOnly((prev) => !prev)}
+            aria-pressed={prerequisitesOnly}
+            title="Filter to prerequisite dependency hierarchy"
+          >
+            <Icon name="network" size={16} />
+            <span>Prerequisites</span>
+            {rawGraph.stats.prerequisitesCount !== undefined && rawGraph.stats.prerequisitesCount > 0 && (
+              <span className={styles.gapBadge} style={{ backgroundColor: "var(--accent)" }}>
+                {rawGraph.stats.prerequisitesCount}
+              </span>
+            )}
+          </button>
+
+          {/* 1-Click Remediate Knowledge Gap Action */}
+          {rawGraph.stats.knowledgeGapsCount > 0 && (
+            <button
+              type="button"
+              className={styles.remediateTopGapBtn}
+              onClick={handleRemediateTopGap}
+              title="Start targeted 5-minute recovery drill on top knowledge gap"
+              aria-label="1-Click Remediate Top Gap"
+            >
+              <Icon name="zap" size={16} />
+              <span>Remediate Top Gap</span>
+            </button>
+          )}
         </div>
 
         {/* Stats Row */}
@@ -355,15 +396,13 @@ export function ConceptGraphView() {
       <main className={styles.canvasWrapper}>
         {graphData.nodes.length === 0 ? (
           activeGraph.nodes.length === 0 ? (
-            /* Nothing to draw at all — a brand-new account, not a filter
-               result. Offer the demo instead of an empty canvas. */
             <div className={styles.emptyState}>
               <Icon name="share-2" size={48} />
               <h2 className={styles.emptyStateTitle}>Your Concept Map Is Empty</h2>
               <p className={styles.emptyStateDesc}>
                 Concepts appear here automatically as you add materials,
-                notes, flashcard decks, and quizzes — connected by the topics
-                they share.
+                notes, flashcard decks, quizzes, and exams — connected by prerequisites
+                and the topics they share.
               </p>
               <button
                 type="button"
@@ -378,7 +417,7 @@ export function ConceptGraphView() {
               <Icon name="share-2" size={48} />
               <h2 className={styles.emptyStateTitle}>No Concepts Match Your Filter</h2>
               <p className={styles.emptyStateDesc}>
-                Try clearing your search query or toggling off the knowledge gaps filter to view all connected concepts in your study graph.
+                Try clearing your search query or toggling off the knowledge gaps or prerequisite filter to view all connected concepts.
               </p>
               <button
                 type="button"
@@ -387,6 +426,7 @@ export function ConceptGraphView() {
                   setSearchQuery("");
                   setSelectedFolder("all");
                   setKnowledgeGapsOnly(false);
+                  setPrerequisitesOnly(false);
                 }}
               >
                 Reset Filters
@@ -414,7 +454,7 @@ export function ConceptGraphView() {
                 transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
                 style={{ transformOrigin: "500px 400px" }}
               >
-                {/* SVG Definitions for Gradients & Filters */}
+                {/* SVG Definitions for Gradients, Glows & Arrow Markers */}
                 <defs>
                   <filter id="nodeGlow" x="-50%" y="-50%" width="200%" height="200%">
                     <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="var(--accent)" floodOpacity="0.4" />
@@ -422,6 +462,28 @@ export function ConceptGraphView() {
                   <filter id="gapGlow" x="-50%" y="-50%" width="200%" height="200%">
                     <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#c2453a" floodOpacity="0.6" />
                   </filter>
+                  <marker
+                    id="arrowhead-highlight"
+                    viewBox="0 0 10 10"
+                    refX="22"
+                    refY="5"
+                    markerWidth="6"
+                    markerHeight="6"
+                    orient="auto-start-reverse"
+                  >
+                    <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--accent)" />
+                  </marker>
+                  <marker
+                    id="arrowhead"
+                    viewBox="0 0 10 10"
+                    refX="22"
+                    refY="5"
+                    markerWidth="5"
+                    markerHeight="5"
+                    orient="auto-start-reverse"
+                  >
+                    <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--text-muted)" opacity="0.65" />
+                  </marker>
                 </defs>
 
                 {/* 1. Render Edges */}
@@ -437,13 +499,15 @@ export function ConceptGraphView() {
 
                     const isDimmed = activeNodeId && !isConnectedToHovered;
 
+                    const isPrerequisite = edge.relationship === "depends_on";
+                    const isPartOf = edge.relationship === "part_of";
+
                     // Style edge line based on relationship type
-                    const strokeDasharray =
-                      edge.relationship === "part_of"
-                        ? "4,4"
-                        : edge.relationship === "depends_on"
-                          ? "6,3"
-                          : undefined;
+                    const strokeDasharray = isPartOf
+                      ? "4,4"
+                      : isPrerequisite
+                        ? "6,3"
+                        : undefined;
 
                     return (
                       <line
@@ -464,6 +528,13 @@ export function ConceptGraphView() {
                         }
                         strokeDasharray={strokeDasharray}
                         strokeOpacity={isDimmed ? 0.15 : isConnectedToHovered ? 1 : 0.6}
+                        markerEnd={
+                          isPrerequisite
+                            ? isConnectedToHovered
+                              ? "url(#arrowhead-highlight)"
+                              : "url(#arrowhead)"
+                            : undefined
+                        }
                         className={`${styles.edgeLine} ${
                           isConnectedToHovered ? styles.edgeHighlight : ""
                         } ${isDimmed ? styles.edgeDimmed : ""}`}
@@ -510,7 +581,7 @@ export function ConceptGraphView() {
                           />
                         )}
 
-                        {/* Node Outer Halo / Shadow */}
+                        {/* Node Outer Halo */}
                         <circle
                           r={node.radius + 2}
                           fill="rgba(0, 0, 0, 0.1)"
@@ -595,6 +666,11 @@ export function ConceptGraphView() {
                   Mastery: {hoveredNode.masteryScore}%
                   {hoveredNode.isKnowledgeGap ? " (Gap)" : ""}
                 </div>
+                {hoveredNode.prerequisites && hoveredNode.prerequisites.length > 0 && (
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
+                    Prerequisites: {hoveredNode.prerequisites.length}
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -608,16 +684,23 @@ export function ConceptGraphView() {
             <span>Knowledge Gap (&lt;60%)</span>
           </div>
           <div className={styles.legendItem}>
-            <svg width="18" height="6">
-              <line x1="0" y1="3" x2="18" y2="3" stroke="var(--text-muted)" strokeWidth="2" />
+            <svg width="18" height="8">
+              <line x1="0" y1="4" x2="14" y2="4" stroke="var(--text-muted)" strokeWidth="2" strokeDasharray="4,2" />
+              <polygon points="12,1 18,4 12,7" fill="var(--text-muted)" />
             </svg>
-            <span>Related to</span>
+            <span>Prerequisite (depends on)</span>
           </div>
           <div className={styles.legendItem}>
             <svg width="18" height="6">
               <line x1="0" y1="3" x2="18" y2="3" stroke="var(--text-muted)" strokeWidth="2" strokeDasharray="3,2" />
             </svg>
-            <span>Part of / Depends</span>
+            <span>Part of (component)</span>
+          </div>
+          <div className={styles.legendItem}>
+            <svg width="18" height="6">
+              <line x1="0" y1="3" x2="18" y2="3" stroke="var(--text-muted)" strokeWidth="2" />
+            </svg>
+            <span>Related to</span>
           </div>
         </div>
 
@@ -658,9 +741,17 @@ export function ConceptGraphView() {
         node={selectedNode}
         allNodes={activeGraph.nodes}
         isOpen={Boolean(selectedNode)}
-        onClose={() => setSelectedNodeId(null)}
-        onSelectRelated={(id) => setSelectedNodeId(id)}
+        onClose={() => {
+          setSelectedNodeId(null);
+          setIsDrillOpen(false);
+        }}
+        onSelectRelated={(id) => {
+          setSelectedNodeId(id);
+          setIsDrillOpen(false);
+        }}
+        initialDrillOpen={isDrillOpen}
       />
     </div>
   );
 }
+

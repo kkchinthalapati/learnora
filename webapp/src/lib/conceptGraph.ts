@@ -1,7 +1,18 @@
-import type { Folder, Material, Note, Flashcard, FlashcardDeck, Quiz, QuizAttempt } from "../api/types";
+import type { Folder, Material, Note, Flashcard, FlashcardDeck, Quiz, QuizAttempt, Exam } from "../api/types";
 import { parseStoredQuestions } from "../views/quiz/quizMeta";
+import { daysUntil } from "../views/dashboard/analytics";
 
 export type RelationshipType = "depends_on" | "related_to" | "part_of";
+
+export interface KnowledgeGapDetails {
+  gapScore: number; // 0 to 100 (higher = more urgent gap)
+  quizDeficit: number; // contribution from low quiz scores (0-100)
+  overdueCardsCount: number;
+  examProximityDays: number | null;
+  examName: string | null;
+  urgency: "critical" | "high" | "medium" | "low" | "none";
+  remediationReasons: string[];
+}
 
 export interface ConceptNode {
   id: string;
@@ -11,16 +22,22 @@ export interface ConceptNode {
   folderColor: string;
   masteryScore: number; // 0 to 100
   isKnowledgeGap: boolean;
+  gapScore?: number; // 0 to 100
+  gapDetails?: KnowledgeGapDetails;
   notesCount: number;
   flashcardsCount: number;
   quizzesCount: number;
   materialsCount: number;
+  overdueCardsCount?: number;
+  examProximityDays?: number | null;
   degree: number;
   x: number;
   y: number;
   radius: number;
   noteSnippets: string[];
   relatedConcepts: string[];
+  prerequisites: string[]; // Concept IDs this node depends on (must learn first)
+  dependents: string[]; // Concept IDs that depend on this node (unlocked next)
   materialId?: string | null;
   deckId?: string | null;
   quizId?: string | null;
@@ -39,6 +56,8 @@ export interface ConceptGraphStats {
   totalEdges: number;
   knowledgeGapsCount: number;
   averageMastery: number;
+  prerequisitesCount?: number;
+  criticalGapsCount?: number;
 }
 
 export interface ConceptGraphData {
@@ -51,6 +70,8 @@ export interface GraphFilterOptions {
   folderId?: string | "all" | null;
   searchQuery?: string;
   knowledgeGapsOnly?: boolean;
+  prerequisitesOnly?: boolean;
+  relationshipType?: RelationshipType | "all";
 }
 
 export interface BuildGraphInput {
@@ -61,6 +82,8 @@ export interface BuildGraphInput {
   decks?: FlashcardDeck[];
   quizzes?: Quiz[];
   quizAttempts?: QuizAttempt[];
+  exams?: Exam[];
+  now?: Date;
 }
 
 const CANVAS_WIDTH = 1000;
@@ -133,11 +156,14 @@ interface RawConceptCollector {
   flashcardsCount: number;
   quizzesCount: number;
   materialsCount: number;
+  overdueFlashcardsCount: number;
   noteSnippets: Set<string>;
   flashcardMasteryList: number[];
   quizScoreList: number[];
   isWeakTopic: boolean;
   coOccurrences: Map<string, { count: number; hint: RelationshipType }>;
+  prerequisites: Set<string>; // Concepts this node depends on
+  dependents: Set<string>; // Concepts that depend on this node
 }
 
 /** Stable, collision-free node id. Distinct keys ("atp energy" vs
@@ -171,11 +197,14 @@ function getOrInitConcept(
       flashcardsCount: 0,
       quizzesCount: 0,
       materialsCount: 0,
+      overdueFlashcardsCount: 0,
       noteSnippets: new Set<string>(),
       flashcardMasteryList: [],
       quizScoreList: [],
       isWeakTopic: false,
       coOccurrences: new Map(),
+      prerequisites: new Set<string>(),
+      dependents: new Set<string>(),
     };
     map.set(key, existing);
   } else if (!existing.folderId && folderId) {
@@ -203,6 +232,16 @@ function linkConcepts(
   current2.count += 1;
   if (hint !== "related_to") current2.hint = hint;
   c2.coOccurrences.set(k2, current2);
+
+  if (hint === "depends_on") {
+    // c1 depends on c2: c2 is prerequisite for c1
+    c1.prerequisites.add(c2.id);
+    c2.dependents.add(c1.id);
+  } else if (hint === "part_of") {
+    // c1 is part of c2 (c2 is parent topic)
+    c1.prerequisites.add(c2.id);
+    c2.dependents.add(c1.id);
+  }
 }
 
 /** Mastery (0-100) of one flashcard from its SM-2 state: ease drives the
@@ -218,28 +257,106 @@ function flashcardMastery(card: Pick<Flashcard, "ease_factor" | "srs_interval">)
   );
 }
 
-/** Extracts concepts and snippets from markdown or HTML notes */
+interface ParsedNoteEntity {
+  term: string;
+  snippet: string;
+  isHeading?: boolean;
+  headingLevel?: number;
+  isDef?: boolean;
+  prerequisiteTerms?: string[];
+  dependsOnTerms?: string[];
+  componentTerms?: string[];
+}
+
+/** Extracts concepts, snippets, and prerequisite/hierarchical relationships from notes */
 function parseNotesContent(
   text: string,
-): { term: string; snippet: string; isHeading?: boolean; isDef?: boolean }[] {
+): ParsedNoteEntity[] {
   if (!text) return [];
-  const results: { term: string; snippet: string; isHeading?: boolean; isDef?: boolean }[] = [];
+  const results: ParsedNoteEntity[] = [];
 
   const lines = text.split(/\r?\n/);
+  let currentHeadingTerm: string | null = null;
+
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
     // 1. Headings (e.g. ## Enzymes)
-    const headingMatch = trimmed.match(/^#{1,4}\s+([^\n#]+)/);
-    if (headingMatch && headingMatch[1]) {
-      const headingTerm = normalizeConceptLabel(headingMatch[1]);
+    const headingMatch = trimmed.match(/^(#{1,4})\s+([^\n#]+)/);
+    if (headingMatch && headingMatch[2]) {
+      const headingTerm = normalizeConceptLabel(headingMatch[2]);
       if (headingTerm) {
-        results.push({ term: headingTerm, snippet: trimmed, isHeading: true });
+        currentHeadingTerm = headingTerm;
+        results.push({
+          term: headingTerm,
+          snippet: trimmed,
+          isHeading: true,
+          headingLevel: headingMatch[1].length,
+        });
       }
     }
 
-    // 2. Bold keywords (e.g. **activation energy** or <b>...</b>)
+    // 2. Prerequisite keyword markers (e.g. "Prerequisites: Activation Energy, Catalysts" or "Requires: Cell Membrane")
+    const prereqMatch = trimmed.match(/(?:prerequisite[s]?|requires|prereq[s]?|prior knowledge|foundation|depends on)[:\s]+([^\n;.]+)/i);
+    if (prereqMatch && prereqMatch[1]) {
+      const prereqParts = prereqMatch[1]
+        .split(/[,&]/)
+        .map((p) => normalizeConceptLabel(p))
+        .filter((t): t is string => Boolean(t));
+
+      if (prereqParts.length > 0 && currentHeadingTerm) {
+        results.push({
+          term: currentHeadingTerm,
+          snippet: trimmed,
+          dependsOnTerms: prereqParts,
+        });
+      }
+    }
+
+    // 3. Inline dependency sentences: "X is a prerequisite for Y" -> Y depends on X
+    const isPrereqForMatch = trimmed.match(/([A-Za-z0-9\s-]{2,40})\s+(?:is a prerequisite (?:for|to)|is required for|leads into|is necessary for)\s+([A-Za-z0-9\s-]{2,40})/i);
+    if (isPrereqForMatch && isPrereqForMatch[1] && isPrereqForMatch[2]) {
+      const prereqTerm = normalizeConceptLabel(isPrereqForMatch[1]);
+      const targetTerm = normalizeConceptLabel(isPrereqForMatch[2]);
+      if (prereqTerm && targetTerm) {
+        results.push({
+          term: targetTerm,
+          snippet: trimmed,
+          dependsOnTerms: [prereqTerm],
+        });
+      }
+    }
+
+    // 4. Inline dependency sentences: "Y depends on X" or "Y builds upon X" -> Y depends on X
+    const dependsOnMatch = trimmed.match(/([A-Za-z0-9\s-]{2,40})\s+(?:depends on|requires|builds upon|builds on|is based on|relies on)\s+([A-Za-z0-9\s-]{2,40})/i);
+    if (dependsOnMatch && dependsOnMatch[1] && dependsOnMatch[2]) {
+      const subjectTerm = normalizeConceptLabel(dependsOnMatch[1]);
+      const prereqTerm = normalizeConceptLabel(dependsOnMatch[2]);
+      if (subjectTerm && prereqTerm) {
+        results.push({
+          term: subjectTerm,
+          snippet: trimmed,
+          dependsOnTerms: [prereqTerm],
+        });
+      }
+    }
+
+    // 5. Component sentences: "X is part of Y" or "X is a component of Y"
+    const partOfMatch = trimmed.match(/([A-Za-z0-9\s-]{2,40})\s+(?:is part of|is a component of|is a type of|is a subtopic of|is composed of)\s+([A-Za-z0-9\s-]{2,40})/i);
+    if (partOfMatch && partOfMatch[1] && partOfMatch[2]) {
+      const componentTerm = normalizeConceptLabel(partOfMatch[1]);
+      const parentTerm = normalizeConceptLabel(partOfMatch[2]);
+      if (componentTerm && parentTerm) {
+        results.push({
+          term: componentTerm,
+          snippet: trimmed,
+          componentTerms: [parentTerm],
+        });
+      }
+    }
+
+    // 6. Bold keywords (e.g. **activation energy** or <b>...</b>)
     const boldMatches = trimmed.matchAll(/(?:\*\*|__)(.+?)(?:\*\*|__)|<(?:b|strong|h[1-6]|mark)>([^<]+)<\/(?:b|strong|h[1-6]|mark)>/g);
     for (const match of boldMatches) {
       const rawTerm = match[1] || match[2];
@@ -249,7 +366,7 @@ function parseNotesContent(
       }
     }
 
-    // 3. Bullet definitions (e.g. - Active site: specific to the substrate)
+    // 7. Bullet definitions (e.g. - Active site: specific to the substrate)
     const defMatch = trimmed.match(/^[-*•]\s*([A-Za-z0-9\s-]{2,40}):\s*(.+)$/);
     if (defMatch && defMatch[1]) {
       const defTerm = normalizeConceptLabel(defMatch[1]);
@@ -258,7 +375,7 @@ function parseNotesContent(
       }
     }
 
-    // 4. Definition keywords in sentences
+    // 8. Definition keywords in sentences
     const sentenceDef = trimmed.match(/(?:is defined as|refers to|means|is the process of|is a type of)\s+([A-Za-z0-9\s-]{3,40})/i);
     if (sentenceDef && sentenceDef[1]) {
       const term = normalizeConceptLabel(sentenceDef[1]);
@@ -297,6 +414,118 @@ function parseQuestionConcepts(questionText: string, topic?: string): string[] {
   return terms;
 }
 
+/**
+ * Computes multi-factor knowledge gap details incorporating low quiz scores,
+ * overdue flashcards, and exam proximity.
+ */
+export function computeKnowledgeGapDetails(
+  collector: RawConceptCollector,
+  masteryScore: number,
+  exams: Exam[] = [],
+  now: Date = new Date(),
+): KnowledgeGapDetails {
+  const reasons: string[] = [];
+  const hasCards = collector.flashcardMasteryList.length > 0;
+  const hasQuizzes = collector.quizScoreList.length > 0;
+  const hasEvidence = hasCards || hasQuizzes;
+
+  let quizAvg: number | null = null;
+  if (hasQuizzes) {
+    quizAvg = Math.round(
+      collector.quizScoreList.reduce((a, b) => a + b, 0) / collector.quizScoreList.length,
+    );
+  }
+
+  let quizDeficit = 0;
+  if (quizAvg !== null && quizAvg < 60) {
+    quizDeficit = Math.round(60 - quizAvg);
+    reasons.push(`Low average quiz recall score (${quizAvg}%)`);
+  } else if (collector.isWeakTopic) {
+    quizDeficit = 30;
+    reasons.push("Flagged as a weak topic in recent quiz attempts");
+  }
+
+  const overdueCardsCount = collector.overdueFlashcardsCount || 0;
+  if (overdueCardsCount > 0) {
+    reasons.push(`${overdueCardsCount} overdue flashcard${overdueCardsCount > 1 ? "s" : ""} at forgetting risk`);
+  }
+
+  let examProximityDays: number | null = null;
+  let nearestExamName: string | null = null;
+
+  const validExams = exams.filter((e) => {
+    if (!e.exam_date || e.status === "Completed") return false;
+    const du = daysUntil(e.exam_date, now);
+    return du >= 0;
+  });
+
+  if (validExams.length > 0) {
+    const sortedExams = [...validExams].sort(
+      (a, b) => daysUntil(a.exam_date, now) - daysUntil(b.exam_date, now),
+    );
+    const closestExam = sortedExams[0];
+    examProximityDays = daysUntil(closestExam.exam_date, now);
+    nearestExamName = closestExam.exam_name;
+
+    if (examProximityDays <= 3) {
+      reasons.push(`High urgency: ${closestExam.exam_name} is in ${examProximityDays === 0 ? "today" : `${examProximityDays} day(s)`}`);
+    } else if (examProximityDays <= 7) {
+      reasons.push(`Upcoming exam: ${closestExam.exam_name} in ${examProximityDays} days`);
+    }
+  }
+
+  // Calculate composite gap score (0 to 100)
+  let rawGap = 0;
+  if (hasEvidence || collector.isWeakTopic || overdueCardsCount > 0) {
+    // 1. Mastery deficit (0 to 45 pts)
+    if (masteryScore < 60) {
+      rawGap += Math.round(((60 - masteryScore) / 60) * 45);
+    }
+
+    // 2. Quiz / Weak topic deficit (0 to 25 pts)
+    if (collector.isWeakTopic) {
+      rawGap += 25;
+    } else if (quizDeficit > 0) {
+      rawGap += Math.min(20, Math.round(quizDeficit * 0.5));
+    }
+
+    // 3. Overdue cards (0 to 20 pts)
+    if (overdueCardsCount > 0) {
+      rawGap += Math.min(20, overdueCardsCount * 8);
+    }
+
+    // 4. Exam proximity boost (0 to 20 pts)
+    if (examProximityDays !== null) {
+      if (examProximityDays <= 3) rawGap += 20;
+      else if (examProximityDays <= 7) rawGap += 12;
+      else if (examProximityDays <= 14) rawGap += 6;
+    }
+  }
+
+  const gapScore = Math.min(100, Math.max(0, rawGap));
+
+  let urgency: KnowledgeGapDetails["urgency"] = "none";
+  if (gapScore >= 70 || (gapScore >= 50 && examProximityDays !== null && examProximityDays <= 3)) {
+    urgency = "critical";
+  } else if (gapScore >= 50) {
+    urgency = "high";
+  } else if (gapScore >= 30) {
+    urgency = "medium";
+  } else if (gapScore > 0) {
+    urgency = "low";
+  }
+
+  return {
+    gapScore,
+    quizDeficit,
+    overdueCardsCount,
+    examProximityDays,
+    examName: nearestExamName,
+    urgency,
+    remediationReasons: reasons,
+  };
+}
+
 /** Main builder: extracts concepts from all Learnora study artifacts and computes graph layout */
 export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
   const folders = input.folders || [];
@@ -306,6 +535,8 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
   const decks = input.decks || [];
   const quizzes = input.quizzes || [];
   const quizAttempts = input.quizAttempts || [];
+  const exams = input.exams || [];
+  const now = input.now || new Date();
 
   const folderMap = new Map<string, Folder>();
   folders.forEach((f) => folderMap.set(f.id, f));
@@ -329,6 +560,8 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
       if (norm) weakTopicsSet.add(norm.toLowerCase());
     });
   });
+
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   // 1. Process Materials
   for (const mat of materials) {
@@ -367,6 +600,22 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
       if (note.material_id) collector.materialId = note.material_id;
       if (item.snippet) collector.noteSnippets.add(item.snippet.slice(0, 180));
       noteCollectors.push(collector);
+
+      // Connect explicit prerequisites found in note
+      if (item.dependsOnTerms) {
+        for (const prereqTerm of item.dependsOnTerms) {
+          const prereqCollector = getOrInitConcept(conceptCollectors, prereqTerm, folderId);
+          linkConcepts(collector, prereqCollector, "depends_on");
+        }
+      }
+
+      // Connect subcomponents found in note
+      if (item.componentTerms) {
+        for (const parentTerm of item.componentTerms) {
+          const parentCollector = getOrInitConcept(conceptCollectors, parentTerm, folderId);
+          linkConcepts(collector, parentCollector, "part_of");
+        }
+      }
     }
 
     // Link co-occurring concepts in the same note
@@ -393,6 +642,10 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
     const deckCards = flashcards.filter((c) => c.deck_id === deck.id);
     for (const card of deckCards) {
       const cardMastery = flashcardMastery(card);
+      const isCardOverdue = Boolean(
+        (card.next_review_date && card.next_review_date.slice(0, 10) < todayStr) ||
+        (card.srs_interval === 0 && card.ease_factor < 2.0),
+      );
 
       const frontTerms = parseQuestionConcepts(card.front);
       const backTerms = parseQuestionConcepts(card.back);
@@ -406,12 +659,14 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
         collector.flashcardsCount += 1;
         collector.deckId = deck.id;
         collector.flashcardMasteryList.push(cardMastery);
+        if (isCardOverdue) collector.overdueFlashcardsCount += 1;
         cardCollectors.push(collector);
       }
 
       if (deckCollector) {
         deckCollector.flashcardsCount += 1;
         deckCollector.flashcardMasteryList.push(cardMastery);
+        if (isCardOverdue) deckCollector.overdueFlashcardsCount += 1;
       }
 
       // Link card concepts
@@ -423,14 +678,19 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
     }
   }
 
-  // Also catch flashcards that might not be attached to a loaded deck
+  // Catch flashcards not attached to a loaded deck
   const orphanCards = flashcards.filter((c) => !c.deck_id || !deckMap.has(c.deck_id));
   for (const card of orphanCards) {
     const terms = parseQuestionConcepts(card.front);
+    const isCardOverdue = Boolean(
+      (card.next_review_date && card.next_review_date.slice(0, 10) < todayStr) ||
+      (card.srs_interval === 0 && card.ease_factor < 2.0),
+    );
     for (const term of terms) {
       const collector = getOrInitConcept(conceptCollectors, term, null);
       collector.flashcardsCount += 1;
       collector.flashcardMasteryList.push(flashcardMastery(card));
+      if (isCardOverdue) collector.overdueFlashcardsCount += 1;
     }
   }
 
@@ -479,13 +739,7 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
     }
   }
 
-  /* An empty account yields an empty graph. This used to fall back to a
-   * fabricated sample graph — invented concepts with invented mastery scores,
-   * rendered exactly like real data during loading and on silent fetch
-   * errors. The demo now lives behind an explicit affordance in
-   * ConceptGraphView instead of impersonating the user's data here. */
-
-  // Compute final node mastery and build nodes
+  // Compute final node mastery, gap metrics, and build nodes
   const nodes: ConceptNode[] = [];
   const edgeMap = new Map<string, ConceptEdge>();
 
@@ -517,14 +771,15 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
 
     mastery = Math.max(0, Math.min(100, mastery));
 
-    /* Knowledge gap = measured-but-low recall: a weak topic from attempts, or
-     * cards/quizzes averaging under 60%. A concept with neither cards nor
-     * quizzes has no evidence either way — flagging it purely because its
-     * untested baseline sat below the threshold used to mark almost every
-     * node in a notes-heavy graph as a gap. */
+    // Multi-factor Knowledge Gap details computation
+    const gapDetails = computeKnowledgeGapDetails(collector, mastery, exams, now);
+
     const hasEvidence = hasCards || hasQuizzes;
     const isKnowledgeGap =
-      collector.isWeakTopic || (hasEvidence && mastery < 60);
+      collector.isWeakTopic ||
+      (hasEvidence && mastery < 60) ||
+      (hasEvidence && gapDetails.gapScore >= 50) ||
+      (collector.overdueFlashcardsCount > 0 && gapDetails.examProximityDays !== null && gapDetails.examProximityDays <= 7);
 
     const relatedList = Array.from(collector.coOccurrences.keys());
 
@@ -536,16 +791,22 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
       folderColor,
       masteryScore: mastery,
       isKnowledgeGap,
+      gapScore: gapDetails.gapScore,
+      gapDetails,
       notesCount: collector.notesCount,
       flashcardsCount: collector.flashcardsCount,
       quizzesCount: collector.quizzesCount,
       materialsCount: collector.materialsCount,
+      overdueCardsCount: collector.overdueFlashcardsCount,
+      examProximityDays: gapDetails.examProximityDays,
       degree: collector.coOccurrences.size,
       x: 0,
       y: 0,
       radius: 20,
       noteSnippets: Array.from(collector.noteSnippets).slice(0, 4),
       relatedConcepts: relatedList,
+      prerequisites: Array.from(collector.prerequisites),
+      dependents: Array.from(collector.dependents),
       materialId: collector.materialId,
       deckId: collector.deckId,
       quizId: collector.quizId,
@@ -553,7 +814,11 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
 
     // Register edges
     for (const [targetId, info] of collector.coOccurrences.entries()) {
-      const edgeKey = [collector.id, targetId].sort().join("---");
+      const isDirected = info.hint === "depends_on" || info.hint === "part_of";
+      const edgeKey = isDirected
+        ? `${collector.id}-->${targetId}`
+        : [collector.id, targetId].sort().join("---");
+
       if (!edgeMap.has(edgeKey)) {
         edgeMap.set(edgeKey, {
           id: `edge-${edgeKey}`,
@@ -566,9 +831,7 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
     }
   }
 
-  // Filter edges to only those connecting existing nodes. A few dense notes
-  // can produce thousands of pairwise co-occurrence edges — more than the SVG
-  // can render smoothly — so keep the strongest connections only.
+  // Filter edges to only those connecting existing nodes
   const MAX_EDGES = 400;
   const nodeIds = new Set(nodes.map((n) => n.id));
   const edges = Array.from(edgeMap.values())
@@ -597,6 +860,8 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
   const totalMastery = nodes.reduce((acc, n) => acc + n.masteryScore, 0);
   const averageMastery = nodes.length ? Math.round(totalMastery / nodes.length) : 0;
   const knowledgeGapsCount = nodes.filter((n) => n.isKnowledgeGap).length;
+  const prerequisitesCount = edges.filter((e) => e.relationship === "depends_on").length;
+  const criticalGapsCount = nodes.filter((n) => n.gapDetails?.urgency === "critical").length;
 
   return {
     nodes,
@@ -606,6 +871,8 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
       totalEdges: edges.length,
       knowledgeGapsCount,
       averageMastery,
+      prerequisitesCount,
+      criticalGapsCount,
     },
   };
 }
@@ -694,7 +961,7 @@ export function filterConceptGraph(
   graphData: ConceptGraphData,
   filters: GraphFilterOptions,
 ): ConceptGraphData {
-  const { folderId, searchQuery, knowledgeGapsOnly } = filters;
+  const { folderId, searchQuery, knowledgeGapsOnly, prerequisitesOnly, relationshipType } = filters;
   const q = (searchQuery || "").trim().toLowerCase();
 
   const filteredNodes = graphData.nodes.filter((node) => {
@@ -708,7 +975,12 @@ export function filterConceptGraph(
       return false;
     }
 
-    // 3. Search query filter
+    // 3. Prerequisites filter
+    if (prerequisitesOnly && node.prerequisites.length === 0 && node.dependents.length === 0) {
+      return false;
+    }
+
+    // 4. Search query filter
     if (q) {
       const matchLabel = node.label.toLowerCase().includes(q);
       const matchFolder = node.folderName.toLowerCase().includes(q);
@@ -722,9 +994,15 @@ export function filterConceptGraph(
   });
 
   const nodeIds = new Set(filteredNodes.map((n) => n.id));
-  const filteredEdges = graphData.edges.filter(
+  let filteredEdges = graphData.edges.filter(
     (e) => nodeIds.has(e.source) && nodeIds.has(e.target),
   );
+
+  if (relationshipType && relationshipType !== "all") {
+    filteredEdges = filteredEdges.filter((e) => e.relationship === relationshipType);
+  } else if (prerequisitesOnly) {
+    filteredEdges = filteredEdges.filter((e) => e.relationship === "depends_on" || e.relationship === "part_of");
+  }
 
   // Recalculate degree for filtered nodes
   const degreeMap = new Map<string, number>();
@@ -741,6 +1019,8 @@ export function filterConceptGraph(
   const totalMastery = nodesWithDegree.reduce((acc, n) => acc + n.masteryScore, 0);
   const averageMastery = nodesWithDegree.length ? Math.round(totalMastery / nodesWithDegree.length) : 0;
   const knowledgeGapsCount = nodesWithDegree.filter((n) => n.isKnowledgeGap).length;
+  const prerequisitesCount = filteredEdges.filter((e) => e.relationship === "depends_on").length;
+  const criticalGapsCount = nodesWithDegree.filter((n) => n.gapDetails?.urgency === "critical").length;
 
   return {
     nodes: nodesWithDegree,
@@ -750,12 +1030,13 @@ export function filterConceptGraph(
       totalEdges: filteredEdges.length,
       knowledgeGapsCount,
       averageMastery,
+      prerequisitesCount,
+      criticalGapsCount,
     },
   };
 }
 
-/** Built-in demo graph, offered explicitly by ConceptGraphView's empty state
- *  ("Explore a demo graph") — never rendered as if it were the user's data. */
+/** Built-in demo graph, offered explicitly by ConceptGraphView's empty state */
 export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
   const bioFolder = folders.find((f) => f.name.toLowerCase().includes("bio")) || {
     id: "f-bio",
@@ -782,6 +1063,16 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       folderColor: bioFolder.color,
       masteryScore: 84,
       isKnowledgeGap: false,
+      gapScore: 15,
+      gapDetails: {
+        gapScore: 15,
+        quizDeficit: 0,
+        overdueCardsCount: 0,
+        examProximityDays: 8,
+        examName: "Biology Midterm",
+        urgency: "low",
+        remediationReasons: [],
+      },
       notesCount: 3,
       flashcardsCount: 5,
       quizzesCount: 2,
@@ -795,6 +1086,8 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
         "Active site is highly specific to the substrate conformation.",
       ],
       relatedConcepts: ["concept-activation-energy", "concept-active-site", "concept-denaturation", "concept-catalysts"],
+      prerequisites: ["concept-activation-energy"],
+      dependents: ["concept-denaturation", "concept-active-site"],
     },
     {
       id: "concept-activation-energy",
@@ -804,6 +1097,7 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       folderColor: bioFolder.color,
       masteryScore: 78,
       isKnowledgeGap: false,
+      gapScore: 20,
       notesCount: 2,
       flashcardsCount: 3,
       quizzesCount: 1,
@@ -814,6 +1108,8 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       radius: 26,
       noteSnippets: ["Minimum energy requirement for reactant particles to collide successfully."],
       relatedConcepts: ["concept-enzymes", "concept-catalysts"],
+      prerequisites: [],
+      dependents: ["concept-enzymes"],
     },
     {
       id: "concept-active-site",
@@ -823,6 +1119,7 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       folderColor: bioFolder.color,
       masteryScore: 90,
       isKnowledgeGap: false,
+      gapScore: 10,
       notesCount: 2,
       flashcardsCount: 4,
       quizzesCount: 2,
@@ -833,6 +1130,8 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       radius: 24,
       noteSnippets: ["The 3D pocket where substrates bind and undergo catalytic transformation."],
       relatedConcepts: ["concept-enzymes", "concept-denaturation"],
+      prerequisites: ["concept-enzymes"],
+      dependents: ["concept-denaturation"],
     },
     {
       id: "concept-denaturation",
@@ -842,6 +1141,16 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       folderColor: bioFolder.color,
       masteryScore: 42,
       isKnowledgeGap: true,
+      gapScore: 68,
+      gapDetails: {
+        gapScore: 68,
+        quizDeficit: 25,
+        overdueCardsCount: 2,
+        examProximityDays: 8,
+        examName: "Biology Midterm",
+        urgency: "high",
+        remediationReasons: ["Low retention mastery score (42%)", "2 overdue flashcards at forgetting risk"],
+      },
       notesCount: 1,
       flashcardsCount: 2,
       quizzesCount: 0,
@@ -852,6 +1161,8 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       radius: 24,
       noteSnippets: ["High temperatures or extreme pH disrupt hydrogen bonds causing loss of shape."],
       relatedConcepts: ["concept-enzymes", "concept-active-site"],
+      prerequisites: ["concept-enzymes", "concept-active-site"],
+      dependents: [],
     },
     {
       id: "concept-catalysts",
@@ -861,6 +1172,7 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       folderColor: chemFolder.color,
       masteryScore: 72,
       isKnowledgeGap: false,
+      gapScore: 22,
       notesCount: 2,
       flashcardsCount: 3,
       quizzesCount: 1,
@@ -871,6 +1183,8 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       radius: 28,
       noteSnippets: ["Substances that speed up chemical reaction rates without being consumed."],
       relatedConcepts: ["concept-enzymes", "concept-activation-energy", "concept-titration"],
+      prerequisites: [],
+      dependents: ["concept-activation-energy"],
     },
     {
       id: "concept-titration",
@@ -880,6 +1194,16 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       folderColor: chemFolder.color,
       masteryScore: 48,
       isKnowledgeGap: true,
+      gapScore: 72,
+      gapDetails: {
+        gapScore: 72,
+        quizDeficit: 20,
+        overdueCardsCount: 2,
+        examProximityDays: 4,
+        examName: "Chemistry Final",
+        urgency: "critical",
+        remediationReasons: ["Low mastery (48%)", "Exam approaching in 4 days", "2 overdue flashcards"],
+      },
       notesCount: 2,
       flashcardsCount: 2,
       quizzesCount: 0,
@@ -890,6 +1214,8 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       radius: 26,
       noteSnippets: ["Quantitative analytical method to determine unknown concentration of acid/base."],
       relatedConcepts: ["concept-catalysts", "concept-end-point"],
+      prerequisites: ["concept-moles"],
+      dependents: ["concept-end-point"],
     },
     {
       id: "concept-end-point",
@@ -899,6 +1225,16 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       folderColor: chemFolder.color,
       masteryScore: 35,
       isKnowledgeGap: true,
+      gapScore: 78,
+      gapDetails: {
+        gapScore: 78,
+        quizDeficit: 30,
+        overdueCardsCount: 1,
+        examProximityDays: 4,
+        examName: "Chemistry Final",
+        urgency: "critical",
+        remediationReasons: ["Low mastery (35%)", "Exam in 4 days"],
+      },
       notesCount: 1,
       flashcardsCount: 1,
       quizzesCount: 0,
@@ -909,6 +1245,8 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       radius: 22,
       noteSnippets: ["The exact moment when the indicator changes color permanently."],
       relatedConcepts: ["concept-titration"],
+      prerequisites: ["concept-titration"],
+      dependents: [],
     },
     {
       id: "concept-moles",
@@ -918,6 +1256,7 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       folderColor: chemFolder.color,
       masteryScore: 88,
       isKnowledgeGap: false,
+      gapScore: 12,
       notesCount: 3,
       flashcardsCount: 6,
       quizzesCount: 2,
@@ -928,6 +1267,8 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       radius: 28,
       noteSnippets: ["Avogadro constant and molar mass relationships for stoichiometry calculations."],
       relatedConcepts: ["concept-titration"],
+      prerequisites: [],
+      dependents: ["concept-titration"],
     },
   ];
 
@@ -948,6 +1289,8 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
   const totalMastery = sampleNodes.reduce((acc, n) => acc + n.masteryScore, 0);
   const averageMastery = Math.round(totalMastery / sampleNodes.length);
   const knowledgeGapsCount = sampleNodes.filter((n) => n.isKnowledgeGap).length;
+  const criticalGapsCount = sampleNodes.filter((n) => n.gapDetails?.urgency === "critical").length;
+  const prerequisitesCount = sampleEdges.filter((e) => e.relationship === "depends_on").length;
 
   return {
     nodes: sampleNodes,
@@ -957,6 +1300,194 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
       totalEdges: sampleEdges.length,
       knowledgeGapsCount,
       averageMastery,
+      prerequisitesCount,
+      criticalGapsCount,
     },
+  };
+}
+
+/**
+ * Resolves prerequisite concepts that must be learned before a given concept.
+ */
+export function getPrerequisites(conceptId: string, graph: ConceptGraphData): ConceptNode[] {
+  const node = graph.nodes.find((n) => n.id === conceptId);
+  if (!node) return [];
+  const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
+
+  const prereqIds = new Set<string>(node.prerequisites || []);
+  graph.edges.forEach((edge) => {
+    if (edge.relationship === "depends_on") {
+      if (edge.source === conceptId) prereqIds.add(edge.target);
+    }
+  });
+
+  return Array.from(prereqIds)
+    .map((id) => nodeMap.get(id))
+    .filter((n): n is ConceptNode => Boolean(n));
+}
+
+/**
+ * Resolves dependent concepts unlocked after mastering a given concept.
+ */
+export function getDependents(conceptId: string, graph: ConceptGraphData): ConceptNode[] {
+  const node = graph.nodes.find((n) => n.id === conceptId);
+  if (!node) return [];
+  const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
+
+  const depIds = new Set<string>(node.dependents || []);
+  graph.edges.forEach((edge) => {
+    if (edge.relationship === "depends_on") {
+      if (edge.target === conceptId) depIds.add(edge.source);
+    }
+  });
+
+  return Array.from(depIds)
+    .map((id) => nodeMap.get(id))
+    .filter((n): n is ConceptNode => Boolean(n));
+}
+
+/**
+ * Resolves full prerequisite and component hierarchy for a node.
+ */
+export function getPrerequisiteHierarchy(
+  conceptId: string,
+  graph: ConceptGraphData,
+): {
+  prerequisites: ConceptNode[];
+  dependents: ConceptNode[];
+  components: ConceptNode[];
+} {
+  const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
+  const prerequisites = getPrerequisites(conceptId, graph);
+  const dependents = getDependents(conceptId, graph);
+
+  const componentIds = new Set<string>();
+  graph.edges.forEach((edge) => {
+    if (edge.relationship === "part_of") {
+      if (edge.source === conceptId) componentIds.add(edge.target);
+      if (edge.target === conceptId) componentIds.add(edge.source);
+    }
+  });
+
+  const components = Array.from(componentIds)
+    .map((id) => nodeMap.get(id))
+    .filter((n): n is ConceptNode => Boolean(n));
+
+  return {
+    prerequisites,
+    dependents,
+    components,
+  };
+}
+
+export interface RecoveryDrillQuestion {
+  id: number;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+  conceptTarget: string;
+}
+
+export interface RecoveryDrill {
+  conceptId: string;
+  conceptLabel: string;
+  folderName: string;
+  folderColor: string;
+  gapScore: number;
+  urgency: string;
+  estimatedMinutes: number; // 5
+  summaryTakeaway: string;
+  prerequisiteReview: { id: string; label: string; masteryScore: number }[];
+  highYieldQuestions: RecoveryDrillQuestion[];
+  remediationReasons: string[];
+}
+
+/**
+ * Generates a targeted 5-minute recovery drill and focused summary for a concept knowledge gap.
+ */
+export function generateRecoveryDrill(
+  node: ConceptNode,
+  allNodes: ConceptNode[] = [],
+): RecoveryDrill {
+  const nodeMap = new Map(allNodes.map((n) => [n.id, n]));
+  const prereqNodes = (node.prerequisites || [])
+    .map((id) => nodeMap.get(id))
+    .filter((n): n is ConceptNode => Boolean(n));
+
+  let summaryTakeaway = "";
+  if (node.noteSnippets && node.noteSnippets.length > 0) {
+    summaryTakeaway = node.noteSnippets[0];
+  } else {
+    summaryTakeaway = `Core foundational principles and applications of ${node.label}.`;
+  }
+
+  const prereqHint = prereqNodes.length > 0
+    ? prereqNodes.map((p) => p.label).join(", ")
+    : "foundational concepts";
+
+  const questions: RecoveryDrillQuestion[] = [
+    {
+      id: 1,
+      question: `What is the core definition or mechanism of ${node.label}?`,
+      options: [
+        node.noteSnippets[0]
+          ? node.noteSnippets[0].slice(0, 85)
+          : `Essential process driving ${node.label} in ${node.folderName}`,
+        `An unrelated peripheral process in ${node.folderName}`,
+        `A temporary inhibitor with no catalytic activity`,
+        `A non-functional structural artifact`,
+      ],
+      correctIndex: 0,
+      explanation: `Mastering ${node.label} starts with its core definition: ${node.noteSnippets[0] || `${node.label} is a central topic in ${node.folderName}.`}`,
+      conceptTarget: node.label,
+    },
+    {
+      id: 2,
+      question: `When applying ${node.label}, what prerequisite foundational idea is essential to understand?`,
+      options: [
+        `It operates in isolation without influencing other components`,
+        `It builds on connected prerequisite topics such as ${prereqHint}`,
+        `It only functions when deactivated or degraded`,
+        `It is completely independent of all biological and chemical laws`,
+      ],
+      correctIndex: 1,
+      explanation: `${node.label} relies on its prerequisite foundation (${prereqHint}). Reviewing prerequisites solidifies understanding.`,
+      conceptTarget: node.label,
+    },
+    {
+      id: 3,
+      question: `What is the most effective active recall strategy to remediate this knowledge gap in ${node.label}?`,
+      options: [
+        `Passive re-reading of entire textbook chapters without self-testing`,
+        `Targeted active retrieval practice and explaining core mechanisms under timed intervals`,
+        `Ignoring the gap until the morning of the exam`,
+        `Memorizing without understanding prerequisite terms`,
+      ],
+      correctIndex: 1,
+      explanation: `Spaced retrieval practice reinforces neural pathways for ${node.label}, quickly closing the retention gap.`,
+      conceptTarget: node.label,
+    },
+  ];
+
+  return {
+    conceptId: node.id,
+    conceptLabel: node.label,
+    folderName: node.folderName,
+    folderColor: node.folderColor,
+    gapScore: node.gapScore ?? (node.isKnowledgeGap ? 65 : 20),
+    urgency: node.gapDetails?.urgency ?? (node.isKnowledgeGap ? "high" : "low"),
+    estimatedMinutes: 5,
+    summaryTakeaway,
+    prerequisiteReview: prereqNodes.map((p) => ({
+      id: p.id,
+      label: p.label,
+      masteryScore: p.masteryScore,
+    })),
+    highYieldQuestions: questions,
+    remediationReasons:
+      node.gapDetails?.remediationReasons && node.gapDetails.remediationReasons.length > 0
+        ? node.gapDetails.remediationReasons
+        : (node.isKnowledgeGap ? ["Retention mastery is below target (<60%)"] : []),
   };
 }

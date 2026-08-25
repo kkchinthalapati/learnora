@@ -266,6 +266,108 @@ function ReviewSetup({
   );
 }
 
+export interface SourceNoteContext {
+  materialId: string;
+  quote?: string;
+  title?: string;
+}
+
+export function extractSourceNoteContext(
+  card: Flashcard,
+): SourceNoteContext | null {
+  if (!card) return null;
+  const c = card as any;
+
+  // 1. Direct properties on card
+  const directId = c.source_material_id || c.material_id;
+  if (directId) {
+    return {
+      materialId: String(directId),
+      quote:
+        c.source_quote ||
+        (typeof c.notes === "string" && !c.notes.startsWith("{")
+          ? c.notes
+          : undefined),
+      title: c.source_material_title || c.material_title || undefined,
+    };
+  }
+
+  // 2. Structured JSON or plain note reference in notes
+  if (typeof c.notes === "string" && c.notes.trim()) {
+    try {
+      const parsed = JSON.parse(c.notes);
+      if (parsed && (parsed.materialId || parsed.material_id)) {
+        return {
+          materialId: String(parsed.materialId || parsed.material_id),
+          quote: parsed.quote || parsed.source_quote,
+          title: parsed.title || parsed.materialTitle || parsed.material_title,
+        };
+      }
+    } catch {
+      const match = c.notes.match(/\/notes\/([a-zA-Z0-9_-]+)/);
+      if (match) {
+        return {
+          materialId: match[1],
+          quote:
+            c.notes.replace(/\/notes\/[a-zA-Z0-9_-]+/, "").trim() || undefined,
+        };
+      }
+    }
+  }
+
+  // 3. Embedded comment <!-- source_context: {...} --> in back or front
+  const combined = `${card.back || ""} ${card.front || ""}`;
+  const commentMatch = combined.match(
+    /<!--\s*source(?:_context)?:\s*(\{[\s\S]*?\})\s*-->/i,
+  );
+  if (commentMatch) {
+    try {
+      const parsed = JSON.parse(commentMatch[1]);
+      if (parsed && (parsed.materialId || parsed.material_id)) {
+        return {
+          materialId: String(parsed.materialId || parsed.material_id),
+          quote: parsed.quote || parsed.source_quote,
+          title: parsed.title || parsed.materialTitle || parsed.material_title,
+        };
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // 4. Markdown links [Source Note](/notes/:id)
+  const linkMatch = combined.match(/\[([^\]]*)\]\(\/notes\/([a-zA-Z0-9_-]+)\)/i);
+  if (linkMatch) {
+    const rawTitle = linkMatch[1].trim();
+    return {
+      materialId: linkMatch[2],
+      title:
+        rawTitle &&
+        !["source", "note", "source note"].includes(rawTitle.toLowerCase())
+          ? rawTitle
+          : undefined,
+    };
+  }
+
+  // 5. Bare path /notes/:id
+  const textMatch = combined.match(/\/notes\/([a-zA-Z0-9_-]+)/);
+  if (textMatch) {
+    return {
+      materialId: textMatch[1],
+    };
+  }
+
+  return null;
+}
+
+export function cleanCardText(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/<!--\s*source(?:_context)?:\s*[\s\S]*?-->/gi, "")
+    .replace(/<!--\s*material_id:\s*[\s\S]*?-->/gi, "")
+    .trim();
+}
+
 /* Card text and the student's typed answer are fenced before entering the
  * prompt: both are model-generated-or-student-entered content the app is
  * about to interpolate into its own prompt, so a card carrying (say) an
@@ -276,8 +378,8 @@ const AI_GRADE_PROMPT = (
   card: Flashcard,
   answer: string,
 ) => `Grade my flashcard answer.
-Front: ${fenceUntrusted(card.front)}
-Correct Back: ${fenceUntrusted(card.back)}
+Front: ${fenceUntrusted(cleanCardText(card.front))}
+Correct Back: ${fenceUntrusted(cleanCardText(card.back))}
 My Answer: ${fenceUntrusted(answer)}
 
 Based on how close I am, issue a <GRADE_FLASHCARD>X</GRADE_FLASHCARD> command where X is:
@@ -286,6 +388,326 @@ Based on how close I am, issue a <GRADE_FLASHCARD>X</GRADE_FLASHCARD> command wh
 3 = Good (mostly right)
 4 = Easy (perfect)
 Also provide a short 1-sentence feedback.`;
+
+/** `AI_GRADE_PROMPT` only ever asks for one tag, so `executeActions` only
+ *  ever needs one real handler — the rest exist purely to satisfy
+ *  `ActionHandlers`'s shape and are never reachable from this prompt. A
+ *  fresh object per call is cheap and avoids memoising a dependency on
+ *  `scoreCard`, which itself changes identity every card. */
+export type SocraticMode =
+  | "mnemonic"
+  | "concept"
+  | "socratic_question"
+  | "why_missed";
+
+export function buildSocraticPrompt(
+  mode: SocraticMode,
+  card: Flashcard,
+  studentNote?: string,
+): string {
+  const front = fenceUntrusted(card.front);
+  const back = fenceUntrusted(card.back);
+  const note = studentNote?.trim()
+    ? `\nStudent context / question: ${fenceUntrusted(studentNote.trim())}`
+    : "";
+
+  switch (mode) {
+    case "mnemonic":
+      return `Act as an expert memory coach.
+The student needs a high-retention active-recall mnemonic to remember this flashcard:
+Card Front (Question): ${front}
+Card Back (Answer): ${back}${note}
+
+Please provide:
+1. **Mnemonic Device**: A memorable acronym, vivid mental image, association, or rhyme.
+2. **Memory Hook**: A 1-sentence mental link connecting the question to the answer.
+Keep it punchy, creative, and easy to recall under test conditions.`;
+
+    case "concept":
+      return `Act as a master tutor using the Feynman technique.
+The student needs a clear conceptual explanation of this flashcard:
+Card Front (Question): ${front}
+Card Back (Answer): ${back}${note}
+
+Please provide:
+1. **Core Concept**: The intuitive foundation in simple, plain language.
+2. **Common Misconceptions**: Why this is easily confused or misunderstood.
+3. **Real-World Analogy**: A concrete everyday analogy that grounds the idea.
+Keep it concise (under 150 words).`;
+
+    case "socratic_question":
+      return `Act as a Socratic coach.
+The student is practicing active recall for this flashcard:
+Card Front (Question): ${front}
+Card Back (Answer): ${back}${note}
+
+Provide 2-3 progressive Socratic guiding questions that guide the student to deduce the correct answer themselves without giving it away directly.`;
+
+    case "why_missed":
+    default:
+      return `Act as a cognitive learning specialist analyzing a flashcard recall error.
+Card Front (Question): ${front}
+Card Back (Answer): ${back}${note}
+
+Provide:
+1. **Root Cause Analysis**: Why this specific concept or distinction is commonly missed or confused.
+2. **Key Discriminating Clue**: The single most critical clue or keyword to look for on the front.
+3. **Retention Heuristic**: A simple 1-sentence mental rule to prevent missing this card next time.`;
+  }
+}
+
+export function SocraticCoachDrawer({
+  card,
+  isOpen,
+  onClose,
+  initialMode = "why_missed",
+}: {
+  card: Flashcard | null;
+  isOpen: boolean;
+  onClose: () => void;
+  initialMode?: SocraticMode;
+}) {
+  const { settings } = useSettings();
+  const { showToast } = useToast();
+  const [mode, setMode] = useState<SocraticMode>(initialMode);
+  const [customNote, setCustomNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [response, setResponse] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      setCustomNote("");
+      setResponse(null);
+      setError(null);
+      setCopied(false);
+    }
+  }, [isOpen, initialMode, card?.id]);
+
+  const requestCoach = useCallback(
+    async (selectedMode: SocraticMode, noteText?: string) => {
+      if (!card) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const prompt = buildSocraticPrompt(selectedMode, card, noteText);
+        const { text } = await callEdge({
+          history: [{ role: "user", content: prompt }],
+          settings,
+        });
+        setResponse(text.trim());
+      } catch (err: unknown) {
+        const msg =
+          err instanceof Error
+            ? err.message
+            : "Could not reach Socratic Coach. Please try again.";
+        setError(msg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [card, settings],
+  );
+
+  useEffect(() => {
+    if (isOpen && card && !response && !loading && !error) {
+      void requestCoach(mode);
+    }
+  }, [isOpen, card, response, loading, error, mode, requestCoach]);
+
+  const handleModeChange = (newMode: SocraticMode) => {
+    setMode(newMode);
+    setResponse(null);
+    setError(null);
+    void requestCoach(newMode, customNote);
+  };
+
+  const handleCustomSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customNote.trim()) return;
+    void requestCoach(mode, customNote);
+  };
+
+  const handleCopy = async () => {
+    if (!response) return;
+    try {
+      await navigator.clipboard.writeText(response);
+      setCopied(true);
+      showToast("Copied Socratic guidance to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      showToast("Could not copy to clipboard", { error: true });
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !card) return null;
+
+  return (
+    <div
+      className={styles.socraticDrawerOverlay}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Socratic Coach"
+    >
+      <div
+        className={styles.socraticDrawer}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={styles.socraticHeader}>
+          <div className={styles.socraticHeaderLeft}>
+            <Icon name="brain" size={20} />
+            <h2 className={styles.socraticTitle}>Socratic Coach &amp; Interceptor</h2>
+          </div>
+          <button
+            type="button"
+            className={styles.socraticCloseBtn}
+            onClick={onClose}
+            aria-label="Close Socratic Coach"
+          >
+            <Icon name="x" size={18} />
+          </button>
+        </div>
+
+        <div className={styles.socraticBody}>
+          <div className={styles.socraticCardContext}>
+            <div>
+              <span className={styles.socraticContextLabel}>Q:</span>
+              <span>{card.front}</span>
+            </div>
+            <div>
+              <span className={styles.socraticContextLabel}>A:</span>
+              <span>{card.back}</span>
+            </div>
+          </div>
+
+          <div className={styles.socraticModeTabs} role="tablist" aria-label="Coaching modes">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "why_missed"}
+              className={`${styles.socraticModeTab} ${
+                mode === "why_missed" ? styles.socraticModeTabActive : ""
+              }`}
+              onClick={() => handleModeChange("why_missed")}
+            >
+              🎯 Why Did I Miss This?
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "mnemonic"}
+              className={`${styles.socraticModeTab} ${
+                mode === "mnemonic" ? styles.socraticModeTabActive : ""
+              }`}
+              onClick={() => handleModeChange("mnemonic")}
+            >
+              💡 Mnemonic Aid
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "concept"}
+              className={`${styles.socraticModeTab} ${
+                mode === "concept" ? styles.socraticModeTabActive : ""
+              }`}
+              onClick={() => handleModeChange("concept")}
+            >
+              🔍 Concept Breakdown
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "socratic_question"}
+              className={`${styles.socraticModeTab} ${
+                mode === "socratic_question" ? styles.socraticModeTabActive : ""
+              }`}
+              onClick={() => handleModeChange("socratic_question")}
+            >
+              ❓ Socratic Questions
+            </button>
+          </div>
+
+          <div className={styles.socraticResponseArea}>
+            {loading ? (
+              <div className={styles.socraticLoading} role="status">
+                <span className={styles.pulse} aria-hidden="true" />
+                <span>Socratic Coach is analyzing this concept...</span>
+              </div>
+            ) : error ? (
+              <div className={styles.loadError}>
+                <p>{error}</p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void requestCoach(mode, customNote)}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : response ? (
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className={styles.socraticCopyBtn}
+                  onClick={() => void handleCopy()}
+                  aria-label="Copy guidance"
+                >
+                  <Icon name={copied ? "check" : "file-text"} size={14} />
+                  <span>{copied ? "Copied" : "Copy"}</span>
+                </Button>
+                <p className={styles.socraticText}>{response}</p>
+              </>
+            ) : null}
+          </div>
+
+          <form
+            onSubmit={handleCustomSubmit}
+            className={styles.socraticCustomInputRow}
+          >
+            <input
+              type="text"
+              className={styles.socraticCustomInput}
+              placeholder="Ask a question or describe what confused you..."
+              value={customNote}
+              onChange={(e) => setCustomNote(e.target.value)}
+              disabled={loading}
+              aria-label="Custom question for Socratic Coach"
+            />
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              onClick={handleCustomSubmit}
+              disabled={loading || !customNote.trim()}
+            >
+              Ask
+            </Button>
+          </form>
+        </div>
+
+        <div className={styles.socraticFooter}>
+          <Button variant="secondary" onClick={onClose}>
+            Resume Review
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /** `AI_GRADE_PROMPT` only ever asks for one tag, so `executeActions` only
  *  ever needs one real handler — the rest exist purely to satisfy
@@ -342,6 +764,14 @@ function ReviewSession({
   const [flipped, setFlipped] = useState(false);
   const [answer, setAnswer] = useState("");
   const [grading, setGrading] = useState(false);
+  const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false);
+  const [socraticOpen, setSocraticOpen] = useState(false);
+  const [socraticMode, setSocraticMode] = useState<SocraticMode>("why_missed");
+
+  const openSocratic = (mode: SocraticMode = "why_missed") => {
+    setSocraticMode(mode);
+    setSocraticOpen(true);
+  };
   /* Mirrors `grading`, but readable synchronously after an `await` without
      closing over a stale render — see `handleAiGrade` below, an improvement
      the vanilla never had: its own "AI is grading..." text had no recovery
@@ -398,6 +828,7 @@ function ReviewSession({
       setFlipped(false);
       setAnswer("");
       setGrading(false);
+      setSourceDrawerOpen(false);
     },
     [cards, index, practiceRound, updateReview, showToast],
   );
@@ -454,6 +885,7 @@ function ReviewSession({
                 setFlipped(false);
                 setAnswer("");
                 setGrading(false);
+                setSourceDrawerOpen(false);
               }
             : undefined
         }
@@ -462,6 +894,7 @@ function ReviewSession({
   }
 
   const card = cards[index];
+  const sourceContext = card ? extractSourceNoteContext(card) : null;
 
   const handleAiGrade = async () => {
     const trimmed = answer.trim();
@@ -540,7 +973,7 @@ function ReviewSession({
             className={`${styles.face} ${styles.front}`}
             aria-hidden={flipped}
           >
-            <div className={styles.cardText}>{card.front}</div>
+            <div className={styles.cardText}>{cleanCardText(card.front)}</div>
             {!flipped ? <p className={styles.hint}>Click to flip</p> : null}
           </div>
           <div
@@ -548,11 +981,63 @@ function ReviewSession({
             aria-hidden={!flipped}
           >
             <div className={`${styles.cardText} ${styles.backText}`}>
-              {card.back}
+              {cleanCardText(card.back)}
             </div>
           </div>
         </button>
       </div>
+
+      {sourceContext ? (
+        <div className={styles.sourceContextContainer}>
+          <button
+            type="button"
+            className={`${styles.sourceContextPill} ${
+              sourceDrawerOpen ? styles.sourceContextPillOpen : ""
+            }`}
+            onClick={() => setSourceDrawerOpen((prev) => !prev)}
+            aria-expanded={sourceDrawerOpen}
+            aria-controls="source-note-drawer"
+            aria-label="Source Note Context"
+          >
+            <Icon name="file-text" size={14} />
+            <span>Source Note Context</span>
+            <span className={styles.sourceContextChevron} aria-hidden="true">
+              {sourceDrawerOpen ? "▲" : "▼"}
+            </span>
+          </button>
+
+          {sourceDrawerOpen ? (
+            <div
+              id="source-note-drawer"
+              className={styles.sourceContextDrawer}
+              role="region"
+              aria-label="Source Note Context"
+            >
+              <div className={styles.sourceDrawerHeader}>
+                <div className={styles.sourceDrawerTitle}>
+                  <Icon name="file-text" size={14} />
+                  <span>{sourceContext.title || "Linked Study Note"}</span>
+                </div>
+                <Link
+                  to={`/notes/${sourceContext.materialId}`}
+                  className={styles.sourceNoteLink}
+                  aria-label={`Open source note for ${
+                    sourceContext.title || sourceContext.materialId
+                  }`}
+                >
+                  <span>Open Note</span>
+                  <Icon name="link" size={14} />
+                </Link>
+              </div>
+              {sourceContext.quote ? (
+                <blockquote className={styles.sourceQuote}>
+                  <p>{sourceContext.quote}</p>
+                </blockquote>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {grading ? (
         <p className={styles.gradingStatus} role="status">
@@ -583,41 +1068,60 @@ function ReviewSession({
       </div>
 
       {flipped ? (
-        <div className={styles.controls}>
-          {/* Disabled while an AI grade is in flight: grading manually here
-              would advance to the next card and re-arm the registered
-              grader for it, so a late AI reply for *this* card would score
-              whichever card is showing by the time it arrives instead. */}
-          <Button
-            variant="danger"
-            onClick={() => scoreCard(1)}
-            disabled={grading}
-          >
-            Again (1)
-          </Button>
-          <Button
-            variant="warning"
-            onClick={() => scoreCard(2)}
-            disabled={grading}
-          >
-            Hard (2)
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => scoreCard(3)}
-            disabled={grading}
-          >
-            Good (3)
-          </Button>
-          <Button
-            variant="success"
-            onClick={() => scoreCard(4)}
-            disabled={grading}
-          >
-            Easy (4)
-          </Button>
-        </div>
+        <>
+          <div className={styles.socraticTriggerRow}>
+            <Button
+              variant="secondary"
+              className={styles.socraticBtn}
+              onClick={() => openSocratic("why_missed")}
+            >
+              <Icon name="brain" size={16} />
+              <span>Why did I miss this? (Socratic Coach)</span>
+            </Button>
+          </div>
+          <div className={styles.controls}>
+            {/* Disabled while an AI grade is in flight: grading manually here
+                would advance to the next card and re-arm the registered
+                grader for it, so a late AI reply for *this* card would score
+                whichever card is showing by the time it arrives instead. */}
+            <Button
+              variant="danger"
+              onClick={() => scoreCard(1)}
+              disabled={grading}
+            >
+              Again (1)
+            </Button>
+            <Button
+              variant="warning"
+              onClick={() => scoreCard(2)}
+              disabled={grading}
+            >
+              Hard (2)
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => scoreCard(3)}
+              disabled={grading}
+            >
+              Good (3)
+            </Button>
+            <Button
+              variant="success"
+              onClick={() => scoreCard(4)}
+              disabled={grading}
+            >
+              Easy (4)
+            </Button>
+          </div>
+        </>
       ) : null}
+
+      <SocraticCoachDrawer
+        card={card ?? null}
+        isOpen={socraticOpen}
+        onClose={() => setSocraticOpen(false)}
+        initialMode={socraticMode}
+      />
     </div>
   );
 }
@@ -669,6 +1173,16 @@ function ReviewRecap({
   const isDrill = deckTitle === "Daily 5-Minute Drill";
   const [selectedGrade, setSelectedGrade] = useState<GradeFilter>("all");
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [socraticCard, setSocraticCard] = useState<Flashcard | null>(null);
+  const [socraticMode, setSocraticMode] = useState<SocraticMode>("why_missed");
+
+  const openSocraticForCard = (
+    c: Flashcard,
+    mode: SocraticMode = "why_missed",
+  ) => {
+    setSocraticCard(c);
+    setSocraticMode(mode);
+  };
 
   const startFocusSession = () => {
     const focusTask =
@@ -901,6 +1415,7 @@ function ReviewRecap({
             ) : (
               filteredResults.map(({ card, quality }) => {
                 const info = getGradeInfo(quality);
+                const cardSource = extractSourceNoteContext(card);
                 return (
                   <div key={card.id} className={styles.cardBreakdownItem}>
                     <div className={styles.cardBreakdownHeader}>
@@ -909,15 +1424,47 @@ function ReviewRecap({
                       >
                         {info.label}
                       </span>
+                      {cardSource ? (
+                        <Link
+                          to={`/notes/${cardSource.materialId}`}
+                          className={styles.cardBreakdownSourceLink}
+                          title={cardSource.title || "Source Note"}
+                        >
+                          <Icon name="file-text" size={12} />
+                          <span>Source Note</span>
+                        </Link>
+                      ) : null}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className={styles.socraticCardBtn}
+                        onClick={() =>
+                          openSocraticForCard(
+                            card,
+                            quality < 3 ? "why_missed" : "concept",
+                          )
+                        }
+                      >
+                        <Icon name="brain" size={14} />
+                        <span>Socratic Coach</span>
+                      </Button>
                     </div>
                     <div className={styles.cardFrontPreview}>
                       <span className={styles.cardPreviewLabel}>Q:</span>
-                      {card.front}
+                      {cleanCardText(card.front)}
                     </div>
                     <div className={styles.cardBackPreview}>
                       <span className={styles.cardPreviewLabel}>A:</span>
-                      {card.back}
+                      {cleanCardText(card.back)}
                     </div>
+                    {cardSource?.quote ? (
+                      <div className={styles.cardBreakdownQuote}>
+                        <span className={styles.cardPreviewLabel}>Quote:</span>
+                        <span className={styles.cardQuoteSnippet}>
+                          "{cardSource.quote}"
+                        </span>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })
@@ -979,6 +1526,13 @@ function ReviewRecap({
           )}
         </div>
       </section>
+
+      <SocraticCoachDrawer
+        card={socraticCard}
+        isOpen={!!socraticCard}
+        onClose={() => setSocraticCard(null)}
+        initialMode={socraticMode}
+      />
     </div>
   );
 }

@@ -8,10 +8,15 @@ import {
   getPreExamSurgeQueue,
   type SubjectMastery,
 } from "../lib/adaptiveLearning";
+import {
+  computeUnifiedExamReadiness,
+  type UnifiedExamReadiness,
+} from "../lib/analyticsEngine";
 import { useAllDecks } from "./useDecks";
 import { useExams } from "./useExams";
 import { useAllFlashcards, useFlashcardsDueCount } from "./useFlashcards";
 import { useFolders } from "./useFolders";
+import { useMaterials } from "./useMaterials";
 import { useQuizAttempts, useQuizzes } from "./useQuizzes";
 import { useSessionsSince } from "./useSessions";
 
@@ -21,6 +26,7 @@ export interface UseAdaptiveLearningResult {
   subjectMasteries: SubjectMastery[];
   topWeakTopics: WeakTopic[];
   surgeCards: Flashcard[];
+  examReadiness: UnifiedExamReadiness;
   isPending: boolean;
   isError: boolean;
   error: unknown;
@@ -33,6 +39,7 @@ export function useAdaptiveLearning(): UseAdaptiveLearningResult {
   const dueCountQuery = useFlashcardsDueCount();
   const decksQuery = useAllDecks();
   const foldersQuery = useFolders();
+  const materialsQuery = useMaterials();
   const examsQuery = useExams();
   const quizzesQuery = useQuizzes();
   const quizAttemptsQuery = useQuizAttempts();
@@ -43,6 +50,7 @@ export function useAdaptiveLearning(): UseAdaptiveLearningResult {
     dueCountQuery.isPending ||
     decksQuery.isPending ||
     foldersQuery.isPending ||
+    materialsQuery.isPending ||
     examsQuery.isPending ||
     quizzesQuery.isPending ||
     quizAttemptsQuery.isPending ||
@@ -58,6 +66,7 @@ export function useAdaptiveLearning(): UseAdaptiveLearningResult {
     dueCountQuery.isError ||
     decksQuery.isError ||
     foldersQuery.isError ||
+    materialsQuery.isError ||
     examsQuery.isError ||
     quizzesQuery.isError ||
     quizAttemptsQuery.isError ||
@@ -68,6 +77,7 @@ export function useAdaptiveLearning(): UseAdaptiveLearningResult {
     dueCountQuery.error ||
     decksQuery.error ||
     foldersQuery.error ||
+    materialsQuery.error ||
     examsQuery.error ||
     quizzesQuery.error ||
     quizAttemptsQuery.error ||
@@ -79,6 +89,7 @@ export function useAdaptiveLearning(): UseAdaptiveLearningResult {
   );
   const decks = useMemo(() => decksQuery.data ?? [], [decksQuery.data]);
   const folders = useMemo(() => foldersQuery.data ?? [], [foldersQuery.data]);
+  const materials = useMemo(() => materialsQuery.data ?? [], [materialsQuery.data]);
   const exams = useMemo(() => examsQuery.data ?? [], [examsQuery.data]);
   const quizzes = useMemo(() => quizzesQuery.data ?? [], [quizzesQuery.data]);
   const quizAttempts = useMemo(
@@ -143,12 +154,25 @@ export function useAdaptiveLearning(): UseAdaptiveLearningResult {
     });
   }, [folders, decks, quizzes, cards, quizAttempts]);
 
+  const examReadiness = useMemo(
+    () =>
+      computeUnifiedExamReadiness({
+        materials,
+        flashcards: cards,
+        quizAttempts,
+        exams,
+        folders,
+      }),
+    [materials, cards, quizAttempts, exams, folders],
+  );
+
   return {
     overallRetentionRate,
     forgettingRiskCards,
     subjectMasteries,
     topWeakTopics,
     surgeCards,
+    examReadiness,
     isPending,
     isError,
     error,
@@ -156,3 +180,4 @@ export function useAdaptiveLearning(): UseAdaptiveLearningResult {
     dueCardsCount: dueCountQuery.data ?? 0,
   };
 }
+

@@ -772,3 +772,368 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* --- Source Note Context drawer & pill --- */
+
+.sourceContextContainer {
+  width: 100%;
+  max-width: 600px;
+  margin-top: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.sourceContextPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-pill);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+  transition: all var(--t-fast) ease;
+}
+
+.sourceContextPill:hover {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border-color: var(--accent-ring);
+}
+
+.sourceContextPillOpen {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border-color: var(--accent-ring);
+}
+
+.sourceContextChevron {
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+.sourceContextDrawer {
+  width: 100%;
+  padding: var(--s-4);
+  background: color-mix(in srgb, var(--surface-active) 90%, transparent);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm), var(--glass-inner);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.sourceDrawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.sourceDrawerTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  color: var(--text);
+}
+
+.sourceNoteLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  transition: background var(--t-fast) ease, color var(--t-fast) ease;
+}
+
+.sourceNoteLink:hover {
+  background: var(--accent-soft);
+  text-decoration: underline;
+}
+
+.sourceQuote {
+  margin: 0;
+  padding: var(--s-2) var(--s-3) var(--s-2) var(--s-4);
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  font-size: var(--fs-xs);
+  font-style: italic;
+  color: var(--text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sourceQuote p {
+  margin: 0;
+}
+
+.cardBreakdownSourceLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  margin-left: auto;
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+}
+
+.cardBreakdownSourceLink:hover {
+  text-decoration: underline;
+}
+
+.cardBreakdownQuote {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  margin-top: var(--s-1);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.cardQuoteSnippet {
+  font-style: italic;
+  color: var(--text);
+}
+
+/* --- Socratic AI Coach & Failure Interceptor --- */
+
+.socraticTriggerRow {
+  margin-top: var(--s-3);
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.socraticBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  padding: 8px 16px;
+}
+
+.socraticCardBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-size: var(--fs-xs);
+  padding: 4px 8px;
+}
+
+.socraticDrawerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.socraticDrawer {
+  width: 100%;
+  max-width: 480px;
+  height: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  text-align: left;
+  animation: slideInRight 0.25s ease-out;
+}
+
+.socraticHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-4) var(--s-5);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--surface-hover);
+}
+
+.socraticHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.socraticTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  margin: 0;
+}
+
+.socraticCloseBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--text-muted);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.socraticCloseBtn:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.socraticBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.socraticCardContext {
+  padding: var(--s-3) var(--s-4);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  font-size: var(--fs-xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.socraticContextLabel {
+  font-weight: 700;
+  color: var(--accent-text);
+  margin-right: var(--s-1);
+}
+
+.socraticModeTabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s-2);
+}
+
+.socraticModeTab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  padding: 8px 10px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.socraticModeTab:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.socraticModeTabActive {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent-text);
+}
+
+.socraticResponseArea {
+  min-height: 140px;
+  padding: var(--s-4);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  position: relative;
+}
+
+.socraticLoading {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  padding: var(--s-4) 0;
+}
+
+.socraticText {
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  color: var(--text);
+  margin: 0;
+}
+
+.socraticCopyBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  font-size: var(--fs-xs);
+}
+
+.socraticCustomInputRow {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.socraticCustomInput {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-sm);
+}
+
+.socraticCustomInput:focus {
+  outline: none;
+  border-color: var(--accent-text);
+}
+
+.socraticFooter {
+  padding: var(--s-4) var(--s-5);
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  background: var(--surface-hover);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}

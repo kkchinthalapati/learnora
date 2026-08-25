@@ -14,6 +14,7 @@ export function AdaptiveHealthWidget() {
     subjectMasteries,
     topWeakTopics,
     surgeCards,
+    examReadiness,
     isPending,
     isError,
     error,
@@ -150,6 +151,36 @@ export function AdaptiveHealthWidget() {
               </span>
             </div>
           </div>
+
+          {examReadiness && (
+            <div className={styles.readinessCard}>
+              <div className={styles.readinessHeader}>
+                <div className={styles.readinessTitleGroup}>
+                  <Icon name="award" size={14} />
+                  <span>Exam Readiness Score</span>
+                </div>
+                <span
+                  className={`${styles.tierBadge} ${getTierBadgeClass(examReadiness.tier)}`}
+                >
+                  {examReadiness.tier} ({examReadiness.score}%)
+                </span>
+              </div>
+              <div className={styles.progressBarTrack}>
+                <div
+                  className={styles.progressBarFill}
+                  style={{
+                    width: `${examReadiness.score}%`,
+                    backgroundColor: getProgressBarColor(examReadiness.score),
+                  }}
+                />
+              </div>
+              <div className={styles.readinessBreakdown}>
+                <span>Syllabus: {examReadiness.syllabusCoverage}%</span>
+                <span>Stability: {examReadiness.flashcardStability}%</span>
+                <span>Quiz: {examReadiness.quizMastery}%</span>
+              </div>
+            </div>
+          )}
 
           {surgeCount > 0 && (
             <div className={styles.surgeCallout}>

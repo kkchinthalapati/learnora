@@ -67,11 +67,16 @@ export interface Flashcard {
   srs_interval: number;
   ease_factor: number;
   created_at: string;
+  source_quote?: string | null;
+  source_material_id?: string | null;
+  source_material_title?: string | null;
+  material_id?: string | null;
+  notes?: string | null;
 }
 
 /** Shape returned by `Flashcards.fetchAllDue`'s join with the owning deck. */
 export interface FlashcardDue extends Flashcard {
-  flashcard_decks: { title: string } | null;
+  flashcard_decks: { title: string; folder_id?: string | null } | null;
 }
 
 export interface StudySession {

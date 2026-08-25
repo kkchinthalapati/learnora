@@ -203,4 +203,60 @@ describe("ConceptGraphView", () => {
       expect(await screen.findByRole("dialog", { name: /Concept details for/i })).toBeInTheDocument();
     }
   });
+
+  it("triggers 1-Click Remediate Top Gap action and opens recovery drill", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(rest("folders"), () => HttpResponse.json(mockFolders)),
+      http.get(rest("materials"), () => HttpResponse.json(mockMaterials)),
+      http.get(rest("notes"), () => HttpResponse.json(mockNotes)),
+      http.get(rest("flashcards"), () => HttpResponse.json(mockCards)),
+      http.get(rest("flashcard_decks"), () => HttpResponse.json(mockDecks)),
+      http.get(rest("quizzes"), () => HttpResponse.json(mockQuizzes)),
+      http.get(rest("quiz_attempts"), () => HttpResponse.json(mockAttempts)),
+    );
+
+    renderWithAuth(
+      <MemoryRouter>
+        <ConceptGraphView />
+      </MemoryRouter>,
+      { session: fakeSession() },
+    );
+
+    const remediateTopBtn = await screen.findByRole("button", {
+      name: /Remediate Top Gap/i,
+    });
+    expect(remediateTopBtn).toBeInTheDocument();
+    await user.click(remediateTopBtn);
+
+    expect(await screen.findByRole("dialog", { name: /Concept details for/i })).toBeInTheDocument();
+    expect(await screen.findByText("5-Minute Recovery Drill")).toBeInTheDocument();
+  });
+
+  it("toggles prerequisites filter", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(rest("folders"), () => HttpResponse.json(mockFolders)),
+      http.get(rest("materials"), () => HttpResponse.json(mockMaterials)),
+      http.get(rest("notes"), () => HttpResponse.json(mockNotes)),
+      http.get(rest("flashcards"), () => HttpResponse.json(mockCards)),
+      http.get(rest("flashcard_decks"), () => HttpResponse.json(mockDecks)),
+      http.get(rest("quizzes"), () => HttpResponse.json(mockQuizzes)),
+      http.get(rest("quiz_attempts"), () => HttpResponse.json(mockAttempts)),
+    );
+
+    renderWithAuth(
+      <MemoryRouter>
+        <ConceptGraphView />
+      </MemoryRouter>,
+      { session: fakeSession() },
+    );
+
+    const prereqFilter = await screen.findByRole("button", {
+      name: /Prerequisites/,
+    });
+    expect(prereqFilter).toBeInTheDocument();
+    await user.click(prereqFilter);
+    expect(prereqFilter).toHaveAttribute("aria-pressed", "true");
+  });
 });

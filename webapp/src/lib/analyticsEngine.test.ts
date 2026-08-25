@@ -6,8 +6,16 @@ import {
   computeSubjectUrgencyMatrix,
   generateStudyInsights,
   formatHour,
+  computeUnifiedExamReadiness,
 } from "./analyticsEngine";
-import type { StudySession, QuizAttempt, Folder, Exam } from "../api/types";
+import type {
+  StudySession,
+  QuizAttempt,
+  Folder,
+  Exam,
+  Flashcard,
+  Material,
+} from "../api/types";
 
 describe("analyticsEngine", () => {
   const fakeSession = (
@@ -248,6 +256,129 @@ describe("analyticsEngine", () => {
       expect(formatHour(12)).toBe("12 PM");
       expect(formatHour(15)).toBe("3 PM");
       expect(formatHour(23)).toBe("11 PM");
+    });
+  });
+
+  describe("computeUnifiedExamReadiness", () => {
+    it("computes baseline 100 readiness when no content or exams exist", () => {
+      const result = computeUnifiedExamReadiness({});
+      expect(result.score).toBeGreaterThanOrEqual(80);
+      expect(result.tier).toBe("Exam Ready");
+      expect(result.summary).toBeDefined();
+    });
+
+    it("calculates multi-factor readiness score from syllabus, flashcards, and quizzes", () => {
+      const now = new Date("2026-08-26T12:00:00");
+      const materials: Material[] = [
+        {
+          id: "m1",
+          user_id: "user-1",
+          folder_id: "f1",
+          title: "Syllabus Notes",
+          type: "text",
+          raw_content: "Comprehensive course syllabus and deep lecture breakdown notes.",
+          storage_path: null,
+          created_at: now.toISOString(),
+        },
+        {
+          id: "m2",
+          user_id: "user-1",
+          folder_id: "f1",
+          title: "Chapter 2",
+          type: "text",
+          raw_content: "Detailed chapter 2 summary with formulas and reaction pathways.",
+          storage_path: null,
+          created_at: now.toISOString(),
+        },
+      ];
+
+      const flashcards: Flashcard[] = [
+        {
+          id: "c1",
+          user_id: "user-1",
+          deck_id: "d1",
+          front: "Q1",
+          back: "A1",
+          srs_interval: 10,
+          ease_factor: 2.5,
+          next_review_date: new Date(now.getTime() + 5 * 86400000).toISOString(),
+          created_at: now.toISOString(),
+        },
+        {
+          id: "c2",
+          user_id: "user-1",
+          deck_id: "d1",
+          front: "Q2",
+          back: "A2",
+          srs_interval: 7,
+          ease_factor: 2.4,
+          next_review_date: new Date(now.getTime() + 3 * 86400000).toISOString(),
+          created_at: now.toISOString(),
+        },
+      ];
+
+      const quizAttempts: QuizAttempt[] = [
+        fakeAttempt({ score: 9, total: 10 }),
+        fakeAttempt({ score: 10, total: 10 }),
+      ];
+
+      const result = computeUnifiedExamReadiness({
+        materials,
+        flashcards,
+        quizAttempts,
+        now,
+      });
+
+      expect(result.score).toBeGreaterThanOrEqual(80);
+      expect(result.tier).toBe("Exam Ready");
+      expect(result.syllabusCoverage).toBeGreaterThanOrEqual(50);
+      expect(result.flashcardStability).toBeGreaterThanOrEqual(70);
+      expect(result.quizMastery).toBe(95);
+      expect(result.summary).toContain("Excellent preparation");
+    });
+
+    it("identifies critical gaps when quiz accuracy and flashcard retention are low", () => {
+      const now = new Date("2026-08-26T12:00:00");
+      const flashcards: Flashcard[] = [
+        {
+          id: "c1",
+          user_id: "user-1",
+          deck_id: "d1",
+          front: "Q1",
+          back: "A1",
+          srs_interval: 0,
+          ease_factor: 1.3,
+          next_review_date: new Date(now.getTime() - 10 * 86400000).toISOString(),
+          created_at: now.toISOString(),
+        },
+      ];
+
+      const quizAttempts: QuizAttempt[] = [
+        fakeAttempt({ score: 2, total: 10 }),
+      ];
+
+      const exams: Exam[] = [
+        {
+          id: 1,
+          user_id: "user-1",
+          exam_name: "Bio Midterm",
+          exam_date: "2026-08-28",
+          difficulty: "hard",
+          status: "upcoming",
+        },
+      ];
+
+      const result = computeUnifiedExamReadiness({
+        materials: [],
+        flashcards,
+        quizAttempts,
+        exams,
+        now,
+      });
+
+      expect(result.score).toBeLessThan(50);
+      expect(result.tier).toBe("Critical Gap");
+      expect(result.summary).toContain("falling behind");
     });
   });
 });

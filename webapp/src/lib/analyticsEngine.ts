@@ -1,4 +1,11 @@
-import type { StudySession, QuizAttempt, Folder, Exam } from "../api/types";
+import type {
+  StudySession,
+  QuizAttempt,
+  Folder,
+  Exam,
+  Flashcard,
+  Material,
+} from "../api/types";
 import { localDateStr, parseLocalDate, formatDateStr } from "./date";
 import { STREAK_MIN_MINUTES, computeStudyStreak } from "./streak";
 
@@ -543,3 +550,135 @@ export function generateStudyInsights(
 
   return insights;
 }
+
+export type ExamReadinessTier =
+  | "Exam Ready"
+  | "On Track"
+  | "Needs Review"
+  | "Critical Gap";
+
+export interface UnifiedExamReadiness {
+  score: number; // 0-100
+  tier: ExamReadinessTier;
+  syllabusCoverage: number; // 0-100
+  flashcardStability: number; // 0-100
+  quizMastery: number; // 0-100
+  summary: string;
+}
+
+/**
+ * Computes a unified Exam Readiness Score (0-100%) factoring in:
+ * 1. Syllabus & Material Coverage (30% weight)
+ * 2. Flashcard Stability & Spaced Retention (35% weight)
+ * 3. Quiz Mastery & Active Recall (35% weight)
+ */
+export function computeUnifiedExamReadiness(params: {
+  materials?: Material[];
+  flashcards?: Flashcard[];
+  quizAttempts?: QuizAttempt[];
+  exams?: Exam[];
+  folders?: Folder[];
+  now?: Date;
+}): UnifiedExamReadiness {
+  const {
+    materials = [],
+    flashcards = [],
+    quizAttempts = [],
+    exams = [],
+    folders = [],
+    now = new Date(),
+  } = params;
+
+  // 1. Syllabus Coverage (0-100)
+  let syllabusCoverage = 0;
+  if (materials.length > 0) {
+    const baseScore = Math.min(80, materials.length * 35);
+    const richContentCount = materials.filter(
+      (m) => m.raw_content && m.raw_content.trim().length > 30,
+    ).length;
+    const richBonus = Math.min(20, richContentCount * 10);
+    syllabusCoverage = Math.min(100, baseScore + richBonus);
+  } else if (flashcards.length > 0) {
+    syllabusCoverage = Math.min(60, flashcards.length * 6);
+  } else if (exams.length === 0 && folders.length === 0) {
+    syllabusCoverage = 100;
+  }
+
+  // 2. Flashcard Stability & Spaced Retention (0-100)
+  let flashcardStability = 100;
+  if (flashcards.length > 0) {
+    const todayStr = localDateStr(now);
+    let overdueCount = 0;
+    let criticalCount = 0;
+    let matureCount = 0;
+
+    for (const card of flashcards) {
+      if (card.srs_interval >= 3) {
+        matureCount++;
+      }
+
+      if (card.next_review_date) {
+        const reviewDateStr = card.next_review_date.slice(0, 10);
+        if (reviewDateStr < todayStr) {
+          overdueCount++;
+          if ((card.ease_factor && card.ease_factor < 2.0) || card.srs_interval <= 1) {
+            criticalCount++;
+          }
+        }
+      }
+    }
+
+    const total = flashcards.length;
+    const overduePenalty = (overdueCount / total) * 60;
+    const criticalPenalty = (criticalCount / total) * 40;
+    const retentionRate = Math.max(10, Math.round(100 - overduePenalty - criticalPenalty));
+    const maturityRate = Math.round((matureCount / total) * 100);
+
+    flashcardStability = Math.round(retentionRate * 0.6 + maturityRate * 0.4);
+  }
+
+  // 3. Quiz Mastery (0-100)
+  let quizMastery = 80;
+  if (quizAttempts.length > 0) {
+    const valid = quizAttempts.filter((a) => a.total > 0);
+    if (valid.length > 0) {
+      const avg =
+        valid.reduce((acc, a) => acc + (a.score / a.total) * 100, 0) /
+        valid.length;
+      quizMastery = Math.round(avg);
+    }
+  }
+
+  // Unified score: 30% syllabus coverage, 35% flashcard stability, 35% quiz mastery
+  const rawScore =
+    syllabusCoverage * 0.3 + flashcardStability * 0.35 + quizMastery * 0.35;
+  const score = Math.min(100, Math.max(0, Math.round(rawScore)));
+
+  let tier: ExamReadinessTier = "Critical Gap";
+  let summary =
+    "Exam prep is falling behind. Focus on fundamental notes and flashcard drills.";
+
+  if (score >= 85) {
+    tier = "Exam Ready";
+    summary =
+      "Excellent preparation! High retention, solid quiz accuracy, and comprehensive coverage.";
+  } else if (score >= 70) {
+    tier = "On Track";
+    summary =
+      "Solid study progress. Reinforce weak quiz topics to lock in high exam confidence.";
+  } else if (score >= 50) {
+    tier = "Needs Review";
+    summary =
+      "Decay risks detected in flashcards and moderate quiz mastery. Run focused practice sprints.";
+  }
+
+  return {
+    score,
+    tier,
+    syllabusCoverage,
+    flashcardStability,
+    quizMastery,
+    summary,
+  };
+}
+

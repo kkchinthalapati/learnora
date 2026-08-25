@@ -873,4 +873,337 @@ describe("ReviewView", () => {
       );
     });
   });
+
+  describe("Socratic AI Failure Interceptor & Coach", () => {
+    it("opens Socratic Coach drawer from flipped card and displays AI guidance", async () => {
+      serve();
+      let capturedPayload: unknown;
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          capturedPayload = await request.json();
+          return HttpResponse.json({
+            text: "Root Cause: Mitochondria are often confused with chloroplasts. Key Clue: 'powerhouse'. Heuristic: Mitochondria = Powerhouse.",
+          });
+        }),
+      );
+
+      renderReview();
+      await screen.findByText("What is a mitochondrion?");
+
+      const user = userEvent.setup();
+      await user.click(
+        screen.getByRole("button", { name: "Flip card to see the answer" }),
+      );
+
+      const coachBtn = screen.getByRole("button", {
+        name: "Why did I miss this? (Socratic Coach)",
+      });
+      expect(coachBtn).toBeInTheDocument();
+
+      await user.click(coachBtn);
+
+      expect(
+        await screen.findByRole("heading", {
+          name: "Socratic Coach & Interceptor",
+        }),
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByText(/Root Cause: Mitochondria are often confused/),
+      ).toBeInTheDocument();
+      expect(capturedPayload).toBeDefined();
+
+      // Drawer has mode switchers and close button
+      expect(
+        screen.getByRole("tab", { name: /Mnemonic Aid/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("tab", { name: /Concept Breakdown/i }),
+      ).toBeInTheDocument();
+
+      // Close the drawer
+      await user.click(screen.getByRole("button", { name: "Resume Review" }));
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("heading", {
+            name: "Socratic Coach & Interceptor",
+          }),
+        ).not.toBeInTheDocument(),
+      );
+    });
+
+    it("switches coaching mode to Mnemonic Aid and fetches mnemonic from model", async () => {
+      serve();
+      let lastPromptText = "";
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          const body = (await request.json()) as { history: { content: string }[] };
+          lastPromptText = body.history[0]?.content || "";
+          return HttpResponse.json({
+            text: "Mnemonic: Mighty Mitochondria - Mighty power generator of the cell!",
+          });
+        }),
+      );
+
+      renderReview();
+      await screen.findByText("What is a mitochondrion?");
+
+      const user = userEvent.setup();
+      await user.click(
+        screen.getByRole("button", { name: "Flip card to see the answer" }),
+      );
+      await user.click(
+        screen.getByRole("button", {
+          name: "Why did I miss this? (Socratic Coach)",
+        }),
+      );
+
+      const mnemonicTab = await screen.findByRole("tab", {
+        name: /Mnemonic Aid/i,
+      });
+      await user.click(mnemonicTab);
+
+      expect(
+        await screen.findByText(/Mighty Mitochondria - Mighty power generator/),
+      ).toBeInTheDocument();
+      expect(lastPromptText).toContain("mnemonic");
+    });
+
+    it("submits a custom question/note to Socratic Coach and updates advice", async () => {
+      serve();
+      let lastPrompt = "";
+      let callCount = 0;
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          callCount++;
+          const body = (await request.json()) as { history: { content: string }[] };
+          lastPrompt = body.history[0]?.content || "";
+          if (callCount === 1) {
+            return HttpResponse.json({
+              text: "Initial failure analysis: Mitochondria is the powerhouse.",
+            });
+          }
+          return HttpResponse.json({
+            text: "Custom Guidance: ATP synthesis is like a rechargeable battery factory.",
+          });
+        }),
+      );
+
+      renderReview();
+      await screen.findByText("What is a mitochondrion?");
+
+      const user = userEvent.setup();
+      await user.click(
+        screen.getByRole("button", { name: "Flip card to see the answer" }),
+      );
+      await user.click(
+        screen.getByRole("button", {
+          name: "Why did I miss this? (Socratic Coach)",
+        }),
+      );
+
+      expect(
+        await screen.findByText(
+          "Initial failure analysis: Mitochondria is the powerhouse.",
+        ),
+      ).toBeInTheDocument();
+
+      const input = screen.getByRole("textbox", {
+        name: "Custom question for Socratic Coach",
+      });
+      await user.type(input, "How is ATP made here?");
+      await user.click(screen.getByRole("button", { name: "Ask" }));
+
+      expect(
+        await screen.findByText(
+          "Custom Guidance: ATP synthesis is like a rechargeable battery factory.",
+        ),
+      ).toBeInTheDocument();
+      expect(lastPrompt).toContain("How is ATP made here?");
+    });
+
+    it("allows opening Socratic Coach from the recap breakdown list for difficult cards", async () => {
+      serve({
+        cards: [card({ id: "c-1", front: "Hard Concept Q", back: "Deep Answer A" })],
+      });
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({
+            text: "Focus on the distinction between transcription and translation.",
+          }),
+        ),
+      );
+
+      renderReview();
+      await screen.findByText("Hard Concept Q");
+
+      const user = userEvent.setup();
+      await user.click(
+        screen.getByRole("button", { name: "Flip card to see the answer" }),
+      );
+      await user.click(screen.getByRole("button", { name: "Hard (2)" }));
+
+      expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+
+      const coachBtns = screen.getAllByRole("button", { name: /Socratic Coach/i });
+      expect(coachBtns.length).toBeGreaterThan(0);
+
+      await user.click(coachBtns[0]!);
+
+      expect(
+        await screen.findByRole("heading", {
+          name: "Socratic Coach & Interceptor",
+        }),
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByText(
+          "Focus on the distinction between transcription and translation.",
+        ),
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe("Source Note Context deep linking", () => {
+    it("displays Source Note Context pill and expands drawer with quote and link to /notes/:materialId", async () => {
+      const sourceMeta = {
+        materialId: "mat-456",
+        materialTitle: "Photosynthesis Notes",
+        quote: "Chlorophyll absorbs blue and red light while reflecting green light.",
+      };
+      serve({
+        cards: [
+          card({
+            id: "c-source-1",
+            front: "Which wavelengths of light does chlorophyll absorb?",
+            back: `Blue and red light.\n\n<!-- source_context: ${JSON.stringify(sourceMeta)} -->`,
+          }),
+        ],
+      });
+
+      renderReview();
+      await screen.findByText("Which wavelengths of light does chlorophyll absorb?");
+
+      // Verify that embedded comment does not leak onto the card front
+      expect(
+        screen.queryByText(/<!-- source_context:/),
+      ).not.toBeInTheDocument();
+
+      // Pill button should be visible
+      const pill = screen.getByRole("button", { name: "Source Note Context" });
+      expect(pill).toBeInTheDocument();
+      expect(pill).toHaveAttribute("aria-expanded", "false");
+
+      // Expand drawer
+      const user = userEvent.setup();
+      await user.click(pill);
+
+      expect(pill).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByText("Photosynthesis Notes")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Chlorophyll absorbs blue and red light while reflecting green light.",
+        ),
+      ).toBeInTheDocument();
+
+      const noteLink = screen.getByRole("link", {
+        name: "Open source note for Photosynthesis Notes",
+      });
+      expect(noteLink).toHaveAttribute("href", "/notes/mat-456");
+
+      // Flip card and ensure back text is clean without raw comment
+      await user.click(
+        screen.getByRole("button", { name: "Flip card to see the answer" }),
+      );
+      expect(screen.getByText("Blue and red light.")).toBeInTheDocument();
+      expect(
+        screen.queryByText(/<!-- source_context:/),
+      ).not.toBeInTheDocument();
+    });
+
+    it("supports direct card fields source_material_id and source_quote", async () => {
+      serve({
+        cards: [
+          card({
+            id: "c-source-2",
+            front: "What is the citric acid cycle?",
+            back: "A series of chemical reactions used by aerobic organisms.",
+            source_material_id: "mat-789",
+            source_material_title: "Cellular Respiration",
+            source_quote: "The citric acid cycle takes place in the matrix of the mitochondria.",
+          }),
+        ],
+      });
+
+      renderReview();
+      await screen.findByText("What is the citric acid cycle?");
+
+      const user = userEvent.setup();
+      const pill = screen.getByRole("button", { name: "Source Note Context" });
+      await user.click(pill);
+
+      expect(screen.getByText("Cellular Respiration")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "The citric acid cycle takes place in the matrix of the mitochondria.",
+        ),
+      ).toBeInTheDocument();
+
+      const noteLink = screen.getByRole("link", {
+        name: "Open source note for Cellular Respiration",
+      });
+      expect(noteLink).toHaveAttribute("href", "/notes/mat-789");
+    });
+
+    it("hides Source Note Context pill when card has no source reference", async () => {
+      serve({
+        cards: [
+          card({
+            id: "c-plain",
+            front: "Plain question without source reference",
+            back: "Plain answer",
+          }),
+        ],
+      });
+
+      renderReview();
+      await screen.findByText("Plain question without source reference");
+
+      expect(
+        screen.queryByRole("button", { name: "Source Note Context" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("renders source note links and quotes in the session recap breakdown", async () => {
+      const sourceMeta = {
+        materialId: "mat-101",
+        materialTitle: "DNA Replication",
+        quote: "Helicase unwinds the double helix at the replication fork.",
+      };
+      serve({
+        cards: [
+          card({
+            id: "c-dna",
+            front: "What does helicase do?",
+            back: `It unwinds DNA.\n\n<!-- source_context: ${JSON.stringify(sourceMeta)} -->`,
+          }),
+        ],
+      });
+
+      renderReview();
+      await screen.findByText("What does helicase do?");
+
+      const user = userEvent.setup();
+      await user.click(
+        screen.getByRole("button", { name: "Flip card to see the answer" }),
+      );
+      await user.click(screen.getByRole("button", { name: "Good (3)" }));
+
+      expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+
+      const sourceLink = screen.getByRole("link", { name: "Source Note" });
+      expect(sourceLink).toHaveAttribute("href", "/notes/mat-101");
+      expect(
+        screen.getByText(/Helicase unwinds the double helix at the replication fork/),
+      ).toBeInTheDocument();
+    });
+  });
 });

@@ -1,9 +1,20 @@
 import { callEdge } from "./ai";
 import { fenceUntrusted } from "../lib/actionTags";
+import { extractFlashcardJSON } from "../lib/aiJson";
+import { decksApi } from "./decks";
+import { flashcardsApi } from "./flashcards";
 import type { Settings } from "../lib/settings";
+import type { Flashcard, FlashcardDeck } from "./types";
 
 export type InlineAction =
-  "explain" | "improve" | "summarize" | "expand" | "simplify" | "custom";
+  | "explain"
+  | "improve"
+  | "summarize"
+  | "expand"
+  | "simplify"
+  | "custom"
+  | "flashcard"
+  | "make_card";
 
 export interface InlineActionPayload {
   action: InlineAction;
@@ -20,7 +31,10 @@ export interface InlineActionResult {
   action: InlineAction;
 }
 
-const ACTION_INSTRUCTIONS: Record<Exclude<InlineAction, "custom">, string> = {
+const ACTION_INSTRUCTIONS: Record<
+  Exclude<InlineAction, "custom" | "flashcard" | "make_card">,
+  string
+> = {
   explain:
     "Explain the selected passage clearly in context. Focus on meaning, significance, and any prerequisite idea the student may be missing.",
   improve:
@@ -37,7 +51,12 @@ function promptFor(payload: InlineActionPayload): string {
   const instruction =
     payload.action === "custom"
       ? `Follow this student instruction for the selected passage:\n"""\n${fenceUntrusted(payload.customInstruction)}\n"""`
-      : ACTION_INSTRUCTIONS[payload.action];
+      : ACTION_INSTRUCTIONS[
+          payload.action as Exclude<
+            InlineAction,
+            "custom" | "flashcard" | "make_card"
+          >
+        ];
 
   return `${instruction}
 
@@ -78,5 +97,107 @@ export async function runInlineAction(
     originalText: payload.selectedText,
     newText: text.trim(),
     action: payload.action,
+  };
+}
+
+export interface CreateCardFromSnippetPayload {
+  selectedText: string;
+  surroundingContext?: string;
+  materialId: string;
+  materialTitle: string;
+  folderId: string | null;
+  settings: Settings;
+}
+
+export interface CreateCardFromSnippetResult {
+  deck: FlashcardDeck;
+  cards: Flashcard[];
+}
+
+export async function createCardFromSnippet({
+  selectedText,
+  surroundingContext = "",
+  materialId,
+  materialTitle,
+  folderId,
+  settings,
+}: CreateCardFromSnippetPayload): Promise<CreateCardFromSnippetResult> {
+  const trimmed = selectedText.trim();
+  if (!trimmed) throw new Error("Select some note text first.");
+
+  const prompt = `Generate 1 or 2 high-quality, concise flashcards directly testing the core concept in the selected note snippet from "${materialTitle}".
+
+Selected note snippet:
+"""
+${fenceUntrusted(trimmed)}
+"""
+
+Surrounding document context:
+"""
+${fenceUntrusted(surroundingContext)}
+"""
+
+Output ONLY a JSON array in the exact format:
+[{"front": "Question/Prompt", "back": "Answer"}]`;
+
+  const { text } = await callEdge({
+    history: [{ role: "user", content: prompt }],
+    mode: "flashcards",
+    settings,
+  });
+
+  let rawCards = extractFlashcardJSON(text).filter(
+    (c) =>
+      typeof c.front === "string" &&
+      !!c.front.trim() &&
+      typeof c.back === "string" &&
+      !!c.back.trim(),
+  );
+
+  if (rawCards.length === 0) {
+    rawCards = [
+      {
+        front: `Key concept: ${trimmed.slice(0, 60)}${trimmed.length > 60 ? "…" : ""}`,
+        back: trimmed,
+      },
+    ];
+  }
+
+  const sourceMeta = {
+    materialId,
+    materialTitle,
+    quote: trimmed,
+  };
+
+  const cardsWithSource = rawCards.map((c) => ({
+    front: c.front.trim(),
+    back: `${c.back.trim()}\n\n<!-- source_context: ${JSON.stringify(sourceMeta)} -->`,
+    source_quote: trimmed,
+    source_material_id: materialId,
+    source_material_title: materialTitle,
+    material_id: materialId,
+  }));
+
+  const existingDecks = await decksApi.fetchAll();
+  const deckTitle = `${materialTitle} Flashcards`;
+  let targetDeck =
+    existingDecks.find(
+      (d) =>
+        d.title === deckTitle &&
+        (folderId ? d.folder_id === folderId : true),
+    ) ?? existingDecks.find((d) => d.title === deckTitle);
+
+  if (!targetDeck) {
+    targetDeck = await decksApi.add(folderId, deckTitle);
+  }
+
+  const createdCards = await flashcardsApi.addBatch(
+    targetDeck.id,
+    cardsWithSource,
+  );
+
+  return {
+    deck: targetDeck,
+    cards: createdCards,
   };
 }

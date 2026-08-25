@@ -170,6 +170,43 @@
   margin-top: 2px;
 }
 
+/* Exam Readiness Card */
+.readinessCard {
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+  padding: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.readinessHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.readinessTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-text);
+  font-weight: 700;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.readinessBreakdown {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+
 /* Surge Alert Callout */
 .surgeCallout {
   display: flex;

@@ -5,9 +5,13 @@ import {
   filterConceptGraph,
   generateSampleGraph,
   applyClusterLayout,
+  getPrerequisites,
+  getDependents,
+  getPrerequisiteHierarchy,
+  generateRecoveryDrill,
   type ConceptNode,
 } from "./conceptGraph";
-import type { Folder, Material, Note, Flashcard, FlashcardDeck, Quiz, QuizAttempt } from "../api/types";
+import type { Folder, Material, Note, Flashcard, FlashcardDeck, Quiz, QuizAttempt, Exam } from "../api/types";
 
 describe("conceptGraph", () => {
   describe("normalizeConceptLabel", () => {
@@ -59,7 +63,12 @@ describe("conceptGraph", () => {
         id: "n-1",
         user_id: "u-1",
         material_id: "m-1",
-        markdown_content: "## Enzymes\nEnzymes lower **activation energy** of reactions.\n- Active site: Specific binding pocket.",
+        markdown_content: `## Enzymes
+Prerequisites: Activation Energy, Catalysts
+Enzymes lower **activation energy** of reactions.
+- Active site: Specific binding pocket.
+Active Site is a component of Enzymes.
+Denaturation depends on Active Site.`,
         html_content: null,
         created_at: "2026-01-01",
       },
@@ -76,7 +85,7 @@ describe("conceptGraph", () => {
         deck_id: "d-1",
         front: "What is an active site?",
         back: "The catalytic region on an enzyme where the substrate binds.",
-        next_review_date: "2026-01-10",
+        next_review_date: "2026-09-10",
         srs_interval: 4,
         ease_factor: 2.6,
         created_at: "2026-01-01",
@@ -87,7 +96,7 @@ describe("conceptGraph", () => {
         deck_id: "d-1",
         front: "Explain denaturation",
         back: "Loss of native structure due to heat or pH.",
-        next_review_date: null,
+        next_review_date: "2026-01-01", // Overdue
         srs_interval: 0,
         ease_factor: 1.8,
         created_at: "2026-01-01",
@@ -127,7 +136,18 @@ describe("conceptGraph", () => {
       },
     ];
 
-    it("extracts concept nodes and edges from all study artifacts", () => {
+    const mockExams: Exam[] = [
+      {
+        id: 1,
+        user_id: "u-1",
+        exam_name: "Biology Midterm",
+        exam_date: "2026-08-28", // In 2 days
+        difficulty: "hard",
+        status: "upcoming",
+      },
+    ];
+
+    it("extracts concept nodes, prerequisites, and edges from study artifacts", () => {
       const graph = buildConceptGraph({
         folders: mockFolders,
         materials: mockMaterials,
@@ -136,6 +156,8 @@ describe("conceptGraph", () => {
         decks: mockDecks,
         quizzes: mockQuizzes,
         quizAttempts: mockAttempts,
+        exams: mockExams,
+        now: new Date("2026-08-26T00:00:00Z"),
       });
 
       expect(graph.nodes.length).toBeGreaterThan(0);
@@ -151,13 +173,25 @@ describe("conceptGraph", () => {
       expect(enzymeNode?.x).toBeGreaterThan(0);
       expect(enzymeNode?.y).toBeGreaterThan(0);
 
-      // Verify knowledge gap detection: "Denaturation" has card evidence with
-      // low mastery AND is a weak topic — measured-but-low, so a real gap.
-      const denatureNode = graph.nodes.find((n) =>
-        n.label.toLowerCase().includes("denaturation"),
-      );
+      // Verify prerequisite detection: "Enzymes" depends on "Activation Energy" and "Catalysts"
+      const activationEnergyNode = graph.nodes.find((n) => n.label === "Activation Energy");
+      expect(activationEnergyNode).toBeDefined();
+      expect(enzymeNode?.prerequisites).toContain(activationEnergyNode?.id);
+
+      // Verify "Denaturation" depends on "Active Site"
+      const denatureNode = graph.nodes.find((n) => n.label.toLowerCase().includes("denaturation"));
+      const activeSiteNode = graph.nodes.find((n) => n.label === "Active Site");
       expect(denatureNode).toBeDefined();
+      expect(activeSiteNode).toBeDefined();
+      expect(denatureNode?.prerequisites).toContain(activeSiteNode?.id);
+
+      // Verify knowledge gap detection and multi-factor scoring
       expect(denatureNode?.isKnowledgeGap).toBe(true);
+      expect(denatureNode?.gapScore).toBeGreaterThan(50);
+      expect(denatureNode?.gapDetails).toBeDefined();
+      expect(denatureNode?.gapDetails?.overdueCardsCount).toBeGreaterThan(0);
+      expect(denatureNode?.gapDetails?.examProximityDays).toBeLessThanOrEqual(3);
+      expect(denatureNode?.gapDetails?.urgency).toBe("critical");
     });
 
     it("returns an empty graph (not the demo) for an account with no study data", () => {
@@ -169,7 +203,6 @@ describe("conceptGraph", () => {
     });
 
     it("does not flag note-only concepts as knowledge gaps — no evidence is not low mastery", () => {
-      // Notes and a material title only: no cards, no quizzes, no weak topics.
       const graph = buildConceptGraph({
         folders: mockFolders,
         materials: mockMaterials,
@@ -182,8 +215,6 @@ describe("conceptGraph", () => {
     });
 
     it("mints distinct ids for keys that collapse to the same slug", () => {
-      // "atp energy" and "atp-energy" both slug to "atp-energy"; their node
-      // ids must still differ or edge dedup and React keys corrupt.
       const graph = buildConceptGraph({
         notes: [
           {
@@ -200,6 +231,94 @@ describe("conceptGraph", () => {
       expect(new Set(ids).size).toBe(ids.length);
       expect(ids.length).toBeGreaterThanOrEqual(2);
     });
+
+    it("correctly calculates multi-factor knowledge gap scores with imminent exams and overdue cards", () => {
+      const graph = buildConceptGraph({
+        folders: mockFolders,
+        flashcards: [
+          {
+            id: "c-urgent",
+            user_id: "u-1",
+            deck_id: null,
+            front: "Define Osmosis",
+            back: "Diffusion of water across a semipermeable membrane",
+            next_review_date: "2026-08-20", // overdue
+            srs_interval: 0,
+            ease_factor: 1.5,
+            created_at: "2026-01-01",
+          },
+        ],
+        quizzes: [
+          {
+            id: "q-urgent",
+            user_id: "u-1",
+            material_id: null,
+            folder_id: "f-bio",
+            title: "Osmosis Quiz",
+            questions_json: [{ id: 1, question: "What is Osmosis?", topic: "Osmosis" }],
+            created_at: "2026-01-01",
+          },
+        ],
+        quizAttempts: [
+          {
+            id: "qa-urgent",
+            user_id: "u-1",
+            quiz_id: "q-urgent",
+            score: 1,
+            total: 5,
+            answers_json: [],
+            weak_topics: ["Osmosis"],
+            created_at: "2026-01-01",
+          },
+        ],
+        exams: mockExams,
+        now: new Date("2026-08-26T00:00:00Z"),
+      });
+
+      const osmosisNode = graph.nodes.find((n) => n.label === "Osmosis");
+      expect(osmosisNode).toBeDefined();
+      expect(osmosisNode?.isKnowledgeGap).toBe(true);
+      expect(osmosisNode?.gapScore).toBeGreaterThanOrEqual(60);
+      expect(osmosisNode?.gapDetails?.urgency).toBe("critical");
+      expect(osmosisNode?.gapDetails?.remediationReasons.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("prerequisite helpers & hierarchy", () => {
+    const sampleGraph = generateSampleGraph();
+
+    it("resolves prerequisites for a concept correctly", () => {
+      const prereqs = getPrerequisites("concept-enzymes", sampleGraph);
+      expect(prereqs.some((p) => p.id === "concept-activation-energy")).toBe(true);
+    });
+
+    it("resolves dependents for a concept correctly", () => {
+      const dependents = getDependents("concept-enzymes", sampleGraph);
+      expect(dependents.some((d) => d.id === "concept-denaturation")).toBe(true);
+    });
+
+    it("resolves full prerequisite and component hierarchy", () => {
+      const hierarchy = getPrerequisiteHierarchy("concept-enzymes", sampleGraph);
+      expect(hierarchy.prerequisites.length).toBeGreaterThan(0);
+      expect(hierarchy.dependents.length).toBeGreaterThan(0);
+      expect(hierarchy.components.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("generateRecoveryDrill", () => {
+    const sampleGraph = generateSampleGraph();
+    const gapNode = sampleGraph.nodes.find((n) => n.isKnowledgeGap)!;
+
+    it("generates structured 5-minute recovery drill with questions and summary", () => {
+      const drill = generateRecoveryDrill(gapNode, sampleGraph.nodes);
+      expect(drill.conceptId).toBe(gapNode.id);
+      expect(drill.conceptLabel).toBe(gapNode.label);
+      expect(drill.estimatedMinutes).toBe(5);
+      expect(drill.summaryTakeaway).toBeTruthy();
+      expect(drill.highYieldQuestions.length).toBeGreaterThanOrEqual(3);
+      expect(drill.highYieldQuestions[0].options.length).toBe(4);
+      expect(drill.highYieldQuestions[0].explanation).toBeTruthy();
+    });
   });
 
   describe("filterConceptGraph", () => {
@@ -210,7 +329,6 @@ describe("conceptGraph", () => {
       filtered.nodes.forEach((n) => {
         expect(n.folderId).toBe("f-bio");
       });
-      // All edges must connect nodes within the filtered set
       const nodeIds = new Set(filtered.nodes.map((n) => n.id));
       filtered.edges.forEach((e) => {
         expect(nodeIds.has(e.source)).toBe(true);
@@ -229,6 +347,11 @@ describe("conceptGraph", () => {
     it("filters by search query", () => {
       const filtered = filterConceptGraph(sampleGraph, { searchQuery: "Enzyme" });
       expect(filtered.nodes.some((n) => n.label.includes("Enzyme"))).toBe(true);
+    });
+
+    it("filters by prerequisites only", () => {
+      const filtered = filterConceptGraph(sampleGraph, { prerequisitesOnly: true });
+      expect(filtered.edges.every((e) => e.relationship === "depends_on" || e.relationship === "part_of")).toBe(true);
     });
   });
 
@@ -253,6 +376,8 @@ describe("conceptGraph", () => {
           radius: 20,
           noteSnippets: [],
           relatedConcepts: [],
+          prerequisites: [],
+          dependents: [],
         },
         {
           id: "n2",
@@ -272,6 +397,8 @@ describe("conceptGraph", () => {
           radius: 20,
           noteSnippets: [],
           relatedConcepts: [],
+          prerequisites: [],
+          dependents: [],
         },
       ];
 

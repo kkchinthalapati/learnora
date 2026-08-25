@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from "react";
+import { useId, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
@@ -14,6 +14,7 @@ import {
 } from "../../hooks/usePlans";
 import { useTranslation } from "../../hooks/useTranslation";
 import { useExams } from "../../hooks/useExams";
+import { useQuizAttempts } from "../../hooks/useQuizzes";
 import { AiError } from "../../api/ai";
 import { PlanShapeError } from "../../api/aiPlan";
 import {
@@ -29,6 +30,14 @@ import { DEFAULT_BLOCK_MINUTES, parseStoredPlan } from "../../lib/planShape";
 import { useFolders } from "../../hooks/useFolders";
 import { useSessionsSince } from "../../hooks/useSessions";
 import { computeWeekAdherence } from "../../lib/planAdherence";
+import {
+  computeHourlyDistribution,
+  detectPeakFocusWindow,
+} from "../../lib/analyticsEngine";
+import {
+  detectPlanDeficit,
+  rebalanceWeeklyPlan,
+} from "../../lib/planRebalancer";
 import {
   addStoredPlanBlock,
   PlanEditError,
@@ -89,10 +98,22 @@ function BlockCard({
   saving: boolean;
 }) {
   const mins = block.durationMins ?? DEFAULT_BLOCK_MINUTES;
+  const isPeak =
+    block.startHint?.includes("Peak Focus") ||
+    block.startHint?.toLowerCase().includes("optimal") ||
+    block.reason?.includes("Peak Focus");
+
   return (
     <div className={styles.block}>
       <div className={styles.blockHead}>
-        <span className={styles.blockSubject}>{block.subject}</span>
+        <span className={styles.blockSubject}>
+          {block.subject}
+          {isPeak && (
+            <span className={styles.peakBadge}>
+              <Icon name="zap" size={10} /> Peak Focus
+            </span>
+          )}
+        </span>
         {/* The subject is in the accessible name because a week of blocks
             otherwise ships a dozen identically-named "Start" buttons, which is
             unusable from a screen reader's control list. */}
@@ -397,6 +418,7 @@ export function PlanView() {
   const prevWeekStartISO = localDateStr(prevMonday);
   const { data: prevPlan } = usePlanForWeek(prevWeekStartISO);
   const { data: recentSessions } = useSessionsSince(14);
+  const { data: quizAttempts = [] } = useQuizAttempts();
   const { data: folders } = useFolders();
   const prevParsed = prevPlan ? parseStoredPlan(prevPlan.plan_json) : null;
   const adherence =
@@ -408,6 +430,39 @@ export function PlanView() {
           prevWeekStartISO,
         )
       : null;
+
+  /* Chronotype & Peak Focus Window calculation */
+  const hourlyStats = useMemo(
+    () => computeHourlyDistribution(recentSessions || [], quizAttempts || []),
+    [recentSessions, quizAttempts],
+  );
+  const peakFocusWindow = useMemo(
+    () => detectPeakFocusWindow(hourlyStats),
+    [hourlyStats],
+  );
+
+  /* Plan Deficit & Intelligent Auto-Rebalancing */
+  const deficit = useMemo(
+    () =>
+      hasPlan && plan
+        ? detectPlanDeficit(plan.plan_json, recentSessions || [], folders || [])
+        : null,
+    [hasPlan, plan, recentSessions, folders],
+  );
+
+  const showRebalanceBanner =
+    hasPlan && deficit?.isBehind && deficit.remainingDaysCount > 0;
+
+  const handleAutoRebalance = () => {
+    if (!plan) return;
+    const result = rebalanceWeeklyPlan(plan.plan_json, recentSessions || [], {
+      folders: folders || [],
+      peakFocusWindow,
+    });
+    if (result.isRebalanced) {
+      saveEditedPlan(result.rebalancedPlan, result.summary);
+    }
+  };
 
   /* Ports the vanilla's `start-plan-block` handoff (js/router.js:82-85): the
      block's duration and subject are pre-staged on the timer and the student
@@ -551,6 +606,17 @@ export function PlanView() {
         <div>
           <p className={styles.title}>{t("header_plan")}</p>
           <p className={styles.weekRange}>{weekRange}</p>
+          {peakFocusWindow && (
+            <div
+              className={styles.chronotypeBadge}
+              title={peakFocusWindow.description}
+            >
+              <Icon name="zap" size={13} />
+              <span>
+                Optimal Focus: <strong>{peakFocusWindow.label}</strong>
+              </span>
+            </div>
+          )}
           {isTriageActive && (
             <p
               style={{
@@ -586,6 +652,39 @@ export function PlanView() {
           </Button>
         )}
       </Card>
+
+      {showRebalanceBanner && deficit && (
+        <Card
+          variant="panel"
+          padding="none"
+          className={styles.rebalanceBanner}
+          role="region"
+          aria-label="Auto-rebalance study schedule"
+        >
+          <div className={styles.rebalanceContent}>
+            <div className={styles.rebalanceIcon} aria-hidden="true">
+              <Icon name="refresh-cw" size={18} />
+            </div>
+            <div>
+              <div className={styles.rebalanceTitle}>
+                Schedule Rebalancing Available ({deficit.totalMissedMinutes}m behind)
+              </div>
+              <p className={styles.rebalanceMessage}>
+                {deficit.recommendation}
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="primary"
+            onClick={handleAutoRebalance}
+            disabled={updatePlan.isPending}
+            className={styles.rebalanceButton}
+          >
+            <Icon name="refresh-cw" size={14} />
+            {updatePlan.isPending ? "Rebalancing…" : "Auto-Rebalance Schedule"}
+          </Button>
+        </Card>
+      )}
 
       {adherence ? (
         <Card variant="panel" padding="none" className={styles.adherence}>

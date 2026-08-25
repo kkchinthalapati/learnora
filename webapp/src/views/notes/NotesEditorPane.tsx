@@ -20,7 +20,11 @@ import { useMutation } from "@tanstack/react-query";
 import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
 import { fenceUntrusted } from "../../lib/actionTags";
-import { runInlineAction, type InlineAction } from "../../api/aiInlineActions";
+import {
+  runInlineAction,
+  createCardFromSnippet,
+  type InlineAction,
+} from "../../api/aiInlineActions";
 import { InlineAiToolbar } from "./InlineAiToolbar";
 import { InlineDiffPreview } from "./InlineDiffPreview";
 import { InlineMiniChat } from "./InlineMiniChat";
@@ -421,6 +425,54 @@ ${fenceUntrusted(currentHtml)}
     ],
   );
 
+  const handleCreateCard = useCallback(async () => {
+    const selection = activeSelection;
+    if (!selection || !note) return;
+
+    interactionLockedRef.current = true;
+    const requestId = ++requestIdRef.current;
+    setLoadingAction("flashcard");
+
+    try {
+      const result = await createCardFromSnippet({
+        selectedText: selection.text,
+        surroundingContext: selection.surroundingContext,
+        materialId,
+        materialTitle,
+        folderId,
+        settings,
+      });
+      if (requestId !== requestIdRef.current) return;
+
+      showToast(
+        result.cards.length === 1
+          ? `Created flashcard in "${result.deck.title}"!`
+          : `Created ${result.cards.length} flashcards in "${result.deck.title}"!`,
+      );
+      dismissInlineUi();
+    } catch (error) {
+      if (requestId !== requestIdRef.current) return;
+      showToast(
+        error instanceof Error
+          ? error.message
+          : "Could not create flashcard from selection.",
+        { error: true },
+      );
+      interactionLockedRef.current = false;
+    } finally {
+      if (requestId === requestIdRef.current) setLoadingAction(null);
+    }
+  }, [
+    activeSelection,
+    dismissInlineUi,
+    folderId,
+    materialId,
+    materialTitle,
+    note,
+    settings,
+    showToast,
+  ]);
+
   const rejectDiff = useCallback(() => {
     interactionLockedRef.current = false;
     setDiffPreview(null);
@@ -683,6 +735,7 @@ ${fenceUntrusted(currentHtml)}
           selectionRect={activeSelection.rect}
           loadingAction={loadingAction}
           onAction={(action) => void runSelectionAction(action)}
+          onCreateCard={() => void handleCreateCard()}
           onAskAi={() => {
             interactionLockedRef.current = true;
             setMiniChatOpen(true);

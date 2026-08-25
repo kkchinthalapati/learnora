@@ -15,6 +15,16 @@ describe("ConceptNodeDrawer", () => {
     folderColor: "#4ade80",
     masteryScore: 45,
     isKnowledgeGap: true,
+    gapScore: 65,
+    gapDetails: {
+      gapScore: 65,
+      quizDeficit: 20,
+      overdueCardsCount: 1,
+      examProximityDays: 3,
+      examName: "Biology Midterm",
+      urgency: "critical",
+      remediationReasons: ["Low retention score (45%)", "Exam approaching in 3 days"],
+    },
     notesCount: 3,
     flashcardsCount: 2,
     quizzesCount: 1,
@@ -27,6 +37,8 @@ describe("ConceptNodeDrawer", () => {
       "Enzymes lower the activation energy of biological reactions.",
     ],
     relatedConcepts: ["concept-catalysts"],
+    prerequisites: ["concept-catalysts"],
+    dependents: ["concept-denaturation"],
     deckId: "d-1",
     materialId: "m-1",
   };
@@ -51,6 +63,29 @@ describe("ConceptNodeDrawer", () => {
       radius: 24,
       noteSnippets: [],
       relatedConcepts: ["concept-enzymes"],
+      prerequisites: [],
+      dependents: ["concept-enzymes"],
+    },
+    {
+      id: "concept-denaturation",
+      label: "Denaturation",
+      folderId: "f-bio",
+      folderName: "Biology",
+      folderColor: "#4ade80",
+      masteryScore: 40,
+      isKnowledgeGap: true,
+      notesCount: 1,
+      flashcardsCount: 1,
+      quizzesCount: 0,
+      materialsCount: 1,
+      degree: 1,
+      x: 300,
+      y: 300,
+      radius: 24,
+      noteSnippets: [],
+      relatedConcepts: ["concept-enzymes"],
+      prerequisites: ["concept-enzymes"],
+      dependents: [],
     },
   ];
 
@@ -76,8 +111,68 @@ describe("ConceptNodeDrawer", () => {
     expect(screen.getByText("Flashcards")).toBeInTheDocument();
     expect(screen.getByText("Quiz Questions")).toBeInTheDocument();
     expect(screen.getByText(/Enzymes lower the activation energy/)).toBeInTheDocument();
-    expect(screen.getByText("Catalysts")).toBeInTheDocument();
     expect(screen.getByText("Practice Concept Now")).toBeInTheDocument();
+    expect(screen.getByText("1-Click Remediate Knowledge Gap (5-Min Drill)")).toBeInTheDocument();
+  });
+
+  it("opens and interacts with the 5-minute recovery drill", async () => {
+    const user = userEvent.setup();
+
+    renderWithAuth(
+      <MemoryRouter>
+        <ConceptNodeDrawer
+          node={mockNode}
+          allNodes={allNodes}
+          isOpen={true}
+          onClose={vi.fn()}
+          onSelectRelated={vi.fn()}
+        />
+      </MemoryRouter>,
+      { session: fakeSession() },
+    );
+
+    const remediateBtn = screen.getByRole("button", {
+      name: /1-Click Remediate Knowledge Gap/i,
+    });
+    await user.click(remediateBtn);
+
+    expect(screen.getByText("5-Minute Recovery Drill")).toBeInTheDocument();
+    expect(screen.getByText("Core Takeaway & Key Mechanism")).toBeInTheDocument();
+    expect(screen.getByText(/Active Recall Check/)).toBeInTheDocument();
+
+    // Click an option in question 1
+    const optionBtn = screen.getByRole("button", {
+      name: /Enzymes lower the activation energy/i,
+    });
+    await user.click(optionBtn);
+
+    expect(screen.getByText(/Correct!/)).toBeInTheDocument();
+  });
+
+  it("renders prerequisite hierarchy and calls onSelectRelated when prerequisite card is clicked", async () => {
+    const onSelectRelated = vi.fn();
+    const user = userEvent.setup();
+
+    renderWithAuth(
+      <MemoryRouter>
+        <ConceptNodeDrawer
+          node={mockNode}
+          allNodes={allNodes}
+          isOpen={true}
+          onClose={vi.fn()}
+          onSelectRelated={onSelectRelated}
+        />
+      </MemoryRouter>,
+      { session: fakeSession() },
+    );
+
+    expect(screen.getByText("Prerequisite & Dependency Hierarchy")).toBeInTheDocument();
+    expect(screen.getByText("Prerequisites (Learn First)")).toBeInTheDocument();
+    expect(screen.getByText("Unlocks Next (Advanced Topics)")).toBeInTheDocument();
+
+    const prereqCard = screen.getByRole("button", { name: /Jump to prerequisite Catalysts/i });
+    await user.click(prereqCard);
+    expect(onSelectRelated).toHaveBeenCalledWith("concept-catalysts");
   });
 
   it("calls onSelectRelated when a connected concept pill is clicked", async () => {

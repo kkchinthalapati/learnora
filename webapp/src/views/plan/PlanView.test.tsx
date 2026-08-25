@@ -610,6 +610,77 @@ describe("PlanView", () => {
       expect(await screen.findByText("25m")).toBeInTheDocument();
       expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();
     });
+
+    it("displays the chronotype peak focus window badge in the plan header", async () => {
+      servePlan(planRow(SAMPLE_PLAN));
+      renderPlan();
+
+      expect(
+        await screen.findByText(/Optimal Focus:/i),
+      ).toBeInTheDocument();
+    });
+
+    it("displays the Auto-Rebalance banner and redistributes blocks on click when user is behind", async () => {
+      // Build a 7-day plan where past days (e.g. dayOffset(0)) have blocks
+      const planWithPastDeficit = {
+        summary: "Original full schedule",
+        days: [
+          {
+            date: dayOffset(0), // Monday
+            blocks: [{ subject: "Biology", durationMins: 60 }],
+          },
+          {
+            date: dayOffset(1), // Tuesday
+            blocks: [{ subject: "Math", durationMins: 45 }],
+          },
+          {
+            date: dayOffset(2), // Wednesday
+            blocks: [{ subject: "Chemistry", durationMins: 30 }],
+          },
+          {
+            date: dayOffset(3), // Thursday
+            blocks: [],
+          },
+          {
+            date: dayOffset(4), // Friday
+            blocks: [],
+          },
+          {
+            date: dayOffset(5), // Saturday
+            blocks: [],
+          },
+          {
+            date: dayOffset(6), // Sunday
+            blocks: [],
+          },
+        ],
+      };
+
+      servePlan(planRow(planWithPastDeficit));
+      let patchedPlanJson: unknown;
+      server.use(
+        http.patch(rest("weekly_plans"), async ({ request }) => {
+          const body = (await request.json()) as { plan_json: unknown };
+          patchedPlanJson = body.plan_json;
+          return HttpResponse.json(planRow(body.plan_json));
+        }),
+      );
+
+      renderPlan();
+
+      // Only show banner if there are past days with deficit and remaining days in the week
+      const rebalanceBtn = await screen.findByRole("button", {
+        name: /Auto-Rebalance Schedule/i,
+      });
+      expect(rebalanceBtn).toBeInTheDocument();
+      expect(screen.getByText(/Schedule Rebalancing Available/i)).toBeInTheDocument();
+
+      await userEvent.click(rebalanceBtn);
+
+      await waitFor(() => expect(patchedPlanJson).toBeDefined());
+      const summary = await screen.findByText(/Original full schedule/i);
+      expect(summary).toHaveTextContent("Auto-rebalanced");
+    });
   });
 
   describe("last week's adherence recap", () => {

@@ -4,7 +4,7 @@ import type { InlineAction } from "../../api/aiInlineActions";
 import styles from "./notes.module.css";
 
 const ACTIONS: ReadonlyArray<{
-  action: Exclude<InlineAction, "custom">;
+  action: Exclude<InlineAction, "custom" | "flashcard" | "make_card">;
   icon: string;
   label: string;
 }> = [
@@ -18,9 +18,10 @@ const ACTIONS: ReadonlyArray<{
 interface InlineAiToolbarProps {
   selectionLength: number;
   selectionRect: EditorSelectionRect;
-  loadingAction?: InlineAction | null;
+  loadingAction?: InlineAction | "flashcard" | "make_card" | string | null;
   miniChat?: ReactNode;
-  onAction: (action: Exclude<InlineAction, "custom">) => void;
+  onAction: (action: Exclude<InlineAction, "custom" | "flashcard" | "make_card">) => void;
+  onCreateCard?: () => void;
   onAskAi: () => void;
   onDismiss: () => void;
 }
@@ -31,6 +32,7 @@ export function InlineAiToolbar({
   loadingAction = null,
   miniChat,
   onAction,
+  onCreateCard,
   onAskAi,
   onDismiss,
 }: InlineAiToolbarProps) {
@@ -52,6 +54,10 @@ export function InlineAiToolbar({
     Math.min(center, viewportWidth - halfWidth - 16),
   );
   const placeBelow = selectionRect.top < (miniChat ? 128 : 64);
+
+  const isCardLoading =
+    loadingAction === "flashcard" ||
+    loadingAction === "make_card";
 
   return (
     <div
@@ -90,6 +96,28 @@ export function InlineAiToolbar({
             <span>{label}</span>
           </button>
         ))}
+        <button
+          type="button"
+          className={styles.inlineToolbarBtn}
+          disabled={loadingAction !== null}
+          aria-label="Make Flashcard selected text"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => {
+            if (onCreateCard) {
+              onCreateCard();
+            }
+          }}
+        >
+          {isCardLoading ? (
+            <span
+              className={styles.inlineToolbarLoading}
+              aria-label="Make Flashcard in progress"
+            />
+          ) : (
+            <span aria-hidden="true">🃏</span>
+          )}
+          <span>Make Flashcard</span>
+        </button>
         <button
           type="button"
           className={styles.inlineToolbarBtn}

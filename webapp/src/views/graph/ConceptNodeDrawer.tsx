@@ -1,7 +1,10 @@
-import { useRef } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import { Link } from "react-router";
 import { Icon } from "../../components/Icon";
-import type { ConceptNode } from "../../lib/conceptGraph";
+import {
+  generateRecoveryDrill,
+  type ConceptNode,
+} from "../../lib/conceptGraph";
 import { useCreateModal } from "../../context/createModal";
 import { useOverlayBehavior } from "../../context/overlayStack";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
@@ -13,6 +16,7 @@ interface ConceptNodeDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectRelated: (conceptId: string) => void;
+  initialDrillOpen?: boolean;
 }
 
 export function ConceptNodeDrawer({
@@ -21,26 +25,51 @@ export function ConceptNodeDrawer({
   isOpen,
   onClose,
   onSelectRelated,
+  initialDrillOpen = false,
 }: ConceptNodeDrawerProps) {
   const { openCreateModal } = useCreateModal();
   const drawerRef = useRef<HTMLElement>(null);
+  const [showRecoveryDrill, setShowRecoveryDrill] = useState(initialDrillOpen);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
 
-  /* The repo-standard overlay pair, as Modal.tsx uses it: joins the overlay
-   * stack (ESC closes, focus moves in on open and returns to the trigger on
-   * close), and traps Tab inside the drawer instead of letting it escape
-   * into the graph behind a dialog marked aria-modal. */
+  useEffect(() => {
+    setShowRecoveryDrill(initialDrillOpen);
+    setSelectedAnswers({});
+  }, [node?.id, initialDrillOpen]);
+
   useOverlayBehavior({ ref: drawerRef, open: isOpen && !!node, onClose });
   useFocusTrap(drawerRef, isOpen && !!node);
 
+  const nodeMap = useMemo(() => new Map(allNodes.map((n) => [n.id, n])), [allNodes]);
+
+  const relatedList = useMemo(() => {
+    if (!node) return [];
+    return node.relatedConcepts
+      .map((id) => nodeMap.get(id))
+      .filter((n): n is ConceptNode => Boolean(n));
+  }, [node, nodeMap]);
+
+  const prereqNodes = useMemo(() => {
+    if (!node) return [];
+    return (node.prerequisites || [])
+      .map((id) => nodeMap.get(id))
+      .filter((n): n is ConceptNode => Boolean(n));
+  }, [node, nodeMap]);
+
+  const depNodes = useMemo(() => {
+    if (!node) return [];
+    return (node.dependents || [])
+      .map((id) => nodeMap.get(id))
+      .filter((n): n is ConceptNode => Boolean(n));
+  }, [node, nodeMap]);
+
+  const recoveryDrill = useMemo(() => {
+    if (!node) return null;
+    return generateRecoveryDrill(node, allNodes);
+  }, [node, allNodes]);
+
   if (!node) return null;
 
-  // Resolve related concept labels
-  const nodeMap = new Map(allNodes.map((n) => [n.id, n]));
-  const relatedList = node.relatedConcepts
-    .map((id) => nodeMap.get(id))
-    .filter((n): n is ConceptNode => Boolean(n));
-
-  // Determine mastery color
   const masteryColor =
     node.masteryScore >= 75
       ? "var(--success)"
@@ -53,6 +82,21 @@ export function ConceptNodeDrawer({
     : node.quizId
       ? `/quiz/${node.quizId}`
       : null;
+
+  const handleSelectOption = (questionId: number, optionIdx: number) => {
+    setSelectedAnswers((prev) => ({
+      ...prev,
+      [questionId]: optionIdx,
+    }));
+  };
+
+  const answeredCount = Object.keys(selectedAnswers).length;
+  const totalQuestions = recoveryDrill?.highYieldQuestions.length || 0;
+  const correctCount = recoveryDrill
+    ? recoveryDrill.highYieldQuestions.filter(
+        (q) => selectedAnswers[q.id] === q.correctIndex,
+      ).length
+    : 0;
 
   return (
     <>
@@ -104,16 +148,145 @@ export function ConceptNodeDrawer({
         </div>
 
         <div className={styles.drawerBody}>
-          {/* Knowledge Gap Alert Banner */}
+          {/* Knowledge Gap Alert Banner & 1-Click Remediation Trigger */}
           {node.isKnowledgeGap && (
             <div className={styles.gapBanner} role="alert">
               <Icon name="alert-triangle" size={20} className={styles.gapBannerIcon} />
-              <div className={styles.gapBannerText}>
+              <div className={styles.gapBannerText} style={{ width: "100%" }}>
                 <strong>Knowledge Gap Identified</strong>
-                {node.masteryScore < 60
-                  ? `Your current retention score for this concept is ${node.masteryScore}%. Focused active recall practice is recommended.`
-                  : "This concept has unpracticed study notes or 0 quiz coverage. Test yourself to lock it into long-term memory."}
+                <div>
+                  {node.gapDetails?.remediationReasons && node.gapDetails.remediationReasons.length > 0
+                    ? node.gapDetails.remediationReasons.join(" • ")
+                    : `Your current retention score is ${node.masteryScore}%. Focused active recall practice is recommended.`}
+                </div>
+
+                <div className={styles.remediateActionRow}>
+                  <button
+                    type="button"
+                    className={`${styles.remediateBtn} ${showRecoveryDrill ? styles.remediateBtnActive : ""}`}
+                    onClick={() => setShowRecoveryDrill((prev) => !prev)}
+                    aria-expanded={showRecoveryDrill}
+                  >
+                    <Icon name="zap" size={16} />
+                    {showRecoveryDrill ? "Hide Recovery Drill" : "1-Click Remediate Knowledge Gap (5-Min Drill)"}
+                  </button>
+                </div>
               </div>
+            </div>
+          )}
+
+          {/* Interactive 5-Minute Recovery Drill View */}
+          {showRecoveryDrill && recoveryDrill && (
+            <div className={styles.recoveryDrillCard} role="region" aria-label="5-minute recovery drill">
+              <div className={styles.drillHeader}>
+                <div className={styles.drillTitleGroup}>
+                  <Icon name="zap" size={18} style={{ color: "var(--accent)" }} />
+                  <h3 className={styles.drillTitle}>5-Minute Recovery Drill</h3>
+                </div>
+                <span className={styles.drillBadge}>⚡ 5 Min Active Recall</span>
+              </div>
+
+              {/* High Yield Concept Takeaway */}
+              <div className={styles.takeawayBox}>
+                <div className={styles.takeawayTitle}>
+                  <Icon name="file-text" size={14} />
+                  Core Takeaway & Key Mechanism
+                </div>
+                <p style={{ margin: 0 }}>{recoveryDrill.summaryTakeaway}</p>
+              </div>
+
+              {/* Prerequisite Foundations Review Checklist */}
+              {recoveryDrill.prerequisiteReview.length > 0 && (
+                <div className={styles.prereqChecklist}>
+                  <div className={styles.prereqChecklistTitle}>
+                    Prerequisite Foundations to Solidify First:
+                  </div>
+                  {recoveryDrill.prerequisiteReview.map((prereq) => (
+                    <button
+                      key={prereq.id}
+                      type="button"
+                      className={styles.prereqItem}
+                      onClick={() => onSelectRelated(prereq.id)}
+                      title={`Review prerequisite ${prereq.label}`}
+                    >
+                      <span>{prereq.label}</span>
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          color: prereq.masteryScore >= 70 ? "var(--success)" : "var(--danger)",
+                        }}
+                      >
+                        {prereq.masteryScore}%
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Interactive Rapid-Fire Recall Questions */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+                <h4 style={{ margin: 0, fontSize: "var(--fs-xs)", fontWeight: 700, textTransform: "uppercase", color: "var(--text-muted)", letterSpacing: "0.5px" }}>
+                  Active Recall Check ({answeredCount}/{totalQuestions})
+                </h4>
+
+                {recoveryDrill.highYieldQuestions.map((q) => {
+                  const selectedIdx = selectedAnswers[q.id];
+                  const hasAnswered = selectedIdx !== undefined;
+                  const isCorrect = selectedIdx === q.correctIndex;
+
+                  return (
+                    <div key={q.id} className={styles.drillQuestionCard}>
+                      <div className={styles.drillQuestionTitle}>
+                        {q.id}. {q.question}
+                      </div>
+
+                      <div className={styles.drillOptionsList}>
+                        {q.options.map((opt, optIdx) => {
+                          let optClass = styles.drillOptionBtn;
+                          if (hasAnswered) {
+                            if (optIdx === q.correctIndex) {
+                              optClass = `${styles.drillOptionBtn} ${styles.drillOptionCorrect}`;
+                            } else if (selectedIdx === optIdx) {
+                              optClass = `${styles.drillOptionBtn} ${styles.drillOptionIncorrect}`;
+                            }
+                          }
+
+                          return (
+                            <button
+                              key={optIdx}
+                              type="button"
+                              className={optClass}
+                              onClick={() => handleSelectOption(q.id, optIdx)}
+                            >
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {hasAnswered && (
+                        <div
+                          className={styles.explanationBox}
+                          style={{
+                            borderLeft: `3px solid ${isCorrect ? "var(--success)" : "var(--danger)"}`,
+                          }}
+                        >
+                          <strong>{isCorrect ? "✓ Correct! " : "✕ Review Key Concept: "}</strong>
+                          {q.explanation}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Completion Banner */}
+              {answeredCount === totalQuestions && (
+                <div className={styles.drillScoreBanner}>
+                  <span>Drill Completed: {correctCount} of {totalQuestions} Correct</span>
+                  <span style={{ fontSize: 11 }}>⚡ Retention Pathway Reinforced</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -133,6 +306,112 @@ export function ConceptNodeDrawer({
                   backgroundColor: masteryColor,
                 }}
               />
+            </div>
+          </div>
+
+          {/* Prerequisite & Dependency Hierarchy Section */}
+          <div className={styles.hierarchySection}>
+            <h3 className={styles.sectionTitle}>
+              <Icon name="network" size={16} />
+              Prerequisite & Dependency Hierarchy
+            </h3>
+
+            {/* Upstream Prerequisites (Must Learn First) */}
+            <div className={styles.hierarchyGroup}>
+              <span className={styles.hierarchyGroupLabel}>
+                <Icon name="layers" size={14} />
+                Prerequisites (Learn First)
+              </span>
+              {prereqNodes.length > 0 ? (
+                <div className={styles.hierarchyList}>
+                  {prereqNodes.map((prereq) => (
+                    <button
+                      key={prereq.id}
+                      type="button"
+                      className={styles.hierarchyCard}
+                      onClick={() => onSelectRelated(prereq.id)}
+                      title={`Jump to prerequisite ${prereq.label}`}
+                      aria-label={`Jump to prerequisite ${prereq.label}`}
+                    >
+                      <div className={styles.hierarchyCardLeft}>
+                        <span
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            backgroundColor: prereq.folderColor,
+                          }}
+                        />
+                        <span>{prereq.label}</span>
+                      </div>
+                      <span
+                        className={styles.hierarchyBadge}
+                        style={{
+                          backgroundColor:
+                            prereq.masteryScore >= 70
+                              ? "rgba(34, 197, 94, 0.15)"
+                              : "rgba(239, 68, 68, 0.15)",
+                          color:
+                            prereq.masteryScore >= 70 ? "var(--success)" : "var(--danger)",
+                        }}
+                      >
+                        {prereq.masteryScore}% {prereq.masteryScore >= 70 ? "Mastered" : "Gap"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
+                  No upstream prerequisites required (entry foundation).
+                </p>
+              )}
+            </div>
+
+            {/* Downstream Dependents (Unlocks Next) */}
+            <div className={styles.hierarchyGroup}>
+              <span className={styles.hierarchyGroupLabel}>
+                <Icon name="network" size={14} />
+                Unlocks Next (Advanced Topics)
+              </span>
+              {depNodes.length > 0 ? (
+                <div className={styles.hierarchyList}>
+                  {depNodes.map((dep) => (
+                    <button
+                      key={dep.id}
+                      type="button"
+                      className={styles.hierarchyCard}
+                      onClick={() => onSelectRelated(dep.id)}
+                      title={`Jump to dependent ${dep.label}`}
+                      aria-label={`Jump to dependent ${dep.label}`}
+                    >
+                      <div className={styles.hierarchyCardLeft}>
+                        <span
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            backgroundColor: dep.folderColor,
+                          }}
+                        />
+                        <span>{dep.label}</span>
+                      </div>
+                      <span
+                        className={styles.hierarchyBadge}
+                        style={{
+                          backgroundColor: "var(--surface)",
+                          color: "var(--text-muted)",
+                        }}
+                      >
+                        {dep.masteryScore}%
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
+                  No downstream dependent topics detected.
+                </p>
+              )}
             </div>
           </div>
 
@@ -212,9 +491,6 @@ export function ConceptNodeDrawer({
               Practice Concept Now
             </Link>
           ) : (
-            /* Scoped to this concept — the bare openCreateModal() this used
-             * to call opened the generic panel with quiz off and nothing
-             * preselected, doing neither of the things its label promised. */
             <button
               type="button"
               className={styles.practiceBtn}
@@ -266,3 +542,4 @@ export function ConceptNodeDrawer({
     </>
   );
 }
+

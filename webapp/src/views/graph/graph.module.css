@@ -788,3 +788,355 @@
     width: 100%;
   }
 }
+
+/* 1-Click Remediation & 5-Minute Recovery Drill */
+.remediateTopGapBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 38px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--accent);
+  color: var(--accent-on);
+  border: none;
+  box-shadow: 0 2px 10px var(--accent-glow);
+  transition: all var(--t) var(--ease-spring);
+}
+
+.remediateTopGapBtn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+
+.remediateTopGapBtn:active {
+  transform: scale(0.97);
+}
+
+.prereqToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 38px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--surface);
+  border: 1px solid var(--glass-border-subtle);
+  color: var(--text-muted);
+  transition: all var(--t) var(--ease);
+}
+
+.prereqToggleBtn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.prereqToggleBtnActive {
+  background: var(--accent-soft) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+/* Gap Remediation Banner in Drawer */
+.remediateActionRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+
+.remediateBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--danger);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(194, 69, 58, 0.35);
+  transition: all var(--t) var(--ease-spring);
+}
+
+.remediateBtn:hover {
+  background: #a93c33;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(194, 69, 58, 0.45);
+}
+
+.remediateBtnActive {
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: none !important;
+}
+
+/* Recovery Drill Container */
+.recoveryDrillCard {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  animation: fadeInDrill 0.3s ease;
+}
+
+@keyframes fadeInDrill {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.drillHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--s-3);
+}
+
+.drillTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drillTitle {
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.drillBadge {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.takeawayBox {
+  background: var(--surface);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-sm);
+  padding: var(--s-3);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.takeawayTitle {
+  font-weight: 700;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+
+/* Prerequisite Checklist */
+.prereqChecklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface);
+  border-radius: var(--r-md);
+  padding: var(--s-3);
+  border: 1px solid var(--line);
+}
+
+.prereqChecklistTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.prereqItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  transition: all var(--t) ease;
+}
+
+.prereqItem:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Question Drill UI */
+.drillQuestionCard {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.drillQuestionTitle {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.drillOptionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drillOptionBtn {
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: var(--fs-xs);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--t) ease;
+  line-height: 1.4;
+}
+
+.drillOptionBtn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
+.drillOptionCorrect {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border-color: var(--success) !important;
+  color: var(--success) !important;
+  font-weight: 600;
+}
+
+.drillOptionIncorrect {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: var(--danger) !important;
+  color: var(--danger) !important;
+}
+
+.explanationBox {
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.drillScoreBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+/* Prerequisite Hierarchy Section */
+.hierarchySection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.hierarchyGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hierarchyGroupLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hierarchyList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hierarchyCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  transition: all var(--t) ease;
+}
+
+.hierarchyCard:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateX(2px);
+}
+
+.hierarchyCardLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hierarchyBadge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--r-pill);
+}

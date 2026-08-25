@@ -84,4 +84,26 @@ describe("InlineAiToolbar", () => {
       screen.getByRole("button", { name: "Improve selected text" }),
     ).toBeDisabled();
   });
+
+  it("triggers card creation when Make Flashcard button is clicked", () => {
+    const onCreateCard = vi.fn();
+    render(<InlineAiToolbar {...props({ onCreateCard })} />);
+
+    const cardBtn = screen.getByRole("button", {
+      name: "Make Flashcard selected text",
+    });
+    expect(cardBtn).toBeInTheDocument();
+    fireEvent.click(cardBtn);
+    expect(onCreateCard).toHaveBeenCalledOnce();
+  });
+
+  it("shows loading spinner on Make Flashcard button while card creation is in flight", () => {
+    render(<InlineAiToolbar {...props({ loadingAction: "flashcard" })} />);
+    expect(
+      screen.getByLabelText("Make Flashcard in progress"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Make Flashcard selected text" }),
+    ).toBeDisabled();
+  });
 });

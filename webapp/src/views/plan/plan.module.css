@@ -107,6 +107,91 @@
   font-size: var(--fs-xs);
 }
 
+/* --- Rebalance Banner --- */
+.rebalanceBanner {
+  margin-top: var(--s-4);
+  background: linear-gradient(
+    135deg,
+    rgba(15, 118, 110, 0.14),
+    rgba(74, 144, 226, 0.1)
+  );
+  border: 1px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+
+.rebalanceBanner.rebalanceBanner {
+  padding: var(--s-4) var(--s-6);
+}
+
+.rebalanceContent {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.rebalanceIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  background: var(--accent);
+  color: var(--accent-on);
+  flex-shrink: 0;
+}
+
+.rebalanceTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.rebalanceMessage {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin: var(--s-1) 0 0;
+}
+
+.rebalanceButton {
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+/* --- Chronotype & Peak Focus --- */
+.chronotypeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  margin-top: var(--s-2);
+}
+
+.peakBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: var(--r-pill);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-left: 6px;
+}
+
 .weekGrid {
   display: grid;
   grid-template-columns: repeat(7, minmax(180px, 1fr));
