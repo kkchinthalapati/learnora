@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "../../test/render";
 import { AchievementsModal } from "./AchievementsModal";
@@ -81,6 +81,34 @@ describe("AchievementsModal", () => {
 
     expect(preset45).toHaveAttribute("aria-pressed", "true");
     expect(preset30).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("floors the minutes goal at 5 (its own input's stated minimum) rather than 1", () => {
+    renderWithProviders(<AchievementsModal open={true} onClose={vi.fn()} />);
+
+    const focusGoalInput = screen.getByLabelText(
+      "Daily focus goal in minutes",
+    );
+
+    fireEvent.change(focusGoalInput, { target: { value: "1" } });
+
+    expect(focusGoalInput).toHaveValue(5);
+    expect(loadStudyGoals().dailyMinutesGoal).toBe(5);
+  });
+
+  it("still floors the cards/tasks goals at 1, unlike minutes", () => {
+    renderWithProviders(<AchievementsModal open={true} onClose={vi.fn()} />);
+
+    const cardsGoalInput = screen.getByLabelText(
+      "Daily flashcards review goal",
+    );
+
+    // "0" would hit the input's own `parseInt(...) || 15` fallback before
+    // ever reaching the clamp (0 is falsy) — a negative value exercises the
+    // actual Math.max floor instead.
+    fireEvent.change(cardsGoalInput, { target: { value: "-5" } });
+
+    expect(loadStudyGoals().dailyCardsGoal).toBe(1);
   });
 
   it("calls onClose when close button is clicked", async () => {

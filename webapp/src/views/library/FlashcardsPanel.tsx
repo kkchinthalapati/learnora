@@ -18,12 +18,13 @@ import styles from "./library.module.css";
  * DOM by whichever screen happened to refresh the count last. */
 export function FlashcardsPanel() {
   const { data: decks, isPending, isError, error } = useAllDecks();
-  const { data: dueCount = 0 } = useFlashcardsDueCount();
+  const { data: dueCount, isPending: dueCountPending } =
+    useFlashcardsDueCount();
   const { removeDeck } = useLibraryActions();
   const { openCreateModal } = useCreateModal();
 
   const banner =
-    dueCount > 0 ? (
+    !dueCountPending && dueCount && dueCount > 0 ? (
       <p className={styles.dueBanner}>
         <Icon name="layers" size={15} />
         <span>

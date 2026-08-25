@@ -173,9 +173,12 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
     field: keyof StudyGoals,
     value: number,
   ) => {
+    // Minutes' own <input min="5"> promises a 5-minute floor (also the
+    // lowest of this field's [15,30,45,60] presets); cards/tasks genuinely
+    // mean it down to 1, matching their own <input min="1">.
     const nextGoals: StudyGoals = {
       ...goals,
-      [field]: Math.max(1, value),
+      [field]: Math.max(field === "dailyMinutesGoal" ? 5 : 1, value),
     };
     setGoals(nextGoals);
     saveStudyGoals(nextGoals);

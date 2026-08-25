@@ -22,6 +22,8 @@ export interface UseAdaptiveLearningResult {
   topWeakTopics: WeakTopic[];
   surgeCards: Flashcard[];
   isPending: boolean;
+  isError: boolean;
+  error: unknown;
   totalCardsCount: number;
   dueCardsCount: number;
 }
@@ -45,6 +47,31 @@ export function useAdaptiveLearning(): UseAdaptiveLearningResult {
     quizzesQuery.isPending ||
     quizAttemptsQuery.isPending ||
     sessionsQuery.isPending;
+
+  // A failed query still resolves its `.data` to `undefined`, which the
+  // `?? []` fallbacks below would otherwise render as legitimate "no data"
+  // — e.g. AdaptiveHealthWidget's `totalCardsCount === 0` branch confidently
+  // says "100% retention, no cards yet" on a network error. Surface the
+  // failure instead so the widget can show a real error state.
+  const isError =
+    flashcardsQuery.isError ||
+    dueCountQuery.isError ||
+    decksQuery.isError ||
+    foldersQuery.isError ||
+    examsQuery.isError ||
+    quizzesQuery.isError ||
+    quizAttemptsQuery.isError ||
+    sessionsQuery.isError;
+
+  const error =
+    flashcardsQuery.error ||
+    dueCountQuery.error ||
+    decksQuery.error ||
+    foldersQuery.error ||
+    examsQuery.error ||
+    quizzesQuery.error ||
+    quizAttemptsQuery.error ||
+    sessionsQuery.error;
 
   const cards = useMemo(
     () => flashcardsQuery.data ?? [],
@@ -123,6 +150,8 @@ export function useAdaptiveLearning(): UseAdaptiveLearningResult {
     topWeakTopics,
     surgeCards,
     isPending,
+    isError,
+    error,
     totalCardsCount: cards.length,
     dueCardsCount: dueCountQuery.data ?? 0,
   };

@@ -28,6 +28,28 @@
     left var(--t) var(--ease);
 }
 
+/* Sidebar framing style. Settings → Appearance's "Sidebar Framing Style"
+ * picker has always set body[data-sidebar-style] (see lib/appearance.ts),
+ * and nothing read it back — every choice besides the default ("glass",
+ * the .sidebar rule above) silently changed nothing. No rule is needed for
+ * "glass" itself. Reuses existing surface tokens rather than new colors. */
+
+body[data-sidebar-style="solid"] .sidebar {
+  background: var(--surface-2);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-right: 1px solid var(--line);
+  box-shadow: none;
+}
+
+body[data-sidebar-style="transparent"] .sidebar {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-right: none;
+  box-shadow: none;
+}
+
 /* Desktop: collapsed retracts to a narrow icon-only rail rather than
    disappearing entirely — labels hide (.navLabel), icons and their active/
    hover states stay, and a due-count badge moves to a small corner dot on

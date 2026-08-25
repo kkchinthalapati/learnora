@@ -57,6 +57,22 @@ describe("AdaptiveHealthWidget", () => {
     expect(screen.getByText("All memory stable")).toBeInTheDocument();
   });
 
+  it("shows an error state instead of a false '100% / no cards' reading when a query fails", async () => {
+    server.use(
+      http.get(rest("flashcards"), () =>
+        HttpResponse.json({ message: "boom" }, { status: 500 }),
+      ),
+    );
+
+    renderWidget();
+
+    expect(
+      await screen.findByRole("alert"),
+    ).toHaveTextContent("Could not load your adaptive learning data.");
+    expect(screen.queryByText("No cards created yet")).not.toBeInTheDocument();
+    expect(screen.queryByText("100")).not.toBeInTheDocument();
+  });
+
   it("renders active cards, calculates retention metrics, and navigates on CTA click", async () => {
     const user = userEvent.setup();
 

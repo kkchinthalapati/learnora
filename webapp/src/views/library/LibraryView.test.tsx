@@ -649,6 +649,15 @@ describe("Library — Flashcards tab", () => {
     expect(screen.queryByText(/due for review today/)).not.toBeInTheDocument();
   });
 
+  it("does not flash a false empty banner while the due count is still loading", () => {
+    // Asserted synchronously, before the due-count request has resolved:
+    // the banner must be absent, not present with a stale/default "0 due".
+    serveLibrary({ decks: [deck()], dueCount: 7 });
+    renderLibrary("/library/flashcards");
+
+    expect(screen.queryByText(/due for review today/)).not.toBeInTheDocument();
+  });
+
   it("deletes a deck after confirming what goes with it", async () => {
     const user = userEvent.setup();
     let decks = [deck()];

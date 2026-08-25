@@ -266,3 +266,60 @@ body[data-font-family="dyslexic"] {
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------------------ *
+ * Interface font scaling. Same story as the font-family override above:
+ * Settings → Appearance's "Interface Font Scaling" picker has always set
+ * body[data-font-size] (see lib/appearance.ts), and nothing read it back.
+ * The --fs-*/--s-* tokens (tokens.css) are hardcoded px, not rem-derived, so
+ * scaling :root's font-size wouldn't reach them (and would instead have
+ * unrelated side effects on the handful of components that use literal rem
+ * values) — overriding the tokens directly is the correct fix. Factors are
+ * ×0.9 / ×1.1, chosen because that reproduces the exact 13.5px/16.5px
+ * --fs-base values the picker's own option labels already promise
+ * ("Compact (13.5px)" / "Large (16.5px)"); no rule is needed for the
+ * default "md" case, which already matches the unscaled tokens. Elements
+ * sized in raw px (icon `size` props, fixed-dimension SVGs, etc.) don't
+ * consume these tokens and won't rescale — same limitation the rest of the
+ * app's token system already has.
+ * ------------------------------------------------------------------------ */
+
+body[data-font-size="sm"] {
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13.5px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 25px;
+  --s-1: 4px;
+  --s-2: 7px;
+  --s-3: 11px;
+  --s-4: 14px;
+  --s-5: 18px;
+  --s-6: 22px;
+  --s-8: 29px;
+  --s-10: 36px;
+  --s-12: 43px;
+  --s-16: 58px;
+}
+
+body[data-font-size="lg"] {
+  --fs-xs: 13px;
+  --fs-sm: 14px;
+  --fs-base: 16.5px;
+  --fs-md: 18px;
+  --fs-lg: 20px;
+  --fs-xl: 24px;
+  --fs-2xl: 31px;
+  --s-1: 4px;
+  --s-2: 9px;
+  --s-3: 13px;
+  --s-4: 18px;
+  --s-5: 22px;
+  --s-6: 26px;
+  --s-8: 35px;
+  --s-10: 44px;
+  --s-12: 53px;
+  --s-16: 70px;
+}

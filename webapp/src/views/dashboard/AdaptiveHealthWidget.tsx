@@ -15,6 +15,8 @@ export function AdaptiveHealthWidget() {
     topWeakTopics,
     surgeCards,
     isPending,
+    isError,
+    error,
     totalCardsCount,
   } = useAdaptiveLearning();
 
@@ -96,7 +98,7 @@ export function AdaptiveHealthWidget() {
           <Link to="/analytics" className={styles.analyticsLink}>
             Full Analytics →
           </Link>
-          {!isPending && (
+          {!isPending && !isError && (
             <div className={`${styles.healthBadge} ${healthBadge.className}`}>
               <Icon name={healthBadge.icon} size={14} />
               <span>{healthBadge.label}</span>
@@ -116,6 +118,11 @@ export function AdaptiveHealthWidget() {
           <Skeleton label="Loading adaptive retention metrics" height={70} />
           <Skeleton label="Loading subject mastery" height={100} />
         </div>
+      ) : isError ? (
+        <p role="alert" className={styles.emptyPrompt}>
+          Could not load your adaptive learning data.{" "}
+          {(error as Error)?.message}
+        </p>
       ) : (
         <>
           <div className={styles.metricsRow}>
