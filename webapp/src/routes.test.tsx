@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
@@ -27,6 +27,10 @@ function renderAt(path: string) {
 }
 
 describe("route skeleton", () => {
+  beforeEach(() => {
+    mockAuthSession("user-1");
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -46,6 +50,9 @@ describe("route skeleton", () => {
     ["/friends", "Friends"],
     ["/analytics", "Analytics"],
     ["/graph", "Concept Graph"],
+    ["/feynman", "Feynman Apprentice"],
+    ["/debugger", "Cognitive Debugger"],
+    ["/premortem", "Exam Pre-Mortem"],
     ["/settings", "Settings"],
   ])("%s renders the %s view for a signed-in user", (path, heading) => {
     renderAt(path);

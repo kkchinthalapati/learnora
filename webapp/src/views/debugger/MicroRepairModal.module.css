@@ -1,0 +1,205 @@
+.repairContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.25rem 0;
+}
+
+.timerBarWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.timerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--text-muted, #9ca3af);
+}
+
+.timerCounter {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--primary, #3b82f6);
+}
+
+.progressBarBg {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-alt, rgba(255, 255, 255, 0.08));
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 9999px;
+  transition: width 1s linear, background-color 0.3s ease;
+}
+
+.progressUrgent {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+
+.intuitionCard {
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: var(--radius-lg, 12px);
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.intuitionHead {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #818cf8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.intuitionText {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--text, #f0f0f5);
+  margin: 0;
+}
+
+.exerciseSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.exercisePrompt {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text, #f0f0f5);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.optionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.optionButton {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  background: var(--card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-md, 8px);
+  padding: 0.85rem 1rem;
+  color: var(--text, #f0f0f5);
+  font-size: 0.925rem;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.optionButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.optionSelected {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: #3b82f6 !important;
+}
+
+.optionCorrect {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border-color: #22c55e !important;
+  color: #86efac !important;
+}
+
+.optionIncorrect {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: #ef4444 !important;
+  color: #fca5a5 !important;
+}
+
+.optionMarker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-top: 1px;
+}
+
+.feedbackCard {
+  border-radius: var(--radius-md, 8px);
+  padding: 0.85rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.feedbackSuccess {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #86efac;
+}
+
+.feedbackError {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.feedbackTitle {
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.feedbackDetail {
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--text, #f0f0f5);
+  margin: 0;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -32,6 +32,12 @@ import { FriendInviteLanding } from "./views/friends/FriendInviteLanding";
 import { StudyRoomView } from "./views/room/StudyRoomView";
 import { StudyAnalyticsView } from "./views/analytics/StudyAnalyticsView";
 import { ConceptGraphView } from "./views/graph/ConceptGraphView";
+import { CognitiveDebuggerView } from "./views/debugger/CognitiveDebuggerView";
+import { PreMortemHubView } from "./views/premortem/PreMortemHubView";
+import { PreMortemRadarView } from "./views/premortem/PreMortemRadarView";
+import { FeynmanHubView } from "./views/feynman/FeynmanHubView";
+import { FeynmanStudioView } from "./views/feynman/FeynmanStudioView";
+import { FeynmanDebriefView } from "./views/feynman/FeynmanDebriefView";
 import { NotFoundView } from "./views/not-found/NotFoundView";
 
 /*
@@ -81,6 +87,14 @@ export function AppRoutes() {
           <Route path="/room/:roomId" element={<StudyRoomView />} />
           <Route path="/analytics" element={<StudyAnalyticsView />} />
           <Route path="/graph" element={<ConceptGraphView />} />
+          <Route path="/debugger" element={<CognitiveDebuggerView />} />
+          <Route path="/premortem" element={<PreMortemHubView />} />
+          <Route path="/premortem/radar" element={<PreMortemRadarView />} />
+          <Route path="/feynman" element={<FeynmanHubView />} />
+          <Route path="/feynman/studio" element={<FeynmanStudioView />} />
+          <Route path="/feynman/studio/:sessionId" element={<FeynmanStudioView />} />
+          <Route path="/feynman/debrief" element={<FeynmanDebriefView />} />
+          <Route path="/feynman/debrief/:sessionId" element={<FeynmanDebriefView />} />
           {/* Inside the guard on purpose: an invite link opened by someone
               who is signed out goes through ProtectedRoute's existing
               `state: { from }` redirect and lands back here after login. */}

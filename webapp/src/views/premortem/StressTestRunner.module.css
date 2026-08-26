@@ -1,0 +1,330 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  max-width: 900px;
+  margin: 0 auto;
+  padding-bottom: var(--s-12);
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+
+.subjectTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.timerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
+  font-family: monospace;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.timerUrgent {
+  background: rgba(194, 69, 58, 0.15);
+  color: var(--danger);
+  border-color: var(--danger);
+  animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.04); }
+}
+
+/* Adversarial Trap Warning Banner */
+.adversarialBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  background: rgba(201, 138, 46, 0.12);
+  border: 1px solid var(--warning);
+  border-radius: var(--r-md);
+  color: var(--text);
+  font-size: var(--fs-sm);
+}
+
+.trapIcon {
+  color: var(--warning);
+  flex-shrink: 0;
+}
+
+.trapLabel {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: var(--fs-xs);
+  color: var(--warning);
+}
+
+/* Question Jumper Grid */
+.jumperBar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  overflow-x: auto;
+  padding: var(--s-2) 0;
+}
+
+.jumperButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition: all var(--t-fast);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.jumperCurrent {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.jumperAnswered {
+  border-color: var(--accent-soft);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.jumperFlagged::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warning);
+}
+
+/* Main Question Card */
+.questionCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-6);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.questionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.questionMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.questionBadge {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+.difficultyExtreme {
+  background: rgba(194, 69, 58, 0.15);
+  color: var(--danger);
+}
+
+.difficultyHard {
+  background: rgba(201, 138, 46, 0.15);
+  color: var(--warning);
+}
+
+.flagButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  background: none;
+  border: none;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  transition: all var(--t-fast);
+}
+
+.flagButtonActive {
+  color: var(--warning);
+  background: rgba(201, 138, 46, 0.12);
+}
+
+.questionText {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  line-height: var(--lh);
+  color: var(--text);
+}
+
+.optionsGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.optionCard {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--t-fast);
+  color: var(--text);
+  font-size: var(--fs-base);
+  line-height: var(--lh);
+}
+
+.optionCard:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
+.optionCardSelected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.optionBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  flex-shrink: 0;
+}
+
+.optionCardSelected .optionBadge {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+/* Confidence Tagging */
+.confidenceSection {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  flex-wrap: wrap;
+}
+
+.confidenceLabel {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.confidenceButtons {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.confidenceBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+
+.confidenceBtnActive {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Mindset Clue Drawer */
+.hintDrawer {
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: rgba(15, 118, 110, 0.08);
+  border-left: 3px solid var(--accent);
+  font-size: var(--fs-sm);
+  color: var(--text);
+  line-height: var(--lh);
+}
+
+.hintToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Navigation Actions Footer */
+.actionsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}

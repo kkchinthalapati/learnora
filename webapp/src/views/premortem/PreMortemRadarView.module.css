@@ -1,0 +1,280 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-bottom: var(--s-10);
+}
+
+.scoreBanner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--s-4);
+}
+
+.metricCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding: var(--s-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.metricLabel {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.metricValue {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  color: var(--text);
+}
+
+.metricSub {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.gradeHigh {
+  color: var(--success);
+}
+
+.gradeMed {
+  color: var(--warning);
+}
+
+.gradeLow {
+  color: var(--danger);
+}
+
+/* Radar & Topic Layout */
+.radarLayout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-6);
+}
+
+@media (max-width: 840px) {
+  .radarLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.radarCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-6);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+}
+
+.radarTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  margin-bottom: var(--s-4);
+  align-self: flex-start;
+}
+
+.svgRadar {
+  max-width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.topicList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.topicItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+}
+
+.topicHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topicName {
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  color: var(--text);
+}
+
+.riskBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  text-transform: uppercase;
+}
+
+.riskHigh {
+  background: rgba(194, 69, 58, 0.15);
+  color: var(--danger);
+}
+
+.riskMedium {
+  background: rgba(201, 138, 46, 0.15);
+  color: var(--warning);
+}
+
+.riskLow {
+  background: rgba(30, 142, 107, 0.15);
+  color: var(--success);
+}
+
+.progressBarContainer {
+  height: 8px;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  border-radius: var(--r-pill);
+  transition: width 0.5s var(--ease);
+}
+
+.fillHigh {
+  background: var(--danger);
+}
+
+.fillMed {
+  background: var(--warning);
+}
+
+.fillLow {
+  background: var(--success);
+}
+
+/* Predicted Failures Section */
+.failuresSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.sectionTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.failuresGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--s-4);
+}
+
+.failureCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--t-fast), box-shadow var(--t-fast);
+}
+
+.failureCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.failureTop {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.failureTopic {
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.trapTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 3px 8px;
+  border-radius: var(--r-sm);
+  width: fit-content;
+}
+
+.statsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.lostMarksBadge {
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.neutralizedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--success);
+  background: rgba(30, 142, 107, 0.12);
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+}
+
+.footerActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding-top: var(--s-6);
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}

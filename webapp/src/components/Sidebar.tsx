@@ -45,6 +45,9 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: "/analytics", icon: "activity", label: "Analytics" },
   { to: "/graph", icon: "share-2", label: "Concept Graph" },
+  { to: "/feynman", icon: "award", label: "Feynman Apprentice" },
+  { to: "/debugger", icon: "brain", label: "Cognitive Debugger" },
+  { to: "/premortem", icon: "shield", label: "Exam Pre-Mortem" },
   { to: "/timer", icon: "clock", label: "Timer", translationKey: "nav_timer" },
   {
     to: "/tasks",

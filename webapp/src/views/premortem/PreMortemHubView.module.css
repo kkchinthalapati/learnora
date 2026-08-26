@@ -1,0 +1,224 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-8);
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-bottom: var(--s-12);
+}
+
+/* Hero Section */
+.heroCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-8);
+  border-radius: var(--r-xl);
+  background: linear-gradient(
+    135deg,
+    rgba(15, 118, 110, 0.08) 0%,
+    rgba(194, 69, 58, 0.06) 100%
+  );
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+}
+
+.heroTag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.heroTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+
+.heroSub {
+  font-size: var(--fs-base);
+  color: var(--text-muted);
+  line-height: var(--lh);
+  max-width: 72ch;
+  margin: 0;
+}
+
+/* Configuration Grid */
+.configSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.sectionTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-4);
+}
+
+@media (max-width: 768px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.fieldLabel {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.selectInput,
+.textInput {
+  padding: var(--s-3);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-base);
+  outline: none;
+  transition: border-color var(--t-fast);
+}
+
+.selectInput:focus,
+.textInput:focus {
+  border-color: var(--accent);
+}
+
+/* Trap Archetypes Cards Grid */
+.archetypesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--s-4);
+}
+
+.archetypeCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  transition: all var(--t-fast);
+  text-align: left;
+}
+
+.archetypeCard:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.archetypeCardSelected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.archetypeTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.archetypeName {
+  font-weight: 700;
+  font-size: var(--fs-base);
+  color: var(--text);
+}
+
+.freqBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: rgba(194, 69, 58, 0.12);
+  color: var(--danger);
+}
+
+.archetypeDesc {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.patternBox {
+  font-size: 11px;
+  color: var(--text);
+  background: var(--surface-2);
+  padding: var(--s-2);
+  border-radius: var(--r-sm);
+  border-left: 2px solid var(--accent);
+}
+
+/* Launch Action Panel */
+.launchPanel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-6);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-md);
+  flex-wrap: wrap;
+}
+
+/* History Section */
+.historyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--s-4);
+}
+
+.historyCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.historyScore {
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  color: var(--text);
+}
