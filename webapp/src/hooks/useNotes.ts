@@ -47,12 +47,10 @@ export function useUpdateNoteHtml() {
   return useMutation({
     mutationFn: ({ id, htmlContent }: { id: string; htmlContent: string }) =>
       notesApi.updateHtml(id, htmlContent),
-    onSuccess: (data) => {
-      if (data.material_id) {
-        // Same prefix sweep as useAddNote — covers the edited material's
-        // list and the graph's global snapshot in one go.
-        qc.invalidateQueries({ queryKey: notesKeys.all });
-      }
+    onSuccess: () => {
+      // Same prefix sweep as useAddNote — covers the edited material's
+      // list and the graph's global snapshot in one go.
+      qc.invalidateQueries({ queryKey: notesKeys.all });
     },
   });
 }

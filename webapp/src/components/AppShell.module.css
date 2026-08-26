@@ -51,7 +51,22 @@
   z-index: 1;
 }
 
+.sidebarBackdrop {
+  display: none;
+}
+
 @media (max-width: 768px) {
+  .sidebarBackdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    border: 0;
+    padding: 0;
+    background: rgba(4, 10, 9, 0.58);
+    cursor: pointer;
+  }
+
   .mainContent {
     padding: var(--s-5);
     padding-bottom: calc(

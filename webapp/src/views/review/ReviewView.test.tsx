@@ -840,7 +840,12 @@ describe("ReviewView", () => {
          afterwards has no card left to click through to. */
       serve();
       let resolveEdge!: (response: Response) => void;
+      let patchCalls = 0;
       server.use(
+        http.patch(rest("flashcards"), () => {
+          patchCalls += 1;
+          return new HttpResponse(null, { status: 204 });
+        }),
         http.post(
           EDGE_URL,
           () => new Promise<Response>((resolve) => (resolveEdge = resolve)),
@@ -871,6 +876,7 @@ describe("ReviewView", () => {
           screen.getByRole("heading", { name: "Flashcards tab" }),
         ).toBeInTheDocument(),
       );
+      expect(patchCalls).toBe(0);
     });
   });
 

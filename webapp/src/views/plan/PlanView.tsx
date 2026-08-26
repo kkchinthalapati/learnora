@@ -382,14 +382,17 @@ export function PlanView() {
 
   const isTriageAvailable = exams?.some((e) => {
     if (e.status === "Completed") return false;
-    /* Not Math.abs(): an exam that already happened (student forgot to mark
-       it Completed) has a negative diff, and Math.abs was folding that back
-       into "within 3 days", offering emergency triage for a test that's
-       already over. Only a future exam counts. */
-    const diffTime = new Date(e.exam_date).getTime() - Date.now();
-    if (diffTime < 0) return false;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 3;
+    /* Exam dates are calendar dates, not instants. Comparing a date-only
+       value with Date.now() made an exam scheduled for today look past its
+       deadline as soon as local midnight passed. Compare local midnights so
+       today's exam remains eligible and a genuinely past exam does not. */
+    const examDate = parseLocalDate(e.exam_date);
+    const todayDate = parseLocalDate(today);
+    if (Number.isNaN(examDate.getTime())) return false;
+    const diffDays = Math.round(
+      (examDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    return diffDays >= 0 && diffDays <= 3;
   });
 
   const sunday = new Date(monday);

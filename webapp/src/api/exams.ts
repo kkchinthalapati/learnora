@@ -24,15 +24,25 @@ export const examsApi = {
     const userId = await requireUserId();
     const withUser = { ...payload, user_id: userId };
 
-    const res = id
-      ? await supabase.from("exams").update(withUser).eq("id", id)
-      : await supabase.from("exams").insert([withUser]);
+    const res =
+      id !== null
+        ? await supabase
+            .from("exams")
+            .update(withUser)
+            .eq("id", id)
+            .eq("user_id", userId)
+        : await supabase.from("exams").insert([withUser]);
 
     if (res.error) throw new Error(res.error.message);
   },
 
   async delete(id: number): Promise<void> {
-    const { error } = await supabase.from("exams").delete().eq("id", id);
+    const userId = await requireUserId();
+    const { error } = await supabase
+      .from("exams")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
   },
 };

@@ -2,10 +2,7 @@ import { useEffect, useState } from "react";
 import type { Material } from "../api/types";
 
 export type MaterialProcessingStatus =
-  | "processing"
-  | "completed"
-  | "partially_processed"
-  | "failed";
+  "processing" | "completed" | "partially_processed" | "failed";
 
 export interface StageFailureRecord {
   stage: string;
@@ -80,8 +77,22 @@ function notify() {
 
 export function subscribeMaterialProcessing(listener: () => void): () => void {
   listeners.add(listener);
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key !== STORAGE_KEY && event.key !== null) return;
+    // The module-level cache is shared only within this tab. Re-read it when
+    // another tab changes the persisted processing state.
+    memoryRecords = null;
+    loadRecords();
+    listener();
+  };
+  if (typeof window !== "undefined") {
+    window.addEventListener("storage", handleStorage);
+  }
   return () => {
     listeners.delete(listener);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("storage", handleStorage);
+    }
   };
 }
 

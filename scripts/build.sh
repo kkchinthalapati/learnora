@@ -99,6 +99,11 @@ echo "==> Building the React app"
 npm --prefix "$ROOT/webapp" ci
 npm --prefix "$ROOT/webapp" run build
 
+if [[ ! -f "$ROOT/webapp/dist/index.html" ]]; then
+  echo "ERROR: React build completed without webapp/dist/index.html." >&2
+  exit 1
+fi
+
 echo "==> Placing the React app at /app"
 mv "$ROOT/webapp/dist" "$OUT/app"
 

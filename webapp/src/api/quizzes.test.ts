@@ -35,6 +35,7 @@ describe("quizzesApi", () => {
     );
     await quizzesApi.delete("quiz-1");
     expect(capturedUrl?.searchParams.get("id")).toBe("eq.quiz-1");
+    expect(capturedUrl?.searchParams.get("user_id")).toBe("eq.user-1");
   });
 
   /* Client-side aggregation over the last 30 attempts — worth testing on its

@@ -31,13 +31,18 @@ export const foldersApi = {
    * uploaded files themselves — collect their storage paths before the
    * folder (and the rows referencing them) are gone. */
   async delete(id: string): Promise<{ storageCleanupFailed: boolean }> {
+    const userId = await requireUserId();
     const materials = await materialsApi.fetch(id);
     const paths = materials.reduce<string[]>((acc, m) => {
       if (m.storage_path) acc.push(m.storage_path);
       return acc;
     }, []);
 
-    const { error } = await supabase.from("folders").delete().eq("id", id);
+    const { error } = await supabase
+      .from("folders")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
 
     let storageCleanupFailed = false;
@@ -60,10 +65,12 @@ export const foldersApi = {
   },
 
   async rename(id: string, name: string): Promise<void> {
+    const userId = await requireUserId();
     const { error } = await supabase
       .from("folders")
       .update({ name })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
   },
 };

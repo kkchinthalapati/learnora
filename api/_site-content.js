@@ -140,11 +140,25 @@ function notFoundHtml() {
 }
 
 function acceptsMarkdown(acceptHeader = "") {
-  return acceptHeader.split(",").some((value) => {
+  let markdownQuality = 0;
+  let htmlQuality = 0;
+
+  for (const value of String(acceptHeader).split(",")) {
     const [type, ...parameters] = value.trim().toLowerCase().split(";");
-    const disabled = parameters.some((parameter) => /^q\s*=\s*0(?:\.0+)?$/.test(parameter.trim()));
-    return !disabled && (type === "text/markdown" || type === "text/x-markdown");
-  });
+    const qualityParameter = parameters.find((parameter) =>
+      /^\s*q\s*=/.test(parameter),
+    );
+    const quality = qualityParameter
+      ? Number(qualityParameter.split("=")[1].trim())
+      : 1;
+
+    if (!Number.isFinite(quality) || quality < 0 || quality > 1) continue;
+    if (type === "text/markdown" || type === "text/x-markdown")
+      markdownQuality = Math.max(markdownQuality, quality);
+    if (type === "text/html") htmlQuality = Math.max(htmlQuality, quality);
+  }
+
+  return markdownQuality > 0 && markdownQuality >= htmlQuality;
 }
 
 function publicProductInfo() {
@@ -159,7 +173,8 @@ function publicProductInfo() {
     mcp: `${SITE_URL}/api/mcp`,
     mcpDiscovery: `${SITE_URL}/.well-known/mcp`,
     support: `mailto:${SUPPORT_EMAIL}`,
-    publicApiScope: "Read-only product information. Student accounts and study data require an authenticated in-product session and are not available through this public API.",
+    publicApiScope:
+      "Read-only product information. Student accounts and study data require an authenticated in-product session and are not available through this public API.",
   };
 }
 

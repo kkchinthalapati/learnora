@@ -329,6 +329,28 @@ describe("PlanView", () => {
       ).not.toBeInTheDocument();
     });
 
+    it("offers Triage for an exam scheduled today", async () => {
+      servePlan(planRow(SAMPLE_PLAN));
+
+      server.use(
+        http.get(rest("exams"), () =>
+          HttpResponse.json([
+            {
+              id: 1,
+              exam_name: "Bio 101 Midterm",
+              exam_date: TODAY,
+              status: "Scheduled",
+            },
+          ]),
+        ),
+      );
+      renderPlan();
+
+      expect(
+        await screen.findByRole("button", { name: /Triage/i }),
+      ).toBeInTheDocument();
+    });
+
     it("generates a triage plan when confirmed", async () => {
       servePlan(planRow(SAMPLE_PLAN));
       const closeExamDate = new Date();

@@ -27,14 +27,14 @@ describe("VerifyView", () => {
     vi.useRealTimers();
   });
 
-  it("holds the confirmation screen while the token is being exchanged", () => {
+  it("holds a neutral checking screen while the token is being exchanged", () => {
     renderVerify();
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "Account verified!" }),
+      screen.getByRole("heading", { level: 1, name: "Checking your link" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Taking you to your dashboard now…"),
+      screen.getByText("We’re confirming your email address now."),
     ).toHaveAttribute("role", "status");
   });
 
@@ -74,7 +74,7 @@ describe("VerifyView", () => {
        Declaring the link dead at that point would strand a user whose session
        was about to resolve one tick later. */
     expect(
-      screen.getByRole("heading", { level: 1, name: "Account verified!" }),
+      screen.getByRole("heading", { level: 1, name: "Checking your link" }),
     ).toBeInTheDocument();
   });
 });

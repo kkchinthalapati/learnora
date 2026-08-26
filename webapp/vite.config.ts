@@ -24,6 +24,10 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
+    // The fork pool can hang on Windows when the suite mounts many jsdom
+    // environments. Threads keep the same isolation contract while making
+    // `npm test` deterministic in local and CI runs.
+    pool: "threads",
     setupFiles: "./src/test/setup.ts",
     /* Node 22+ ships its own global `localStorage`/`sessionStorage` (Web
      * Storage API), on by default since Node 24. It defines `localStorage`

@@ -27,31 +27,42 @@ export const tasksApi = {
   },
 
   async toggle(id: number, currentStatus: boolean): Promise<void> {
+    const userId = await requireUserId();
     const { error } = await supabase
       .from("tasks")
       .update({ is_done: !currentStatus })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
   },
 
   async delete(id: number): Promise<void> {
-    const { error } = await supabase.from("tasks").delete().eq("id", id);
+    const userId = await requireUserId();
+    const { error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
   },
 
   async updateText(id: number, newText: string): Promise<void> {
+    const userId = await requireUserId();
     const { error } = await supabase
       .from("tasks")
       .update({ text: newText })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
   },
 
   async updateDueDate(id: number, dueDate: string | null): Promise<void> {
+    const userId = await requireUserId();
     const { error } = await supabase
       .from("tasks")
       .update({ due_date: dueDate || null })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
   },
 };

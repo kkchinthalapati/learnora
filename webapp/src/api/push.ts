@@ -12,19 +12,23 @@ export const pushApi = {
    *  per browser+origin+device, so it's the natural lookup key — there is no
    *  separate client-generated id to remember between visits. */
   async fetchByEndpoint(endpoint: string): Promise<PushSubscriptionRow | null> {
+    const userId = await requireUserId();
     const { data, error } = await supabase
       .from("push_subscriptions")
       .select("*")
       .eq("endpoint", endpoint)
+      .eq("user_id", userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data;
   },
 
   async fetchAll(): Promise<PushSubscriptionRow[]> {
+    const userId = await requireUserId();
     const { data, error } = await supabase
       .from("push_subscriptions")
       .select("*")
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data || [];
@@ -64,6 +68,7 @@ export const pushApi = {
     endpoint: string,
     prefs: Partial<{ notifyExams: boolean; notifyFlashcards: boolean }>,
   ): Promise<void> {
+    const userId = await requireUserId();
     const patch: Record<string, boolean> = {};
     if (prefs.notifyExams !== undefined) patch.notify_exams = prefs.notifyExams;
     if (prefs.notifyFlashcards !== undefined)
@@ -71,23 +76,28 @@ export const pushApi = {
     const { error } = await supabase
       .from("push_subscriptions")
       .update(patch)
-      .eq("endpoint", endpoint);
+      .eq("endpoint", endpoint)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
   },
 
   async remove(endpoint: string): Promise<void> {
+    const userId = await requireUserId();
     const { error } = await supabase
       .from("push_subscriptions")
       .delete()
-      .eq("endpoint", endpoint);
+      .eq("endpoint", endpoint)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
   },
 
   async removeById(id: string): Promise<void> {
+    const userId = await requireUserId();
     const { error } = await supabase
       .from("push_subscriptions")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
   },
 };

@@ -56,6 +56,7 @@ describe("examsApi", () => {
 
     await examsApi.save({ exam_name: "Final v2" }, 7);
     expect(capturedUrl?.searchParams.get("id")).toBe("eq.7");
+    expect(capturedUrl?.searchParams.get("user_id")).toBe("eq.user-1");
     expect(capturedBody).toEqual({ exam_name: "Final v2", user_id: "user-1" });
   });
 

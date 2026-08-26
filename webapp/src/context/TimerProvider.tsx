@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { sessionsApi } from "../api/sessions";
 import { useLogSession } from "../hooks/useSessions";
 import { useToast } from "./toast";
 import { useAuth } from "./auth";
@@ -291,45 +292,43 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const userId = session?.user.id;
     if (!userId || smartDefaultsFetchedFor === userId) return;
-    import("../api/sessions").then(({ sessionsApi }) => {
-      sessionsApi
-        .fetchAverageSessionLengths(14)
-        .then((averages) => {
-          const avgPomo = averages["pomodoro"];
-          const avgCount = averages["countdown"];
-          let newDraft: Partial<TimerConfig> | null = null;
+    sessionsApi
+      .fetchAverageSessionLengths(14)
+      .then((averages) => {
+        const avgPomo = averages["pomodoro"];
+        const avgCount = averages["countdown"];
+        let newDraft: Partial<TimerConfig> | null = null;
 
-          // If the user typically studies for a different duration than the 25m/15m defaults,
-          // and they haven't explicitly moved the sliders away from the default, adapt the slider.
-          if (
-            avgPomo &&
-            avgPomo > 0 &&
-            avgPomo !== 25 &&
-            draftConfig.focus === 25
-          ) {
-            newDraft = { ...draftConfig, focus: avgPomo };
-          }
-          if (
-            avgCount &&
-            avgCount > 0 &&
-            avgCount !== 15 &&
-            (newDraft || draftConfig).countdown === 15
-          ) {
-            newDraft = { ...(newDraft || draftConfig), countdown: avgCount };
-          }
+        // If the user typically studies for a different duration than the 25m/15m defaults,
+        // and they haven't explicitly moved the sliders away from the default, adapt the slider.
+        if (
+          avgPomo &&
+          avgPomo > 0 &&
+          avgPomo !== 25 &&
+          draftConfig.focus === 25
+        ) {
+          newDraft = { ...draftConfig, focus: avgPomo };
+        }
+        if (
+          avgCount &&
+          avgCount > 0 &&
+          avgCount !== 15 &&
+          (newDraft || draftConfig).countdown === 15
+        ) {
+          newDraft = { ...(newDraft || draftConfig), countdown: avgCount };
+        }
 
-          if (newDraft) {
-            applyConfig(newDraft, null);
-          }
-          setSmartDefaultsFetchedFor(userId);
-        })
-        .catch((err) => {
-          if (!(err instanceof Error && err.message === "Not authenticated")) {
-            console.warn("[Timer] Failed to fetch smart defaults:", err);
-          }
-          setSmartDefaultsFetchedFor(userId);
-        });
-    });
+        if (newDraft) {
+          applyConfig(newDraft, null);
+        }
+        setSmartDefaultsFetchedFor(userId);
+      })
+      .catch((err) => {
+        if (!(err instanceof Error && err.message === "Not authenticated")) {
+          console.warn("[Timer] Failed to fetch smart defaults:", err);
+        }
+        setSmartDefaultsFetchedFor(userId);
+      });
   }, [applyConfig, draftConfig, session?.user.id, smartDefaultsFetchedFor]);
 
   const startPreset = useCallback(

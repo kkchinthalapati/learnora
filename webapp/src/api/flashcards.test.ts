@@ -79,4 +79,30 @@ describe("flashcardsApi", () => {
       { user_id: "user-1", deck_id: "deck-1", front: "Q1", back: "A1" },
     ]);
   });
+
+  it("scopes deck reads and review writes to the current user", async () => {
+    let deckUrl: URL | undefined;
+    let reviewUrl: URL | undefined;
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/flashcards`, ({ request }) => {
+        deckUrl = new URL(request.url);
+        return HttpResponse.json([]);
+      }),
+      http.patch(`${SUPABASE_URL}/rest/v1/flashcards`, ({ request }) => {
+        reviewUrl = new URL(request.url);
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    await flashcardsApi.fetchByDeck("deck-1");
+    await flashcardsApi.updateReview(
+      "card-1",
+      "2026-08-27T00:00:00.000Z",
+      2,
+      2.5,
+    );
+
+    expect(deckUrl?.searchParams.get("user_id")).toBe("eq.user-1");
+    expect(reviewUrl?.searchParams.get("user_id")).toBe("eq.user-1");
+  });
 });

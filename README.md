@@ -1,33 +1,37 @@
 # Learnora
 
-Learnora is a study workspace web app built for students who want a cleaner way to study, revise, and stay organized.
-It is currently in development and planned for public release.
+Learnora is a React study workspace for planning, learning from materials,
+reviewing with spaced repetition, and tracking progress.
 
-## Overview
+## App layout
 
-Learnora is being developed as a focused study platform, not just another generic productivity app.
-The project is associated with the Learnora name across product and web presence, with a strong student-first identity.
+- `webapp/` contains the live Vite + React + TypeScript application.
+- `api/` contains the public Vercel edge handlers and marketing pages.
+- `scripts/build.sh` builds the React app and assembles the deployable `dist/`
+  directory.
 
-## Stack
+The root HTML/JavaScript shell is retained for auth-adjacent legacy pages and
+redirect compatibility. New product work belongs in `webapp/`.
 
-- Vanilla HTML, CSS, and JavaScript.
-- Supabase backend.
-- Vercel deployment for the live app.
+## Local development
 
-## Development workflow
+Requirements: Node.js 24.x and npm.
 
-The repo uses a branch-based workflow, and the `main` branch is protected to keep production-safe changes cleaner.[3][4]
-Multiple branches can be managed efficiently with git worktrees when working on features in parallel.[5]
+```bash
+npm --prefix webapp ci
+npm --prefix webapp run dev
+```
 
-## Project goals
+The app is served under `/app/` in Vite and production, for example
+`http://localhost:5173/app/`.
 
-- Keep studying and revision in one place.
-- Build a clean, practical experience for students.
-- Ship a polished public-facing app under the Learnora brand.
+## Verification
 
-## Notes
+```bash
+npm --prefix webapp run lint
+npm --prefix webapp run build
+npm --prefix webapp test
+```
 
-This repo is part of an active build process, so structure, features, and implementation details may change as development continues.
-
-
-Thanks for being so kind!
+Production deployment is configured in `vercel.json` and uses
+`bash scripts/build.sh`.

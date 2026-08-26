@@ -119,6 +119,9 @@ export function TaskItem({
         onToggle(task);
       }}
     >
+      <span className={styles.check} aria-hidden="true">
+        {task.is_done ? <Icon name="check" size={14} /> : null}
+      </span>
       {editingText ? (
         <input
           type="text"
@@ -261,9 +264,13 @@ export function TaskItem({
             <button
               type="button"
               className={`${styles.quickBtn}${isRecurring ? ` ${styles.quickBtnActive}` : ""}`}
-              aria-label={isRecurring ? "Remove weekly repeat" : "Repeat weekly"}
+              aria-label={
+                isRecurring ? "Remove weekly repeat" : "Repeat weekly"
+              }
               aria-pressed={isRecurring}
-              title={isRecurring ? "Turn off weekly recurrence" : "Repeat weekly"}
+              title={
+                isRecurring ? "Turn off weekly recurrence" : "Repeat weekly"
+              }
               onClick={(e) => {
                 e.stopPropagation();
                 onRename(task, createRecurringWeeklyText(task.text));
@@ -289,4 +296,3 @@ export function TaskItem({
     </li>
   );
 }
-

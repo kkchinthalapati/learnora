@@ -767,6 +767,7 @@ function ReviewSession({
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false);
   const [socraticOpen, setSocraticOpen] = useState(false);
   const [socraticMode, setSocraticMode] = useState<SocraticMode>("why_missed");
+  const mountedRef = useRef(true);
 
   const openSocratic = (mode: SocraticMode = "why_missed") => {
     setSocraticMode(mode);
@@ -864,6 +865,14 @@ function ReviewSession({
     return () => registerFlashcardGrader(null);
   }, [finished, registerFlashcardGrader, scoreCard]);
 
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      aiGradeInFlight.current = false;
+    };
+  }, []);
+
   if (finished) {
     const difficultCards = results
       .filter(({ quality }) => quality < 3)
@@ -920,6 +929,9 @@ function ReviewSession({
         history: [{ role: "user", content: AI_GRADE_PROMPT(card, trimmed) }],
         settings,
       });
+      /* Leaving the route does not cancel fetch, so a late reply must not
+         grade a card or write SRS state after this session is gone. */
+      if (!mountedRef.current) return;
       await executeActions(text, gradeOnlyHandlers(scoreCard));
     } catch {
       /* Falls through to the same "couldn't grade" recovery below as a reply
@@ -931,7 +943,7 @@ function ReviewSession({
          here — `scoreCard` clears it on success — means either failure mode
          surfaces as a real error instead of a screen stuck forever. */
     }
-    if (aiGradeInFlight.current) {
+    if (mountedRef.current && aiGradeInFlight.current) {
       aiGradeInFlight.current = false;
       setGrading(false);
       showToast(
@@ -1279,7 +1291,8 @@ function ReviewRecap({
             />
           </div>
           <p className={styles.retentionExplanation}>
-            Estimated retention over the next 7 days based on your recall speed &amp; accuracy
+            Estimated retention over the next 7 days based on your recall speed
+            &amp; accuracy
           </p>
         </div>
 
@@ -1319,10 +1332,15 @@ function ReviewRecap({
             <div className={styles.weakTopicsHeader}>
               <h3 className={styles.weakTopicsTitle}>Weak Topics Identified</h3>
               <p className={styles.weakTopicsSubtext}>
-                Topics from cards marked Again or Hard. Click a topic to filter cards:
+                Topics from cards marked Again or Hard. Click a topic to filter
+                cards:
               </p>
             </div>
-            <div className={styles.topicBadges} role="list" aria-label="Weak topics">
+            <div
+              className={styles.topicBadges}
+              role="list"
+              aria-label="Weak topics"
+            >
               {recap.weakTopics.map(({ topic, count }) => {
                 const isActive = selectedTopic === topic;
                 return (
@@ -1332,9 +1350,7 @@ function ReviewRecap({
                     className={`${styles.topicBadge} ${
                       isActive ? styles.topicBadgeActive : ""
                     }`}
-                    onClick={() =>
-                      setSelectedTopic(isActive ? null : topic)
-                    }
+                    onClick={() => setSelectedTopic(isActive ? null : topic)}
                     aria-pressed={isActive}
                   >
                     <span>{topic}</span>
@@ -1349,7 +1365,11 @@ function ReviewRecap({
         {/* Cards Graded Breakdown */}
         <div className={styles.breakdownSection}>
           <h3 className={styles.breakdownTitle}>Cards Breakdown</h3>
-          <div className={styles.gradeTabs} role="tablist" aria-label="Filter cards by grade">
+          <div
+            className={styles.gradeTabs}
+            role="tablist"
+            aria-label="Filter cards by grade"
+          >
             <button
               type="button"
               role="tab"

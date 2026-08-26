@@ -49,7 +49,21 @@ export const materialsApi = {
       ])
       .select()
       .single();
-    if (dbError) throw new Error(dbError.message);
+    if (dbError) {
+      // Do not leave an unreferenced object behind when the row insert fails.
+      // Storage and Postgres are separate services, so this rollback has to be
+      // explicit; a later folder/material cleanup cannot discover this path.
+      const { error: cleanupError } = await supabase.storage
+        .from("materials")
+        .remove([filePath]);
+      if (cleanupError) {
+        console.error(
+          "[materialsApi.uploadFile] uploaded object cleanup failed",
+          cleanupError.message,
+        );
+      }
+      throw new Error(dbError.message);
+    }
     return data;
   },
 
@@ -87,6 +101,7 @@ export const materialsApi = {
     materialId: string,
     storagePath: string | null = null,
   ): Promise<void> {
+    const userId = await requireUserId();
     if (storagePath) {
       const { error: storageError } = await supabase.storage
         .from("materials")
@@ -97,7 +112,8 @@ export const materialsApi = {
     const { error } = await supabase
       .from("materials")
       .delete()
-      .eq("id", materialId);
+      .eq("id", materialId)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
   },
 
@@ -123,10 +139,12 @@ export const materialsApi = {
   },
 
   async fetchById(id: string): Promise<Material | null> {
+    const userId = await requireUserId();
     const { data, error } = await supabase
       .from("materials")
       .select("*")
       .eq("id", id)
+      .eq("user_id", userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data;

@@ -33,22 +33,18 @@ export function VerifyView() {
 
   if (session) return <Navigate to="/" replace />;
 
-  if (timedOut && !loading) {
+  if (loading || !timedOut) {
     return (
       <AuthShell
-        title="Link expired"
-        subtitle="This verification link is no longer valid."
+        title="Checking your link"
+        subtitle="One moment…"
         showLegal={false}
       >
         <div className={styles.centered}>
-          <p className={styles.intro}>
-            Verification links can only be used once, and they expire after a
-            while. Try signing in — if your email still isn't confirmed, sign up
-            again to get a fresh link.
+          <p className={styles.intro} role="status">
+            We’re confirming your email address now.
           </p>
-          <Link className={styles.link} to="/login">
-            Go to sign in
-          </Link>
+          <div className={styles.spinner} aria-hidden="true" />
         </div>
       </AuthShell>
     );
@@ -56,15 +52,19 @@ export function VerifyView() {
 
   return (
     <AuthShell
-      title="Account verified!"
-      subtitle="Your email has been securely confirmed."
+      title="Link expired"
+      subtitle="This verification link is no longer valid."
       showLegal={false}
     >
       <div className={styles.centered}>
-        <p className={styles.intro} role="status">
-          Taking you to your dashboard now…
+        <p className={styles.intro}>
+          Verification links can only be used once, and they expire after a
+          while. Try signing in — if your email still isn't confirmed, sign up
+          again to get a fresh link.
         </p>
-        <div className={styles.spinner} aria-hidden="true" />
+        <Link className={styles.link} to="/login">
+          Go to sign in
+        </Link>
       </div>
     </AuthShell>
   );

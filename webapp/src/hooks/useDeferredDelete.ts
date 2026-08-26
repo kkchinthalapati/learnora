@@ -99,6 +99,8 @@ export function useDeferredDelete<TId extends string | number, T = never>(
 
   const remove = useCallback(
     (id: TId, undoLabel: string = "Undo") => {
+      const existingTimer = timers.current.get(id);
+      if (existingTimer) clearTimeout(existingTimer);
       setPendingDelete((prev) => new Set(prev).add(id));
       undone.current.delete(id);
 
@@ -122,10 +124,7 @@ export function useDeferredDelete<TId extends string | number, T = never>(
 
       timers.current.set(
         id,
-        setTimeout(
-          () => void commitRef.current(id),
-          DEFERRED_DELETE_WINDOW_MS,
-        ),
+        setTimeout(() => void commitRef.current(id), DEFERRED_DELETE_WINDOW_MS),
       );
     },
     [showToast, label],

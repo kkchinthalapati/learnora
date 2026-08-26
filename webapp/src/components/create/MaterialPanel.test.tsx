@@ -359,7 +359,29 @@ describe("MaterialPanel guided creation", () => {
   it("displays detailed stage breakdown of errors and a direct 'Retry Failed Stages' button without losing user state", async () => {
     serveDb();
     let attempt = 0;
+    let materialPosts = 0;
     server.use(
+      http.post(rest("materials"), async ({ request }) => {
+        materialPosts++;
+        const [body] = (await request.json()) as Record<string, unknown>[];
+        return HttpResponse.json({ id: "mat-1", ...body }, { status: 201 });
+      }),
+      http.get(rest("materials"), ({ request }) => {
+        const material = {
+          id: "mat-1",
+          user_id: "user-1",
+          folder_id: "folder-1",
+          title: "Web Link",
+          type: "text",
+          raw_content: LONG_TEXT,
+          storage_path: null,
+          created_at: new Date().toISOString(),
+        };
+        return new URL(request.url).searchParams.has("id")
+          ? HttpResponse.json(material)
+          : HttpResponse.json([]);
+      }),
+      http.get(rest("notes"), () => HttpResponse.json([])),
       http.post(EDGE_URL, async ({ request }) => {
         const { mode } = (await request.json()) as { mode: string };
         attempt++;
@@ -379,15 +401,20 @@ describe("MaterialPanel guided creation", () => {
     await user.click(screen.getByRole("button", { name: "Create study kit" }));
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Retry Failed Stages" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Retry Failed Stages" }),
+    ).toBeInTheDocument();
 
     // State is preserved
     expect(screen.getByLabelText("Subject")).toHaveValue("folder-1");
 
     // Click retry
-    await user.click(screen.getByRole("button", { name: "Retry Failed Stages" }));
+    await user.click(
+      screen.getByRole("button", { name: "Retry Failed Stages" }),
+    );
     expect(
       await screen.findByText("Created notes, flashcards."),
     ).toBeInTheDocument();
+    expect(materialPosts).toBe(1);
   });
 });

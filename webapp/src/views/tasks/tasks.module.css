@@ -79,8 +79,9 @@
   font-family: inherit;
   font-size: var(--fs-xs);
   font-weight: 500;
-  padding: 4px 10px;
-  border-radius: var(--r-full);
+  min-height: var(--touch-target-min);
+  padding: 8px 12px;
+  border-radius: var(--r-pill);
   border: 1px solid var(--glass-border);
   background: var(--surface-2);
   color: var(--text-muted);
@@ -102,7 +103,7 @@
 
 .pillBtnActive {
   background: var(--accent);
-  color: var(--accent-contrast, #ffffff);
+  color: var(--accent-on);
   border-color: var(--accent);
   font-weight: 600;
 }
@@ -133,6 +134,28 @@
     transform var(--t-fast) var(--ease),
     border-color var(--t-fast) ease,
     box-shadow var(--t-fast) ease;
+}
+
+.check {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--text-faint);
+  border-radius: 50%;
+  color: transparent;
+  transition:
+    background var(--t-fast) ease,
+    border-color var(--t-fast) ease,
+    color var(--t-fast) ease;
+}
+
+.done .check {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--success-on);
 }
 
 .item:hover {
@@ -303,6 +326,8 @@
 
 .deleteBtn {
   flex-shrink: 0;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
   padding: 8px 12px;
   border: none;
   font-family: inherit;
@@ -514,4 +539,3 @@
   flex: 1;
   min-width: 0;
 }
-

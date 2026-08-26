@@ -8,7 +8,9 @@ import styles from "./AppShell.module.css";
 const MOBILE_BREAKPOINT = 768;
 
 function checkIsMobile(): boolean {
-  return typeof window !== "undefined" && window.innerWidth <= MOBILE_BREAKPOINT;
+  return (
+    typeof window !== "undefined" && window.innerWidth <= MOBILE_BREAKPOINT
+  );
 }
 
 /* The persistent chrome around every signed-in route — ports the
@@ -109,6 +111,14 @@ export function AppShell() {
         onNavigate={handleNavigate}
         onToggleCollapse={handleToggleDesktopCollapse}
       />
+      {isMobile && mobileOpen ? (
+        <button
+          type="button"
+          className={styles.sidebarBackdrop}
+          aria-label="Close navigation"
+          onClick={() => setMobileOpen(false)}
+        />
+      ) : null}
 
       <main className={styles.mainContent}>
         <Header onToggleMenu={handleToggleMenu} />

@@ -40,17 +40,24 @@ export const quizzesApi = {
   },
 
   async fetchById(id: string): Promise<Quiz | null> {
+    const userId = await requireUserId();
     const { data, error } = await supabase
       .from("quizzes")
       .select("*")
       .eq("id", id)
+      .eq("user_id", userId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data;
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase.from("quizzes").delete().eq("id", id);
+    const userId = await requireUserId();
+    const { error } = await supabase
+      .from("quizzes")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
   },
 

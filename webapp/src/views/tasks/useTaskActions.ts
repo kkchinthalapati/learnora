@@ -26,12 +26,14 @@ export function useTaskActions() {
   const updateText = useUpdateTaskText();
   const updateDueDate = useUpdateTaskDueDate();
   const { showToast } = useToast();
-  const { remove: removePending, visible: visibleTasks } =
-    useDeferredDelete<number, Task>({
-      deleteFn: (id) => tasksApi.delete(id),
-      invalidateKey: [...tasksKeys.all],
-      label: "Task",
-    });
+  const { remove: removePending, visible: visibleTasks } = useDeferredDelete<
+    number,
+    Task
+  >({
+    deleteFn: (id) => tasksApi.delete(id),
+    invalidateKey: [...tasksKeys.all],
+    label: "Task",
+  });
 
   const toggle = useCallback(
     (task: Task) => {
@@ -39,12 +41,24 @@ export function useTaskActions() {
       toggleTask.mutate({ id: task.id, currentStatus: task.is_done });
       if (willComplete && isRecurringWeekly(task.text)) {
         const nextDueDate = createNextWeeklyDate(task.due_date);
-        addTask.mutate({
-          text: task.text,
-          dueDate: nextDueDate,
-        });
-        const formattedDate = formatDueDate(nextDueDate);
-        showToast(`Scheduled next weekly task for ${formattedDate}`);
+        addTask.mutate(
+          {
+            text: task.text,
+            dueDate: nextDueDate,
+          },
+          {
+            onSuccess: () => {
+              const formattedDate = formatDueDate(nextDueDate);
+              showToast(`Scheduled next weekly task for ${formattedDate}`);
+            },
+            onError: (error) => {
+              showToast(
+                `Couldn't schedule the next weekly task. ${error.message}`,
+                { error: true },
+              );
+            },
+          },
+        );
       }
     },
     [toggleTask, addTask, showToast],

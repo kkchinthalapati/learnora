@@ -69,14 +69,18 @@ describe("tasksApi", () => {
 
   it("toggles is_done to the opposite of the current status", async () => {
     let capturedBody: Record<string, unknown> | undefined;
+    let capturedUrl: URL | undefined;
     server.use(
       http.patch(`${SUPABASE_URL}/rest/v1/tasks`, async ({ request }) => {
+        capturedUrl = new URL(request.url);
         capturedBody = (await request.json()) as Record<string, unknown>;
         return new HttpResponse(null, { status: 204 });
       }),
     );
 
     await tasksApi.toggle(1, false);
+    expect(capturedUrl?.searchParams.get("id")).toBe("eq.1");
+    expect(capturedUrl?.searchParams.get("user_id")).toBe("eq.user-1");
     expect(capturedBody).toEqual({ is_done: true });
   });
 
@@ -91,6 +95,7 @@ describe("tasksApi", () => {
 
     await tasksApi.delete(1);
     expect(capturedUrl?.searchParams.get("id")).toBe("eq.1");
+    expect(capturedUrl?.searchParams.get("user_id")).toBe("eq.user-1");
   });
 
   it("updates task text", async () => {

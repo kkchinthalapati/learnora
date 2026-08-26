@@ -16,10 +16,12 @@ export const decksApi = {
   },
 
   async fetch(folderId: string): Promise<FlashcardDeck[]> {
+    const userId = await requireUserId();
     const { data, error } = await supabase
       .from("flashcard_decks")
       .select("*")
       .eq("folder_id", folderId)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
@@ -42,10 +44,12 @@ export const decksApi = {
   // flashcards.deck_id -> flashcard_decks.id is ON DELETE CASCADE, so the
   // deck's cards are removed automatically.
   async delete(id: string): Promise<void> {
+    const userId = await requireUserId();
     const { error } = await supabase
       .from("flashcard_decks")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
   },
 };

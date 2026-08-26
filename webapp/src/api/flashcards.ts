@@ -5,10 +5,12 @@ import type { Flashcard, FlashcardDue } from "./types";
 /* Direct port of js/api.js's `Flashcards` object (:697-782). */
 export const flashcardsApi = {
   async fetchByDeck(deckId: string): Promise<Flashcard[]> {
+    const userId = await requireUserId();
     const { data, error } = await supabase
       .from("flashcards")
       .select("*")
-      .eq("deck_id", deckId);
+      .eq("deck_id", deckId)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
     return data ?? [];
   },
@@ -38,6 +40,7 @@ export const flashcardsApi = {
     interval: number,
     ease: number,
   ): Promise<void> {
+    const userId = await requireUserId();
     const { error } = await supabase
       .from("flashcards")
       .update({
@@ -45,7 +48,8 @@ export const flashcardsApi = {
         srs_interval: interval,
         ease_factor: ease,
       })
-      .eq("id", cardId);
+      .eq("id", cardId)
+      .eq("user_id", userId);
     if (error) throw new Error(error.message);
   },
 

@@ -2,11 +2,13 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import { queryClient } from "../lib/queryClient";
 import { AuthContext } from "./auth";
 
 /* Port of Auth.getSession / Auth.logout from js/api.js.
@@ -20,6 +22,16 @@ import { AuthContext } from "./auth";
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const lastUserId = useRef<string | null | undefined>(undefined);
+
+  const applySession = useCallback((nextSession: Session | null) => {
+    const nextUserId = nextSession?.user.id ?? null;
+    if (lastUserId.current !== undefined && lastUserId.current !== nextUserId) {
+      queryClient.clear();
+    }
+    lastUserId.current = nextUserId;
+    setSession(nextSession);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -28,12 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .getSession()
       .then(({ data, error }) => {
         if (!active) return;
-        setSession(error ? null : data.session);
+        applySession(error ? null : data.session);
       })
       .catch(() => {
         // A malformed or unreadable stored session must not leave the app
         // stuck on its loading state — treat it as signed out.
-        if (active) setSession(null);
+        if (active) applySession(null);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -43,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) return;
-      setSession(nextSession);
+      applySession(nextSession);
       setLoading(false);
     });
 
@@ -51,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       active = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [applySession]);
 
   const signOut = useCallback(async () => {
     try {
@@ -60,8 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fall through: the local session is cleared either way, matching the
       // vanilla logout's "force clear even if signOut API fails".
     }
-    setSession(null);
-  }, []);
+    applySession(null);
+  }, [applySession]);
 
   const value = useMemo(
     () => ({ session, user: session?.user ?? null, loading, signOut }),

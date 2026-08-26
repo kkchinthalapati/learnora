@@ -209,9 +209,18 @@ export function MaterialPanel({
     if (!name) return;
     const color =
       FOLDER_COLORS[Math.floor(Math.random() * FOLDER_COLORS.length)];
-    const created = await addFolder.mutateAsync({ name, color });
-    setExtraFolder(created);
-    setFolderId(created.id);
+    try {
+      const created = await addFolder.mutateAsync({ name, color });
+      setExtraFolder(created);
+      setFolderId(created.id);
+      setError(null);
+    } catch (caught) {
+      setError(
+        caught instanceof Error && caught.message
+          ? caught.message
+          : "Couldn’t create that subject. Please try again.",
+      );
+    }
   };
 
   const validateSource = (): { message: string; focus: () => void } | null => {
@@ -394,14 +403,16 @@ export function MaterialPanel({
           ? wantFlashcards
           : failedFlashcards;
       const retryQuiz =
-        failedNotes || stageFailures.length === 0
-          ? wantQuiz
-          : failedQuiz;
+        failedNotes || stageFailures.length === 0 ? wantQuiz : failedQuiz;
 
-      const sourceToUse =
-        createdMaterialId && !failedNotes
-          ? { kind: "material" as const, materialId: createdMaterialId }
-          : buildSource();
+      /* The first run already persisted the new material before notes were
+         generated. Reusing that row is important even when notes failed: the
+         material source can now recover from its stored file/raw content, so
+         rebuilding from the original source would create a duplicate row on
+         every notes retry. */
+      const sourceToUse = createdMaterialId
+        ? { kind: "material" as const, materialId: createdMaterialId }
+        : buildSource();
 
       const result = await create.mutateAsync({
         source: sourceToUse,
@@ -507,7 +518,7 @@ export function MaterialPanel({
       </nav>
 
       <div className={styles.workspace}>
-        <main className={styles.stage}>
+        <div className={styles.stage}>
           {step === "source" ? (
             <section aria-labelledby="source-step-heading">
               <div className={styles.stageHead}>
@@ -996,7 +1007,7 @@ export function MaterialPanel({
               </span>
             </div>
           ) : null}
-        </main>
+        </div>
 
         <aside className={styles.summary} aria-label="Creation summary">
           <span className={styles.summaryEyebrow}>Your study kit</span>

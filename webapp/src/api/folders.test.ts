@@ -42,6 +42,7 @@ describe("foldersApi", () => {
       http.delete(`${SUPABASE_URL}/rest/v1/folders`, ({ request }) => {
         const url = new URL(request.url);
         expect(url.searchParams.get("id")).toBe("eq.folder-1");
+        expect(url.searchParams.get("user_id")).toBe("eq.user-1");
         return new HttpResponse(null, { status: 204 });
       }),
     );
