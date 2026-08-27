@@ -74,6 +74,24 @@
   transform: translateY(-1px);
 }
 
+/* Lowest-emphasis text action — no fill, no border at rest. For the
+ * "Copy", "Dismiss", "Show more" inline actions the views had been
+ * hand-rolling as bespoke `.recapActionBtn` / `.socraticCopyBtn` /
+ * `.secondaryBtn` classes. */
+.ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: transparent;
+}
+.ghost:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent-ring);
+}
+.ghost:active {
+  background: var(--surface-active);
+}
+
 .danger {
   background: var(--danger-soft);
   color: var(--danger);

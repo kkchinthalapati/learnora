@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Button } from "./Button";
 import { Card } from "./Card";
+import { Chip } from "./Chip";
 import { EmptyState } from "./EmptyState";
 import { Icon } from "./Icon";
 import { IconButton } from "./IconButton";
@@ -56,6 +57,39 @@ describe("Button", () => {
       <Button disabled onClick={onClick}>
         Save
       </Button>,
+    );
+    await user.click(screen.getByRole("button"));
+    expect(onClick).not.toHaveBeenCalled();
+  });
+});
+
+describe("Chip", () => {
+  it("defaults to type=button", () => {
+    render(<Chip>Filter</Chip>);
+    expect(screen.getByRole("button", { name: "Filter" })).toHaveAttribute(
+      "type",
+      "button",
+    );
+  });
+
+  it("exposes toggle state via aria-pressed only when pressed is a boolean", () => {
+    const { rerender } = render(<Chip>Plain</Chip>);
+    expect(screen.getByRole("button")).not.toHaveAttribute("aria-pressed");
+
+    rerender(<Chip pressed={false}>Off</Chip>);
+    expect(screen.getByRole("button")).toHaveAttribute("aria-pressed", "false");
+
+    rerender(<Chip pressed>On</Chip>);
+    expect(screen.getByRole("button", { pressed: true })).toBeInTheDocument();
+  });
+
+  it("does not fire when disabled", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    render(
+      <Chip disabled onClick={onClick}>
+        Nope
+      </Chip>,
     );
     await user.click(screen.getByRole("button"));
     expect(onClick).not.toHaveBeenCalled();

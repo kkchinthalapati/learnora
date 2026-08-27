@@ -1,0 +1,106 @@
+/* Chip — compact pill for toggles, quick actions and clickable status.
+ * All state is token-driven so it follows dark mode and every accent preset.
+ * The tone shows on hover and (for toggles) when `.pressed`; the rest state
+ * is deliberately quiet so a row of chips doesn't shout. */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 32px;
+  padding: 5px 12px;
+  font-family: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--t-fast) ease,
+    border-color var(--t-fast) ease,
+    color var(--t-fast) ease,
+    transform var(--t-fast) ease;
+}
+
+.chip:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.chip:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sm {
+  min-height: 26px;
+  padding: 3px 9px;
+}
+
+/* ---- Tones: [--chip-color] fill + [--chip-soft] hover wash ------------- */
+
+.neutral {
+  --chip-color: var(--text);
+  --chip-soft: var(--surface-hover);
+  --chip-on: var(--surface);
+}
+.accent {
+  --chip-color: var(--accent);
+  --chip-soft: var(--accent-soft);
+  --chip-on: var(--accent-on);
+}
+.success {
+  --chip-color: var(--success);
+  --chip-soft: var(--success-soft);
+  --chip-on: var(--success-on);
+}
+.warning {
+  --chip-color: var(--warning);
+  --chip-soft: var(--warning-soft);
+  --chip-on: var(--warning-on);
+}
+.danger {
+  --chip-color: var(--danger);
+  --chip-soft: var(--danger-soft);
+  --chip-on: var(--danger-on);
+}
+
+.chip:hover:not(:disabled):not(.pressed) {
+  background: var(--chip-soft);
+  border-color: color-mix(in srgb, var(--chip-color) 40%, transparent);
+  color: var(--chip-color);
+}
+
+/* Status look: tone visible at rest. */
+.soft {
+  background: var(--chip-soft);
+  border-color: color-mix(in srgb, var(--chip-color) 30%, transparent);
+  color: var(--chip-color);
+}
+
+.pressed {
+  background: var(--chip-color);
+  border-color: transparent;
+  color: var(--chip-on);
+}
+
+.pressed:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--chip-color) 88%, black);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip,
+  .chip:hover:not(:disabled),
+  .chip:active:not(:disabled) {
+    transform: none;
+    transition: none;
+  }
+}

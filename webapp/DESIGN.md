@@ -79,8 +79,9 @@ import text from "../../styles/text.module.css";
 
 | Primitive | Covers |
 |---|---|
-| `Button` | `primary` (one per screen) · `secondary` · `danger` / `warning` / `success` · `size="sm"` |
+| `Button` | `primary` (one per screen) · `secondary` · `ghost` (lowest-emphasis text action) · `danger` / `warning` / `success` · `size="sm"` |
 | `IconButton` | icon-only action, 44px hit area, needs `aria-label` |
+| `Chip` | compact pill — filter/toggle (`pressed`), quick action, or clickable status (`soft` + `tone`). `tone`: `neutral` / `accent` / `success` / `warning` / `danger` |
 | `Card` | `panel` (default) · `elevated` · `row` · `subtle`; `padding` + `radius` props |
 | `PageHeader` | title + `eyebrow` + `sub` + right-aligned `actions` slot (renders text, **not** an `<h1>` — the shell's `Header` owns the page's one `<h1>`) |
 | `EmptyState` | zero-data view: icon + message + action |
@@ -120,8 +121,8 @@ Tracked on branch work; each phase ends green on
 |---|---|---|
 | 0 | `drift.test.ts` ratchet guard (raw hex / sub-token font-size / raw shadow / raw blur / emerald, frozen per file, ratchets down) | ✅ done |
 | 1 | Tokens (`--fs-stat*`, `--blur-*`, `--lh-*`), `text.module.css` roles, iOS input fix, this doc | ✅ done |
-| 2 | Primitive consolidation — extend `Button`, roll `PageHeader` / `EmptyState` / `Skeleton` to all view areas, replace hand-rolled `.card` divs | ⬜ |
-| 3 | View CSS de-drift — emerald→`--success`, hex→token, raw font-size→role, raw shadow→`--shadow-*`, raw `blur()`→token. Order: analytics → debugger → graph → dashboard → feynman → premortem → room → rest | ⬜ |
+| 2 | Primitives — `Button` `ghost` variant + new `Chip` built & tested; proven in the dashboard (`StreakCard` / `NextExamCard` trophy + readiness pills → `Chip`, `.eyebrow` now `composes` the shared `overline` role). Per-view `Chip` / `IconButton` / `PageHeader` rollout folds into Phase 3. | 🔶 primitives done |
+| 3 | View CSS de-drift — emerald→`--success`, hex→token, raw font-size→role, raw shadow→`--shadow-*`, raw `blur()`→token, hand-rolled buttons→`Button`/`Chip`/`IconButton`. Order: analytics → debugger → graph → dashboard → feynman → premortem → room → rest | ⬜ |
 | 4 | Dashboard IA + responsive — priority grid, 3 real breakpoints, one primary CTA, single stat treatment | ⬜ |
 | 5 | Effects & motion budget — cap stacked-blur depth, consolidate blob layers | ⬜ |
 

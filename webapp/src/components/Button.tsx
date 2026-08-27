@@ -1,7 +1,13 @@
 import type { ComponentPropsWithRef } from "react";
 import styles from "./Button.module.css";
 
-type Variant = "primary" | "secondary" | "danger" | "warning" | "success";
+type Variant =
+  | "primary"
+  | "secondary"
+  | "ghost"
+  | "danger"
+  | "warning"
+  | "success";
 
 interface ButtonProps extends ComponentPropsWithRef<"button"> {
   variant?: Variant;
