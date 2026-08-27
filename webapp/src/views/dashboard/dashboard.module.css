@@ -4,22 +4,22 @@
  * (:1726-1728). */
 
 .view {
-  padding: var(--s-6) var(--s-6) var(--s-8);
-  max-width: 1180px;
+  max-width: 1320px;
   margin: 0 auto;
+  padding-bottom: var(--s-8);
 }
 
 /* ---- Grid + shared card shell ------------------------------------------ */
 
 .grid {
   display: grid;
-  grid-template-columns: 1.35fr 1fr;
+  grid-template-columns: 1.15fr 1fr;
   gap: var(--s-6);
   align-items: stretch;
   margin-bottom: var(--s-6);
 }
 
-@media (max-width: 860px) {
+@media (max-width: 960px) {
   .grid {
     grid-template-columns: 1fr;
   }
@@ -351,7 +351,7 @@
 
 .aiActions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: var(--s-3);
   margin-top: var(--s-4);
 }

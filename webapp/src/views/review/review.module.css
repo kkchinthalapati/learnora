@@ -7,9 +7,9 @@
  * face are the exact three properties the vanilla relied on. */
 
 .view {
-  padding: var(--s-6) var(--s-6) var(--s-8);
-  max-width: 600px;
+  max-width: 640px;
   margin: 0 auto;
+  padding-bottom: var(--s-8);
   display: flex;
   flex-direction: column;
   align-items: center;

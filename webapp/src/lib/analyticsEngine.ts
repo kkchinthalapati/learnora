@@ -368,6 +368,7 @@ export function computeSubjectUrgencyMatrix(
   sessions: StudySession[] = [],
   folders: Folder[] = [],
   exams: Exam[] = [],
+  now: Date = new Date(),
 ): SubjectBalanceRow[] {
   // Aggregate study minutes by folderId
   const minutesByFolder = new Map<string, number>();
@@ -380,7 +381,6 @@ export function computeSubjectUrgencyMatrix(
     }
   }
 
-  const now = new Date();
   const todayTime = new Date(
     now.getFullYear(),
     now.getMonth(),

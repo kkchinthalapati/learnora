@@ -8,6 +8,7 @@ import {
   getLatestPreMortemReport,
   type PreMortemReport,
 } from "../../api/aiPreMortem";
+import { CognitiveCrossLinkBar } from "../../components/ai/CognitiveCrossLinkBar";
 import { TrapNeutralizerModal } from "./TrapNeutralizerModal";
 import styles from "./PreMortemRadarView.module.css";
 
@@ -127,6 +128,29 @@ export function PreMortemRadarView({
             Launch New Gauntlet
           </Button>
         }
+      />
+
+      {/* Cognitive Bridge Cross-Tool AI Actions */}
+      <CognitiveCrossLinkBar
+        payload={{
+          subject: report.subject || "General",
+          topic: report.predictedFailures[0]?.topic || report.subject || "Exam Preparation",
+          concept: report.predictedFailures[0]?.coreTrap || report.radarData[0]?.topic,
+          sourceTool: "premortem",
+          sourceId: String(report.timestamp),
+          evidencePrompt: `Pre-Mortem Audit: ${report.gradeEstimate} (${report.predictedScore}%)`,
+          misconceptions: report.predictedFailures.map(
+            (f) => `${f.topic}: ${f.coreTrap} (-${f.predictedLostMarks} marks)`
+          ),
+          severity:
+            report.predictedScore < 65
+              ? "critical"
+              : report.predictedScore < 80
+              ? "moderate"
+              : "minor",
+          suggestedAction: "debug_stack",
+        }}
+        currentTool="premortem"
       />
 
       {/* Top Metric Summary Cards */}

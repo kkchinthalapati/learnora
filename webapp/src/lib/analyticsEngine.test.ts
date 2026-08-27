@@ -214,7 +214,8 @@ describe("analyticsEngine", () => {
         fakeSession({ folder_id: "f-3", minutes: 10 }), // History: no exam, under-invested
       ];
 
-      const matrix = computeSubjectUrgencyMatrix(sessions, folders, exams);
+      const testNow = new Date("2026-08-23T12:00:00");
+      const matrix = computeSubjectUrgencyMatrix(sessions, folders, exams, testNow);
       expect(matrix.length).toBe(3);
 
       const calcRow = matrix.find((r) => r.folderId === "f-1");

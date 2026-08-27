@@ -10,8 +10,9 @@ import { AppearanceProvider } from "./context/AppearanceProvider";
 import { SettingsProvider } from "./context/SettingsProvider";
 import { TimerProvider } from "./context/TimerProvider";
 import { ChatProvider } from "./context/ChatProvider";
+import { CommandPaletteProvider } from "./context/CommandPaletteProvider";
 import { TurboChat } from "./components/chat/TurboChat";
-import { MiniTimer } from "./views/timer/MiniTimer";
+import { FocusStudyHUD } from "./views/timer/FocusStudyHUD";
 import { CommandBar } from "./views/dashboard/CommandBar";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AppRoutes } from "./routes";
@@ -19,7 +20,7 @@ import { useAuth } from "./context/auth";
 
 /* The three docked overlays, kept off the signed-out routes.
  *
- * All already self-hide most of the time — the mini timer only when a session
+ * All already self-hide most of the time — the focus study HUD only when a session
  * is live, the chat only when it is open, the command bar always visible but
  * (originally) on the dashboard only. "A session is live" is timer state
  * restored from localStorage, which outlives signing out. Without this a
@@ -29,7 +30,7 @@ function SignedInOverlays() {
   if (!session) return null;
   return (
     <>
-      <MiniTimer />
+      <FocusStudyHUD />
       <TurboChat />
       <CommandBar />
     </>
@@ -64,19 +65,21 @@ export default function App() {
                           one view. */}
                       <CreateModalProvider>
                         <ChatProvider>
-                          {/* Crash net for the route tree specifically — a bug
-                              in one view degrades to a recoverable screen
-                              instead of taking down the whole app. Deliberately
-                              doesn't wrap SignedInOverlays: the mini timer,
-                              chat, and command bar should keep working (and
-                              stay reachable as a way out) even if the current
-                              route's own component throws. */}
-                          <ErrorBoundary>
-                            <AppRoutes />
-                          </ErrorBoundary>
-                          {/* Docked on every route while a session is live, so
-                              they live beside the routes rather than inside one. */}
-                          <SignedInOverlays />
+                          <CommandPaletteProvider>
+                            {/* Crash net for the route tree specifically — a bug
+                                in one view degrades to a recoverable screen
+                                instead of taking down the whole app. Deliberately
+                                doesn't wrap SignedInOverlays: the mini timer,
+                                chat, and command bar should keep working (and
+                                stay reachable as a way out) even if the current
+                                route's own component throws. */}
+                            <ErrorBoundary>
+                              <AppRoutes />
+                            </ErrorBoundary>
+                            {/* Docked on every route while a session is live, so
+                                they live beside the routes rather than inside one. */}
+                            <SignedInOverlays />
+                          </CommandPaletteProvider>
                         </ChatProvider>
                       </CreateModalProvider>
                     </BrowserRouter>

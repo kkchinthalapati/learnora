@@ -14,6 +14,7 @@ import {
   setActiveFeynmanSessionId,
   getActiveFeynmanSessionId,
 } from "../../api/aiFeynman";
+import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import styles from "./FeynmanHubView.module.css";
 
 const QUICK_TOPICS = [
@@ -54,6 +55,17 @@ export function FeynmanHubView() {
 
   useEffect(() => {
     refreshSessions();
+
+    const bridged = CognitiveBridge.getPayload();
+    if (bridged && bridged.sourceTool !== "feynman") {
+      if (bridged.subject) {
+        setSubject(bridged.subject);
+      }
+      const targetTopic = bridged.concept || bridged.topic;
+      if (targetTopic) {
+        setTopic(targetTopic);
+      }
+    }
   }, [refreshSessions]);
 
   const handleStartSession = async () => {

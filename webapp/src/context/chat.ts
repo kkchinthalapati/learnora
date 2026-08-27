@@ -96,3 +96,7 @@ export function useChat(): ChatApi {
   if (!ctx) throw new Error("useChat must be used inside <ChatProvider>");
   return ctx;
 }
+
+export function useOptionalChat(): ChatApi | null {
+  return useContext(ChatContext);
+}

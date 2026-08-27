@@ -13,6 +13,7 @@ import {
   generateFeynmanDebrief,
   getActiveFeynmanSessionId,
 } from "../../api/aiFeynman";
+import { CognitiveCrossLinkBar } from "../../components/ai/CognitiveCrossLinkBar";
 import styles from "./FeynmanDebriefView.module.css";
 
 export function FeynmanDebriefView() {
@@ -101,6 +102,22 @@ export function FeynmanDebriefView() {
 
   return (
     <div className={styles.container}>
+      {/* Cognitive Bridge Cross-Tool AI Actions */}
+      <CognitiveCrossLinkBar
+        payload={{
+          subject: session.subject || "General",
+          topic: session.topic,
+          concept: report.remainingGaps[0] || session.topic,
+          sourceTool: "feynman",
+          sourceId: session.id,
+          evidencePrompt: report.summary,
+          misconceptions: report.remainingGaps,
+          severity: report.remainingGaps.length > 0 ? "moderate" : "minor",
+          suggestedAction: "debug_stack",
+        }}
+        currentTool="feynman"
+      />
+
       {/* Top Overview Card */}
       <div className={styles.overviewCard} data-testid="mastery-overview-card">
         {/* Score & Badge Circle */}

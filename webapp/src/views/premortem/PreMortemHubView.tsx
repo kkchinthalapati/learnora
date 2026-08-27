@@ -16,6 +16,7 @@ import {
   type StressQuestion,
   type PreMortemReport,
 } from "../../api/aiPreMortem";
+import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import { StressTestRunner } from "./StressTestRunner";
 import { PreMortemRadarView } from "./PreMortemRadarView";
 import styles from "./PreMortemHubView.module.css";
@@ -62,6 +63,17 @@ export function PreMortemHubView() {
     foldersApi.fetch().then((data) => {
       setFolders(data);
     });
+
+    const bridged = CognitiveBridge.getPayload();
+    if (bridged && bridged.sourceTool !== "premortem") {
+      const target = bridged.subject || bridged.concept || bridged.topic;
+      if (target) {
+        setSelectedSubject(target);
+        setSelectedExamId("custom");
+        setCustomSubjectInput(target);
+        extractProfessorTraps(target).then(setArchetypes);
+      }
+    }
   }, []);
 
   const handleSelectExamChange = (examId: string) => {

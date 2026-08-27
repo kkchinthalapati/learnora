@@ -8,9 +8,9 @@
  * later in the file. */
 
 .view {
-  padding: var(--s-6) var(--s-6) var(--s-8);
-  max-width: 860px;
+  max-width: 920px;
   margin: 0 auto;
+  padding-bottom: var(--s-8);
 }
 
 .panel {

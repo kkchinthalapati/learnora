@@ -24,7 +24,7 @@
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
   -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
+  box-shadow: var(--glass-inner), var(--shadow-md);
 }
 
 /* Recipe B — the app's actual default. 23 declarations across 10 modules. */
@@ -65,16 +65,16 @@
 }
 
 .padding-sm {
-  padding: var(--s-4);
+  padding: var(--s-3) var(--s-4);
 }
 
 /* The canonical dashboard .card/.historyCard padding. */
 .padding-md {
-  padding: clamp(20px, 3vw, 28px);
+  padding: clamp(16px, 2.5vw, 22px);
 }
 
 .padding-lg {
-  padding: var(--s-6);
+  padding: clamp(24px, 3.5vw, 32px);
 }
 
 /* ---- Radius ------------------------------------------------------------ */
@@ -95,9 +95,12 @@
    choice, per DESIGN_MOVES.md move #1. Opt-in — no current dashboard usage
    needs it. */
 .hoverElevation {
-  transition: box-shadow var(--t-fast) var(--ease);
+  transition:
+    box-shadow var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease);
 }
 
 .hoverElevation:hover {
-  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
+  box-shadow: var(--glass-inner), var(--shadow-md);
+  transform: translateY(-1px);
 }

@@ -37,12 +37,11 @@
   border: 1px solid var(--glass-border-subtle);
   border-radius: var(--r-md);
   outline: none;
-  box-shadow: var(--glass-inner), var(--glass-inner-bottom);
+  box-shadow: var(--glass-inner);
   transition:
-    border-color var(--t) var(--ease-spring),
-    box-shadow var(--t) var(--ease-spring),
-    transform var(--t) var(--ease-spring),
-    background var(--t) ease;
+    border-color var(--t-fast) ease,
+    box-shadow var(--t-fast) ease,
+    background var(--t-fast) ease;
 }
 
 .field::placeholder {
@@ -52,11 +51,9 @@
 .field:focus {
   border-color: var(--accent);
   box-shadow:
-    0 0 0 4px var(--accent-ring),
-    var(--glass-inner),
-    0 0 16px var(--accent-glow);
+    0 0 0 3px var(--accent-ring),
+    var(--glass-inner);
   background: var(--surface);
-  transform: translateY(-1px);
 }
 
 select.field {

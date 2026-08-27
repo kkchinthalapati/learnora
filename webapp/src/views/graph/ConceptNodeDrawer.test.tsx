@@ -103,8 +103,12 @@ describe("ConceptNodeDrawer", () => {
       { session: fakeSession() },
     );
 
-    expect(screen.getByText("Enzymes")).toBeInTheDocument();
-    expect(screen.getByText("Biology")).toBeInTheDocument();
+    expect(screen.getAllByText("Enzymes").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Biology").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByTestId("cognitive-cross-link-bar")).toBeInTheDocument();
+    expect(screen.getByTestId("cross-link-debugger-btn")).toBeInTheDocument();
+    expect(screen.getByTestId("cross-link-feynman-btn")).toBeInTheDocument();
+    expect(screen.getByTestId("cross-link-premortem-btn")).toBeInTheDocument();
     expect(screen.getByText("Knowledge Gap Identified")).toBeInTheDocument();
     expect(screen.getByText("45%")).toBeInTheDocument();
     expect(screen.getByText("Note Mentions")).toBeInTheDocument();

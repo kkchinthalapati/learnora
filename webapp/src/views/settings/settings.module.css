@@ -14,9 +14,9 @@
 
 .view {
   display: block;
-  padding: var(--s-6) var(--s-6) var(--s-8);
-  max-width: 1180px;
+  max-width: 1280px;
   margin: 0 auto;
+  padding-bottom: var(--s-8);
 }
 
 .layout {
@@ -193,11 +193,11 @@
    notes.editorPane, guarantees this wins over Card's own .elevated
    box-shadow regardless of CSS Modules' cross-file injection order. */
 .card.card {
-  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-sm);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
 }
 
 .card:hover {
-  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-md);
+  box-shadow: var(--glass-inner), var(--shadow-md);
 }
 
 .cardHeader {

@@ -95,16 +95,7 @@ export function AppShell() {
         Skip to content
       </a>
 
-      {/* Plain global class names, not CSS-module ones: `data-bg-texture`
-          disables these with a body-attribute selector in index.css, which
-          can't target a module's hashed class name. Same reason the theme
-          engine's other body-attribute-driven rules (index.css,
-          themes.css) stay outside modules. */}
-      <div className="liquid-blobs" aria-hidden="true">
-        <div className="liquid-blob liquid-blob--1" />
-        <div className="liquid-blob liquid-blob--2" />
-        <div className="liquid-blob liquid-blob--3" />
-      </div>
+
 
       <Sidebar
         collapsed={isSidebarCollapsed}

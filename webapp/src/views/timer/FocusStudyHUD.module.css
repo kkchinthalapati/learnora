@@ -1,0 +1,345 @@
+/* Focus Study HUD CSS Module */
+
+.hudContainer {
+  position: fixed;
+  bottom: clamp(20px, 4vw, 36px);
+  left: clamp(20px, 4vw, 36px);
+  z-index: 985;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  animation: hud-in var(--t) var(--ease);
+}
+
+@keyframes hud-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.hudCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 8px 10px 10px 12px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-inner), var(--shadow-lg);
+  min-width: 260px;
+  max-width: 400px;
+}
+
+.main {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 4px 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  text-align: left;
+  font-family: inherit;
+  flex: 1;
+  min-width: 0;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+  transition: transform var(--t-fast) ease, box-shadow var(--t-fast) ease;
+}
+
+.running .dot {
+  box-shadow: 0 0 0 0 var(--accent-glow);
+  animation: hud-pulse 1.6s ease-out infinite;
+}
+
+@keyframes hud-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--accent-glow);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(84, 104, 231, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(84, 104, 231, 0);
+  }
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.taskLabel {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  line-height: 1.2;
+}
+
+.timeRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  line-height: 1;
+}
+
+.modeLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.time {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  min-width: 32px;
+  padding: 0 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: all var(--t-fast) ease;
+}
+
+.btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent-ring);
+}
+
+.btnActive {
+  background: var(--accent);
+  color: var(--accent-on);
+  border-color: var(--accent);
+}
+
+.btnActive:hover {
+  background: var(--accent-hover);
+  color: var(--accent-on);
+}
+
+.extendBtn {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0 6px;
+}
+
+.playPauseBtn {
+  width: 34px;
+  padding: 0;
+}
+
+.bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 0;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+  transition: width 1s linear;
+}
+
+/* Scratchpad Popover */
+.scratchpadPopover {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  width: 320px;
+  max-width: calc(100vw - 40px);
+  background: var(--surface);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  animation: popover-in 0.18s var(--ease-spring);
+  z-index: 990;
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.scratchpadHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.scratchpadTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.scratchpadIcon {
+  color: var(--accent);
+}
+
+.kbdBadge {
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: var(--r-xs);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--glass-border-subtle);
+}
+
+.scratchpadActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.scratchpadClearBtn {
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--r-xs);
+  transition: color var(--t-fast) ease;
+}
+
+.scratchpadClearBtn:hover {
+  color: var(--danger);
+}
+
+.scratchpadCloseBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--r-xs);
+  transition: all var(--t-fast) ease;
+}
+
+.scratchpadCloseBtn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.scratchpadTextarea {
+  width: 100%;
+  min-height: 90px;
+  max-height: 200px;
+  resize: vertical;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-sm);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.scratchpadTextarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-ring);
+}
+
+.scratchpadFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.scratchpadAutoSave {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+@media (max-width: 768px) {
+  .hudContainer {
+    bottom: max(32px, env(safe-area-inset-bottom, 32px));
+    left: max(20px, env(safe-area-inset-left, 20px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hudContainer,
+  .scratchpadPopover,
+  .running .dot {
+    animation: none;
+  }
+  .bar {
+    transition: none;
+  }
+}

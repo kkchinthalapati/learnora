@@ -26,7 +26,7 @@
 }
 
 .btn:active {
-  transform: translateY(1px) scale(0.98);
+  transform: translateY(1px);
 }
 
 .primary {
@@ -38,8 +38,8 @@
   color: var(--accent-on);
   box-shadow:
     var(--shadow-sm),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.2);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.15);
   text-shadow: var(--accent-on-shadow);
 }
 .primary:hover:not(:disabled) {
@@ -50,12 +50,13 @@
   );
   box-shadow:
     var(--shadow-accent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 0 20px var(--accent-glow);
-  transform: translateY(-2px) scale(1.02);
+  transform: translateY(-1px);
 }
 .primary:active {
   background: var(--accent-press);
+  transform: translateY(1px);
 }
 
 .secondary {
@@ -73,6 +74,9 @@
   box-shadow: var(--glass-inner), var(--shadow-md);
   transform: translateY(-1px);
 }
+.secondary:active {
+  transform: translateY(1px);
+}
 
 .danger {
   background: var(--danger-soft);
@@ -85,7 +89,8 @@
   color: var(--danger-on);
   box-shadow:
     0 4px 16px color-mix(in srgb, var(--danger) 30%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
 }
 .danger:active {
   transform: translateY(1px);
@@ -103,7 +108,8 @@
   color: var(--warning-on);
   box-shadow:
     0 4px 16px color-mix(in srgb, var(--warning) 30%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
 }
 .warning:active {
   transform: translateY(1px);
@@ -121,7 +127,8 @@
   color: var(--success-on);
   box-shadow:
     0 4px 16px color-mix(in srgb, var(--success) 30%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
 }
 .success:active {
   transform: translateY(1px);

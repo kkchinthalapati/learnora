@@ -8,9 +8,9 @@
  * instead of the same one wearing two hats. */
 
 .view {
-  padding: var(--s-6) var(--s-6) var(--s-8);
-  max-width: 1180px;
+  max-width: 1440px;
   margin: 0 auto;
+  padding-bottom: var(--s-8);
 }
 
 .summaryCard {

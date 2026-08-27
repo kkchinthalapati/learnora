@@ -7,9 +7,9 @@
  * the live behaviour is no animation. */
 
 .view {
-  padding: var(--s-6) var(--s-6) var(--s-8);
-  max-width: 1180px;
+  max-width: 1320px;
   margin: 0 auto;
+  padding-bottom: var(--s-8);
 }
 
 /* Shell now comes from <Card variant="panel">; this residual rule owns the

@@ -1,10 +1,11 @@
 import { useRef, useState, useMemo, useEffect } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Icon } from "../../components/Icon";
 import {
   generateRecoveryDrill,
   type ConceptNode,
 } from "../../lib/conceptGraph";
+import { CognitiveCrossLinkBar } from "../../components/ai/CognitiveCrossLinkBar";
 import { useCreateModal } from "../../context/createModal";
 import { useOverlayBehavior } from "../../context/overlayStack";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
@@ -27,6 +28,7 @@ export function ConceptNodeDrawer({
   onSelectRelated,
   initialDrillOpen = false,
 }: ConceptNodeDrawerProps) {
+  const navigate = useNavigate();
   const { openCreateModal } = useCreateModal();
   const drawerRef = useRef<HTMLElement>(null);
   const [showRecoveryDrill, setShowRecoveryDrill] = useState(initialDrillOpen);
@@ -148,6 +150,32 @@ export function ConceptNodeDrawer({
         </div>
 
         <div className={styles.drawerBody}>
+          {/* Cognitive Bridge Cross-Tool AI Actions */}
+          <CognitiveCrossLinkBar
+            payload={{
+              subject: node.folderName || "General",
+              topic: node.label,
+              concept: node.label,
+              sourceTool: "graph",
+              sourceId: node.id,
+              evidencePrompt: `Concept Node: ${node.label} (${node.masteryScore}% mastery)`,
+              misconceptions: node.gapDetails?.remediationReasons,
+              severity:
+                node.masteryScore < 50
+                  ? "critical"
+                  : node.masteryScore < 75
+                  ? "moderate"
+                  : "minor",
+              suggestedAction: "debug_stack",
+            }}
+            currentTool="graph"
+            compact
+            onNavigate={(route: string) => {
+              onClose();
+              navigate(route);
+            }}
+          />
+
           {/* Knowledge Gap Alert Banner & 1-Click Remediation Trigger */}
           {node.isKnowledgeGap && (
             <div className={styles.gapBanner} role="alert">

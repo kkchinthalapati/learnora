@@ -43,6 +43,55 @@
   display: none;
 }
 
+.searchTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 8px 12px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.searchTrigger:hover {
+  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.08));
+  border-color: var(--accent);
+  color: var(--text-main);
+}
+
+.searchTriggerIcon {
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+
+.searchTrigger:hover .searchTriggerIcon {
+  color: var(--accent);
+}
+
+.searchTriggerLabel {
+  font-size: var(--fs-sm);
+}
+
+.searchKbd {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: var(--r-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+}
+
 .clock {
   flex-shrink: 0;
   font-size: var(--fs-base);

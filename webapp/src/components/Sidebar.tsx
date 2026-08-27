@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router";
 import { Icon } from "./Icon";
 import { IconButton } from "./IconButton";
@@ -8,60 +9,149 @@ import { useIncomingFriendRequestCount } from "../hooks/useFriends";
 import { useTranslation } from "../hooks/useTranslation";
 import { isLibrarySection } from "../lib/sectionLabel";
 import type { TranslationKey } from "../lib/i18n";
+import { Storage } from "../lib/storage";
 import styles from "./Sidebar.module.css";
 
-/* The main nav — ports index.html:339-411.
- *
- * The vanilla matched the active link by comparing `location.hash` against
- * each `<a>`'s literal `href`, folding every `library-*` sub-tab down to
- * `library` first (js/router.js:130-145) so drilling into a subject, a
- * material's notes, a quiz, or a flashcard review still left "Library"
- * highlighted — none of those pages have their own sidebar entry. React
- * Router's `NavLink` only does literal prefix matching, which covers every
- * item here except that one, so Library alone gets an explicit `match`
- * check instead of relying on `NavLink`'s own comparison.
- *
- * Two vanilla sidebar items are deliberately not here:
- * - The "Learnora AI" nav link. `style.css:4594-4601` hides it with
- *   `display: none !important` ("Hide the redundant Turbo AI tab") — it's
- *   dead UI in the shipped app, not something to port.
- * - The `.sidebar-overlay` mobile backdrop. Defined in CSS but never
- *   referenced by any element or script — unused, not a missing feature. */
+export const SIDEBAR_SECTIONS_STORAGE_KEY = "learnora_sidebar_collapsed_sections";
 
-interface NavItem {
-  to: string;
+export type SectionId = "core" | "ai_lab" | "execution" | "community" | "system";
+
+export interface NavItemConfig {
+  to?: string;
   icon: IconName;
   label: string;
-  /** Only set for items the vanilla actually translates (index.html:339-411
-   *  — "This week's plan" and "Exams" have no `data-i18n` there either, so
-   *  they stay plain English literals here too). */
   translationKey?: TranslationKey;
+  isCreateAction?: boolean;
+  isLibrary?: boolean;
+  badgeType?: "due_flashcards" | "friend_requests";
 }
 
-/* Dashboard and Library are handled separately below — Dashboard needs
-   `end` (every route is a "prefix match" of "/"), and Library needs the
-   `isLibrarySection` check above instead of NavLink's own comparison. Every
-   other item here is a plain, unambiguous path prefix. */
-const NAV_ITEMS: NavItem[] = [
-  { to: "/analytics", icon: "activity", label: "Analytics" },
-  { to: "/graph", icon: "share-2", label: "Concept Graph" },
-  { to: "/feynman", icon: "award", label: "Feynman Apprentice" },
-  { to: "/debugger", icon: "brain", label: "Cognitive Debugger" },
-  { to: "/premortem", icon: "shield", label: "Exam Pre-Mortem" },
-  { to: "/timer", icon: "clock", label: "Timer", translationKey: "nav_timer" },
+export interface NavSection {
+  id: SectionId;
+  title: string;
+  items: NavItemConfig[];
+}
+
+const SECTIONS: NavSection[] = [
   {
-    to: "/tasks",
-    icon: "list-checks",
-    label: "Task Manager",
-    translationKey: "nav_tasks",
+    id: "core",
+    title: "Core Learning",
+    items: [
+      {
+        to: "/",
+        icon: "dashboard",
+        label: "Dashboard",
+        translationKey: "nav_dashboard",
+      },
+      {
+        isCreateAction: true,
+        icon: "plus",
+        label: "Create",
+        translationKey: "nav_create",
+      },
+      {
+        to: "/library",
+        icon: "layers",
+        label: "Library",
+        translationKey: "nav_library",
+        isLibrary: true,
+        badgeType: "due_flashcards",
+      },
+      {
+        to: "/graph",
+        icon: "share-2",
+        label: "Concept Graph",
+      },
+    ],
   },
-  { to: "/plan", icon: "calendar", label: "This week's plan" },
-  { to: "/exams", icon: "calendar", label: "Exams" },
-  { to: "/room", icon: "users", label: "Study Room" },
-  /* Plain English like its two neighbours above: i18n.js has no key for this
-     feature, and inventing one here would leave every non-English locale
-     falling through to the key name. */
-  { to: "/friends", icon: "users", label: "Friends" },
+  {
+    id: "ai_lab",
+    title: "AI Cognitive Lab",
+    items: [
+      {
+        to: "/debugger",
+        icon: "brain",
+        label: "Cognitive Debugger",
+      },
+      {
+        to: "/feynman",
+        icon: "award",
+        label: "Feynman Apprentice",
+      },
+      {
+        to: "/premortem",
+        icon: "shield",
+        label: "Exam Pre-Mortem",
+      },
+      {
+        to: "/analytics",
+        icon: "activity",
+        label: "Analytics",
+      },
+    ],
+  },
+  {
+    id: "execution",
+    title: "Execution & Routine",
+    items: [
+      {
+        to: "/timer",
+        icon: "clock",
+        label: "Timer",
+        translationKey: "nav_timer",
+      },
+      {
+        to: "/tasks",
+        icon: "list-checks",
+        label: "Task Manager",
+        translationKey: "nav_tasks",
+      },
+      {
+        to: "/plan",
+        icon: "calendar",
+        label: "This week's plan",
+      },
+      {
+        to: "/exams",
+        icon: "calendar",
+        label: "Exams",
+      },
+    ],
+  },
+  {
+    id: "community",
+    title: "Community & Social",
+    items: [
+      {
+        to: "/room",
+        icon: "users",
+        label: "Study Room",
+      },
+      {
+        to: "/friends",
+        icon: "users",
+        label: "Friends",
+        badgeType: "friend_requests",
+      },
+    ],
+  },
+  {
+    id: "system",
+    title: "System",
+    items: [
+      {
+        to: "/settings",
+        icon: "settings",
+        label: "Settings",
+        translationKey: "nav_settings",
+      },
+      {
+        to: "/terms",
+        icon: "file-text",
+        label: "Terms of Service",
+      },
+    ],
+  },
 ];
 
 export function Sidebar({
@@ -70,19 +160,7 @@ export function Sidebar({
   onToggleCollapse,
 }: {
   collapsed: boolean;
-  /** Called whenever a nav link or the Create button is activated, so the
-   *  shell can auto-close the mobile drawer the same way the vanilla did
-   *  (js/main.js:732-738: adds `.collapsed` back on mobile after a click). */
   onNavigate: () => void;
-  /** Same handler as Header's own menu toggle — this is a second entry
-   *  point to the identical `collapsed` state, not a separate concept.
-   *  Desktop-only in the rendered markup below: on desktop, `collapsed`
-   *  now means "retracted to an icon rail" (see Sidebar.module.css) rather
-   *  than fully hidden, so a control that lives *on* the rail itself (not
-   *  just in the header) is worth having — that's the whole idiom behind
-   *  a "retractable" sidebar. Mobile keeps relying on Header's hamburger
-   *  only, since off-canvas open/close doesn't have an equivalent
-   *  in-sidebar affordance to attach one to before it's even on screen. */
   onToggleCollapse: () => void;
 }) {
   const { pathname } = useLocation();
@@ -90,6 +168,20 @@ export function Sidebar({
   const { data: dueCount = 0 } = useFlashcardsDueCount();
   const { data: incomingRequestCount = 0 } = useIncomingFriendRequestCount();
   const t = useTranslation();
+
+  const [collapsedSections, setCollapsedSections] = useState<string[]>(() => {
+    return Storage.get<string[]>(SIDEBAR_SECTIONS_STORAGE_KEY, []) || [];
+  });
+
+  const toggleSection = (sectionId: SectionId) => {
+    setCollapsedSections((prev) => {
+      const next = prev.includes(sectionId)
+        ? prev.filter((id) => id !== sectionId)
+        : [...prev, sectionId];
+      Storage.set(SIDEBAR_SECTIONS_STORAGE_KEY, next);
+      return next;
+    });
+  };
 
   const classes = [styles.sidebar, collapsed ? styles.collapsed : null]
     .filter(Boolean)
@@ -113,119 +205,147 @@ export function Sidebar({
           />
         </IconButton>
       </div>
-      <ul className={styles.navLinks}>
-        <li>
-          <NavLink
-            to="/"
-            end
-            onClick={onNavigate}
-            aria-label={t("nav_dashboard")}
-            title={t("nav_dashboard")}
-            className={({ isActive }) =>
-              `${styles.navLink} ${isActive ? styles.active : ""}`
-            }
-          >
-            <Icon name="dashboard" size={20} />
-            <span className={styles.navLabel}>{t("nav_dashboard")}</span>
-          </NavLink>
-        </li>
-        <hr className={styles.divider} />
-        <li>
-          {/* Not a NavLink: it opens the create modal rather than routing,
-              so it must never take the active state — same reasoning as
-              the vanilla's `.nav-create-btn` (index.html:350-352). */}
-          <button
-            type="button"
-            className={styles.createBtn}
-            aria-label={t("nav_create")}
-            title={t("nav_create")}
-            onClick={() => {
-              openCreateModal();
-              onNavigate();
-            }}
-          >
-            <Icon name="plus" size={20} />
-            <span className={styles.navLabel}>{t("nav_create")}</span>
-          </button>
-        </li>
-        <li>
-          {/* A plain Link, not NavLink: NavLink's own `isActive`/
-              `aria-current` only ever compares against "/library" itself,
-              so a subject, a note, a quiz or a review screen — none of
-              which have a sidebar entry — would visually highlight this
-              item (via the className check below) without marking it
-              `aria-current` for assistive tech. Setting it explicitly from
-              the same `isLibrarySection` check keeps the two in sync. */}
-          <Link
-            to="/library"
-            onClick={onNavigate}
-            aria-current={isLibrarySection(pathname) ? "page" : undefined}
-            aria-label={t("nav_library")}
-            title={t("nav_library")}
-            className={`${styles.navLink} ${isLibrarySection(pathname) ? styles.active : ""}`}
-          >
-            <Icon name="layers" size={20} />
-            <span className={styles.navLabel}>{t("nav_library")}</span>
-            {dueCount > 0 ? (
-              <span className={styles.badge}>{dueCount}</span>
-            ) : null}
-          </Link>
-        </li>
-        <hr className={styles.divider} />
-        {NAV_ITEMS.map((item) => {
-          const label = item.translationKey ? t(item.translationKey) : item.label;
+
+      <div className={styles.sectionsContainer}>
+        {SECTIONS.map((section, sectionIdx) => {
+          const isSectionCollapsed = collapsedSections.includes(section.id);
+
           return (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                onClick={onNavigate}
-                aria-label={label}
-                title={label}
-                className={({ isActive }) =>
-                  `${styles.navLink} ${isActive ? styles.active : ""}`
-                }
+            <div
+              key={section.id}
+              className={styles.sectionGroup}
+              role="group"
+              aria-label={section.title}
+            >
+              {sectionIdx > 0 && <hr className={styles.divider} />}
+
+              <button
+                type="button"
+                className={styles.sectionHeader}
+                onClick={() => toggleSection(section.id)}
+                aria-expanded={!isSectionCollapsed}
+                aria-label={`${isSectionCollapsed ? "Expand" : "Collapse"} ${section.title}`}
+                title={`${isSectionCollapsed ? "Expand" : "Collapse"} ${section.title}`}
               >
-                <Icon name={item.icon} size={20} />
-                <span className={styles.navLabel}>{label}</span>
-                {item.to === "/friends" && incomingRequestCount > 0 ? (
-                  <span className={styles.badge}>{incomingRequestCount}</span>
-                ) : null}
-              </NavLink>
-            </li>
+                <span className={styles.sectionTitle}>{section.title}</span>
+                <Icon
+                  name="chevron-down"
+                  size={12}
+                  className={`${styles.sectionChevron} ${
+                    isSectionCollapsed ? styles.sectionChevronCollapsed : ""
+                  }`}
+                />
+              </button>
+
+              <ul
+                className={`${styles.navLinks} ${
+                  isSectionCollapsed && !collapsed ? styles.navLinksHidden : ""
+                }`}
+              >
+                {section.items.map((item) => {
+                  const label = item.translationKey
+                    ? t(item.translationKey)
+                    : item.label;
+
+                  // 1. Create Modal Button
+                  if (item.isCreateAction) {
+                    return (
+                      <li key={item.label}>
+                        <button
+                          type="button"
+                          className={styles.createBtn}
+                          aria-label={label}
+                          title={`${label} — ${section.title}`}
+                          onClick={() => {
+                            openCreateModal();
+                            onNavigate();
+                          }}
+                        >
+                          <Icon name={item.icon} size={18} />
+                          <span className={styles.navLabel}>{label}</span>
+                        </button>
+                      </li>
+                    );
+                  }
+
+                  // 2. Library Special Link
+                  if (item.isLibrary && item.to) {
+                    const isLibActive = isLibrarySection(pathname);
+                    return (
+                      <li key={item.to}>
+                        <Link
+                          to={item.to}
+                          onClick={onNavigate}
+                          aria-current={isLibActive ? "page" : undefined}
+                          aria-label={label}
+                          title={`${label} — ${section.title}`}
+                          className={`${styles.navLink} ${
+                            isLibActive ? styles.active : ""
+                          }`}
+                        >
+                          <Icon name={item.icon} size={18} />
+                          <span className={styles.navLabel}>{label}</span>
+                          {dueCount > 0 ? (
+                            <span className={styles.badge}>{dueCount}</span>
+                          ) : null}
+                        </Link>
+                      </li>
+                    );
+                  }
+
+                  // 3. Terms of Service Link
+                  if (item.to === "/terms") {
+                    return (
+                      <li key={item.to}>
+                        <Link
+                          to={item.to}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Terms of Service"
+                          title="Terms of Service — System"
+                          className={`${styles.navLink} ${styles.termsLink}`}
+                        >
+                          <Icon name={item.icon} size={18} />
+                          <span className={styles.navLabel}>Terms of Service</span>
+                        </Link>
+                      </li>
+                    );
+                  }
+
+                  // 4. Standard NavLink
+                  if (item.to) {
+                    return (
+                      <li key={item.to}>
+                        <NavLink
+                          to={item.to}
+                          end={item.to === "/"}
+                          onClick={onNavigate}
+                          aria-label={label}
+                          title={`${label} — ${section.title}`}
+                          className={({ isActive }) =>
+                            `${styles.navLink} ${isActive ? styles.active : ""}`
+                          }
+                        >
+                          <Icon name={item.icon} size={18} />
+                          <span className={styles.navLabel}>{label}</span>
+                          {item.badgeType === "friend_requests" &&
+                          incomingRequestCount > 0 ? (
+                            <span className={styles.badge}>
+                              {incomingRequestCount}
+                            </span>
+                          ) : null}
+                        </NavLink>
+                      </li>
+                    );
+                  }
+
+                  return null;
+                })}
+              </ul>
+            </div>
           );
         })}
-        <hr className={styles.divider} />
-        <li>
-          <NavLink
-            to="/settings"
-            onClick={onNavigate}
-            aria-label={t("nav_settings")}
-            title={t("nav_settings")}
-            className={({ isActive }) =>
-              `${styles.navLink} ${isActive ? styles.active : ""}`
-            }
-          >
-            <Icon name="settings" size={20} />
-            <span className={styles.navLabel}>{t("nav_settings")}</span>
-          </NavLink>
-        </li>
-        <li>
-          {/* Link, not a raw <a href>: the route table is mounted under a
-              basename in production (see AuthShell's own Terms link for the
-              same reasoning), and only Link accounts for it. */}
-          <Link
-            to="/terms"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Terms of Service"
-            title="Terms of Service"
-            className={`${styles.navLink} ${styles.termsLink}`}
-          >
-            <Icon name="file-text" size={18} />
-            <span className={styles.navLabel}>Terms of Service</span>
-          </Link>
-        </li>
-      </ul>
+      </div>
     </nav>
   );
 }

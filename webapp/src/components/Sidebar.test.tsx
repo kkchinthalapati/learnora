@@ -121,12 +121,20 @@ describe("Sidebar", () => {
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 
-  it("notifies onNavigate when any navigation link is clicked", async () => {
+  it("renders 5 semantic sections and toggles section collapse", async () => {
     renderSidebar();
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("link", { name: /Task Manager/i }));
+    expect(screen.getByRole("group", { name: "Core Learning" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "AI Cognitive Lab" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Execution & Routine" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Community & Social" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "System" })).toBeInTheDocument();
 
-    expect(mockOnNavigate).toHaveBeenCalledTimes(1);
+    const aiLabToggle = screen.getByRole("button", { name: /Collapse AI Cognitive Lab/i });
+    expect(aiLabToggle).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(aiLabToggle);
+    expect(screen.getByRole("button", { name: /Expand AI Cognitive Lab/i })).toHaveAttribute("aria-expanded", "false");
   });
 });

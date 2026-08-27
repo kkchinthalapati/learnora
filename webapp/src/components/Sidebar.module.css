@@ -16,7 +16,6 @@
   border-right: 1px solid var(--glass-border-subtle);
   box-shadow:
     var(--glass-inner),
-    var(--glass-inner-bottom),
     1px 0 0 var(--glass-border);
   overflow-y: auto;
   overflow-x: hidden;
@@ -146,6 +145,56 @@ body[data-sidebar-style="transparent"] .sidebar {
   transition: transform var(--t-fast) ease;
 }
 
+.sectionsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.sectionGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  transition: background var(--t-fast) ease;
+}
+
+.sectionHeader:hover {
+  background: var(--surface-hover);
+}
+
+.sectionHeader:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sectionTitle {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-faint);
+  user-select: none;
+}
+
+.sectionChevron {
+  color: var(--text-faint);
+  transition: transform var(--t-fast) ease;
+}
+
+.sectionChevronCollapsed {
+  transform: rotate(-90deg);
+}
+
 .navLinks {
   list-style: none;
   margin: 0;
@@ -155,11 +204,30 @@ body[data-sidebar-style="transparent"] .sidebar {
   gap: var(--s-1);
 }
 
+.navLinksHidden {
+  display: none;
+}
+
 .divider {
   border: none;
   height: 1px;
   background: var(--line);
-  margin: var(--s-4) var(--s-2);
+  margin: var(--s-3) var(--s-2);
+}
+
+@media (min-width: 769px) {
+  .sidebar.collapsed .sectionHeader {
+    display: none;
+  }
+
+  .sidebar.collapsed .navLinksHidden {
+    display: flex;
+  }
+
+  .sidebar.collapsed .divider {
+    margin: var(--s-2) auto;
+    width: 28px;
+  }
 }
 
 .navLink {
@@ -187,12 +255,10 @@ body[data-sidebar-style="transparent"] .sidebar {
 }
 
 .navLink.active {
-  background: var(--accent);
-  color: var(--accent-on);
-  border-color: transparent;
-  box-shadow:
-    var(--shadow-accent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent-ring);
+  box-shadow: var(--glass-inner);
 }
 
 .termsLink {
@@ -247,8 +313,7 @@ body[data-sidebar-style="transparent"] .sidebar {
   line-height: 1;
 }
 
-/* The active class already sets a solid accent background, which would
-   make the due-count badge (also accent-colored) disappear into it. */
 .navLink.active .badge {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--accent);
+  color: var(--accent-on);
 }

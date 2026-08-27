@@ -17,6 +17,8 @@ import { Icon } from "../../components/Icon";
 import { Modal } from "../../components/Modal";
 import { KnowledgeCircuit } from "./KnowledgeCircuit";
 import { MicroRepairModal } from "./MicroRepairModal";
+import { CognitiveCrossLinkBar } from "../../components/ai/CognitiveCrossLinkBar";
+import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import styles from "./CognitiveDebuggerView.module.css";
 
 const PRESETS = [
@@ -73,7 +75,7 @@ export function CognitiveDebuggerView() {
   const [activeRepair, setActiveRepair] = useState<MicroRepairChallenge | null>(null);
   const [isRepairingCelebration, setIsRepairingCelebration] = useState(false);
 
-  // Load initial history and weak topics
+  // Load initial history, weak topics, and check for bridged cognitive context
   useEffect(() => {
     setSavedTraces(getSavedTraces());
 
@@ -84,6 +86,22 @@ export function CognitiveDebuggerView() {
         // Fallback silently if offline or unauthenticated
         setWeakTopics([]);
       });
+
+    const bridged = CognitiveBridge.getPayload();
+    if (bridged && bridged.sourceTool !== "debugger") {
+      if (bridged.subject) {
+        setSubject(bridged.subject);
+      }
+      const targetConcept = bridged.concept || bridged.topic;
+      if (targetConcept) {
+        setMistakeDescription(`Decompiling prerequisite gaps for: ${targetConcept}`);
+        if (bridged.misconceptions && bridged.misconceptions.length > 0) {
+          setContext(`Identified blindspots: ${bridged.misconceptions.join("; ")}`);
+        } else if (bridged.evidencePrompt) {
+          setContext(bridged.evidencePrompt);
+        }
+      }
+    }
   }, []);
 
   const handleApplyPreset = (preset: (typeof PRESETS)[0]) => {
@@ -217,6 +235,27 @@ export function CognitiveDebuggerView() {
           )}
         </div>
       </div>
+
+      {/* Cognitive Bridge Cross-Tool AI Actions */}
+      <CognitiveCrossLinkBar
+        payload={
+          activeTrace
+            ? {
+                subject: activeTrace.subject,
+                topic: activeTrace.failedQuestionOrTopic,
+                concept: rootLayer?.concept || activeTrace.failedQuestionOrTopic,
+                sourceTool: "debugger",
+                sourceId: activeTrace.id,
+                misconceptions: activeTrace.layers
+                  .filter((l) => l.status !== "healthy")
+                  .map((l) => `${l.concept}: ${l.explanation}`),
+                severity: isAllRepaired ? "minor" : "critical",
+                suggestedAction: "teach_apprentice",
+              }
+            : undefined
+        }
+        currentTool="debugger"
+      />
 
       <div className={styles.mainGrid}>
         {/* Left Column: Input Form & Presets */}

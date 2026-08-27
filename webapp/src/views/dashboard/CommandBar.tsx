@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Icon } from "../../components/Icon";
 import { useChat } from "../../context/chat";
 import styles from "./commandBar.module.css";
@@ -15,19 +15,6 @@ export function CommandBar() {
   const { open, send } = useChat();
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-
-  /* Cmd/Ctrl+K focuses the input */
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        inputRef.current?.focus();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   return (
     <form
@@ -54,9 +41,6 @@ export function CommandBar() {
         aria-label="Ask Learnora AI"
         onChange={(e) => setValue(e.target.value)}
       />
-      <span className={styles.kbdHint} aria-hidden="true">
-        <kbd className={styles.kbd}>⌘K</kbd>
-      </span>
       <button
         type="submit"
         className={styles.send}

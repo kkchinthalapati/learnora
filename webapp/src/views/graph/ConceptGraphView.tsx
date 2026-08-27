@@ -12,6 +12,7 @@ import {
   generateSampleGraph,
   type ConceptNode,
 } from "../../lib/conceptGraph";
+import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { ConceptNodeDrawer } from "./ConceptNodeDrawer";
@@ -84,6 +85,17 @@ export function ConceptGraphView() {
   const [knowledgeGapsOnly, setKnowledgeGapsOnly] = useState<boolean>(false);
   const [prerequisitesOnly, setPrerequisitesOnly] = useState<boolean>(false);
   const [showDemo, setShowDemo] = useState(false);
+
+  // Check for bridged cognitive context on mount
+  useEffect(() => {
+    const bridged = CognitiveBridge.getPayload();
+    if (bridged && bridged.sourceTool !== "graph") {
+      const target = bridged.concept || bridged.topic;
+      if (target) {
+        setSearchQuery(target);
+      }
+    }
+  }, []);
 
   // Selection & Hover State
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);

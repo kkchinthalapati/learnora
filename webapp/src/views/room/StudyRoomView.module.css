@@ -1,9 +1,9 @@
 /* StudyRoomView secondary layout styles — matches room.module.css design system */
 
 .view {
-  padding: var(--s-6) var(--s-6) var(--s-8);
-  max-width: 1280px;
+  max-width: 1400px;
   margin: 0 auto;
+  padding-bottom: var(--s-8);
 }
 
 .header {
@@ -63,14 +63,14 @@
   height: 8px;
   border-radius: 50%;
   background: var(--success);
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-  animation: pulseDot 2s infinite ease-in-out;
-  flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: roomPulse 2s infinite ease;
 }
 
-@keyframes pulseDot {
-  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
-  50%       { opacity: 0.7; transform: scale(0.85); box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
+@keyframes roomPulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
 .actions {
@@ -81,7 +81,7 @@
 
 .mainGrid {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 300px;
   gap: var(--s-6);
   align-items: start;
 }

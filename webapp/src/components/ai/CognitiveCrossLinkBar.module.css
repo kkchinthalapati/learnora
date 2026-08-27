@@ -1,0 +1,228 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3, 0.75rem);
+  padding: var(--s-3, 0.75rem) var(--s-4, 1rem);
+  background: var(--surface-card, rgba(30, 41, 59, 0.75));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-left: 3px solid var(--accent, #6366f1);
+  border-radius: var(--radius-lg, 0.75rem);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  margin-bottom: var(--s-4, 1rem);
+}
+
+.container:hover {
+  border-color: var(--border, rgba(255, 255, 255, 0.15));
+  border-left-color: var(--accent-light, #818cf8);
+}
+
+.compact {
+  padding: var(--s-2, 0.5rem) var(--s-3, 0.75rem);
+  font-size: var(--fs-xs, 0.75rem);
+  margin-bottom: var(--s-3, 0.75rem);
+}
+
+/* Header & Metadata row */
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2, 0.5rem);
+  flex-wrap: wrap;
+}
+
+.conceptGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2, 0.5rem);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.bridgeIcon {
+  color: var(--accent, #6366f1);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.conceptBadge {
+  font-weight: 700;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--text, #f8fafc);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
+
+.subjectBadge {
+  font-size: var(--fs-xs, 0.75rem);
+  color: var(--text-muted, #94a3b8);
+  background: var(--surface-sunken, rgba(0, 0, 0, 0.25));
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+}
+
+.sourceBadge {
+  font-size: var(--fs-xs, 0.75rem);
+  color: var(--accent-light, #a5b4fc);
+  background: rgba(99, 102, 241, 0.12);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 4px);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Severity Badges */
+.severityCritical {
+  font-size: var(--fs-xs, 0.75rem);
+  color: var(--danger, #f87171);
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 4px);
+  font-weight: 600;
+}
+
+.severityModerate {
+  font-size: var(--fs-xs, 0.75rem);
+  color: var(--warning, #fbbf24);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 4px);
+  font-weight: 600;
+}
+
+.severityMinor {
+  font-size: var(--fs-xs, 0.75rem);
+  color: var(--success, #4ade80);
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 4px);
+  font-weight: 600;
+}
+
+.metaRight {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2, 0.5rem);
+}
+
+.misconceptionCount {
+  font-size: var(--fs-xs, 0.75rem);
+  color: var(--text-muted, #94a3b8);
+  font-style: italic;
+}
+
+.dismissBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm, 4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.dismissBtn:hover {
+  color: var(--text, #f8fafc);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Actions Row: 1-click Cross Launchers */
+.actionsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2, 0.5rem);
+  flex-wrap: wrap;
+}
+
+.actionsLabel {
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: var(--s-1, 0.25rem);
+}
+
+.toolButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 600;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  background: var(--surface, rgba(255, 255, 255, 0.04));
+  color: var(--text, #f1f5f9);
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  user-select: none;
+}
+
+.toolButton:hover {
+  background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+  border-color: var(--accent, #6366f1);
+  color: var(--text-bright, #ffffff);
+  transform: translateY(-1px);
+}
+
+.toolButton:active {
+  transform: translateY(0);
+}
+
+.activeTool {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: var(--accent, #6366f1);
+  color: var(--accent-light, #c7d2fe);
+  font-weight: 700;
+}
+
+.activeTool:hover {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: var(--accent-light, #818cf8);
+}
+
+.activeBadge {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--accent, #6366f1);
+  color: #ffffff;
+  font-weight: 800;
+}
+
+/* Compact layout overrides */
+.compact .actionsRow {
+  gap: 4px;
+}
+
+.compact .toolButton {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+@media (max-width: 640px) {
+  .actionsRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolButton {
+    justify-content: center;
+  }
+}

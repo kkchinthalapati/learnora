@@ -8,9 +8,9 @@
  * simply come later in the file. */
 
 .view {
-  padding: var(--s-6) var(--s-6) var(--s-8);
-  max-width: 1180px;
+  max-width: 1320px;
   margin: 0 auto;
+  padding-bottom: var(--s-8);
 }
 
 /* Shell now comes from <Card variant="panel" padding="lg"> (defaults match
@@ -473,7 +473,7 @@
 
 .upcomingGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--s-3);
 }
 

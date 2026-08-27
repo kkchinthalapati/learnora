@@ -1,10 +1,10 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 1.5rem;
-  max-width: 1200px;
+  gap: var(--s-6);
+  max-width: 1320px;
   margin: 0 auto;
+  padding-bottom: var(--s-8);
   width: 100%;
 }
 
@@ -53,7 +53,7 @@
 
 @media (min-width: 1024px) {
   .mainGrid {
-    grid-template-columns: 380px 1fr;
+    grid-template-columns: 320px 1fr;
   }
 }
 
@@ -90,7 +90,7 @@
 .textInput,
 .textareaInput {
   width: 100%;
-  background: var(--bg-alt, rgba(255, 255, 255, 0.05));
+  background-color: var(--surface-2, rgba(255, 255, 255, 0.05));
   border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
   border-radius: var(--radius-md, 8px);
   padding: 0.65rem 0.85rem;

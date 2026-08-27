@@ -140,7 +140,7 @@
    Card's own .elevated box-shadow (0,1,0) regardless of CSS Modules'
    cross-file injection order, which isn't something to rely on. */
 .editorPane.editorPane {
-  box-shadow: var(--glass-inner), var(--glass-inner-bottom), var(--shadow-sm);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
 }
 
 .editorPane :global(.ql-editor blockquote:has(> strong:first-child)) {

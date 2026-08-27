@@ -3,6 +3,7 @@ import { Icon } from "./Icon";
 import { IconButton } from "./IconButton";
 import { useAuth } from "../context/auth";
 import { useAppearance } from "../context/appearance";
+import { useOptionalCommandPalette } from "../context/commandPalette";
 import { useLiveClock } from "../hooks/useLiveClock";
 import { useTranslation } from "../hooks/useTranslation";
 import { getGreeting } from "../lib/greeting";
@@ -26,6 +27,7 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
   const { pathname } = useLocation();
   const { user, signOut } = useAuth();
   const { appearance, setAppearance } = useAppearance();
+  const commandPalette = useOptionalCommandPalette();
   const time = useLiveClock();
   const t = useTranslation();
 
@@ -49,6 +51,10 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
     Storage.set(THEME_KEY, nextMode);
   };
 
+  const handleOpenSearch = () => {
+    commandPalette?.open();
+  };
+
   return (
     <header className={styles.header}>
       <div className={styles.headerLeft}>
@@ -66,6 +72,17 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
         </div>
       </div>
       <div className={styles.headerRight}>
+        <button
+          type="button"
+          className={styles.searchTrigger}
+          onClick={handleOpenSearch}
+          aria-label="Search and command palette"
+          title="Search or run commands (Cmd+K / Ctrl+K)"
+        >
+          <Icon name="search" size={15} className={styles.searchTriggerIcon} />
+          <span className={styles.searchTriggerLabel}>Search</span>
+          <kbd className={styles.searchKbd}>⌘K</kbd>
+        </button>
         <span className={styles.clock}>{time}</span>
         <IconButton
           aria-label="Log Out"
