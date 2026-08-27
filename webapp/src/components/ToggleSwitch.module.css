@@ -30,6 +30,9 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
+  /* The switch knob stays white in both themes — the platform convention
+     for a toggle thumb (iOS/Material both keep it light on the coloured
+     track). */
   background: #fff;
   left: 3px;
   top: 3px;

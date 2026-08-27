@@ -12,8 +12,8 @@
   justify-content: center;
   padding: var(--s-5);
   background: rgba(10, 14, 24, 0.5);
-  backdrop-filter: blur(12px) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(12px) var(--glass-saturate);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
   animation: overlay-in var(--t) ease;
 }
 
@@ -25,8 +25,8 @@
   padding: clamp(24px, 4vw, 36px);
   border-radius: var(--r-xl);
   background: var(--glass-bg-strong);
-  backdrop-filter: blur(36px) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(36px) var(--glass-saturate);
+  backdrop-filter: blur(var(--blur-strong)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) var(--glass-saturate);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-inner), var(--shadow-lg);
   animation: content-in var(--t) var(--ease);

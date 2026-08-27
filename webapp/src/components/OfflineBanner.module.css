@@ -1,3 +1,8 @@
+/* A connectivity status pill is deliberately theme-independent, like an OS
+   toast — the .offline state keeps its own neutral-dark ground and light
+   text so it reads the same in light and dark. .syncing / .pending follow
+   the accent / warning tokens. */
+
 .bannerWrapper {
   position: fixed;
   top: var(--s-4);
@@ -33,9 +38,9 @@
   font-size: var(--fs-sm);
   font-weight: 500;
   line-height: 1.4;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.12);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   transition: all var(--t) var(--ease);
 }
 
@@ -46,14 +51,14 @@
 }
 
 .syncing {
-  background: rgba(15, 118, 110, 0.94);
-  color: #ffffff;
+  background: var(--accent);
+  color: var(--accent-on);
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .pending {
-  background: rgba(201, 138, 46, 0.94);
-  color: #ffffff;
+  background: var(--warning);
+  color: var(--warning-on);
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 

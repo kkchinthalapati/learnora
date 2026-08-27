@@ -112,7 +112,7 @@ body[data-sidebar-style="transparent"] .sidebar {
 
 .brand {
   font-family: var(--font-head);
-  font-size: 1.4rem;
+  font-size: var(--fs-xl);
   font-weight: 800;
   margin: 0;
   padding: 0 var(--s-2);
@@ -192,12 +192,12 @@ body[data-sidebar-style="transparent"] .sidebar {
   border-color: transparent;
   box-shadow:
     var(--shadow-accent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    var(--glass-inner);
 }
 
 .termsLink {
   opacity: 0.8;
-  font-size: 0.88rem;
+  font-size: var(--fs-sm);
 }
 
 .createBtn {
@@ -242,7 +242,7 @@ body[data-sidebar-style="transparent"] .sidebar {
   border-radius: var(--r-pill);
   background: var(--accent);
   color: var(--accent-on);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 1;
 }
