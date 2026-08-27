@@ -122,9 +122,18 @@ Tracked on branch work; each phase ends green on
 | 0 | `drift.test.ts` ratchet guard (raw hex / sub-token font-size / raw shadow / raw blur / emerald, frozen per file, ratchets down) | ✅ done |
 | 1 | Tokens (`--fs-stat*`, `--blur-*`, `--lh-*`), `text.module.css` roles, iOS input fix, this doc | ✅ done |
 | 2 | Primitives — `Button` `ghost` variant + new `Chip` built & tested; proven in the dashboard (`StreakCard` / `NextExamCard` trophy + readiness pills → `Chip`, `.eyebrow` now `composes` the shared `overline` role). Per-view `Chip` / `IconButton` / `PageHeader` rollout folds into Phase 3. | 🔶 primitives done |
-| 3 | View CSS de-drift — emerald→`--success`, hex→token, raw font-size→role, raw shadow→`--shadow-*`, raw `blur()`→token, hand-rolled buttons→`Button`/`Chip`/`IconButton`. Order: analytics → debugger → graph → dashboard → feynman → premortem → room → rest | ⬜ |
+| 3 | View + component CSS de-drift — ~640 raw values across 46 modules → design tokens (Tailwind emerald/red/amber/indigo ramps → `--success`/`--danger`/`--warning`/`--accent`; phantom tokens like `--card-bg`, `--surface-elevated`, `--shadow-xl` → real ones; `blur()` → `--glass-blur`/`--blur-*`; rem/px `font-size` → `--fs-*`; white/black shadow layers → `--glass-inner`/`--shadow-*`). The Feynman, Cognitive Debugger and Study Analytics suites had been built against non-existent tokens and were **broken in dark mode / every accent preset** — now themed. `settings/appearance` (theme studio) exempted. | ✅ done — 12 annotated residuals left (see below) |
 | 4 | Dashboard IA + responsive — priority grid, 3 real breakpoints, one primary CTA, single stat treatment | ⬜ |
 | 5 | Effects & motion budget — cap stacked-blur depth, consolidate blob layers | ⬜ |
+
+### Phase 3 intentional residuals (in `drift.baseline.json`, all annotated in-file)
+
+- **Button** ×2 — brighter white sheen on the primary gradient (`--btn-sheen` covers the rest).
+- **OfflineBanner** ×2 — the `.offline` pill is deliberately theme-independent, like an OS toast.
+- **ToggleSwitch** ×1 — white switch knob (iOS/Material platform convention).
+- **auth `.visual`** ×3 — fixed near-black marketing panel, treated like a hero image.
+- **FeynmanHubView** ×3 — emoji-glyph avatar `font-size` (px on purpose; must not scale with interface font).
+- **graph** ×1 — single-edge drawer cast, no `--shadow-*` token fits.
 
 ### Known pre-existing issue (not caused by the revamp)
 
