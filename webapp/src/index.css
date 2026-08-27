@@ -140,6 +140,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.6);
 }
 
+/* --fs-base is 15px; iOS Safari force-zooms the page when a focused control's
+   text is under 16px. Lift just the controls, just on small viewports —
+   nothing else about the type scale changes. Uses max() so the "Large"
+   interface-font setting (16.5px) still wins. */
+@media (max-width: 768px) {
+  input:where(
+    :not([type="radio"]):not([type="checkbox"]):not([type="file"]):not(
+        [type="range"]
+      )
+  ),
+  select,
+  textarea {
+    font-size: max(var(--fs-base), 16px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   input,
   select,

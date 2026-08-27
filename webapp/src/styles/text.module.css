@@ -1,0 +1,130 @@
+/* Semantic text roles.
+ *
+ * Before this file, every view re-picked font-size + weight + colour +
+ * letter-spacing for its headings, labels and helper text — 179 raw
+ * `font-size` declarations across the view modules, many of them the same
+ * four or five combinations. These classes name those combinations. They
+ * carry no layout (no margin, no display) so they compose onto any element:
+ *
+ *   import text from "../../styles/text.module.css";
+ *   <h2 className={text.title}>…</h2>
+ *   <p className={`${text.body} ${text.muted}`}>…</p>
+ *
+ * The vocabulary matches what the codebase already settled on in
+ * PageHeader.module.css (eyebrow / title / sub).
+ */
+
+/* Accent kicker above a title. Mirrors PageHeader.module.css's .eyebrow. */
+.eyebrow {
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Tiny all-caps micro-label — the "DAILY GOAL" / "STREAK" pattern that had
+   been hand-rolled as 0.68rem/700/uppercase in a dozen modules. */
+.overline {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+/* Page / section heading. Pair with an actual <h1>–<h3> element. */
+.title {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+}
+
+.titleSm {
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  line-height: var(--lh-snug);
+}
+
+/* Card heading / prominent sub-section label. */
+.subtitle {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: var(--lh-snug);
+  color: var(--text);
+}
+
+/* Default running copy. */
+.body {
+  font-size: var(--fs-base);
+  line-height: var(--lh);
+  color: var(--text);
+}
+
+/* Form-field label / list-row primary text / button-sized UI text. */
+.label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: var(--lh-snug);
+  color: var(--text);
+}
+
+/* Helper text, timestamps, secondary metadata. Smallest role — nothing
+   below --fs-xs (12px) has a class here on purpose. */
+.caption {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-snug);
+  color: var(--text-muted);
+}
+
+/* The one-glance metric on a dashboard card. */
+.stat {
+  font-size: var(--fs-stat);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.statLg {
+  font-family: var(--font-head);
+  font-size: var(--fs-stat-lg);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Colour modifiers — compose onto any role above ---------------------- */
+
+.muted {
+  color: var(--text-muted);
+}
+
+.faint {
+  color: var(--text-faint);
+}
+
+.accent {
+  color: var(--accent-text);
+}
+
+/* ---- Truncation helpers ------------------------------------------------- */
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.clamp2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
