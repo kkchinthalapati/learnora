@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: center;
   min-height: 70vh;
-  padding: var(--sp-6, 24px);
+  padding: var(--s-6);
   text-align: center;
   position: relative;
 }
@@ -13,11 +13,11 @@
   max-width: 560px;
   width: 100%;
   padding: 40px 32px;
-  border-radius: var(--r-xl, 24px);
-  background: var(--surface, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.08));
-  backdrop-filter: blur(12px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  border: 1px solid var(--glass-border-subtle);
+  backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -33,27 +33,27 @@
 }
 
 .badge {
-  font-family: var(--font-heading, "Outfit", sans-serif);
-  font-size: 5rem;
+  font-family: var(--font-head);
+  font-size: var(--fs-stat);
   font-weight: 800;
   line-height: 1;
-  background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-text) 50%, var(--accent) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   letter-spacing: -2px;
 }
 
 .title {
-  font-family: var(--font-heading, "Outfit", sans-serif);
-  font-size: 1.75rem;
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
   font-weight: 700;
   color: var(--text);
   margin: 0;
 }
 
 .description {
-  font-size: 0.95rem;
-  color: var(--text-secondary, #94a3b8);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
   line-height: 1.6;
   max-width: 440px;
   margin: 0;
@@ -75,13 +75,13 @@
   justify-content: center;
   gap: 8px;
   padding: 12px 24px;
-  border-radius: var(--r-pill, 9999px);
+  border-radius: var(--r-pill);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
   text-decoration: none;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  color: var(--accent-on);
+  box-shadow: 0 4px 14px var(--accent-soft);
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -89,7 +89,7 @@
 
 .primaryBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+  box-shadow: 0 6px 20px var(--accent-glow);
 }
 
 .secondaryBtn {
@@ -98,19 +98,19 @@
   justify-content: center;
   gap: 8px;
   padding: 12px 20px;
-  border-radius: var(--r-pill, 9999px);
+  border-radius: var(--r-pill);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
   text-decoration: none;
-  background: var(--surface-hover, rgba(255, 255, 255, 0.06));
-  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.1));
+  background: var(--surface-hover);
+  border: 1px solid var(--glass-border-subtle);
   color: var(--text);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .secondaryBtn:hover {
-  background: var(--surface-active, rgba(255, 255, 255, 0.12));
+  background: var(--surface-active);
   transform: translateY(-2px);
 }
 
@@ -120,11 +120,11 @@
   }
 
   .badge {
-    font-size: 4rem;
+    font-size: var(--fs-stat);
   }
 
   .title {
-    font-size: 1.4rem;
+    font-size: var(--fs-xl);
   }
 
   .actions {

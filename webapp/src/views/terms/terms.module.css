@@ -42,7 +42,7 @@
   border: 1px solid var(--glass-border-subtle);
   color: var(--text);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
   text-decoration: none;
   transition: all 0.2s ease;
 }

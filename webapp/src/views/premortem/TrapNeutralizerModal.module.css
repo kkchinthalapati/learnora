@@ -46,7 +46,7 @@
   border-radius: 50%;
   background: var(--surface-2);
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--fs-xs);
 }
 
 .stepItemActive .stepBadge {
@@ -56,7 +56,7 @@
 
 .stepItemCompleted .stepBadge {
   background: var(--success);
-  color: #ffffff;
+  color: var(--accent-on);
 }
 
 .stepContent {
@@ -72,17 +72,17 @@
 
 .baitCard {
   border-left-color: var(--danger);
-  background: rgba(194, 69, 58, 0.05);
+  background: var(--danger-soft);
 }
 
 .flawCard {
   border-left-color: var(--warning);
-  background: rgba(201, 138, 46, 0.06);
+  background: var(--warning-soft);
 }
 
 .ruleCard {
   border-left-color: var(--success);
-  background: rgba(30, 142, 107, 0.06);
+  background: var(--success-soft);
 }
 
 .sectionHeader {
@@ -180,12 +180,12 @@
 
 .optionCorrect {
   border-color: var(--success);
-  background: rgba(30, 142, 107, 0.12);
+  background: var(--success-soft);
 }
 
 .optionWrong {
   border-color: var(--danger);
-  background: rgba(194, 69, 58, 0.12);
+  background: var(--danger-soft);
 }
 
 .optionLetter {
@@ -203,12 +203,12 @@
 
 .optionCorrect .optionLetter {
   background: var(--success);
-  color: #fff;
+  color: var(--accent-on);
 }
 
 .optionWrong .optionLetter {
   background: var(--danger);
-  color: #fff;
+  color: var(--accent-on);
 }
 
 .feedbackBox {
@@ -220,13 +220,13 @@
 }
 
 .feedbackSuccess {
-  background: rgba(30, 142, 107, 0.12);
+  background: var(--success-soft);
   border: 1px solid var(--success);
   color: var(--text);
 }
 
 .feedbackError {
-  background: rgba(194, 69, 58, 0.12);
+  background: var(--danger-soft);
   border: 1px solid var(--danger);
   color: var(--text);
 }

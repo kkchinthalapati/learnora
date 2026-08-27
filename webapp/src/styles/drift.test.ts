@@ -17,9 +17,11 @@ import { dirname, join } from "node:path";
  * numbers can only ever go down. When a view is de-drifted, lower its entry
  * (or delete it once it hits all zeros).
  *
- * `appearance.module.css` is exempt from the hex check: its theme-preview
- * swatches are required to be literal colours, one per preset.
+ * `appearance.module.css` (the theme studio) is exempt entirely: literal
+ * colours, gradients and the hue-wheel are its actual content, not drift.
  */
+
+const EXEMPT = new Set(["views/settings/appearance.module.css"]);
 
 // `fileURLToPath(import.meta.url)` rather than `new URL("./file", import.meta.url)`:
 // Vite statically rewrites the string-literal form into an asset reference whose
@@ -57,13 +59,8 @@ function count(file: string): Counts {
     .replace(/\/\*[\s\S]*?\*\//g, "")
     // Then url(...) so data-URI SVGs with fill='%23xxxxxx' don't register as hex.
     .replace(/url\([^)]*\)/g, "");
-  const isSwatch = file.endsWith("appearance.module.css");
   const out = {} as Counts;
   for (const [metric, rx] of Object.entries(PATTERNS) as [Metric, RegExp][]) {
-    if (metric === "hex" && isSwatch) {
-      out[metric] = 0;
-      continue;
-    }
     out[metric] = (css.match(rx) ?? []).length;
   }
   return out;
@@ -79,6 +76,7 @@ describe("CSS token-drift ratchet", () => {
 
   for (const file of files) {
     const rel = file.slice(srcDir.length + 1).replaceAll("\\", "/");
+    if (EXEMPT.has(rel)) continue;
     const allowed: Counts = baseline[rel] ?? {
       hex: 0,
       rawFontSize: 0,
