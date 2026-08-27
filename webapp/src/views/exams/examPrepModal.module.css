@@ -159,7 +159,7 @@
 
 .gaugeValue {
   font-family: var(--font-head);
-  font-size: 1.65rem;
+  font-size: var(--fs-xl);
   font-weight: 800;
   line-height: 1;
 }
@@ -167,7 +167,7 @@
 .gaugeTier {
   margin-top: 5px;
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 1.15;
 }
@@ -433,7 +433,7 @@
   margin-top: var(--s-2);
   margin-left: calc(18px + var(--s-2));
   color: var(--text-muted);
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
 }
 
 .taskAddBtn {
@@ -467,7 +467,7 @@
   }
 
   .gaugeValue {
-    font-size: 1.35rem;
+    font-size: var(--fs-xl);
   }
 
   .factorsGrid {

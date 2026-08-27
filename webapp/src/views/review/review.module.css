@@ -92,7 +92,7 @@
   align-items: center;
   justify-content: center;
   padding: 40px;
-  font-size: 1.5rem;
+  font-size: var(--fs-xl);
   border-radius: 20px;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -115,7 +115,7 @@
   position: absolute;
   bottom: 20px;
   color: var(--text-muted);
-  font-size: 1rem;
+  font-size: var(--fs-md);
   margin: 0;
 }
 
@@ -326,7 +326,7 @@
 .recallSummary strong {
   color: var(--accent-text);
   font-family: var(--font-head);
-  font-size: 3rem;
+  font-size: var(--fs-stat);
   line-height: 1;
 }
 
@@ -435,9 +435,9 @@
 }
 
 .badgeExcellent {
-  background: rgba(16, 185, 129, 0.15);
+  background: var(--success-soft);
   color: var(--success);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border: 1px solid var(--success-soft);
 }
 
 .badgeGood {
@@ -447,15 +447,15 @@
 }
 
 .badgeNeedsReview {
-  background: rgba(245, 158, 11, 0.15);
+  background: var(--warning-soft);
   color: var(--warning);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid var(--warning-soft);
 }
 
 .badgeCritical {
-  background: rgba(239, 68, 68, 0.15);
+  background: var(--danger-soft);
   color: var(--danger);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid var(--danger-soft);
 }
 
 .retentionScoreRow {
@@ -467,7 +467,7 @@
 
 .retentionScore {
   font-family: var(--font-head);
-  font-size: 2.5rem;
+  font-size: var(--fs-2xl);
   font-weight: 800;
   line-height: 1;
   color: var(--text);
@@ -488,7 +488,7 @@
   background: linear-gradient(
     90deg,
     var(--accent) 0%,
-    var(--accent-hover, var(--accent)) 100%
+    var(--accent-hover) 100%
   );
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -571,13 +571,13 @@
   border-radius: var(--r-pill);
   background: var(--surface-hover);
   color: var(--text-muted);
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
 }
 
 .topicBadgeActive .topicCount {
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-on);
 }
 
 /* --- Card Breakdown Section --- */
@@ -663,12 +663,12 @@
 }
 
 .gradeBadgeAgain {
-  background: rgba(239, 68, 68, 0.15);
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
 .gradeBadgeHard {
-  background: rgba(245, 158, 11, 0.15);
+  background: var(--warning-soft);
   color: var(--warning);
 }
 
@@ -678,7 +678,7 @@
 }
 
 .gradeBadgeEasy {
-  background: rgba(16, 185, 129, 0.15);
+  background: var(--success-soft);
   color: var(--success);
 }
 
@@ -797,7 +797,7 @@
   font-size: var(--fs-xs);
   font-weight: 600;
   cursor: pointer;
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-sm);
   transition: all var(--t-fast) ease;
 }
 
@@ -814,7 +814,7 @@
 }
 
 .sourceContextChevron {
-  font-size: 9px;
+  font-size: var(--fs-xs);
   opacity: 0.7;
 }
 
@@ -944,8 +944,8 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(var(--blur-scrim));
+  -webkit-backdrop-filter: blur(var(--blur-scrim));
   display: flex;
   justify-content: flex-end;
   z-index: 1000;
@@ -958,7 +958,7 @@
   height: 100%;
   background: var(--surface);
   border-left: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   overflow: hidden;

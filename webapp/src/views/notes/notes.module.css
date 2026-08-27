@@ -47,8 +47,8 @@
   padding: 12px 24px;
   border-radius: var(--r-md);
   background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   flex-shrink: 0;
 }
 
@@ -185,8 +185,8 @@
   border: 1px solid var(--glass-border);
   border-radius: var(--r-pill);
   box-shadow: var(--shadow-lg), var(--glass-inner);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
   scrollbar-width: none;
 }
 
@@ -376,7 +376,7 @@
 
 .diffLabel {
   display: block;
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -544,14 +544,14 @@
 }
 
 .warningBanner {
-  background: rgba(226, 168, 74, 0.12);
-  border: 1px solid rgba(226, 168, 74, 0.35);
-  color: #b45309;
+  background: var(--warning-soft);
+  border: 1px solid var(--warning-soft);
+  color: var(--warning);
 }
 
 .errorBanner {
   background: var(--danger-soft);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  border: 1px solid var(--danger-soft);
   color: var(--danger);
 }
 
