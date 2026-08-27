@@ -175,7 +175,7 @@
   margin-top: var(--s-3);
   padding: 6px 12px;
   border-radius: var(--r-md);
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   background: linear-gradient(
     135deg,
@@ -196,7 +196,7 @@
 .footerLink {
   padding: 6px 12px;
   border-radius: var(--r-md);
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   text-decoration: none;
   background: var(--glass-bg);
@@ -215,7 +215,7 @@
     var(--accent) 0%,
     var(--accent-hover) 100%
   );
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--glass-border);
   color: var(--accent-on);
 }
 
@@ -376,8 +376,8 @@
   text-decoration: none;
   color: var(--text);
   background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-inner), var(--shadow-sm);
 }
@@ -485,7 +485,7 @@
   gap: 6px;
   padding: 3px 8px;
   border-radius: var(--r-pill);
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   line-height: 1;
 }
@@ -497,21 +497,21 @@
 }
 
 .badgePartial {
-  background: rgba(226, 168, 74, 0.15);
-  color: #d97706;
-  border: 1px solid rgba(226, 168, 74, 0.35);
+  background: var(--warning-soft);
+  color: var(--warning);
+  border: 1px solid var(--warning-soft);
 }
 
 .badgeFailed {
   background: var(--danger-soft);
   color: var(--danger);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  border: 1px solid var(--danger-soft);
 }
 
 .badgeCompleted {
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid var(--success-soft);
 }
 
 .spinner {
@@ -542,7 +542,7 @@
   margin-top: var(--s-2);
   padding: 8px 12px;
   background: var(--danger-soft);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid var(--danger-soft);
   border-radius: var(--r-md);
   color: var(--danger);
   font-size: var(--fs-xs);
@@ -554,10 +554,10 @@
 .cardWarningBox {
   margin-top: var(--s-2);
   padding: 8px 12px;
-  background: rgba(226, 168, 74, 0.1);
-  border: 1px solid rgba(226, 168, 74, 0.3);
+  background: var(--warning-soft);
+  border: 1px solid var(--warning-soft);
   border-radius: var(--r-md);
-  color: #b45309;
+  color: var(--warning);
   font-size: var(--fs-xs);
   display: flex;
   flex-direction: column;

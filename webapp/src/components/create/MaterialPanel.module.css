@@ -38,7 +38,7 @@
   background: transparent;
   color: var(--text-faint);
   font: inherit;
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
 }
 
@@ -106,7 +106,7 @@
 .stepKicker,
 .summaryEyebrow {
   color: var(--accent-text);
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -269,7 +269,7 @@
 .dropzone p {
   margin-top: 2px;
   color: var(--text-muted);
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
 }
 
 .fileButton {
@@ -302,7 +302,7 @@
   border-radius: var(--r-md);
   background: var(--accent-soft);
   color: var(--text-muted);
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
   line-height: 1.45;
 }
 
@@ -386,7 +386,7 @@
   border-radius: var(--r-pill);
   background: var(--surface);
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
 }
 
@@ -411,7 +411,7 @@
   background: transparent;
   color: var(--accent-text);
   font: inherit;
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   cursor: pointer;
 }
@@ -443,7 +443,7 @@
 
 .advanced summary small {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-weight: 500;
 }
 
@@ -498,14 +498,14 @@
 
 .summaryItem small {
   color: var(--text-faint);
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   text-transform: uppercase;
 }
 
 .summaryItem strong {
   overflow-wrap: anywhere;
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   line-height: 1.4;
 }
 
@@ -515,7 +515,7 @@
   padding-top: var(--s-3);
   border-top: 1px solid var(--line);
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   line-height: 1.4;
 }
 
@@ -568,8 +568,8 @@
   padding: var(--s-4) clamp(22px, 3vw, 34px);
   border-top: 1px solid var(--glass-border-subtle);
   background: color-mix(in srgb, var(--glass-bg-strong) 92%, transparent);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 
 .primaryActions {
@@ -625,7 +625,7 @@
 
 @media (max-width: 560px) {
   .stepper button > span:last-child {
-    font-size: 0.68rem;
+    font-size: var(--fs-xs);
   }
 
   .sourceChoices,

@@ -16,8 +16,8 @@
   border-radius: var(--r-xl);
   background: linear-gradient(
     135deg,
-    rgba(15, 118, 110, 0.08) 0%,
-    rgba(194, 69, 58, 0.06) 100%
+    var(--accent-soft) 0%,
+    var(--danger-soft) 100%
   );
   border: 1px solid var(--line);
   position: relative;
@@ -162,11 +162,11 @@
 }
 
 .freqBadge {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   padding: 2px 8px;
   border-radius: var(--r-pill);
-  background: rgba(194, 69, 58, 0.12);
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
@@ -177,7 +177,7 @@
 }
 
 .patternBox {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text);
   background: var(--surface-2);
   padding: var(--s-2);

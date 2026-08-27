@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Card } from "../../components/Card";
+import { Chip } from "../../components/Chip";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useExams } from "../../hooks/useExams";
@@ -70,12 +71,12 @@ export function NextExamCard() {
         ? styles.diffHard
         : styles.diffMedium;
 
-  const readinessTierClass =
+  const readinessTone =
     readiness?.tier === "Exam Ready"
-      ? styles.readinessTierReady
+      ? "success"
       : readiness?.tier === "In Progress"
-        ? styles.readinessTierProgress
-        : styles.readinessTierGap;
+        ? "warning"
+        : "danger";
 
   return (
     <>
@@ -97,16 +98,17 @@ export function NextExamCard() {
             </span>
             <span className={`${styles.pill} ${diffClass}`}>{difficulty}</span>
             {readiness && (
-              <button
-                type="button"
-                className={`${styles.readinessPillBtn} ${readinessTierClass}`}
+              <Chip
+                soft
+                tone={readinessTone}
+                size="sm"
                 onClick={() => setPrepModalOpen(true)}
                 title="View AI Exam Readiness & Prep Roadmap"
                 aria-label={`Exam readiness: ${readiness.score}% ready. Click to open AI Prep Roadmap.`}
               >
                 <Icon name="brain" size={13} />
                 {readiness.score}% Ready
-              </button>
+              </Chip>
             )}
           </div>
         </div>

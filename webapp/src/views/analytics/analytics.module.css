@@ -87,7 +87,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 12px;
@@ -100,7 +100,7 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   padding: 4px 10px;
   min-height: var(--touch-target-min);
@@ -154,7 +154,7 @@
   position: relative;
   height: 16px;
   margin-left: 30px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-muted);
 }
@@ -176,7 +176,7 @@
   justify-content: space-between;
   width: 24px;
   height: 102px;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-muted);
   text-align: right;
@@ -216,7 +216,7 @@
   z-index: 5;
   box-shadow:
     0 0 0 1.5px var(--surface),
-    0 2px 4px rgba(0, 0, 0, 0.2);
+    var(--shadow-sm);
 }
 
 .cellLvl0 {
@@ -274,7 +274,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-muted);
 }
@@ -299,7 +299,7 @@
   box-shadow: var(--shadow-md);
   border-radius: var(--r-md);
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   z-index: 1000;
   color: var(--text);
   transform: translate(-50%, -100%);
@@ -313,7 +313,7 @@
 }
 
 .tooltipStats {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-muted);
   margin-top: 2px;
 }
@@ -400,7 +400,7 @@
 .barLabel {
   position: absolute;
   bottom: -22px;
-  font-size: 9px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-muted);
   white-space: nowrap;
@@ -447,7 +447,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 12px;
@@ -546,7 +546,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 12px;

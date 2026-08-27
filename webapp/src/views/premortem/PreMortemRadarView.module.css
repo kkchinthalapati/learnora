@@ -126,7 +126,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   padding: 2px 8px;
   border-radius: var(--r-pill);
@@ -134,24 +134,24 @@
 }
 
 .riskHigh {
-  background: rgba(194, 69, 58, 0.15);
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
 .riskMedium {
-  background: rgba(201, 138, 46, 0.15);
+  background: var(--warning-soft);
   color: var(--warning);
 }
 
 .riskLow {
-  background: rgba(30, 142, 107, 0.15);
+  background: var(--success-soft);
   color: var(--success);
 }
 
 .progressBarContainer {
   height: 8px;
   width: 100%;
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--glass-border-subtle);
   border-radius: var(--r-pill);
   overflow: hidden;
 }
@@ -264,7 +264,7 @@
   font-size: var(--fs-xs);
   font-weight: 700;
   color: var(--success);
-  background: rgba(30, 142, 107, 0.12);
+  background: var(--success-soft);
   padding: 4px 10px;
   border-radius: var(--r-pill);
 }

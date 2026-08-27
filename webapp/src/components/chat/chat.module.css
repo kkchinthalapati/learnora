@@ -22,11 +22,11 @@
   border-radius: 20px;
   border: 1px solid var(--glass-border);
   background: var(--glass-bg-strong);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    var(--shadow-lg),
+    var(--glass-inner);
 }
 
 .fullscreen {
@@ -126,7 +126,7 @@
   color: var(--accent-on);
   border-bottom-right-radius: var(--r-xs);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    var(--glass-inner),
     var(--shadow-sm);
 }
 
@@ -134,8 +134,8 @@
   align-self: flex-start;
   position: relative;
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border-subtle);
   box-shadow: var(--glass-inner), var(--shadow-sm);
   color: var(--text);
@@ -211,7 +211,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 0.95rem;
+  font-size: var(--fs-sm);
 }
 
 .widgetCancelled {
@@ -387,14 +387,14 @@
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  box-shadow: var(--glass-inner);
 }
 
 .sendBtn:hover:not(:disabled) {
   background: linear-gradient(135deg, var(--accent-hover), var(--accent));
   box-shadow:
     0 4px 16px var(--accent-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    var(--glass-inner);
 }
 
 .sendBtn:disabled {

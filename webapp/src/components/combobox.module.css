@@ -17,7 +17,7 @@
 .label {
   display: block;
   margin-bottom: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--text);
 }
@@ -33,7 +33,7 @@
   min-height: var(--touch-target-min);
   padding: 0.75rem;
   padding-right: 2rem;
-  font-size: 1rem;
+  font-size: var(--fs-md);
   font-family: inherit;
   border: 1px solid var(--glass-border);
   border-radius: var(--r-md);
@@ -60,7 +60,7 @@
 .chevron {
   position: absolute;
   right: 0.75rem;
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: var(--text-muted);
   pointer-events: none;
   transition: transform var(--t-fast) ease;
@@ -108,5 +108,5 @@
   padding: 1rem;
   text-align: center;
   color: var(--text-muted);
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
 }

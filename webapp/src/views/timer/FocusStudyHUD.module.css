@@ -73,10 +73,10 @@
     box-shadow: 0 0 0 0 var(--accent-glow);
   }
   70% {
-    box-shadow: 0 0 0 7px rgba(84, 104, 231, 0);
+    box-shadow: 0 0 0 7px transparent;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(84, 104, 231, 0);
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 
@@ -107,7 +107,7 @@
 }
 
 .modeLabel {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -139,7 +139,7 @@
   background: var(--surface-2);
   color: var(--text);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   font-family: inherit;
   transition: all var(--t-fast) ease;
@@ -163,7 +163,7 @@
 }
 
 .extendBtn {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.02em;
   padding: 0 6px;
@@ -239,7 +239,7 @@
 
 .kbdBadge {
   font-family: inherit;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   padding: 1px 5px;
   border-radius: var(--r-xs);
@@ -257,7 +257,7 @@
 .scratchpadClearBtn {
   background: transparent;
   border: none;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;
@@ -322,7 +322,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-faint);
 }
 

@@ -15,28 +15,28 @@
 }
 
 .h1 {
-  font-size: 2rem;
+  font-size: var(--fs-2xl);
   margin: 32px 0 16px;
   color: var(--accent-text);
   font-weight: 800;
 }
 
 .h2 {
-  font-size: 1.6rem;
+  font-size: var(--fs-xl);
   margin: 28px 0 12px;
   color: var(--accent-text);
   font-weight: 700;
 }
 
 .h3 {
-  font-size: 1.3rem;
+  font-size: var(--fs-lg);
   margin: 24px 0 10px;
   color: var(--text);
   font-weight: 600;
 }
 
 .h4 {
-  font-size: 1.15rem;
+  font-size: var(--fs-md);
   margin: 20px 0 8px;
   color: var(--text);
   font-weight: 600;
@@ -69,7 +69,7 @@
 .pre code {
   font-family: "Fira Code", monospace;
   color: var(--success);
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
   line-height: 1.5;
   white-space: pre;
 }

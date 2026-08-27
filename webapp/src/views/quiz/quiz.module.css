@@ -57,7 +57,7 @@
 }
 
 .score {
-  font-size: 1.5rem;
+  font-size: var(--fs-xl);
   margin: var(--s-2) 0 var(--s-4);
 }
 
@@ -108,7 +108,7 @@
   border-color: var(--success);
   color: var(--success);
   transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+  box-shadow: 0 4px 12px var(--success-soft);
 }
 
 .wrongChoice {
@@ -194,7 +194,7 @@
   background: var(--surface-active);
   padding: 10px;
   border-radius: 50%;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   transition:
     box-shadow var(--t-fast) ease,
     background var(--t-fast) ease;
@@ -204,19 +204,19 @@
   background: var(--success-soft);
   box-shadow:
     0 0 0 3px var(--success-soft),
-    0 0 16px rgba(52, 184, 138, 0.4);
+    0 0 16px var(--success);
 }
 
 .toneIncorrect .hostAvatar {
   background: var(--danger-soft);
   box-shadow:
     0 0 0 3px var(--danger-soft),
-    0 0 16px rgba(224, 90, 78, 0.4);
+    0 0 16px var(--danger);
 }
 
 .hostMessage {
   flex: 1;
-  font-size: 1.1rem;
+  font-size: var(--fs-lg);
   line-height: 1.5;
   color: var(--text);
   padding-top: 6px;

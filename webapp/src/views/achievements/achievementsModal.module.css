@@ -103,7 +103,7 @@
 
 .totalProgressFill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent) 0%, #f59e0b 100%);
+  background: linear-gradient(90deg, var(--accent) 0%, var(--warning) 100%);
   border-radius: var(--r-pill);
   transition: width var(--t) ease;
 }
@@ -292,11 +292,11 @@
   padding: 1px 6px;
   border-radius: var(--r-pill);
   font-size: var(--fs-xs);
-  background: rgba(0, 0, 0, 0.12);
+  background: var(--surface-active);
 }
 
 .filterPillActive .filterCount {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--glass-border);
   color: var(--accent-on);
 }
 
@@ -327,17 +327,17 @@
 
 .badgeCard:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px var(--glass-border-subtle);
 }
 
 .badgeUnlocked {
   background: linear-gradient(
     135deg,
     var(--surface-2) 0%,
-    rgba(245, 158, 11, 0.08) 100%
+    var(--warning-soft) 100%
   );
-  border-color: rgba(245, 158, 11, 0.35);
-  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.08);
+  border-color: var(--warning-soft);
+  box-shadow: 0 2px 12px var(--warning-soft);
 }
 
 .badgeLocked {
@@ -363,9 +363,9 @@
 }
 
 .badgeUnlocked .badgeIconBox {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: #ffffff;
-  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);
+  background: linear-gradient(135deg, var(--warning) 0%, color-mix(in srgb, var(--warning) 78%, black) 100%);
+  color: var(--accent-on);
+  box-shadow: 0 2px 10px var(--warning);
 }
 
 .badgeLocked .badgeIconBox {
@@ -400,7 +400,7 @@
   display: inline-block;
   padding: 1px 7px;
   border-radius: var(--r-pill);
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -454,11 +454,11 @@
   gap: 5px;
   font-size: var(--fs-xs);
   font-weight: 700;
-  color: #d97706;
+  color: var(--warning);
 }
 
 .unlockedChipDark {
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 .emptyState {

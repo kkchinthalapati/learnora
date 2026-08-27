@@ -61,10 +61,10 @@
     box-shadow: 0 0 0 0 var(--accent-glow);
   }
   70% {
-    box-shadow: 0 0 0 7px rgba(84, 104, 231, 0);
+    box-shadow: 0 0 0 7px transparent;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(84, 104, 231, 0);
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 
@@ -75,7 +75,7 @@
 }
 
 .label {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -100,7 +100,7 @@
   background: var(--surface-2);
   color: var(--text);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   transition: background var(--t-fast) ease;
 }
 

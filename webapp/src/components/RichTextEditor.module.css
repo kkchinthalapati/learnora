@@ -26,7 +26,7 @@
 
 .wrapper :global(.ql-container.ql-snow) {
   border: none;
-  font-size: 1.1rem;
+  font-size: var(--fs-md);
   background: transparent;
   flex: 1;
   min-height: 0;

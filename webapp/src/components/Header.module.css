@@ -63,9 +63,9 @@
 }
 
 .searchTrigger:hover {
-  background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.08));
+  background: var(--surface-2);
   border-color: var(--accent);
-  color: var(--text-main);
+  color: var(--text);
 }
 
 .searchTriggerIcon {
@@ -82,12 +82,12 @@
 }
 
 .searchKbd {
-  font-family: var(--font-mono, monospace);
-  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: var(--fs-xs);
   font-weight: 600;
   padding: 1px 5px;
   border-radius: var(--r-sm);
-  background: var(--bg-elevated);
+  background: var(--surface-2);
   border: 1px solid var(--glass-border);
   color: var(--text-muted);
 }

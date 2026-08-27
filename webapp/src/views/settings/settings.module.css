@@ -112,7 +112,7 @@
 }
 
 .tabIcon {
-  font-size: 1.1rem;
+  font-size: var(--fs-lg);
   width: 22px;
   text-align: center;
   flex-shrink: 0;
@@ -232,8 +232,8 @@
   border-radius: 10px;
   box-shadow:
     var(--shadow-sm),
-    inset 0 2px 4px rgba(255, 255, 255, 0.05);
-  font-size: 1.1rem;
+    var(--glass-inner);
+  font-size: var(--fs-lg);
   margin-right: 8px;
   flex-shrink: 0;
   transition:
@@ -333,7 +333,7 @@
   flex-shrink: 0;
   box-shadow:
     var(--shadow-sm),
-    0 0 0 3px rgba(255, 255, 255, 0.15);
+    0 0 0 3px var(--glass-border);
   transition:
     box-shadow var(--t) ease,
     transform var(--t) var(--ease-spring);

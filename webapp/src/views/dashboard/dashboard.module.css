@@ -25,13 +25,11 @@
   }
 }
 
+/* Shared type recipe now lives in text.module.css `.overline`; this keeps
+   only the layout (block + bottom gap) the dashboard cards rely on. */
 .eyebrow {
+  composes: overline from "../../styles/text.module.css";
   display: block;
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-faint);
   margin-bottom: var(--s-3);
 }
 
@@ -181,62 +179,7 @@
   color: var(--danger);
 }
 
-.readinessPillBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: var(--r-pill);
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  border: 1px solid var(--accent-ring);
-  cursor: pointer;
-  font-family: inherit;
-  transition: transform var(--t-fast) ease, box-shadow var(--t-fast) ease, background var(--t-fast) ease;
-}
-
-.readinessPillBtn:hover {
-  transform: translateY(-1px);
-  background: var(--accent);
-  color: var(--accent-on);
-  box-shadow: 0 2px 8px var(--accent-glow);
-}
-
-.readinessTierReady {
-  background: var(--success-soft);
-  color: var(--success);
-  border-color: rgba(16, 185, 129, 0.4);
-}
-
-.readinessTierReady:hover {
-  background: var(--success);
-  color: #fff;
-}
-
-.readinessTierProgress {
-  background: var(--warning-soft);
-  color: var(--warning);
-  border-color: rgba(245, 158, 11, 0.4);
-}
-
-.readinessTierProgress:hover {
-  background: var(--warning);
-  color: #fff;
-}
-
-.readinessTierGap {
-  background: var(--danger-soft);
-  color: var(--danger);
-  border-color: rgba(239, 68, 68, 0.4);
-}
-
-.readinessTierGap:hover {
-  background: var(--danger);
-  color: #fff;
-}
+/* Readiness pill → <Chip soft tone={success|warning|danger} size="sm">. */
 
 /* ---- Focus card ---------------------------------------------------------- */
 
@@ -341,7 +284,7 @@
 
 .kbd {
   font-family: inherit;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   padding: 2px 6px;
   border-radius: var(--r-sm);
   background: var(--surface-2);
@@ -405,7 +348,7 @@
   display: inline-flex;
   padding: 4px 10px;
   margin: 2px;
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   border-radius: var(--r-pill);
   background: var(--surface-2);
   border: 1px solid var(--glass-border-subtle);
@@ -533,7 +476,7 @@
 }
 
 .goalProgressComplete {
-  stroke: #f59e0b;
+  stroke: var(--warning);
 }
 
 .ringCenterIcon {
@@ -549,7 +492,7 @@
 }
 
 .ringIconComplete {
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 .goalInfo {
@@ -559,7 +502,7 @@
 }
 
 .goalLabel {
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -574,13 +517,13 @@
 }
 
 .goalStatusBadge {
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-muted);
 }
 
 .goalStatusAchieved {
-  color: #d97706;
+  color: var(--warning);
   font-weight: 700;
 }
 
@@ -660,14 +603,14 @@
   border-radius: var(--r-lg);
   background: linear-gradient(
     135deg,
-    rgba(16, 185, 129, 0.1) 0%,
-    rgba(16, 185, 129, 0.04) 100%
+    var(--success-soft) 0%,
+    var(--success-soft) 100%
   );
-  border: 1px solid rgba(16, 185, 129, 0.22);
+  border: 1px solid var(--success-soft);
   font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text);
-  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.06);
+  box-shadow: 0 2px 12px var(--success-soft);
 }
 
 .circleLiveBadge {
@@ -683,20 +626,20 @@
   height: 7px;
   border-radius: 50%;
   background: var(--success);
-  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 0 0 var(--success);
   animation: dashCircleDotPulse 2s infinite ease;
   flex-shrink: 0;
 }
 
 @keyframes dashCircleDotPulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+    box-shadow: 0 0 0 0 var(--success);
   }
   60% {
-    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 6px transparent;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 
@@ -710,15 +653,15 @@
   font-size: var(--fs-xs);
   padding: 3px 10px;
   border-radius: var(--r-pill);
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: var(--success-soft);
+  border: 1px solid var(--success-soft);
   transition: all var(--t-fast) ease;
   flex-shrink: 0;
 }
 
 .circleLiveAction:hover {
   background: var(--success);
-  color: #fff;
+  color: var(--success-on);
   border-color: var(--success);
   transform: translateX(2px);
 }
@@ -775,7 +718,7 @@
   background: var(--accent-soft);
   color: var(--accent-text);
   font-weight: 700;
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
 }
 
@@ -804,7 +747,7 @@
 
 .circleTag {
   margin-left: var(--s-2);
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-muted);
   background: var(--surface-2);
@@ -925,8 +868,8 @@
   padding: 16px 20px;
   margin-bottom: var(--s-3);
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
   border-radius: var(--r-lg);
   box-shadow: var(--glass-inner), var(--shadow-sm);

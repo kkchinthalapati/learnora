@@ -52,8 +52,8 @@
   justify-content: center;
   padding: clamp(28px, 4vw, 44px) clamp(24px, 6vw, 56px);
   background: var(--glass-bg-strong);
-  backdrop-filter: blur(36px) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(36px) var(--glass-saturate);
+  backdrop-filter: blur(var(--blur-strong)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) var(--glass-saturate);
   box-shadow: var(--glass-inner);
 }
 
@@ -160,13 +160,13 @@
 .statusError {
   background: var(--danger-soft);
   color: var(--danger);
-  border: 1px solid rgba(224, 90, 78, 0.2);
+  border: 1px solid var(--danger-soft);
 }
 
 .statusSuccess {
   background: var(--success-soft);
   color: var(--success);
-  border: 1px solid rgba(52, 184, 138, 0.2);
+  border: 1px solid var(--success-soft);
 }
 
 /* --- Terms footer (index.html:294-298) --- */
@@ -192,6 +192,9 @@
 
 /* --- Marketing panel (style.css:2415-2514) --- */
 
+/* Deliberately a fixed near-black brand panel — not theme-dependent
+   content, so the #1b1e1c/#0a0c0a ground and its white text stay literal,
+   like a hero image would. */
 .visual {
   flex: 1.1;
   display: flex;

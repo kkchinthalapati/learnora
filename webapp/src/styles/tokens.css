@@ -169,4 +169,29 @@
      density either, whereas maintaining two sizes for the same control
      would be the more expensive path. */
   --touch-target-min: 44px;
+
+  /* ---------------------------------------------------------------------- *
+   * Revamp additions (webapp-only — deliberately NOT in the vanilla
+   * style.css, so the tokens.test.ts parity guard leaves them alone). These
+   * name value-combinations the views had been re-deriving by hand; see
+   * webapp/DESIGN.md and styles/text.module.css.
+   * ---------------------------------------------------------------------- */
+
+  /* Display numerals — the one-glance metric on a dashboard card. Three
+     near-identical clamp() ramps (34/44, 38/56, 30/40) had been declared
+     across dashboard.module.css alone; these are the two that survive. */
+  --fs-stat: clamp(30px, 4.5vw, 44px);
+  --fs-stat-lg: clamp(38px, 6vw, 56px);
+
+  /* Blur depths. --glass-blur (18px) stays the canonical surface value; the
+     literal blur(12px)/blur(16px) scattered through the view modules should
+     collapse onto it. These two cover the other jobs: a light frost behind a
+     scrim, and the heavy defocus under a full overlay. */
+  --blur-scrim: 4px;
+  --blur-strong: 32px;
+
+  /* Line-heights as named steps — body copy already has --lh (1.6); these
+     are the tighter settings headings and stat numbers want. */
+  --lh-tight: 1.15;
+  --lh-snug: 1.35;
 }

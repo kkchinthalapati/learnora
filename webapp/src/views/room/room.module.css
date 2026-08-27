@@ -11,7 +11,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-5);
-  min-height: calc(100vh - var(--command-bar-clearance, 104px));
+  min-height: calc(100vh - var(--command-bar-clearance));
 }
 
 /* ---- Room Header & Top Bar ---------------------------------------------- */
@@ -26,16 +26,16 @@
   background:
     radial-gradient(
       circle at calc(100% - 40px) 0,
-      rgba(20, 184, 166, 0.12) 0%,
+      var(--accent-soft) 0%,
       transparent 150px
     ),
-    linear-gradient(135deg, rgba(15, 118, 110, 0.06) 0%, var(--glass-bg) 60%);
+    linear-gradient(135deg, var(--accent-soft) 0%, var(--glass-bg) 60%);
   backdrop-filter: blur(var(--glass-blur)) saturate(160%);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    var(--glass-inner),
     var(--shadow-sm);
   transition:
     border-color var(--t) var(--ease),
@@ -71,7 +71,7 @@
   background: linear-gradient(
     135deg,
     var(--text) 40%,
-    rgba(20, 184, 166, 0.8) 100%
+    var(--accent-glow) 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -84,7 +84,7 @@
   gap: var(--s-2);
   padding: 5px var(--s-3);
   background: var(--success-soft);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  border: 1px solid var(--success-soft);
   border-radius: var(--r-pill);
   font-size: var(--fs-xs);
   font-weight: 700;
@@ -97,7 +97,7 @@
   height: 8px;
   border-radius: 50%;
   background: var(--success);
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 0 2px var(--success-soft);
   animation: livePulse 2s infinite var(--ease);
   flex-shrink: 0;
 }
@@ -105,15 +105,15 @@
 @keyframes livePulse {
   0% {
     transform: scale(0.9);
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+    box-shadow: 0 0 0 0 var(--success);
   }
   60% {
     transform: scale(1.05);
-    box-shadow: 0 0 0 7px rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 7px transparent;
   }
   100% {
     transform: scale(0.9);
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 
@@ -174,12 +174,12 @@
 .ambianceTriggerActive {
   background: linear-gradient(
     135deg,
-    rgba(20, 184, 166, 0.15),
-    rgba(20, 184, 166, 0.08)
+    var(--accent-soft),
+    var(--accent-soft)
   );
   border-color: var(--accent);
   color: var(--accent-text);
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .ambianceMenu {
@@ -192,14 +192,14 @@
   border-radius: var(--r-xl);
   box-shadow:
     var(--shadow-lg),
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+    var(--glass-inner);
   padding: var(--s-4);
   z-index: 200;
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
   animation: menuFadeIn 150ms ease;
 }
 
@@ -252,10 +252,10 @@
 }
 
 .ambiancePresetSelected {
-  background: linear-gradient(135deg, var(--accent), rgba(15, 118, 110, 0.85));
-  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+  color: var(--accent-on);
   border-color: var(--accent);
-  box-shadow: 0 2px 12px rgba(20, 184, 166, 0.3);
+  box-shadow: 0 2px 12px var(--accent-ring);
 }
 
 .ambianceVolumeRow {
@@ -290,7 +290,7 @@
   border-radius: var(--r-xl);
   box-shadow:
     var(--shadow-sm),
-    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    var(--glass-inner);
 }
 
 .roomCheerPrompt {
@@ -342,7 +342,7 @@
   border-radius: var(--r-xl);
   box-shadow:
     var(--shadow-sm),
-    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+    var(--glass-inner);
   transition:
     transform var(--t) var(--ease),
     box-shadow var(--t) var(--ease),
@@ -357,7 +357,7 @@
   border-radius: var(--r-xl);
   background: radial-gradient(
     ellipse 80% 60% at 50% 0%,
-    rgba(255, 255, 255, 0.025) 0%,
+    transparent 0%,
     transparent 70%
   );
   pointer-events: none;
@@ -368,7 +368,7 @@
   box-shadow:
     var(--shadow-md),
     0 0 0 1px var(--accent-ring),
-    0 12px 40px rgba(0, 0, 0, 0.18);
+    var(--shadow-lg);
   border-color: var(--accent-ring);
 }
 
@@ -376,13 +376,13 @@
   background: linear-gradient(
     150deg,
     rgba(15, 118, 110, 0.1) 0%,
-    rgba(15, 118, 110, 0.04) 50%,
+    var(--accent-soft) 50%,
     var(--glass-bg) 100%
   );
-  border-color: rgba(20, 184, 166, 0.3);
+  border-color: var(--accent-ring);
   box-shadow:
     var(--shadow-sm),
-    0 8px 32px rgba(20, 184, 166, 0.08);
+    0 8px 32px var(--accent-soft);
 }
 
 .deskHeader {
@@ -413,9 +413,9 @@
   background: linear-gradient(
     135deg,
     var(--accent-soft),
-    rgba(20, 184, 166, 0.2)
+    var(--accent-ring)
   );
-  border: 2px solid rgba(20, 184, 166, 0.2);
+  border: 2px solid var(--accent-ring);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -460,19 +460,19 @@
 
 .pulseFocus {
   background: var(--success);
-  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.8);
+  box-shadow: 0 0 0 0 var(--success);
   animation: pulseGreen 2s infinite var(--ease);
 }
 
 .pulseBreak {
   background: var(--warning);
-  box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.8);
+  box-shadow: 0 0 0 0 var(--warning);
   animation: pulseAmber 2s infinite var(--ease);
 }
 
 .pulseFlow {
-  background: #0ea5e9;
-  box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.8);
+  background: var(--accent);
+  box-shadow: 0 0 0 0 var(--accent-glow);
   animation: pulseBlue 2s infinite var(--ease);
 }
 
@@ -483,37 +483,37 @@
 
 @keyframes pulseGreen {
   0% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    box-shadow: 0 0 0 0 var(--success);
   }
   65% {
-    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 8px transparent;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 
 @keyframes pulseAmber {
   0% {
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+    box-shadow: 0 0 0 0 var(--warning);
   }
   65% {
-    box-shadow: 0 0 0 8px rgba(245, 158, 11, 0);
+    box-shadow: 0 0 0 8px transparent;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 
 @keyframes pulseBlue {
   0% {
-    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7);
+    box-shadow: 0 0 0 0 var(--accent-glow);
   }
   65% {
-    box-shadow: 0 0 0 8px rgba(14, 165, 233, 0);
+    box-shadow: 0 0 0 8px transparent;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0);
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 
@@ -546,17 +546,17 @@
 .youBadge {
   display: inline-flex;
   align-items: center;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   padding: 2px 8px;
   background: linear-gradient(
     135deg,
-    rgba(20, 184, 166, 0.2),
+    var(--accent-ring),
     rgba(20, 184, 166, 0.1)
   );
   color: var(--accent-text);
   border-radius: var(--r-pill);
-  border: 1px solid rgba(20, 184, 166, 0.3);
+  border: 1px solid var(--accent-ring);
   line-height: 1;
   letter-spacing: 0.02em;
   flex-shrink: 0;
@@ -577,7 +577,7 @@
   gap: 6px;
   padding: 4px 11px;
   border-radius: var(--r-pill);
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -585,21 +585,21 @@
 }
 
 .statusPillFocus {
-  background: rgba(16, 185, 129, 0.12);
+  background: var(--success-soft);
   color: var(--success);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  border: 1px solid var(--success-soft);
 }
 
 .statusPillBreak {
-  background: rgba(245, 158, 11, 0.12);
+  background: var(--warning-soft);
   color: var(--warning);
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  border: 1px solid var(--warning-soft);
 }
 
 .statusPillFlow {
-  background: rgba(14, 165, 233, 0.12);
-  color: #0ea5e9;
-  border: 1px solid rgba(14, 165, 233, 0.25);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent-ring);
 }
 
 .statusPillIdle {
@@ -631,7 +631,7 @@
   inset: 0;
   background: radial-gradient(
     ellipse 70% 50% at 50% 0%,
-    rgba(20, 184, 166, 0.05),
+    var(--accent-soft),
     transparent 70%
   );
   pointer-events: none;
@@ -649,7 +649,7 @@
 }
 
 .timerModeLabel {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -732,7 +732,7 @@
   border-radius: var(--r-pill);
   border: 1px solid var(--glass-border-subtle);
   background: var(--surface);
-  font-size: 17px;
+  font-size: var(--fs-lg);
   cursor: pointer;
   line-height: 1;
   padding: 0;
@@ -748,7 +748,7 @@
   transform: scale(1.28);
   background: var(--surface-hover);
   border-color: var(--accent-ring);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
   z-index: 2;
 }
 
@@ -791,11 +791,11 @@
   border-radius: var(--r-md);
   font-size: var(--fs-xs);
   font-weight: 700;
-  border: 1px solid rgba(20, 184, 166, 0.3);
+  border: 1px solid var(--accent-ring);
   background: linear-gradient(
     135deg,
-    rgba(20, 184, 166, 0.12),
-    rgba(20, 184, 166, 0.06)
+    var(--accent-soft),
+    var(--accent-soft)
   );
   color: var(--accent-text);
   cursor: pointer;
@@ -805,9 +805,9 @@
 
 .syncBtn:hover {
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-on);
   border-color: var(--accent);
-  box-shadow: 0 4px 16px rgba(20, 184, 166, 0.3);
+  box-shadow: 0 4px 16px var(--accent-ring);
   transform: translateY(-1px);
 }
 
@@ -828,7 +828,7 @@
   border-color: var(--glass-border);
   box-shadow:
     var(--shadow-sm),
-    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+    var(--glass-inner);
 }
 
 .chatTitle {
@@ -856,7 +856,7 @@
 }
 
 .chatMessage {
-  font-size: 14px;
+  font-size: var(--fs-sm);
   color: var(--text);
   line-height: 1.5;
 }
@@ -896,7 +896,7 @@
 .chatInput:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 /* ---- Reaction Overlay & Floating Emoji ---------------------------------- */
@@ -912,11 +912,11 @@
 .floatingEmoji {
   position: absolute;
   bottom: 90px;
-  font-size: 44px;
+  font-size: var(--fs-stat);
   user-select: none;
   pointer-events: none;
   animation: floatUpAndFade 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.2));
+  filter: drop-shadow(var(--shadow-md));
 }
 
 @keyframes floatUpAndFade {
@@ -946,7 +946,7 @@
 
 .cheerFeed {
   position: fixed;
-  bottom: calc(var(--command-bar-clearance, 104px) + var(--s-3));
+  bottom: calc(var(--command-bar-clearance) + var(--s-3));
   left: 24px;
   right: 24px;
   display: flex;
@@ -963,13 +963,13 @@
   gap: var(--s-3);
   padding: var(--s-3) var(--s-4);
   background: var(--glass-bg-strong);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-lg);
   box-shadow:
     var(--shadow-md),
-    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+    var(--glass-inner);
   color: var(--text);
   font-size: var(--fs-sm);
   font-weight: 500;
@@ -977,7 +977,7 @@
 }
 
 .toastEmoji {
-  font-size: 22px;
+  font-size: var(--fs-xl);
   line-height: 1;
 }
 
@@ -1013,7 +1013,7 @@
   text-align: center;
   padding: var(--s-12) var(--s-6);
   background: var(--glass-bg);
-  border: 2px dashed rgba(20, 184, 166, 0.2);
+  border: 2px dashed var(--accent-ring);
   border-radius: var(--r-2xl);
   gap: var(--s-4);
   backdrop-filter: blur(var(--glass-blur));
@@ -1030,7 +1030,7 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(20, 184, 166, 0.06) 0%,
+    var(--accent-soft) 0%,
     transparent 70%
   );
   top: 50%;
@@ -1040,7 +1040,7 @@
 }
 
 .emptyIcon {
-  color: rgba(20, 184, 166, 0.5);
+  color: var(--accent-glow);
   margin-bottom: var(--s-2);
   position: relative;
   animation: floatIcon 3s ease-in-out infinite;
@@ -1100,7 +1100,7 @@
 
 @media (max-width: 760px) {
   .roomView {
-    padding: var(--s-4) var(--s-4) var(--command-bar-clearance, 104px);
+    padding: var(--s-4) var(--s-4) var(--command-bar-clearance);
     gap: var(--s-4);
   }
 

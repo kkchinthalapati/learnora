@@ -21,8 +21,8 @@
   width: min(540px, 75vw);
   padding: 10px 18px;
   background: var(--glass-bg-strong);
-  backdrop-filter: blur(32px) saturate(180%);
-  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  backdrop-filter: blur(var(--blur-strong)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(180%);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-pill);
   box-shadow:
@@ -61,7 +61,7 @@
 
 .kbd {
   font-family: inherit;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   padding: 2px 6px;
   border-radius: var(--r-sm);
   background: var(--surface-2);

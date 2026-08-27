@@ -23,10 +23,10 @@
 }
 
 .title {
-  font-size: 1.75rem;
+  font-size: var(--fs-2xl);
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--text, #f0f0f5);
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -34,8 +34,8 @@
 }
 
 .subtitle {
-  font-size: 0.95rem;
-  color: var(--text-muted, #9ca3af);
+  font-size: var(--fs-base);
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -65,9 +65,9 @@
 }
 
 .cardHeading {
-  font-size: 1.05rem;
+  font-size: var(--fs-md);
   font-weight: 700;
-  color: var(--text, #f0f0f5);
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -81,21 +81,21 @@
 }
 
 .formLabel {
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  color: var(--text, #e5e7eb);
+  color: var(--text);
 }
 
 .selectInput,
 .textInput,
 .textareaInput {
   width: 100%;
-  background-color: var(--surface-2, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
-  border-radius: var(--radius-md, 8px);
+  background-color: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-xs);
   padding: 0.65rem 0.85rem;
-  color: var(--text, #f0f0f5);
-  font-size: 0.9rem;
+  color: var(--text);
+  font-size: var(--fs-base);
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -103,8 +103,8 @@
 .selectInput:focus,
 .textInput:focus,
 .textareaInput:focus {
-  border-color: var(--primary, #3b82f6);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-ring);
 }
 
 .textareaInput {
@@ -120,9 +120,9 @@
 }
 
 .presetLabel {
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -134,26 +134,26 @@
 }
 
 .presetPill {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-hover);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: 9999px;
   padding: 0.3rem 0.65rem;
-  font-size: 0.775rem;
-  color: var(--text-muted, #d1d5db);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .presetPill:hover {
-  background: rgba(99, 102, 241, 0.15);
-  border-color: rgba(99, 102, 241, 0.4);
-  color: #c7d2fe;
+  background: var(--accent-soft);
+  border-color: var(--accent-glow);
+  color: var(--accent-text);
 }
 
 .recentMistakesBox {
-  background: rgba(239, 68, 68, 0.05);
-  border: 1px dashed rgba(239, 68, 68, 0.3);
-  border-radius: var(--radius-md, 8px);
+  background: var(--danger-soft);
+  border: 1px dashed var(--danger-soft);
+  border-radius: var(--r-xs);
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -164,19 +164,19 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--surface-active);
+  border: 1px solid var(--surface-hover);
   border-radius: 6px;
   padding: 0.4rem 0.6rem;
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   cursor: pointer;
-  color: var(--text, #f0f0f5);
+  color: var(--text);
   transition: background-color 0.15s ease;
 }
 
 .recentMistakeItem:hover {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.3);
+  background: var(--danger-soft);
+  border-color: var(--danger-soft);
 }
 
 .diagnoseBtn {
@@ -210,48 +210,48 @@
   width: 56px;
   height: 56px;
   border-radius: 9999px;
-  background: rgba(99, 102, 241, 0.2);
-  border: 2px solid #6366f1;
+  background: var(--accent-ring);
+  border: 2px solid var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #818cf8;
+  color: var(--accent);
   animation: scanPulseAnim 1.5s infinite ease-in-out;
 }
 
 @keyframes scanPulseAnim {
   0% {
     transform: scale(0.9);
-    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.6);
+    box-shadow: 0 0 0 0 var(--accent-glow);
   }
   70% {
     transform: scale(1.1);
-    box-shadow: 0 0 0 16px rgba(99, 102, 241, 0);
+    box-shadow: 0 0 0 16px transparent;
   }
   100% {
     transform: scale(0.9);
-    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 
 .loadingText {
-  font-size: 1.05rem;
+  font-size: var(--fs-md);
   font-weight: 700;
-  color: var(--text, #f0f0f5);
+  color: var(--text);
   margin: 0;
 }
 
 .loadingSubtext {
-  font-size: 0.85rem;
-  color: var(--text-muted, #9ca3af);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
   margin: 0;
 }
 
 /* Root Cause Highlight Card */
 .rootCauseCard {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(99, 102, 241, 0.08));
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: var(--radius-lg, 12px);
+  background: linear-gradient(135deg, var(--danger-soft), var(--accent-soft));
+  border: 1px solid var(--danger-soft);
+  border-radius: var(--r-sm);
   padding: 1.25rem 1.5rem;
   display: flex;
   flex-direction: column;
@@ -259,8 +259,8 @@
 }
 
 .rootCauseCardHealthy {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0.08));
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: linear-gradient(135deg, var(--success-soft), var(--accent-ring));
+  border: 1px solid var(--success-soft);
 }
 
 .rootCauseHead {
@@ -275,28 +275,28 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 0.25rem 0.6rem;
   border-radius: 9999px;
-  background: rgba(239, 68, 68, 0.2);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid var(--danger-soft);
 }
 
 .rootCauseBadgeHealthy {
-  background: rgba(34, 197, 94, 0.2);
-  color: #4ade80;
-  border-color: rgba(34, 197, 94, 0.4);
+  background: var(--success-soft);
+  color: var(--success);
+  border-color: var(--success-soft);
 }
 
 .rootCauseSummaryText {
-  font-size: 1.05rem;
+  font-size: var(--fs-md);
   font-weight: 600;
   line-height: 1.5;
-  color: var(--text, #f0f0f5);
+  color: var(--text);
   margin: 0;
 }
 
@@ -323,9 +323,9 @@
 }
 
 .layerCard {
-  background: var(--card-bg, #1f1f27);
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
-  border-radius: var(--radius-lg, 12px);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-sm);
   padding: 1.1rem 1.25rem;
   display: flex;
   flex-direction: column;
@@ -336,13 +336,13 @@
 }
 
 .layerCard:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--glass-border);
   transform: translateX(3px);
 }
 
 .layerCardSelected {
-  border-color: #6366f1 !important;
-  box-shadow: 0 0 16px rgba(99, 102, 241, 0.25);
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 16px var(--accent-ring);
 }
 
 .layerHeader {
@@ -359,44 +359,44 @@
   gap: 0.35rem;
   padding: 0.2rem 0.55rem;
   border-radius: 4px;
-  font-size: 0.725rem;
+  font-size: var(--fs-xs);
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .level3Badge {
-  background: rgba(239, 68, 68, 0.15);
-  color: #fca5a5;
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .level2Badge {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fcd34d;
+  background: var(--warning-soft);
+  color: var(--warning);
 }
 
 .level1Badge {
-  background: rgba(99, 102, 241, 0.15);
-  color: #a5b4fc;
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 
 .layerConcept {
-  font-size: 1.05rem;
+  font-size: var(--fs-md);
   font-weight: 700;
-  color: var(--text, #f0f0f5);
+  color: var(--text);
   margin: 0;
 }
 
 .layerExplanation {
-  font-size: 0.9rem;
-  color: var(--text-muted, #d1d5db);
+  font-size: var(--fs-base);
+  color: var(--text-muted);
   line-height: 1.5;
   margin: 0;
 }
 
 .layerPrereq {
-  font-size: 0.775rem;
-  color: var(--text-muted, #9ca3af);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -404,9 +404,9 @@
 
 /* Action Banner */
 .actionBanner {
-  background: var(--card-bg, #1a1a24);
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
-  border-radius: var(--radius-lg, 12px);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-sm);
   padding: 1.25rem 1.5rem;
   display: flex;
   justify-content: space-between;
@@ -422,15 +422,15 @@
 }
 
 .actionBannerTitle {
-  font-size: 1rem;
+  font-size: var(--fs-md);
   font-weight: 700;
-  color: var(--text, #f0f0f5);
+  color: var(--text);
   margin: 0;
 }
 
 .actionBannerSub {
-  font-size: 0.85rem;
-  color: var(--text-muted, #9ca3af);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -440,16 +440,16 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
-  border-radius: var(--radius-md, 8px);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-xs);
+  background: var(--surface-2);
+  border: 1px solid var(--surface-hover);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .historyItem:hover {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--surface-hover);
+  border-color: var(--glass-border);
 }
 
 .emptyStateContainer {

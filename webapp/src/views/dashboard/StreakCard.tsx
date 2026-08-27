@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "../../components/Card";
+import { Chip } from "../../components/Chip";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useFolders } from "../../hooks/useFolders";
@@ -84,15 +85,14 @@ export function StreakCard() {
       <Card variant="elevated" className={styles.streakCard}>
         <div className={styles.streakCardHeader}>
           <span className={styles.eyebrow}>Streak</span>
-          <button
-            type="button"
-            className={styles.trophyBtn}
+          <Chip
+            tone="accent"
             onClick={() => setModalOpen(true)}
             aria-label="Open Achievements and Study Goals"
           >
             <Icon name="trophy" size={16} />
             <span>Badges</span>
-          </button>
+          </Chip>
         </div>
         <p role="alert" className={styles.emptySm}>
           Could not load your study history. {(error as Error).message}
@@ -109,15 +109,14 @@ export function StreakCard() {
       <Card variant="elevated" className={styles.streakCard}>
         <div className={styles.streakCardHeader}>
           <span className={styles.eyebrow}>Streak</span>
-          <button
-            type="button"
-            className={styles.trophyBtn}
+          <Chip
+            tone="accent"
             onClick={() => setModalOpen(true)}
             aria-label="Open Achievements and Study Goals"
           >
             <Icon name="trophy" size={16} />
             <span>Badges</span>
-          </button>
+          </Chip>
         </div>
         <p className={styles.emptySm}>
           Start your first streak today. Complete a focus session to begin.
@@ -135,16 +134,15 @@ export function StreakCard() {
     <Card variant="elevated" className={styles.streakCard}>
       <div className={styles.streakCardHeader}>
         <span className={styles.eyebrow}>Streak & Daily Goal</span>
-        <button
-          type="button"
-          className={styles.trophyBtn}
+        <Chip
+          tone="accent"
           onClick={() => setModalOpen(true)}
           title="Open Trophy Cabinet & Goals"
           aria-label="Open Trophy Cabinet and Achievements"
         >
           <Icon name="trophy" size={16} />
           <span>Badges</span>
-        </button>
+        </Chip>
       </div>
 
       <div className={styles.streakMainRow}>
