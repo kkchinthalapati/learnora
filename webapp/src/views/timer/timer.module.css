@@ -371,13 +371,13 @@
   padding: var(--s-4) var(--s-5);
   background: linear-gradient(
     135deg,
-    rgba(15, 118, 110, 0.07) 0%,
+    var(--accent-soft) 0%,
     var(--surface-2) 100%
   );
-  border: 1px solid rgba(20, 184, 166, 0.2);
+  border: 1px solid var(--accent-ring);
   border-radius: var(--r-lg);
   text-align: left;
-  box-shadow: 0 2px 16px rgba(20, 184, 166, 0.06);
+  box-shadow: 0 2px 16px var(--accent-soft);
 }
 
 .studyRoomWidgetHeader {
@@ -401,15 +401,15 @@
   height: 7px;
   border-radius: 50%;
   background: var(--success);
-  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 0 0 var(--success);
   animation: timerRoomDotPulse 2.2s infinite ease-in-out;
   flex-shrink: 0;
 }
 
 @keyframes timerRoomDotPulse {
-  0%  { box-shadow: 0 0 0 0   rgba(16, 185, 129, 0.6); }
-  60% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-  100%{ box-shadow: 0 0 0 0   rgba(16, 185, 129, 0); }
+  0%  { box-shadow: 0 0 0 0   var(--success); }
+  60% { box-shadow: 0 0 0 6px transparent; }
+  100%{ box-shadow: 0 0 0 0   transparent; }
 }
 
 .studyRoomCta {
@@ -420,13 +420,13 @@
   padding: 3px 8px;
   border-radius: var(--r-pill);
   background: rgba(20, 184, 166, 0.1);
-  border: 1px solid rgba(20, 184, 166, 0.2);
+  border: 1px solid var(--accent-ring);
   transition: all var(--t-fast) ease;
 }
 
 .studyRoomCta:hover {
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-on);
   border-color: var(--accent);
   transform: translateX(1px);
 }
@@ -444,21 +444,21 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-soft), rgba(20, 184, 166, 0.15));
+  background: linear-gradient(135deg, var(--accent-soft), var(--accent-soft));
   color: var(--accent-text);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid rgba(16, 185, 129, 0.4);
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+  border: 2px solid var(--success);
+  box-shadow: 0 0 0 2px var(--success-soft);
   transition: border-color var(--t) ease;
 }
 
 .studyBuddyAvatar:hover {
   border-color: var(--success);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 0 3px var(--success-soft);
 }
 
 .buddyLiveIndicator {
@@ -470,7 +470,7 @@
   border-radius: 50%;
   background: var(--success);
   border: 1.5px solid var(--surface);
-  box-shadow: 0 0 4px rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 4px var(--success);
 }
 
 .studyRoomEmpty {

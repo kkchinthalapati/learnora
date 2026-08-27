@@ -26,7 +26,7 @@
   font-size: var(--fs-2xl);
   font-weight: 800;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--text) 40%, rgba(20, 184, 166, 0.85) 100%);
+  background: linear-gradient(135deg, var(--text) 40%, var(--accent-glow) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -42,7 +42,7 @@
   color: var(--accent-text);
   font-size: var(--fs-xs);
   font-weight: 700;
-  border: 1px solid rgba(20, 184, 166, 0.25);
+  border: 1px solid var(--accent-ring);
 }
 
 .liveIndicator {
@@ -51,11 +51,11 @@
   gap: 6px;
   padding: 5px 12px;
   border-radius: var(--r-pill);
-  background: rgba(16, 185, 129, 0.12);
+  background: var(--success-soft);
   color: var(--success);
   font-size: var(--fs-xs);
   font-weight: 700;
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  border: 1px solid var(--success-soft);
 }
 
 .liveDot {
@@ -63,14 +63,14 @@
   height: 8px;
   border-radius: 50%;
   background: var(--success);
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 0 2px var(--success-soft);
   animation: pulseDot 2s infinite ease-in-out;
   flex-shrink: 0;
 }
 
 @keyframes pulseDot {
-  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
-  50%       { opacity: 0.7; transform: scale(0.85); box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 2px var(--success-soft); }
+  50%       { opacity: 0.7; transform: scale(0.85); box-shadow: 0 0 0 5px transparent; }
 }
 
 .actions {
@@ -92,7 +92,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
-  box-shadow: var(--shadow-sm), 0 1px 0 rgba(255,255,255,0.05) inset;
+  box-shadow: var(--shadow-sm), var(--glass-inner);
   padding: var(--s-6);
   display: flex;
   flex-direction: column;
@@ -145,8 +145,8 @@
 }
 
 .participantCard.isSelf {
-  border-color: rgba(20, 184, 166, 0.3);
-  background: linear-gradient(135deg, rgba(20, 184, 166, 0.08), var(--surface));
+  border-color: var(--accent-ring);
+  background: linear-gradient(135deg, var(--accent-soft), var(--surface));
 }
 
 .avatarWrapper {
@@ -158,32 +158,32 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-soft), rgba(20, 184, 166, 0.15));
+  background: linear-gradient(135deg, var(--accent-soft), var(--accent-soft));
   color: var(--accent-text);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
   font-size: var(--fs-lg);
-  border: 2px solid rgba(20, 184, 166, 0.15);
+  border: 2px solid var(--accent-soft);
   transition: border-color var(--t) ease, box-shadow var(--t) ease;
 }
 
 .avatar.focusing {
   border-color: var(--success);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15), 0 0 16px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 0 3px var(--success-soft), 0 0 16px var(--success-soft);
 }
 
 .avatar.break {
-  border-color: var(--warning, #f59e0b);
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+  border-color: var(--warning);
+  box-shadow: 0 0 0 3px var(--warning-soft);
 }
 
 .statusPill {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   padding: 3px 9px;
   border-radius: var(--r-pill);
@@ -193,15 +193,15 @@
 }
 
 .statusPill.focusing {
-  background: rgba(16, 185, 129, 0.12);
+  background: var(--success-soft);
   color: var(--success);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  border: 1px solid var(--success-soft);
 }
 
 .statusPill.break {
-  background: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: var(--warning-soft);
+  color: var(--warning);
+  border: 1px solid var(--warning-soft);
 }
 
 .statusPill.idle {
@@ -245,7 +245,7 @@
 .reactionBtn {
   background: transparent;
   border: none;
-  font-size: 20px;
+  font-size: var(--fs-lg);
   cursor: pointer;
   padding: 5px 8px;
   border-radius: var(--r-sm);
@@ -268,7 +268,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
-  box-shadow: var(--shadow-sm), 0 1px 0 rgba(255,255,255,0.05) inset;
+  box-shadow: var(--shadow-sm), var(--glass-inner);
   padding: var(--s-4);
   display: flex;
   flex-direction: column;
@@ -368,7 +368,7 @@
 .chatInput:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .ambientBar {
@@ -402,7 +402,7 @@
 }
 
 .ambientSoundBtn.active {
-  background: linear-gradient(135deg, rgba(20, 184, 166, 0.15), rgba(20, 184, 166, 0.08));
+  background: linear-gradient(135deg, var(--accent-soft), var(--accent-soft));
   border-color: var(--accent);
   color: var(--accent-text);
   font-weight: 700;

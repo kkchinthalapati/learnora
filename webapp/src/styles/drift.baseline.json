@@ -36,12 +36,12 @@
   "views/premortem/TrapNeutralizerModal.module.css": {"hex": 3, "rawFontSize": 1, "rawShadow": 0, "rawBlur": 0, "emerald": 0},
   "views/quiz/quiz.module.css": {"hex": 0, "rawFontSize": 2, "rawShadow": 4, "rawBlur": 0, "emerald": 0},
   "views/review/review.module.css": {"hex": 1, "rawFontSize": 6, "rawShadow": 0, "rawBlur": 2, "emerald": 3},
-  "views/room/StudyRoomView.module.css": {"hex": 2, "rawFontSize": 2, "rawShadow": 8, "rawBlur": 0, "emerald": 9},
-  "views/room/room.module.css": {"hex": 4, "rawFontSize": 7, "rawShadow": 18, "rawBlur": 4, "emerald": 11},
+  "views/room/StudyRoomView.module.css": {"hex": 0, "rawFontSize": 0, "rawShadow": 0, "rawBlur": 0, "emerald": 0},
+  "views/room/room.module.css": {"hex": 0, "rawFontSize": 0, "rawShadow": 0, "rawBlur": 0, "emerald": 0},
   "views/settings/appearance.module.css": {"hex": 0, "rawFontSize": 10, "rawShadow": 4, "rawBlur": 0, "emerald": 0},
   "views/settings/settings.module.css": {"hex": 0, "rawFontSize": 2, "rawShadow": 2, "rawBlur": 0, "emerald": 0},
   "views/tasks/tasks.module.css": {"hex": 2, "rawFontSize": 4, "rawShadow": 0, "rawBlur": 3, "emerald": 0},
   "views/terms/terms.module.css": {"hex": 0, "rawFontSize": 1, "rawShadow": 0, "rawBlur": 0, "emerald": 0},
-  "views/timer/MiniTimer.module.css": {"hex": 0, "rawFontSize": 2, "rawShadow": 1, "rawBlur": 0, "emerald": 0},
-  "views/timer/timer.module.css": {"hex": 1, "rawFontSize": 1, "rawShadow": 5, "rawBlur": 0, "emerald": 8}
+  "views/timer/MiniTimer.module.css": {"hex": 0, "rawFontSize": 0, "rawShadow": 0, "rawBlur": 0, "emerald": 0},
+  "views/timer/timer.module.css": {"hex": 0, "rawFontSize": 0, "rawShadow": 0, "rawBlur": 0, "emerald": 0}
 }
