@@ -26,7 +26,8 @@ export function NotebookStudioView() {
     addChatMessage,
   } = useNotebook(notebookId);
 
-  const [activeTab, setActiveTab] = useState<"notes" | "chat">("chat");
+  const [activeViewMode, setActiveViewMode] = useState<"split" | "chat" | "notes">("split");
+  const [mobilePanel, setMobilePanel] = useState<"sources" | "canvas" | "tools">("canvas");
   const [chatInput, setChatInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
@@ -42,6 +43,14 @@ export function NotebookStudioView() {
     type: string;
     content: string;
   } | null>(null);
+
+  const handleAppendToNotes = (content: string) => {
+    if (!notebook) return;
+    const next = notebook.notes ? `${notebook.notes}\n\n---\n\n${content}` : content;
+    updateNotes(next);
+    showToast("Appended to your Notes Canvas!");
+    setActiveArtifactPreview(null);
+  };
 
   // Auto-scroll chat
   const chatBottomRef = useRef<HTMLDivElement>(null);
@@ -287,10 +296,38 @@ Use British English throughout.`;
         </div>
       </header>
 
+      {/* Mobile Top Panel Switcher */}
+      <div className={styles.mobileStudioNav}>
+        <button
+          type="button"
+          className={`${styles.mobileNavBtn} ${mobilePanel === "sources" ? styles.mobileNavBtnActive : ""}`}
+          onClick={() => setMobilePanel("sources")}
+        >
+          <Icon name="layers" size={14} />
+          Sources ({notebook.sources.length})
+        </button>
+        <button
+          type="button"
+          className={`${styles.mobileNavBtn} ${mobilePanel === "canvas" ? styles.mobileNavBtnActive : ""}`}
+          onClick={() => setMobilePanel("canvas")}
+        >
+          <Icon name="brain" size={14} />
+          Canvas
+        </button>
+        <button
+          type="button"
+          className={`${styles.mobileNavBtn} ${mobilePanel === "tools" ? styles.mobileNavBtnActive : ""}`}
+          onClick={() => setMobilePanel("tools")}
+        >
+          <Icon name="zap" size={14} />
+          Studio Tools ({notebook.artifacts.length})
+        </button>
+      </div>
+
       {/* 3-Column Studio Body */}
       <div className={styles.studioColumns}>
         {/* PANEL 1: Sources Desk (Left Column) */}
-        <aside className={styles.sourcesDesk}>
+        <aside className={`${styles.sourcesDesk} ${mobilePanel !== "sources" ? styles.mobileHidden : ""}`}>
           <div className={styles.panelHeader}>
             <div className={styles.panelTitleGroup}>
               <Icon name="layers" size={16} style={{ color: "var(--accent)" }} />
@@ -367,28 +404,147 @@ Use British English throughout.`;
         </aside>
 
         {/* PANEL 2: Grounded Canvas (Centre Column) */}
-        <main className={styles.canvasColumn}>
+        <main className={`${styles.canvasColumn} ${mobilePanel !== "canvas" ? styles.mobileHidden : ""}`}>
           <div className={styles.canvasTabs}>
             <button
               type="button"
-              className={`${styles.canvasTabBtn} ${activeTab === "chat" ? styles.canvasTabBtnActive : ""}`}
-              onClick={() => setActiveTab("chat")}
+              className={`${styles.canvasTabBtn} ${activeViewMode === "split" ? styles.canvasTabBtnActive : ""}`}
+              onClick={() => setActiveViewMode("split")}
+              title="View Notes and AI Tutor side by side"
             >
-              <Icon name="brain" size={16} />
+              <Icon name="layout" size={15} />
+              Split View
+            </button>
+            <button
+              type="button"
+              className={`${styles.canvasTabBtn} ${activeViewMode === "chat" ? styles.canvasTabBtnActive : ""}`}
+              onClick={() => setActiveViewMode("chat")}
+            >
+              <Icon name="brain" size={15} />
               Grounded AI Tutor
             </button>
             <button
               type="button"
-              className={`${styles.canvasTabBtn} ${activeTab === "notes" ? styles.canvasTabBtnActive : ""}`}
-              onClick={() => setActiveTab("notes")}
+              className={`${styles.canvasTabBtn} ${activeViewMode === "notes" ? styles.canvasTabBtnActive : ""}`}
+              onClick={() => setActiveViewMode("notes")}
             >
-              <Icon name="file-text" size={16} />
+              <Icon name="file-text" size={15} />
               Notes Canvas
             </button>
           </div>
 
           <div className={styles.canvasBody}>
-            {activeTab === "notes" ? (
+            {activeViewMode === "split" ? (
+              <div className={styles.splitCanvasLayout}>
+                {/* Split Left: Notes */}
+                <div className={styles.splitNotesPane}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--s-2)" }}>
+                    <span style={{ fontSize: "var(--fs-xs)", fontWeight: 700, textTransform: "uppercase", color: "var(--text-muted)" }}>
+                      Study Working & Notes
+                    </span>
+                    <span className={styles.saveIndicator}>
+                      <Icon name="check" size={12} style={{ color: "var(--success)" }} />
+                      Autosaved
+                    </span>
+                  </div>
+                  <textarea
+                    value={notebook.notes}
+                    onChange={(e) => updateNotes(e.target.value)}
+                    placeholder="Write your study notes, proofs, and working here…"
+                    style={{
+                      width: "100%",
+                      flex: 1,
+                      minHeight: "350px",
+                      background: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "var(--r-lg)",
+                      padding: "var(--s-4)",
+                      color: "var(--text)",
+                      fontSize: "var(--fs-sm)",
+                      lineHeight: 1.6,
+                      fontFamily: "inherit",
+                      resize: "none",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+
+                {/* Split Right: AI Tutor */}
+                <div className={styles.splitChatPane}>
+                  <div className={styles.chatContainer}>
+                    <div className={styles.chatMessages}>
+                      {notebook.chatHistory.map((msg) => (
+                        <div
+                          key={msg.id}
+                          className={`${styles.messageBubble} ${
+                            msg.role === "user" ? styles.userMessage : styles.assistantMessage
+                          }`}
+                        >
+                          <div style={{ whiteSpace: "pre-wrap" }}>{msg.content}</div>
+
+                          {msg.citations && msg.citations.length > 0 && (
+                            <div className={styles.citationRow}>
+                              <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                                Citations:
+                              </span>
+                              {msg.citations.map((c, i) => (
+                                <span key={i} className={styles.citationChip} title={c.snippet}>
+                                  [{i + 1}] {c.sourceTitle}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      <div ref={chatBottomRef} />
+                    </div>
+
+                    <div style={{ display: "flex", gap: "var(--s-1)", flexWrap: "wrap", marginBottom: "var(--s-2)" }}>
+                      <button
+                        type="button"
+                        className={styles.filterPill}
+                        style={{ fontSize: "11px", padding: "4px 8px" }}
+                        onClick={() => handleSendChat("Summarise the key theorems and proof steps from my sources.")}
+                      >
+                        ✨ Key theorems
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.filterPill}
+                        style={{ fontSize: "11px", padding: "4px 8px" }}
+                        onClick={() => handleSendChat("What are common exam traps on this topic?")}
+                      >
+                        ⚠️ Exam traps
+                      </button>
+                    </div>
+
+                    <div className={styles.chatInputRow}>
+                      <input
+                        type="text"
+                        className={styles.chatInputField}
+                        placeholder={`Ask AI Tutor about ${notebook.title}…`}
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            void handleSendChat();
+                          }
+                        }}
+                        disabled={isGenerating}
+                      />
+                      <Button
+                        variant="primary"
+                        onClick={() => void handleSendChat()}
+                        disabled={isGenerating || !chatInput.trim()}
+                      >
+                        {isGenerating ? "…" : "Ask"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : activeViewMode === "notes" ? (
               <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
                 <textarea
                   value={notebook.notes}
@@ -493,7 +649,7 @@ Use British English throughout.`;
         </main>
 
         {/* PANEL 3: Studio Tools & Artifacts (Right Column) */}
-        <aside className={styles.studioToolsPanel}>
+        <aside className={`${styles.studioToolsPanel} ${mobilePanel !== "tools" ? styles.mobileHidden : ""}`}>
           <div>
             <div className={styles.toolsSectionTitle}>Studio Tools</div>
             <div className={styles.toolsGrid}>
@@ -711,7 +867,15 @@ Use British English throughout.`;
           <div style={{ maxHeight: "60vh", overflowY: "auto", whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: "var(--fs-base)" }}>
             {activeArtifactPreview.content}
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--s-2)", marginTop: "var(--s-4)" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--s-2)", marginTop: "var(--s-4)", flexWrap: "wrap" }}>
+            <Button
+              variant="secondary"
+              onClick={() => handleAppendToNotes(activeArtifactPreview.content)}
+              style={{ display: "inline-flex", alignItems: "center", gap: "var(--s-1)" }}
+            >
+              <Icon name="file-text" size={14} />
+              Append to Notes
+            </Button>
             <Button
               variant="secondary"
               onClick={() => {

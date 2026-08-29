@@ -26,6 +26,8 @@ export function FeynmanDebriefView() {
   const [exportedDeckId, setExportedDeckId] = useState<string | null>(null);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     const targetId = paramSessionId || getActiveFeynmanSessionId();
     if (!targetId) return;
@@ -39,8 +41,8 @@ export function FeynmanDebriefView() {
       setReport(loaded.debriefReport);
     } else {
       // Generate debrief on the fly if not generated yet
-      generateFeynmanDebrief(loaded.draft, loaded.turns, loaded.persona).then(
-        (generated) => {
+      generateFeynmanDebrief(loaded.draft, loaded.turns, loaded.persona)
+        .then((generated) => {
           setReport(generated);
           const updated: FeynmanSessionState = {
             ...loaded,
@@ -50,18 +52,44 @@ export function FeynmanDebriefView() {
           };
           setSession(updated);
           saveFeynmanSession(updated);
-        }
-      );
+        })
+        .catch((err: Error) => {
+          setError(err.message || "Could not generate debrief report.");
+        });
     }
   }, [paramSessionId]);
+
+  if (error) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.card} style={{ textAlign: "center", padding: "40px" }}>
+          <h2 style={{ color: "var(--danger)" }}>Could not load debrief report</h2>
+          <p style={{ color: "var(--text-muted)", marginTop: "8px" }}>
+            {error}
+          </p>
+          <div style={{ marginTop: "16px" }}>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setError(null);
+                window.location.reload();
+              }}
+            >
+              Retry Debrief
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!session || !report) {
     return (
       <div className={styles.container}>
         <div className={styles.card} style={{ textAlign: "center", padding: "40px" }}>
-          <h2>Loading Debrief Report...</h2>
+          <h2>Loading Debrief Report…</h2>
           <p style={{ color: "var(--text-muted)", marginTop: "8px" }}>
-            Analyzing your pedagogical clarity and conceptual coverage...
+            Analysing your pedagogical clarity and conceptual coverage…
           </p>
         </div>
       </div>

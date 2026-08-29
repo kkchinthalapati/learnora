@@ -170,6 +170,38 @@ export function NotebooksHubView() {
             </div>
           );
         })}
+
+        {filteredNotebooks.length === 0 && (
+          <div className={styles.hubEmptyState}>
+            <Icon name="book-open" size={40} style={{ color: "var(--accent)", opacity: 0.8 }} />
+            <h3 style={{ margin: 0, fontSize: "var(--fs-lg)", fontWeight: 700 }}>
+              {searchQuery || selectedSubject !== "All"
+                ? "No matching notebooks found"
+                : "No study notebooks yet"}
+            </h3>
+            <p style={{ margin: 0, fontSize: "var(--fs-sm)", color: "var(--text-muted)", maxWidth: "28rem" }}>
+              {searchQuery || selectedSubject !== "All"
+                ? "Try adjusting your search query or subject filters to find what you are looking for."
+                : "Create your first revision workspace to attach textbook notes, generate Feynman breakdowns, and build cheat sheets."}
+            </p>
+            <div style={{ display: "flex", gap: "var(--s-2)", marginTop: "var(--s-2)" }}>
+              {(searchQuery || selectedSubject !== "All") && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedSubject("All");
+                  }}
+                >
+                  Clear filters
+                </Button>
+              )}
+              <Button variant="primary" onClick={() => setIsCreateOpen(true)}>
+                + New notebook
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {isCreateOpen && (

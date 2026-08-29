@@ -87,13 +87,17 @@ Eukaryotes: 80S ribosomes, cellulose/chitin cell wall (plants/fungi), linear DNA
   },
 ];
 
+const NOTEBOOKS_SEEDED_KEY = "learnora_notebooks_seeded_v1";
+
 function loadNotebooks(): Notebook[] {
-  const stored = Storage.get<Notebook[]>(NOTEBOOKS_STORAGE_KEY, []);
-  if (stored && Array.isArray(stored) && stored.length > 0) {
-    return stored;
+  const isSeeded = Storage.get<boolean>(NOTEBOOKS_SEEDED_KEY, false);
+  if (!isSeeded) {
+    Storage.set(NOTEBOOKS_STORAGE_KEY, INITIAL_DEMO_NOTEBOOKS);
+    Storage.set(NOTEBOOKS_SEEDED_KEY, true);
+    return INITIAL_DEMO_NOTEBOOKS;
   }
-  Storage.set(NOTEBOOKS_STORAGE_KEY, INITIAL_DEMO_NOTEBOOKS);
-  return INITIAL_DEMO_NOTEBOOKS;
+  const stored = Storage.get<Notebook[]>(NOTEBOOKS_STORAGE_KEY, []);
+  return Array.isArray(stored) ? stored : [];
 }
 
 export function useNotebooks() {

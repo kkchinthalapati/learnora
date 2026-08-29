@@ -171,7 +171,7 @@ export function SubjectDetailPage() {
             ← Back to Library
           </Link>
           <p className={styles.workspaceEyebrow}>Subject workspace</p>
-          <h2 className={styles.workspaceTitle}>{folder.name}</h2>
+          <h1 className={styles.workspaceTitle}>{folder.name}</h1>
         </div>
         <div className={styles.workspaceActions}>
           {dueInFolder.length > 0 && targetDueDeckId ? (

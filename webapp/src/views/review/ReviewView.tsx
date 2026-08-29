@@ -1527,7 +1527,7 @@ function ReviewRecap({
             ) : null}
             <Button
               variant="secondary"
-              onClick={() => void navigate(folderId ? `/library/subject/${folderId}` : "/library/flashcards")}
+              onClick={() => void navigate(folderId ? `/folders/${folderId}` : "/library/flashcards")}
               className={styles.recapActionBtn}
             >
               <Icon name={folderId ? "folder" : "layers"} size={16} />

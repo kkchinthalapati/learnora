@@ -691,6 +691,76 @@
   line-height: 1.4;
 }
 
+/* Split Canvas Layout */
+.splitCanvasLayout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-5);
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.splitNotesPane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-right: 1px solid var(--border);
+  padding-right: var(--s-4);
+}
+
+.splitChatPane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Mobile Tab Switcher */
+.mobileStudioNav {
+  display: none;
+  align-items: center;
+  justify-content: space-around;
+  padding: var(--s-2) var(--s-4);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.mobileNavBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+
+.mobileNavBtnActive {
+  background: var(--accent-soft);
+  border-color: var(--accent-ring);
+  color: var(--accent-text);
+}
+
+/* Empty State */
+.hubEmptyState {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: var(--s-12) var(--s-6);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+}
+
 /* Responsive */
 @media (max-width: 1120px) {
   .studioColumns {
@@ -699,11 +769,23 @@
 }
 
 @media (max-width: 860px) {
+  .mobileStudioNav {
+    display: flex;
+  }
   .studioColumns {
     grid-template-columns: 1fr;
   }
-  .sourcesDesk,
-  .studioToolsPanel {
+  .sourcesDesk.mobileHidden,
+  .canvasColumn.mobileHidden,
+  .studioToolsPanel.mobileHidden {
     display: none;
+  }
+  .splitCanvasLayout {
+    grid-template-columns: 1fr;
+  }
+  .splitNotesPane {
+    border-right: none;
+    padding-right: 0;
+    margin-bottom: var(--s-4);
   }
 }

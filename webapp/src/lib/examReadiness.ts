@@ -462,7 +462,7 @@ export function generatePrepRoadmap(
     {
       phaseNumber: 1,
       title: "Phase 1: Foundation & Material Synthesis",
-      subtitle: "Organize notes, syllabus materials, and create core decks.",
+      subtitle: "Organise notes, syllabus materials, and create core decks.",
       daysRange: phase1RangeStr,
       startDate: p1StartDate,
       endDate: p1EndDate,
@@ -678,7 +678,7 @@ export function calculateExamReadiness(
     summary += ` You're on pace. Aim for ${recommendedDailyHours}h daily until the exam.`;
   } else if (level === "critical") {
     summary +=
-      " High urgency! Prioritize high-yield mock tests and key concepts.";
+      " High urgency! Prioritise high-yield mock tests and key concepts.";
   } else {
     summary += ` Boost your daily pace to ${recommendedDailyHours}h to close the study gap.`;
   }

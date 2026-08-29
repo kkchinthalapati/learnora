@@ -16,7 +16,7 @@ import styles from "./chat.module.css";
  * it either. */
 
 const GREETING =
-  "Hi there! I'm Learnora AI. Drop your notes or images here and I'll help you summarize them, or ask me to generate flashcards!";
+  "Hi there! I'm Learnora AI. Drop your notes or images here and I'll help you summarise them, or ask me to generate flashcards!";
 
 const SUGGESTIONS = [
   {
@@ -157,7 +157,7 @@ export function TurboChat() {
     const value = text.trim();
     if (!value && !file) return;
     setInput("");
-    void send(value || "Analyze this.");
+    void send(value || "Analyse this.");
   };
 
   const chipClicked = (suggestion: (typeof SUGGESTIONS)[number]) => {
