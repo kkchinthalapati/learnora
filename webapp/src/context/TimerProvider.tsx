@@ -343,9 +343,28 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const setDraftConfig = useCallback((patch: Partial<TimerConfig>) => {
-    setDraft((prev) => ({ ...prev, ...patch }));
-  }, []);
+  const setDraftConfig = useCallback(
+    (patch: Partial<TimerConfig>) => {
+      const nextDraft = { ...draftConfig, ...patch };
+      setDraft(nextDraft);
+
+      /* Configuration should feel immediate while the clock is idle: a 45m
+         choice ought to show 45:00 without an extra confirmation click. A
+         live session remains protected; its changes stay staged until the
+         student explicitly confirms the reset in TimerView. */
+      setState((current) => {
+        if (current.isRunning) return current;
+        const { state: next, effects } = applyNowT(
+          current,
+          nextDraft,
+          current.stagedType ?? current.type,
+        );
+        queueMicrotask(() => effectsRef.current(effects));
+        return next;
+      });
+    },
+    [draftConfig],
+  );
 
   /* Ports the plan-block handoff (js/router.js:82-85 + js/main.js:1288-1319):
      "Start →" on a Weekly Plan block fills in the block's duration and subject

@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, useId } from "react";
 import styles from "./combobox.module.css";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 
@@ -8,6 +8,7 @@ export interface ComboboxOption {
 }
 
 export interface ComboboxProps {
+  id?: string;
   options: ComboboxOption[];
   value?: string;
   onChange: (value: string) => void;
@@ -28,6 +29,7 @@ export interface ComboboxProps {
  * - Focus trap when open
  */
 export function Combobox({
+  id,
   options,
   value,
   onChange,
@@ -35,6 +37,9 @@ export function Combobox({
   label,
   disabled = false,
 }: ComboboxProps) {
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+  const listboxId = `${inputId}-listbox`;
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [highlightIndex, setHighlightIndex] = useState(0);
@@ -78,10 +83,12 @@ export function Combobox({
 
       switch (e.key) {
         case "ArrowDown":
+          if (filtered.length === 0) return;
           e.preventDefault();
           setHighlightIndex((i) => (i + 1) % filtered.length);
           break;
         case "ArrowUp":
+          if (filtered.length === 0) return;
           e.preventDefault();
           setHighlightIndex((i) => (i - 1 + filtered.length) % filtered.length);
           break;
@@ -111,9 +118,10 @@ export function Combobox({
 
   return (
     <div ref={containerRef} className={styles.container}>
-      {label && <label className={styles.label}>{label}</label>}
+      {label && <label className={styles.label} htmlFor={inputId}>{label}</label>}
       <div className={styles.inputWrapper}>
         <input
+          id={inputId}
           ref={inputRef}
           type="text"
           className={styles.input}
@@ -129,7 +137,7 @@ export function Combobox({
           autoComplete="off"
           role="combobox"
           aria-expanded={open}
-          aria-owns="combobox-listbox"
+          aria-controls={open ? listboxId : undefined}
         />
         <div className={`${styles.chevron} ${open ? styles.open : ""}`}>
           ▼
@@ -139,7 +147,7 @@ export function Combobox({
       {open && filtered.length > 0 && (
         <ul
           ref={listRef}
-          id="combobox-listbox"
+          id={listboxId}
           className={styles.list}
           role="listbox"
         >

@@ -217,9 +217,7 @@ describe("TimerView", () => {
     expect(screen.queryByText(/Saved for your next session/)).toBeNull();
   });
 
-  it("a workflow preset fills the inputs without resetting the clock", async () => {
-    /* The vanilla deliberately only wrote the config inputs here — it did not
-       apply them — so a running timer was never disturbed. */
+  it("a workflow preset updates an idle clock immediately", async () => {
     const user = userEvent.setup();
     renderTimer();
 
@@ -227,10 +225,6 @@ describe("TimerView", () => {
 
     expect(screen.getByLabelText("Focus (mins)")).toHaveValue(90);
     expect(screen.getByLabelText("Long Break")).toHaveValue(30);
-    // Not applied yet — the clock is untouched until Apply & Reset.
-    expect(screen.getByText("25:00")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Apply & Reset" }));
     // 90 minutes crosses an hour, so it formats as h:mm:ss.
     expect(screen.getByText("1:30:00")).toBeInTheDocument();
   });
@@ -463,10 +457,12 @@ describe("TimerView", () => {
     });
     renderTimer();
 
-    await screen.findByRole("option", { name: "Read chapter 4" });
-    await user.selectOptions(
-      screen.getByLabelText("Current Task:"),
-      "Read chapter 4",
+    const taskPicker = await screen.findByRole("combobox", {
+      name: "Current Task:",
+    });
+    await user.click(taskPicker);
+    await user.click(
+      await screen.findByRole("option", { name: "Read chapter 4" }),
     );
     await user.click(screen.getByRole("button", { name: "Stop & log" }));
 

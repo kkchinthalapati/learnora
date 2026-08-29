@@ -438,7 +438,7 @@ export function CognitiveDebuggerView() {
                 isRepairing={isRepairingCelebration}
               />
 
-              {/* Action Center: Micro-Repair CTA */}
+              {/* Action Centre: Micro-Repair CTA */}
               <div className={styles.actionBanner} data-testid="action-banner">
                 <div className={styles.actionBannerText}>
                   <h3 className={styles.actionBannerTitle}>

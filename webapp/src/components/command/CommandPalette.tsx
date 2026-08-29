@@ -126,7 +126,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                 await queryClient.invalidateQueries({ queryKey: tasksKeys.all });
                 showToast(`Task created: "${prefixMatch.text}"`);
                 handleClose();
-              } catch (err) {
+              } catch (_err) {
                 showToast("Failed to create task", { error: true });
               }
             },

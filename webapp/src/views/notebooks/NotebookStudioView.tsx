@@ -6,8 +6,30 @@ import { Modal } from "../../components/Modal";
 import { useNotebook } from "../../hooks/useNotebooks";
 import type { SourceType } from "../../types/notebooks";
 import { callEdge } from "../../api/ai";
+import { decksApi } from "../../api/decks";
+import { flashcardsApi } from "../../api/flashcards";
 import { useToast } from "../../context/toast";
 import styles from "./notebooks.module.css";
+
+function flashcardsFromCheatSheet(content: string) {
+  const cards = content
+    .split("\n")
+    .map((line) => line.trim().replace(/^(?:[-*]|\d+[.)])\s+/, ""))
+    .filter((line) => line.length > 0 && !line.startsWith("#"))
+    .map((line) => line.replace(/\*\*/g, ""))
+    .map((line) => {
+      const [term, ...details] = line.split(":");
+      const back = details.join(":").trim();
+      return back
+        ? { front: `What should you remember about ${term.trim()}?`, back }
+        : { front: "What is a key point from this revision sheet?", back: line };
+    })
+    .slice(0, 20);
+
+  return cards.length > 0
+    ? cards
+    : [{ front: "What are the key ideas in this revision sheet?", back: content.trim() }];
+}
 
 export function NotebookStudioView() {
   const { notebookId = "" } = useParams<{ notebookId: string }>();
@@ -43,6 +65,7 @@ export function NotebookStudioView() {
     type: string;
     content: string;
   } | null>(null);
+  const [isExportingArtifact, setIsExportingArtifact] = useState(false);
 
   const handleAppendToNotes = (content: string) => {
     if (!notebook) return;
@@ -50,6 +73,23 @@ export function NotebookStudioView() {
     updateNotes(next);
     showToast("Appended to your Notes Canvas!");
     setActiveArtifactPreview(null);
+  };
+
+  const handleCreateDeckFromArtifact = async () => {
+    if (!notebook || !activeArtifactPreview || isExportingArtifact) return;
+    setIsExportingArtifact(true);
+    try {
+      const cards = flashcardsFromCheatSheet(activeArtifactPreview.content);
+      const deck = await decksApi.add(null, `${notebook.title} — Revision Cheat Sheet`);
+      await flashcardsApi.addBatch(deck.id, cards);
+      showToast(`Created a flashcard deck with ${cards.length} cards.`);
+      setActiveArtifactPreview(null);
+      void navigate(`/review/${deck.id}`);
+    } catch {
+      showToast("Could not create the flashcard deck. Please try again.");
+    } finally {
+      setIsExportingArtifact(false);
+    }
   };
 
   // Auto-scroll chat
@@ -876,6 +916,17 @@ Use British English throughout.`;
               <Icon name="file-text" size={14} />
               Append to Notes
             </Button>
+            {activeArtifactPreview.type === "cheat_sheet" && (
+              <Button
+                variant="secondary"
+                onClick={() => void handleCreateDeckFromArtifact()}
+                disabled={isExportingArtifact}
+                style={{ display: "inline-flex", alignItems: "center", gap: "var(--s-1)" }}
+              >
+                <Icon name="layers" size={14} />
+                {isExportingArtifact ? "Creating deck..." : "Create Flashcard Deck"}
+              </Button>
+            )}
             <Button
               variant="secondary"
               onClick={() => {

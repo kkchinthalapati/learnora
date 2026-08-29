@@ -20,6 +20,7 @@ import {
   useAllMaterialProcessing,
 } from "../../lib/materialProcessing";
 import type { MaterialType } from "../../api/types";
+import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import { useLibraryActions } from "./useLibraryActions";
 import styles from "./library.module.css";
 
@@ -117,6 +118,39 @@ export function SubjectDetailPage() {
     void navigate("/timer");
   };
 
+  const handleLaunchFeynman = () => {
+    if (!folder) return;
+    CognitiveBridge.setPayload({
+      subject: folder.name,
+      topic: folder.name,
+      sourceTool: "notes",
+      suggestedAction: "teach_apprentice",
+    });
+    void navigate("/feynman");
+  };
+
+  const handleLaunchDebugger = () => {
+    if (!folder) return;
+    CognitiveBridge.setPayload({
+      subject: folder.name,
+      topic: folder.name,
+      sourceTool: "notes",
+      suggestedAction: "debug_stack",
+    });
+    void navigate("/debugger");
+  };
+
+  const handleLaunchPreMortem = () => {
+    if (!folder) return;
+    CognitiveBridge.setPayload({
+      subject: folder.name,
+      topic: folder.name,
+      sourceTool: "notes",
+      suggestedAction: "run_premortem",
+    });
+    void navigate("/premortem");
+  };
+
   if (folders.isPending) {
     return (
       <div className={styles.view} aria-busy="true">
@@ -151,10 +185,6 @@ export function SubjectDetailPage() {
           title="This folder no longer exists."
           message="It may have been deleted from another tab or device."
         >
-          {/* navigate() rather than a <Link> wrapping the <Button>: a
-              <button> inside an <a> is invalid HTML — interactive content
-              cannot nest — and browsers disagree about which of the two gets
-              the click. Same approach Step 13 used for this affordance. */}
           <Button variant="primary" onClick={() => void navigate("/library")}>
             Back to Library
           </Button>
@@ -194,6 +224,42 @@ export function SubjectDetailPage() {
           >
             + Create
           </Button>
+        </div>
+      </div>
+
+      <div className={styles.subjectAiBar} role="region" aria-label="AI Study Tools for this Subject">
+        <span className={styles.subjectAiBarLabel}>
+          <Icon name="brain" size={16} />
+          <span>AI Study Suite for {folder.name}:</span>
+        </span>
+        <div className={styles.subjectAiActions}>
+          <button
+            type="button"
+            className={styles.subjectAiBtn}
+            onClick={handleLaunchFeynman}
+            title="Test depth of understanding by teaching an AI apprentice"
+          >
+            <Icon name="award" size={13} />
+            <span>Feynman Practice</span>
+          </button>
+          <button
+            type="button"
+            className={styles.subjectAiBtn}
+            onClick={handleLaunchDebugger}
+            title="Diagnose foundational misconception gaps"
+          >
+            <Icon name="zap" size={13} />
+            <span>Root-Cause Debugger</span>
+          </button>
+          <button
+            type="button"
+            className={styles.subjectAiBtn}
+            onClick={handleLaunchPreMortem}
+            title="Simulate failure scenarios and surface blindspots before test day"
+          >
+            <Icon name="shield" size={13} />
+            <span>Exam Pre-Mortem</span>
+          </button>
         </div>
       </div>
 

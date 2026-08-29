@@ -101,7 +101,7 @@ export function CreateModal({ options, onClose }: CreateModalProps) {
             onClick={() => setView("material")}
           >
             <span className={styles.heroIcon} aria-hidden="true">
-              <Icon name="sparkles" size={26} />
+              <Icon name="book-open" size={26} />
             </span>
             <span className={styles.studyCopy}>
               <span className={styles.eyebrow}>Most popular</span>

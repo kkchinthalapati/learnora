@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from "react";
 import { Link } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { Combobox } from "../../components/Combobox";
 import { Icon } from "../../components/Icon";
 import { useDialog } from "../../context/dialog";
 import { useTimer } from "../../context/timer";
@@ -317,30 +318,20 @@ export function TimerView() {
           )}
 
           <div className={styles.taskBinder}>
-            <label htmlFor={taskId}>{t("config_task")}</label>
-            <select
+            <Combobox
               id={taskId}
+              label={t("config_task")}
+              placeholder="Search tasks..."
               value={activeTask}
-              onChange={(e) => setActiveTask(e.target.value)}
-            >
-              <option value="None">None</option>
-              {/* The Weekly Plan hands off a *subject*, which is usually not
-                  one of the student's tasks. Without an option to match it the
-                  select falls back to showing "None" while the provider still
-                  logs the session against the subject — the display would be
-                  lying about where the time went. The vanilla appended the
-                  option by hand for the same reason (js/main.js:1307-1318). */}
-              {unlistedTask ? (
-                <option value={unlistedTask}>{unlistedTask}</option>
-              ) : null}
-              {(tasks ?? [])
-                .filter((t) => !t.is_done)
-                .map((t) => (
-                  <option key={t.id} value={t.text}>
-                    {t.text}
-                  </option>
-                ))}
-            </select>
+              onChange={setActiveTask}
+              options={[
+                { value: "None", label: "None" },
+                ...(unlistedTask ? [{ value: unlistedTask, label: unlistedTask }] : []),
+                ...(tasks ?? [])
+                  .filter((task) => !task.is_done)
+                  .map((task) => ({ value: task.text, label: task.text })),
+              ]}
+            />
           </div>
 
           <div className={styles.taskBinder}>
@@ -359,9 +350,15 @@ export function TimerView() {
             </select>
           </div>
 
-          <Button className={styles.applyBtn} onClick={() => void onApply()}>
-            {t("btn_apply")}
-          </Button>
+          {state.isRunning ? (
+            <Button className={styles.applyBtn} onClick={() => void onApply()}>
+              {t("btn_apply")}
+            </Button>
+          ) : (
+            <p className={styles.stageHint} role="status">
+              Changes update the clock immediately.
+            </p>
+          )}
 
           <div className={styles.favs}>
             <Button

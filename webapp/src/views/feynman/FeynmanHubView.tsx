@@ -279,9 +279,9 @@ export function FeynmanHubView() {
                   onClick={() => setSelectedDifficulty(diff)}
                   data-testid={`difficulty-${diff}`}
                 >
-                  {diff === "beginner" && "🌱 Intuition & Analogies (Beginner)"}
-                  {diff === "intermediate" && "⚡ Mechanisms & Traps (Intermediate)"}
-                  {diff === "advanced" && "🔬 Edge Cases & Proofs (Advanced)"}
+                  {diff === "beginner" && "Intuition & Analogies (Beginner)"}
+                  {diff === "intermediate" && "Mechanisms & Traps (Intermediate)"}
+                  {diff === "advanced" && "Edge Cases & Proofs (Advanced)"}
                 </button>
               ))}
             </div>
@@ -318,7 +318,9 @@ export function FeynmanHubView() {
 
         {sessions.length === 0 ? (
           <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>🎓</div>
+            <div className={styles.emptyIcon}>
+              <Icon name="brain" size={32} />
+            </div>
             <h3>No teaching sessions yet</h3>
             <p>
               Launch your first session above to test your depth of understanding on any subject!

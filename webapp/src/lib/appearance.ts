@@ -66,19 +66,19 @@ export const APPEARANCE_DEFAULTS: AppearanceState = Object.freeze({
  * (index.html:1172-1264). Swatch colours stay in CSS — one source of truth
  * per theme — so this only carries identity and label. */
 export const THEME_PRESETS: ReadonlyArray<{ id: string; name: string }> = [
-  { id: "default", name: "Midnight Space" },
-  { id: "original", name: "Original" },
-  { id: "minimal", name: "Minimalistic" },
-  { id: "monochrome", name: "Monochrome" },
-  { id: "ocean", name: "Deep Ocean" },
-  { id: "breeze", name: "Cool Breeze" },
-  { id: "forest", name: "Neon Forest" },
-  { id: "hacker", name: "Hacker Terminal" },
-  { id: "lavender", name: "Lavender Dream" },
-  { id: "cyberpunk", name: "Cyberpunk" },
-  { id: "ruby", name: "Dark Ruby" },
-  { id: "warm", name: "Warm" },
-  { id: "sunset", name: "Sunset Coral" },
+  { id: "default", name: "Scholar Teal" },
+  { id: "original", name: "Oxford Navy" },
+  { id: "minimal", name: "Nordic Paper" },
+  { id: "monochrome", name: "Obsidian Slate" },
+  { id: "ocean", name: "Pacific Deep" },
+  { id: "breeze", name: "Arctic Glade" },
+  { id: "forest", name: "Botanical Sage" },
+  { id: "hacker", name: "Terminal Green" },
+  { id: "lavender", name: "Amethyst Haze" },
+  { id: "cyberpunk", name: "Neon Velvet" },
+  { id: "ruby", name: "Crimson Velvet" },
+  { id: "warm", name: "Warm Terracotta" },
+  { id: "sunset", name: "Sunset Amber" },
 ];
 
 const CUSTOM_VAR_NAMES = [

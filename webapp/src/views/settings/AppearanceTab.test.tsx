@@ -31,7 +31,7 @@ describe("AppearanceTab", () => {
       "aria-pressed",
       "true",
     );
-    expect(screen.getByRole("button", { name: /Deep Ocean/ })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: /Pacific Deep/ })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
@@ -55,13 +55,13 @@ describe("AppearanceTab", () => {
     const user = userEvent.setup();
     renderWithProviders(<AppearanceTab />);
     // Swatch card name + live preview badge.
-    expect(screen.getAllByText("Midnight Space")).toHaveLength(2);
+    expect(screen.getAllByText("Scholar Teal")).toHaveLength(2);
 
-    await user.click(screen.getByRole("button", { name: /Cyberpunk/ }));
+    await user.click(screen.getByRole("button", { name: /Neon Velvet/ }));
 
     expect(document.body.getAttribute("data-theme-color")).toBe("cyberpunk");
     // Once in the swatch card, once in the preview badge.
-    expect(screen.getAllByText("Cyberpunk")).toHaveLength(2);
+    expect(screen.getAllByText("Neon Velvet")).toHaveLength(2);
   });
 
   it("offers all thirteen curated presets", () => {
@@ -89,7 +89,7 @@ describe("AppearanceTab", () => {
     const user = userEvent.setup();
     renderWithProviders(<AppearanceTab />);
 
-    await user.click(screen.getByRole("button", { name: /Deep Ocean/ }));
+    await user.click(screen.getByRole("button", { name: /Pacific Deep/ }));
     expect(Storage.get<string>("learnora_accent")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Save Appearance" }));
@@ -147,11 +147,11 @@ describe("AppearanceTab", () => {
   it("deselects the preset that was active before the studio took over", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AppearanceTab />);
-    const midnight = screen.getByRole("button", { name: /Midnight Space/ });
-    expect(midnight).toHaveAttribute("aria-pressed", "true");
+    const scholar = screen.getByRole("button", { name: /Scholar Teal/ });
+    expect(scholar).toHaveAttribute("aria-pressed", "true");
 
     await user.click(screen.getByRole("button", { name: /^Add Colour/ }));
 
-    expect(midnight).toHaveAttribute("aria-pressed", "false");
+    expect(scholar).toHaveAttribute("aria-pressed", "false");
   });
 });

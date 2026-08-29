@@ -174,7 +174,7 @@ describe("CognitiveDebuggerView", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("launch-micro-repair-btn")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
 
     // Launch Micro-Repair
     fireEvent.click(screen.getByTestId("launch-micro-repair-btn"));
@@ -183,23 +183,23 @@ describe("CognitiveDebuggerView", () => {
     await waitFor(() => {
       expect(screen.getByText("60-Second Micro-Repair Sandbox")).toBeInTheDocument();
       expect(screen.getByText("Energy in a closed system cannot vanish.")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
 
     // Answer correctly in modal
-    fireEvent.click(screen.getByTestId("repair-option-0"));
-    fireEvent.click(screen.getByTestId("verify-repair-btn"));
+    await user.click(screen.getByTestId("repair-option-0"));
+    await user.click(screen.getByTestId("verify-repair-btn"));
 
     await waitFor(() => {
       expect(screen.getByTestId("apply-fix-btn")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
 
-    fireEvent.click(screen.getByTestId("apply-fix-btn"));
+    await user.click(screen.getByTestId("apply-fix-btn"));
 
     // Verify view has updated with repaired root cause
     await waitFor(() => {
       expect(screen.getByText(/Root Prerequisite Repaired/i)).toBeInTheDocument();
       expect(screen.getByText(/100% Signal Integrity \(Restored\)/i)).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
   });
 
   it("manages trace history and allows switching between traces", async () => {

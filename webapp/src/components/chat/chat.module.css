@@ -12,21 +12,35 @@
 .panel {
   position: fixed;
   z-index: 1000;
-  bottom: 96px;
-  right: clamp(20px, 4vw, 36px);
-  width: clamp(300px, 90vw, 420px);
-  height: clamp(420px, 70vh, 640px);
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: clamp(340px, 92vw, 440px);
+  height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 20px;
-  border: 1px solid var(--glass-border);
+  border-radius: 0;
+  border-left: 1px solid var(--glass-border);
+  border-top: none;
+  border-bottom: none;
+  border-right: none;
   background: var(--glass-bg-strong);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
   box-shadow:
-    var(--shadow-lg),
+    -6px 0 24px rgba(0, 0, 0, 0.16),
     var(--glass-inner);
+  animation: slideInRight var(--t) var(--ease);
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
 .fullscreen {

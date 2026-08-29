@@ -94,7 +94,7 @@ export function TrapNeutralizerModal({
     >
       {loading ? (
         <div style={{ padding: "var(--s-8)", textAlign: "center" }}>
-          <p>Analyzing professor trick anatomy...</p>
+          <p>Analysing professor trick anatomy...</p>
         </div>
       ) : neutralizer ? (
         <>
