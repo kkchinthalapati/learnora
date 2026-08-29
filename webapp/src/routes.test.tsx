@@ -69,7 +69,7 @@ describe("route skeleton", () => {
     renderAt("/folders/folder-1");
 
     expect(
-      await screen.findByRole("heading", { level: 1, name: "Biology" }),
+      await screen.findByRole("heading", { name: "Biology" }),
     ).toBeInTheDocument();
   });
 

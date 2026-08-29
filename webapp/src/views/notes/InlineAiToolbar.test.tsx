@@ -79,7 +79,7 @@ describe("InlineAiToolbar", () => {
 
   it("shows a spinner and disables actions while AI is running", () => {
     render(<InlineAiToolbar {...props({ loadingAction: "summarize" })} />);
-    expect(screen.getByLabelText("Summarize in progress")).toBeInTheDocument();
+    expect(screen.getByLabelText("Summarise in progress")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Improve selected text" }),
     ).toBeDisabled();

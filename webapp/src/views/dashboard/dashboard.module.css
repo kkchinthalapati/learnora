@@ -1082,7 +1082,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   color: var(--text);
   text-transform: uppercase;
@@ -1121,7 +1121,7 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   color: var(--accent);
   background: var(--accent-soft);
@@ -1130,7 +1130,7 @@
 }
 
 .shelfAction {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--accent-text);
   margin-left: auto;

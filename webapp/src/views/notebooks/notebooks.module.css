@@ -414,7 +414,7 @@
 
 .sourceTypeBadge {
   text-transform: uppercase;
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   padding: 1px 6px;
   border-radius: var(--r-xs);
@@ -512,7 +512,7 @@
 .userMessage {
   align-self: flex-end;
   background: var(--accent);
-  color: var(--accent-on, #ffffff);
+  color: var(--accent-on, var(--text-inverse));
   border-bottom-right-radius: 4px;
 }
 
@@ -635,7 +635,7 @@
 }
 
 .toolSubtext {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-muted);
   line-height: 1.3;
 }
@@ -672,7 +672,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   text-transform: uppercase;
   color: var(--accent);
