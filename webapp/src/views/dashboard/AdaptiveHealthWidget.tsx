@@ -41,13 +41,13 @@ export function AdaptiveHealthWidget() {
     }
     if (retention >= 50) {
       return {
-        label: "Decay Risk",
+        label: "Review Recommended",
         className: styles.healthWarning,
         icon: "alert-triangle" as const,
       };
     }
     return {
-      label: "Critical Decay",
+      label: "Needs Refresher",
       className: styles.healthDanger,
       icon: "alert-triangle" as const,
     };
@@ -89,7 +89,7 @@ export function AdaptiveHealthWidget() {
             <Icon name="brain" size={20} />
           </div>
           <div>
-            <span className={styles.eyebrow}>Learning Health & AI</span>
+            <span className={styles.eyebrow}>Revision Health & AI</span>
             <h2 className={styles.title}>Memory Decay & Retention</h2>
           </div>
         </div>
@@ -141,13 +141,13 @@ export function AdaptiveHealthWidget() {
             </div>
 
             <div className={styles.metricCard}>
-              <span className={styles.metricLabel}>Forgetting Risk</span>
+              <span className={styles.metricLabel}>Cards to Refresh</span>
               <div className={styles.metricValue}>
                 {atRiskCount}
                 <span className={styles.metricUnit}>cards</span>
               </div>
               <span className={styles.metricSubtext}>
-                {atRiskCount > 0 ? "Needs timely recall" : "All memory stable"}
+                {atRiskCount > 0 ? "Ready for a quick revision" : "All memory stable"}
               </span>
             </div>
           </div>
@@ -189,7 +189,7 @@ export function AdaptiveHealthWidget() {
               </span>
               <span>
                 <strong>Pre-Exam Surge Active:</strong> {surgeCount} cards
-                prioritized for upcoming exams.
+                prioritised for upcoming exams.
               </span>
             </div>
           )}
@@ -228,7 +228,7 @@ export function AdaptiveHealthWidget() {
                       </span>
                       {mastery.atRiskCount > 0 && (
                         <span style={{ color: "var(--warning)" }}>
-                          {mastery.atRiskCount} at risk
+                          {mastery.atRiskCount} to revise
                         </span>
                       )}
                     </div>
@@ -238,14 +238,14 @@ export function AdaptiveHealthWidget() {
             </div>
           ) : (
             <p className={styles.emptyPrompt}>
-              Organize study decks into subjects to track individual mastery
-              curves and weak areas.
+              Organise study decks into subjects to track individual mastery
+              curves and revision areas.
             </p>
           )}
 
           {topWeakTopics.length > 0 && (
             <div>
-              <div className={styles.sectionTitle}>Focus Weak Areas</div>
+              <div className={styles.sectionTitle}>Confidence Boosters</div>
               <div className={styles.weakTopicsContainer}>
                 {topWeakTopics.slice(0, 3).map((topic) => (
                   <span key={topic.topic} className={styles.weakTopicTag}>

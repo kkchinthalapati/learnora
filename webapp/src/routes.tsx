@@ -38,6 +38,8 @@ import { PreMortemRadarView } from "./views/premortem/PreMortemRadarView";
 import { FeynmanHubView } from "./views/feynman/FeynmanHubView";
 import { FeynmanStudioView } from "./views/feynman/FeynmanStudioView";
 import { FeynmanDebriefView } from "./views/feynman/FeynmanDebriefView";
+import { NotebooksHubView } from "./views/notebooks/NotebooksHubView";
+import { NotebookStudioView } from "./views/notebooks/NotebookStudioView";
 import { NotFoundView } from "./views/not-found/NotFoundView";
 
 /*
@@ -70,6 +72,8 @@ export function AppRoutes() {
             this sits here rather than inside ProtectedRoute itself. */}
         <Route element={<AppShell />}>
           <Route path="/" element={<DashboardView />} />
+          <Route path="/notebooks" element={<NotebooksHubView />} />
+          <Route path="/notebooks/:notebookId" element={<NotebookStudioView />} />
           <Route path="/tasks" element={<TasksView />} />
           <Route path="/exams" element={<ExamsView />} />
           <Route path="/timer" element={<TimerView />} />

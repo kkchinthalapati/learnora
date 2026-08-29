@@ -299,9 +299,8 @@ describe("DashboardView", () => {
       });
       renderDashboard();
 
-      await screen.findAllByText("Biology");
       expect(
-        screen.getByRole("heading", { name: /\d+\s*days?/ }),
+        await screen.findByRole("heading", { name: /\d+\s*days?/ }),
       ).toBeInTheDocument();
       expect(screen.getAllByText("Biology").length).toBeGreaterThan(0);
     });
@@ -608,7 +607,7 @@ describe("DashboardView", () => {
       expect(
         await screen.findByRole("region", { name: "Adaptive learning health" }),
       ).toBeInTheDocument();
-      expect(screen.getByText("Learning Health & AI")).toBeInTheDocument();
+      expect(screen.getByText("Revision Health & AI")).toBeInTheDocument();
       expect(
         screen.getByRole("link", { name: /Full Analytics/i }),
       ).toHaveAttribute("href", "/analytics");

@@ -53,6 +53,12 @@ const SECTIONS: NavSection[] = [
         destination: "dashboard",
       },
       {
+        to: "/notebooks",
+        icon: "book-open",
+        label: "Notebooks",
+        destination: "notebooks",
+      },
+      {
         to: "/library",
         icon: "layers",
         label: "Library",

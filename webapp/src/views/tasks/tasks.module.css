@@ -561,26 +561,28 @@
   overflow-y: auto;
   max-height: 240px;
   margin: 0;
-  padding: 0;
+  padding: 2px 0;
 }
 
 .dashTask {
   display: flex;
   align-items: center;
   gap: var(--s-3);
-  padding: 10px 12px;
+  padding: 11px 13px;
   border-radius: var(--r-md);
   background: var(--surface-2);
   border: 1px solid var(--glass-border-subtle);
   cursor: pointer;
   transition:
     border-color var(--t-fast) ease,
-    background var(--t-fast) ease;
+    background var(--t-fast) ease,
+    transform var(--t-fast) ease;
 }
 
 .dashTask:hover {
   border-color: var(--accent-ring);
   background: var(--accent-soft);
+  transform: translateY(-1px);
 }
 
 .dashTask:focus-visible {

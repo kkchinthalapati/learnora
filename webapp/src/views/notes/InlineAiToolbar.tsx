@@ -10,7 +10,7 @@ const ACTIONS: ReadonlyArray<{
 }> = [
   { action: "improve", icon: "✨", label: "Improve" },
   { action: "explain", icon: "💬", label: "Explain" },
-  { action: "summarize", icon: "📝", label: "Summarize" },
+  { action: "summarize", icon: "📝", label: "Summarise" },
   { action: "expand", icon: "🔍", label: "Expand" },
   { action: "simplify", icon: "🔤", label: "Simplify" },
 ];

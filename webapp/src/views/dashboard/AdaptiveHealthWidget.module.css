@@ -1,14 +1,14 @@
 .widget {
   display: flex;
   flex-direction: column;
-  gap: var(--s-4);
+  gap: var(--s-5);
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
   -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-md), var(--glass-inner);
   border-radius: var(--r-xl);
-  padding: var(--s-5);
+  padding: var(--s-6);
   position: relative;
   overflow: hidden;
   transition:
@@ -127,7 +127,7 @@
 .metricsRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--s-3);
+  gap: var(--s-4);
   margin-top: var(--s-1);
 }
 
@@ -135,10 +135,10 @@
   background: var(--surface);
   border: 1px solid var(--glass-border-subtle);
   border-radius: var(--r-lg);
-  padding: var(--s-3) var(--s-4);
+  padding: var(--s-4) var(--s-5);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .metricLabel {

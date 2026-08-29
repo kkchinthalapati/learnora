@@ -104,30 +104,6 @@ export function StreakCard() {
     );
   }
 
-  if (sessions.length === 0) {
-    return (
-      <Card variant="elevated" className={styles.streakCard}>
-        <div className={styles.streakCardHeader}>
-          <span className={styles.eyebrow}>Streak</span>
-          <Chip
-            tone="accent"
-            onClick={() => setModalOpen(true)}
-            aria-label="Open Achievements and Study Goals"
-          >
-            <Icon name="trophy" size={16} />
-            <span>Badges</span>
-          </Chip>
-        </div>
-        <p className={styles.emptySm}>
-          Start your first streak today. Complete a focus session to begin.
-        </p>
-        {modalOpen && (
-          <AchievementsModal open onClose={() => setModalOpen(false)} />
-        )}
-      </Card>
-    );
-  }
-
   const maxMins = Math.max(1, ...sparkline.map((d) => d.mins));
 
   return (
@@ -138,7 +114,11 @@ export function StreakCard() {
           tone="accent"
           onClick={() => setModalOpen(true)}
           title="Open Trophy Cabinet & Goals"
-          aria-label="Open Trophy Cabinet and Achievements"
+          aria-label={
+            sessions.length === 0
+              ? "Open Achievements and Study Goals"
+              : "Open Trophy Cabinet and Achievements"
+          }
         >
           <Icon name="trophy" size={16} />
           <span>Badges</span>
@@ -220,26 +200,32 @@ export function StreakCard() {
 
       {streak === 0 ? (
         <p className={styles.streakHint}>
-          Streak reset — complete a session today to start your next run!
+          Start your first streak today. Complete a focus session to begin.
         </p>
       ) : null}
 
       <div className={styles.streakBars}>
-        {sparkline.map((d) => (
-          <div
-            key={d.key}
-            className={styles.streakBarCol}
-            title={formatFocusTime(d.mins)}
-          >
+        {sparkline.map((d, index) => {
+          const isToday = index === sparkline.length - 1;
+          const tooltip = isToday
+            ? `Today: ${formatFocusTime(d.mins)} logged`
+            : `${d.label}: ${formatFocusTime(d.mins)} logged`;
+          return (
             <div
-              className={styles.streakBar}
-              style={{
-                height: `${Math.max(4, Math.round((d.mins / maxMins) * 40))}px`,
-              }}
-            />
-            <span className={styles.streakBarLabel}>{d.label}</span>
-          </div>
-        ))}
+              key={d.key}
+              className={styles.streakBarCol}
+              title={tooltip}
+            >
+              <div
+                className={`${styles.streakBar} ${isToday ? styles.streakBarActive : ""}`}
+                style={{
+                  height: `${Math.max(4, Math.round((d.mins / maxMins) * 44))}px`,
+                }}
+              />
+              <span className={styles.streakBarLabel}>{d.label}</span>
+            </div>
+          );
+        })}
       </div>
 
       {breakdown.length > 0 ? (

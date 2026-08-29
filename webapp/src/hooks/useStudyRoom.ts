@@ -81,13 +81,8 @@ export function useStudyRoom(
   const timer = useTimer();
   const toastCtx = useContext(ToastContext);
 
-  let foldersData: { id: string; name: string }[] | undefined;
-  try {
-    const foldersQuery = useFolders();
-    foldersData = foldersQuery.data;
-  } catch {
-    foldersData = undefined;
-  }
+  const foldersQuery = useFolders();
+  const foldersData = foldersQuery.data;
 
   const [remoteParticipants, setRemoteParticipants] = useState<StudyParticipant[]>([]);
   const [reactions, setReactions] = useState<RoomReaction[]>([]);

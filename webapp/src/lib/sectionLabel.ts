@@ -27,13 +27,23 @@ export function isLibrarySection(pathname: string): boolean {
   );
 }
 
+export function isNotebooksSection(pathname: string): boolean {
+  return pathname.startsWith("/notebooks");
+}
+
 export type PrimaryDestination =
-  "dashboard" | "library" | "plan" | "focus" | "progress";
+  | "dashboard"
+  | "notebooks"
+  | "library"
+  | "plan"
+  | "focus"
+  | "progress";
 
 export function primaryDestinationForPath(
   pathname: string,
 ): PrimaryDestination | null {
   if (pathname === "/") return "dashboard";
+  if (isNotebooksSection(pathname)) return "notebooks";
   if (isLibrarySection(pathname)) return "library";
   if (
     pathname.startsWith("/plan") ||
@@ -62,6 +72,7 @@ export function sectionLabel(
   t: (key: TranslationKey) => string,
 ): string {
   if (pathname === "/") return t("nav_dashboard");
+  if (isNotebooksSection(pathname)) return "Notebooks";
   if (isLibrarySection(pathname)) return t("nav_library");
   if (pathname.startsWith("/timer")) return t("nav_timer");
   if (pathname.startsWith("/tasks")) return t("nav_tasks");

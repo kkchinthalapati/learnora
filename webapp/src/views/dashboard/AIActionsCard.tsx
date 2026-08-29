@@ -37,8 +37,8 @@ const CHAT_ACTIONS: ChatAction[] = [
   },
   {
     icon: "file-text",
-    label: "Summarize notes",
-    prompt: "Summarize the notes I uploaded most recently into key points.",
+    label: "Summarise notes",
+    prompt: "Summarise the notes I uploaded most recently into key points.",
     autoSend: true,
   },
 ];

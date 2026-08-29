@@ -24,7 +24,7 @@ export function StudyCircleCard() {
       <div className={styles.circleLiveBanner}>
         <span className={styles.circleLiveBadge}>
           <span className={styles.circleLiveDot} />
-          🟢 {activeCount} studying right now
+          {activeCount} studying right now
         </span>
         <Link to="/room" className={styles.circleLiveAction}>
           Join Room →

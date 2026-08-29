@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { Chip } from "../../components/Chip";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useFlashcardsDueCount } from "../../hooks/useFlashcards";
@@ -20,8 +21,16 @@ export function DailyDrillCard() {
         <span className={styles.drillIcon} aria-hidden="true">
           <Icon name="zap" size={17} />
         </span>
-        <div>
-          <span className={styles.eyebrow}>Daily drill</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--s-2)" }}>
+            <span className={styles.eyebrow} style={{ marginBottom: 0 }}>Daily drill</span>
+            {totalDue > 0 && (
+              <Chip soft tone="accent" size="sm">
+                <Icon name="clock" size={12} />
+                ~5 min
+              </Chip>
+            )}
+          </div>
           <h2 className={styles.drillTitle}>Five-minute recall</h2>
         </div>
       </div>

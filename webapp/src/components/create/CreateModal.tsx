@@ -57,7 +57,7 @@ const QUICK_CREATES: Array<{
     type: "subject",
     icon: "folder",
     title: "Subject",
-    description: "Organize resources for a class or topic.",
+    description: "Organise resources for a class or topic.",
   },
   {
     type: "exam",

@@ -86,6 +86,8 @@ export function DashboardTasksWidget({
             if (e.key === "Enter") {
               e.preventDefault();
               submit();
+            } else if (e.key === "Escape") {
+              setText("");
             }
           }}
         />
