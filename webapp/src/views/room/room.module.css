@@ -11,7 +11,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-5);
-  min-height: calc(100vh - var(--command-bar-clearance));
+  min-height: calc(100vh - var(--s-16));
 }
 
 /* ---- Room Header & Top Bar ---------------------------------------------- */
@@ -34,9 +34,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
-  box-shadow:
-    var(--glass-inner),
-    var(--shadow-sm);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
   transition:
     border-color var(--t) var(--ease),
     box-shadow var(--t) var(--ease);
@@ -68,11 +66,7 @@
   color: var(--text);
   margin: 0;
   letter-spacing: -0.02em;
-  background: linear-gradient(
-    135deg,
-    var(--text) 40%,
-    var(--accent-glow) 100%
-  );
+  background: linear-gradient(135deg, var(--text) 40%, var(--accent-glow) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -172,11 +166,7 @@
 }
 
 .ambianceTriggerActive {
-  background: linear-gradient(
-    135deg,
-    var(--accent-soft),
-    var(--accent-soft)
-  );
+  background: linear-gradient(135deg, var(--accent-soft), var(--accent-soft));
   border-color: var(--accent);
   color: var(--accent-text);
   box-shadow: 0 0 0 3px var(--accent-soft);
@@ -190,9 +180,7 @@
   background: var(--surface);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
-  box-shadow:
-    var(--shadow-lg),
-    var(--glass-inner);
+  box-shadow: var(--shadow-lg), var(--glass-inner);
   padding: var(--s-4);
   z-index: 200;
   display: flex;
@@ -288,9 +276,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
-  box-shadow:
-    var(--shadow-sm),
-    var(--glass-inner);
+  box-shadow: var(--shadow-sm), var(--glass-inner);
 }
 
 .roomCheerPrompt {
@@ -340,9 +326,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
-  box-shadow:
-    var(--shadow-sm),
-    var(--glass-inner);
+  box-shadow: var(--shadow-sm), var(--glass-inner);
   transition:
     transform var(--t) var(--ease),
     box-shadow var(--t) var(--ease),
@@ -410,11 +394,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(
-    135deg,
-    var(--accent-soft),
-    var(--accent-ring)
-  );
+  background: linear-gradient(135deg, var(--accent-soft), var(--accent-ring));
   border: 2px solid var(--accent-ring);
   display: flex;
   align-items: center;
@@ -792,11 +772,7 @@
   font-size: var(--fs-xs);
   font-weight: 700;
   border: 1px solid var(--accent-ring);
-  background: linear-gradient(
-    135deg,
-    var(--accent-soft),
-    var(--accent-soft)
-  );
+  background: linear-gradient(135deg, var(--accent-soft), var(--accent-soft));
   color: var(--accent-text);
   cursor: pointer;
   transition: all var(--t-fast) ease;
@@ -826,9 +802,7 @@
 .chatSection:hover {
   transform: none;
   border-color: var(--glass-border);
-  box-shadow:
-    var(--shadow-sm),
-    var(--glass-inner);
+  box-shadow: var(--shadow-sm), var(--glass-inner);
 }
 
 .chatTitle {
@@ -946,7 +920,7 @@
 
 .cheerFeed {
   position: fixed;
-  bottom: calc(var(--command-bar-clearance) + var(--s-3));
+  bottom: var(--s-3);
   left: 24px;
   right: 24px;
   display: flex;
@@ -967,9 +941,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-lg);
-  box-shadow:
-    var(--shadow-md),
-    var(--glass-inner);
+  box-shadow: var(--shadow-md), var(--glass-inner);
   color: var(--text);
   font-size: var(--fs-sm);
   font-weight: 500;
@@ -1028,11 +1000,7 @@
   width: 300px;
   height: 300px;
   border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    var(--accent-soft) 0%,
-    transparent 70%
-  );
+  background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -1100,7 +1068,7 @@
 
 @media (max-width: 760px) {
   .roomView {
-    padding: var(--s-4) var(--s-4) var(--command-bar-clearance);
+    padding: var(--s-4);
     gap: var(--s-4);
   }
 

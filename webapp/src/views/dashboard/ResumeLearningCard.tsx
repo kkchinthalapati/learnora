@@ -31,17 +31,10 @@ export function ResumeLearningCard() {
       variant="elevated"
       className={styles.card}
     >
-      <div className={styles.cardHeroGlow} aria-hidden="true" />
-
       <div className={styles.header}>
-        <div className={styles.headerLeft}>
-          <div className={styles.iconWrapper} aria-hidden="true">
-            <Icon name="sparkles" size={22} />
-          </div>
-          <div>
-            <span className={styles.eyebrow}>Continuous Learning</span>
-            <h2 className={styles.title}>Pick Up Where You Left Off</h2>
-          </div>
+        <div>
+          <span className={styles.eyebrow}>Last activity</span>
+          <h2 className={styles.title}>Pick up where you left off</h2>
         </div>
         {resumeAction && (
           <span className={styles.badge}>
@@ -92,7 +85,7 @@ export function ResumeLearningCard() {
 
           {recentItems.length > 1 && (
             <div className={styles.recentTray}>
-              <span className={styles.trayHeader}>Recent Activities</span>
+              <span className={styles.trayHeader}>Recent activity</span>
               <div className={styles.trayList}>
                 {recentItems
                   .filter((item) => item.targetUrl !== resumeAction.targetUrl)
@@ -105,9 +98,13 @@ export function ResumeLearningCard() {
                     >
                       <div className={styles.trayItemLeft}>
                         <Icon name={getActionIcon(item.type)} size={14} />
-                        <span className={styles.trayItemTitle}>{item.title}</span>
+                        <span className={styles.trayItemTitle}>
+                          {item.title}
+                        </span>
                       </div>
-                      <span className={styles.trayItemType}>{item.badgeLabel}</span>
+                      <span className={styles.trayItemType}>
+                        {item.badgeLabel}
+                      </span>
                     </Link>
                   ))}
               </div>
@@ -117,13 +114,9 @@ export function ResumeLearningCard() {
       ) : (
         <div className={styles.emptyState}>
           <p className={styles.emptyText}>
-            Ready to study? Jump into your notes, test your memory with flashcards,
-            or start a focused timer session.
+            Open a note, review a flashcard deck, or start a focus session.
           </p>
-          <Button
-            variant="secondary"
-            onClick={() => navigate("/library")}
-          >
+          <Button variant="secondary" onClick={() => navigate("/library")}>
             Open Library
           </Button>
         </div>

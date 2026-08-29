@@ -10,25 +10,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-4);
-  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+  transition:
+    border-color var(--t-fast),
+    box-shadow var(--t-fast);
 }
 
 .card:hover {
   border-color: var(--border-hover, var(--border));
-}
-
-.cardHeroGlow {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 260px;
-  height: 100%;
-  background: radial-gradient(
-    circle at 85% 30%,
-    color-mix(in srgb, var(--accent) 12%, transparent),
-    transparent 70%
-  );
-  pointer-events: none;
 }
 
 .header {
@@ -38,24 +26,6 @@
   gap: var(--s-3);
   position: relative;
   z-index: 1;
-}
-
-.headerLeft {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-}
-
-.iconWrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--r-md);
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
 }
 
 .eyebrow {
@@ -185,8 +155,7 @@
   font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.01em;
 }
 
 .trayList {
@@ -211,7 +180,10 @@
   border-radius: var(--r-md);
   text-decoration: none;
   color: var(--text);
-  transition: background var(--t-fast), border-color var(--t-fast), transform var(--t-fast);
+  transition:
+    background var(--t-fast),
+    border-color var(--t-fast),
+    transform var(--t-fast);
 }
 
 .trayItem:hover {

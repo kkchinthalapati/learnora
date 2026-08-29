@@ -7,6 +7,38 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-6);
+  width: 100%;
+  min-width: 0;
+}
+
+.progressToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding-bottom: var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.progressToolbar p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.progressToolbar strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.rangeGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
 }
 
 /* ---- Summary Stat Cards Grid ------------------------------------------- */
@@ -102,13 +134,28 @@
   gap: 4px;
   font-size: var(--fs-xs);
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 4px 12px;
   min-height: var(--touch-target-min);
-  border-radius: 12px;
-  background: var(--accent-soft);
-  color: var(--accent-text);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-muted);
   border: none;
   cursor: pointer;
+}
+
+.rangeBtn:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.rangeBtnActive,
+.rangeBtnActive:hover {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.sectionCard {
+  min-width: 0;
 }
 
 /* ---- Generic Section Header --------------------------------------------- */
@@ -604,5 +651,82 @@
 
   .barFill {
     transition: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    gap: var(--s-4);
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+
+  .progressToolbar,
+  .sectionHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rangeGroup {
+    width: 100%;
+  }
+
+  .rangeBtn {
+    flex: 1;
+    min-width: 0;
+    padding-inline: var(--s-2);
+  }
+
+  .statsGrid {
+    gap: var(--s-3);
+  }
+
+  .statCard {
+    min-width: 0;
+    padding: var(--s-4);
+  }
+
+  .sectionCard {
+    padding: var(--s-4);
+  }
+
+  .sectionHeader {
+    margin-bottom: var(--s-3);
+  }
+
+  .heatmapFooter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statCard {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--s-2) var(--s-4);
+  }
+
+  .statHeader,
+  .statSub {
+    grid-column: 1 / -1;
+  }
+
+  .statValue {
+    font-size: 28px;
+  }
+
+  .rangeBtn {
+    font-size: 11px;
+  }
+
+  .heatmapStreakStats {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--s-2);
   }
 }

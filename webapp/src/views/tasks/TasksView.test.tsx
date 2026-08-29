@@ -7,7 +7,12 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
-import { formatDueDate, localDateStr, dateInDays, createNextWeeklyDate } from "../../lib/date";
+import {
+  formatDueDate,
+  localDateStr,
+  dateInDays,
+  createNextWeeklyDate,
+} from "../../lib/date";
 import type { Task } from "../../api/types";
 import { TasksView } from "./TasksView";
 import { DOUBLE_CLICK_MS } from "./TaskItem";
@@ -51,7 +56,11 @@ function serveTasks(initial: Task[]) {
 }
 
 function renderTasks() {
-  return renderWithAuth(<TasksView />, { session: fakeSession() });
+  return renderWithAuth(
+    <TasksView />,
+    { session: fakeSession() },
+    { withRouter: true, initialEntries: ["/tasks"] },
+  );
 }
 
 const rows = () => screen.getAllByRole("checkbox");
@@ -75,6 +84,32 @@ describe("TasksView", () => {
     expect(
       await screen.findByText("No tasks yet - add one above!"),
     ).toBeInTheDocument();
+  });
+
+  it("marks Tasks as the current planning section", async () => {
+    serveTasks([]);
+    renderTasks();
+
+    await screen.findByText("No tasks yet - add one above!");
+    expect(screen.getByRole("link", { name: "Tasks" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
+  it("filters the grouped list without changing task records", async () => {
+    const user = userEvent.setup();
+    serveTasks([
+      task({ id: 1, text: "Late reading", due_date: dateInDays(-1) }),
+      task({ id: 2, text: "Finished notes", is_done: true }),
+    ]);
+    renderTasks();
+
+    await screen.findByLabelText("Late reading");
+    await user.click(screen.getByRole("button", { name: "Completed" }));
+
+    expect(screen.queryByLabelText("Late reading")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Finished notes")).toBeInTheDocument();
   });
 
   it("lists tasks, urgent first and completed last", async () => {
@@ -501,17 +536,11 @@ describe("TasksView", () => {
     });
 
     it("displays 🔁 Weekly badge and clean title for recurring task", async () => {
-      serveTasks([
-        task({ id: 1, text: "Chemistry practice [🔁 Weekly]" }),
-      ]);
+      serveTasks([task({ id: 1, text: "Chemistry practice [🔁 Weekly]" })]);
       renderTasks();
 
-      expect(
-        await screen.findByText("Chemistry practice"),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByLabelText("Recurring weekly"),
-      ).toBeInTheDocument();
+      expect(await screen.findByText("Chemistry practice")).toBeInTheDocument();
+      expect(screen.getByLabelText("Recurring weekly")).toBeInTheDocument();
     });
 
     it("snoozes a task to tomorrow from task item quick button", async () => {
@@ -534,9 +563,7 @@ describe("TasksView", () => {
       });
       await user.click(tomorrowBtn);
 
-      await waitFor(() =>
-        expect(patched).toEqual({ due_date: dateInDays(1) }),
-      );
+      await waitFor(() => expect(patched).toEqual({ due_date: dateInDays(1) }));
     });
 
     it("snoozes a task to next week from task item quick button", async () => {
@@ -559,9 +586,7 @@ describe("TasksView", () => {
       });
       await user.click(nextWeekBtn);
 
-      await waitFor(() =>
-        expect(patched).toEqual({ due_date: dateInDays(7) }),
-      );
+      await waitFor(() => expect(patched).toEqual({ due_date: dateInDays(7) }));
     });
 
     it("toggles weekly recurrence from task item Repeat weekly button", async () => {
@@ -622,9 +647,7 @@ describe("TasksView", () => {
 
       const formatted = formatDueDate(nextDueDate);
       expect(
-        await screen.findByText(
-          `Scheduled next weekly task for ${formatted}`,
-        ),
+        await screen.findByText(`Scheduled next weekly task for ${formatted}`),
       ).toBeInTheDocument();
     });
 
@@ -650,4 +673,3 @@ describe("TasksView", () => {
     });
   });
 });
-

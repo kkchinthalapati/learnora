@@ -6,6 +6,7 @@
   /* Subtle top highlight shared by the semantic-variant hovers. */
   --btn-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.1);
   display: inline-flex;
+  min-height: var(--touch-target-min);
   align-items: center;
   justify-content: center;
   gap: var(--s-2);
@@ -51,10 +52,7 @@
     var(--accent-hover) 0%,
     var(--accent-press) 100%
   );
-  box-shadow:
-    var(--shadow-accent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 0 20px var(--accent-glow);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 .primary:active {
@@ -63,18 +61,16 @@
 }
 
 .secondary {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  background: var(--surface);
   color: var(--text);
   border-color: var(--glass-border);
   box-shadow: var(--glass-inner), var(--shadow-sm);
 }
 .secondary:hover:not(:disabled) {
-  background: var(--surface);
-  border-color: var(--accent);
+  background: var(--surface-2);
+  border-color: var(--accent-ring);
   color: var(--accent-text);
-  box-shadow: var(--glass-inner), var(--shadow-md);
+  box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
 .secondary:active {
@@ -164,7 +160,8 @@
 }
 
 .sm {
-  padding: 4px 12px;
+  min-height: var(--touch-target-min);
+  padding: 6px 12px;
   font-size: var(--fs-sm);
 }
 

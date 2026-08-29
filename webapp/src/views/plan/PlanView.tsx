@@ -12,7 +12,6 @@ import {
   usePlanForWeek,
   useUpdatePlan,
 } from "../../hooks/usePlans";
-import { useTranslation } from "../../hooks/useTranslation";
 import { useExams } from "../../hooks/useExams";
 import { useQuizAttempts } from "../../hooks/useQuizzes";
 import { AiError } from "../../api/ai";
@@ -47,6 +46,7 @@ import {
   type PlanBlockInput,
   type PlanBlockLocation,
 } from "./planEdits";
+import { PlanSectionNav } from "./PlanSectionNav";
 import styles from "./plan.module.css";
 
 /* The Weekly Plan — ports index.html:942-955 + js/router.js's `loadPlanView`
@@ -360,7 +360,6 @@ function BlockEditor({
 }
 
 export function PlanView() {
-  const t = useTranslation();
   const monday = mondayOfWeek();
   const weekStartISO = localDateStr(monday);
   const today = localDateStr();
@@ -596,19 +595,16 @@ export function PlanView() {
 
   return (
     <div className={styles.view}>
-      {/* The app shell's Header supplies the page's real <h1> (t("nav_...")
-          isn't defined for /plan, but sectionLabel.ts hardcodes the same
-          "This week's plan" text this card used to duplicate as its own
-          <h1>) — this card's title is plain text now, not a second
-          heading. See archive/redesign/DESIGN_MOVES.md move #2. */}
+      <PlanSectionNav />
+
       <Card
         variant="panel"
         padding="none"
         className={`${styles.summaryCard} ${isTriageActive ? styles.triageSummary : ""}`}
       >
-        <div>
-          <p className={styles.title}>{t("header_plan")}</p>
-          <p className={styles.weekRange}>{weekRange}</p>
+        <div className={styles.weekContext}>
+          <p className={styles.weekLabel}>Current week</p>
+          <h2 className={styles.weekRange}>{weekRange}</h2>
           {peakFocusWindow && (
             <div
               className={styles.chronotypeBadge}
@@ -621,39 +617,34 @@ export function PlanView() {
             </div>
           )}
           {isTriageActive && (
-            <p
-              style={{
-                color: "var(--accent-red)",
-                fontWeight: "bold",
-                marginTop: "4px",
-              }}
-            >
-              <Icon name="alert-triangle" size={14} /> EMERGENCY TRIAGE ACTIVE
+            <p className={styles.triageStatus}>
+              <Icon name="alert-triangle" size={14} /> Triage plan active
             </p>
           )}
         </div>
-        <Button
-          onClick={() => void runGenerate()}
-          disabled={generate.isPending}
-        >
-          <Icon name={hasPlan ? "refresh-cw" : "bot"} size={15} />
-          {generate.isPending
-            ? "Generating…"
-            : hasPlan
-              ? "Regenerate"
-              : "Generate Plan"}
-        </Button>
-        {isTriageAvailable && (
+        <div className={styles.summaryActions}>
           <Button
-            onClick={() => void runTriage()}
+            onClick={() => void runGenerate()}
             disabled={generate.isPending}
-            variant="danger"
-            style={{ marginLeft: "8px" }}
           >
-            <Icon name="zap" size={15} />
-            Triage
+            <Icon name={hasPlan ? "refresh-cw" : "bot"} size={15} />
+            {generate.isPending
+              ? "Generating…"
+              : hasPlan
+                ? "Regenerate"
+                : "Generate Plan"}
           </Button>
-        )}
+          {isTriageAvailable && (
+            <Button
+              onClick={() => void runTriage()}
+              disabled={generate.isPending}
+              variant="danger"
+            >
+              <Icon name="zap" size={15} />
+              Triage
+            </Button>
+          )}
+        </div>
       </Card>
 
       {showRebalanceBanner && deficit && (
@@ -670,7 +661,8 @@ export function PlanView() {
             </div>
             <div>
               <div className={styles.rebalanceTitle}>
-                Schedule Rebalancing Available ({deficit.totalMissedMinutes}m behind)
+                Schedule Rebalancing Available ({deficit.totalMissedMinutes}m
+                behind)
               </div>
               <p className={styles.rebalanceMessage}>
                 {deficit.recommendation}

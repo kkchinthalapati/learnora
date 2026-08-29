@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { Card } from "../../components/Card";
-import { PageHeader } from "../../components/PageHeader";
 import { Icon } from "../../components/Icon";
 import { useSessionsSince } from "../../hooks/useSessions";
 import { useQuizAttempts } from "../../hooks/useQuizzes";
@@ -17,6 +16,15 @@ import {
 } from "../../lib/analyticsEngine";
 import { StudyHeatmap } from "./StudyHeatmap";
 import styles from "./analytics.module.css";
+
+const RANGE_OPTIONS: ReadonlyArray<{
+  days: 365 | 90 | 30;
+  label: string;
+}> = [
+  { days: 365, label: "52 Weeks (1Y)" },
+  { days: 90, label: "90 Days" },
+  { days: 30, label: "30 Days" },
+];
 
 export function StudyAnalyticsView() {
   const [activeRange, setActiveRange] = useState<365 | 90 | 30>(365);
@@ -88,18 +96,37 @@ export function StudyAnalyticsView() {
 
   return (
     <div className={styles.container}>
-      <PageHeader
-        title="Study Analytics & Insights"
-        eyebrow="ANALYTICS ENGINE"
-        sub="Comprehensive breakdown of your study consistency, chronotype focus windows, and subject balance."
-      />
+      <div className={styles.progressToolbar}>
+        <p>
+          Progress from the past <strong>{activeRange} days</strong>
+        </p>
+        <div
+          className={styles.rangeGroup}
+          role="group"
+          aria-label="Analytics date range"
+        >
+          {RANGE_OPTIONS.map((rangeOption) => (
+            <button
+              type="button"
+              key={rangeOption.days}
+              className={`${styles.rangeBtn} ${
+                activeRange === rangeOption.days ? styles.rangeBtnActive : ""
+              }`}
+              onClick={() => setActiveRange(rangeOption.days)}
+              aria-pressed={activeRange === rangeOption.days}
+            >
+              {rangeOption.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* ---- 1. Summary Stat Cards --------------------------------------- */}
       <div className={styles.statsGrid}>
         {/* Total Focus Time */}
         <Card variant="panel" className={styles.statCard}>
           <div className={styles.statHeader}>
-            <span className={styles.statEyebrow}>Total Focus Time</span>
+            <span className={styles.statEyebrow}>Study time</span>
             <div className={styles.statIconBox}>
               <Icon name="clock" size={18} />
             </div>
@@ -108,7 +135,7 @@ export function StudyAnalyticsView() {
             {totalHours}h {remainingMins}m
           </p>
           <div className={styles.statSub}>
-            <span>{sessions.length} total sessions</span>
+            <span>{sessions.length} completed sessions</span>
             <span className={styles.statBadge}>
               +{heatData.totalMinutes}m logged
             </span>
@@ -118,7 +145,7 @@ export function StudyAnalyticsView() {
         {/* Consistency & Active Days */}
         <Card variant="panel" className={styles.statCard}>
           <div className={styles.statHeader}>
-            <span className={styles.statEyebrow}>Active Consistency</span>
+            <span className={styles.statEyebrow}>Active days</span>
             <div className={styles.statIconBox}>
               <Icon name="flame" size={18} />
             </div>
@@ -146,7 +173,7 @@ export function StudyAnalyticsView() {
         {/* Peak Focus Window */}
         <Card variant="panel" className={styles.statCard}>
           <div className={styles.statHeader}>
-            <span className={styles.statEyebrow}>Peak Chronotype</span>
+            <span className={styles.statEyebrow}>Peak study window</span>
             <div className={styles.statIconBox}>
               <Icon name="zap" size={18} />
             </div>
@@ -165,7 +192,7 @@ export function StudyAnalyticsView() {
         {/* Average Quiz Mastery */}
         <Card variant="panel" className={styles.statCard}>
           <div className={styles.statHeader}>
-            <span className={styles.statEyebrow}>Quiz Mastery</span>
+            <span className={styles.statEyebrow}>Quiz average</span>
             <div className={styles.statIconBox}>
               <Icon name="target" size={18} />
             </div>
@@ -183,7 +210,7 @@ export function StudyAnalyticsView() {
                 className={styles.statBadge}
                 style={{ color: "var(--success)" }}
               >
-                High Mastery
+                80% or higher
               </span>
             )}
           </div>
@@ -191,71 +218,13 @@ export function StudyAnalyticsView() {
       </div>
 
       {/* ---- 2. Activity Heatmap Section --------------------------------- */}
-      <Card variant="panel" padding="lg">
+      <Card variant="panel" padding="lg" className={styles.sectionCard}>
         <div className={styles.sectionHeader}>
           <div>
-            <h3 className={styles.sectionTitle}>Study Activity Heatmap</h3>
+            <h3 className={styles.sectionTitle}>Study activity</h3>
             <p className={styles.sectionSub}>
-              Visualizing daily focus distribution across the past {activeRange}{" "}
-              days
+              Daily focus time for the past {activeRange} days
             </p>
-          </div>
-
-          <div
-            style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}
-            role="group"
-            aria-label="Analytics date range"
-          >
-            <button
-              type="button"
-              className={styles.rangeBtn}
-              style={{
-                cursor: "pointer",
-                border: "none",
-                background:
-                  activeRange === 365 ? "var(--accent)" : "var(--surface-2)",
-                color:
-                  activeRange === 365
-                    ? "var(--accent-on)"
-                    : "var(--text-muted)",
-              }}
-              onClick={() => setActiveRange(365)}
-              aria-pressed={activeRange === 365}
-            >
-              52 Weeks (1Y)
-            </button>
-            <button
-              type="button"
-              className={styles.rangeBtn}
-              style={{
-                cursor: "pointer",
-                border: "none",
-                background:
-                  activeRange === 90 ? "var(--accent)" : "var(--surface-2)",
-                color:
-                  activeRange === 90 ? "var(--accent-on)" : "var(--text-muted)",
-              }}
-              onClick={() => setActiveRange(90)}
-              aria-pressed={activeRange === 90}
-            >
-              90 Days
-            </button>
-            <button
-              type="button"
-              className={styles.rangeBtn}
-              style={{
-                cursor: "pointer",
-                border: "none",
-                background:
-                  activeRange === 30 ? "var(--accent)" : "var(--surface-2)",
-                color:
-                  activeRange === 30 ? "var(--accent-on)" : "var(--text-muted)",
-              }}
-              onClick={() => setActiveRange(30)}
-              aria-pressed={activeRange === 30}
-            >
-              30 Days
-            </button>
           </div>
         </div>
 
@@ -265,17 +234,21 @@ export function StudyAnalyticsView() {
       {/* ---- 3. Two-Column Grid: Peak Hours & AI Insights ----------------- */}
       <div className={styles.twoColGrid}>
         {/* Peak Focus Hour-by-Hour Bar Chart */}
-        <Card variant="panel" padding="lg" className={styles.chartCard}>
+        <Card
+          variant="panel"
+          padding="lg"
+          className={`${styles.chartCard} ${styles.sectionCard}`}
+        >
           <div>
             <div className={styles.sectionHeader}>
               <div>
-                <h3 className={styles.sectionTitle}>Peak Performance Hours</h3>
+                <h3 className={styles.sectionTitle}>Study time by hour</h3>
                 <p className={styles.sectionSub}>
-                  24-hour study density with highlighted chronotype peak
+                  Session minutes grouped by start time
                 </p>
               </div>
               <span className={styles.statBadge}>
-                <Icon name="activity" size={14} /> 24h Distribution
+                <Icon name="activity" size={14} /> 24 hours
               </span>
             </div>
 
@@ -356,17 +329,21 @@ export function StudyAnalyticsView() {
         </Card>
 
         {/* AI Copilot Insights Card */}
-        <Card variant="panel" padding="lg" className={styles.insightsCard}>
+        <Card
+          variant="panel"
+          padding="lg"
+          className={`${styles.insightsCard} ${styles.sectionCard}`}
+        >
           <div className={styles.sectionHeader}>
             <div>
-              <h3 className={styles.sectionTitle}>AI Study Copilot Insights</h3>
+              <h3 className={styles.sectionTitle}>Study patterns</h3>
               <p className={styles.sectionSub}>
-                Synthesized actionable observations & cognitive strategies
+                Generated from session and quiz history
               </p>
             </div>
             <div className={styles.aiHeaderBadge}>
               <span className={styles.aiPulseDot} />
-              <span>AI Engine Active</span>
+              <span>Generated</span>
             </div>
           </div>
 
@@ -381,20 +358,17 @@ export function StudyAnalyticsView() {
       </div>
 
       {/* ---- 4. Subject Balance vs Exam Urgency Matrix ------------------- */}
-      <Card variant="panel" padding="lg">
+      <Card variant="panel" padding="lg" className={styles.sectionCard}>
         <div className={styles.sectionHeader}>
           <div>
-            <h3 className={styles.sectionTitle}>
-              Subject Balance & Exam Urgency Matrix
-            </h3>
+            <h3 className={styles.sectionTitle}>Subject time and exam dates</h3>
             <p className={styles.sectionSub}>
-              Balancing your study allocation against approaching examination
-              deadlines
+              Compare logged time with upcoming exams
             </p>
           </div>
           <span className={styles.statBadge}>
-            {subjectMatrix.length} Subject
-            {subjectMatrix.length === 1 ? "" : "s"} Tracked
+            {subjectMatrix.length} subject
+            {subjectMatrix.length === 1 ? "" : "s"}
           </span>
         </div>
 
@@ -406,8 +380,7 @@ export function StudyAnalyticsView() {
               style={{ margin: "0 auto var(--s-2)", opacity: 0.5 }}
             />
             <p>
-              No subjects found. Create subjects in your Library to track
-              allocation matrix.
+              No subjects yet. Add a subject in Library to compare study time.
             </p>
           </div>
         ) : (

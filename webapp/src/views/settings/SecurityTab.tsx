@@ -19,12 +19,6 @@ import { validateNewPassword } from "../../lib/passwordStrength";
 import settings from "./settings.module.css";
 import styles from "./security.module.css";
 
-/* Security tab — ports index.html:1071-1132 + js/main.js:1051-1138.
- *
- * The password field and strength meter this tab introduced now live in
- * `components/PasswordField` so the auth views share one implementation
- * rather than a second copy of the same markup. */
-
 export function SecurityTab() {
   const { confirm } = useDialog();
   const changePassword = useChangePassword();
@@ -96,13 +90,10 @@ export function SecurityTab() {
           </span>
           <div>
             <h3 id="settings-password-heading">Change Password</h3>
-            <p>Update your account password</p>
+            <p>Set a new password for this account.</p>
           </div>
         </div>
 
-        {/* The per-field `margin-bottom` the vanilla used moves to a gap on
-            the stack, so the strength meter sits tight under the field it
-            measures instead of a field's width apart from it. */}
         <div className={styles.passwordStack}>
           <div>
             <PasswordField
@@ -148,7 +139,7 @@ export function SecurityTab() {
           </span>
           <div>
             <h3 id="settings-sessions-heading">Sessions</h3>
-            <p>Manage your active sessions</p>
+            <p>Control sign-in sessions on other devices.</p>
           </div>
         </div>
         <div className={settings.field}>

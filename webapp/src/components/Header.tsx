@@ -12,17 +12,6 @@ import { resolveDark, THEME_KEY } from "../lib/appearance";
 import { Storage } from "../lib/storage";
 import styles from "./Header.module.css";
 
-/* Ports index.html:413-445 (`header`, `#page-title`, `#user-greeting`,
- * `#live-clock`, `#header-logout-btn`, `#theme-toggle`, `#menu-toggle`).
- *
- * `#page-title` renders as this page's real `<h1>` — the redesign audit
- * (2026-08) found five views duplicating this exact label as their own
- * `<h1>` directly below it (same text, ~20px apart, in every locale), so
- * the duplicates are being dropped in favor of this one. Views that show
- * something the section label can't (Library's subtitle+actions, Review's
- * deck title, Notes' document title in its own toolbar) keep their own
- * heading; a plain Dashboard/Tasks/Exams/Timer/Settings does not. */
-
 export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
   const { pathname } = useLocation();
   const { user, signOut } = useAuth();
@@ -34,25 +23,15 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
   const firstName =
     (user?.user_metadata?.full_name as string | undefined)?.split(" ")[0] ||
     "Student";
-
   const isDark = resolveDark(appearance.mode);
+  const showDashboardGreeting = pathname === "/";
+  const showClock = showDashboardGreeting || pathname.startsWith("/timer");
 
-  /* Ports `UI.toggleTheme` (js/ui.js:698-704) — a one-click light/dark flip,
-   * distinct from the Settings→Appearance studio a few clicks away. The
-   * vanilla persisted just the two theme keys directly rather than going
-   * through its full "Save Appearance" write, so a student auditioning an
-   * accent colour in Settings and then flipping this switch doesn't also
-   * commit that unrelated, still-unsaved change — the two-tier appearance
-   * contract (Step 7) stays intact for everything but the mode itself. */
   const toggleTheme = () => {
     const nextMode = isDark ? "light" : "dark";
     setAppearance({ mode: nextMode });
     Storage.set("learnora_mode", nextMode);
     Storage.set(THEME_KEY, nextMode);
-  };
-
-  const handleOpenSearch = () => {
-    commandPalette?.open();
   };
 
   return (
@@ -64,26 +43,29 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
           title="Toggle Sidebar Menu"
           onClick={onToggleMenu}
         >
-          ☰
+          <Icon name="menu" size={20} />
         </IconButton>
-        <div>
+        <div className={styles.pageIdentity}>
           <h1 className={styles.title}>{sectionLabel(pathname, t)}</h1>
-          <p className={styles.subtitle}>{getGreeting(firstName)}</p>
+          {showDashboardGreeting ? (
+            <p className={styles.subtitle}>{getGreeting(firstName)}</p>
+          ) : null}
         </div>
       </div>
+
       <div className={styles.headerRight}>
         <button
           type="button"
           className={styles.searchTrigger}
-          onClick={handleOpenSearch}
+          onClick={() => commandPalette?.open()}
           aria-label="Search and command palette"
           title="Search or run commands (Cmd+K / Ctrl+K)"
         >
-          <Icon name="search" size={15} className={styles.searchTriggerIcon} />
+          <Icon name="search" size={16} />
           <span className={styles.searchTriggerLabel}>Search</span>
           <kbd className={styles.searchKbd}>⌘K</kbd>
         </button>
-        <span className={styles.clock}>{time}</span>
+        {showClock ? <span className={styles.clock}>{time}</span> : null}
         <IconButton
           aria-label="Log Out"
           title="Log Out"
@@ -96,7 +78,7 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
           title="Toggle Theme"
           onClick={toggleTheme}
         >
-          <Icon name={isDark ? "sun" : "moon"} size={24} />
+          <Icon name={isDark ? "sun" : "moon"} size={22} />
         </IconButton>
       </div>
     </header>

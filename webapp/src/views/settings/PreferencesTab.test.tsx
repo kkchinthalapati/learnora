@@ -74,9 +74,7 @@ describe("PreferencesTab", () => {
 
     await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
-    expect(
-      await screen.findByText("Your settings have been saved successfully."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Preferences saved.")).toBeInTheDocument();
   });
 
   it("does not clobber the Notifications tab's toggles", async () => {

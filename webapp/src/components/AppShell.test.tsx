@@ -79,40 +79,22 @@ describe("AppShell", () => {
       "href",
       "/",
     );
-    expect(screen.getByRole("link", { name: /Task Manager/ })).toHaveAttribute(
-      "href",
-      "/tasks",
-    );
     expect(screen.getByRole("link", { name: /Library/ })).toHaveAttribute(
       "href",
       "/library",
     );
-    expect(screen.getByRole("link", { name: /Analytics/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Plan/ })).toHaveAttribute(
       "href",
-      "/analytics",
+      "/plan",
     );
-    expect(screen.getByRole("link", { name: /Concept Graph/ })).toHaveAttribute(
-      "href",
-      "/graph",
-    );
-    expect(screen.getByRole("link", { name: /Timer/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Focus/ })).toHaveAttribute(
       "href",
       "/timer",
     );
-    expect(
-      screen.getByRole("link", { name: /This week's plan/ }),
-    ).toHaveAttribute("href", "/plan");
-    expect(screen.getByRole("link", { name: /Exams/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Progress/ })).toHaveAttribute(
       "href",
-      "/exams",
+      "/analytics",
     );
-    expect(screen.getByRole("link", { name: /Settings/ })).toHaveAttribute(
-      "href",
-      "/settings",
-    );
-    expect(
-      screen.getByRole("link", { name: /Terms of Service/ }),
-    ).toHaveAttribute("href", "/terms");
   });
 
   it("highlights Dashboard as active only on the root route", () => {
@@ -122,7 +104,7 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: /Dashboard/ })).not.toHaveAttribute(
       "aria-current",
     );
-    expect(screen.getByRole("link", { name: /Task Manager/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Plan/ })).toHaveAttribute(
       "aria-current",
       "page",
     );
@@ -253,6 +235,11 @@ describe("AppShell", () => {
   });
 
   it("toggles the mobile menu open and closed from the header button", async () => {
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 480,
+    });
     /* `collapsed` is a CSS Module class, so the DOM's actual class token is
        a hashed name like `_collapsed_xxxxx` — checked by substring rather
        than `toHaveClass`, which requires an exact token match. */
@@ -261,17 +248,22 @@ describe("AppShell", () => {
     const user = userEvent.setup();
 
     const sidebar = screen.getByRole("navigation", { name: "Main navigation" });
-    expect(sidebar.className).not.toMatch(/collapsed/);
+    expect(sidebar.className).not.toMatch(/drawerOpen/);
 
     await user.click(
       screen.getByRole("button", { name: "Toggle Sidebar Menu" }),
     );
-    expect(sidebar.className).toMatch(/collapsed/);
+    expect(sidebar.className).toMatch(/drawerOpen/);
 
     await user.click(
       screen.getByRole("button", { name: "Toggle Sidebar Menu" }),
     );
-    expect(sidebar.className).not.toMatch(/collapsed/);
+    expect(sidebar.className).not.toMatch(/drawerOpen/);
+
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: originalWidth,
+    });
   });
 
   it("retracts the sidebar to an icon rail from its own toggle, not just Header's hamburger", async () => {
@@ -284,7 +276,7 @@ describe("AppShell", () => {
     expect(railToggle).toHaveAttribute("aria-expanded", "true");
 
     await user.click(railToggle);
-    expect(sidebar.className).toMatch(/collapsed/);
+    expect(sidebar.className).toMatch(/railCollapsed/);
 
     // Same underlying state as Header's control — labelled the opposite way
     // now that it reflects "expand" instead of "collapse".
@@ -296,7 +288,7 @@ describe("AppShell", () => {
     await user.click(
       screen.getByRole("button", { name: "Toggle Sidebar Menu" }),
     );
-    expect(sidebar.className).not.toMatch(/collapsed/);
+    expect(sidebar.className).not.toMatch(/railCollapsed/);
     expect(
       screen.getByRole("button", { name: "Collapse sidebar" }),
     ).toHaveAttribute("aria-expanded", "true");
@@ -312,9 +304,7 @@ describe("AppShell", () => {
     // Labels are visually hidden in the rail, but aria-label keeps each
     // link's accessible name intact for assistive tech.
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Task Manager" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Plan" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create" })).toBeInTheDocument();
   });
 
@@ -332,10 +322,10 @@ describe("AppShell", () => {
     await user.click(
       screen.getByRole("button", { name: "Toggle Sidebar Menu" }),
     );
-    expect(sidebar.className).toMatch(/collapsed/);
+    expect(sidebar.className).toMatch(/drawerOpen/);
 
-    await user.click(screen.getByRole("link", { name: /Task Manager/ }));
-    await waitFor(() => expect(sidebar.className).not.toMatch(/collapsed/));
+    await user.click(screen.getByRole("link", { name: /Library/ }));
+    await waitFor(() => expect(sidebar.className).not.toMatch(/drawerOpen/));
 
     Object.defineProperty(window, "innerWidth", {
       configurable: true,

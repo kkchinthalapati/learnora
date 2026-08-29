@@ -1,41 +1,22 @@
 .search {
-  margin-top: var(--s-5);
-  padding: var(--s-5);
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-xl);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
+  padding: var(--s-3);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-lg);
 }
 
-.searchHeader {
+.toolbar {
   display: flex;
-  justify-content: space-between;
-  gap: var(--s-4);
-  margin-bottom: var(--s-3);
-}
-
-.title {
-  margin: 0;
-  font-family: var(--font-head);
-  font-size: var(--fs-lg);
-  font-weight: 700;
-}
-
-.subtitle,
-.idle,
-.resultSummary {
-  margin: var(--s-1) 0 0;
-  color: var(--text-muted);
-  font-size: var(--fs-sm);
+  align-items: center;
+  gap: var(--s-3);
 }
 
 .inputWrap {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: var(--s-2);
-  min-height: 48px;
+  min-height: var(--touch-target-min);
   padding: 0 var(--s-3);
   color: var(--text-muted);
   background: var(--surface);
@@ -44,6 +25,10 @@
   transition:
     border-color var(--t-fast) ease,
     box-shadow var(--t-fast) ease;
+}
+
+.toolbarAction {
+  flex: 0 0 auto;
 }
 
 .inputWrap:focus-within {
@@ -94,12 +79,15 @@
   outline-offset: 2px;
 }
 
-.idle {
-  padding: var(--s-3) var(--s-1) 0;
-}
-
 .results {
   margin-top: var(--s-4);
+  padding: 0 var(--s-1) var(--s-1);
+}
+
+.resultSummary {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
 }
 
 .resultSummary span {
@@ -118,8 +106,6 @@
   color: var(--text);
   font-size: var(--fs-sm);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .groupCount {
@@ -295,7 +281,15 @@
 
 @media (max-width: 620px) {
   .search {
-    padding: var(--s-4);
+    padding: var(--s-2);
+  }
+
+  .toolbar {
+    align-items: stretch;
+  }
+
+  .toolbarAction > * {
+    min-height: 100%;
   }
 
   .resultItem {
@@ -305,6 +299,17 @@
   .resultActions {
     justify-content: flex-end;
     padding: 0 var(--s-2) var(--s-1);
+  }
+}
+
+@media (max-width: 480px) {
+  .toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .openHint {
+    display: none;
   }
 }
 

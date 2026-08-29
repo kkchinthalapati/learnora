@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useEffect, useId, useState } from "react";
 import { Link } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
@@ -10,6 +10,8 @@ import { useTasks } from "../../hooks/useTasks";
 import { useStudyRoom } from "../../hooks/useStudyRoom";
 import { useTranslation } from "../../hooks/useTranslation";
 import type { TranslationKey } from "../../lib/i18n";
+import { Storage } from "../../lib/storage";
+import { SESSION_LOGGED_EVENT } from "../../context/TimerProvider";
 import {
   WORKFLOW_PRESETS,
   format,
@@ -54,6 +56,21 @@ const TYPE_NOTES: Partial<
 
 const RING_RADIUS = 90;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+const RECENT_SESSION_LIMIT = 5;
+
+interface RecentFocusSession {
+  id: number;
+  timestamp: string;
+  minutes: number;
+  task: string;
+}
+
+function readRecentFocusSessions(): RecentFocusSession[] {
+  const storedSessions = Storage.get<RecentFocusSession[]>("sessions", []);
+  return Array.isArray(storedSessions)
+    ? storedSessions.slice(0, RECENT_SESSION_LIMIT)
+    : [];
+}
 
 export function TimerView() {
   const {
@@ -91,6 +108,20 @@ export function TimerView() {
   const countdownId = useId();
   const taskId = useId();
   const folderId = useId();
+  const recentSessionsTitleId = useId();
+  const [recentSessions, setRecentSessions] = useState(readRecentFocusSessions);
+
+  useEffect(() => {
+    const refreshRecentSessions = () => {
+      setRecentSessions(readRecentFocusSessions());
+    };
+    window.addEventListener(SESSION_LOGGED_EVENT, refreshRecentSessions);
+    window.addEventListener("storage", refreshRecentSessions);
+    return () => {
+      window.removeEventListener(SESSION_LOGGED_EVENT, refreshRecentSessions);
+      window.removeEventListener("storage", refreshRecentSessions);
+    };
+  }, []);
 
   /* A bound task that isn't one of the fetched rows — see the note on the
      select below. Also covers a task renamed or completed since it was bound. */
@@ -328,11 +359,7 @@ export function TimerView() {
             </select>
           </div>
 
-          <Button
-            variant="primary"
-            className={styles.applyBtn}
-            onClick={() => void onApply()}
-          >
+          <Button className={styles.applyBtn} onClick={() => void onApply()}>
             {t("btn_apply")}
           </Button>
 
@@ -364,86 +391,91 @@ export function TimerView() {
           </div>
         </Card>
 
-        <div className={styles.display}>
-          <p className={styles.quote}>&ldquo;{quote}&rdquo;</p>
+        <div className={styles.focusColumn}>
+          <div className={styles.display}>
+            <p className={styles.quote}>&ldquo;{quote}&rdquo;</p>
 
-          <div className={styles.ringWrapper}>
-            <svg
-              className={styles.ring}
-              viewBox="0 0 200 200"
-              aria-hidden="true"
-            >
-              <circle
-                className={styles.ringBg}
-                cx="100"
-                cy="100"
-                r={RING_RADIUS}
-              />
-              <circle
-                className={styles.ringProgress}
-                cx="100"
-                cy="100"
-                r={RING_RADIUS}
-                style={{
-                  strokeDashoffset: RING_CIRCUMFERENCE * (1 - fraction),
-                }}
-              />
-            </svg>
-            <div className={styles.ringContent}>
-              <h2 className={styles.modeLabel}>{modeLabel(state)}</h2>
-              {/* aria-live off: a per-second announcement would be unusable.
+            <div className={styles.ringWrapper}>
+              <svg
+                className={styles.ring}
+                viewBox="0 0 200 200"
+                aria-hidden="true"
+              >
+                <circle
+                  className={styles.ringBg}
+                  cx="100"
+                  cy="100"
+                  r={RING_RADIUS}
+                />
+                <circle
+                  className={styles.ringProgress}
+                  cx="100"
+                  cy="100"
+                  r={RING_RADIUS}
+                  style={{
+                    strokeDashoffset: RING_CIRCUMFERENCE * (1 - fraction),
+                  }}
+                />
+              </svg>
+              <div className={styles.ringContent}>
+                <h2 className={styles.modeLabel}>{modeLabel(state)}</h2>
+                {/* aria-live off: a per-second announcement would be unusable.
                   The mode label and the end-of-phase toast carry the news. */}
-              <p className={styles.time} aria-live="off">
-                {format(seconds)}
-              </p>
-              {state.type === "pomodoro" && (
-                <p className={styles.cycles}>
-                  Cycle: {state.cycles} / {state.config.maxCycles}
+                <p className={styles.time} aria-live="off">
+                  {format(seconds)}
                 </p>
-              )}
+                {state.type === "pomodoro" && (
+                  <p className={styles.cycles}>
+                    Cycle: {state.cycles} / {state.config.maxCycles}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div
-            className={styles.progressTrack}
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(fraction * 100)}
-            aria-label={`${modeLabel(state)} progress`}
-          >
             <div
-              className={styles.progressBar}
-              style={{ width: `${fraction * 100}%` }}
-            />
-          </div>
-
-          <div className={styles.controls}>
-            {state.isRunning ? (
-              <Button variant="secondary" onClick={pause}>
-                {t("btn_pause")}
-              </Button>
-            ) : (
-              <Button variant="primary" onClick={start}>
-                {t("btn_start")}
-              </Button>
-            )}
-            {/* +5 min is meaningless on a clock with no end. */}
-            {!countUp && <Button onClick={extend}>+5 min</Button>}
-            {showBreak && <Button onClick={takeBreak}>Take a break</Button>}
-            <Button
-              className={stopAndLog ? styles.ghostSuccess : styles.ghostDanger}
-              onClick={() => void onReset()}
+              className={styles.progressTrack}
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(fraction * 100)}
+              aria-label={`${modeLabel(state)} progress`}
             >
-              {stopAndLog ? "Stop & log" : t("btn_reset")}
-            </Button>
+              <div
+                className={styles.progressBar}
+                style={{ width: `${fraction * 100}%` }}
+              />
+            </div>
+
+            <div className={styles.controls}>
+              {state.isRunning ? (
+                <Button variant="primary" onClick={pause}>
+                  {t("btn_pause")}
+                </Button>
+              ) : (
+                <Button variant="primary" onClick={start}>
+                  {t("btn_start")}
+                </Button>
+              )}
+              {/* +5 min is meaningless on a clock with no end. */}
+              {!countUp && <Button onClick={extend}>+5 min</Button>}
+              {showBreak && <Button onClick={takeBreak}>Take a break</Button>}
+              <Button
+                className={
+                  stopAndLog ? styles.ghostSuccess : styles.ghostDanger
+                }
+                onClick={() => void onReset()}
+              >
+                {stopAndLog ? "Stop & log" : t("btn_reset")}
+              </Button>
+            </div>
           </div>
 
           <div className={styles.studyRoomWidget}>
             <div className={styles.studyRoomWidgetHeader}>
               <span className={styles.studyRoomTitle}>
                 <span className={styles.studyRoomDot} />
-                Study Room · {activeCount > 0 ? `${activeCount} focusing` : "Live Room"}
+                Study Room ·{" "}
+                {activeCount > 0 ? `${activeCount} focusing` : "Live Room"}
               </span>
               <Link to="/room" className={styles.studyRoomCta}>
                 Open Study Room →
@@ -474,10 +506,40 @@ export function TimerView() {
               </div>
             ) : (
               <p className={styles.studyRoomEmpty}>
-                Study alongside friends in real time. <Link to="/room">Join the room</Link> to focus together.
+                Study alongside friends in real time.{" "}
+                <Link to="/room">Join the room</Link> to focus together.
               </p>
             )}
           </div>
+
+          <Card
+            as="section"
+            variant="panel"
+            padding="md"
+            className={styles.recentSessions}
+            aria-labelledby={recentSessionsTitleId}
+          >
+            <div className={styles.recentSessionsHeader}>
+              <h2 id={recentSessionsTitleId}>Recent sessions</h2>
+              <span>{recentSessions.length} shown</span>
+            </div>
+            {recentSessions.length > 0 ? (
+              <ol className={styles.sessionList}>
+                {recentSessions.map((session) => (
+                  <li key={session.id} className={styles.sessionRow}>
+                    <span className={styles.sessionTask}>{session.task}</span>
+                    <span className={styles.sessionMeta}>
+                      {session.minutes} min · {session.timestamp}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className={styles.sessionEmpty}>
+                Finished focus sessions will appear here.
+              </p>
+            )}
+          </Card>
         </div>
       </div>
     </div>

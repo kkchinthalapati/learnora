@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isLibrarySection, sectionLabel } from "./sectionLabel";
+import {
+  isLibrarySection,
+  primaryDestinationForPath,
+  sectionLabel,
+} from "./sectionLabel";
 import { translate } from "./i18n";
 
 const t = (key: Parameters<typeof translate>[1]) => translate("en", key);
@@ -56,5 +60,18 @@ describe("sectionLabel", () => {
     const es = (key: Parameters<typeof translate>[1]) => translate("es", key);
     expect(sectionLabel("/", es)).toBe("Tablero");
     expect(sectionLabel("/tasks", es)).toBe("Tareas");
+  });
+});
+
+describe("primaryDestinationForPath", () => {
+  it("groups planning and library child routes under their primary links", () => {
+    expect(primaryDestinationForPath("/tasks")).toBe("plan");
+    expect(primaryDestinationForPath("/exams")).toBe("plan");
+    expect(primaryDestinationForPath("/notes/material-1")).toBe("library");
+  });
+
+  it("returns no primary destination for secondary tools", () => {
+    expect(primaryDestinationForPath("/debugger")).toBeNull();
+    expect(primaryDestinationForPath("/friends")).toBeNull();
   });
 });

@@ -637,9 +637,7 @@ describe("PlanView", () => {
       servePlan(planRow(SAMPLE_PLAN));
       renderPlan();
 
-      expect(
-        await screen.findByText(/Optimal Focus:/i),
-      ).toBeInTheDocument();
+      expect(await screen.findByText(/Optimal Focus:/i)).toBeInTheDocument();
     });
 
     it("displays the Auto-Rebalance banner and redistributes blocks on click when user is behind", async () => {
@@ -695,7 +693,9 @@ describe("PlanView", () => {
         name: /Auto-Rebalance Schedule/i,
       });
       expect(rebalanceBtn).toBeInTheDocument();
-      expect(screen.getByText(/Schedule Rebalancing Available/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Schedule Rebalancing Available/i),
+      ).toBeInTheDocument();
 
       await userEvent.click(rebalanceBtn);
 
@@ -834,8 +834,10 @@ describe("PlanView", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "permission denied",
     );
-    // Not a heading anymore — the app shell's Header supplies the page's
-    // <h1> now (see archive/redesign/DESIGN_MOVES.md move #2).
-    expect(screen.getByText("This week's plan")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Week" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.queryByText("This week's plan")).not.toBeInTheDocument();
   });
 });

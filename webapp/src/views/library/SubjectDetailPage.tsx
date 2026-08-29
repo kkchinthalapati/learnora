@@ -23,23 +23,6 @@ import type { MaterialType } from "../../api/types";
 import { useLibraryActions } from "./useLibraryActions";
 import styles from "./library.module.css";
 
-/* One subject's workspace — ports index.html:1719-1748 + js/router.js:387-498.
- *
- * Three changes worth knowing about:
- *
- * 1. **The heading shows the subject's name.** The vanilla markup has
- *    `<h2 id="workspace-title">Workspace</h2>` and nothing in `js/` ever
- *    assigns to it, so every folder's workspace was titled "Workspace" — you
- *    could not tell from the page which one you had opened.
- * 2. **A folder id that doesn't resolve says so** instead of rendering three
- *    empty lists that look like a real but empty subject.
- * 3. Decks and quizzes are filtered out of the all-entities queries the
- *    Library tabs already load rather than issuing per-folder fetches. The
- *    vanilla did this for quizzes (`fetchAll().filter(...)`) but not decks;
- *    doing it for both means opening a subject from the Library costs no new
- *    requests, and a delete here updates the Library's tabs through the same
- *    cache entry. */
-
 const MATERIAL_ICONS: Record<MaterialType, IconName> = {
   pdf: "file-text",
   youtube: "play",
@@ -51,20 +34,41 @@ function Section({
   title,
   icon,
   hint,
+  count,
+  wide = false,
   children,
 }: {
   title: string;
   icon: IconName;
   hint: string;
+  count?: number;
+  wide?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <Card as="section" variant="elevated" padding="md">
-      <h2 className={styles.sectionTitle}>
-        <Icon name={icon} size={18} />
-        {title}
-      </h2>
-      <p className={styles.sectionHint}>{hint}</p>
+    <Card
+      as="section"
+      variant="panel"
+      padding="md"
+      className={wide ? styles.workspaceSectionWide : undefined}
+    >
+      <div className={styles.sectionHeader}>
+        <div>
+          <h2 className={styles.sectionTitle}>
+            <Icon name={icon} size={18} />
+            {title}
+          </h2>
+          <p className={styles.sectionHint}>{hint}</p>
+        </div>
+        {count !== undefined ? (
+          <span
+            className={styles.sectionCount}
+            aria-label={`${title}: ${count}`}
+          >
+            {count}
+          </span>
+        ) : null}
+      </div>
       {children}
     </Card>
   );
@@ -99,8 +103,8 @@ export function SubjectDetailPage() {
   const dueInFolder = useMemo(() => {
     if (!allDueCards.data || !folderDecks.length) return [];
     const folderDeckIds = new Set(folderDecks.map((d) => d.id));
-    return allDueCards.data.filter(
-      (c) => Boolean(c.deck_id && folderDeckIds.has(c.deck_id)),
+    return allDueCards.data.filter((c) =>
+      Boolean(c.deck_id && folderDeckIds.has(c.deck_id)),
     );
   }, [allDueCards.data, folderDecks]);
 
@@ -109,7 +113,7 @@ export function SubjectDetailPage() {
   const handleStartFocus = () => {
     if (!folder) return;
     timer?.prepareFocus(25, folder.name, folder.id);
-    showToast(`25m Focus session staged for ${folder.name}!`);
+    showToast(`25-minute focus session ready for ${folder.name}.`);
     void navigate("/timer");
   };
 
@@ -117,6 +121,19 @@ export function SubjectDetailPage() {
     return (
       <div className={styles.view} aria-busy="true">
         <Skeleton label="Loading this subject" height={240} />
+      </div>
+    );
+  }
+
+  if (folders.isError) {
+    return (
+      <div className={styles.view}>
+        <Link to="/library" className={styles.backLink}>
+          ← Back to Library
+        </Link>
+        <p role="alert" className={styles.workspaceLoadError}>
+          Could not load this subject. Check your connection and try again.
+        </p>
       </div>
     );
   }
@@ -149,11 +166,12 @@ export function SubjectDetailPage() {
   return (
     <div className={styles.view}>
       <div className={styles.workspaceHeader}>
-        <div className={styles.workspaceTitleGroup}>
+        <div className={styles.workspaceIdentity}>
           <Link to="/library" className={styles.backLink}>
             ← Back to Library
           </Link>
-          <h1 className={styles.workspaceTitle}>{folder.name}</h1>
+          <p className={styles.workspaceEyebrow}>Subject workspace</p>
+          <h2 className={styles.workspaceTitle}>{folder.name}</h2>
         </div>
         <div className={styles.workspaceActions}>
           {dueInFolder.length > 0 && targetDueDeckId ? (
@@ -162,13 +180,11 @@ export function SubjectDetailPage() {
               onClick={() => void navigate(`/review/${targetDueDeckId}`)}
             >
               <Icon name="refresh-cw" size={16} />
-              Review {dueInFolder.length} Due {dueInFolder.length === 1 ? "Card" : "Cards"}
+              Review {dueInFolder.length} Due{" "}
+              {dueInFolder.length === 1 ? "Card" : "Cards"}
             </Button>
           ) : null}
-          <Button
-            variant="secondary"
-            onClick={handleStartFocus}
-          >
+          <Button variant="secondary" onClick={handleStartFocus}>
             <Icon name="clock" size={16} />
             Focus on Subject (25m)
           </Button>
@@ -185,7 +201,9 @@ export function SubjectDetailPage() {
         <Section
           title="Materials & Notes"
           icon="file-text"
-          hint="Click a file to read its AI-generated notes."
+          hint="Open a material to read and edit its notes."
+          count={materials.data?.length}
+          wide
         >
           {materials.isPending ? (
             <Skeleton label="Loading materials" height={80} />
@@ -226,10 +244,7 @@ export function SubjectDetailPage() {
                           role="status"
                           aria-label="Processing"
                         >
-                          <span
-                            className={styles.spinner}
-                            aria-hidden="true"
-                          />
+                          <span className={styles.spinner} aria-hidden="true" />
                           <span>Processing...</span>
                         </span>
                       )}
@@ -278,7 +293,7 @@ export function SubjectDetailPage() {
                         )
                       }
                     >
-                      ✕
+                      <Icon name="trash" size={16} />
                     </button>
                   </li>
                 );
@@ -290,7 +305,8 @@ export function SubjectDetailPage() {
         <Section
           title="Flashcard Decks"
           icon="layers"
-          hint="Use + Create above to build a deck from any material in this folder."
+          hint="Review decks created for this subject."
+          count={decks.isPending ? undefined : folderDecks.length}
         >
           {decks.isPending ? (
             <Skeleton label="Loading decks" height={80} />
@@ -315,7 +331,7 @@ export function SubjectDetailPage() {
                     title="Delete this deck"
                     onClick={() => void removeDeck(deck.id, deck.title)}
                   >
-                    ✕
+                    <Icon name="trash" size={16} />
                   </button>
                 </li>
               ))}
@@ -326,7 +342,8 @@ export function SubjectDetailPage() {
         <Section
           title="Quizzes"
           icon="help-circle"
-          hint="Use + Create above to build a quiz from a material here, or from any topic."
+          hint="Take or revisit quizzes for this subject."
+          count={quizzes.isPending ? undefined : folderQuizzes.length}
         >
           {quizzes.isPending ? (
             <Skeleton label="Loading quizzes" height={80} />
@@ -351,7 +368,7 @@ export function SubjectDetailPage() {
                     title="Delete this quiz"
                     onClick={() => void removeQuiz(quiz.id, quiz.title)}
                   >
-                    ✕
+                    <Icon name="trash" size={16} />
                   </button>
                 </li>
               ))}

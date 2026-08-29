@@ -14,6 +14,7 @@ import { DayDetailModal } from "./DayDetailModal";
 import { ExamModal } from "./ExamModal";
 import { ExamPrepModal } from "./ExamPrepModal";
 import { MAX_EXAM_BARS_PER_DAY } from "./examMeta";
+import { PlanSectionNav } from "../plan/PlanSectionNav";
 import styles from "./exams.module.css";
 
 /* Exams calendar — ports index.html:877-916 + js/main.js:1651-1915.
@@ -94,9 +95,9 @@ function UpcomingExamCard({ exam, onOpenPrep, onEdit }: UpcomingExamCardProps) {
         : styles.badgeGap;
 
   return (
-    <div className={styles.upcomingCard}>
+    <article className={styles.upcomingCard}>
       <div className={styles.upcomingLeft}>
-        <div className={styles.upcomingName}>{exam.exam_name}</div>
+        <h3 className={styles.upcomingName}>{exam.exam_name}</h3>
         <div className={styles.upcomingMeta}>
           <span>{prettyDate}</span>
           <span>•</span>
@@ -120,29 +121,22 @@ function UpcomingExamCard({ exam, onOpenPrep, onEdit }: UpcomingExamCardProps) {
           type="button"
           className={styles.dayItemPrepBtn}
           onClick={() => onOpenPrep(exam)}
-          title="Open AI Prep Roadmap"
-          aria-label={`Open AI Prep Roadmap for ${exam.exam_name}`}
+          title="Open prep plan"
+          aria-label={`Open prep plan for ${exam.exam_name}`}
         >
           <Icon name="compass" size={14} />
-          Prep Roadmap
+          Prep plan
         </button>
         <button
           type="button"
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "var(--text-muted)",
-            display: "inline-flex",
-            padding: "4px",
-          }}
+          className={styles.editExamButton}
           onClick={() => onEdit(exam)}
           aria-label={`Edit ${exam.exam_name}`}
         >
           <Icon name="pencil" size={15} />
         </button>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -206,6 +200,40 @@ export function ExamsView() {
 
   return (
     <div className={styles.view}>
+      <PlanSectionNav />
+
+      {!isPending && upcomingExams.length > 0 && (
+        <section
+          className={styles.upcomingSection}
+          aria-labelledby="upcoming-exams-title"
+        >
+          <div className={styles.upcomingTitleRow}>
+            <div>
+              <p className={styles.sectionLabel}>Next deadlines</p>
+              <h2 id="upcoming-exams-title">Upcoming exams</h2>
+            </div>
+          </div>
+          <div className={styles.upcomingGrid}>
+            {upcomingExams.map((exam) => (
+              <UpcomingExamCard
+                key={exam.id}
+                exam={exam}
+                onOpenPrep={(selectedExam) =>
+                  setOverlay({ kind: "prep", exam: selectedExam })
+                }
+                onEdit={(selectedExam) =>
+                  setOverlay({
+                    kind: "exam",
+                    exam: selectedExam,
+                    date: selectedExam.exam_date,
+                  })
+                }
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       <Card variant="panel" padding="lg" className={styles.container}>
         <div className={styles.toolbar}>
           <div className={styles.monthNav}>
@@ -242,7 +270,7 @@ export function ExamsView() {
         </div>
 
         <p className={styles.hint}>
-          Tap any day to add an exam, or a colored label to edit one.
+          Select a day to add an exam. Select an exam label to edit it.
         </p>
 
         {isError && (
@@ -256,7 +284,7 @@ export function ExamsView() {
             <Skeleton label="Loading your calendar" height={320} />
           </div>
         ) : (
-          <>
+          <div className={styles.calendarScroll}>
             <div className={styles.weekdays} aria-hidden="true">
               {WEEKDAY_KEYS.map((key) => (
                 <div key={key}>{t(key)}</div>
@@ -335,37 +363,7 @@ export function ExamsView() {
                 );
               })}
             </div>
-
-            {/* Upcoming Exams & AI Prep Readiness Section */}
-            {upcomingExams.length > 0 && (
-              <div className={styles.upcomingSection}>
-                <div className={styles.upcomingTitleRow}>
-                  <h3>
-                    <Icon name="brain" size={18} />
-                    Upcoming Exams & Readiness Intelligence
-                  </h3>
-                </div>
-                <div className={styles.upcomingGrid}>
-                  {upcomingExams.map((exam) => (
-                    <UpcomingExamCard
-                      key={exam.id}
-                      exam={exam}
-                      onOpenPrep={(ex) =>
-                        setOverlay({ kind: "prep", exam: ex })
-                      }
-                      onEdit={(ex) =>
-                        setOverlay({
-                          kind: "exam",
-                          exam: ex,
-                          date: ex.exam_date,
-                        })
-                      }
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+          </div>
         )}
       </Card>
 

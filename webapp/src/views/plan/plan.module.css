@@ -25,16 +25,46 @@
   padding: var(--s-5) var(--s-6);
 }
 
-.title {
-  font-family: var(--font-head);
-  font-size: var(--fs-2xl);
+.weekContext {
+  min-width: 0;
+}
+
+.weekLabel {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
   font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   margin: 0;
 }
 
 .weekRange {
-  color: var(--text-muted);
-  margin-top: var(--s-2);
+  color: var(--text);
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  line-height: 1.2;
+  margin: var(--s-1) 0 0;
+}
+
+.summaryActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-2);
+}
+
+.triageSummary {
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+.triageStatus {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  color: var(--danger);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  margin: var(--s-2) 0 0;
 }
 
 .summary {
@@ -110,11 +140,7 @@
 /* --- Rebalance Banner --- */
 .rebalanceBanner {
   margin-top: var(--s-4);
-  background: linear-gradient(
-    135deg,
-    var(--accent-soft),
-    var(--accent-soft)
-  );
+  background: linear-gradient(135deg, var(--accent-soft), var(--accent-soft));
   border: 1px solid var(--accent);
   display: flex;
   align-items: center;
@@ -194,9 +220,8 @@
 
 .weekGrid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: var(--s-3);
-  overflow-x: auto;
   padding-bottom: var(--s-2);
   margin-top: var(--s-6);
   list-style: none;
@@ -204,11 +229,7 @@
 
 @media (max-width: 900px) {
   .weekGrid {
-    grid-auto-flow: column;
-    grid-template-columns: none;
-    grid-auto-columns: minmax(200px, 1fr);
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -226,12 +247,6 @@
   transition:
     opacity var(--t-fast) ease,
     box-shadow var(--t-fast) ease;
-}
-
-@media (max-width: 900px) {
-  .dayCard {
-    scroll-snap-align: start;
-  }
 }
 
 .isToday {
@@ -264,11 +279,11 @@
 
 .addBlockButton {
   display: inline-flex;
-  width: 30px;
-  height: 30px;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
   align-items: center;
   justify-content: center;
-  flex: 0 0 30px;
+  flex: 0 0 var(--touch-target-min);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-sm);
   background: var(--surface-2);
@@ -340,6 +355,7 @@
   padding: 4px 10px;
   font-size: var(--fs-xs);
   flex-shrink: 0;
+  min-height: var(--touch-target-min);
 }
 
 .blockActions {
@@ -352,6 +368,7 @@
 .blockEdit {
   padding: 4px 8px;
   font-size: var(--fs-xs);
+  min-height: var(--touch-target-min);
 }
 
 .editorModal {
@@ -416,6 +433,26 @@
 }
 
 @media (max-width: 560px) {
+  .summaryCard {
+    align-items: stretch;
+  }
+
+  .summaryCard.summaryCard {
+    padding: var(--s-4);
+  }
+
+  .summaryActions {
+    width: 100%;
+  }
+
+  .summaryActions > button {
+    flex: 1;
+  }
+
+  .weekGrid {
+    grid-template-columns: 1fr;
+  }
+
   .editorRow {
     grid-template-columns: 1fr;
   }

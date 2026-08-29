@@ -21,22 +21,6 @@ import {
 import type { TranslationKey } from "../../lib/i18n";
 import styles from "./settings.module.css";
 
-/* Preferences tab — ports index.html:1510-1595 + js/ui.js's saveSettings
- * (:1078-1090).
- *
- * The vanilla read the four <select> values straight out of the DOM on save;
- * here they're controlled inputs over the shared settings context, so the
- * Notifications tab's immediate writes and this tab's explicit save can't
- * clobber each other (see SettingsProvider).
- *
- * `saveSettings()` also called `applyTranslations()`, which walks every
- * `[data-i18n]` node in the vanilla document — now ported via `useTranslation()`
- * (Step 23). Only the headings/labels/option text the vanilla actually marks
- * `data-i18n` translate here: the `<option>` *language names* themselves
- * (English/Español/…) don't, in either app, and neither do this tab's plain
- * descriptive `<p>` copy or the Data & Privacy tab, none of which carry
- * `data-i18n` in index.html either. */
-
 const PERSONA_KEYS: Record<AiPersona, TranslationKey> = {
   tutor: "opt_tutor",
   coach: "opt_coach",
@@ -74,10 +58,10 @@ export function PreferencesTab() {
       ]);
       const ics = generateICS(exams, plans);
       downloadICS(ics);
-      showToast("Calendar exported successfully!");
+      showToast("Calendar exported.");
     } catch (err) {
       console.error("Failed to export calendar", err);
-      showToast("Failed to export calendar.");
+      showToast("Calendar export failed.");
     }
   };
 
@@ -97,7 +81,7 @@ export function PreferencesTab() {
           </span>
           <div>
             <h3 id="settings-ai-heading">{t("set_ai_brain")}</h3>
-            <p>Customize how Learnora AI responds to you</p>
+            <p>Set the tone and length of AI responses.</p>
           </div>
         </div>
 
@@ -105,7 +89,7 @@ export function PreferencesTab() {
           <div className={styles.fieldLabel}>
             <label htmlFor={personaId}>{t("set_persona")}</label>
             <p className={styles.fieldDesc}>
-              Choose the teaching style that works best for you
+              Choose the teaching style for AI responses.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -164,7 +148,7 @@ export function PreferencesTab() {
           </span>
           <div>
             <h3 id="settings-l10n-heading">{t("set_localization")}</h3>
-            <p>Language and regional preferences</p>
+            <p>Set interface language, AI language, and timezone.</p>
           </div>
         </div>
 
@@ -244,14 +228,14 @@ export function PreferencesTab() {
             <Icon name="calendar" size={18} />
           </span>
           <div>
-            <h3 id="settings-data-heading">Data Management</h3>
-            <p>Export your exams and study plan to other calendar apps</p>
+            <h3 id="settings-data-heading">Calendar Export</h3>
+            <p>Add upcoming exams and study plans to another calendar.</p>
           </div>
         </div>
 
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
-            <span className={styles.labelText}>Calendar Export (.ics)</span>
+            <span className={styles.labelText}>Calendar File (.ics)</span>
             <p className={styles.fieldDesc}>
               Download a calendar file of all upcoming exams and study plans
             </p>
@@ -276,7 +260,7 @@ export function PreferencesTab() {
                 console.error("Failed to sync timezone", err);
               }
             });
-            showToast("Your settings have been saved successfully.");
+            showToast("Preferences saved.");
           }}
         >
           {t("btn_save_config")}

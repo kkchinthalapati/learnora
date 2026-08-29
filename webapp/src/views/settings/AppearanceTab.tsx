@@ -16,14 +16,6 @@ import { CustomThemeStudio } from "./CustomThemeStudio";
 import settings from "./settings.module.css";
 import styles from "./appearance.module.css";
 
-/* Appearance tab — ports index.html:1134-1509 + js/main.js:780-925 +
- * js/ui.js:698-1063.
- *
- * Every control applies immediately and persists only on "Save Appearance",
- * exactly as before; AppearanceProvider owns that two-tier state. Selection is
- * expressed once, as `aria-pressed`, instead of the vanilla's parallel
- * `.active` class plus `aria-pressed` pair. */
-
 const MODES: ReadonlyArray<{ id: Mode; title: string; icon: IconName }> = [
   { id: "dark", title: "Dark Mode", icon: "moon" },
   { id: "light", title: "Light Mode", icon: "sun" },
@@ -130,22 +122,16 @@ export function AppearanceTab() {
             <Icon name="palette" size={18} />
           </span>
           <div>
-            <h3 id="settings-appearance-heading">
-              Workspace Appearance &amp; Theme
-            </h3>
-            <p>
-              Personalize your visual experience, color scheme, typography, and
-              atmospheric effects.
-            </p>
+            <h3 id="settings-appearance-heading">Workspace Appearance</h3>
+            <p>Set the colour, typography, and workspace surfaces.</p>
           </div>
         </div>
 
-        {/* 1. Interface mode */}
         <div className={`${settings.field} ${settings.fieldStack}`}>
           <div className={settings.fieldLabel}>
             <span className={settings.labelText}>Interface Mode</span>
             <p className={settings.fieldDesc}>
-              Choose between dark mode, light mode, or system automatic sync
+              Follow your device theme or choose light or dark.
             </p>
           </div>
           <div className={styles.grid} role="group" aria-label="Interface mode">
@@ -165,13 +151,10 @@ export function AppearanceTab() {
           </div>
         </div>
 
-        {/* 2. Colour presets */}
         <div className={`${settings.field} ${settings.fieldStack}`}>
           <div className={settings.fieldLabel}>
-            <span className={settings.labelText}>Color Vibe Presets</span>
-            <p className={settings.fieldDesc}>
-              Select a curated accent gradient and ambient glow scheme
-            </p>
+            <span className={settings.labelText}>Accent Colour</span>
+            <p className={settings.fieldDesc}>Choose an accent preset.</p>
           </div>
           <div
             className={styles.swatchGrid}
@@ -201,14 +184,12 @@ export function AppearanceTab() {
           </div>
         </div>
 
-        {/* 2b. Custom colour studio */}
         <div className={`${settings.field} ${settings.fieldStack}`}>
           <div className={`${settings.fieldLabel} ${styles.studioHeading}`}>
             <div>
               <span className={settings.labelText}>Custom Colours</span>
               <p className={settings.fieldDesc}>
-                Match your mood with endless colour combinations. Build your own
-                accent from scratch.
+                Build an accent from up to three colours.
               </p>
             </div>
             <span
@@ -224,7 +205,6 @@ export function AppearanceTab() {
           <CustomThemeStudio />
         </div>
 
-        {/* 3. Font family */}
         <div className={`${settings.field} ${settings.fieldStack}`}>
           <div className={settings.fieldLabel}>
             <span className={settings.labelText}>Font Family</span>
@@ -258,13 +238,10 @@ export function AppearanceTab() {
           </div>
         </div>
 
-        {/* 4. Interface scale */}
         <div className={`${settings.field} ${settings.fieldStack}`}>
           <div className={settings.fieldLabel}>
-            <span className={settings.labelText}>Interface Font Scaling</span>
-            <p className={settings.fieldDesc}>
-              Adjust baseline text size and element spacing
-            </p>
+            <span className={settings.labelText}>Interface Scale</span>
+            <p className={settings.fieldDesc}>Change text and control size.</p>
           </div>
           <div
             className={styles.grid}
@@ -294,7 +271,7 @@ export function AppearanceTab() {
         {/* 5. Sidebar framing */}
         <div className={`${settings.field} ${settings.fieldStack}`}>
           <div className={settings.fieldLabel}>
-            <span className={settings.labelText}>Sidebar Framing Style</span>
+            <span className={settings.labelText}>Sidebar Style</span>
             <p className={settings.fieldDesc}>
               Choose sidebar transparency and background blur
             </p>
@@ -340,7 +317,7 @@ export function AppearanceTab() {
         {/* 6. Live preview */}
         <div className={`${settings.field} ${settings.fieldStack}`}>
           <div className={settings.fieldLabel}>
-            <span className={settings.labelText}>Live Workspace Preview</span>
+            <span className={settings.labelText}>Preview</span>
             <p className={settings.fieldDesc}>
               Instant real-time preview of your active theme &amp; typography
             </p>
@@ -380,7 +357,7 @@ export function AppearanceTab() {
           variant="primary"
           onClick={() => {
             save();
-            showToast("Your appearance & theme preferences have been saved!");
+            showToast("Appearance saved.");
           }}
         >
           Save Appearance

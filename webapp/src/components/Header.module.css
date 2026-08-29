@@ -1,124 +1,143 @@
-/* Ported from style.css's `header` (:339-366, mobile :3726-3733),
- * `.icon-btn` (:2055-2076) and `.glass-pill` (:2078-2091). */
-
 .header {
+  min-height: 52px;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
   gap: var(--s-4);
-  flex-wrap: wrap;
-  margin-bottom: clamp(20px, 2.5vw, 32px);
+  margin-bottom: var(--s-6);
 }
 
-.headerLeft {
-  display: flex;
-  align-items: center;
-  gap: var(--s-4);
-}
-
+.headerLeft,
 .headerRight {
   display: flex;
   align-items: center;
+}
+
+.headerLeft {
+  min-width: 0;
   gap: var(--s-3);
 }
 
+.headerRight {
+  flex-shrink: 0;
+  gap: var(--s-2);
+}
+
+.pageIdentity {
+  min-width: 0;
+}
+
 .title {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text);
   font-family: var(--font-head);
   font-size: clamp(22px, 3vw, 30px);
   font-weight: 700;
-  margin: 0;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .subtitle {
+  margin: var(--s-1) 0 0;
   color: var(--text-muted);
   font-size: var(--fs-sm);
-  margin: 0;
 }
 
-/* Only shown at the same breakpoint the sidebar goes off-canvas. Recipe
-   itself now lives in components/IconButton — see move #7. Doubled selector:
-   IconButton's own `display: flex` (for icon centering) has the same
-   specificity, and CSS Modules doesn't guarantee this file loads after it. */
 .menuToggle.menuToggle {
   display: none;
 }
 
 .searchTrigger {
-  display: flex;
+  min-height: var(--touch-target-min);
+  display: inline-flex;
   align-items: center;
   gap: var(--s-2);
-  padding: 8px 12px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--line);
   border-radius: var(--r-md);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
+  background: var(--surface);
   color: var(--text-muted);
-  cursor: pointer;
   font-family: inherit;
   font-size: var(--fs-sm);
-  font-weight: 500;
-  transition: all 0.15s ease;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    border-color var(--t-fast) ease,
+    color var(--t-fast) ease;
 }
 
 .searchTrigger:hover {
+  border-color: var(--accent-ring);
   background: var(--surface-2);
-  border-color: var(--accent);
   color: var(--text);
 }
 
-.searchTriggerIcon {
-  color: var(--text-muted);
-  transition: color 0.15s ease;
-}
-
-.searchTrigger:hover .searchTriggerIcon {
-  color: var(--accent);
-}
-
-.searchTriggerLabel {
-  font-size: var(--fs-sm);
-}
-
 .searchKbd {
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  background: var(--surface-2);
+  color: var(--text-muted);
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: var(--fs-xs);
-  font-weight: 600;
-  padding: 1px 5px;
-  border-radius: var(--r-sm);
-  background: var(--surface-2);
-  border: 1px solid var(--glass-border);
-  color: var(--text-muted);
 }
 
 .clock {
   flex-shrink: 0;
-  font-size: var(--fs-base);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  padding: 0 var(--s-2);
   color: var(--text-muted);
-  padding: 9px 16px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-md);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 768px) {
   .header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .headerRight {
-    width: 100%;
-    justify-content: flex-end;
+    min-height: 44px;
+    gap: var(--s-2);
+    margin-bottom: var(--s-5);
   }
 
   .menuToggle.menuToggle {
     display: flex;
+  }
+
+  .headerLeft {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .headerRight {
+    gap: var(--s-1);
+  }
+
+  .subtitle,
+  .clock,
+  .searchTriggerLabel,
+  .searchKbd {
+    display: none;
+  }
+
+  .searchTrigger {
+    width: var(--touch-target-min);
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .title {
+    max-width: 112px;
+    font-size: var(--fs-xl);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .searchTrigger {
+    transition: none;
   }
 }

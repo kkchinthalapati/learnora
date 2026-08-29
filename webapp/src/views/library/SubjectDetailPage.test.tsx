@@ -80,7 +80,11 @@ function serveSubject({
   materials = [] as Material[],
   decks = [] as FlashcardDeck[],
   quizzes = [] as Quiz[],
-  flashcards = [] as { id: string; deck_id: string; next_review_date?: string | null }[],
+  flashcards = [] as {
+    id: string;
+    deck_id: string;
+    next_review_date?: string | null;
+  }[],
 } = {}) {
   server.use(
     http.get(rest("folders"), () => HttpResponse.json(folders)),
@@ -128,15 +132,14 @@ describe("SubjectDetailPage", () => {
     vi.restoreAllMocks();
   });
 
-  /* The vanilla's `<h2 id="workspace-title">Workspace</h2>` was never assigned
-     to by any code in js/, so every folder's page was headed "Workspace". */
-  it("heads the page with the subject's name", async () => {
+  it("shows the subject name as workspace context below the shell heading", async () => {
     serveSubject();
     renderSubject();
 
     expect(
-      await screen.findByRole("heading", { level: 1, name: "Biology" }),
+      await screen.findByRole("heading", { level: 2, name: "Biology" }),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
     expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
   });
 
@@ -347,8 +350,16 @@ describe("SubjectDetailPage", () => {
     const user = userEvent.setup();
     const decks = [deck({ id: "deck-1", title: "Mitosis basics" })];
     const flashcards = [
-      { id: "c-1", deck_id: "deck-1", next_review_date: "2020-01-01T00:00:00.000Z" },
-      { id: "c-2", deck_id: "deck-1", next_review_date: "2020-01-01T00:00:00.000Z" },
+      {
+        id: "c-1",
+        deck_id: "deck-1",
+        next_review_date: "2020-01-01T00:00:00.000Z",
+      },
+      {
+        id: "c-2",
+        deck_id: "deck-1",
+        next_review_date: "2020-01-01T00:00:00.000Z",
+      },
     ];
     serveSubject({ decks, flashcards });
     renderSubject();

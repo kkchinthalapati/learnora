@@ -95,11 +95,7 @@ describe("AppearanceTab", () => {
     await user.click(screen.getByRole("button", { name: "Save Appearance" }));
 
     expect(Storage.get<string>("learnora_accent")).toBe("ocean");
-    expect(
-      await screen.findByText(
-        "Your appearance & theme preferences have been saved!",
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Appearance saved.")).toBeInTheDocument();
   });
 
   it("writes every appearance key on save", async () => {

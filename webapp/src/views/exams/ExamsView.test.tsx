@@ -53,7 +53,11 @@ function serveExams(rows: Exam[]) {
 }
 
 function renderExams() {
-  return renderWithAuth(<ExamsView />, { session: fakeSession() });
+  return renderWithAuth(
+    <ExamsView />,
+    { session: fakeSession() },
+    { withRouter: true, initialEntries: ["/exams"] },
+  );
 }
 
 const cellFor = (day: number, month = M, year = Y) =>
@@ -77,6 +81,17 @@ describe("ExamsView", () => {
     renderExams();
 
     expect(await screen.findByText(MONTH_LABEL)).toBeInTheDocument();
+  });
+
+  it("marks Exams as the current planning section", async () => {
+    serveExams([]);
+    renderExams();
+
+    await gridReady();
+    expect(screen.getByRole("link", { name: "Exams" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
   it("renders exactly one cell per day of the month", async () => {

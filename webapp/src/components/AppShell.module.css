@@ -44,11 +44,14 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: clamp(20px, 3vw, 32px) clamp(20px, 4vw, 48px);
-  padding-bottom: calc(
-    var(--command-bar-clearance) + var(--mini-timer-clearance, 0px)
-  );
+  padding-bottom: calc(var(--s-8) + var(--mini-timer-clearance, 0px));
   position: relative;
   z-index: 1;
+}
+
+.contentFrame {
+  width: min(100%, var(--content-max));
+  margin: 0 auto;
 }
 
 .sidebarBackdrop {
@@ -68,9 +71,7 @@
   }
 
   .mainContent {
-    padding: var(--s-5);
-    padding-bottom: calc(
-      var(--command-bar-clearance) + var(--mini-timer-clearance, 0px)
-    );
+    padding: var(--s-4);
+    padding-bottom: calc(var(--s-6) + var(--mini-timer-clearance, 0px));
   }
 }

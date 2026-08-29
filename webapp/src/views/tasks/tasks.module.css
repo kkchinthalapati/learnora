@@ -12,6 +12,14 @@
   padding-bottom: var(--s-8);
 }
 
+.regionTitle {
+  margin: 0 0 var(--s-3);
+  color: var(--text);
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  line-height: 1.25;
+}
+
 /* Shell now comes from <Card variant="panel">; this residual rule owns the
    layout plus the flat var(--s-5) padding, which Card's own padding scale
    doesn't have a flat 20px slot for ("md" is a responsive clamp). */
@@ -112,6 +120,106 @@
   list-style: none;
   margin: var(--s-6) 0 0;
   padding: 0;
+}
+
+.taskSection {
+  margin-top: var(--s-7);
+}
+
+.taskToolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-bottom: var(--s-4);
+}
+
+.taskToolbar .regionTitle {
+  margin-bottom: var(--s-1);
+}
+
+.taskCounts {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-1);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.filterButton {
+  min-height: var(--touch-target-min);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.filterButton:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.filterButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.filterButtonActive {
+  color: var(--accent-text);
+  background: var(--surface);
+  border-color: var(--accent-ring);
+  box-shadow: var(--shadow-sm);
+}
+
+.taskGroups {
+  display: grid;
+  gap: var(--s-6);
+}
+
+.taskGroup .list {
+  margin: 0;
+}
+
+.groupHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-2);
+  padding: 0 var(--s-1);
+}
+
+.groupHeading h3 {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.groupHeading span {
+  min-width: 24px;
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-align: center;
 }
 
 .item {
@@ -387,6 +495,60 @@
   }
   .item:hover {
     transform: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .inputMainRow {
+    align-items: stretch;
+  }
+
+  .textInput {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  .dueField {
+    flex: 1;
+  }
+
+  .dueInput {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .taskToolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filters {
+    overflow-x: auto;
+  }
+
+  .filterButton {
+    flex: 1 0 auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .inputCard {
+    padding: var(--s-4);
+  }
+
+  .dueField,
+  .inputMainRow > button {
+    flex-basis: 100%;
+  }
+
+  .item {
+    align-items: flex-start;
+    padding: var(--s-4);
+  }
+
+  .itemControls {
+    width: 100%;
+    padding-left: 34px;
   }
 }
 

@@ -41,14 +41,18 @@ describe("ResumeLearningCard", () => {
     const user = userEvent.setup();
     renderCard();
 
-    expect(screen.getByRole("heading", { name: "Pick Up Where You Left Off" })).toBeInTheDocument();
     expect(
-      screen.getByText(/Ready to study\? Jump into your notes, test your memory/),
+      screen.getByRole("heading", { name: "Pick up where you left off" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Open a note, review a flashcard deck/),
     ).toBeInTheDocument();
 
     const openLibBtn = screen.getByRole("button", { name: "Open Library" });
     await user.click(openLibBtn);
-    expect(await screen.findByRole("heading", { name: "Library Page" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Library Page" }),
+    ).toBeInTheDocument();
   });
 
   it("renders active material resume card with progress bar and 1-click resume CTA", async () => {
@@ -64,13 +68,18 @@ describe("ResumeLearningCard", () => {
 
     expect(screen.getByText("Cellular Metabolism & ATP")).toBeInTheDocument();
     expect(screen.getByText("Notes • 65% read")).toBeInTheDocument();
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "65");
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "65",
+    );
     expect(screen.getByText("65% complete")).toBeInTheDocument();
 
     const resumeBtn = screen.getByRole("button", { name: "Resume" });
     await user.click(resumeBtn);
 
-    expect(await screen.findByRole("heading", { name: "Notes Page" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Notes Page" }),
+    ).toBeInTheDocument();
   });
 
   it("renders active flashcard deck resume card and navigates to review runner", async () => {
@@ -91,7 +100,9 @@ describe("ResumeLearningCard", () => {
     const resumeBtn = screen.getByRole("button", { name: "Resume" });
     await user.click(resumeBtn);
 
-    expect(await screen.findByRole("heading", { name: "Review Page" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Review Page" }),
+    ).toBeInTheDocument();
   });
 
   it("renders active quiz draft resume card and navigates to quiz runner", async () => {
@@ -105,14 +116,18 @@ describe("ResumeLearningCard", () => {
 
     renderCard();
 
-    expect(screen.getByText("Molecular Genetics Exam Drill")).toBeInTheDocument();
+    expect(
+      screen.getByText("Molecular Genetics Exam Drill"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Quiz • Question 3 of 10")).toBeInTheDocument();
     expect(screen.getByText("30% complete")).toBeInTheDocument();
 
     const resumeBtn = screen.getByRole("button", { name: "Resume" });
     await user.click(resumeBtn);
 
-    expect(await screen.findByRole("heading", { name: "Quiz Page" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Quiz Page" }),
+    ).toBeInTheDocument();
   });
 
   it("renders active focus goal resume card and navigates to timer", async () => {
@@ -131,7 +146,9 @@ describe("ResumeLearningCard", () => {
     const resumeBtn = screen.getByRole("button", { name: "Resume" });
     await user.click(resumeBtn);
 
-    expect(await screen.findByRole("heading", { name: "Timer Page" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Timer Page" }),
+    ).toBeInTheDocument();
   });
 
   it("displays recent activities tray when multiple study contexts exist", async () => {
@@ -154,16 +171,18 @@ describe("ResumeLearningCard", () => {
 
     renderCard();
 
-    // Primary action is the deck (14:00)
-    expect(screen.getByRole("heading", { level: 3, name: "Biochemistry Decks" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Biochemistry Decks" }),
+    ).toBeInTheDocument();
 
-    // Recent items tray contains the older material
-    expect(screen.getByText("Recent Activities")).toBeInTheDocument();
+    expect(screen.getByText("Recent activity")).toBeInTheDocument();
     expect(screen.getByText("Photosynthesis Notes")).toBeInTheDocument();
 
     const trayLink = screen.getByRole("link", { name: /Photosynthesis Notes/ });
     await user.click(trayLink);
 
-    expect(await screen.findByRole("heading", { name: "Notes Page" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Notes Page" }),
+    ).toBeInTheDocument();
   });
 });

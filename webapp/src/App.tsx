@@ -13,18 +13,10 @@ import { ChatProvider } from "./context/ChatProvider";
 import { CommandPaletteProvider } from "./context/CommandPaletteProvider";
 import { TurboChat } from "./components/chat/TurboChat";
 import { FocusStudyHUD } from "./views/timer/FocusStudyHUD";
-import { CommandBar } from "./views/dashboard/CommandBar";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AppRoutes } from "./routes";
 import { useAuth } from "./context/auth";
 
-/* The three docked overlays, kept off the signed-out routes.
- *
- * All already self-hide most of the time — the focus study HUD only when a session
- * is live, the chat only when it is open, the command bar always visible but
- * (originally) on the dashboard only. "A session is live" is timer state
- * restored from localStorage, which outlives signing out. Without this a
- * returning visitor could get floating overlays over the login form. */
 function SignedInOverlays() {
   const { session } = useAuth();
   if (!session) return null;
@@ -32,14 +24,10 @@ function SignedInOverlays() {
     <>
       <FocusStudyHUD />
       <TurboChat />
-      <CommandBar />
     </>
   );
 }
 
-/* AppearanceProvider sits outside the router: the body attributes it writes
- * style every route, not only /settings, and it has to paint on first mount
- * rather than when the Settings view happens to be visited. */
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -50,34 +38,15 @@ export default function App() {
               <DialogProvider>
                 <AuthProvider>
                   <TimerProvider>
-                    {/* Mounted under whatever `base` the build used, so a
-                        route table written as "/settings" resolves to
-                        "/app/settings" in production and "/settings" in any
-                        build served from the root. BASE_URL keeps its
-                        trailing slash; basename does not want one. */}
                     <BrowserRouter
                       basename={import.meta.env.BASE_URL.replace(/\/$/, "")}
                     >
-                      {/* Both of these sit inside the router and outside the
-                          route table, for the same two reasons: each navigates
-                          (the chat on its action tags, the Create dialog to
-                          whatever a run just produced), and each outlives any
-                          one view. */}
                       <CreateModalProvider>
                         <ChatProvider>
                           <CommandPaletteProvider>
-                            {/* Crash net for the route tree specifically — a bug
-                                in one view degrades to a recoverable screen
-                                instead of taking down the whole app. Deliberately
-                                doesn't wrap SignedInOverlays: the mini timer,
-                                chat, and command bar should keep working (and
-                                stay reachable as a way out) even if the current
-                                route's own component throws. */}
                             <ErrorBoundary>
                               <AppRoutes />
                             </ErrorBoundary>
-                            {/* Docked on every route while a session is live, so
-                                they live beside the routes rather than inside one. */}
                             <SignedInOverlays />
                           </CommandPaletteProvider>
                         </ChatProvider>

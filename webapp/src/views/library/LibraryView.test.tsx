@@ -168,6 +168,9 @@ describe("LibraryView shell", () => {
       "Quizzes",
     ]);
     expect(tab("Folders")).toHaveAttribute("aria-selected", "true");
+    expect(
+      screen.queryByRole("heading", { name: "Library" }),
+    ).not.toBeInTheDocument();
     expect(await screen.findByText("Biology")).toBeInTheDocument();
   });
 
@@ -546,7 +549,9 @@ describe("Library — Materials tab", () => {
   });
 
   it("renders a processing badge when material is being processed", async () => {
-    serveLibrary({ materials: [material({ id: "mat-proc-1", title: "Chemistry Lab" })] });
+    serveLibrary({
+      materials: [material({ id: "mat-proc-1", title: "Chemistry Lab" })],
+    });
     setMaterialProcessing({
       materialId: "mat-proc-1",
       status: "processing",
@@ -573,7 +578,9 @@ describe("Library — Materials tab", () => {
 
     expect(await screen.findByText("Organic Chemistry")).toBeInTheDocument();
     expect(screen.getByText("Partially processed")).toBeInTheDocument();
-    expect(screen.getAllByText(/Quiz generation failed/)[0]).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Quiz generation failed/)[0],
+    ).toBeInTheDocument();
 
     const retryBtn = screen.getByRole("button", { name: "Retry" });
     expect(retryBtn).toBeInTheDocument();

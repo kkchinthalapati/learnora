@@ -27,6 +27,36 @@ export function isLibrarySection(pathname: string): boolean {
   );
 }
 
+export type PrimaryDestination =
+  "dashboard" | "library" | "plan" | "focus" | "progress";
+
+export function primaryDestinationForPath(
+  pathname: string,
+): PrimaryDestination | null {
+  if (pathname === "/") return "dashboard";
+  if (isLibrarySection(pathname)) return "library";
+  if (
+    pathname.startsWith("/plan") ||
+    pathname.startsWith("/tasks") ||
+    pathname.startsWith("/exams")
+  ) {
+    return "plan";
+  }
+  if (pathname.startsWith("/timer")) return "focus";
+  if (pathname.startsWith("/analytics")) return "progress";
+  return null;
+}
+
+export function isStudyLabSection(pathname: string): boolean {
+  return ["/graph", "/debugger", "/feynman", "/premortem"].some((routePrefix) =>
+    pathname.startsWith(routePrefix),
+  );
+}
+
+export function isCommunitySection(pathname: string): boolean {
+  return pathname.startsWith("/room") || pathname.startsWith("/friends");
+}
+
 export function sectionLabel(
   pathname: string,
   t: (key: TranslationKey) => string,

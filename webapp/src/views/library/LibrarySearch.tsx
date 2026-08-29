@@ -58,8 +58,11 @@ function matches(query: string, ...values: Array<string | undefined>): boolean {
   return values.some((value) => value && normalized(value).includes(query));
 }
 
-function rankResults(results: SearchResult[], query: string): SearchResult[] {
-  return results.sort((a, b) => {
+function rankResults(
+  searchCandidates: SearchResult[],
+  query: string,
+): SearchResult[] {
+  return searchCandidates.sort((a, b) => {
     const aStarts = normalized(a.title).startsWith(query);
     const bStarts = normalized(b.title).startsWith(query);
     if (aStarts !== bStarts) return aStarts ? -1 : 1;
@@ -322,39 +325,41 @@ function SearchResults({ query }: { query: string }) {
             <span className={styles.groupCount}>{group.results.length}</span>
           </h2>
           <ul className={styles.resultList}>
-            {group.results.map((result) => {
+            {group.results.map((searchResult) => {
               const index = resultIndex++;
               return (
                 <li
-                  key={`${result.kind}-${result.id}`}
+                  key={`${searchResult.kind}-${searchResult.id}`}
                   className={styles.resultItem}
                 >
                   <Link
                     ref={(element) => {
                       resultRefs.current[index] = element;
                     }}
-                    to={result.href}
+                    to={searchResult.href}
                     className={styles.resultLink}
                     data-search-result
                     onKeyDown={(event) => onResultKeyDown(event, index)}
                   >
                     <span className={styles.resultIcon} aria-hidden="true">
-                      <Icon name={result.icon} size={18} />
+                      <Icon name={searchResult.icon} size={18} />
                     </span>
                     <span className={styles.resultBody}>
-                      <span className={styles.resultTitle}>{result.title}</span>
+                      <span className={styles.resultTitle}>
+                        {searchResult.title}
+                      </span>
                       <span className={styles.resultMetadata}>
-                        {result.metadata}
+                        {searchResult.metadata}
                       </span>
                     </span>
                     <span className={styles.openHint}>Open</span>
                   </Link>
-                  {result.actions ? (
+                  {searchResult.actions ? (
                     <div
                       className={styles.resultActions}
-                      aria-label={`${result.title} actions`}
+                      aria-label={`${searchResult.title} actions`}
                     >
-                      {result.actions.map((action) => (
+                      {searchResult.actions.map((action) => (
                         <Link
                           key={action.href}
                           to={action.href}
@@ -375,15 +380,13 @@ function SearchResults({ query }: { query: string }) {
   );
 }
 
-/**
- * Library-wide search shell. The results child is intentionally mounted only
- * after the user enters a query, preserving the Library tabs' lazy data
- * loading when search is unused.
- */
+// Mounting results only after input keeps deck and quiz requests lazy.
 export function LibrarySearch({
   onActiveChange,
+  action,
 }: {
   onActiveChange?: (active: boolean) => void;
+  action?: React.ReactNode;
 }) {
   const [query, setQuery] = useState("");
   const hasQuery = query.trim().length > 0;
@@ -398,63 +401,50 @@ export function LibrarySearch({
     <section
       ref={searchRef}
       className={styles.search}
-      aria-labelledby="library-search-title"
+      aria-label="Library tools"
     >
-      <div className={styles.searchHeader}>
-        <div>
-          <h2 id="library-search-title" className={styles.title}>
-            Search your library
-          </h2>
-          <p className={styles.subtitle}>
-            Find folders, materials, flashcard decks, and quizzes in one place.
-          </p>
-        </div>
-      </div>
-      <div className={styles.inputWrap}>
-        <Icon name="compass" size={19} />
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape" && query) {
-              event.preventDefault();
-              setQuery("");
-            } else if (event.key === "ArrowDown" && hasQuery) {
-              const firstResult =
-                searchRef.current?.querySelector<HTMLAnchorElement>(
-                  "[data-search-result]",
-                );
-              if (firstResult) {
+      <div className={styles.toolbar}>
+        <div className={styles.inputWrap}>
+          <Icon name="compass" size={19} />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && query) {
                 event.preventDefault();
-                firstResult.focus();
+                setQuery("");
+              } else if (event.key === "ArrowDown" && hasQuery) {
+                const firstResult =
+                  searchRef.current?.querySelector<HTMLAnchorElement>(
+                    "[data-search-result]",
+                  );
+                if (firstResult) {
+                  event.preventDefault();
+                  firstResult.focus();
+                }
               }
-            }
-          }}
-          placeholder="Search your library…"
-          aria-label="Search your library"
-          aria-controls="library-search-results"
-          autoComplete="off"
-        />
-        {query ? (
-          <button
-            type="button"
-            className={styles.clearButton}
-            aria-label="Clear library search"
-            onClick={() => setQuery("")}
-          >
-            Clear
-          </button>
-        ) : null}
+            }}
+            placeholder="Search folders, materials, decks, and quizzes"
+            aria-label="Search your library"
+            aria-controls="library-search-results"
+            autoComplete="off"
+          />
+          {query ? (
+            <button
+              type="button"
+              className={styles.clearButton}
+              aria-label="Clear library search"
+              onClick={() => setQuery("")}
+            >
+              Clear
+            </button>
+          ) : null}
+        </div>
+        {action ? <div className={styles.toolbarAction}>{action}</div> : null}
       </div>
       <div id="library-search-results">
-        {hasQuery ? (
-          <SearchResults query={query} />
-        ) : (
-          <p className={styles.idle}>
-            Start typing to search all of your library.
-          </p>
-        )}
+        {hasQuery ? <SearchResults query={query} /> : null}
       </div>
     </section>
   );

@@ -11,29 +11,47 @@ import { NotificationsTab } from "./NotificationsTab";
 import { DangerTab } from "./DangerTab";
 import styles from "./settings.module.css";
 
-/* Ports the vanilla Settings view (index.html:956-1740 + js/main.js:761-1170).
- *
- * The tab strip is a real ARIA tablist here. The vanilla shipped plain
- * <button>s that toggled a `.active` class (js/main.js:761-773): visually
- * a tab strip, but nothing told a screen reader these were tabs, which was
- * selected, or which panel each controlled — and arrow keys did nothing.
- * Same visual, same six tabs, same order.
- *
- * Only the selected panel is rendered rather than all six behind
- * `display:none`, so a control in a hidden tab can't be reached by Tab or
- * be read out by a screen reader — the vanilla's six always-present panels
- * left every field in the tab order at all times. */
-
 export const SETTINGS_TABS = [
-  { id: "account", label: "Account", icon: "user" },
-  { id: "appearance", label: "Appearance", icon: "palette" },
-  { id: "security", label: "Security", icon: "lock" },
-  { id: "preferences", label: "Preferences", icon: "settings" },
-  { id: "notifications", label: "Notifications", icon: "bell" },
-  { id: "danger", label: "Danger Zone", icon: "alert-triangle" },
+  {
+    id: "account",
+    label: "Account",
+    description: "Profile and exports",
+    icon: "user",
+  },
+  {
+    id: "appearance",
+    label: "Appearance",
+    description: "Theme and display",
+    icon: "palette",
+  },
+  {
+    id: "security",
+    label: "Security",
+    description: "Password and sessions",
+    icon: "lock",
+  },
+  {
+    id: "preferences",
+    label: "Preferences",
+    description: "AI, language, and calendar",
+    icon: "settings",
+  },
+  {
+    id: "notifications",
+    label: "Notifications",
+    description: "Reminders and devices",
+    icon: "bell",
+  },
+  {
+    id: "danger",
+    label: "Danger Zone",
+    description: "Data and account removal",
+    icon: "alert-triangle",
+  },
 ] as const satisfies ReadonlyArray<{
   id: string;
   label: string;
+  description: string;
   icon: IconName;
 }>;
 
@@ -53,8 +71,6 @@ export function SettingsView() {
   const { signOut } = useAuth();
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  /* Roving arrow-key navigation, per the WAI-ARIA tabs pattern. Home/End
-     jump to the ends; Left/Right wrap. */
   function onTabKeyDown(e: KeyboardEvent<HTMLButtonElement>, index: number) {
     const count = SETTINGS_TABS.length;
     let next: number | null = null;
@@ -77,6 +93,7 @@ export function SettingsView() {
     <div className={styles.view}>
       <div className={styles.layout}>
         <nav className={styles.sidebar} aria-label="Settings tabs">
+          <span className={styles.sidebarLabel}>Sections</span>
           <div
             role="tablist"
             aria-orientation="vertical"
@@ -88,6 +105,7 @@ export function SettingsView() {
                 type="button"
                 role="tab"
                 id={`settings-tab-${tab.id}`}
+                aria-label={tab.label}
                 aria-selected={active === tab.id}
                 aria-controls={`settings-panel-${tab.id}`}
                 tabIndex={active === tab.id ? 0 : -1}
@@ -103,7 +121,12 @@ export function SettingsView() {
                 <span className={styles.tabIcon}>
                   <Icon name={tab.icon} size={18} />
                 </span>
-                {tab.label}
+                <span className={styles.tabText}>
+                  <span className={styles.tabLabel}>{tab.label}</span>
+                  <span className={styles.tabDescription} aria-hidden="true">
+                    {tab.description}
+                  </span>
+                </span>
               </button>
             ))}
           </div>
@@ -129,9 +152,7 @@ export function SettingsView() {
             aria-labelledby={`settings-tab-${active}`}
             tabIndex={0}
             className={styles.panel}
-            /* Keyed so switching tabs remounts the panel: each tab owns local
-               draft state (a half-typed email, an unsent password) that should
-               not survive a trip to another tab and back. */
+            /* Remount the panel to discard unsaved tab-local drafts. */
             key={active}
           >
             <Panel />

@@ -50,6 +50,31 @@ describe("TimerView", () => {
     expect(screen.getByRole("heading", { name: "Focus" })).toBeInTheDocument();
     expect(screen.getByText("Cycle: 0 / 4")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Pomodoro" })).toBeChecked();
+    expect(
+      screen.getByText("Finished focus sessions will appear here."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the five most recent local sessions", () => {
+    Storage.set(
+      "sessions",
+      Array.from({ length: 6 }, (_, sessionIndex) => ({
+        id: sessionIndex + 1,
+        timestamp: `Aug ${26 - sessionIndex}, 08:00 PM`,
+        minutes: 20 + sessionIndex,
+        task: `Study block ${sessionIndex + 1}`,
+      })),
+    );
+
+    renderTimer();
+
+    expect(
+      screen.getByRole("heading", { name: "Recent sessions" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("5 shown")).toBeInTheDocument();
+    expect(screen.getByText("Study block 1")).toBeInTheDocument();
+    expect(screen.getByText("Study block 5")).toBeInTheDocument();
+    expect(screen.queryByText("Study block 6")).not.toBeInTheDocument();
   });
 
   it("reports progress on the bar as a percentage", () => {
@@ -298,6 +323,8 @@ describe("TimerView", () => {
     });
     // Local history is written too — the source of truth for instant UI.
     expect(Storage.get<unknown[]>("sessions", [])).toHaveLength(1);
+    expect(screen.getByText("General Study")).toBeInTheDocument();
+    expect(screen.getByText(/3 min/)).toBeInTheDocument();
   });
 
   it("keeps the local session log even when the Supabase write fails", async () => {

@@ -11,12 +11,10 @@
   justify-content: center;
   font-size: var(--fs-lg);
   color: var(--text);
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: var(--r-md);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
+  box-shadow: none;
   cursor: pointer;
   transition:
     background var(--t-fast) ease,
@@ -29,5 +27,5 @@
   background: var(--accent-soft);
   color: var(--accent-text);
   border-color: var(--accent-ring);
-  box-shadow: var(--glass-inner), var(--shadow-md);
+  box-shadow: none;
 }

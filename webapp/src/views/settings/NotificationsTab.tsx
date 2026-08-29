@@ -13,12 +13,6 @@ import notif from "./notifications.module.css";
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as
   string | undefined;
 
-/* Notifications tab — ports index.html:1596-1641 + js/main.js:1011-1049.
- *
- * Both toggles persist on change rather than on a Save button, matching the
- * vanilla (`$("notif-study-reminders").addEventListener("change", () =>
- * UI.saveSettings())`). */
-
 type PermissionState = NotificationPermission | "unsupported";
 
 function readPermission(): PermissionState {
@@ -36,9 +30,7 @@ const PERMISSION_COPY: Record<PermissionState, string> = {
 
 export function NotificationsTab() {
   const { settings, updateAndSave } = useSettings();
-  /* Notification.permission isn't observable, so it's snapshotted on mount
-     and re-read after the prompt resolves — the only moment it can change
-     from inside this page. */
+  /* Browser permission changes only after the native prompt resolves. */
   const [permission, setPermission] = useState<PermissionState>(readPermission);
 
   const remindersId = useId();
@@ -90,7 +82,7 @@ export function NotificationsTab() {
           </span>
           <div>
             <h3 id="settings-notif-heading">Browser Notifications</h3>
-            <p>Control which desktop notifications Learnora can send you</p>
+            <p>Choose alerts for this browser.</p>
           </div>
         </div>
 
@@ -119,7 +111,7 @@ export function NotificationsTab() {
               Flashcard Due Reminders
             </span>
             <p className={styles.fieldDesc}>
-              Get notified once a day when you have flashcards due for review
+              Send one daily alert when flashcards are due.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -139,8 +131,7 @@ export function NotificationsTab() {
               Timer Alerts
             </span>
             <p className={styles.fieldDesc}>
-              Get notified when a focus session, countdown, or flowtime block
-              ends
+              Alert when a focus session, countdown, or flowtime block ends.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -160,10 +151,8 @@ export function NotificationsTab() {
               Stay-Focused Nudges
             </span>
             <p className={styles.fieldDesc}>
-              While a timer is running, get a nudge if you switch tabs for 15
-              seconds, and an automatic pause after a full minute away. Turn
-              this off if you read reference material in another tab while you
-              study — that's not a distraction.
+              Nudge after 15 seconds in another tab and pause after one minute.
+              Turn this off when reference material lives in another tab.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -177,21 +166,14 @@ export function NotificationsTab() {
           </div>
         </div>
 
-        {/* `examTerminationGrace` has existed in settings, and been read by
-            MockExamRunner, since the proctor shipped — with no control
-            anywhere to change it, so every student has silently had the
-            default. It belongs beside Stay-Focused Nudges: both decide how
-            hard the app polices where your attention goes. */}
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
             <span className={styles.labelText} id={examGraceId}>
               Mock Exam Warning
             </span>
             <p className={styles.fieldDesc}>
-              During a proctored mock exam, get a 5-second countdown to return
-              before the attempt is auto-submitted. Turn this off to sit exams
-              under real conditions — leaving fullscreen or switching tabs then
-              ends the attempt immediately.
+              Allow five seconds to return before a mock exam is submitted. When
+              off, leaving fullscreen or switching tabs submits at once.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -220,11 +202,7 @@ export function NotificationsTab() {
           </span>
           <div>
             <h3 id="settings-push-heading">Push Notifications</h3>
-            <p>
-              Reach you even when Learnora isn't open in a tab — exam countdowns
-              and due-flashcard nudges, delivered by your browser like a text
-              message.
-            </p>
+            <p>Receive exam and flashcard reminders when Learnora is closed.</p>
           </div>
         </div>
 
@@ -313,44 +291,23 @@ export function NotificationsTab() {
         ) : null}
 
         {push.allSubscriptions.length > 0 && (
-          <div
-            className={styles.field}
-            style={{
-              borderTop: "1px solid var(--border)",
-              paddingTop: "1rem",
-              marginTop: "1rem",
-              flexDirection: "column",
-              alignItems: "stretch",
-            }}
-          >
-            <div
-              className={styles.fieldLabel}
-              style={{ marginBottom: "0.5rem" }}
-            >
+          <div className={`${styles.field} ${notif.deviceListField}`}>
+            <div className={`${styles.fieldLabel} ${notif.deviceListHeader}`}>
               <span className={styles.labelText}>Registered Devices</span>
               <p className={styles.fieldDesc}>
                 Manage push notifications across your devices
               </p>
             </div>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            <ul className={notif.deviceList}>
               {push.allSubscriptions.map((sub) => {
                 const isCurrent = push.row?.id === sub.id;
                 return (
-                  <li
-                    key={sub.id}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "0.75rem 0",
-                      borderBottom: "1px solid var(--border)",
-                    }}
-                  >
+                  <li key={sub.id} className={notif.deviceRow}>
                     <span className={styles.fieldDesc}>
                       Device added on{" "}
                       {new Date(sub.created_at).toLocaleDateString()}{" "}
                       {isCurrent && (
-                        <strong style={{ color: "var(--text-main)" }}>
+                        <strong className={notif.currentDevice}>
                           (This device)
                         </strong>
                       )}

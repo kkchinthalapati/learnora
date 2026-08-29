@@ -13,9 +13,6 @@ import { useUpdateEmail, useUpdateProfile } from "../../hooks/useAuthActions";
 import { initialsFor } from "./profile";
 import styles from "./settings.module.css";
 
-/* Account tab — ports index.html:990-1069 + js/main.js:928-1009 and the
- * profile population from js/router.js:222-246. */
-
 export function AccountTab() {
   const { user } = useAuth();
   const { confirm } = useDialog();
@@ -27,10 +24,7 @@ export function AccountTab() {
   const metadataName =
     (user?.user_metadata?.full_name as string | undefined) || "Student";
 
-  /* The vanilla wrote the new name straight into the DOM on save
-     (js/main.js:961-964) because nothing re-read the session. Here the saved
-     name is state, so the heading, the initials and the input all move
-     together off one source. */
+  /* Keep the saved name local so the heading updates before session refresh. */
   const [name, setName] = useState(metadataName);
   const [nameOpen, setNameOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState(metadataName);
@@ -118,7 +112,7 @@ export function AccountTab() {
           </span>
           <div>
             <h3 id="settings-profile-heading">Profile</h3>
-            <p>Your personal information</p>
+            <p>Name and sign-in email</p>
           </div>
         </div>
 
@@ -251,7 +245,7 @@ export function AccountTab() {
           <div className={styles.fieldLabel}>
             <span className={styles.labelText}>Interactive Report</span>
             <p className={styles.fieldDesc}>
-              Download a visual, interactive HTML report with stats, charts, and summaries
+              Download an HTML report with study stats, charts, and summaries
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -265,7 +259,7 @@ export function AccountTab() {
           <div className={styles.fieldLabel}>
             <span className={styles.labelText}>CSV Export</span>
             <p className={styles.fieldDesc}>
-              Download your tasks, exams, and study logs as a CSV file for spreadsheets
+              Download tasks, exams, and study logs for a spreadsheet
             </p>
           </div>
           <div className={styles.fieldAction}>

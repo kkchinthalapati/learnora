@@ -20,6 +20,13 @@
   align-items: start;
 }
 
+.focusColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
 /* Shell now comes from <Card variant="panel" padding="lg"> (defaults match
    exactly: --r-lg, --glass-inner + --shadow-sm, var(--s-6) padding). */
 
@@ -340,6 +347,14 @@
   gap: var(--s-3);
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
+}
+
+.controls > button:first-child {
+  min-width: 180px;
+  min-height: 48px;
+  font-size: var(--fs-md);
+  box-shadow: 0 8px 20px var(--accent-soft);
 }
 
 .ghostDanger {
@@ -407,9 +422,15 @@
 }
 
 @keyframes timerRoomDotPulse {
-  0%  { box-shadow: 0 0 0 0   var(--success); }
-  60% { box-shadow: 0 0 0 6px transparent; }
-  100%{ box-shadow: 0 0 0 0   transparent; }
+  0% {
+    box-shadow: 0 0 0 0 var(--success);
+  }
+  60% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
 }
 
 .studyRoomCta {
@@ -485,10 +506,84 @@
   font-weight: 600;
 }
 
+.recentSessions {
+  text-align: left;
+}
+
+.recentSessionsHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.recentSessionsHeader h2 {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.recentSessionsHeader span,
+.sessionMeta,
+.sessionEmpty {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+.sessionList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sessionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.sessionRow:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.sessionTask {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sessionMeta {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.sessionEmpty {
+  margin: var(--s-4) 0 0;
+}
+
 @media (max-width: 1024px) {
   .layout {
     grid-template-columns: 1fr;
   }
+
+  .focusColumn {
+    grid-row: 1;
+  }
+
+  .panel {
+    grid-row: 2;
+  }
+
   .display {
     min-height: 380px;
   }
@@ -501,8 +596,23 @@
   .controls {
     flex-direction: column;
   }
+
   .controls button {
     width: 100%;
+  }
+
+  .controls > button:first-child {
+    min-height: 52px;
+  }
+
+  .sessionRow {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--s-1);
+  }
+
+  .sessionMeta {
+    flex-shrink: 1;
   }
   .ringWrapper {
     width: 200px;

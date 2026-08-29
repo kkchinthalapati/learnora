@@ -3,52 +3,54 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { Sidebar } from "./Sidebar";
-import { CreateModalContext, type CreateModalApi } from "../context/createModal";
+import {
+  CreateModalContext,
+  type CreateModalApi,
+} from "../context/createModal";
 import { fakeSession, renderWithAuth } from "../test/auth";
 import * as useFlashcardsModule from "../hooks/useFlashcards";
 import * as useFriendsModule from "../hooks/useFriends";
 
 describe("Sidebar", () => {
-  const mockOpenCreateModal = vi.fn();
-  const mockOnNavigate = vi.fn();
-  const mockOnToggleCollapse = vi.fn();
-
-  const fakeCreateModalContext: CreateModalApi = {
-    openCreateModal: mockOpenCreateModal,
-  };
+  const openCreateModal = vi.fn();
+  const onNavigate = vi.fn();
+  const onToggleRail = vi.fn();
+  const createModalContext: CreateModalApi = { openCreateModal };
 
   function renderSidebar({
-    collapsed = false,
+    railCollapsed = false,
+    drawerOpen = false,
     initialPath = "/",
     dueCount = 0,
     incomingRequests = 0,
-  }: {
-    collapsed?: boolean;
-    initialPath?: string;
-    dueCount?: number;
-    incomingRequests?: number;
   } = {}) {
     vi.spyOn(useFlashcardsModule, "useFlashcardsDueCount").mockReturnValue({
       data: dueCount,
       isPending: false,
       isError: false,
       error: null,
-    } as unknown as ReturnType<typeof useFlashcardsModule.useFlashcardsDueCount>);
-
-    vi.spyOn(useFriendsModule, "useIncomingFriendRequestCount").mockReturnValue({
-      data: incomingRequests,
-      isPending: false,
-      isError: false,
-      error: null,
-    } as unknown as ReturnType<typeof useFriendsModule.useIncomingFriendRequestCount>);
+    } as unknown as ReturnType<
+      typeof useFlashcardsModule.useFlashcardsDueCount
+    >);
+    vi.spyOn(useFriendsModule, "useIncomingFriendRequestCount").mockReturnValue(
+      {
+        data: incomingRequests,
+        isPending: false,
+        isError: false,
+        error: null,
+      } as unknown as ReturnType<
+        typeof useFriendsModule.useIncomingFriendRequestCount
+      >,
+    );
 
     return renderWithAuth(
-      <CreateModalContext.Provider value={fakeCreateModalContext}>
+      <CreateModalContext.Provider value={createModalContext}>
         <MemoryRouter initialEntries={[initialPath]}>
           <Sidebar
-            collapsed={collapsed}
-            onNavigate={mockOnNavigate}
-            onToggleCollapse={mockOnToggleCollapse}
+            railCollapsed={railCollapsed}
+            drawerOpen={drawerOpen}
+            onNavigate={onNavigate}
+            onToggleRail={onToggleRail}
           />
         </MemoryRouter>
       </CreateModalContext.Provider>,
@@ -57,84 +59,102 @@ describe("Sidebar", () => {
   }
 
   beforeEach(() => {
+    localStorage.clear();
     vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
+  afterEach(() => vi.restoreAllMocks());
 
-  it("renders navigation links and brand name", () => {
+  it("renders the five primary destinations", () => {
     renderSidebar();
-
-    expect(screen.getByRole("heading", { level: 2, name: "Learnora" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Dashboard/i })).toHaveAttribute("href", "/");
-    expect(screen.getByRole("button", { name: /Create/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Library/i })).toHaveAttribute("href", "/library");
-    expect(screen.getByRole("link", { name: /Timer/i })).toHaveAttribute("href", "/timer");
-    expect(screen.getByRole("link", { name: /Task Manager/i })).toHaveAttribute("href", "/tasks");
-    expect(screen.getByRole("link", { name: /This week's plan/i })).toHaveAttribute("href", "/plan");
-    expect(screen.getByRole("link", { name: /Exams/i })).toHaveAttribute("href", "/exams");
-    expect(screen.getByRole("link", { name: /Friends/i })).toHaveAttribute("href", "/friends");
-    expect(screen.getByRole("link", { name: /Feynman Apprentice/i })).toHaveAttribute("href", "/feynman");
-    expect(screen.getByRole("link", { name: /Cognitive Debugger/i })).toHaveAttribute("href", "/debugger");
-    expect(screen.getByRole("link", { name: /Exam Pre-Mortem/i })).toHaveAttribute("href", "/premortem");
-    expect(screen.getByRole("link", { name: /Settings/i })).toHaveAttribute("href", "/settings");
-    expect(screen.getByRole("link", { name: /Terms of Service/i })).toHaveAttribute("href", "/terms");
+    expect(screen.getByRole("link", { name: "Learnora" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    expect(screen.getByRole("link", { name: "Library" })).toHaveAttribute(
+      "href",
+      "/library",
+    );
+    expect(screen.getByRole("link", { name: "Plan" })).toHaveAttribute(
+      "href",
+      "/plan",
+    );
+    expect(screen.getByRole("link", { name: "Focus" })).toHaveAttribute(
+      "href",
+      "/timer",
+    );
+    expect(screen.getByRole("link", { name: "Progress" })).toHaveAttribute(
+      "href",
+      "/analytics",
+    );
   });
 
-  it("opens create modal and notifies onNavigate when Create button is clicked", async () => {
+  it("opens Create and closes mobile navigation", async () => {
     renderSidebar();
-    const user = userEvent.setup();
-
-    await user.click(screen.getByRole("button", { name: /Create/i }));
-
-    expect(mockOpenCreateModal).toHaveBeenCalledTimes(1);
-    expect(mockOnNavigate).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole("button", { name: "Create" }));
+    expect(openCreateModal).toHaveBeenCalledTimes(1);
+    expect(onNavigate).toHaveBeenCalledTimes(1);
   });
 
-  it("calls onToggleCollapse when collapse button is clicked", async () => {
-    renderSidebar({ collapsed: false });
-    const user = userEvent.setup();
-
-    const toggleBtn = screen.getByRole("button", { name: "Collapse sidebar" });
-    await user.click(toggleBtn);
-
-    expect(mockOnToggleCollapse).toHaveBeenCalledTimes(1);
+  it("toggles the desktop rail", async () => {
+    renderSidebar();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Collapse sidebar" }),
+    );
+    expect(onToggleRail).toHaveBeenCalledTimes(1);
   });
 
-  it("renders Expand sidebar button label when collapsed is true", () => {
-    renderSidebar({ collapsed: true });
-
-    expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
+  it("uses route families for primary active state", () => {
+    renderSidebar({ initialPath: "/tasks" });
+    expect(screen.getByRole("link", { name: "Plan" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 
-  it("shows flashcards due badge on Library link when dueCount > 0", () => {
+  it("shows due reviews on Library", () => {
     renderSidebar({ dueCount: 5 });
-
     expect(screen.getByText("5")).toBeInTheDocument();
   });
 
-  it("shows incoming friend requests badge on Friends link when incomingRequests > 0", () => {
+  it("expands secondary groups and shows their routes", async () => {
     renderSidebar({ incomingRequests: 3 });
-
-    expect(screen.getByText("3")).toBeInTheDocument();
-  });
-
-  it("renders 5 semantic sections and toggles section collapse", async () => {
-    renderSidebar();
     const user = userEvent.setup();
 
-    expect(screen.getByRole("group", { name: "Core Learning" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "AI Cognitive Lab" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Execution & Routine" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "Community & Social" })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: "System" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: "Workspace" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: "Study Lab" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: "Community" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Account" })).toBeInTheDocument();
 
-    const aiLabToggle = screen.getByRole("button", { name: /Collapse AI Cognitive Lab/i });
-    expect(aiLabToggle).toHaveAttribute("aria-expanded", "true");
+    await user.click(screen.getByRole("button", { name: "Expand Study Lab" }));
+    expect(
+      screen.getByRole("link", { name: "Cognitive Debugger" }),
+    ).toHaveAttribute("href", "/debugger");
 
-    await user.click(aiLabToggle);
-    expect(screen.getByRole("button", { name: /Expand AI Cognitive Lab/i })).toHaveAttribute("aria-expanded", "false");
+    await user.click(screen.getByRole("button", { name: "Expand Community" }));
+    expect(screen.getByRole("link", { name: "Friends" })).toHaveAttribute(
+      "href",
+      "/friends",
+    );
+    expect(screen.getByText("3")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Expand Account" }));
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
+      "href",
+      "/settings",
+    );
   });
 });

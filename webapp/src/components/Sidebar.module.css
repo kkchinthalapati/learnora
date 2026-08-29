@@ -1,104 +1,35 @@
-/* Ported from style.css's `.sidebar` block (:267-321, collapse overrides
- * :4604-4623, mobile :3703-3717) and `.nav-links`/`.nav-link` (:408-446),
- * `.nav-create-btn` (:6257-6289), `.nav-badge` (:1701-1715). */
-
 .sidebar {
-  width: var(--sidebar-width);
+  width: var(--sidebar-width-v2);
   height: 100vh;
   flex-shrink: 0;
   z-index: 50;
   display: flex;
   flex-direction: column;
-  padding: var(--s-8) var(--s-5);
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  border-right: 1px solid var(--glass-border-subtle);
-  box-shadow:
-    var(--glass-inner),
-    1px 0 0 var(--glass-border);
+  padding: var(--s-6) var(--s-4);
+  background: var(--surface);
+  border-right: 1px solid var(--line);
   overflow-y: auto;
   overflow-x: hidden;
   white-space: nowrap;
   transition:
-    width 0.4s var(--ease-spring),
-    padding 0.4s var(--ease-spring),
-    opacity 0.3s ease,
+    width var(--t) var(--ease),
+    padding var(--t) var(--ease),
     left var(--t) var(--ease);
 }
 
-/* Sidebar framing style. Settings → Appearance's "Sidebar Framing Style"
- * picker has always set body[data-sidebar-style] (see lib/appearance.ts),
- * and nothing read it back — every choice besides the default ("glass",
- * the .sidebar rule above) silently changed nothing. No rule is needed for
- * "glass" itself. Reuses existing surface tokens rather than new colors. */
+body[data-sidebar-style="glass"] .sidebar {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+}
 
 body[data-sidebar-style="solid"] .sidebar {
   background: var(--surface-2);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border-right: 1px solid var(--line);
-  box-shadow: none;
 }
 
 body[data-sidebar-style="transparent"] .sidebar {
   background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border-right: none;
-  box-shadow: none;
-}
-
-/* Desktop: collapsed retracts to a narrow icon-only rail rather than
-   disappearing entirely — labels hide (.navLabel), icons and their active/
-   hover states stay, and a due-count badge moves to a small corner dot on
-   the icon instead of sitting after a label that's no longer there. */
-@media (min-width: 769px) {
-  .sidebar.collapsed {
-    width: 76px;
-    padding: var(--s-8) var(--s-2);
-  }
-
-  .sidebar.collapsed .brand,
-  .sidebar.collapsed .navLabel {
-    display: none;
-  }
-
-  .sidebar.collapsed .brandRow {
-    justify-content: center;
-  }
-
-  .sidebar.collapsed .navLink,
-  .sidebar.collapsed .createBtn {
-    justify-content: center;
-    padding: 12px;
-    position: relative;
-  }
-
-  .sidebar.collapsed .badge {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    margin-left: 0;
-  }
-}
-
-/* Mobile: the sidebar is off-canvas by default, and `.collapsed` is really
-   an "open" flag here — same class, opposite meaning per breakpoint, a
-   faithful (if slightly confusing) port of the vanilla's own mechanism. */
-@media (max-width: 768px) {
-  .sidebar {
-    position: absolute;
-    left: -100%;
-    top: 0;
-    width: var(--sidebar-width);
-  }
-
-  .sidebar.collapsed {
-    left: 0;
-    opacity: 1;
-    box-shadow: var(--shadow-lg);
-  }
+  border-right-color: transparent;
 }
 
 .brandRow {
@@ -106,49 +37,88 @@ body[data-sidebar-style="transparent"] .sidebar {
   align-items: center;
   justify-content: space-between;
   gap: var(--s-2);
-  margin: 0 0 var(--s-6);
+  margin-bottom: var(--s-5);
 }
 
 .brand {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.brandMark {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: var(--accent-on);
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  text-shadow: var(--accent-on-shadow);
+}
+
+.brandName {
   font-family: var(--font-head);
   font-size: var(--fs-xl);
-  font-weight: 800;
-  margin: 0;
-  padding: 0 var(--s-2);
-  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
+  font-weight: 750;
+  letter-spacing: var(--tracking-tight);
 }
 
 .collapseToggle {
   flex-shrink: 0;
 }
 
-/* The rail concept only exists on desktop — mobile's off-canvas drawer is
-   either fully open or fully off-screen, so a rail toggle here would have
-   nothing meaningful to do; Header's hamburger remains mobile's only
-   open/close control. */
-@media (max-width: 768px) {
-  .collapseToggle {
-    display: none;
-  }
-}
-
 .chevronCollapse {
   transform: rotate(-90deg);
-  transition: transform var(--t-fast) ease;
 }
 
 .chevronExpand {
   transform: rotate(90deg);
-  transition: transform var(--t-fast) ease;
+}
+
+.createBtn {
+  width: 100%;
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  margin-bottom: var(--s-6);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-md);
+  background: var(--accent);
+  color: var(--accent-on);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  cursor: pointer;
+  text-shadow: var(--accent-on-shadow);
+  transition:
+    background var(--t-fast) ease,
+    transform var(--t-fast) ease;
+}
+
+.createBtn:hover {
+  background: var(--accent-hover);
+}
+
+.createBtn:active {
+  transform: translateY(1px);
 }
 
 .sectionsContainer {
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
+  gap: var(--s-5);
 }
 
 .sectionGroup {
@@ -156,38 +126,34 @@ body[data-sidebar-style="transparent"] .sidebar {
   flex-direction: column;
 }
 
+.sectionLabel,
 .sectionHeader {
+  min-height: 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px 6px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
+  padding: 0 var(--s-3) var(--s-2);
+  color: var(--text-faint);
+  font-family: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.sectionHeader {
+  border: 0;
   border-radius: var(--r-sm);
-  transition: background var(--t-fast) ease;
+  background: transparent;
+  cursor: pointer;
 }
 
 .sectionHeader:hover {
-  background: var(--surface-hover);
-}
-
-.sectionHeader:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.sectionTitle {
-  font-size: var(--fs-xs);
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--text-faint);
-  user-select: none;
+  color: var(--text-muted);
+  background: var(--surface-2);
 }
 
 .sectionChevron {
-  color: var(--text-faint);
   transition: transform var(--t-fast) ease;
 }
 
@@ -196,124 +162,152 @@ body[data-sidebar-style="transparent"] .sidebar {
 }
 
 .navLinks {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
   gap: var(--s-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .navLinksHidden {
   display: none;
 }
 
-.divider {
-  border: none;
-  height: 1px;
-  background: var(--line);
-  margin: var(--s-3) var(--s-2);
-}
-
-@media (min-width: 769px) {
-  .sidebar.collapsed .sectionHeader {
-    display: none;
-  }
-
-  .sidebar.collapsed .navLinksHidden {
-    display: flex;
-  }
-
-  .sidebar.collapsed .divider {
-    margin: var(--s-2) auto;
-    width: 28px;
-  }
-}
-
 .navLink {
+  position: relative;
+  min-height: var(--touch-target-min);
   display: flex;
   align-items: center;
   gap: var(--s-3);
-  min-height: var(--touch-target-min);
-  padding: 12px 14px;
-  border-radius: var(--r-md);
-  font-weight: 600;
-  color: var(--text-muted);
+  padding: 10px var(--s-3);
   border: 1px solid transparent;
+  border-radius: var(--r-md);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
   text-decoration: none;
   transition:
     background var(--t-fast) ease,
     color var(--t-fast) ease,
-    border-color var(--t-fast) ease,
-    box-shadow var(--t-fast) ease;
+    border-color var(--t-fast) ease;
 }
 
 .navLink:hover {
-  background: var(--accent-soft);
   color: var(--text);
-  border-color: var(--accent-ring);
+  background: var(--surface-2);
 }
 
 .navLink.active {
-  background: var(--accent-soft);
   color: var(--accent-text);
+  background: var(--accent-soft);
   border-color: var(--accent-ring);
-  box-shadow: var(--glass-inner);
 }
 
-.termsLink {
-  opacity: 0.8;
-  font-size: var(--fs-sm);
-}
-
-.createBtn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  min-height: var(--touch-target-min);
-  padding: 12px 14px;
-  border: none;
-  border-radius: var(--r-sm);
+.navLink.active::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 11px;
+  bottom: 11px;
+  width: 3px;
+  border-radius: var(--r-pill);
   background: var(--accent);
-  color: var(--accent-on);
-  font-family: inherit;
-  font-size: var(--fs-base);
-  font-weight: 650;
-  cursor: pointer;
-  transition: filter var(--t-fast) ease;
-}
-
-.createBtn:hover {
-  filter: brightness(1.08);
-}
-
-.createBtn:active {
-  transform: translateY(1px);
-}
-
-.createBtn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 .badge {
-  margin-left: auto;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
+  min-width: 20px;
+  height: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin-left: auto;
+  padding: 0 6px;
   border-radius: var(--r-pill);
   background: var(--accent);
   color: var(--accent-on);
   font-size: var(--fs-xs);
-  font-weight: 700;
+  font-weight: 750;
   line-height: 1;
 }
 
-.navLink.active .badge {
-  background: var(--accent);
-  color: var(--accent-on);
+@media (min-width: 769px) {
+  .sidebar.railCollapsed {
+    width: var(--sidebar-rail-width);
+    padding-inline: var(--s-2);
+  }
+
+  .railCollapsed .brandName,
+  .railCollapsed .navLabel,
+  .railCollapsed .sectionLabel,
+  .railCollapsed .sectionHeader {
+    display: none;
+  }
+
+  .railCollapsed .brandRow,
+  .railCollapsed .brand,
+  .railCollapsed .navLink,
+  .railCollapsed .createBtn {
+    justify-content: center;
+  }
+
+  .railCollapsed .brand {
+    display: none;
+  }
+
+  .railCollapsed .createBtn {
+    padding-inline: 0;
+  }
+
+  .railCollapsed .sectionsContainer {
+    gap: var(--s-3);
+  }
+
+  .railCollapsed .navLinksHidden {
+    display: flex;
+  }
+
+  .railCollapsed .navLink {
+    padding-inline: 0;
+  }
+
+  .railCollapsed .navLink.active::before {
+    left: 2px;
+  }
+
+  .railCollapsed .badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: calc(-1 * var(--sidebar-width-v2) - var(--s-4));
+    width: min(var(--sidebar-width-v2), 88vw);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebar.drawerOpen {
+    left: 0;
+  }
+
+  .collapseToggle {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sectionChevron,
+  .createBtn,
+  .navLink {
+    transition: none;
+  }
 }

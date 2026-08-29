@@ -74,7 +74,7 @@ describe("StudyAnalyticsView", () => {
       id: 1,
       user_id: "user-1",
       exam_name: "Calculus Final",
-      exam_date: "2026-08-28",
+      exam_date: "2099-08-28",
       difficulty: "Hard",
       status: "Upcoming",
     },
@@ -90,22 +90,21 @@ describe("StudyAnalyticsView", () => {
 
     renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
 
-    // Page title
-    expect(screen.getByText("Study Analytics & Insights")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Study Analytics & Insights"),
+    ).not.toBeInTheDocument();
 
     // Summary cards
-    expect(screen.getByText("Total Focus Time")).toBeInTheDocument();
-    expect(screen.getByText("Active Consistency")).toBeInTheDocument();
-    expect(screen.getByText("Peak Chronotype")).toBeInTheDocument();
-    expect(screen.getByText("Quiz Mastery")).toBeInTheDocument();
+    expect(screen.getByText("Study time")).toBeInTheDocument();
+    expect(screen.getByText("Active days")).toBeInTheDocument();
+    expect(screen.getByText("Peak study window")).toBeInTheDocument();
+    expect(screen.getByText("Quiz average")).toBeInTheDocument();
 
     // Section headings
-    expect(screen.getByText("Study Activity Heatmap")).toBeInTheDocument();
-    expect(screen.getByText("Peak Performance Hours")).toBeInTheDocument();
-    expect(screen.getByText("AI Study Copilot Insights")).toBeInTheDocument();
-    expect(
-      screen.getByText("Subject Balance & Exam Urgency Matrix"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Study activity")).toBeInTheDocument();
+    expect(screen.getByText("Study time by hour")).toBeInTheDocument();
+    expect(screen.getByText("Study patterns")).toBeInTheDocument();
+    expect(screen.getByText("Subject time and exam dates")).toBeInTheDocument();
 
     // Data populated
     expect(
@@ -145,9 +144,7 @@ describe("StudyAnalyticsView", () => {
     expect(ninetyDaysBtn).toHaveAttribute("aria-pressed", "false");
     expect(thirtyDaysBtn).toHaveAttribute("aria-pressed", "false");
     expect(
-      screen.getByText(
-        "Visualizing daily focus distribution across the past 365 days",
-      ),
+      screen.getByText("Daily focus time for the past 365 days"),
     ).toBeInTheDocument();
     expect(screen.getByText("/ 365d")).toBeInTheDocument();
 
@@ -157,9 +154,7 @@ describe("StudyAnalyticsView", () => {
     expect(ninetyDaysBtn).toHaveAttribute("aria-pressed", "true");
     expect(thirtyDaysBtn).toHaveAttribute("aria-pressed", "false");
     expect(
-      screen.getByText(
-        "Visualizing daily focus distribution across the past 90 days",
-      ),
+      screen.getByText("Daily focus time for the past 90 days"),
     ).toBeInTheDocument();
     expect(screen.getByText("/ 90d")).toBeInTheDocument();
 
@@ -169,9 +164,7 @@ describe("StudyAnalyticsView", () => {
     expect(ninetyDaysBtn).toHaveAttribute("aria-pressed", "false");
     expect(thirtyDaysBtn).toHaveAttribute("aria-pressed", "true");
     expect(
-      screen.getByText(
-        "Visualizing daily focus distribution across the past 30 days",
-      ),
+      screen.getByText("Daily focus time for the past 30 days"),
     ).toBeInTheDocument();
     expect(screen.getByText("/ 30d")).toBeInTheDocument();
 
@@ -181,9 +174,7 @@ describe("StudyAnalyticsView", () => {
     expect(ninetyDaysBtn).toHaveAttribute("aria-pressed", "false");
     expect(thirtyDaysBtn).toHaveAttribute("aria-pressed", "false");
     expect(
-      screen.getByText(
-        "Visualizing daily focus distribution across the past 365 days",
-      ),
+      screen.getByText("Daily focus time for the past 365 days"),
     ).toBeInTheDocument();
     expect(screen.getByText("/ 365d")).toBeInTheDocument();
   });
@@ -208,9 +199,7 @@ describe("StudyAnalyticsView", () => {
     await user.click(thirtyDays);
     expect(thirtyDays).toHaveAttribute("aria-pressed", "true");
     expect(
-      screen.getByText(
-        "Visualizing daily focus distribution across the past 30 days",
-      ),
+      screen.getByText("Daily focus time for the past 30 days"),
     ).toBeInTheDocument();
 
     const chart = screen.getByRole("group", {

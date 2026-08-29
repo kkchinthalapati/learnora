@@ -23,7 +23,7 @@ describe("SettingsView", () => {
   it("exposes all six tabs as a tablist with one selected", () => {
     renderSettings();
     const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((t) => t.textContent)).toEqual([
+    expect(tabs.map((tab) => tab.getAttribute("aria-label"))).toEqual([
       "Account",
       "Appearance",
       "Security",
@@ -34,6 +34,14 @@ describe("SettingsView", () => {
     expect(screen.getByRole("tab", { selected: true })).toHaveAccessibleName(
       "Account",
     );
+  });
+
+  it("describes each section in the desktop index", () => {
+    renderSettings();
+
+    expect(screen.getByText("Profile and exports")).toBeInTheDocument();
+    expect(screen.getByText("AI, language, and calendar")).toBeInTheDocument();
+    expect(screen.getByText("Data and account removal")).toBeInTheDocument();
   });
 
   it("points each tab at the panel it controls", () => {

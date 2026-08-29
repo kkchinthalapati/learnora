@@ -13,8 +13,6 @@ import {
 import { formatCreatedShort } from "./libraryMeta";
 import styles from "./library.module.css";
 
-/* The Library's Materials tab — ports js/router.js:273-298. Every uploaded
- * material across all folders, each a link into its notes. */
 export function MaterialsPanel() {
   const { data: materials, isPending, isError, error } = useMaterials();
   const { openCreateModal } = useCreateModal();
@@ -42,7 +40,7 @@ export function MaterialsPanel() {
       <EmptyState
         icon="file-text"
         title="No materials yet."
-        message="Add a file, some text, a link, or just a topic — Learnora AI turns it into notes you can study from."
+        message="Add a PDF, link, pasted text, or topic, then choose which notes, flashcards, or quiz to create."
       >
         <Button
           variant="primary"
@@ -138,8 +136,7 @@ export function MaterialsPanel() {
               <div className={styles.cardWarningBox} role="status">
                 <strong>Some stages failed:</strong>
                 <span>
-                  {derived.error ||
-                    "Some resources could not be generated."}
+                  {derived.error || "Some resources could not be generated."}
                 </span>
                 {derived.stageFailures && derived.stageFailures.length > 0 && (
                   <div>

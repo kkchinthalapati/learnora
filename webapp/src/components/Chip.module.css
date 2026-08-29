@@ -7,7 +7,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--s-2);
-  min-height: 32px;
+  min-height: var(--touch-target-min);
   padding: 5px 12px;
   font-family: inherit;
   font-size: var(--fs-xs);
@@ -41,8 +41,8 @@
 }
 
 .sm {
-  min-height: 26px;
-  padding: 3px 9px;
+  min-height: var(--touch-target-min);
+  padding: 5px 10px;
 }
 
 /* ---- Tones: [--chip-color] fill + [--chip-soft] hover wash ------------- */

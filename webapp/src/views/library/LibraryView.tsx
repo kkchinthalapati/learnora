@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { Navigate, useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
-import { PageHeader } from "../../components/PageHeader";
 import { useCreateModal } from "../../context/createModal";
 import { FoldersPanel } from "./FoldersPanel";
 import { MaterialsPanel } from "./MaterialsPanel";
@@ -16,25 +15,6 @@ import {
   type LibraryTabId,
 } from "./libraryMeta";
 import styles from "./library.module.css";
-
-/* The Library shell — ports index.html:1684-1716 + js/router.js:251-268.
- *
- * The active tab lives in the URL, as it did in the vanilla (`#library`,
- * `#library-materials`, …), so every tab stays linkable and survives a
- * refresh: `/library` is Folders and `/library/<tab>` is the rest. An unknown
- * tab redirects to `/library` rather than silently rendering Folders under a
- * URL that says otherwise — the vanilla's `known.includes(tab) ? tab :
- * "folders"` left the address bar lying.
- *
- * Only the selected panel is mounted, which is also what makes the vanilla's
- * "load only this tab's data" behaviour fall out for free: an unmounted
- * panel's queries never run.
- *
- * The tab strip was already a real ARIA tablist in the vanilla markup
- * (role="tab"/aria-selected/aria-controls were all present); what it lacked
- * was keyboard support — all four tabs sat in the tab order and arrow keys did
- * nothing. Roving tabIndex plus Arrow/Home/End is added here, matching the
- * Settings port. */
 
 const PANELS: Record<LibraryTabId, () => React.ReactElement> = {
   folders: FoldersPanel,
@@ -75,21 +55,14 @@ export function LibraryView() {
 
   return (
     <div className={styles.view}>
-      {/* The app shell's Header supplies the page's real <h1> ("Library",
-          identical to this row's own title text) — this row's own title is
-          plain text, not a second heading, so it doesn't duplicate that.
-          See archive/redesign/DESIGN_MOVES.md move #2. */}
-      <PageHeader
-        title="Library"
-        sub="Your folders, materials, decks, and quizzes — all in one place."
-        actions={
+      <LibrarySearch
+        onActiveChange={setIsSearching}
+        action={
           <Button variant="primary" onClick={() => openCreateModal()}>
             + Create
           </Button>
         }
       />
-
-      <LibrarySearch onActiveChange={setIsSearching} />
 
       {!isSearching ? (
         <>

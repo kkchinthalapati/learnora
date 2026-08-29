@@ -16,7 +16,7 @@
 /* Shell now comes from <Card variant="panel" padding="lg"> (defaults match
    exactly: --r-lg, --glass-inner + --shadow-sm, var(--s-6) padding). */
 .container {
-  overflow-x: auto;
+  overflow: hidden;
 }
 
 .toolbar {
@@ -70,6 +70,11 @@
   font-size: var(--fs-sm);
   color: var(--text-muted);
   margin: 0 0 var(--s-4);
+}
+
+.calendarScroll {
+  overflow-x: auto;
+  padding-bottom: var(--s-1);
 }
 
 .weekdays {
@@ -195,11 +200,19 @@
 }
 
 .diffEasy {
-  background: linear-gradient(135deg, var(--success), color-mix(in srgb, var(--success) 75%, white));
+  background: linear-gradient(
+    135deg,
+    var(--success),
+    color-mix(in srgb, var(--success) 75%, white)
+  );
 }
 
 .diffMedium {
-  background: linear-gradient(135deg, var(--warning), color-mix(in srgb, var(--warning) 75%, white));
+  background: linear-gradient(
+    135deg,
+    var(--warning),
+    color-mix(in srgb, var(--warning) 75%, white)
+  );
 }
 
 .diffHard {
@@ -403,6 +416,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-height: var(--touch-target-min);
   padding: 4px 8px;
   border-radius: var(--r-sm);
   font-size: var(--fs-xs);
@@ -449,7 +463,7 @@
 }
 
 .upcomingSection {
-  margin-top: var(--s-6);
+  margin-bottom: var(--s-6);
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
@@ -461,14 +475,23 @@
   justify-content: space-between;
 }
 
-.upcomingTitleRow h3 {
-  font-size: var(--fs-md);
+.upcomingTitleRow h2 {
+  font-size: var(--fs-lg);
   font-weight: 700;
   margin: 0;
   display: flex;
   align-items: center;
   gap: var(--s-2);
   color: var(--text);
+}
+
+.sectionLabel {
+  margin: 0 0 var(--s-1);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .upcomingGrid {
@@ -505,6 +528,7 @@
 }
 
 .upcomingName {
+  margin: 0;
   font-weight: 700;
   font-size: var(--fs-sm);
   color: var(--text);
@@ -527,4 +551,65 @@
   align-items: center;
   gap: var(--s-2);
   flex-shrink: 0;
+}
+
+.editExamButton {
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.editExamButton:hover {
+  border-color: var(--glass-border-subtle);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.editExamButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .container.container {
+    padding: var(--s-4);
+  }
+
+  .toolbar {
+    align-items: stretch;
+  }
+
+  .monthNav {
+    flex: 1;
+    justify-content: space-between;
+  }
+
+  .upcomingGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .toolbar,
+  .upcomingCard {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .toolbar > button {
+    width: 100%;
+  }
+
+  .upcomingRight {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
 }

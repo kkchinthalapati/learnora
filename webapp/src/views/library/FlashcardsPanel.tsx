@@ -10,12 +10,6 @@ import { formatCreatedShort } from "./libraryMeta";
 import { useLibraryActions } from "./useLibraryActions";
 import styles from "./library.module.css";
 
-/* The Library's Flashcards tab — ports js/router.js:300-328 plus the due
- * banner js/main.js:2282-2291 wrote into `#flashcards-due-banner`.
- *
- * The banner is rendered from the same `useFlashcardsDueCount()` query the
- * dashboard badge will read (ledger step 12) instead of being pushed into the
- * DOM by whichever screen happened to refresh the count last. */
 export function FlashcardsPanel() {
   const { data: decks, isPending, isError, error } = useAllDecks();
   const { data: dueCount, isPending: dueCountPending } =
@@ -57,7 +51,7 @@ export function FlashcardsPanel() {
         <EmptyState
           icon="layers"
           title="No flashcards yet."
-          message="Generate flashcards from your study materials using Learnora AI."
+          message="Choose a material or topic and create a deck for review."
         >
           <Button
             variant="primary"
@@ -69,7 +63,7 @@ export function FlashcardsPanel() {
               })
             }
           >
-            Create flashcards →
+            Create flashcards
           </Button>
         </EmptyState>
       </>

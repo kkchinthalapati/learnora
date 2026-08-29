@@ -6,27 +6,6 @@ import { useDeleteMaterial } from "../../hooks/useMaterials";
 import { useDeleteDeck } from "../../hooks/useDecks";
 import { useDeleteQuiz } from "../../hooks/useQuizzes";
 
-/* The confirm-then-delete flows the Library tabs and a subject's workspace
- * share, ported from js/router.js:540-638 (renameFolder, deleteFolder,
- * deleteMaterial, deleteDeck, deleteQuiz). Every confirmation keeps the
- * vanilla's exact wording — these are the messages that tell a student what
- * else disappears with the thing they clicked.
- *
- * Two deliberate changes from the vanilla:
- *
- * 1. Failures surface as an error toast rather than `UI.showPopup`. The React
- *    app has no popup primitive (DialogProvider covers confirm/promptText
- *    only), and a failed delete is exactly the transient, non-blocking report
- *    a toast exists for.
- * 2. A successful folder delete now toasts like the other three. The vanilla
- *    silently re-rendered the grid, so the only feedback that anything had
- *    happened was a card vanishing.
- *
- * Nothing here re-renders a view by hand: the vanilla's four "which screen am
- * I on?" branches (each parsing `window.location.hash` for `folder-<id>` to
- * decide whether to call `loadFolderDetail` or `loadAllX`) are replaced by the
- * mutations' cache invalidation, which reaches every subscriber regardless of
- * which one is mounted. */
 export function useLibraryActions() {
   const { confirm, promptText } = useDialog();
   const { showToast } = useToast();
@@ -63,8 +42,8 @@ export function useLibraryActions() {
       );
       if (!ok) return;
       try {
-        const result = await deleteFolder.mutateAsync(id);
-        if (result?.storageCleanupFailed) {
+        const folderDeleteOutcome = await deleteFolder.mutateAsync(id);
+        if (folderDeleteOutcome?.storageCleanupFailed) {
           showToast(
             `Deleted "${name}", but some files may not have been fully cleaned up.`,
             { error: true },
@@ -83,10 +62,8 @@ export function useLibraryActions() {
 
   const removeMaterial = useCallback(
     async (id: string, title: string, storagePath: string | null) => {
-      /* The vanilla's copy also named flashcards, but `flashcard_decks` has
-         no `material_id` — decks reference a folder only, so a deck outlives
-         the material it was generated from. Notes and quizzes really are
-         deleted; flashcards aren't touched. */
+      // Decks belong to folders, not materials, so deleting a material keeps
+      // its flashcard decks. Notes and quizzes are deleted with the material.
       const ok = await confirm(
         `"${title}" will be permanently deleted, along with the notes and quizzes generated from it.`,
         { title: "Delete file?", confirmText: "Delete", danger: true },

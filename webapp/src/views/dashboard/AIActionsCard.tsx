@@ -12,21 +12,6 @@ import { PlanShapeError } from "../../api/aiPlan";
 import { localDateStr, mondayOfWeek } from "../../lib/date";
 import styles from "./dashboard.module.css";
 
-/* "Ask Learnora AI" card — ports index.html:533-573 and its wiring in
- * js/main.js (:2445-2482).
- *
- * "Plan my week" generates and persists this week's plan, then lands the
- * student on /plan. The other three are chat prompts: the vanilla put two of
- * them on `data-chat-prompt` + `data-chat-send`, and "Quiz me" opened the
- * Create dialog pre-filled. This one drops a half-written prompt into the
- * composer instead — the chat's `<ADD_QUIZ>` tag reaches the very same
- * generator the Create dialog does (`generateQuizFrom`, api/aiQuiz.ts), with
- * the same confirmation in front of it, and it doesn't commit the student to
- * a topic before they've named one.
- *
- * The weak-topic chips beneath are not AI-gated: `fetchWeakTopics` only
- * aggregates `quiz_attempts.weak_topics`, a plain read. */
-
 interface ChatAction {
   icon: IconName;
   label: string;
@@ -46,9 +31,7 @@ const CHAT_ACTIONS: ChatAction[] = [
   {
     icon: "brain",
     label: "Quiz me",
-    /* Left unsent on purpose: the vanilla's version pre-selected a material
-       in a dialog the student could still change, so firing a quiz on a topic
-       nobody named would be a downgrade. */
+    // Keep the topic blank so the student chooses it before sending.
     prompt: "Quiz me on ",
     autoSend: false,
   },
@@ -114,7 +97,9 @@ export function AIActionsCard() {
           <kbd className={styles.kbd}>⌘K</kbd>
         </span>
       </div>
-      <p className={styles.sub}>Turn your workload into a plan in one tap.</p>
+      <p className={styles.sub}>
+        Generate a weekly plan or ask about your next study step.
+      </p>
       <div className={styles.aiActions}>
         <button
           type="button"

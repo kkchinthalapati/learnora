@@ -133,6 +133,41 @@ describe("DashboardView", () => {
     vi.restoreAllMocks();
   });
 
+  it("groups content by urgency and study context", () => {
+    serveDashboard();
+    renderDashboard();
+
+    expect(
+      screen.getByRole("heading", { name: "Priorities" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Continue studying" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Progress and streak" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Sessions and community" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Start focus session" }),
+    ).toBeInTheDocument();
+  });
+
+  it("opens the timer from the lead action", async () => {
+    const user = userEvent.setup();
+    serveDashboard();
+    renderDashboard();
+
+    await user.click(
+      screen.getByRole("button", { name: "Start focus session" }),
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Timer" }),
+    ).toBeInTheDocument();
+  });
+
   describe("Next exam card", () => {
     it("counts down to the earliest upcoming exam", async () => {
       serveDashboard({

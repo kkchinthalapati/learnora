@@ -9,16 +9,6 @@ import { formatCreatedShort } from "./libraryMeta";
 import { useLibraryActions } from "./useLibraryActions";
 import styles from "./library.module.css";
 
-/* The Library's Quizzes tab — ports js/router.js:794-825.
- *
- * `questions_json` is `unknown` on the row type (it is free-form JSON in the
- * table), so the count is guarded rather than trusting `.length` the way the
- * vanilla's `(q.questions_json || []).length` did — a row holding an object
- * would have printed "undefined questions" there.
- *
- * Unlike the other three tabs the card is not one big link: a quiz has two
- * destinations (take it, or review the last attempt), so the title and both
- * actions are separate links instead of one wrapping the other. */
 export function QuizzesPanel() {
   const { data: quizzes, isPending, isError, error } = useQuizzes();
   const { removeQuiz } = useLibraryActions();
@@ -57,7 +47,7 @@ export function QuizzesPanel() {
             })
           }
         >
-          Create a quiz →
+          Create a quiz
         </Button>
       </EmptyState>
     );
@@ -92,7 +82,7 @@ export function QuizzesPanel() {
               <Link
                 to={`/quiz/${quiz.id}/mock-exam`}
                 className={styles.footerLink}
-                title="Timed, fullscreen exam conditions — no going back, no peeking at other tabs"
+                title="Timed fullscreen exam; answers lock when you move forward"
               >
                 Mock Exam
               </Link>
