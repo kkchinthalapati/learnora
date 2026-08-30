@@ -428,10 +428,10 @@ export const dataAdminApi = {
                 (e) => `
               <tr>
                 <td>${escapeHtml(e.exam_name)}</td>
-                <td>${e.exam_date || "—"}</td>
+                <td>${escapeHtml(e.exam_date || "—")}</td>
                 <td>
-                  <span class="status-badge status-${e.status ?? "scheduled"}">
-                    ${e.status ?? "scheduled"}
+                  <span class="status-badge status-${escapeHtml(e.status ?? "scheduled")}">
+                    ${escapeHtml(e.status ?? "scheduled")}
                   </span>
                 </td>
               </tr>
@@ -458,11 +458,11 @@ export const dataAdminApi = {
             <div class="session-item">
               <div>
                 <div class="session-task">${escapeHtml(s.task || "General Study")} (${s.minutes}m)</div>
-                <div class="session-meta">${
+                <div class="session-meta">${escapeHtml(
                   dbSessions.length
                     ? new Date((s as (typeof dbSessions)[number]).started_at).toLocaleString()
-                    : (s as { timestamp: string }).timestamp
-                }</div>
+                    : String((s as { timestamp: string }).timestamp ?? ""),
+                )}</div>
               </div>
             </div>
           `
@@ -513,6 +513,13 @@ export const dataAdminApi = {
   },
 };
 
+/* Every interpolation of stored data into the report above goes through
+ * this. `exam_date` and `status` used to skip it — `status` is free text on
+ * the row and was landing inside `class="status-badge status-${...}"`, where
+ * a single double-quote closes the attribute early and the rest is parsed as
+ * markup. The report is the user's own data in a file they downloaded, so
+ * the blast radius is small, but these files get shared and the escaping was
+ * already right three lines away. */
 function escapeHtml(text: string): string {
   const div = document.createElement("div");
   div.textContent = text;

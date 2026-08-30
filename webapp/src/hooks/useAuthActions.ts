@@ -52,9 +52,20 @@ export function useUpdateProfile() {
   });
 }
 
+/* Takes both passwords, not just the new one: the settings form is a
+ * re-authenticating change, so the current password is part of the request
+ * rather than something the API layer could look up. The recovery screen,
+ * which has no current password to offer, calls `authApi.changePassword`
+ * directly instead of going through this hook. */
 export function useChangePassword() {
   return useMutation({
-    mutationFn: (newPassword: string) => authApi.changePassword(newPassword),
+    mutationFn: ({
+      currentPassword,
+      newPassword,
+    }: {
+      currentPassword: string;
+      newPassword: string;
+    }) => authApi.changePasswordWithCurrent(currentPassword, newPassword),
   });
 }
 

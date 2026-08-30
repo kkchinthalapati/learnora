@@ -97,6 +97,50 @@ describe("dataAdminApi.exportHTML", () => {
     }
   });
 
+  /* `status` and `exam_date` are free text on the row, and `status` is
+     interpolated into a quoted class attribute — an unescaped double quote
+     there closes the attribute and everything after it is parsed as markup.
+     Reading the blob synchronously via `.text()` rather than a FileReader
+     callback so the assertions can't be skipped by the read not finishing. */
+  it("escapes stored exam fields instead of letting them close a tag", async () => {
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/exams`, () =>
+        HttpResponse.json([
+          {
+            id: 1,
+            user_id: "user-1",
+            exam_name: "Chemistry",
+            exam_date: '2026-01-01"><script>alert(1)</script>',
+            difficulty: null,
+            status: '"><img src=x onerror=alert(1)>',
+          },
+        ]),
+      ),
+    );
+
+    const origCreate = URL.createObjectURL;
+    let blob: Blob | null = null;
+    URL.createObjectURL = vi.fn((b: Blob) => {
+      blob = b;
+      return "blob:mock-url";
+    }) as unknown as typeof URL.createObjectURL;
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    try {
+      await dataAdminApi.exportHTML();
+      expect(blob).toBeInstanceOf(Blob);
+      const html = await (blob as unknown as Blob).text();
+
+      expect(html).toContain("Chemistry");
+      // The payload survives as inert text, not as markup.
+      expect(html).not.toContain("<script>alert(1)</script>");
+      expect(html).not.toContain("<img src=x onerror=alert(1)>");
+      expect(html).toContain("&lt;script&gt;");
+    } finally {
+      URL.createObjectURL = origCreate;
+    }
+  });
+
   it("includes summary statistics in the HTML report", async () => {
     const origCreate = URL.createObjectURL;
     const createObjectURL = vi.fn();

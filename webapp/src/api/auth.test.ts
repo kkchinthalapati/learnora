@@ -21,6 +21,54 @@ describe("authApi.signup", () => {
     ).rejects.toThrow("at least 13 years old");
   });
 
+  /* `NaN < 13` is false, so an unparseable date sails past a bare
+     comparison — it needs rejecting on its own terms. */
+  it("rejects an unparseable date of birth rather than waving it through", async () => {
+    await expect(
+      authApi.signup("Ada", "ada@example.com", "pw", "not-a-date"),
+    ).rejects.toThrow("valid date of birth");
+  });
+
+  /* The birthday boundary.
+   *
+   * These pin the behaviour the UTC-parsing fix exists for: the gate has to
+   * read "YYYY-MM-DD" as that calendar date, not as UTC midnight. Note that
+   * they can only *fail* on a machine whose zone is behind UTC — where
+   * `new Date("2013-08-31")` reads back as the 30th and the old code let
+   * someone in the day before they turned 13. Under this suite's UTC runner
+   * the two readings coincide, so treat these as a statement of the intended
+   * boundary rather than as a reproduction of the bug. `process.env.TZ`
+   * cannot stand in for a real zone here: V8 has already cached the offset
+   * by the time a test body runs, and the worker ignores the reassignment. */
+  function localDob(yearsAgo: number, dayOffset = 0): string {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - yearsAgo);
+    d.setDate(d.getDate() + dayOffset);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  it("rejects someone whose 13th birthday is tomorrow", async () => {
+    await expect(
+      authApi.signup("Ada", "ada@example.com", "pw", localDob(13, 1)),
+    ).rejects.toThrow("at least 13 years old");
+  });
+
+  it("accepts someone whose 13th birthday is today", async () => {
+    server.use(
+      http.post(`${SUPABASE_URL}/auth/v1/signup`, () =>
+        HttpResponse.json({
+          user: { id: "u1", identities: [{ id: "i1" }] },
+          session: null,
+        }),
+      ),
+    );
+
+    await expect(
+      authApi.signup("Ada", "ada@example.com", "password123", localDob(13)),
+    ).resolves.toBe("verification-sent");
+  });
+
   it("returns 'verification-sent' when signup succeeds without a session", async () => {
     server.use(
       http.post(`${SUPABASE_URL}/auth/v1/signup`, () =>

@@ -18,6 +18,35 @@ function mockSignOut(error: { message: string } | null = null) {
   } as Awaited<ReturnType<typeof supabase.auth.signOut>>);
 }
 
+/* The re-authentication the API layer performs before it will change a
+   password: the email comes from a server-verified `getUser`, and the
+   current password is checked by actually signing in with it. */
+function mockReauth(error: { message: string; status?: number } | null = null) {
+  vi.spyOn(supabase.auth, "getUser").mockResolvedValue({
+    data: { user: { id: "user-1", email: "student@example.com" } },
+    error: null,
+  } as Awaited<ReturnType<typeof supabase.auth.getUser>>);
+  return vi.spyOn(supabase.auth, "signInWithPassword").mockResolvedValue({
+    data: { user: null, session: null },
+    error,
+  } as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>);
+}
+
+async function fillPasswordForm(
+  user: ReturnType<typeof userEvent.setup>,
+  {
+    current = "current-pw",
+    next = "longenough1",
+    confirm = next,
+  }: { current?: string; next?: string; confirm?: string } = {},
+) {
+  if (current)
+    await user.type(screen.getByLabelText("Current Password"), current);
+  if (next) await user.type(screen.getByLabelText("New Password"), next);
+  if (confirm)
+    await user.type(screen.getByLabelText("Confirm New Password"), confirm);
+}
+
 function renderSecurity() {
   return renderWithAuth(<SecurityTab />, { session: fakeSession() });
 }
@@ -57,7 +86,13 @@ describe("SecurityTab", () => {
     const input = screen.getByLabelText("New Password");
     expect(input).toHaveAttribute("type", "password");
 
-    const toggle = screen.getAllByRole("button", { name: "Show password" })[0];
+    /* Scoped to this field's own wrapper: all three password inputs carry an
+       identically-labelled toggle, so an unscoped query would return the
+       Current Password one and leave this input untouched. */
+    const toggle = within(input.parentElement as HTMLElement).getByRole(
+      "button",
+      { name: "Show password" },
+    );
     expect(toggle).toHaveAttribute("tabindex", "-1");
     await user.click(toggle);
 
@@ -69,7 +104,7 @@ describe("SecurityTab", () => {
     const updateUser = mockUpdateUser();
     renderSecurity();
 
-    await user.type(screen.getByLabelText("New Password"), "short");
+    await fillPasswordForm(user, { next: "short", confirm: "" });
     await user.click(screen.getByRole("button", { name: "Update Password" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -83,11 +118,7 @@ describe("SecurityTab", () => {
     const updateUser = mockUpdateUser();
     renderSecurity();
 
-    await user.type(screen.getByLabelText("New Password"), "longenough1");
-    await user.type(
-      screen.getByLabelText("Confirm New Password"),
-      "different1",
-    );
+    await fillPasswordForm(user, { confirm: "different1" });
     await user.click(screen.getByRole("button", { name: "Update Password" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -96,31 +127,76 @@ describe("SecurityTab", () => {
     expect(updateUser).not.toHaveBeenCalled();
   });
 
-  it("changes the password, clears both fields and drops the meter", async () => {
+  it("changes the password, clears every field and drops the meter", async () => {
     const user = userEvent.setup();
     const updateUser = mockUpdateUser();
+    const signIn = mockReauth();
     mockSignOut();
     renderSecurity();
 
-    const next = screen.getByLabelText("New Password");
-    await user.type(next, "longenough1");
-    await user.type(
-      screen.getByLabelText("Confirm New Password"),
-      "longenough1",
-    );
+    await fillPasswordForm(user);
     await user.click(screen.getByRole("button", { name: "Update Password" }));
 
     await waitFor(() =>
       expect(updateUser).toHaveBeenCalledWith({ password: "longenough1" }),
     );
+    expect(signIn).toHaveBeenCalledWith({
+      email: "student@example.com",
+      password: "current-pw",
+    });
     expect(
       await screen.findByText(
         "Password updated. Other sessions have been signed out.",
       ),
     ).toBeInTheDocument();
-    expect(next).toHaveValue("");
+    expect(screen.getByLabelText("Current Password")).toHaveValue("");
+    expect(screen.getByLabelText("New Password")).toHaveValue("");
     expect(screen.getByLabelText("Confirm New Password")).toHaveValue("");
     expect(screen.queryByText(/Too Weak|Fair|Good|Strong/)).toBeNull();
+  });
+
+  it("will not change the password without the current one", async () => {
+    const user = userEvent.setup();
+    const updateUser = mockUpdateUser();
+    renderSecurity();
+
+    await fillPasswordForm(user, { current: "" });
+    await user.click(screen.getByRole("button", { name: "Update Password" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Please enter your current password.",
+    );
+    expect(updateUser).not.toHaveBeenCalled();
+  });
+
+  it("leaves the password alone when the current one is wrong", async () => {
+    const user = userEvent.setup();
+    const updateUser = mockUpdateUser();
+    mockReauth({ message: "Invalid login credentials" });
+    renderSecurity();
+
+    await fillPasswordForm(user, { current: "not-my-password" });
+    await user.click(screen.getByRole("button", { name: "Update Password" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Your current password is incorrect.",
+    );
+    expect(updateUser).not.toHaveBeenCalled();
+  });
+
+  it("says so when re-authentication is rate limited", async () => {
+    const user = userEvent.setup();
+    const updateUser = mockUpdateUser();
+    mockReauth({ message: "Request rate limit reached", status: 429 });
+    renderSecurity();
+
+    await fillPasswordForm(user);
+    await user.click(screen.getByRole("button", { name: "Update Password" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Too many attempts. Please wait a minute and try again.",
+    );
+    expect(updateUser).not.toHaveBeenCalled();
   });
 
   it("explains a same-password rejection in the API layer's words", async () => {
@@ -128,13 +204,10 @@ describe("SecurityTab", () => {
     mockUpdateUser({
       message: "New password should be different from the old password.",
     });
+    mockReauth();
     renderSecurity();
 
-    await user.type(screen.getByLabelText("New Password"), "longenough1");
-    await user.type(
-      screen.getByLabelText("Confirm New Password"),
-      "longenough1",
-    );
+    await fillPasswordForm(user);
     await user.click(screen.getByRole("button", { name: "Update Password" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(

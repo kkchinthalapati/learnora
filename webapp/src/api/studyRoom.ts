@@ -78,12 +78,179 @@ export interface RoomMessage {
   type?: "chat" | "system";
 }
 
-export interface CheerNotification {
-  id: string;
-  emoji: string;
-  fromName: string;
-  toName: string;
-  timestamp: number;
+/* =========================================================================
+   UNTRUSTED PEER INPUT
+
+   Everything a room hands its participants — presence entries, chat,
+   reactions, timer syncs — arrives over a Supabase Realtime channel that any
+   signed-in user can join and send on. Broadcast payloads are relayed
+   verbatim and are not signed, so a peer chooses every byte of them; the
+   receiving code was casting them straight to their interfaces (`payload as
+   RoomMessage`), which is an assertion about a value nobody checked.
+
+   Two things went wrong with that. A non-string `text` reaches JSX as-is and
+   React throws "Objects are not valid as a React child", taking the whole
+   room down for everyone in it; and the chat list grew without a bound, so a
+   peer looping `send()` could push every other tab into swap. The helpers
+   below are the boundary: shape-check, coerce, clamp, and drop anything that
+   cannot be made sense of.
+
+   What they deliberately do *not* do is authenticate the sender. `userId`
+   and `userName` are self-asserted, and no client-side check can make them
+   otherwise — a peer can always claim someone else's name. Fixing that needs
+   the server to stamp identity on the message; until then the room is
+   "anyone here can say they are anyone", which is worth knowing before it is
+   used for anything but encouragement between friends.
+   ========================================================================= */
+
+/** Longest chat message kept. Matches the composer's own `maxLength`. */
+export const MAX_MESSAGE_LENGTH = 500;
+/** Longest display name rendered beside a message or on a desk card. */
+export const MAX_NAME_LENGTH = 60;
+/** How many chat messages a room retains. Oldest are dropped past this. */
+export const MAX_ROOM_MESSAGES = 200;
+
+function asString(value: unknown, max: number): string {
+  if (typeof value !== "string") return "";
+  /* Sliced before trimming so a megabyte of whitespace is bounded too. */
+  return value.slice(0, max).trim();
+}
+
+function asFiniteNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/* `crypto.randomUUID` is only defined in a secure context, so it is absent
+ * over plain http — the same guard the room's own id generation already
+ * uses. Uniqueness is all that is wanted here (these ids only de-duplicate a
+ * list), not unpredictability. */
+function localId(prefix: string): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Normalises an inbound chat broadcast, or returns null to drop it. */
+export function sanitizeRoomMessage(payload: unknown): RoomMessage | null {
+  if (!isRecord(payload)) return null;
+
+  const text = asString(payload.text, MAX_MESSAGE_LENGTH);
+  if (!text) return null;
+
+  /* A peer that omits `id` (or sends a non-string one) would otherwise
+     collide with every other such message under the de-duplication check,
+     so an id is minted here rather than trusted. */
+  const id = asString(payload.id, 120) || localId("peer");
+
+  return {
+    id,
+    userId: asString(payload.userId, 64),
+    userName: asString(payload.userName, MAX_NAME_LENGTH) || "Student",
+    text,
+    timestamp: asFiniteNumber(payload.timestamp, Date.now()),
+    type: payload.type === "system" ? "system" : "chat",
+  };
+}
+
+/** Normalises an inbound reaction broadcast, or returns null to drop it. */
+export function sanitizeRoomReaction(payload: unknown): RoomReaction | null {
+  if (!isRecord(payload)) return null;
+
+  /* Emoji are a handful of code points; the cap is generous enough for a
+     flag or a skin-tone sequence and mean enough to keep a wall of text out
+     of the floating-reaction overlay. */
+  const emoji = asString(payload.emoji, 16);
+  if (!emoji) return null;
+
+  const senderName = asString(payload.senderName, MAX_NAME_LENGTH);
+  const recipientId = asString(payload.recipientId, 64);
+
+  return {
+    id: asString(payload.id, 120) || localId("peer"),
+    emoji,
+    timestamp: asFiniteNumber(payload.timestamp, Date.now()),
+    senderId: asString(payload.senderId, 64),
+    senderName: senderName || "Someone",
+    recipientId: recipientId || null,
+    message: asString(payload.message, MAX_MESSAGE_LENGTH),
+    fromName: senderName || "Someone",
+    userName: senderName || "Someone",
+  };
+}
+
+/** Bounds on a peer-proposed timer, so "sync with them" can't be handed a
+ *  NaN or a thousand-hour session. One minute to a full day. */
+export const MIN_SYNC_MINUTES = 1;
+export const MAX_SYNC_MINUTES = 1440;
+
+/** Normalises an inbound timer-sync broadcast, or returns null to drop it. */
+export function sanitizeTimerSync(payload: unknown): TimerSyncPayload | null {
+  if (!isRecord(payload)) return null;
+
+  const senderId = asString(payload.senderId, 64);
+  if (!senderId) return null;
+
+  const rawMinutes = asFiniteNumber(payload.targetMinutes, NaN);
+  if (!Number.isFinite(rawMinutes)) return null;
+  const targetMinutes = Math.min(
+    MAX_SYNC_MINUTES,
+    Math.max(MIN_SYNC_MINUTES, Math.round(rawMinutes)),
+  );
+
+  const mode = payload.mode;
+  return {
+    senderId,
+    senderName: asString(payload.senderName, MAX_NAME_LENGTH) || "Someone",
+    targetMinutes,
+    mode: mode === "Break" || mode === "Flow" ? mode : "Focus",
+    targetEndTime:
+      typeof payload.targetEndTime === "number" &&
+      Number.isFinite(payload.targetEndTime)
+        ? payload.targetEndTime
+        : null,
+  };
+}
+
+/** Clamps the free-text fields of a presence entry. Presence keys are set by
+ *  the channel rather than the payload, so the identity here is already the
+ *  peer's own — only the strings it renders need bounding. */
+export function sanitizeParticipant(
+  participant: StudyParticipant,
+): StudyParticipant {
+  const name = asString(
+    participant.fullName ?? participant.name,
+    MAX_NAME_LENGTH,
+  );
+  const task = asString(
+    participant.currentTask ?? participant.task,
+    MAX_MESSAGE_LENGTH,
+  );
+  const subject = asString(
+    participant.activeSubject ?? participant.subject,
+    MAX_NAME_LENGTH,
+  );
+
+  /* Only http(s) images are rendered. An avatar URL is peer-supplied and
+     lands in an <img src>, where a `data:` or `javascript:` value has no
+     business being. */
+  const rawAvatar = asString(participant.avatarUrl, 2048);
+  const avatarUrl = /^https?:\/\//i.test(rawAvatar) ? rawAvatar : null;
+
+  return {
+    ...participant,
+    fullName: name,
+    name,
+    avatarUrl,
+    currentTask: task,
+    task,
+    activeSubject: subject || null,
+    subject: subject || null,
+  };
 }
 
 export const TIMER_STATUS_LABELS: Record<TimerStatus, string> = {

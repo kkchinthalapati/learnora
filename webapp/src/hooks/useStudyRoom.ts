@@ -7,6 +7,14 @@ import { ToastContext } from "../context/toast";
 import { useFolders } from "./useFolders";
 import {
   deriveTimerStatus,
+  MAX_MESSAGE_LENGTH,
+  MAX_ROOM_MESSAGES,
+  MAX_SYNC_MINUTES,
+  MIN_SYNC_MINUTES,
+  sanitizeParticipant,
+  sanitizeRoomMessage,
+  sanitizeRoomReaction,
+  sanitizeTimerSync,
   type CheerNotification,
   type RoomMessage,
   type RoomReaction,
@@ -267,16 +275,20 @@ export function useStudyRoom(
             if (p) {
               const pid = p.userId || p.id || key;
               const isSelf = pid === userId;
+              /* `p` is another tab's presence payload — bound its strings
+                 before any of them reach the desk cards. */
+              const safe = sanitizeParticipant(p);
               participantMap.set(pid, {
-                ...p,
+                ...safe,
                 id: pid,
                 userId: pid,
-                name: p.fullName || p.name || "Student",
-                fullName: p.fullName || p.name || "Student",
-                status: p.timerStatus || p.status || "idle",
-                timerStatus: p.timerStatus || (p.status as any) || "idle",
-                task: p.currentTask || p.task || "",
-                currentTask: p.currentTask || p.task || "",
+                name: safe.fullName || "Student",
+                fullName: safe.fullName || "Student",
+                status: safe.timerStatus || safe.status || "idle",
+                timerStatus:
+                  safe.timerStatus || (safe.status as any) || "idle",
+                task: safe.currentTask || "",
+                currentTask: safe.currentTask || "",
                 isSelf,
               });
             }
@@ -296,8 +308,9 @@ export function useStudyRoom(
         // Presence state sync handles list updates
       })
       .on("broadcast", { event: "reaction" }, ({ payload }) => {
-        if (!isMounted || !payload) return;
-        const reaction = payload as RoomReaction;
+        if (!isMounted) return;
+        const reaction = sanitizeRoomReaction(payload);
+        if (!reaction) return;
         if (
           !reaction.recipientId ||
           reaction.recipientId === userId ||
@@ -307,8 +320,9 @@ export function useStudyRoom(
         }
       })
       .on("broadcast", { event: "sync_timer" }, ({ payload }) => {
-        if (!isMounted || !payload) return;
-        const syncPayload = payload as TimerSyncPayload;
+        if (!isMounted) return;
+        const syncPayload = sanitizeTimerSync(payload);
+        if (!syncPayload) return;
         if (syncPayload.senderId !== userId) {
           if (optionsRef.current?.onTimerSync) {
             optionsRef.current.onTimerSync(syncPayload);
@@ -327,11 +341,14 @@ export function useStudyRoom(
         }
       })
       .on("broadcast", { event: "chat" }, ({ payload }) => {
-        if (!isMounted || !payload) return;
-        const msg = payload as RoomMessage;
+        if (!isMounted) return;
+        const msg = sanitizeRoomMessage(payload);
+        if (!msg) return;
         setMessages((prev) => {
           if (prev.some((m) => m.id === msg.id)) return prev;
-          return [...prev, msg];
+          /* Bounded: a peer can send as fast as the channel allows, and an
+             unbounded list would grow until the tab died. */
+          return [...prev, msg].slice(-MAX_ROOM_MESSAGES);
         });
       });
 
@@ -524,7 +541,7 @@ export function useStudyRoom(
   // Send chat message
   const sendMessage = useCallback(
     async (text: string) => {
-      const trimmed = text.trim();
+      const trimmed = text.trim().slice(0, MAX_MESSAGE_LENGTH);
       if (!trimmed) return;
 
       const newMsg: RoomMessage = {
@@ -536,7 +553,7 @@ export function useStudyRoom(
         type: "chat",
       };
 
-      setMessages((prev) => [...prev, newMsg]);
+      setMessages((prev) => [...prev, newMsg].slice(-MAX_ROOM_MESSAGES));
 
       if (channelRef.current && isConnected) {
         await channelRef.current.send({
@@ -584,10 +601,17 @@ export function useStudyRoom(
         timer.setActiveTask(task);
       }
 
-      const durationMinutes = participant.totalTime
-        ? Math.max(1, Math.round(participant.totalTime / 60))
-        : participant.timeLeft
-          ? Math.max(1, Math.round(participant.timeLeft / 60))
+      /* The seconds here come off a peer's presence payload, so they are
+         clamped to the same window a broadcast sync is: an unbounded (or
+         NaN) value would otherwise be written straight into the timer
+         config and persisted. */
+      const rawSeconds = participant.totalTime || participant.timeLeft || 0;
+      const durationMinutes =
+        Number.isFinite(rawSeconds) && rawSeconds > 0
+          ? Math.min(
+              MAX_SYNC_MINUTES,
+              Math.max(MIN_SYNC_MINUTES, Math.round(rawSeconds / 60)),
+            )
           : 25;
 
       const type = (participant.timerType as any) || "pomodoro";
