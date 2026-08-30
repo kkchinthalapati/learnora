@@ -23,6 +23,7 @@ import type { MaterialType } from "../../api/types";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import { useLibraryActions } from "./useLibraryActions";
 import styles from "./library.module.css";
+import { Badge } from "../../components/Badge";
 
 const MATERIAL_ICONS: Record<MaterialType, IconName> = {
   pdf: "file-text",
@@ -305,34 +306,37 @@ export function SubjectDetailPage() {
                       />
                       <span className={styles.rowTitle}>{material.title}</span>
                       {status === "processing" && (
-                        <span
-                          className={styles.badgeProcessing}
+                        <Badge
+                          tone="accent"
+                          size="sm"
                           role="status"
                           aria-label="Processing"
                         >
                           <span className={styles.spinner} aria-hidden="true" />
                           <span>Processing...</span>
-                        </span>
+                        </Badge>
                       )}
                       {status === "partially_processed" && (
-                        <span
-                          className={styles.badgePartial}
+                        <Badge
+                          tone="warning"
+                          size="sm"
                           role="status"
                           aria-label="Partially processed"
                         >
                           <Icon name="alert-triangle" size={13} />
                           <span>Partially processed</span>
-                        </span>
+                        </Badge>
                       )}
                       {status === "failed" && (
-                        <span
-                          className={styles.badgeFailed}
+                        <Badge
+                          tone="danger"
+                          size="sm"
                           role="alert"
                           aria-label="Processing failed"
                         >
                           <Icon name="alert-circle" size={13} />
                           <span>Processing failed</span>
-                        </span>
+                        </Badge>
                       )}
                     </Link>
                     {(status === "failed" ||

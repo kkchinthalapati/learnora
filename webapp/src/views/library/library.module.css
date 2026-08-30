@@ -526,43 +526,12 @@
 
 /* ---- Material Processing Status Badges & Retries ----------------------- */
 
-.badgeProcessing,
-.badgePartial,
-.badgeFailed,
-.badgeCompleted {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  border-radius: var(--r-pill);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  line-height: 1;
-}
+/* The four status badges here (.badgeProcessing/.badgePartial/.badgeFailed/
+ * .badgeCompleted) were a hand-rolled copy of the Badge primitive's soft
+ * tones — same shape, same tokens, same four semantic colours. MaterialsPanel
+ * and SubjectDetailPage now render <Badge tone="accent|warning|danger|success"
+ * size="sm">. */
 
-.badgeProcessing {
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  border: 1px solid var(--accent-ring);
-}
-
-.badgePartial {
-  background: var(--warning-soft);
-  color: var(--warning);
-  border: 1px solid var(--warning-soft);
-}
-
-.badgeFailed {
-  background: var(--danger-soft);
-  color: var(--danger);
-  border: 1px solid var(--danger-soft);
-}
-
-.badgeCompleted {
-  background: var(--success-soft);
-  color: var(--success);
-  border: 1px solid var(--success-soft);
-}
 
 .spinner {
   display: inline-block;

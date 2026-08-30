@@ -32,6 +32,7 @@ export function Chip({
   ...rest
 }: ChipProps) {
   const classes = [
+    styles.base,
     styles.chip,
     styles[tone],
     size === "sm" ? styles.sm : null,

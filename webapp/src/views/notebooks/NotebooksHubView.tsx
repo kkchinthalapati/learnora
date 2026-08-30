@@ -6,6 +6,7 @@ import { Modal } from "../../components/Modal";
 import { useNotebooks } from "../../hooks/useNotebooks";
 import styles from "./notebooks.module.css";
 import { plural } from "../../lib/plural";
+import { Badge } from "../../components/Badge";
 
 const SUBJECT_COLORS = [
   "#4A90E2", // Blue (Maths)
@@ -127,14 +128,14 @@ export function NotebooksHubView() {
             >
               <div>
                 <div className={styles.cardTop}>
-                  <span className={styles.subjectTag}>
+                  <Badge soft={false}>
                     <span
                       className={styles.cardSubjectDot}
                       style={{ background: nb.color }}
                     />
                     {nb.subject}
-                  </span>
-                  <span style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
+                  </Badge>
+                  <span className={styles.cardSourceCount}>
                     {plural(nb.sources.length, "source")}
                   </span>
                 </div>

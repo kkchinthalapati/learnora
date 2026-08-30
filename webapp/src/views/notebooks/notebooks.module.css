@@ -162,17 +162,12 @@
   gap: var(--s-3);
 }
 
-.subjectTag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
+/* .subjectTag was a hand-rolled copy of the Badge primitive — same shape,
+   same tokens, redeclared. The card now uses <Badge>. */
+
+.cardSourceCount {
   font-size: var(--fs-xs);
-  font-weight: 700;
-  border-radius: var(--r-pill);
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  color: var(--text);
+  color: var(--text-muted);
 }
 
 .cardSubjectDot {

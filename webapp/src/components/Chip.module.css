@@ -1,14 +1,26 @@
-/* Chip — compact pill for toggles, quick actions and clickable status.
+/* Chip and Badge — one pill, two semantics.
+ *
+ * Chip is interactive (a <button>: filter toggles, quick actions). Badge is
+ * static (a <span>: "Mathematics", "1 source", "Processing"). They share the
+ * shape and the tone ramp below and differ only in the things that follow
+ * from being clickable — the 44px tap target, the cursor, and the hover lift.
+ *
+ * Splitting them is what unblocks adoption. Chip previously rendered a
+ * <button> unconditionally and set min-height: var(--touch-target-min), so
+ * using it for a status label produced a 44px-tall pill that announced itself
+ * as a button to a screen reader. That is the dominant case — the app carries
+ * 202 hand-rolled pill rules across 38 files against 3 files importing Chip —
+ * and every one of those authors hit the same wall.
+ *
  * All state is token-driven so it follows dark mode and every accent preset.
- * The tone shows on hover and (for toggles) when `.pressed`; the rest state
- * is deliberately quiet so a row of chips doesn't shout. */
+ * The tone shows on hover and (for toggles) when .pressed; the rest state is
+ * deliberately quiet so a row of chips doesn't shout. */
 
-.chip {
+/* Shape and type, shared. Carries no interaction affordance of its own. */
+.base {
   display: inline-flex;
   align-items: center;
   gap: var(--s-2);
-  min-height: var(--touch-target-min);
-  padding: 5px 12px;
   font-family: inherit;
   font-size: var(--fs-xs);
   font-weight: 700;
@@ -18,8 +30,23 @@
   background: var(--surface-2);
   border: 1px solid var(--line);
   border-radius: var(--r-pill);
-  cursor: pointer;
   white-space: nowrap;
+}
+
+/* Static label. Sized to its text — a badge is read, not aimed at. */
+.badge {
+  padding: 4px 10px;
+}
+
+.badgeSm {
+  padding: 3px 8px;
+  font-size: var(--fs-xs);
+}
+
+.chip {
+  min-height: var(--touch-target-min);
+  padding: 5px 12px;
+  cursor: pointer;
   transition:
     background var(--t-fast) ease,
     border-color var(--t-fast) ease,
@@ -45,7 +72,8 @@
   padding: 5px 10px;
 }
 
-/* ---- Tones: [--chip-color] fill + [--chip-soft] hover wash ------------- */
+/* ---- Tones: [--chip-color] fill + [--chip-soft] hover wash -------------
+   Applied to .base, so Chip and Badge share one ramp. */
 
 .neutral {
   --chip-color: var(--text);
