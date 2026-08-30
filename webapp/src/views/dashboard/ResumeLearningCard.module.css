@@ -1,6 +1,6 @@
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-xl);
   padding: var(--s-6);
   box-shadow: var(--shadow-sm);
@@ -64,7 +64,7 @@
   gap: var(--s-4);
   padding: var(--s-5);
   background: color-mix(in srgb, var(--surface-2) 60%, transparent);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-lg);
   position: relative;
   z-index: 1;
@@ -176,7 +176,7 @@
   justify-content: space-between;
   padding: 10px 14px;
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-md);
   text-decoration: none;
   color: var(--text);

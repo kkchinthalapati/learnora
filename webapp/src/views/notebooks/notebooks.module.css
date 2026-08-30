@@ -67,7 +67,7 @@
   gap: var(--s-2);
   padding: 10px 14px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-md);
   color: var(--text);
   font-size: var(--fs-sm);
@@ -116,7 +116,7 @@
 
 .notebookCard {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-xl);
   padding: var(--s-6);
   box-shadow: var(--shadow-sm);
@@ -235,7 +235,7 @@
   gap: var(--s-4);
   padding: var(--s-3) var(--s-6);
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border);
   flex-shrink: 0;
   z-index: 10;
 }
@@ -313,7 +313,7 @@
 /* Column 1: Sources Desk */
 .sourcesDesk {
   background: var(--surface);
-  border-right: 1px solid var(--border);
+  border-right: var(--border);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -326,7 +326,7 @@
   justify-content: space-between;
   gap: var(--s-2);
   padding: var(--s-4) var(--s-5);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border);
   flex-shrink: 0;
 }
 
@@ -423,7 +423,7 @@
 
 .addSourceFooter {
   padding: var(--s-4) var(--s-5);
-  border-top: 1px solid var(--border);
+  border-top: var(--border);
   background: var(--surface);
   flex-shrink: 0;
 }
@@ -443,7 +443,7 @@
   gap: var(--s-1);
   padding: var(--s-2) var(--s-6);
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border);
   flex-shrink: 0;
 }
 
@@ -519,7 +519,7 @@
 .assistantMessage {
   align-self: flex-start;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border);
   color: var(--text);
   border-bottom-left-radius: 4px;
   box-shadow: var(--shadow-sm);
@@ -553,7 +553,7 @@
   gap: var(--s-3);
   padding: var(--s-3) var(--s-4);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-sm);
   margin-top: var(--s-4);
@@ -571,7 +571,7 @@
 /* Column 3: Studio Tools & Artifacts */
 .studioToolsPanel {
   background: var(--surface);
-  border-left: 1px solid var(--border);
+  border-left: var(--border);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -650,7 +650,7 @@
 .artifactCard {
   padding: 12px 14px;
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-lg);
   display: flex;
   flex-direction: column;
@@ -705,7 +705,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-right: 1px solid var(--border);
+  border-right: var(--border);
   padding-right: var(--s-4);
 }
 
@@ -722,7 +722,7 @@
   justify-content: space-around;
   padding: var(--s-2) var(--s-4);
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: var(--border);
   flex-shrink: 0;
 }
 
