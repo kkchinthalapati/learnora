@@ -215,7 +215,9 @@ function renderProse(prose: string): ReactNode[] {
     }
 
     const bullet = /^- (.*)$/.exec(line);
-    const numbered = /^\d+\. (.*)$/.exec(line);
+    /* Models number lists both ways — `1.` and `1)`. The second used to
+       fall through to a paragraph, so the items lost their list. */
+    const numbered = /^\d+[.)] (.*)$/.exec(line);
     if (bullet || numbered) {
       renderParagraph(paragraph, out);
       const ordered = !!numbered;

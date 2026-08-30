@@ -170,16 +170,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
  * way the base declaration already is.
  * ------------------------------------------------------------------------ */
 
+/* Each picked font also claims --font-read, the serif reading face used for
+   long AI prose (tokens.css). A student who chose Atkinson Hyperlegible for
+   low vision must get it in the coach's answer too, not a serif. */
 body[data-font-family="outfit"] {
   --font: "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-read: var(--font);
 }
 
 body[data-font-family="inter"] {
   --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-read: var(--font);
 }
 
 body[data-font-family="mono"] {
   --font: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+  --font-read: var(--font);
 }
 
 /* Atkinson Hyperlegible (OFL, Braille Institute) — designed for low-vision
@@ -188,6 +194,7 @@ body[data-font-family="mono"] {
 body[data-font-family="dyslexic"] {
   --font:
     "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-read: var(--font);
 }
 
 /* ------------------------------------------------------------------------

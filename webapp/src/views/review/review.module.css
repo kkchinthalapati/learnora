@@ -1126,8 +1126,12 @@
 }
 
 .socraticText {
-  font-size: var(--fs-base);
-  line-height: 1.7;
+  /* A text serif rather than the UI sans: this box holds a few paragraphs of
+     explanation to actually read, not labels to scan. --font-read falls back
+     to the student's own pick in Settings → Appearance (src/index.css). */
+  font-family: var(--font-read);
+  font-size: var(--fs-md);
+  line-height: 1.75;
   color: var(--text);
   margin: 0;
   /* Model replies carry unbreakable runs (equations, URLs, long identifiers);
@@ -1143,16 +1147,18 @@
 .socraticText h2,
 .socraticText h3,
 .socraticText h4 {
+  font-family: var(--font);
   font-size: var(--fs-md);
   font-weight: 700;
   line-height: 1.35;
-  margin: var(--s-4) 0 var(--s-2);
+  letter-spacing: var(--tracking-tight);
+  margin: var(--s-5) 0 var(--s-2);
   color: var(--text);
 }
 
 .socraticText p {
   margin: 0 0 var(--s-3);
-  line-height: 1.7;
+  line-height: 1.75;
 }
 
 .socraticText ul,
@@ -1167,7 +1173,17 @@
 
 .socraticText strong {
   color: var(--text);
+  font-weight: 600;
+}
+
+/* A paragraph that is nothing but bold text is the model's section lead (the
+   `**What tripped you up**` the prompt asks for). Treated as a heading so it
+   reads as structure instead of a shouted sentence. */
+.socraticText p > strong:only-child {
+  display: block;
+  font-family: var(--font);
   font-weight: 700;
+  letter-spacing: var(--tracking-tight);
 }
 
 .socraticText hr {
