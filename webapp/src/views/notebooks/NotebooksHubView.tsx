@@ -5,6 +5,7 @@ import { Icon } from "../../components/Icon";
 import { Modal } from "../../components/Modal";
 import { useNotebooks } from "../../hooks/useNotebooks";
 import styles from "./notebooks.module.css";
+import { plural } from "../../lib/plural";
 
 const SUBJECT_COLORS = [
   "#4A90E2", // Blue (Maths)
@@ -61,7 +62,7 @@ export function NotebooksHubView() {
         <div className={styles.hubTitleGroup}>
           <span className={styles.hubEyebrow}>
             <Icon name="book-open" size={16} />
-            Learnora Study Studios
+            Grounded in your own sources
           </span>
           <h1 className={styles.hubTitle}>Notebooks</h1>
           <p className={styles.hubSubtitle}>
@@ -134,7 +135,7 @@ export function NotebooksHubView() {
                     {nb.subject}
                   </span>
                   <span style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
-                    {nb.sources.length} {nb.sources.length === 1 ? "source" : "sources"}
+                    {plural(nb.sources.length, "source")}
                   </span>
                 </div>
 
@@ -161,11 +162,11 @@ export function NotebooksHubView() {
                   {feynmanCount === 0 && cheatSheetCount === 0 && (
                     <span className={styles.metaStatItem}>
                       <Icon name="check" size={13} style={{ color: "var(--success)" }} />
-                      {selectedSourcesCount} grounded sources
+                      {plural(selectedSourcesCount, "grounded source")}
                     </span>
                   )}
                 </div>
-                <span>Open Studio →</span>
+                <span>Open notebook</span>
               </div>
             </div>
           );

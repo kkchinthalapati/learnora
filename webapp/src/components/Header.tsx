@@ -7,7 +7,7 @@ import { useOptionalCommandPalette } from "../context/commandPalette";
 import { useLiveClock } from "../hooks/useLiveClock";
 import { useTranslation } from "../hooks/useTranslation";
 import { getGreeting } from "../lib/greeting";
-import { sectionLabel } from "../lib/sectionLabel";
+import { sectionLabel, viewOwnsPageTitle } from "../lib/sectionLabel";
 import { resolveDark, THEME_KEY } from "../lib/appearance";
 import { Storage } from "../lib/storage";
 import styles from "./Header.module.css";
@@ -25,6 +25,9 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
     "Student";
   const isDark = resolveDark(appearance.mode);
   const showDashboardGreeting = pathname === "/";
+  /* Views listed in viewOwnsPageTitle() render their own hero <h1>; the shell
+     yields the title to them so the page does not name itself twice. */
+  const ownsTitle = !viewOwnsPageTitle(pathname);
   const showClock = showDashboardGreeting || pathname.startsWith("/timer");
 
   const toggleTheme = () => {
@@ -46,7 +49,9 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
           <Icon name="menu" size={20} />
         </IconButton>
         <div className={styles.pageIdentity}>
-          <h1 className={styles.title}>{sectionLabel(pathname, t)}</h1>
+          {ownsTitle ? (
+            <h1 className={styles.title}>{sectionLabel(pathname, t)}</h1>
+          ) : null}
           {showDashboardGreeting ? (
             <p className={styles.subtitle}>{getGreeting(firstName)}</p>
           ) : null}

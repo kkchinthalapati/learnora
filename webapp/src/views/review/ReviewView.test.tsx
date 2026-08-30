@@ -619,7 +619,7 @@ describe("ReviewView", () => {
     renderReview();
 
     expect(
-      await screen.findByRole("heading", { level: 1, name: "Cell Biology" }),
+      await screen.findByRole("heading", { level: 2, name: "Cell Biology" }),
     ).toBeInTheDocument();
     expect(screen.getByText("All caught up! 🎉")).toBeInTheDocument();
   });

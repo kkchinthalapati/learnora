@@ -13,6 +13,12 @@ interface TooltipState {
   y: number;
 }
 
+/* Grid geometry, shared by the cells and the month ruler above them:
+ * a 12px cell plus a 3px gap. MONTH_LABEL_MIN_GAP is the width a three-letter
+ * label needs before the next one may be drawn. */
+const COLUMN_WIDTH = 15;
+const MONTH_LABEL_MIN_GAP = 30;
+
 export function StudyHeatmap({ data, className }: StudyHeatmapProps) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [focusIndex, setFocusIndex] = useState(0);
@@ -116,19 +122,42 @@ export function StudyHeatmap({ data, className }: StudyHeatmapProps) {
         <div className={styles.heatmapRoot}>
           {/* Month labels row */}
           <div className={styles.monthLabelsRow} aria-hidden="true">
-            {data.monthLabels.map((lbl, i) => {
-              // 12px cell + 3px gap = 15px per column
-              const leftOffset = lbl.index * 15;
-              return (
+            {/* The labels are absolutely positioned at `index * 15px`, so two
+                months whose first columns fall close together overlap and
+                render as one unreadable run — a 365-day window starts and ends
+                in the same month, which put a second "Aug" one column from
+                "Sep" and painted "AuSep" at the top-left of the chart.
+                A label is dropped when it cannot clear the last one kept. */}
+            {data.monthLabels
+              /* A 365-day window opens mid-month, so the first label is a stub
+                 sitting a column or two from the next month's. Dropping the
+                 stub rather than the full month keeps the ruler reading
+                 Sep-Oct-Nov rather than Aug-Oct-Nov. */
+              .filter((lbl, i, all) =>
+                i !== 0 ||
+                all.length < 2 ||
+                (all[1].index - lbl.index) * COLUMN_WIDTH >= MONTH_LABEL_MIN_GAP,
+              )
+              .reduce<{ month: string; index: number; left: number }[]>(
+                (kept, lbl) => {
+                  const left = lbl.index * COLUMN_WIDTH;
+                  const last = kept[kept.length - 1];
+                  if (!last || left - last.left >= MONTH_LABEL_MIN_GAP) {
+                    kept.push({ month: lbl.month, index: lbl.index, left });
+                  }
+                  return kept;
+                },
+                [],
+              )
+              .map((lbl) => (
                 <span
-                  key={`${lbl.month}-${lbl.index}-${i}`}
+                  key={`${lbl.month}-${lbl.index}`}
                   className={styles.monthLabel}
-                  style={{ left: `${leftOffset}px` }}
+                  style={{ left: `${lbl.left}px` }}
                 >
                   {lbl.month}
                 </span>
-              );
-            })}
+              ))}
           </div>
 
           {/* Heatmap Grid body */}

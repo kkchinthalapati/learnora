@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router";
 import { Icon } from "../../components/Icon";
 import { useNotebooks } from "../../hooks/useNotebooks";
 import styles from "./dashboard.module.css";
+import { plural } from "../../lib/plural";
 
 export function RecentNotebooksShelf() {
   const navigate = useNavigate();
@@ -50,7 +51,7 @@ export function RecentNotebooksShelf() {
                   {nb.subject}
                 </span>
                 <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-                  {nb.sources.length} sources
+                  {plural(nb.sources.length, "source")}
                 </span>
               </div>
 
@@ -71,7 +72,7 @@ export function RecentNotebooksShelf() {
                     </span>
                   )}
                 </div>
-                <span className={styles.shelfAction}>Open Studio →</span>
+                <span className={styles.shelfAction}>Open notebook</span>
               </div>
             </div>
           );

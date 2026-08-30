@@ -72,7 +72,7 @@ export function QuizRunner() {
     return (
       <div className={styles.view}>
         <ExitLink />
-        <h1>Quiz not found.</h1>
+        <h2>Quiz not found.</h2>
       </div>
     );
   }
@@ -86,7 +86,7 @@ export function QuizRunner() {
       <div className={styles.view}>
         <Card variant="panel" padding="lg" className={styles.panel}>
           <ExitLink />
-          <h1>{quiz.title || "Quiz"}</h1>
+          <h2>{quiz.title || "Quiz"}</h2>
           <p className={styles.muted}>
             This quiz has no usable questions. Generating it again should fix
             it.
@@ -311,7 +311,7 @@ function QuizSession({
             message={`Finished! You got ${score} out of ${total}. Check your weak topics and keep studying!`}
           />
           <ExitLink />
-          <h1>Quiz Complete! 🎉</h1>
+          <h2>Quiz Complete! 🎉</h2>
           <p className={styles.score}>
             {score} / {total} correct
           </p>
@@ -357,7 +357,7 @@ function QuizSession({
         <p className={styles.progress}>
           Question {index + 1} of {questions.length}
         </p>
-        <h1 className={styles.question}>{question.question}</h1>
+        <h2 className={styles.question}>{question.question}</h2>
 
         <div className={styles.choices}>
           {question.choices.map((choice, i) => {

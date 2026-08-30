@@ -91,7 +91,7 @@ export function MockExamRunner() {
     return (
       <div className={styles.view}>
         <Link to={QUIZZES_PATH} className={styles.exit}>← Exit</Link>
-        <h1>Could not load exam.</h1>
+        <h2>Could not load exam.</h2>
       </div>
     );
   }
@@ -101,7 +101,7 @@ export function MockExamRunner() {
     return (
       <div className={styles.view}>
         <Link to={QUIZZES_PATH} className={styles.exit}>← Exit</Link>
-        <h1>{quiz.title}</h1>
+        <h2>{quiz.title}</h2>
         <p>This exam has no questions.</p>
       </div>
     );
@@ -111,7 +111,7 @@ export function MockExamRunner() {
     return (
       <div className={styles.view} ref={containerRef}>
         <Card variant="panel" padding="lg">
-          <h1>Mock Exam: {quiz.title}</h1>
+          <h2>Mock Exam: {quiz.title}</h2>
           <p>This is a strict mock exam. You must remain in fullscreen mode. If you exit fullscreen, your exam will be terminated.</p>
           <Button variant="danger" onClick={enterFullscreen}>
             Begin Mock Exam (Fullscreen)
@@ -353,7 +353,7 @@ function MockExamSession({
 
     return (
       <Card variant="panel" padding="lg" className={styles.panel}>
-        <h1>Exam Complete!</h1>
+        <h2>Exam Complete!</h2>
         <p className={styles.score}>{score} / {total} correct</p>
         {timeLeft <= 0 && <p className={styles.muted}>Time's up!</p>}
         <Button variant="primary" onClick={exitExam}>Review Answers</Button>
@@ -418,7 +418,7 @@ function MockExamSession({
             Time Left: {minutes}:{seconds.toString().padStart(2, "0")}
           </p>
         </div>
-        <h1 className={styles.question}>{question.question}</h1>
+        <h2 className={styles.question}>{question.question}</h2>
 
         <div className={styles.choices}>
           {question.choices.map((choice, i) => (

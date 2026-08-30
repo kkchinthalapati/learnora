@@ -91,3 +91,30 @@ export function sectionLabel(
   if (pathname.startsWith("/settings")) return t("nav_settings");
   return "Learnora";
 }
+
+/* Routes whose view renders its own page-level hero (eyebrow + title +
+ * description, sometimes an action). On those, the shell's Header must not
+ * also render a title, or the page prints its own name twice — which is
+ * exactly what shipped: `/notebooks` rendered the word "Notebooks" as the
+ * shell <h1> and again 150px below as the hub <h1>, and four more routes
+ * printed a shell title above a longer restatement of the same thing
+ * ("Feynman Apprentice" over "Feynman AI Apprentice", "Study Room" over
+ * "Virtual Study Circle", and so on).
+ *
+ * Two <h1>s per document is also an accessibility defect independent of how
+ * it looks. The rule here is that a page has exactly one title: either the
+ * shell supplies it (the common case, for views that are just content) or
+ * the view does (these five, whose heroes carry more than a name). */
+const HERO_ROUTES = [
+  "/notebooks",
+  "/feynman",
+  "/premortem",
+  "/debugger",
+  "/room",
+];
+
+export function viewOwnsPageTitle(pathname: string): boolean {
+  return HERO_ROUTES.some(
+    (r) => pathname === r || pathname.startsWith(`${r}/`),
+  );
+}

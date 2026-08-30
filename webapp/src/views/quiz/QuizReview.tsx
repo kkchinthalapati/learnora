@@ -59,7 +59,7 @@ export function QuizReview() {
     return (
       <div className={styles.view}>
         <ExitLink />
-        <h1>Quiz not found.</h1>
+        <h2>Quiz not found.</h2>
       </div>
     );
   }
@@ -72,7 +72,7 @@ export function QuizReview() {
       <div className={styles.view}>
         <Card variant="panel" padding="lg" className={styles.panel}>
           <ExitLink />
-          <h1>{quiz.title || "Quiz"}</h1>
+          <h2>{quiz.title || "Quiz"}</h2>
           <p className={styles.muted}>
             You haven&apos;t taken this quiz yet, so there are no answers to
             review.
@@ -98,7 +98,7 @@ export function QuizReview() {
     <div className={styles.view}>
       <Card variant="panel" padding="lg" className={styles.panel}>
         <ExitLink />
-        <h1>{quiz.title || "Quiz"} — your answers</h1>
+        <h2>{quiz.title || "Quiz"} — your answers</h2>
         {proctorTermination ? (
           <div role="alert" className={styles.terminatedNotice}>
             <p>

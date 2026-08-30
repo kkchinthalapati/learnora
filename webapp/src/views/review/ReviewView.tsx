@@ -118,7 +118,7 @@ export function ReviewView() {
     return (
       <div className={styles.view}>
         <ExitLink />
-        <h1 className={styles.title}>{deck.title}</h1>
+        <h2 className={styles.title}>{deck.title}</h2>
         <EmptyState
           icon="check"
           title="All caught up! 🎉"
@@ -198,7 +198,7 @@ function ReviewSetup({
       <ExitLink />
       <div className={styles.setup}>
         <p className={styles.eyebrow}>Ready to review</p>
-        <h1 className={styles.title}>{deckTitle}</h1>
+        <h2 className={styles.title}>{deckTitle}</h2>
         <p className={styles.setupIntro}>
           {dueCards.length} {dueCards.length === 1 ? "card is" : "cards are"}{" "}
           due. Choose a focused session that fits the time you have.
@@ -957,7 +957,7 @@ function ReviewSession({
     <div className={styles.view}>
       <ExitLink />
       <div className={styles.header}>
-        <h1 className={styles.title}>{deckTitle}</h1>
+        <h2 className={styles.title}>{deckTitle}</h2>
         <p className={styles.progress}>
           Card {index + 1} of {cards.length}
         </p>
@@ -1248,7 +1248,7 @@ function ReviewRecap({
       <ExitLink />
       <section className={styles.recap} aria-labelledby="review-recap-title">
         <p className={styles.eyebrow}>Session recap</p>
-        <h1 className={styles.title}>{deckTitle}</h1>
+        <h2 className={styles.title}>{deckTitle}</h2>
         <h2 id="review-recap-title" className={styles.recapTitle}>
           {isDrill ? "Drill Complete! ⚡" : "Review Complete! 🧠"}
         </h2>

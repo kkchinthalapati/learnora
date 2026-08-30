@@ -50,15 +50,37 @@ describe("route skeleton", () => {
     ["/friends", "Friends"],
     ["/analytics", "Analytics"],
     ["/graph", "Concept Graph"],
-    ["/feynman", "Feynman Apprentice"],
-    ["/debugger", "Cognitive Debugger"],
-    ["/premortem", "Exam Pre-Mortem"],
+    ["/feynman", "Feynman AI Apprentice"],
+    ["/debugger", "Cognitive Root-Cause Debugger"],
+    ["/premortem", "Stress-Test Against Professor Tricks"],
     ["/settings", "Settings"],
   ])("%s renders the %s view for a signed-in user", (path, heading) => {
     renderAt(path);
     expect(
       screen.getByRole("heading", { level: 1, name: heading }),
     ).toBeInTheDocument();
+  });
+
+  /* The defect this guards against shipped on five routes at once: AppShell's
+     Header rendered an <h1> from the route's section label, and the view below
+     it rendered a second one — so /notebooks printed the word "Notebooks"
+     twice, 150px apart, and /feynman printed "Feynman Apprentice" above
+     "Feynman AI Apprentice". A document has one <h1>; which of the two owns it
+     is decided by viewOwnsPageTitle() in lib/sectionLabel.ts. */
+  it.each([
+    "/",
+    "/notebooks",
+    "/library",
+    "/plan",
+    "/analytics",
+    "/settings",
+    "/feynman",
+    "/debugger",
+    "/premortem",
+    "/room",
+  ])("%s renders exactly one level-1 heading", (path) => {
+    renderAt(path);
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 
   /* Its own case rather than a row in the table above: the subject page is
@@ -108,7 +130,7 @@ describe("route skeleton", () => {
     renderAt("/quiz/q-1");
 
     expect(
-      await screen.findByRole("heading", { level: 1, name: "Quiz not found." }),
+      await screen.findByRole("heading", { level: 2, name: "Quiz not found." }),
     ).toBeInTheDocument();
   });
 
@@ -117,7 +139,7 @@ describe("route skeleton", () => {
     renderAt("/quiz/q-1/review");
 
     expect(
-      await screen.findByRole("heading", { level: 1, name: "Quiz not found." }),
+      await screen.findByRole("heading", { level: 2, name: "Quiz not found." }),
     ).toBeInTheDocument();
   });
 
@@ -157,14 +179,14 @@ describe("route skeleton", () => {
     renderAt("/review/d-1");
 
     expect(
-      await screen.findByRole("heading", { level: 1, name: "Cell Biology" }),
+      await screen.findByRole("heading", { level: 2, name: "Cell Biology" }),
     ).toBeInTheDocument();
   });
 
   it("unknown paths fall through to Page Not Found", () => {
     renderAt("/definitely-not-a-route");
     expect(
-      screen.getByRole("heading", { level: 1, name: "Page Not Found" }),
+      screen.getByRole("heading", { level: 2, name: "Page Not Found" }),
     ).toBeInTheDocument();
   });
 });
