@@ -17,6 +17,8 @@ import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { ConceptNodeDrawer } from "./ConceptNodeDrawer";
 import styles from "./graph.module.css";
+import { EmptyState } from "../../components/EmptyState";
+import { Chip } from "../../components/Chip";
 
 export function ConceptGraphView() {
   const {
@@ -408,32 +410,22 @@ export function ConceptGraphView() {
       <main className={styles.canvasWrapper}>
         {graphData.nodes.length === 0 ? (
           activeGraph.nodes.length === 0 ? (
-            <div className={styles.emptyState}>
-              <Icon name="share-2" size={48} />
-              <h2 className={styles.emptyStateTitle}>Your Concept Map Is Empty</h2>
-              <p className={styles.emptyStateDesc}>
-                Concepts appear here automatically as you add materials,
-                notes, flashcard decks, quizzes, and exams — connected by prerequisites
-                and the topics they share.
-              </p>
-              <button
-                type="button"
-                className={styles.gapToggleBtn}
-                onClick={() => setShowDemo(true)}
-              >
-                Explore a Demo Graph
-              </button>
-            </div>
+            <EmptyState
+              fill
+              icon="share-2"
+              title="Your Concept Map Is Empty"
+              message="Concepts appear here automatically as you add materials, notes, flashcard decks, quizzes, and exams — connected by prerequisites and the topics they share."
+            >
+              <Chip onClick={() => setShowDemo(true)}>Explore a Demo Graph</Chip>
+            </EmptyState>
           ) : (
-            <div className={styles.emptyState}>
-              <Icon name="share-2" size={48} />
-              <h2 className={styles.emptyStateTitle}>No Concepts Match Your Filter</h2>
-              <p className={styles.emptyStateDesc}>
-                Try clearing your search query or toggling off the knowledge gaps or prerequisite filter to view all connected concepts.
-              </p>
-              <button
-                type="button"
-                className={styles.gapToggleBtn}
+            <EmptyState
+              fill
+              icon="share-2"
+              title="No Concepts Match Your Filter"
+              message="Try clearing your search query or toggling off the knowledge gaps or prerequisite filter to view all connected concepts."
+            >
+              <Chip
                 onClick={() => {
                   setSearchQuery("");
                   setSelectedFolder("all");
@@ -442,8 +434,8 @@ export function ConceptGraphView() {
                 }}
               >
                 Reset Filters
-              </button>
-            </div>
+              </Chip>
+            </EmptyState>
           )
         ) : (
           <>

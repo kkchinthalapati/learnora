@@ -701,31 +701,6 @@
 }
 
 /* Empty State */
-.emptyState {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  padding: var(--s-8);
-  gap: var(--s-4);
-  color: var(--text-muted);
-}
-
-.emptyStateTitle {
-  font-size: var(--fs-xl);
-  font-weight: 700;
-  color: var(--text);
-  font-family: var(--font-head);
-}
-
-.emptyStateDesc {
-  max-width: 420px;
-  font-size: var(--fs-sm);
-  line-height: 1.6;
-}
-
 /* Load failure — same convention as the other views' role="alert" blocks */
 .loadError {
   padding: var(--s-5);

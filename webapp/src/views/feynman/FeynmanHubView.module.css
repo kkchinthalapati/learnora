@@ -412,13 +412,4 @@
   gap: var(--s-2);
 }
 
-.emptyState {
-  text-align: center;
-  padding: var(--s-8) var(--s-4);
-  color: var(--text-muted);
-}
-
-.emptyIcon {
-  font-size: var(--fs-stat);
-  margin-bottom: var(--s-2);
-}
+/* .emptyState/.emptyIcon replaced by the EmptyState primitive. */

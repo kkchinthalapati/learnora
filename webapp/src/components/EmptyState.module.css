@@ -1,10 +1,26 @@
 /* Ported from style.css .empty-state / .empty-state-sm */
 
+/* Centred column, not just centred text. The views that rolled their own
+ * empty state all reached for `display:flex` + `align-items:center` because
+ * the primitive only set text-align, so an icon or an action button inside it
+ * sat left. That single missing property is why views/plan, views/room,
+ * views/graph and views/feynman each grew a private .emptyState with a
+ * different padding (--s-12/--s-6, --s-8, --s-8/--s-4, and none). */
 .emptyState {
   grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: var(--s-10) var(--s-5);
   text-align: center;
   color: var(--text-muted);
+}
+
+/* For an empty state that owns its container's height (a graph canvas, a
+   chat pane) rather than sitting in a document flow. */
+.fill {
+  height: 100%;
 }
 
 .sm {

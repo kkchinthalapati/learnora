@@ -16,6 +16,7 @@ import {
 } from "../../api/aiFeynman";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import styles from "./FeynmanHubView.module.css";
+import { EmptyState } from "../../components/EmptyState";
 
 const QUICK_TOPICS = [
   { subject: "Biology", topic: "Photosynthesis" },
@@ -317,15 +318,11 @@ export function FeynmanHubView() {
         </div>
 
         {sessions.length === 0 ? (
-          <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>
-              <Icon name="brain" size={32} />
-            </div>
-            <h3>No teaching sessions yet</h3>
-            <p>
-              Launch your first session above to test your depth of understanding on any subject!
-            </p>
-          </div>
+          <EmptyState
+            icon="brain"
+            title="No teaching sessions yet"
+            message="Launch your first session above to test your depth of understanding on any subject!"
+          />
         ) : (
           <div className={styles.sessionList}>
             {sessions.map((sess) => {
