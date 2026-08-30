@@ -61,6 +61,13 @@ describe("renderMarkdownNodes", () => {
     expect(out().textContent).toContain("2 * 3 * 4");
   });
 
+  it("groups paren-numbered items into an ordered list", () => {
+    renderMd("1) first step\n2) second step\n3) third step");
+    const ol = out().querySelector("ol");
+    expect(ol?.querySelectorAll("li")).toHaveLength(3);
+    expect(out().textContent).not.toContain("1)");
+  });
+
   it("renders inline code and fenced blocks", () => {
     renderMd("use `npm run dev`\n\n```js\nconst a = 1;\n```");
     expect(out().querySelector("code")).toHaveTextContent("npm run dev");
