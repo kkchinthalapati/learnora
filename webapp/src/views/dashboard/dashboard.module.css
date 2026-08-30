@@ -34,10 +34,6 @@
   font-size: var(--fs-sm);
 }
 
-.startFocusButton {
-  flex: 0 0 auto;
-}
-
 .dashboardRegion {
   min-width: 0;
 }
@@ -144,10 +140,6 @@
     flex-direction: column;
   }
 
-  .startFocusButton {
-    width: 100%;
-  }
-
   .regionDescription {
     text-align: left;
   }
@@ -185,10 +177,22 @@
   color: var(--accent-hover);
 }
 
+/* `margin: auto 0` centred this text inside a card that the priority grid had
+ * already stretched to match its tallest sibling, so an empty "Next exam" card
+ * rendered as a header, ~150px of nothing, one centred sentence, and ~150px
+ * more nothing — while its two siblings filled their height from the top. Its
+ * content now starts under the header like everything else, and the slack
+ * collects at the bottom of the card where it reads as whitespace rather than
+ * as a layout fault. */
 .emptySm {
   color: var(--text-muted);
   font-size: var(--fs-sm);
-  margin: auto 0;
+  /* `margin-bottom: auto`, not `margin: 0`: .examCard is a flex column with
+     justify-content: space-between, so a plain reset drops this to the foot of
+     a stretched card instead of centring it — the same fault, upside down.
+     The auto bottom margin absorbs the slack below the text and holds it
+     directly under the card header, matching its two siblings. */
+  margin: 0 0 auto;
 }
 
 .statNumber {
@@ -223,18 +227,6 @@
   overflow: hidden;
   justify-content: space-between;
   gap: var(--s-4);
-}
-
-.examCard::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    ellipse 90% 70% at 100% 0%,
-    var(--accent-soft) 0%,
-    transparent 60%
-  );
-  pointer-events: none;
 }
 
 .examCard > * {
