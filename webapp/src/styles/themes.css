@@ -10,67 +10,81 @@
    `body.dark-theme[data-theme-color=...]` ramps at the bottom of this file,
    which is where a dark-mode accent actually comes from in practice. */
 body.dark-theme {
-  --accent: #2dd4bf;
-  --accent-hover: #5eead4;
-  --accent-press: #14b8a6;
-  --accent-soft: rgba(45, 212, 191, 0.15);
-  --accent-ring: rgba(45, 212, 191, 0.4);
-  --accent-on: #10151f;
-  --accent-glow: rgba(45, 212, 191, 0.45);
+  /* ---------------------------------------------------------------------- *
+   * EDITORIAL DARK — ink on inverted paper.
+   *
+   * The previous ramp was Tailwind slate (#090b0e / #f3f4f6 / #94a3b8 /
+   * #64748b): a cold blue-grey that is the default palette of roughly every
+   * AI product shipped since 2023. It is the single loudest "generic" signal
+   * in the app. This ramp is warm-neutral instead — the colour of ink-soaked
+   * paper rather than of a terminal — which is what lets a restrained,
+   * type-led layout read as editorial rather than as a dashboard.
+   *
+   * The accent stays teal (brand continuity) but drops ~40% saturation.
+   * #2dd4bf is a neon that glows against any dark surface and forces every
+   * other element to shout to compete; #5fb3a3 is a verdigris that sits on
+   * the page. It still clears 7.8:1 on --bg, so it works as text, not just
+   * as a fill — which is what lets us stop painting filled pills everywhere.
+   * ---------------------------------------------------------------------- */
+  --accent-rgb: 95, 179, 163;
+  --accent: #5fb3a3;
+  --accent-hover: #7cc7b8;
+  --accent-press: #4a9d8f;
+  --accent-soft: rgba(95, 179, 163, 0.13);
+  --accent-ring: rgba(95, 179, 163, 0.38);
+  --accent-on: #0d0c0a;
+  --accent-glow: rgba(95, 179, 163, 0.28);
 
-  --success: #2fbf88;
-  --success-soft: rgba(47, 191, 136, 0.15);
-  --warning: #e0a53e;
-  --warning-soft: rgba(224, 165, 62, 0.15);
-  --danger: #e2564a;
-  --danger-soft: rgba(226, 86, 74, 0.15);
-  /* Unlike --accent, no preset overrides these, so this is the value that
-     actually ships. All three brightened enough in dark mode that a white
-     label — the light-mode default — drops under AA (--danger's 3.71:1 was
-     the worst of the six semantic pairings, on par with the accent bugs). */
-  --success-on: var(--accent-ink);
-  --warning-on: var(--accent-ink);
-  --danger-on: var(--accent-ink);
-  /* The exam-difficulty chip's second gradient stop. Unlike tokens.css's
-     value, this one didn't need fixing — dark mode's --danger already
-     clears --danger-on (ink) at 4.93:1, and the vanilla's original stop
-     clears it too (6.05:1) — so this just restores that value, which
-     --danger-2 would otherwise inherit from tokens.css's *light*-mode fix. */
-  --danger-2: #e87068;
+  --success: #6fb98a;
+  --success-soft: rgba(111, 185, 138, 0.14);
+  --warning: #d9a557;
+  --warning-soft: rgba(217, 165, 87, 0.14);
+  --danger: #d9705f;
+  --danger-soft: rgba(217, 112, 95, 0.14);
+  /* All three semantic fills are light enough that a white label drops under
+     AA; ink is the label in dark mode. Unchanged in intent from the previous
+     ramp, re-measured against the new hues. */
+  --success-on: #0d0c0a;
+  --warning-on: #0d0c0a;
+  --danger-on: #0d0c0a;
+  --danger-2: #c25f50;
 
-  --bg: #090b0e;
-  --bg-tint-1: rgba(45, 212, 191, 0.07);
-  --bg-tint-2: rgba(224, 165, 62, 0.05);
-  --surface: #111419;
-  --surface-2: #161a20;
-  --surface-hover: #1c2129;
-  --surface-active: #232a34;
+  /* Warm-neutral paper ramp. Each step is a ~4% lift, which is enough to
+     separate a surface from the page without a shadow — elevation here is
+     carried by tone and a hairline, not by a glow. */
+  --bg: #0d0c0a;
+  --bg-tint-1: rgba(95, 179, 163, 0.05);
+  --bg-tint-2: rgba(217, 165, 87, 0.035);
+  --surface: #141310;
+  --surface-2: #1b1916;
+  --surface-hover: #22201c;
+  --surface-active: #2a2723;
 
-  --glass-bg: rgba(17, 20, 25, 0.7);
-  --glass-bg-strong: rgba(22, 26, 32, 0.88);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-border-subtle: rgba(255, 255, 255, 0.06);
-  --glass-highlight: rgba(255, 255, 255, 0.12);
+  --glass-bg: rgba(20, 19, 16, 0.72);
+  --glass-bg-strong: rgba(27, 25, 22, 0.9);
+  --glass-border: rgba(240, 236, 228, 0.1);
+  --glass-border-subtle: rgba(240, 236, 228, 0.07);
+  --glass-highlight: rgba(240, 236, 228, 0.12);
   --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
-  --text: #f3f4f6;
-  --text-muted: #94a3b8;
-  --text-faint: #64748b;
+  /* Bone white rather than #f3f4f6 — pure cold white on a warm ground reads
+     as a rendering error. --text-faint was the worst accessibility defect in
+     the token set: at #64748b it scored 2.65-3.88:1 across its 50 use sites,
+     all of them at 12-13px. #8a8175 clears 4.9:1 on --bg. */
+  --text: #f0ece4;
+  --text-muted: #a8a094;
+  --text-faint: #8a8175;
 
-  --line: rgba(255, 255, 255, 0.08);
+  --line: rgba(240, 236, 228, 0.08);
 
-  --shadow-sm:
-    0 1px 2px rgba(0, 0, 0, 0.4),
-    0 2px 4px rgba(0, 0, 0, 0.3);
-  --shadow-md:
-    0 4px 6px -1px rgba(0, 0, 0, 0.5),
-    0 10px 20px -3px rgba(0, 0, 0, 0.6),
-    0 1px 2px 0 rgba(0, 0, 0, 0.35);
-  --shadow-lg:
-    0 10px 25px -5px rgba(0, 0, 0, 0.6),
-    0 20px 48px -10px rgba(0, 0, 0, 0.75),
-    0 1px 3px 0 rgba(0, 0, 0, 0.4);
-  --shadow-accent: 0 0 20px var(--accent-glow);
+  /* Editorial elevation: a hairline and a tone step, not a three-layer glow.
+     The old ramp stacked up to three shadows per surface and applied them to
+     in-flow cards that never leave the page, which reads as costume jewellery
+     and costs a paint. These are reserved for things that genuinely float. */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.7);
+  --shadow-accent: 0 0 0 1px var(--accent-ring);
 }
 
 /* Theme schemes.
@@ -162,11 +176,11 @@ body.dark-theme[data-theme-color] {
 }
 
 body[data-theme-color="default"] {
-  --accent-rgb: 15, 118, 110;
+  --accent-rgb: 22, 105, 97;
   --accent-rgb-2: 180, 140, 60;
-  --accent: #0f766e;
-  --accent-hover: #0c5f59;
-  --accent-press: #094943;
+  --accent: #166961;
+  --accent-hover: #10534d;
+  --accent-press: #0b3d39;
 }
 
 /* The accent Learnora shipped with before the theme system existed. */
@@ -299,10 +313,14 @@ body[data-theme-color="hacker"] {
  * ------------------------------------------------------------------------ */
 
 body.dark-theme[data-theme-color="default"] {
-  --accent-rgb: 19, 152, 142;
-  --accent: #13988e;
-  --accent-hover: #18bcb0;
-  --accent-press: #0e6f68;
+  /* Verdigris, not neon. Matches the base dark ramp above — this preset is
+     what actually ships for a signed-in user, so leaving it at #13988e/#18bcb0
+     meant the editorial accent was declared and then immediately overridden
+     (the preset scores 0,2,1 against the base block's 0,1,1). */
+  --accent-rgb: 95, 179, 163;
+  --accent: #5fb3a3;
+  --accent-hover: #7cc7b8;
+  --accent-press: #4a9d8f;
 }
 
 body.dark-theme[data-theme-color="original"] {

@@ -158,6 +158,39 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* ------------------------------------------------------------------------ *
+ * Headings carry the display face.
+ *
+ * --font-head existed but was read in exactly three places (styles/text.module
+ * .css), so in practice every heading in all 22 views rendered in --font, at a
+ * size 4-6px from body copy. A page title, a section title and a card title
+ * were therefore the same texture, which is most of why the app read as one
+ * undifferentiated grey field regardless of what the spacing did.
+ *
+ * :where() contributes no specificity, so this scores (0,0,0) and any module
+ * that wants a sans heading still wins without !important. Newsreader is a
+ * variable face (300-700) so the font-weight declarations already scattered
+ * across the modules resolve to real weights, not synthesised ones.
+ * ------------------------------------------------------------------------ */
+
+:where(h1, h2, h3, h4) {
+  font-family: var(--font-head);
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  /* Newsreader's optical-size axis: tighter fitting and finer detail as the
+     type grows, which is the whole point of using a text face at display size. */
+  font-optical-sizing: auto;
+}
+
+/* Figures that update in place — timers, stat tiles, counts — must not reflow
+   as digits change. 233 inline style={{}} blocks and every stat card in the
+   app were relying on proportional figures. */
+:where(.tabular, [data-numeric]) {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ------------------------------------------------------------------------ *
  * Font family override. Settings → Appearance's font picker has always set
  * body[data-font-family] (see lib/appearance.ts), but nothing read the
  * attribute back — --font is declared exactly once, in tokens.css, with no

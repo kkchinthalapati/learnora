@@ -207,10 +207,10 @@
    --accent. styles/contrast.test.ts asserts each dot below still matches its
    preset's accent, so the two copies cannot drift apart silently. */
 .swatchCard[data-theme="default"] .swatchPreview {
-  background: linear-gradient(135deg, #142523, #0f766e);
+  background: linear-gradient(135deg, #142523, #166961);
 }
 .swatchCard[data-theme="default"] .swatchDot {
-  background: #0f766e;
+  background: #166961;
 }
 .swatchCard[data-theme="original"] .swatchPreview {
   background: linear-gradient(135deg, #1a2030, #5468e7);

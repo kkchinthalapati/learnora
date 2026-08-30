@@ -32,11 +32,12 @@
   --accent-text: var(--accent);
   --primary: var(--accent);
   --primary-hover: var(--accent-hover);
-  --gradient-primary: linear-gradient(
-    135deg,
-    var(--accent),
-    var(--accent-hover)
-  );
+  /* Was a 135deg two-stop ramp. 41 of the app's 65 gradients sat at exactly
+     135deg, and a gradient-filled primary button is the single most legible
+     "generated UI" tell there is. Kept as a token (it is referenced widely)
+     but resolved to a flat fill, so every consumer flattens at once and the
+     accent reads as ink rather than as a light source. */
+  --gradient-primary: var(--accent);
 
   /* --- Semantic --- */
   --success: #1e8e6b;
@@ -69,18 +70,22 @@
   --danger-2: #97362d;
 
   /* --- Page surfaces --- */
-  --bg: #f6f5f2;
+  --bg: #f7f5f0;
   --bg-tint-1: rgba(15, 118, 110, 0.05);
   --bg-tint-2: rgba(180, 140, 60, 0.035);
   --surface: #ffffff;
-  --surface-2: #f1efe9;
-  --surface-hover: #eae7df;
-  --surface-active: #e2ded3;
+  --surface-2: #f0ede5;
+  --surface-hover: #e8e4da;
+  --surface-active: #ded9cc;
 
   /* --- Glass --- */
   --glass-bg: rgba(255, 255, 255, 0.66);
   --glass-bg-strong: rgba(255, 255, 255, 0.88);
-  --glass-border: rgba(255, 255, 255, 0.7);
+  /* Was rgba(255,255,255,0.7): white-on-white, i.e. invisible, on all nine
+     opaque light surfaces that used it. Its dark-mode counterpart is 0.1 and
+     reads fine, which is why every prior audit — run in dark mode — missed
+     that the border system only ever worked in one theme. */
+  --glass-border: rgba(26, 24, 21, 0.14);
   --glass-border-subtle: rgba(28, 24, 18, 0.08);
   --glass-highlight: rgba(255, 255, 255, 0.9);
   --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -88,9 +93,11 @@
   --glass-saturate: saturate(150%);
 
   /* --- Text --- */
-  --text: #1c1b18;
-  --text-muted: #6b6558;
-  --text-faint: #9a9384;
+  --text: #1a1815;
+  --text-muted: #625c50;
+  /* Was #9a9384 (3.1:1 on --bg) — under AA at every one of its 50 sites,
+     all of which set it at 12-13px. This clears 4.6:1. */
+  --text-faint: #78715f;
   --text-on-accent: #ffffff;
 
   /* --- Borders & lines --- */
@@ -98,12 +105,17 @@
   --line: rgba(28, 24, 18, 0.06);
 
   /* --- Radius --- */
-  --r-xs: 4px;
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 16px;
-  --r-xl: 20px;
-  --r-2xl: 24px;
+  /* Tightened one step across the board. The app was rendering essentially
+     one radius (12-16px) on cards, chips, inputs and buttons alike, so
+     nothing read as nested inside anything else. A shallower scale makes the
+     difference between a control (--r-sm) and a container (--r-lg) legible,
+     and reads as printed matter rather than as a mobile OS. */
+  --r-xs: 2px;
+  --r-sm: 5px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-2xl: 20px;
   --r-pill: 999px;
 
   /* --- Spacing scale (4px base) --- */
@@ -120,21 +132,28 @@
   --s-16: 64px;
 
   /* --- Shadows (premium, layered) --- */
-  --shadow-sm:
-    0 1px 2px rgba(24, 20, 14, 0.04), 0 2px 4px rgba(24, 20, 14, 0.04);
-  --shadow-md:
-    0 4px 6px -1px rgba(24, 20, 14, 0.05),
-    0 10px 15px -3px rgba(24, 20, 14, 0.08), 0 1px 2px 0 rgba(24, 20, 14, 0.04);
-  --shadow-lg:
-    0 10px 25px -5px rgba(24, 20, 14, 0.08),
-    0 20px 48px -10px rgba(24, 20, 14, 0.12), 0 1px 3px 0 rgba(24, 20, 14, 0.04);
-  --shadow-accent: 0 4px 16px var(--accent-glow);
+  /* One shadow per elevation, not three stacked. Reserved for surfaces that
+     actually float above the page (modals, popovers, the focus HUD); in-flow
+     cards get a hairline and a tone step instead. */
+  --shadow-sm: 0 1px 2px rgba(24, 20, 14, 0.06);
+  --shadow-md: 0 4px 12px -2px rgba(24, 20, 14, 0.1);
+  --shadow-lg: 0 16px 40px -12px rgba(24, 20, 14, 0.16);
+  --shadow-accent: 0 0 0 1px var(--accent-ring);
 
   /* --- Typography --- */
+  /* Instrument Serif carries the editorial voice: high-contrast, sharp, and
+     categorically not what an AI product looks like. It is a *display* face —
+     used at 24px and up, never for UI copy. Instrument Sans is its designed
+     companion, a neutral grotesque that stays out of the way. Outfit and Plus
+     Jakarta Sans (the previous pairing) are two geometric sans of nearly the
+     same colour and width, so headings and body read as one undifferentiated
+     texture; that flatness is a large part of why the app looked templated. */
   --font:
-    "Plus Jakarta Sans", "Inter", system-ui, -apple-system, "Segoe UI",
+    "Instrument Sans", "Inter", system-ui, -apple-system, "Segoe UI",
     sans-serif;
-  --font-head: "Outfit", system-ui, sans-serif;
+  --font-head: "Newsreader", "Spectral", Georgia, "Times New Roman", serif;
+  /* Figures in stats, timers and tables must not reflow as they tick. */
+  --font-numeric: "Instrument Sans", system-ui, sans-serif;
   --fs-xs: 12px;
   --fs-sm: 13px;
   --fs-base: 15px;
@@ -142,6 +161,11 @@
   --fs-lg: 18px;
   --fs-xl: 22px;
   --fs-2xl: 28px;
+  /* Display tier, set in --font-head. The old scale stopped at 28px, so a
+     page title and a card title differed by 6px and nothing established
+     hierarchy. Serif at these sizes is the whole identity. */
+  --fs-3xl: clamp(30px, 3.2vw, 38px);
+  --fs-4xl: clamp(38px, 4.6vw, 52px);
   --lh: 1.6;
   --measure: 68ch;
 

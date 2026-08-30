@@ -41,12 +41,12 @@ function parseDeclarations(block: string): Map<string, string> {
 describe("Visual Design System Tokens", () => {
   it("defines modern radii scale tokens", () => {
     const tokens = parseDeclarations(blockOf(tokensCss, ":root"));
-    expect(tokens.get("--r-xs")).toBe("4px");
-    expect(tokens.get("--r-sm")).toBe("8px");
-    expect(tokens.get("--r-md")).toBe("12px");
-    expect(tokens.get("--r-lg")).toBe("16px");
-    expect(tokens.get("--r-xl")).toBe("20px");
-    expect(tokens.get("--r-2xl")).toBe("24px");
+    expect(tokens.get("--r-xs")).toBe("2px");
+    expect(tokens.get("--r-sm")).toBe("5px");
+    expect(tokens.get("--r-md")).toBe("8px");
+    expect(tokens.get("--r-lg")).toBe("12px");
+    expect(tokens.get("--r-xl")).toBe("16px");
+    expect(tokens.get("--r-2xl")).toBe("20px");
     expect(tokens.get("--r-pill")).toBe("999px");
   });
 
@@ -78,13 +78,13 @@ describe("Visual Design System Tokens", () => {
 
   it("defines dark mode surface palette and clean text tokens", () => {
     const darkTokens = parseDeclarations(blockOf(themesCss, "body\\.dark-theme"));
-    expect(darkTokens.get("--bg")).toBe("#090b0e");
-    expect(darkTokens.get("--surface")).toBe("#111419");
-    expect(darkTokens.get("--surface-2")).toBe("#161a20");
-    expect(darkTokens.get("--surface-hover")).toBe("#1c2129");
-    expect(darkTokens.get("--surface-active")).toBe("#232a34");
-    expect(darkTokens.get("--text")).toBe("#f3f4f6");
-    expect(darkTokens.get("--text-muted")).toBe("#94a3b8");
-    expect(darkTokens.get("--text-faint")).toBe("#64748b");
+    expect(darkTokens.get("--bg")).toBe("#0d0c0a");
+    expect(darkTokens.get("--surface")).toBe("#141310");
+    expect(darkTokens.get("--surface-2")).toBe("#1b1916");
+    expect(darkTokens.get("--surface-hover")).toBe("#22201c");
+    expect(darkTokens.get("--surface-active")).toBe("#2a2723");
+    expect(darkTokens.get("--text")).toBe("#f0ece4");
+    expect(darkTokens.get("--text-muted")).toBe("#a8a094");
+    expect(darkTokens.get("--text-faint")).toBe("#8a8175");
   });
 });
