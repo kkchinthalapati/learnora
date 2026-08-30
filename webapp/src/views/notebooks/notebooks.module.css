@@ -752,18 +752,7 @@
 }
 
 /* Empty State */
-.hubEmptyState {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: var(--s-12) var(--s-6);
-  background: var(--surface);
-  border: 1px dashed var(--border);
-  border-radius: var(--r-xl);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--s-3);
-}
+/* .hubEmptyState replaced by the EmptyState primitive. */
 
 /* Responsive */
 @media (max-width: 1120px) {

@@ -7,6 +7,7 @@ import { useNotebooks } from "../../hooks/useNotebooks";
 import styles from "./notebooks.module.css";
 import { plural } from "../../lib/plural";
 import { Badge } from "../../components/Badge";
+import { EmptyState } from "../../components/EmptyState";
 
 const SUBJECT_COLORS = [
   "#4A90E2", // Blue (Maths)
@@ -41,10 +42,18 @@ export function NotebooksHubView() {
     return matchesSearch && matchesSubject;
   });
 
-  const handleCreateSubmit = (e: React.FormEvent) => {
+  /* Async now that the id is assigned by the database rather than by
+     `nb-${Date.now()}`. The form closes only once the row exists, so a failed
+     insert leaves the user's input in place to retry. */
+  /* Search or a subject filter changes both the copy and the actions the
+     empty state offers: "nothing matches" is a different problem from
+     "nothing exists yet". */
+  const isFiltered = Boolean(searchQuery) || selectedSubject !== "All";
+
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    const created = createNotebook({
+    const created = await createNotebook({
       title,
       subject: subject || "General Study",
       color,
@@ -174,35 +183,32 @@ export function NotebooksHubView() {
         })}
 
         {filteredNotebooks.length === 0 && (
-          <div className={styles.hubEmptyState}>
-            <Icon name="book-open" size={40} style={{ color: "var(--accent)", opacity: 0.8 }} />
-            <h3 style={{ margin: 0, fontSize: "var(--fs-lg)", fontWeight: 700 }}>
-              {searchQuery || selectedSubject !== "All"
-                ? "No matching notebooks found"
-                : "No study notebooks yet"}
-            </h3>
-            <p style={{ margin: 0, fontSize: "var(--fs-sm)", color: "var(--text-muted)", maxWidth: "28rem" }}>
-              {searchQuery || selectedSubject !== "All"
+          <EmptyState
+            icon="book-open"
+            title={
+              isFiltered ? "No matching notebooks found" : "No study notebooks yet"
+            }
+            message={
+              isFiltered
                 ? "Try adjusting your search query or subject filters to find what you are looking for."
-                : "Create your first revision workspace to attach textbook notes, generate Feynman breakdowns, and build cheat sheets."}
-            </p>
-            <div style={{ display: "flex", gap: "var(--s-2)", marginTop: "var(--s-2)" }}>
-              {(searchQuery || selectedSubject !== "All") && (
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSelectedSubject("All");
-                  }}
-                >
-                  Clear filters
-                </Button>
-              )}
-              <Button variant="primary" onClick={() => setIsCreateOpen(true)}>
-                + New notebook
+                : "Create your first revision workspace to attach textbook notes, generate Feynman breakdowns, and build cheat sheets."
+            }
+          >
+            {isFiltered && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedSubject("All");
+                }}
+              >
+                Clear filters
               </Button>
-            </div>
-          </div>
+            )}
+            <Button variant="primary" onClick={() => setIsCreateOpen(true)}>
+              New notebook
+            </Button>
+          </EmptyState>
         )}
       </div>
 
@@ -212,7 +218,7 @@ export function NotebooksHubView() {
           onClose={() => setIsCreateOpen(false)}
           title="Create a new notebook"
         >
-          <form onSubmit={handleCreateSubmit} style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
+          <form onSubmit={(e) => void handleCreateSubmit(e)} style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
             <div>
               <label style={{ display: "block", fontSize: "var(--fs-sm)", fontWeight: 600, marginBottom: "var(--s-1)" }}>
                 Notebook Title

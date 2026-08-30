@@ -10,6 +10,7 @@ import { decksApi } from "../../api/decks";
 import { flashcardsApi } from "../../api/flashcards";
 import { useToast } from "../../context/toast";
 import styles from "./notebooks.module.css";
+import { EmptyState } from "../../components/EmptyState";
 
 function flashcardsFromCheatSheet(content: string) {
   const cards = content
@@ -46,6 +47,7 @@ export function NotebookStudioView() {
     addArtifact,
     removeArtifact,
     addChatMessage,
+    isLoading,
   } = useNotebook(notebookId);
 
   const [activeViewMode, setActiveViewMode] = useState<"split" | "chat" | "notes">("split");
@@ -100,17 +102,24 @@ export function NotebookStudioView() {
     }
   }, [notebook?.chatHistory]);
 
+  /* The notebook now arrives over the network rather than synchronously from
+     localStorage, so "not found" has to wait for the fetch to settle — without
+     this the studio flashed "Notebook not found" on every single load. */
+  if (isLoading) {
+    return <EmptyState icon="book-open" message="Opening notebook..." />;
+  }
+
   if (!notebook) {
     return (
-      <div style={{ padding: "var(--s-8)", textAlign: "center" }}>
-        <h2>Notebook not found</h2>
-        <p style={{ color: "var(--text-muted)", margin: "var(--s-3) 0" }}>
-          This notebook may have been deleted or does not exist.
-        </p>
+      <EmptyState
+        icon="alert-circle"
+        title="Notebook not found"
+        message="This notebook may have been deleted or does not exist."
+      >
         <Button variant="primary" onClick={() => void navigate("/notebooks")}>
           Back to Notebooks
         </Button>
-      </div>
+      </EmptyState>
     );
   }
 
