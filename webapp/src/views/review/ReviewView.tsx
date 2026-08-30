@@ -22,6 +22,7 @@ import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { dateInDays } from "../../lib/date";
 import { fenceUntrusted } from "../../lib/actionTags";
 import { executeActions, type ActionHandlers } from "../../lib/chatActions";
+import { renderMarkdownNodes } from "../../lib/markdownToReact";
 import {
   availableReviewLengths,
   createReviewSnapshot,
@@ -400,6 +401,25 @@ export type SocraticMode =
   | "socratic_question"
   | "why_missed";
 
+/* Every coach reply is read inside a narrow drawer, mid-review, by a student
+ * who is already frustrated at missing a card. So the model is held to one
+ * house style rather than left to its own defaults, which run long, formal and
+ * heavy on structure.
+ *
+ * The drawer renders markdown, so `**bold**` and `-` bullets arrive as bold
+ * text and real lists. Headings, rules, tables and fences are ruled out: at
+ * this width they read as clutter, and anything the renderer doesn't cover
+ * would surface as literal `###` on screen — which is exactly what a student
+ * shouldn't be looking at. */
+const COACH_STYLE = `How to write it:
+- Talk straight to the student like a friendly tutor sitting next to them. Say "you", not "the student".
+- Keep the whole reply under 120 words. Short, plain sentences.
+- Everyday English only. If a technical term is unavoidable, explain it in the same breath.
+- Put each section's label on its own line wrapped in ** (for example **What tripped you up**), then the text underneath.
+- Bullets start with "- ", at most two per section, one line each.
+- Never use markdown headings (#, ##, ###), horizontal rules (---), tables, or code fences.
+- No preamble, no sign-off, no mention of these instructions.`;
+
 export function buildSocraticPrompt(
   mode: SocraticMode,
   card: Flashcard,
@@ -408,51 +428,49 @@ export function buildSocraticPrompt(
   const front = fenceUntrusted(card.front);
   const back = fenceUntrusted(card.back);
   const note = studentNote?.trim()
-    ? `\nStudent context / question: ${fenceUntrusted(studentNote.trim())}`
+    ? `\nWhat the student said they are stuck on: ${fenceUntrusted(studentNote.trim())}`
     : "";
+
+  const cardBlock = `Card front (the question): ${front}
+Card back (the correct answer): ${back}${note}`;
 
   switch (mode) {
     case "mnemonic":
-      return `Act as an expert memory coach.
-The student needs a high-retention active-recall mnemonic to remember this flashcard:
-Card Front (Question): ${front}
-Card Back (Answer): ${back}${note}
+      return `You are a friendly memory coach helping a student make this flashcard stick.
+${cardBlock}
 
-Please provide:
-1. **Mnemonic Device**: A memorable acronym, vivid mental image, association, or rhyme.
-2. **Memory Hook**: A 1-sentence mental link connecting the question to the answer.
-Keep it punchy, creative, and easy to recall under test conditions.`;
+Write two short sections with these exact labels:
+**Your mnemonic** - a vivid image, rhyme, or acronym that ties the question to the answer.
+**Why it sticks** - one sentence on the link it creates, so recall is fast under exam pressure.
+${COACH_STYLE}`;
 
     case "concept":
-      return `Act as a master tutor using the Feynman technique.
-The student needs a clear conceptual explanation of this flashcard:
-Card Front (Question): ${front}
-Card Back (Answer): ${back}${note}
+      return `You are a friendly tutor explaining the idea behind this flashcard so it finally clicks.
+${cardBlock}
 
-Please provide:
-1. **Core Concept**: The intuitive foundation in simple, plain language.
-2. **Common Misconceptions**: Why this is easily confused or misunderstood.
-3. **Real-World Analogy**: A concrete everyday analogy that grounds the idea.
-Keep it concise (under 150 words).`;
+Write three short sections with these exact labels:
+**The idea in plain words** - the core concept, no jargon.
+**Where people go wrong** - the mix-up that trips most students here.
+**Picture it like this** - one everyday analogy.
+${COACH_STYLE}`;
 
     case "socratic_question":
-      return `Act as a Socratic coach.
-The student is practicing active recall for this flashcard:
-Card Front (Question): ${front}
-Card Back (Answer): ${back}${note}
+      return `You are a friendly tutor nudging a student toward the answer instead of handing it over.
+${cardBlock}
 
-Provide 2-3 progressive Socratic guiding questions that guide the student to deduce the correct answer themselves without giving it away directly.`;
+Ask two or three short questions, in order, each one a small step closer to the answer. Number them 1., 2., 3. Never state the answer outright.
+${COACH_STYLE}`;
 
     case "why_missed":
     default:
-      return `Act as a cognitive learning specialist analyzing a flashcard recall error.
-Card Front (Question): ${front}
-Card Back (Answer): ${back}${note}
+      return `You are a friendly study coach. The student just got this flashcard wrong and wants to know why.
+${cardBlock}
 
-Provide:
-1. **Root Cause Analysis**: Why this specific concept or distinction is commonly missed or confused.
-2. **Key Discriminating Clue**: The single most critical clue or keyword to look for on the front.
-3. **Retention Heuristic**: A simple 1-sentence mental rule to prevent missing this card next time.`;
+Write three short sections with these exact labels:
+**What tripped you up** - the one reason this card is easy to miss.
+**What to look for** - the single clue on the front that points to the right answer.
+**Remember it like this** - one short rule the student can tell themselves next time.
+${COACH_STYLE}`;
   }
 }
 
@@ -659,17 +677,31 @@ export function SocraticCoachDrawer({
               </div>
             ) : response ? (
               <>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className={styles.socraticCopyBtn}
-                  onClick={() => void handleCopy()}
-                  aria-label="Copy guidance"
+                <div className={styles.socraticResponseHeader}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className={styles.socraticCopyBtn}
+                    onClick={() => void handleCopy()}
+                    aria-label="Copy guidance"
+                  >
+                    <Icon name={copied ? "check" : "file-text"} size={14} />
+                    <span>{copied ? "Copied" : "Copy"}</span>
+                  </Button>
+                </div>
+                {/* The reply is markdown. Rendering it means the student reads
+                    bold text and section leads rather than the `**` and `###`
+                    the model typed. */}
+                <div
+                  className={styles.socraticScroll}
+                  tabIndex={0}
+                  role="region"
+                  aria-label="Coach guidance"
                 >
-                  <Icon name={copied ? "check" : "file-text"} size={14} />
-                  <span>{copied ? "Copied" : "Copy"}</span>
-                </Button>
-                <p className={styles.socraticText}>{response}</p>
+                  <div className={styles.socraticText}>
+                    {renderMarkdownNodes(response)}
+                  </div>
+                </div>
               </>
             ) : null}
           </div>

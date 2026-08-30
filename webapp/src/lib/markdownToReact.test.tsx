@@ -45,6 +45,22 @@ describe("renderMarkdownNodes", () => {
     expect(nested).toHaveTextContent("both");
   });
 
+  it("renders emphasis nested inside bold, leaving no stray asterisks", () => {
+    renderMd("a **failure to recognize the *applicability* of the rule** here");
+    const strong = out().querySelector("strong");
+    expect(strong).toHaveTextContent(
+      "failure to recognize the applicability of the rule",
+    );
+    expect(strong?.querySelector("em")).toHaveTextContent("applicability");
+    expect(out().textContent).not.toContain("*");
+  });
+
+  it("does not read spaced arithmetic as emphasis", () => {
+    renderMd("compute 2 * 3 * 4 before squaring");
+    expect(out().querySelector("em")).toBeNull();
+    expect(out().textContent).toContain("2 * 3 * 4");
+  });
+
   it("renders inline code and fenced blocks", () => {
     renderMd("use `npm run dev`\n\n```js\nconst a = 1;\n```");
     expect(out().querySelector("code")).toHaveTextContent("npm run dev");
