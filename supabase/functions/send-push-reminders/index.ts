@@ -27,6 +27,26 @@ interface PushSubscriptionRow {
   notify_flashcards: boolean;
 }
 
+/* Compares the presented secret against the configured one without leaking
+ * where they first differ. `===` on strings returns as soon as it finds a
+ * mismatched byte, which makes the comparison time a function of how much of
+ * the prefix the caller guessed right — the signal a byte-at-a-time forgery
+ * attack is built on. This is the only thing standing between an unauthorised
+ * caller and a push to every registered device, so it does the full compare
+ * either way.
+ *
+ * Lengths are compared first and non-secretly: that leaks the length of the
+ * secret, which is not the part worth protecting, and hashing to a fixed
+ * width to avoid it would need a subtle-crypto round trip for no real gain. */
+function timingSafeEqual(presented: string | null, expected: string): boolean {
+  if (presented === null || presented.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) {
+    diff |= presented.charCodeAt(i) ^ expected.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 function todayUtcStr(offsetDays = 0): string {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() + offsetDays);
@@ -47,7 +67,7 @@ Deno.serve(async (req) => {
   }
 
   const cronSecret = Deno.env.get("CRON_SECRET");
-  if (!cronSecret || req.headers.get("x-cron-secret") !== cronSecret) {
+  if (!cronSecret || !timingSafeEqual(req.headers.get("x-cron-secret"), cronSecret)) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },

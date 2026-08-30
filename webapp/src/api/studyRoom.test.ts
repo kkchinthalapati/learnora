@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   deriveTimerStatus,
+  MAX_MESSAGE_LENGTH,
+  MAX_NAME_LENGTH,
+  MAX_SYNC_MINUTES,
+  sanitizeParticipant,
+  sanitizeRoomMessage,
+  sanitizeRoomReaction,
+  sanitizeTimerSync,
   formatDuration,
   formatParticipantTime,
   getParticipantInitials,
@@ -192,5 +199,181 @@ describe("studyRoom helpers", () => {
     expect(getParticipantInitials("John Michael Smith")).toBe("JS");
     expect(getParticipantInitials(null)).toBe("?");
     expect(getParticipantInitials("")).toBe("?");
+  });
+});
+
+/* Every input below is something a peer can put on the wire: Realtime
+   broadcast payloads are relayed verbatim and unsigned, so these are the
+   values the room actually has to survive, not hypotheticals. */
+describe("realtime payload sanitisers", () => {
+  describe("sanitizeRoomMessage", () => {
+    it("keeps a well-formed message", () => {
+      const msg = sanitizeRoomMessage({
+        id: "m1",
+        userId: "u1",
+        userName: "Ada",
+        text: "hello",
+        timestamp: 1000,
+        type: "chat",
+      });
+      expect(msg).toMatchObject({
+        id: "m1",
+        userId: "u1",
+        userName: "Ada",
+        text: "hello",
+        timestamp: 1000,
+        type: "chat",
+      });
+    });
+
+    it("drops a payload whose text is not a string", () => {
+      // The crash case: an object reaching JSX throws "Objects are not valid
+      // as a React child" and takes the whole room down.
+      expect(sanitizeRoomMessage({ text: { toString: "nope" } })).toBeNull();
+      expect(sanitizeRoomMessage({ text: 42 })).toBeNull();
+      expect(sanitizeRoomMessage({ text: "   " })).toBeNull();
+    });
+
+    it("drops non-objects entirely", () => {
+      expect(sanitizeRoomMessage(null)).toBeNull();
+      expect(sanitizeRoomMessage("hello")).toBeNull();
+      expect(sanitizeRoomMessage(["hello"])).toBeNull();
+    });
+
+    it("truncates an oversized message and name", () => {
+      const msg = sanitizeRoomMessage({
+        text: "x".repeat(10_000),
+        userName: "y".repeat(500),
+      });
+      expect(msg?.text).toHaveLength(MAX_MESSAGE_LENGTH);
+      expect(msg?.userName).toHaveLength(MAX_NAME_LENGTH);
+    });
+
+    it("mints an id when the peer omits one, so de-duplication still works", () => {
+      const a = sanitizeRoomMessage({ text: "one" });
+      const b = sanitizeRoomMessage({ text: "two" });
+      expect(a?.id).toBeTruthy();
+      expect(a?.id).not.toBe(b?.id);
+    });
+
+    it("normalises an unknown message type to chat", () => {
+      expect(sanitizeRoomMessage({ text: "hi", type: "admin" })?.type).toBe(
+        "chat",
+      );
+      expect(sanitizeRoomMessage({ text: "hi", type: "system" })?.type).toBe(
+        "system",
+      );
+    });
+
+    it("replaces a non-finite timestamp with a usable one", () => {
+      const msg = sanitizeRoomMessage({ text: "hi", timestamp: NaN });
+      expect(Number.isFinite(msg?.timestamp)).toBe(true);
+    });
+  });
+
+  describe("sanitizeRoomReaction", () => {
+    it("keeps a well-formed reaction", () => {
+      expect(
+        sanitizeRoomReaction({
+          id: "r1",
+          emoji: "🎉",
+          senderId: "u1",
+          senderName: "Ada",
+          timestamp: 5,
+        }),
+      ).toMatchObject({ id: "r1", emoji: "🎉", senderName: "Ada" });
+    });
+
+    it("drops a reaction with no usable emoji", () => {
+      expect(sanitizeRoomReaction({ emoji: "" })).toBeNull();
+      expect(sanitizeRoomReaction({ emoji: 7 })).toBeNull();
+      expect(sanitizeRoomReaction(undefined)).toBeNull();
+    });
+
+    it("caps an emoji field being used to smuggle a wall of text", () => {
+      const r = sanitizeRoomReaction({ emoji: "a".repeat(1000) });
+      expect(r?.emoji.length).toBeLessThanOrEqual(16);
+    });
+
+    it("normalises a missing recipient to a room-wide null", () => {
+      expect(sanitizeRoomReaction({ emoji: "👍" })?.recipientId).toBeNull();
+    });
+  });
+
+  describe("sanitizeTimerSync", () => {
+    it("keeps a well-formed sync", () => {
+      expect(
+        sanitizeTimerSync({
+          senderId: "u1",
+          senderName: "Ada",
+          targetMinutes: 25,
+          mode: "Focus",
+          targetEndTime: 123,
+        }),
+      ).toEqual({
+        senderId: "u1",
+        senderName: "Ada",
+        targetMinutes: 25,
+        mode: "Focus",
+        targetEndTime: 123,
+      });
+    });
+
+    it("clamps an absurd duration instead of writing it to the timer", () => {
+      expect(
+        sanitizeTimerSync({ senderId: "u1", targetMinutes: 99_999_999 })
+          ?.targetMinutes,
+      ).toBe(MAX_SYNC_MINUTES);
+      expect(
+        sanitizeTimerSync({ senderId: "u1", targetMinutes: -5 })?.targetMinutes,
+      ).toBe(1);
+    });
+
+    it("drops a sync with no sender or an unusable duration", () => {
+      expect(sanitizeTimerSync({ targetMinutes: 25 })).toBeNull();
+      expect(sanitizeTimerSync({ senderId: "u1" })).toBeNull();
+      expect(
+        sanitizeTimerSync({ senderId: "u1", targetMinutes: NaN }),
+      ).toBeNull();
+    });
+
+    it("falls back to Focus for an unrecognised mode", () => {
+      expect(
+        sanitizeTimerSync({ senderId: "u1", targetMinutes: 5, mode: "Party" })
+          ?.mode,
+      ).toBe("Focus");
+    });
+  });
+
+  describe("sanitizeParticipant", () => {
+    it("bounds the names and tasks a peer advertises", () => {
+      const p = sanitizeParticipant({
+        userId: "u1",
+        fullName: "n".repeat(500),
+        currentTask: "t".repeat(5000),
+      });
+      expect(p.fullName).toHaveLength(MAX_NAME_LENGTH);
+      expect(p.currentTask).toHaveLength(MAX_MESSAGE_LENGTH);
+    });
+
+    it("only lets an http(s) avatar through to the <img>", () => {
+      expect(
+        sanitizeParticipant({ avatarUrl: "https://cdn.example/a.png" })
+          .avatarUrl,
+      ).toBe("https://cdn.example/a.png");
+      expect(
+        sanitizeParticipant({ avatarUrl: "javascript:alert(1)" }).avatarUrl,
+      ).toBeNull();
+      expect(
+        sanitizeParticipant({ avatarUrl: "data:image/svg+xml,<svg/>" })
+          .avatarUrl,
+      ).toBeNull();
+    });
+
+    it("keeps the fields it does not police", () => {
+      expect(
+        sanitizeParticipant({ userId: "u1", timerStatus: "focus" }).timerStatus,
+      ).toBe("focus");
+    });
   });
 });
