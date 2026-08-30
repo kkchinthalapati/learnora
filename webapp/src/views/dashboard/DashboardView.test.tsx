@@ -149,18 +149,35 @@ describe("DashboardView", () => {
     expect(
       screen.getByRole("heading", { name: "Sessions and community" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Start focus session" }),
-    ).toBeInTheDocument();
   });
 
-  it("opens the timer from the lead action", async () => {
+  /* The dashboard shipped with six primary CTAs, two pairs of which were exact
+     duplicates: the lead's "Start focus session" and FocusCard's "Start a
+     focus session" both went to /timer, and DailyDrillCard's "Start drill" and
+     AdaptiveHealthWidget's smart-review button both went to /review/daily-drill.
+     One filled button per destination. */
+  it("offers each study destination exactly one filled call to action", () => {
+    serveDashboard();
+    renderDashboard();
+
+    const focusCtas = screen
+      .getAllByRole("button")
+      .filter((b) => /start a? ?focus session/i.test(b.textContent ?? ""));
+    expect(focusCtas).toHaveLength(1);
+  });
+
+  /* The dashboard lead used to carry its own "Start focus session" button
+     that navigated to /timer — the same destination as FocusCard's "Start a
+     focus session" one section below, one of two exactly-duplicated CTA pairs
+     on the screen. FocusCard kept it because it sits beside the minutes logged
+     today; this asserts the surviving one. */
+  it("opens the timer from the focus card", async () => {
     const user = userEvent.setup();
     serveDashboard();
     renderDashboard();
 
     await user.click(
-      screen.getByRole("button", { name: "Start focus session" }),
+      screen.getByRole("button", { name: "Start a focus session" }),
     );
 
     expect(

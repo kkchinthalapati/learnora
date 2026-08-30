@@ -130,13 +130,22 @@
   overflow: hidden;
 }
 
+/* A subject rule down the leading edge rather than a bar across the top.
+ * The top bar was 4px tall on a 16px radius: overflow:hidden clipped it
+ * correctly, but clipping a 4px band against a 16px curve removes only a
+ * sliver at each end, so the bar read as a straight line laid across a
+ * rounded box — square ends against curved corners. A vertical rule runs
+ * along the flat part of the edge, so there is no curve for it to disagree
+ * with, and it is the conventional editorial device for marking a column's
+ * subject. */
 .notebookCard::before {
   content: "";
   position: absolute;
-  top: 0;
+  top: var(--s-5);
+  bottom: var(--s-5);
   left: 0;
-  right: 0;
-  height: 4px;
+  width: 3px;
+  border-radius: 0 var(--r-xs) var(--r-xs) 0;
   background: var(--card-accent, var(--accent));
 }
 

@@ -72,6 +72,24 @@ const SECTIONS: NavSection[] = [
         label: "Plan",
         destination: "plan",
       },
+      /* Tasks and Exams are ~4,000 LOC of backend-backed, daily-use product
+         that had no sidebar entry at all — reachable only through the command
+         palette, a sub-nav inside /plan, and two dashboard links — while four
+         AI experiments sat in the rail as top-level destinations. Both already
+         resolve to the "plan" destination in primaryDestinationForPath(), so
+         they highlight as part of Plan rather than competing with it. */
+      {
+        to: "/tasks",
+        icon: "list-checks",
+        label: "Tasks",
+        destination: "plan",
+      },
+      {
+        to: "/exams",
+        icon: "calendar-week",
+        label: "Exams",
+        destination: "plan",
+      },
       {
         to: "/timer",
         icon: "clock",

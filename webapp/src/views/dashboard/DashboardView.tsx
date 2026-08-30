@@ -1,7 +1,4 @@
 import { useRef } from "react";
-import { useNavigate } from "react-router";
-import { Button } from "../../components/Button";
-import { Icon } from "../../components/Icon";
 import { AdaptiveHealthWidget } from "./AdaptiveHealthWidget";
 import { AIActionsCard } from "./AIActionsCard";
 import { DailyDrillCard } from "./DailyDrillCard";
@@ -26,7 +23,6 @@ function dashboardDate() {
 
 export function DashboardView() {
   const taskInputRef = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
 
   return (
     <div className={styles.view}>
@@ -37,14 +33,6 @@ export function DashboardView() {
             Check what is due, open your notebooks, or continue your last study block.
           </p>
         </div>
-        <Button
-          variant="primary"
-          className={styles.startFocusButton}
-          onClick={() => void navigate("/timer")}
-        >
-          <Icon name="clock" size={17} />
-          Start focus session
-        </Button>
       </header>
 
       <OnboardingBanner

@@ -97,7 +97,6 @@ export function AppRoutes() {
           <Route path="/feynman" element={<FeynmanHubView />} />
           <Route path="/feynman/studio" element={<FeynmanStudioView />} />
           <Route path="/feynman/studio/:sessionId" element={<FeynmanStudioView />} />
-          <Route path="/feynman/debrief" element={<FeynmanDebriefView />} />
           <Route path="/feynman/debrief/:sessionId" element={<FeynmanDebriefView />} />
           {/* Inside the guard on purpose: an invite link opened by someone
               who is signed out goes through ProtectedRoute's existing

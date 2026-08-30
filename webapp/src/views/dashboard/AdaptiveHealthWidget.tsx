@@ -258,8 +258,12 @@ export function AdaptiveHealthWidget() {
           )}
 
           <div className={styles.actions}>
+            {/* Secondary, not primary: this navigates to /review/daily-drill,
+                which DailyDrillCard's "Start drill" already offers as a filled
+                button one row above. Two filled buttons for one destination on
+                one screen is the decision paralysis the audit flagged. */}
             <Button
-              variant="primary"
+              variant="secondary"
               className={styles.smartReviewBtn}
               onClick={() => {
                 if (totalCardsCount > 0) {
