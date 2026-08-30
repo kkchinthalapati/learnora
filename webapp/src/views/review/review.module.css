@@ -1006,7 +1006,8 @@
 }
 
 .socraticBody {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: var(--s-5);
   display: flex;
@@ -1015,6 +1016,7 @@
 }
 
 .socraticCardContext {
+  flex: 0 0 auto;
   padding: var(--s-3) var(--s-4);
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -1032,6 +1034,7 @@
 }
 
 .socraticModeTabs {
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--s-2);
@@ -1065,13 +1068,52 @@
   border-color: var(--accent-text);
 }
 
+/* The answer owns its own scrollbar. The drawer is a fixed-height flex column,
+ * so a long reply used to squeeze the card context and the mode tabs to zero
+ * and then paint itself straight over the ask row and out the bottom of the
+ * panel. `min-height: 0` + `overflow` on the inner scroller keeps every word
+ * inside the box; the student scrolls for the rest. */
 .socraticResponseArea {
-  min-height: 140px;
+  flex: 1 1 auto;
+  min-height: 200px;
+  max-height: min(58vh, 560px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
   padding: var(--s-4);
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-md);
-  position: relative;
+  overflow: hidden;
+}
+
+.socraticResponseHeader {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.socraticScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: var(--s-2);
+  scrollbar-color: var(--glass-border) transparent;
+  scrollbar-width: thin;
+}
+
+.socraticScroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.socraticScroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.socraticScroll::-webkit-scrollbar-thumb {
+  border-radius: var(--r-pill);
+  background: var(--glass-border);
 }
 
 .socraticLoading {
@@ -1084,22 +1126,79 @@
 }
 
 .socraticText {
-  font-size: var(--fs-sm);
-  line-height: 1.6;
-  white-space: pre-wrap;
+  font-size: var(--fs-base);
+  line-height: 1.7;
   color: var(--text);
   margin: 0;
+  /* Model replies carry unbreakable runs (equations, URLs, long identifiers);
+     let them break rather than push the box wider than the drawer. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Headings arrive from the model as `###`. Rendered they become real
+   headings — but the shared chat sizes (up to 28px) shout inside a 480px
+   drawer, so section leads are one clear step above body text instead. */
+.socraticText h1,
+.socraticText h2,
+.socraticText h3,
+.socraticText h4 {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  line-height: 1.35;
+  margin: var(--s-4) 0 var(--s-2);
+  color: var(--text);
+}
+
+.socraticText p {
+  margin: 0 0 var(--s-3);
+  line-height: 1.7;
+}
+
+.socraticText ul,
+.socraticText ol {
+  margin: 0 0 var(--s-3);
+  padding-left: var(--s-5);
+}
+
+.socraticText li {
+  margin-bottom: var(--s-2);
+}
+
+.socraticText strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.socraticText hr {
+  margin: var(--s-4) 0;
+}
+
+/* Written out element-by-element: `.socraticText > :last-child` would lose to
+   the `.socraticText p` rule above it on specificity and quietly do nothing. */
+.socraticText h1:first-child,
+.socraticText h2:first-child,
+.socraticText h3:first-child,
+.socraticText h4:first-child,
+.socraticText p:first-child,
+.socraticText ul:first-child,
+.socraticText ol:first-child {
+  margin-top: 0;
+}
+
+.socraticText p:last-child,
+.socraticText ul:last-child,
+.socraticText ol:last-child {
+  margin-bottom: 0;
 }
 
 .socraticCopyBtn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
   padding: 4px 8px;
   font-size: var(--fs-xs);
 }
 
 .socraticCustomInputRow {
+  flex: 0 0 auto;
   display: flex;
   gap: var(--s-2);
 }

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes } from "react-router";
@@ -1025,6 +1025,94 @@ describe("ReviewView", () => {
         ),
       ).toBeInTheDocument();
       expect(lastPrompt).toContain("How is ATP made here?");
+    });
+
+    it("renders the coach reply as formatted text, never as raw markdown marks", async () => {
+      serve();
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({
+            text: [
+              "### Root cause",
+              "",
+              "**What tripped you up**",
+              "You read *simplify* as two separate steps.",
+              "",
+              "- Combine the roots first",
+              "- Then look for a perfect square",
+            ].join("\n"),
+          }),
+        ),
+      );
+
+      renderReview();
+      await screen.findByText("What is a mitochondrion?");
+
+      const user = userEvent.setup();
+      await user.click(
+        screen.getByRole("button", { name: "Flip card to see the answer" }),
+      );
+      await user.click(
+        screen.getByRole("button", {
+          name: "Why did I miss this? (Socratic Coach)",
+        }),
+      );
+
+      const guidance = await screen.findByRole("region", {
+        name: "Coach guidance",
+      });
+
+      /* The `###`/`**`/`*`/`-` marks become real elements, so none of them
+         survive as literal characters on screen. */
+      expect(guidance.textContent).not.toMatch(/[#*]/);
+      expect(
+        within(guidance).getByRole("heading", { name: "Root cause" }),
+      ).toBeInTheDocument();
+      expect(
+        within(guidance).getByText("What tripped you up").tagName,
+      ).toBe("STRONG");
+      expect(within(guidance).getByText("simplify").tagName).toBe("EM");
+      expect(within(guidance).getAllByRole("listitem")).toHaveLength(2);
+    });
+
+    it("keeps a long coach reply inside its own scrollable box", async () => {
+      serve();
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({
+            text: Array.from(
+              { length: 40 },
+              (_, i) => `Point ${i + 1} about this concept.`,
+            ).join("\n\n"),
+          }),
+        ),
+      );
+
+      renderReview();
+      await screen.findByText("What is a mitochondrion?");
+
+      const user = userEvent.setup();
+      await user.click(
+        screen.getByRole("button", { name: "Flip card to see the answer" }),
+      );
+      await user.click(
+        screen.getByRole("button", {
+          name: "Why did I miss this? (Socratic Coach)",
+        }),
+      );
+
+      /* The guidance lives in its own focusable scroll region rather than
+         overflowing the drawer, so the ask row and the mode tabs stay put. */
+      const guidance = await screen.findByRole("region", {
+        name: "Coach guidance",
+      });
+      expect(guidance).toHaveAttribute("tabindex", "0");
+      expect(await within(guidance).findByText("Point 40 about this concept."))
+        .toBeInTheDocument();
+      expect(
+        screen.getByRole("textbox", { name: "Custom question for Socratic Coach" }),
+      ).toBeVisible();
+      expect(screen.getByRole("tab", { name: /Mnemonic Aid/i })).toBeVisible();
     });
 
     it("allows opening Socratic Coach from the recap breakdown list for difficult cards", async () => {
