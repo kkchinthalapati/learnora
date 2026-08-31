@@ -269,3 +269,57 @@ describe("maths rendering", () => {
     expect(out().querySelector("em")).toBeNull();
   });
 });
+
+
+/* The safety net for maths the model forgot to wrap in dollars. A bare
+ * `\sqrt{3}` reaching the student as literal backslashes is worse than the
+ * plain "√3" it replaced, so the renderer catches the slip — but only for a
+ * fixed list of unambiguous commands, never any `\word`. */
+describe("splitMath — undelimited TeX", () => {
+  const mathIn = (text: string) =>
+    splitMath(text)
+      .filter((p) => p.kind === "math")
+      .map((p) => p.value);
+
+  it("renders a bare command the model forgot to wrap", () => {
+    expect(mathIn("that is why the \\sqrt{3} part changed")).toEqual([
+      "\\sqrt{3}",
+    ]);
+  });
+
+  it("keeps a multi-argument command together as one run", () => {
+    expect(mathIn("take \\frac{3}{4} of it")).toEqual(["\\frac{3}{4}"]);
+  });
+
+  it("handles two bare commands separated by prose", () => {
+    expect(mathIn("\\sqrt{3} times \\sqrt{2}")).toEqual([
+      "\\sqrt{3}",
+      "\\sqrt{2}",
+    ]);
+  });
+
+  it("leaves a Windows path alone", () => {
+    /* The reason this is an allowlist and not `\\[a-z]+`: maths is extracted
+       before code spans, so inline code would not protect a path. */
+    expect(mathIn("saved to C:\\Users\\nirav\\notes.txt")).toEqual([]);
+  });
+
+  it("leaves an unknown command alone", () => {
+    expect(mathIn("the \\begin{document} line")).toEqual([]);
+  });
+
+  it("does not double-handle a command already inside dollars", () => {
+    expect(mathIn("$\\sqrt{3}$")).toEqual(["\\sqrt{3}"]);
+  });
+
+  it("still prefers a real delimiter where both could match", () => {
+    expect(splitMath("\\[\\sqrt{3}\\]")[0]).toMatchObject({
+      value: "\\sqrt{3}",
+      display: true,
+    });
+  });
+
+  it("leaves ordinary prose with no backslashes untouched", () => {
+    expect(mathIn("nothing mathematical here at all")).toEqual([]);
+  });
+});

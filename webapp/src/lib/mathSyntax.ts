@@ -43,6 +43,78 @@ function isPlausibleInlineMath(body: string): boolean {
   return !/^\s/.test(body) && !/\s$/.test(body);
 }
 
+/* ---------- bare TeX, a safety net ----------
+ *
+ * Models wrap maths in dollars inconsistently. The same reply will typeset
+ * `$(a+b)^2$` correctly and then drop a bare `\sqrt{3}` into the middle of a
+ * sentence, which reaches the student as the literal characters "\sqrt{3}" —
+ * strictly worse than the plain "√3" it replaced. The prompts ask for dollars
+ * on every fragment; this catches the slips, because a partial failure here
+ * reads as broken rather than merely unstyled.
+ *
+ * Matching any `\word` would be reckless: a Windows path in a student's note
+ * (`C:\Users\...`) or a discussion of escaping would start rendering as
+ * equations, and maths is extracted before code spans are, so inline code
+ * would not protect it. So this matches only a fixed list of commands that
+ * are unambiguously mathematical and vanishingly unlikely in prose. Anything
+ * outside the list is left alone — a missed equation is a much cheaper
+ * mistake than prose silently turned into maths.
+ */
+const BARE_TEX_COMMANDS = [
+  "sqrt",
+  "frac",
+  "boxed",
+  "times",
+  "cdot",
+  "div",
+  "pm",
+  "mp",
+  "leq",
+  "geq",
+  "neq",
+  "approx",
+  "equiv",
+  "propto",
+  "sum",
+  "prod",
+  "int",
+  "infty",
+  "partial",
+  "alpha",
+  "beta",
+  "gamma",
+  "delta",
+  "theta",
+  "lambda",
+  "mu",
+  "pi",
+  "sigma",
+  "omega",
+  "sin",
+  "cos",
+  "tan",
+  "log",
+  "ln",
+  "exp",
+  "rightarrow",
+  "leftarrow",
+  "Rightarrow",
+  "text",
+];
+
+/* A command, plus any `{…}` groups belonging to it — `\frac{3}{4}` is one run,
+   not two. Groups are non-nesting, which covers everything a model writes at
+   this level. */
+const BARE_TEX = new RegExp(
+  `\\\\(?:${BARE_TEX_COMMANDS.join("|")})\\b(?:\\s*\\{[^{}]*\\})*`,
+);
+
+/** Matches at `index` only when a known maths command starts exactly there. */
+function bareTexAt(text: string, index: number): string | null {
+  const match = BARE_TEX.exec(text.slice(index));
+  return match && match.index === 0 ? match[0] : null;
+}
+
 export function splitMath(text: string): MathPart[] {
   const parts: MathPart[] = [];
   let buffer = "";
@@ -96,6 +168,15 @@ export function splitMath(text: string): MathPart[] {
       }
     }
 
+    /* Undelimited maths the model forgot to wrap. Checked after the \( and
+       \[ cases above so a real delimiter always wins. */
+    const bare = bareTexAt(text, i);
+    if (bare) {
+      pushMath(bare, false);
+      i += bare.length;
+      continue;
+    }
+
     if (text[i] === "$") {
       /* Nearest unescaped `$` that still leaves a plausible body. */
       let end = text.indexOf("$", i + 1);
@@ -123,5 +204,9 @@ export function splitMath(text: string): MathPart[] {
 /** Does this text contain anything the maths scanner would pull out? Lets the
  *  common no-maths case skip the scan entirely. */
 export function hasMathDelimiter(text: string): boolean {
-  return text.includes("$") || text.includes("\\(") || text.includes("\\[");
+  if (text.includes("$") || text.includes("\\(") || text.includes("\\[")) {
+    return true;
+  }
+  /* A bare command still needs the scanner — see BARE_TEX above. */
+  return text.includes("\\") && BARE_TEX.test(text);
 }

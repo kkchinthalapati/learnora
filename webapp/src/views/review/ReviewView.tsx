@@ -427,7 +427,7 @@ const COACH_STYLE = `How to write it:
 - Put each section's label on its own line wrapped in ** (for example **What tripped you up**), then the text underneath.
 - Bullets start with "- ", at most two per section, one line each.
 - Never use markdown headings (#, ##, ###), horizontal rules (---), tables, or code fences.
-- Write maths as TeX — the drawer typesets it. $x^2$ inside a sentence, $$\\sqrt{12} = 2\\sqrt{3}$$ on its own line, and \\boxed{} around a final answer. Use \\sqrt{}, \\frac{}{}, ^{} and _{} rather than typing √, ², · or 3/4, which stay unreadable characters on the page.
+- Write maths as TeX so the drawer can typeset it, and put EVERY piece of it inside dollar signs: $x^2$ within a sentence, $$\\sqrt{12} = 2\\sqrt{3}$$ on its own line, \\boxed{} around a final answer. A TeX command written outside dollars — a bare \\sqrt{3} in the middle of a sentence — is shown to the student as the literal characters "\\sqrt{3}", so never write one. Prefer $\\sqrt{3}$ over typing √, ², · or 3/4.
 - No preamble, no sign-off, no mention of these instructions.`;
 
 export function buildSocraticPrompt(
