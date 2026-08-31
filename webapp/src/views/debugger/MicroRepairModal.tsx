@@ -85,15 +85,15 @@ export function MicroRepairModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="60-Second Micro-Repair Sandbox"
-      subtitle={`Restoring Bedrock Foundation: "${challenge.rootConcept}"`}
-      closeLabel="Close repair modal"
+      title="60-second fix"
+      subtitle={`Getting "${challenge.rootConcept}" straight`}
+      closeLabel="Close the 60-second fix"
     >
       <div className={styles.repairContainer}>
-        {/* 60s Timer Bar */}
-        <div className={styles.timerBarWrapper} aria-label="Repair time countdown">
+        {/* 60-second timer bar */}
+        <div className={styles.timerBarWrapper} aria-label="Time left">
           <div className={styles.timerHeader}>
-            <span>Target Intuition Pace</span>
+            <span>Go with your gut</span>
             <span
               className={styles.timerCounter}
               aria-live="polite"
@@ -114,22 +114,22 @@ export function MicroRepairModal({
           </div>
         </div>
 
-        {/* First-Principles Intuition Card */}
+        {/* The plain-English idea */}
         <div className={styles.intuitionCard}>
           <div className={styles.intuitionHead}>
             <Icon name="zap" size={16} />
-            <span>First-Principles Core Intuition</span>
+            <span>The idea, in plain English</span>
           </div>
           <p className={styles.intuitionText} data-testid="repair-intuition-text">
             {challenge.intuitionSummary}
           </p>
         </div>
 
-        {/* Interactive Verification Exercise */}
+        {/* Quick check */}
         <div className={styles.exerciseSection}>
           <h3 className={styles.exercisePrompt}>{exercise.prompt}</h3>
 
-          <ul className={styles.optionsList} role="radiogroup" aria-label="Micro repair options">
+          <ul className={styles.optionsList} role="radiogroup" aria-label="Answer options">
             {exercise.options.map((option, idx) => {
               const isSelected = selectedOption === idx;
               const isOptionCorrect = isVerified && idx === exercise.correctIndex;
@@ -172,7 +172,7 @@ export function MicroRepairModal({
           <div className={`${styles.feedbackCard} ${styles.feedbackSuccess}`} role="status">
             <div className={styles.feedbackTitle}>
               <Icon name="check" size={18} />
-              <span>Foundation Verified & Reconstructed!</span>
+              <span>That's it — you've got it</span>
             </div>
             <p className={styles.feedbackDetail}>
               {exercise.firstPrinciplesExplanation}
@@ -184,11 +184,11 @@ export function MicroRepairModal({
           <div className={`${styles.feedbackCard} ${styles.feedbackError}`} role="alert">
             <div className={styles.feedbackTitle}>
               <Icon name="alert-triangle" size={18} />
-              <span>Prerequisite Invariant Violated</span>
+              <span>Not quite</span>
             </div>
             <p className={styles.feedbackDetail}>
-              Re-examine the core intuition above: ensure underlying conservation and rate
-              relationships hold without shortcuts. Try another option!
+              Have another look at the idea above and check each step, rather than
+              jumping to the answer. Give it another go.
             </p>
           </div>
         )}
@@ -206,7 +206,7 @@ export function MicroRepairModal({
               disabled={selectedOption === null}
               data-testid="verify-repair-btn"
             >
-              Verify Understanding
+              Check my answer
             </Button>
           ) : (
             <Button
@@ -216,7 +216,7 @@ export function MicroRepairModal({
               data-testid="apply-fix-btn"
             >
               <Icon name="check" size={16} />
-              <span>{isSubmitting ? "Applying Fix..." : "Apply Fix to Circuit"}</span>
+              <span>{isSubmitting ? "Saving…" : "Mark it as sorted"}</span>
             </Button>
           )}
         </div>

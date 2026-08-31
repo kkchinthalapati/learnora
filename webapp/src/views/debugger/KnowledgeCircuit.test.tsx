@@ -52,23 +52,23 @@ const mockHealedLayers: CognitiveLayer[] = [
 ];
 
 describe("KnowledgeCircuit Component", () => {
-  it("renders the 3 circuit nodes (Root, Bridge, Surface)", () => {
+  it("renders the 3 circuit nodes (basics, link, slip)", () => {
     render(<KnowledgeCircuit layers={mockBrokenLayers} />);
 
     expect(screen.getByTestId("knowledge-circuit")).toBeInTheDocument();
-    expect(screen.getByText("Prerequisite Circuit Diagnostics")).toBeInTheDocument();
-    expect(screen.getByText(/LEVEL 1: ROOT/i)).toBeInTheDocument();
-    expect(screen.getByText(/LEVEL 2: BRIDGE/i)).toBeInTheDocument();
-    expect(screen.getByText(/LEVEL 3: SURFACE/i)).toBeInTheDocument();
+    expect(screen.getByText("How the steps connect")).toBeInTheDocument();
+    expect(screen.getByText(/STEP 1: BASICS/i)).toBeInTheDocument();
+    expect(screen.getByText(/STEP 2: LINK/i)).toBeInTheDocument();
+    expect(screen.getByText(/STEP 3: THE SLIP/i)).toBeInTheDocument();
   });
 
   it("displays broken circuit status when severed prerequisite is present", () => {
     render(<KnowledgeCircuit layers={mockBrokenLayers} />);
 
     const statusBadge = screen.getByTestId("circuit-signal-status");
-    expect(statusBadge).toHaveTextContent(/Prerequisite Link Severed/i);
+    expect(statusBadge).toHaveTextContent(/A link is missing/i);
     expect(
-      screen.getByText(/Because Level 1 \[Inner Variable Invariance\] broke/i),
+      screen.getByText(/You never quite got \[Inner Variable Invariance\]/i),
     ).toBeInTheDocument();
   });
 
@@ -76,9 +76,9 @@ describe("KnowledgeCircuit Component", () => {
     render(<KnowledgeCircuit layers={mockHealedLayers} />);
 
     const statusBadge = screen.getByTestId("circuit-signal-status");
-    expect(statusBadge).toHaveTextContent(/100% Signal Integrity \(Restored\)/i);
+    expect(statusBadge).toHaveTextContent(/All three steps hold up/i);
     expect(
-      screen.getByText(/All prerequisite links are restored and verified/i),
+      screen.getByText(/All three steps hold up now/i),
     ).toBeInTheDocument();
   });
 
@@ -92,15 +92,15 @@ describe("KnowledgeCircuit Component", () => {
       />,
     );
 
-    const level1Node = screen.getByLabelText(/Level 1 Root Foundation/i);
+    const level1Node = screen.getByLabelText(/Step 1, the basics/i);
     fireEvent.click(level1Node);
     expect(handleSelect).toHaveBeenCalledWith(1);
 
-    const level2Node = screen.getByLabelText(/Level 2 Intermediate Bridge/i);
+    const level2Node = screen.getByLabelText(/Step 2, the step in between/i);
     fireEvent.keyDown(level2Node, { key: "Enter" });
     expect(handleSelect).toHaveBeenCalledWith(2);
 
-    const level3Node = screen.getByLabelText(/Level 3 Surface Problem/i);
+    const level3Node = screen.getByLabelText(/Step 3, the question you got wrong/i);
     fireEvent.keyDown(level3Node, { key: " " });
     expect(handleSelect).toHaveBeenCalledWith(3);
   });
@@ -108,6 +108,6 @@ describe("KnowledgeCircuit Component", () => {
   it("handles missing layers gracefully with defaults", () => {
     render(<KnowledgeCircuit layers={[]} />);
     expect(screen.getByTestId("knowledge-circuit")).toBeInTheDocument();
-    expect(screen.getByText(/LEVEL 1: ROOT/i)).toBeInTheDocument();
+    expect(screen.getByText(/STEP 1: BASICS/i)).toBeInTheDocument();
   });
 });

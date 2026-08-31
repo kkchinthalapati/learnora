@@ -72,9 +72,9 @@ export function NextExamCard() {
         : styles.diffMedium;
 
   const readinessTone =
-    readiness?.tier === "Exam Ready"
+    readiness?.tier === "Exam ready"
       ? "success"
-      : readiness?.tier === "In Progress"
+      : readiness?.tier === "Getting there"
         ? "warning"
         : "danger";
 

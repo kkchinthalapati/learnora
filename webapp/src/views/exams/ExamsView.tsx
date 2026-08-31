@@ -88,9 +88,9 @@ function UpcomingExamCard({ exam, onOpenPrep, onEdit }: UpcomingExamCardProps) {
   );
 
   const badgeClass =
-    readiness?.tier === "Exam Ready"
+    readiness?.tier === "Exam ready"
       ? styles.badgeReady
-      : readiness?.tier === "In Progress"
+      : readiness?.tier === "Getting there"
         ? styles.badgeProgress
         : styles.badgeGap;
 

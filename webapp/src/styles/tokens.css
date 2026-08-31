@@ -5,7 +5,11 @@
 
 :root {
   /* Vertical room the fixed "Ask AI" command bar needs at the end of a
-     scrolling view: its 28px bottom offset + ~56px height + breathing room. */
+     scrolling view: its 28px bottom offset + ~56px height + breathing room.
+     Unused by the webapp — its chat is a right-hand drawer (chat.module.css
+     .panel), not a bottom bar — but still live in the legacy shell's
+     style.css (:336, :3724), and the parity test in tokens.test.ts requires
+     the two files to agree. Keep until the vanilla shell is gone. */
   --command-bar-clearance: 104px;
 
   /* --- Accent (deep teal) --- */

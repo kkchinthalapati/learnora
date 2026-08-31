@@ -29,9 +29,9 @@ function DayExamRow({ exam, onEditExam, onOpenPrepRoadmap }: DayExamRowProps) {
   const { readiness } = useExamReadiness(exam);
 
   const badgeClass =
-    readiness?.tier === "Exam Ready"
+    readiness?.tier === "Exam ready"
       ? styles.badgeReady
-      : readiness?.tier === "In Progress"
+      : readiness?.tier === "Getting there"
         ? styles.badgeProgress
         : styles.badgeGap;
 

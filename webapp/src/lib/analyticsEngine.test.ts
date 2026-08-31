@@ -207,7 +207,7 @@ describe("analyticsEngine", () => {
       },
     ];
 
-    it("marks subjects as High Urgency when exam is near and minutes studied are low", () => {
+    it("marks subjects as Exam soon when exam is near and minutes studied are low", () => {
       const sessions: StudySession[] = [
         fakeSession({ folder_id: "f-1", minutes: 30 }), // Calculus: exam in 3 days, low minutes
         fakeSession({ folder_id: "f-2", minutes: 300 }), // Physics: exam in 20 days, high minutes
@@ -219,14 +219,14 @@ describe("analyticsEngine", () => {
       expect(matrix.length).toBe(3);
 
       const calcRow = matrix.find((r) => r.folderId === "f-1");
-      expect(calcRow?.status).toBe("High Urgency");
+      expect(calcRow?.status).toBe("Exam soon");
       expect(calcRow?.examName).toBe("Calculus Final");
 
       const physicsRow = matrix.find((r) => r.folderId === "f-2");
       expect(physicsRow?.status).toBe("Balanced");
 
       const historyRow = matrix.find((r) => r.folderId === "f-3");
-      expect(historyRow?.status).toBe("Under-invested");
+      expect(historyRow?.status).toBe("Needs more time");
     });
   });
 
@@ -264,7 +264,7 @@ describe("analyticsEngine", () => {
     it("computes baseline 100 readiness when no content or exams exist", () => {
       const result = computeUnifiedExamReadiness({});
       expect(result.score).toBeGreaterThanOrEqual(80);
-      expect(result.tier).toBe("Exam Ready");
+      expect(result.tier).toBe("Exam ready");
       expect(result.summary).toBeDefined();
     });
 
@@ -331,7 +331,7 @@ describe("analyticsEngine", () => {
       });
 
       expect(result.score).toBeGreaterThanOrEqual(80);
-      expect(result.tier).toBe("Exam Ready");
+      expect(result.tier).toBe("Exam ready");
       expect(result.syllabusCoverage).toBeGreaterThanOrEqual(50);
       expect(result.flashcardStability).toBeGreaterThanOrEqual(70);
       expect(result.quizMastery).toBe(95);
@@ -378,7 +378,7 @@ describe("analyticsEngine", () => {
       });
 
       expect(result.score).toBeLessThan(50);
-      expect(result.tier).toBe("Critical Gap");
+      expect(result.tier).toBe("Needs work");
       expect(result.summary).toContain("falling behind");
     });
   });

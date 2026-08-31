@@ -36,7 +36,7 @@ describe("MicroRepairModal Component", () => {
       />,
     );
 
-    expect(screen.queryByText("60-Second Micro-Repair Sandbox")).not.toBeInTheDocument();
+    expect(screen.queryByText("60-second fix")).not.toBeInTheDocument();
   });
 
   it("renders the 60s timer, intuition summary, and interactive options", () => {
@@ -50,7 +50,7 @@ describe("MicroRepairModal Component", () => {
       />,
     );
 
-    expect(screen.getByText("60-Second Micro-Repair Sandbox")).toBeInTheDocument();
+    expect(screen.getByText("60-second fix")).toBeInTheDocument();
     expect(screen.getByTestId("repair-timer-display")).toHaveTextContent(/60s remaining/i);
     expect(screen.getByTestId("repair-intuition-text")).toHaveTextContent(
       /Zooming in by dx stretches g by g'\(x\)/i,
@@ -78,9 +78,9 @@ describe("MicroRepairModal Component", () => {
     const verifyBtn = screen.getByTestId("verify-repair-btn");
     fireEvent.click(verifyBtn);
 
-    expect(screen.getByText("Prerequisite Invariant Violated")).toBeInTheDocument();
+    expect(screen.getByText("Not quite")).toBeInTheDocument();
     expect(
-      screen.getByText(/Re-examine the core intuition above/i),
+      screen.getByText(/Have another look at the idea above/i),
     ).toBeInTheDocument();
   });
 
@@ -106,7 +106,7 @@ describe("MicroRepairModal Component", () => {
     fireEvent.click(verifyBtn);
 
     expect(
-      screen.getByText("Foundation Verified & Reconstructed!"),
+      screen.getByText("That's it — you've got it"),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/Sequential rates of change multiply/i),

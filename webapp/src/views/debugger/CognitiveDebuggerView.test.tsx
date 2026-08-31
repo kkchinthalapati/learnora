@@ -31,10 +31,10 @@ describe("CognitiveDebuggerView", () => {
   it("renders page header, input form, and empty state initially", async () => {
     renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
 
-    expect(screen.getByText("Cognitive Root-Cause Debugger")).toBeInTheDocument();
-    expect(screen.getByText("Symptom Diagnostic Input")).toBeInTheDocument();
+    expect(screen.getByText("Find My Mistake")).toBeInTheDocument();
+    expect(screen.getByText("What went wrong?")).toBeInTheDocument();
     expect(screen.getByTestId("mistake-input")).toBeInTheDocument();
-    expect(screen.getByText("No Active Diagnostic Trace")).toBeInTheDocument();
+    expect(screen.getByText("Nothing to look at yet")).toBeInTheDocument();
 
     // Check detected quiz weak topics
     await waitFor(() => {
@@ -97,7 +97,7 @@ describe("CognitiveDebuggerView", () => {
     fireEvent.click(submitBtn);
 
     // Should display loading state
-    expect(screen.getByText(/Decompiling Mental Execution Stack/i)).toBeInTheDocument();
+    expect(screen.getByText(/Working backwards through it/i)).toBeInTheDocument();
 
     // Should display the 3-layer stack trace and root cause summary
     await waitFor(() => {
@@ -181,7 +181,7 @@ describe("CognitiveDebuggerView", () => {
 
     // Modal should open
     await waitFor(() => {
-      expect(screen.getByText("60-Second Micro-Repair Sandbox")).toBeInTheDocument();
+      expect(screen.getByText("60-second fix")).toBeInTheDocument();
       expect(screen.getByText("Energy in a closed system cannot vanish.")).toBeInTheDocument();
     }, { timeout: 5000 });
 
@@ -197,8 +197,10 @@ describe("CognitiveDebuggerView", () => {
 
     // Verify view has updated with repaired root cause
     await waitFor(() => {
-      expect(screen.getByText(/Root Prerequisite Repaired/i)).toBeInTheDocument();
-      expect(screen.getByText(/100% Signal Integrity \(Restored\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/You've fixed it/i)).toBeInTheDocument();
+      expect(screen.getByTestId("circuit-signal-status")).toHaveTextContent(
+        "All three steps hold up",
+      );
     }, { timeout: 5000 });
   });
 
@@ -237,11 +239,11 @@ describe("CognitiveDebuggerView", () => {
 
     // History button should show count
     const historyBtn = screen.getByTestId("open-history-btn");
-    expect(historyBtn).toHaveTextContent("Trace History (1)");
+    expect(historyBtn).toHaveTextContent("Past mistakes (1)");
 
     fireEvent.click(historyBtn);
 
-    expect(screen.getByText("Saved Cognitive Stack Traces")).toBeInTheDocument();
+    expect(screen.getByText("Mistakes you've looked at")).toBeInTheDocument();
     expect(screen.getByText(/Physics: Conservation of Momentum in 2D/i)).toBeInTheDocument();
 
     // Select the trace
@@ -255,6 +257,6 @@ describe("CognitiveDebuggerView", () => {
 
     // Reset button clears active view
     fireEvent.click(screen.getByTestId("new-debug-btn"));
-    expect(screen.getByText("No Active Diagnostic Trace")).toBeInTheDocument();
+    expect(screen.getByText("Nothing to look at yet")).toBeInTheDocument();
   });
 });

@@ -15,7 +15,7 @@ import { formatDateStr } from "./date";
  * 1. Exam Readiness & Milestone Roadmap Architecture (Prompt Specification)
  * ========================================================================= */
 
-export type ReadinessTier = "Critical Gap" | "In Progress" | "Exam Ready";
+export type ReadinessTier = "Needs work" | "Getting there" | "Exam ready";
 
 export interface ExamReadinessBreakdown {
   coverage: number; // 0-100 (30% weight)
@@ -197,12 +197,12 @@ export function computeExamReadiness(
     Math.max(0, Math.round(coverage * 0.3 + mastery * 0.4 + studyTime * 0.3)),
   );
 
-  // Tier classification: 80+ is Exam Ready, 45-79 is In Progress, < 45 is Critical Gap
-  let tier: ReadinessTier = "Critical Gap";
+  // Tier classification: 80+ is Exam ready, 45-79 is Getting there, < 45 is Needs work
+  let tier: ReadinessTier = "Needs work";
   if (score >= 80) {
-    tier = "Exam Ready";
+    tier = "Exam ready";
   } else if (score >= 45) {
-    tier = "In Progress";
+    tier = "Getting there";
   }
 
   // Extract weak topics

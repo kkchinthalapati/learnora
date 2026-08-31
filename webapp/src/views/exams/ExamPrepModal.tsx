@@ -101,7 +101,7 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
         : `${daysLeft} Days Remaining`;
 
   const score = readiness?.score ?? 0;
-  const tier = readiness?.tier ?? "Critical Gap";
+  const tier = readiness?.tier ?? "Needs work";
 
   // Circular gauge math: radius 42, circumference ~ 263.89
   const radius = 42;
@@ -109,9 +109,9 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
   const tierClass =
-    tier === "Exam Ready"
+    tier === "Exam ready"
       ? styles.tierReady
-      : tier === "In Progress"
+      : tier === "Getting there"
         ? styles.tierProgress
         : styles.tierGap;
 

@@ -77,10 +77,10 @@ export function sectionLabel(
   if (pathname.startsWith("/timer")) return t("nav_timer");
   if (pathname.startsWith("/tasks")) return t("nav_tasks");
   if (pathname.startsWith("/analytics")) return "Analytics";
-  if (pathname.startsWith("/graph")) return "Concept Graph";
-  if (pathname.startsWith("/feynman")) return "Feynman Apprentice";
-  if (pathname.startsWith("/debugger")) return "Cognitive Debugger";
-  if (pathname.startsWith("/premortem")) return "Exam Pre-Mortem";
+  if (pathname.startsWith("/graph")) return "How Topics Connect";
+  if (pathname.startsWith("/feynman")) return "Explain It Simply";
+  if (pathname.startsWith("/debugger")) return "Find My Mistake";
+  if (pathname.startsWith("/premortem")) return "What Could Go Wrong";
   if (pathname.startsWith("/plan")) return "This week's plan";
   if (pathname.startsWith("/exams")) return "Exams";
   if (pathname.startsWith("/room")) return "Study Room";
@@ -98,7 +98,7 @@ export function sectionLabel(
  * exactly what shipped: `/notebooks` rendered the word "Notebooks" as the
  * shell <h1> and again 150px below as the hub <h1>, and four more routes
  * printed a shell title above a longer restatement of the same thing
- * ("Feynman Apprentice" over "Feynman AI Apprentice", "Study Room" over
+ * ("Explain It Simply" over the hub's own longer hero title, "Study Room" over
  * "Virtual Study Circle", and so on).
  *
  * Two <h1>s per document is also an accessibility defect independent of how

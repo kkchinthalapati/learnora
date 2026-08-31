@@ -21,23 +21,23 @@ export function KnowledgeCircuit({
 
   const level1 = sortedLayers.find((l) => l.level === 1) || {
     level: 1,
-    concept: "Root Foundational Prerequisite",
+    concept: "The basics underneath",
     status: "severed" as LayerStatus,
-    explanation: "Core first-principles bedrock gap",
+    explanation: "The bit you need before anything else",
   };
 
   const level2 = sortedLayers.find((l) => l.level === 2) || {
     level: 2,
-    concept: "Intermediate Bridge Concept",
+    concept: "The step in between",
     status: "shaky" as LayerStatus,
-    explanation: "Connecting mechanics and transitions",
+    explanation: "How the basics turn into the method",
   };
 
   const level3 = sortedLayers.find((l) => l.level === 3) || {
     level: 3,
-    concept: "Surface Problem Application",
+    concept: "The question you got wrong",
     status: "severed" as LayerStatus,
-    explanation: "Visible mistake in exam/quiz problem",
+    explanation: "The mistake you actually saw",
   };
 
   const isCircuitBroken =
@@ -75,12 +75,12 @@ export function KnowledgeCircuit({
     <div
       className={`${styles.circuitContainer} ${isRepairing ? styles.repairPulseEffect : ""}`}
       data-testid="knowledge-circuit"
-      aria-label="Knowledge Prerequisite Circuit Visualizer"
+      aria-label="Map of how the three steps connect"
     >
       <div className={styles.circuitHeader}>
         <div className={styles.circuitTitle}>
           <Icon name="activity" size={18} />
-          <span>Prerequisite Circuit Diagnostics</span>
+          <span>How the steps connect</span>
         </div>
         <div
           className={`${styles.signalStatus} ${
@@ -98,10 +98,10 @@ export function KnowledgeCircuit({
           />
           <span>
             {isAllHealthy
-              ? "100% Signal Integrity (Restored)"
+              ? "All three steps hold up"
               : isCircuitBroken
-              ? "Prerequisite Link Severed"
-              : "Impedance Detected (Shaky)"}
+              ? "A link is missing"
+              : "One link is shaky"}
           </span>
         </div>
       </div>
@@ -111,7 +111,7 @@ export function KnowledgeCircuit({
           viewBox="0 0 680 200"
           className={styles.circuitSvg}
           role="img"
-          aria-label="Interactive visual circuit representing prerequisite links from root foundation to surface problem"
+          aria-label="Diagram showing how the basics lead to the step in between, and on to the question you got wrong"
         >
           <defs>
             {/* Glow filters */}
@@ -183,12 +183,12 @@ export function KnowledgeCircuit({
             </g>
           )}
 
-          {/* NODE 1: Root Foundation (Left: X=20 to 190) */}
+          {/* NODE 1: the basics (Left: X=20 to 190) */}
           <g
             className={styles.nodeGroup}
             role="button"
             tabIndex={0}
-            aria-label={`Level 1 Root Foundation: ${level1.concept}, status: ${level1.status}`}
+            aria-label={`Step 1, the basics: ${level1.concept}, ${level1.status}`}
             onClick={() => onSelectLevel?.(1)}
             onKeyDown={(e) => handleKeyDown(e, 1)}
           >
@@ -203,7 +203,7 @@ export function KnowledgeCircuit({
             {/* Level Badge */}
             <rect x="32" y="52" width="64" height="20" rx="4" fill="rgba(255,255,255,0.12)" />
             <text x="38" y="66" fill="#a5b4fc" className={styles.nodeBadgeText}>
-              LEVEL 1: ROOT
+              STEP 1: BASICS
             </text>
 
             {/* Concept text */}
@@ -211,7 +211,7 @@ export function KnowledgeCircuit({
               {truncateText(level1.concept, 19)}
             </text>
             <text x="32" y="112" fill="#9ca3af" fontSize="10px">
-              First-Principles Base
+              What it rests on
             </text>
 
             {/* Status Pill */}
@@ -235,16 +235,16 @@ export function KnowledgeCircuit({
               fill={level1.status === "healthy" ? "#4ade80" : "#f87171"}
               className={styles.nodeStatusText}
             >
-              {level1.status === "healthy" ? "● Healthy" : "▲ Severed Gap"}
+              {level1.status === "healthy" ? "● Solid" : "▲ Missing"}
             </text>
           </g>
 
-          {/* NODE 2: Intermediate Bridge (Middle: X=260 to 430) */}
+          {/* NODE 2: the step in between (Middle: X=260 to 430) */}
           <g
             className={styles.nodeGroup}
             role="button"
             tabIndex={0}
-            aria-label={`Level 2 Intermediate Bridge: ${level2.concept}, status: ${level2.status}`}
+            aria-label={`Step 2, the step in between: ${level2.concept}, ${level2.status}`}
             onClick={() => onSelectLevel?.(2)}
             onKeyDown={(e) => handleKeyDown(e, 2)}
           >
@@ -259,7 +259,7 @@ export function KnowledgeCircuit({
             {/* Level Badge */}
             <rect x="272" y="52" width="76" height="20" rx="4" fill="rgba(255,255,255,0.12)" />
             <text x="278" y="66" fill="#fed7aa" className={styles.nodeBadgeText}>
-              LEVEL 2: BRIDGE
+              STEP 2: LINK
             </text>
 
             {/* Concept text */}
@@ -267,7 +267,7 @@ export function KnowledgeCircuit({
               {truncateText(level2.concept, 19)}
             </text>
             <text x="272" y="112" fill="#9ca3af" fontSize="10px">
-              Connecting Mechanics
+              How it joins up
             </text>
 
             {/* Status Pill */}
@@ -306,19 +306,19 @@ export function KnowledgeCircuit({
               className={styles.nodeStatusText}
             >
               {level2.status === "healthy"
-                ? "● Healthy"
+                ? "● Solid"
                 : level2.status === "shaky"
                 ? "◆ Shaky"
-                : "▲ Severed"}
+                : "▲ Missing"}
             </text>
           </g>
 
-          {/* NODE 3: Surface Problem (Right: X=500 to 670) */}
+          {/* NODE 3: the question you got wrong (Right: X=500 to 670) */}
           <g
             className={styles.nodeGroup}
             role="button"
             tabIndex={0}
-            aria-label={`Level 3 Surface Problem: ${level3.concept}, status: ${level3.status}`}
+            aria-label={`Step 3, the question you got wrong: ${level3.concept}, ${level3.status}`}
             onClick={() => onSelectLevel?.(3)}
             onKeyDown={(e) => handleKeyDown(e, 3)}
           >
@@ -333,7 +333,7 @@ export function KnowledgeCircuit({
             {/* Level Badge */}
             <rect x="512" y="52" width="80" height="20" rx="4" fill="rgba(255,255,255,0.12)" />
             <text x="518" y="66" fill="#fca5a5" className={styles.nodeBadgeText}>
-              LEVEL 3: SURFACE
+              STEP 3: THE SLIP
             </text>
 
             {/* Concept text */}
@@ -341,7 +341,7 @@ export function KnowledgeCircuit({
               {truncateText(level3.concept, 18)}
             </text>
             <text x="512" y="112" fill="#9ca3af" fontSize="10px">
-              Problem Application
+              Where you saw it
             </text>
 
             {/* Status Pill */}
@@ -365,19 +365,19 @@ export function KnowledgeCircuit({
               fill={level3.status === "healthy" ? "#4ade80" : "#f87171"}
               className={styles.nodeStatusText}
             >
-              {level3.status === "healthy" ? "● Restored" : "▲ Fault Active"}
+              {level3.status === "healthy" ? "● Sorted" : "▲ Still wrong"}
             </text>
           </g>
         </svg>
       </div>
 
       <div className={styles.propagationFooter}>
-        <strong>Failure Propagation Flow: </strong>
+        <strong>How it snowballed: </strong>
         {level1.status === "severed"
-          ? `Because Level 1 [${level1.concept}] broke at first principles, the signal failed to propagate through Level 2 [${level2.concept}], cascading directly into the surface error at Level 3 [${level3.concept}]. Repair Level 1 to re-energize the entire circuit!`
+          ? `You never quite got [${level1.concept}], so [${level2.concept}] never made proper sense either — and that\u2019s why [${level3.concept}] went wrong. Sort out the first one and the rest follows.`
           : isAllHealthy
-          ? `All prerequisite links are restored and verified! The foundational bedrock is secure and signal propagates continuously to high-level applications.`
-          : `Impedance detected along intermediate bridging concepts. Complete verification to ensure stable cognitive retention.`}
+          ? `All three steps hold up now. The basics are solid, so the harder stuff has something to stand on.`
+          : `The middle step is still a bit shaky. Go over it once more and it should stick.`}
       </div>
     </div>
   );

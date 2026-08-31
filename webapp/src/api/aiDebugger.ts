@@ -90,7 +90,7 @@ export function saveTrace(trace: CognitiveStackTrace): void {
     // Cap at 50 historical traces
     window.localStorage.setItem(STORAGE_KEY_TRACES, JSON.stringify(updated.slice(0, 50)));
   } catch (err) {
-    console.warn("Failed to persist cognitive trace to localStorage:", err);
+    console.warn("Failed to persist the saved mistake to localStorage:", err);
   }
 }
 
@@ -157,29 +157,31 @@ Analyze the exact misconception by building a 3-layer Mental Stack Trace:
 - Level 2 (Intermediate Bridge): The connective theorem, algebraic/logical step, or intermediate model bridging the root foundation to the surface. Status is "shaky" or "severed".
 - Level 1 (Root Foundation): The absolute core first-principles prerequisite concept that broke down or was misunderstood. Status is "severed".
 
+Write every "concept", "explanation" and summary in plain, everyday British English, as if you were talking to a 16-year-old. Short sentences. No jargon like "cognitive", "prerequisite gap", "propagation" or "invariant" — say what you mean. Be warm and matter-of-fact, never alarming.
+
 You MUST reply with ONLY valid raw JSON conforming to this exact schema (no prose outside JSON):
 {
-  "rootCauseSummary": "A punchy 1-2 sentence summary of why the student failed at the first-principles level.",
+  "rootCauseSummary": "One or two plain sentences saying what the student never quite got, and why that made this go wrong.",
   "layers": [
     {
       "level": 3,
       "concept": "Name of Surface Concept / Rule",
       "status": "severed",
-      "explanation": "What broke at the visible problem level.",
+      "explanation": "What went wrong in the question itself, in plain words.",
       "prerequisiteOf": "The current problem"
     },
     {
       "level": 2,
       "concept": "Name of Intermediate Bridge Concept",
       "status": "shaky",
-      "explanation": "How the intermediate transformation or transition was misapplied.",
+      "explanation": "Which step in the middle got used wrongly, in plain words.",
       "prerequisiteOf": "Name of Surface Concept"
     },
     {
       "level": 1,
       "concept": "Name of Root Foundational Prerequisite",
       "status": "severed",
-      "explanation": "The fundamental first-principles intuition that failed.",
+      "explanation": "The basic idea underneath that never quite landed.",
       "prerequisiteOf": "Name of Intermediate Concept"
     }
   ]
@@ -190,12 +192,12 @@ You MUST reply with ONLY valid raw JSON conforming to this exact schema (no pros
 export function buildMicroRepairPrompt(rootConcept: string): string {
   return `You are the Learnora Micro-Repair Engine. Generate a rapid 60-second first-principles interactive mental repair for the following broken foundational concept: "${rootConcept}".
 
-Strip away high-level mathematical/technical jargon and deliver a pure, visceral, intuitive understanding that fixes the gap in under a minute.
+Strip out the jargon. Explain it the way you would to a friend who has never seen it before, in plain British English, so it clicks in under a minute.
 
 You MUST reply with ONLY valid raw JSON conforming to this exact schema (no prose outside JSON):
 {
   "rootConcept": "${rootConcept}",
-  "intuitionSummary": "A concise, crystal-clear 2-3 sentence first-principles intuition explaining the concept visually or intuitively (e.g. using a tangible analogy or direct physical/logical intuition).",
+  "intuitionSummary": "Two or three plain sentences that explain the idea, ideally with a everyday comparison the student can picture.",
   "interactiveExercise": {
     "prompt": "A single targeted conceptual question with 4 options testing this fundamental intuition directly.",
     "options": [
@@ -205,7 +207,7 @@ You MUST reply with ONLY valid raw JSON conforming to this exact schema (no pros
       "Option D"
     ],
     "correctIndex": 0,
-    "firstPrinciplesExplanation": "Clear explanation of why this answer is correct from first principles, cementing the repair."
+    "firstPrinciplesExplanation": "A plain explanation of why this answer is right, so the idea sticks."
   }
 }`;
 }
@@ -219,28 +221,28 @@ function createFallbackDiagnosis(
   const desc = mistakeDescription.trim() || "Conceptual misunderstanding";
 
   return {
-    rootCauseSummary: `The breakdown in ${desc} stems from a severed prerequisite in first-principles mental models for ${cleanSubject}.`,
+    rootCauseSummary: `The trouble with ${desc} comes from a basic idea in ${cleanSubject} that never quite landed.`,
     layers: [
       {
         level: 3,
-        concept: `${desc.slice(0, 40)} Application`,
+        concept: `Using ${desc.slice(0, 40)}`,
         status: "severed",
-        explanation: `Execution failure occurred when applying formulas without anchoring in lower-level constraints.`,
-        prerequisiteOf: "Active Problem Solving",
+        explanation: `The formula went in before the conditions behind it were checked.`,
+        prerequisiteOf: "The question you were doing",
       },
       {
         level: 2,
-        concept: `Intermediate Dependency: Parameter Mapping & Rate of Change`,
+        concept: `Linking the quantities to how they change`,
         status: "shaky",
-        explanation: `The transition from primitive state definitions to combined composite equations was applied mechanically.`,
-        prerequisiteOf: `${desc.slice(0, 40)} Application`,
+        explanation: `The jump from the simple version to the combined one was done by rote, not by thinking it through.`,
+        prerequisiteOf: `Using ${desc.slice(0, 40)}`,
       },
       {
         level: 1,
-        concept: `Core Foundation: Invariant Quantities & Direct First Principles`,
+        concept: `What stays the same, and why`,
         status: "severed",
-        explanation: `Underlying conservation laws and invariant relationships were not verified before computation.`,
-        prerequisiteOf: `Parameter Mapping & Rate of Change`,
+        explanation: `The rules about what has to stay the same were never checked before the working started.`,
+        prerequisiteOf: `Linking the quantities to how they change`,
       },
     ],
   };
@@ -251,17 +253,17 @@ function createFallbackMicroRepair(rootConcept: string): MicroRepairChallenge {
   return {
     id: generateId(),
     rootConcept,
-    intuitionSummary: `Think of ${rootConcept} not as an arbitrary rule, but as an invariant conservation law: every transformation must preserve the underlying core quantity.`,
+    intuitionSummary: `${rootConcept} isn\u2019t a random rule to memorise. It\u2019s a promise that something stays the same. Every step you take has to keep that promise.`,
     interactiveExercise: {
-      prompt: `When evaluating "${rootConcept}", what is the fundamental invariant that must never be violated?`,
+      prompt: `When you use "${rootConcept}", what is the one thing that has to stay true at every step?`,
       options: [
-        "The underlying dimensional and logical equilibrium must be conserved across transformations.",
-        "Only the final numeric output matters regardless of intermediate validity.",
-        "Equations can change sign arbitrarily if the outer terms match.",
-        "Prerequisites can be skipped as long as memorized shortcuts are used.",
+        "The units and the logic have to balance the whole way through.",
+        "Only the final number matters, however you got there.",
+        "You can flip a sign whenever the outside terms look right.",
+        "You can skip the basics as long as you remember the shortcut.",
       ],
       correctIndex: 0,
-      firstPrinciplesExplanation: `By preserving the invariant core across each step, the cognitive circuit remains unbroken and errors are prevented at the source.`,
+      firstPrinciplesExplanation: `If the thing that has to stay the same really does stay the same at every step, the mistake never gets a chance to creep in.`,
     },
     verified: false,
   };
@@ -295,18 +297,18 @@ export async function diagnoseCognitiveGap(
       if (match) {
         parsed = JSON.parse(sanitizeJSON(match[0]));
       } else {
-        throw new Error("Unable to parse JSON from AI diagnostic output");
+        throw new Error("Could not read the AI's answer");
       }
     }
 
     if (parsed && Array.isArray(parsed.layers) && parsed.layers.length > 0) {
       const layers: CognitiveLayer[] = parsed.layers.map((l: any, idx: number) => ({
         level: typeof l.level === "number" ? l.level : 3 - idx,
-        concept: String(l.concept || `Layer ${3 - idx}`),
+        concept: String(l.concept || `Step ${3 - idx}`),
         status: (l.status === "healthy" || l.status === "shaky" || l.status === "severed"
           ? l.status
           : "severed") as LayerStatus,
-        explanation: String(l.explanation || "Diagnostic analysis details."),
+        explanation: String(l.explanation || "No details for this step."),
         prerequisiteOf: l.prerequisiteOf ? String(l.prerequisiteOf) : undefined,
       }));
 
@@ -317,14 +319,14 @@ export async function diagnoseCognitiveGap(
         rootCauseSummary:
           typeof parsed.rootCauseSummary === "string" && parsed.rootCauseSummary.trim()
             ? parsed.rootCauseSummary.trim()
-            : `Foundational prerequisite gap detected in ${subject}.`,
+            : `Something basic in ${subject} needs another look.`,
         layers,
       };
     } else {
       diagnosisData = createFallbackDiagnosis(subject, mistakeDescription);
     }
   } catch (err) {
-    console.warn("Cognitive diagnosis fallback activated:", err);
+    console.warn("Mistake analysis fallback activated:", err);
     diagnosisData = createFallbackDiagnosis(subject, mistakeDescription);
   }
 
@@ -362,7 +364,7 @@ export async function generateMicroRepair(rootConcept: string): Promise<MicroRep
       if (match) {
         parsed = JSON.parse(sanitizeJSON(match[0]));
       } else {
-        throw new Error("Unable to parse JSON from AI repair output");
+        throw new Error("Could not read the AI's answer");
       }
     }
 
@@ -377,7 +379,7 @@ export async function generateMicroRepair(rootConcept: string): Promise<MicroRep
         rootConcept: parsed.rootConcept || rootConcept,
         intuitionSummary: parsed.intuitionSummary,
         interactiveExercise: {
-          prompt: parsed.interactiveExercise.prompt || `How does ${rootConcept} apply fundamentally?`,
+          prompt: parsed.interactiveExercise.prompt || `What does ${rootConcept} actually mean?`,
           options: parsed.interactiveExercise.options,
           correctIndex:
             typeof parsed.interactiveExercise.correctIndex === "number" &&
@@ -387,7 +389,7 @@ export async function generateMicroRepair(rootConcept: string): Promise<MicroRep
               : 0,
           firstPrinciplesExplanation:
             parsed.interactiveExercise.firstPrinciplesExplanation ||
-            "First-principles verification completed.",
+            "Nice — that's the idea.",
         },
         verified: false,
       };

@@ -109,21 +109,21 @@ const SECTIONS: NavSection[] = [
     title: "Study Lab",
     collapsible: true,
     items: [
-      { to: "/graph", icon: "share-2", label: "Concept Graph" },
+      { to: "/graph", icon: "share-2", label: "How Topics Connect" },
       {
         to: "/debugger",
         icon: "brain",
-        label: "Cognitive Debugger",
+        label: "Find My Mistake",
       },
       {
         to: "/feynman",
         icon: "award",
-        label: "Feynman Apprentice",
+        label: "Explain It Simply",
       },
       {
         to: "/premortem",
         icon: "shield",
-        label: "Exam Pre-Mortem",
+        label: "What Could Go Wrong",
       },
     ],
   },

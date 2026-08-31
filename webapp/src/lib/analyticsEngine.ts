@@ -48,7 +48,7 @@ export interface PeakFocusWindow {
   description: string;
 }
 
-export type SubjectStatus = "Balanced" | "Under-invested" | "High Urgency";
+export type SubjectStatus = "Balanced" | "Needs more time" | "Exam soon";
 
 export interface SubjectBalanceRow {
   folderId: string;
@@ -315,7 +315,7 @@ export function detectPeakFocusWindow(
       startHour: 9,
       endHour: 12,
       description:
-        "Log study sessions with the focus timer to reveal your optimal chronotype prime time.",
+        "Use the focus timer for a few sessions and we'll work out when you study best.",
     };
   }
 
@@ -325,7 +325,7 @@ export function detectPeakFocusWindow(
       startHour: bestStartHour,
       endHour,
       description:
-        "Your cognitive endurance peaks in the early morning. Best for mastering complex theory, math, and high-difficulty tasks.",
+        "You do your best thinking early. Save the hardest topics for the morning.",
     };
   }
 
@@ -335,7 +335,7 @@ export function detectPeakFocusWindow(
       startHour: bestStartHour,
       endHour,
       description:
-        "Your focus surges around mid-day. Ideal for intensive active recall, practice exams, and problem sets.",
+        "You're sharpest around midday. Good time for practice papers and problem sets.",
     };
   }
 
@@ -345,7 +345,7 @@ export function detectPeakFocusWindow(
       startHour: bestStartHour,
       endHour,
       description:
-        "You sustain optimal momentum in the afternoon. Great for structured review, note synthesis, and flashcard drills.",
+        "Afternoons work well for you. Good for going over notes and running through flashcards.",
     };
   }
 
@@ -354,7 +354,7 @@ export function detectPeakFocusWindow(
     startHour: bestStartHour,
     endHour,
     description:
-      "You excel during quiet late-hour sessions with fewer interruptions. Ideal for deep creative synthesis and uninterrupted study blocks.",
+      "You get most done late, when it's quiet. Good for long, uninterrupted stretches.",
   };
 }
 
@@ -362,7 +362,7 @@ export function detectPeakFocusWindow(
  * Subject Balance & Exam Urgency Matrix
  *
  * Computes study distribution across subjects and matches them against
- * upcoming exams to calculate balance status ('Balanced' | 'Under-invested' | 'High Urgency').
+ * upcoming exams to calculate balance status ('Balanced' | 'Needs more time' | 'Exam soon').
  */
 export function computeSubjectUrgencyMatrix(
   sessions: StudySession[] = [],
@@ -424,14 +424,14 @@ export function computeSubjectUrgencyMatrix(
 
     if (minDays !== null && minDays <= 14) {
       if (minDays <= 7 && minutesStudied < 120) {
-        status = "High Urgency";
+        status = "Exam soon";
       } else if (minutesStudied < 60) {
-        status = "High Urgency";
+        status = "Exam soon";
       } else {
         status = "Balanced";
       }
     } else if (minutesStudied < 30) {
-      status = "Under-invested";
+      status = "Needs more time";
     } else {
       status = "Balanced";
     }
@@ -448,10 +448,10 @@ export function computeSubjectUrgencyMatrix(
     };
   });
 
-  // Sort rows: High Urgency first, then Under-invested, then Balanced
+  // Sort rows: Exam soon first, then Needs more time, then Balanced
   const priorityOrder: Record<SubjectStatus, number> = {
-    "High Urgency": 1,
-    "Under-invested": 2,
+    "Exam soon": 1,
+    "Needs more time": 2,
     Balanced: 3,
   };
 
@@ -489,20 +489,20 @@ export function generateStudyInsights(
   // 1. Streak & Consistency insight
   if (heatData.currentStreak >= 3) {
     insights.push(
-      `🔥 Excellent momentum! You are currently on a ${heatData.currentStreak}-day study streak. Daily micro-sessions build stronger neural pathways than cramming blocks.`,
+      `🔥 You're on a ${heatData.currentStreak}-day streak. A short session every day beats one long cram.`,
     );
   } else if (heatData.activeDays > 0) {
     insights.push(
-      `🔥 Consistency checkpoint: You have studied ${heatData.activeDays} days this year. Logging a 25-minute session today will build your active streak.`,
+      `🔥 You've studied on ${heatData.activeDays} days this year. Do 25 minutes today and you'll start a streak.`,
     );
   } else {
     insights.push(
-      `🔥 Kickstart your study streak: Daily consistent sessions of 20–30 minutes compound rapidly into high academic retention.`,
+      `🔥 Start a streak: 20–30 minutes a day adds up faster than you'd think.`,
     );
   }
 
   // 2. Chronotype & Peak window
-  insights.push(`⚡ Prime Focus Window: ${peak.label}. ${peak.description}`);
+  insights.push(`⚡ When you focus best: ${peak.label}. ${peak.description}`);
 
   // 3. Focus Volume & Pacing
   const hours = Math.floor(heatData.totalMinutes / 60);
@@ -512,11 +512,11 @@ export function generateStudyInsights(
       heatData.totalMinutes / Math.max(1, heatData.activeDays),
     );
     insights.push(
-      `⏱️ Study Volume: You have logged ${hours}h ${mins}m across ${sessions.length} total sessions, averaging ~${avgMinsPerActiveDay} mins per active day.`,
+      `⏱️ Time studied: ${hours}h ${mins}m across ${sessions.length} sessions — about ${avgMinsPerActiveDay} minutes on the days you study.`,
     );
   } else {
     insights.push(
-      `⏱️ Study Volume: No timer sessions recorded yet. Use the Pomodoro or Stopwatch timer to track deep work automatically.`,
+      `⏱️ Time studied: nothing yet. Start the timer when you sit down and it'll keep track for you.`,
     );
   }
 
@@ -530,32 +530,32 @@ export function generateStudyInsights(
 
     if (avgScore >= 80) {
       insights.push(
-        `🎯 Active Recall Mastery: Your average quiz score is ${avgScore}%. High mastery observed — challenge yourself with timed mock exams and spaced flashcard reviews.`,
+        `🎯 Quizzes: you're averaging ${avgScore}%. That's strong — try a timed mock paper next.`,
       );
     } else {
       insights.push(
-        `🎯 Knowledge Retention: Your average quiz accuracy is ${avgScore}%. Focus on reviewing flagged weak topics and re-testing every 48 hours.`,
+        `🎯 Quizzes: you're averaging ${avgScore}%. Go back over the topics you're getting wrong, then try again in a couple of days.`,
       );
     }
   } else {
     insights.push(
-      `🎯 Active Recall: Generating AI practice quizzes from your study notes boosts conceptual recall by up to 50% over passive reading.`,
+      `🎯 Try a quiz: testing yourself on your notes sticks far better than reading them again.`,
     );
   }
 
   // 5. Spacing & Subject Interleaving
   insights.push(
-    `💡 Spaced Practice: Interleaving multiple subjects during weekly study blocks prevents cognitive fatigue and improves exam transferability.`,
+    `💡 Mix it up: switching between subjects in a week keeps you fresher and helps things stick.`,
   );
 
   return insights;
 }
 
 export type ExamReadinessTier =
-  | "Exam Ready"
-  | "On Track"
-  | "Needs Review"
-  | "Critical Gap";
+  | "Exam ready"
+  | "On track"
+  | "Needs review"
+  | "Needs work";
 
 export interface UnifiedExamReadiness {
   score: number; // 0-100
@@ -654,22 +654,22 @@ export function computeUnifiedExamReadiness(params: {
     syllabusCoverage * 0.3 + flashcardStability * 0.35 + quizMastery * 0.35;
   const score = Math.min(100, Math.max(0, Math.round(rawScore)));
 
-  let tier: ExamReadinessTier = "Critical Gap";
+  let tier: ExamReadinessTier = "Needs work";
   let summary =
-    "Exam prep is falling behind. Focus on fundamental notes and flashcard drills.";
+    "There's ground to make up. Start with your notes, then drill the flashcards.";
 
   if (score >= 85) {
-    tier = "Exam Ready";
+    tier = "Exam ready";
     summary =
-      "Excellent preparation! High retention, solid quiz accuracy, and comprehensive coverage.";
+      "Really strong prep. Your cards are sticking, your quiz scores are good, and you've covered the ground.";
   } else if (score >= 70) {
-    tier = "On Track";
+    tier = "On track";
     summary =
-      "Solid study progress. Reinforce weak quiz topics to lock in high exam confidence.";
+      "Good progress. Go back over the quiz topics you keep dropping marks on.";
   } else if (score >= 50) {
-    tier = "Needs Review";
+    tier = "Needs review";
     summary =
-      "Decay risks detected in flashcards and moderate quiz mastery. Run focused practice sprints.";
+      "Some cards are slipping and your quiz scores are middling. A few focused practice sessions will help.";
   }
 
   return {

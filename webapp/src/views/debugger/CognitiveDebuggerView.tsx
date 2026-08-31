@@ -94,9 +94,9 @@ export function CognitiveDebuggerView() {
       }
       const targetConcept = bridged.concept || bridged.topic;
       if (targetConcept) {
-        setMistakeDescription(`Decompiling prerequisite gaps for: ${targetConcept}`);
+        setMistakeDescription(`Working out what I'm missing on: ${targetConcept}`);
         if (bridged.misconceptions && bridged.misconceptions.length > 0) {
-          setContext(`Identified blindspots: ${bridged.misconceptions.join("; ")}`);
+          setContext(`Things I've got muddled: ${bridged.misconceptions.join("; ")}`);
         } else if (bridged.evidencePrompt) {
           setContext(bridged.evidencePrompt);
         }
@@ -111,8 +111,8 @@ export function CognitiveDebuggerView() {
   };
 
   const handleApplyWeakTopic = (topicName: string) => {
-    setMistakeDescription(`Struggling with concept: ${topicName}`);
-    setContext(`Identified as a weak topic during recent quiz attempts.`);
+    setMistakeDescription(`I keep getting ${topicName} wrong`);
+    setContext(`This has come up as a weak spot in my recent quizzes.`);
   };
 
   const handleDiagnose = async (e?: React.FormEvent) => {
@@ -208,10 +208,10 @@ export function CognitiveDebuggerView() {
         <div className={styles.headerTitleGroup}>
           <h1 className={styles.title}>
             <Icon name="brain" size={28} />
-            <span>Cognitive Root-Cause Debugger</span>
+            <span>Find My Mistake</span>
           </h1>
           <p className={styles.subtitle}>
-            Dissect mistakes from surface symptoms down through intermediate bridges to the root foundational prerequisite gap.
+            Work backwards from the mistake you made to the thing you never quite learned underneath it.
           </p>
         </div>
 
@@ -223,20 +223,20 @@ export function CognitiveDebuggerView() {
               data-testid="open-history-btn"
             >
               <Icon name="clock" size={16} />
-              <span>Trace History ({savedTraces.length})</span>
+              <span>Past mistakes ({savedTraces.length})</span>
             </Button>
           )}
 
           {activeTrace && (
             <Button variant="secondary" onClick={handleResetForm} data-testid="new-debug-btn">
               <Icon name="plus" size={16} />
-              <span>Debug New Problem</span>
+              <span>Start a new one</span>
             </Button>
           )}
         </div>
       </div>
 
-      {/* Cognitive Bridge Cross-Tool AI Actions */}
+      {/* Cross-tool AI actions */}
       <CognitiveCrossLinkBar
         payload={
           activeTrace
@@ -262,13 +262,13 @@ export function CognitiveDebuggerView() {
         <Card variant="panel" className={styles.inputCard}>
           <h2 className={styles.cardHeading}>
             <Icon name="activity" size={18} />
-            <span>Symptom Diagnostic Input</span>
+            <span>What went wrong?</span>
           </h2>
 
           <form onSubmit={handleDiagnose} className={styles.formGroup}>
             <div className={styles.formGroup}>
               <label htmlFor="subject-select" className={styles.formLabel}>
-                Subject Domain
+                Subject
               </label>
               <select
                 id="subject-select"
@@ -287,11 +287,11 @@ export function CognitiveDebuggerView() {
 
             <div className={styles.formGroup}>
               <label htmlFor="mistake-input" className={styles.formLabel}>
-                Mistake / Confusing Problem
+                The mistake, or the bit you're stuck on
               </label>
               <textarea
                 id="mistake-input"
-                placeholder="Paste the problem statement or describe what went wrong..."
+                placeholder="Paste the question, or just say what you got wrong..."
                 value={mistakeDescription}
                 onChange={(e) => setMistakeDescription(e.target.value)}
                 className={styles.textareaInput}
@@ -304,12 +304,12 @@ export function CognitiveDebuggerView() {
 
             <div className={styles.formGroup}>
               <label htmlFor="context-input" className={styles.formLabel}>
-                Your Attempt / Context (Optional)
+                What you tried (optional)
               </label>
               <input
                 id="context-input"
                 type="text"
-                placeholder="e.g., I tried applying the formula directly but got negative..."
+                placeholder="e.g. I put the numbers straight into the formula and got a minus..."
                 value={context}
                 onChange={(e) => setContext(e.target.value)}
                 className={styles.textInput}
@@ -327,12 +327,12 @@ export function CognitiveDebuggerView() {
               {isLoading ? (
                 <>
                   <Icon name="refresh-cw" size={16} className="spin" />
-                  <span>Tracing Cognitive Stack...</span>
+                  <span>Working it out…</span>
                 </>
               ) : (
                 <>
                   <Icon name="zap" size={16} />
-                  <span>Execute Cognitive Stack Trace</span>
+                  <span>Find my mistake</span>
                 </>
               )}
             </Button>
@@ -340,7 +340,7 @@ export function CognitiveDebuggerView() {
 
           {/* Quick Presets */}
           <div className={styles.presetSection}>
-            <span className={styles.presetLabel}>Quick Presets for Exploration</span>
+            <span className={styles.presetLabel}>Or try one of these</span>
             <div className={styles.presetPills}>
               {PRESETS.map((p, idx) => (
                 <button
@@ -361,7 +361,7 @@ export function CognitiveDebuggerView() {
           {weakTopics.length > 0 && (
             <div className={styles.recentMistakesBox}>
               <span className={styles.presetLabel}>
-                <Icon name="alert-triangle" size={12} /> Detected Quiz Weak Topics
+                <Icon name="alert-triangle" size={12} /> Topics you keep dropping marks on
               </span>
               {weakTopics.map((wt, idx) => (
                 <button
@@ -372,23 +372,23 @@ export function CognitiveDebuggerView() {
                   disabled={isLoading}
                 >
                   <span>{wt.topic}</span>
-                  <span style={{ opacity: 0.7 }}>{wt.count}x missed</span>
+                  <span style={{ opacity: 0.7 }}>missed {wt.count}x</span>
                 </button>
               ))}
             </div>
           )}
         </Card>
 
-        {/* Right Column: Mental Stack Trace & Knowledge Circuit */}
+        {/* Right column: the breakdown and the map */}
         <div className={styles.resultsColumn}>
           {isLoading && (
             <Card variant="panel" className={styles.loadingCard}>
               <div className={styles.scanningPulse}>
                 <Icon name="zap" size={26} />
               </div>
-              <h3 className={styles.loadingText}>Decompiling Mental Execution Stack...</h3>
+              <h3 className={styles.loadingText}>Working backwards through it…</h3>
               <p className={styles.loadingSubtext}>
-                Isolating foundational prerequisites and diagnosing failure propagation points.
+                Looking for the earlier step that tripped everything else up.
               </p>
             </Card>
           )}
@@ -396,16 +396,16 @@ export function CognitiveDebuggerView() {
           {!isLoading && !activeTrace && (
             <Card variant="panel" className={styles.emptyStateContainer}>
               <Icon name="activity" size={42} style={{ color: "var(--text-muted)", opacity: 0.5 }} />
-              <h3>No Active Diagnostic Trace</h3>
+              <h3>Nothing to look at yet</h3>
               <p className={styles.subtitle}>
-                Paste a difficult problem, pick a recent quiz weak topic, or select a preset on the left to inspect the root-cause cognitive stack trace.
+                Paste in a question you got stuck on, pick a topic you keep missing, or try one of the examples on the left.
               </p>
             </Card>
           )}
 
           {!isLoading && activeTrace && (
             <>
-              {/* Root Cause Summary Card */}
+              {/* Summary card */}
               <div
                 className={`${styles.rootCauseCard} ${
                   isAllRepaired ? styles.rootCauseCardHealthy : ""
@@ -419,7 +419,7 @@ export function CognitiveDebuggerView() {
                     }`}
                   >
                     <Icon name={isAllRepaired ? "check" : "alert-triangle"} size={14} />
-                    <span>{isAllRepaired ? "Root Prerequisite Repaired" : "Root Cause Identified"}</span>
+                    <span>{isAllRepaired ? "You've fixed it" : "Here's where it started"}</span>
                   </div>
                   <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
                     Subject: {activeTrace.subject}
@@ -438,18 +438,18 @@ export function CognitiveDebuggerView() {
                 isRepairing={isRepairingCelebration}
               />
 
-              {/* Action Centre: Micro-Repair CTA */}
+              {/* Action centre: fix-it call to action */}
               <div className={styles.actionBanner} data-testid="action-banner">
                 <div className={styles.actionBannerText}>
                   <h3 className={styles.actionBannerTitle}>
                     {isAllRepaired
-                      ? "Cognitive Bedrock Reconstructed"
-                      : "First-Principles Mental Repair Available"}
+                      ? "That gap is closed"
+                      : "Ready to patch the gap"}
                   </h3>
                   <p className={styles.actionBannerSub}>
                     {isAllRepaired
-                      ? "All prerequisite links verified. Signal propagates continuously."
-                      : `Run a 60-second interactive challenge on "${rootLayer?.concept || "Root Prerequisite"}" to fix the broken circuit.`}
+                      ? "Every step below now holds up. Nice work."
+                      : `Try a 60-second challenge on "${rootLayer?.concept || "the basics"}" to close the gap.`}
                   </p>
                 </div>
 
@@ -463,12 +463,12 @@ export function CognitiveDebuggerView() {
                     {isGeneratingRepair ? (
                       <>
                         <Icon name="refresh-cw" size={16} className="spin" />
-                        <span>Generating Sandbox...</span>
+                        <span>Setting it up…</span>
                       </>
                     ) : (
                       <>
                         <Icon name="zap" size={16} />
-                        <span>Launch 60s Micro-Repair</span>
+                        <span>Fix it in 60 seconds</span>
                       </>
                     )}
                   </Button>
@@ -479,20 +479,20 @@ export function CognitiveDebuggerView() {
                     data-testid="re-test-repair-btn"
                   >
                     <Icon name="check" size={16} />
-                    <span>Review First Principles</span>
+                    <span>Go over it again</span>
                   </Button>
                 )}
               </div>
 
-              {/* 3-Layer Mental Stack Trace Timeline */}
+              {/* Three-layer breakdown timeline */}
               <div className={styles.stackTraceContainer}>
                 <div className={styles.stackTraceHead}>
                   <h3 className={styles.cardHeading}>
                     <Icon name="layers" size={18} />
-                    <span>Mental Stack Trace (3-Layer Decompilation)</span>
+                    <span>How the mistake built up</span>
                   </h3>
                   <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                    Click a layer to inspect prerequisite link
+                    Tap a step to see what it depends on
                   </span>
                 </div>
 
@@ -524,16 +524,16 @@ export function CognitiveDebuggerView() {
                           }
                         }}
                         data-testid={`layer-card-${layer.level}`}
-                        aria-label={`Layer ${layer.level}: ${layer.concept}, status: ${layer.status}`}
+                        aria-label={`Step ${layer.level}: ${layer.concept}, ${layer.status}`}
                       >
                         <div className={styles.layerHeader}>
                           <span className={`${styles.layerLevelBadge} ${levelClass}`}>
-                            Level {layer.level}:{" "}
+                            Step {layer.level}:{" "}
                             {layer.level === 3
-                              ? "Surface Problem"
+                              ? "What went wrong"
                               : layer.level === 2
-                              ? "Intermediate Bridge"
-                              : "Root Foundation"}
+                              ? "The step before that"
+                              : "What it all rests on"}
                           </span>
 
                           <span
@@ -549,10 +549,10 @@ export function CognitiveDebuggerView() {
                             }}
                           >
                             {layer.status === "healthy"
-                              ? "● Healthy / Repaired"
+                              ? "● Solid"
                               : layer.status === "shaky"
-                              ? "◆ Shaky Bridge"
-                              : "▲ Severed Prerequisite"}
+                              ? "◆ A bit shaky"
+                              : "▲ Missing"}
                           </span>
                         </div>
 
@@ -562,7 +562,7 @@ export function CognitiveDebuggerView() {
                         {layer.prerequisiteOf && (
                           <div className={styles.layerPrereq}>
                             <Icon name="link" size={14} />
-                            <span>Prerequisite for: {layer.prerequisiteOf}</span>
+                            <span>You need this before: {layer.prerequisiteOf}</span>
                           </div>
                         )}
                       </div>
@@ -575,7 +575,7 @@ export function CognitiveDebuggerView() {
         </div>
       </div>
 
-      {/* 60s Micro-Repair Sandbox Modal */}
+      {/* 60-second fix-it modal */}
       <MicroRepairModal
         open={repairModalOpen}
         onClose={() => setRepairModalOpen(false)}
@@ -588,8 +588,8 @@ export function CognitiveDebuggerView() {
       <Modal
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
-        title="Saved Cognitive Stack Traces"
-        subtitle="Review past root-cause diagnoses and repaired prerequisite circuits"
+        title="Mistakes you've looked at"
+        subtitle="Go back over what you worked out last time"
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           {savedTraces.map((t) => (
@@ -612,14 +612,14 @@ export function CognitiveDebuggerView() {
                   {t.subject}: {t.failedQuestionOrTopic}
                 </strong>
                 <span style={{ fontSize: "0.75rem", color: "var(--text-muted, #9ca3af)" }}>
-                  {new Date(t.timestamp).toLocaleString()} • {t.layers.length} layers
+                  {new Date(t.timestamp).toLocaleString()} • {t.layers.length} steps
                 </span>
               </div>
               <Button
                 variant="danger"
                 size="sm"
                 onClick={(e) => handleDeleteSavedTrace(t.id, e)}
-                aria-label={`Delete trace ${t.id}`}
+                aria-label={`Delete this saved mistake: ${t.subject} — ${t.failedQuestionOrTopic}`}
               >
                 <Icon name="trash" size={14} />
               </Button>
@@ -630,7 +630,7 @@ export function CognitiveDebuggerView() {
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
               <Button variant="danger" size="sm" onClick={handleClearHistory}>
                 <Icon name="trash" size={14} />
-                <span>Clear All History</span>
+                <span>Clear them all</span>
               </Button>
             </div>
           )}

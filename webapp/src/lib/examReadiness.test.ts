@@ -74,7 +74,7 @@ describe("examReadiness", () => {
   });
 
   describe("computeExamReadiness", () => {
-    it("calculates Critical Gap tier when no materials, reviews, or study sessions exist", () => {
+    it("calculates the Needs work tier when no materials, reviews, or study sessions exist", () => {
       const now = new Date("2026-09-01T00:00:00");
       const readiness = computeExamReadiness(
         baseExam,
@@ -87,7 +87,7 @@ describe("examReadiness", () => {
       );
 
       expect(readiness.score).toBe(0);
-      expect(readiness.tier).toBe("Critical Gap");
+      expect(readiness.tier).toBe("Needs work");
       expect(readiness.breakdown.coverage).toBe(0);
       expect(readiness.breakdown.mastery).toBe(0);
       expect(readiness.breakdown.studyTime).toBe(0);
@@ -161,7 +161,7 @@ describe("examReadiness", () => {
       expect(readiness.breakdown.coverage).toBeGreaterThan(50);
       expect(readiness.breakdown.mastery).toBe(100);
       expect(readiness.breakdown.studyTime).toBe(40); // 480 / 1200 = 40%
-      expect(readiness.tier).toBe("In Progress");
+      expect(readiness.tier).toBe("Getting there");
       expect(readiness.targetHoursRemaining).toBe(12);
     });
 
@@ -191,7 +191,7 @@ describe("examReadiness", () => {
       expect(readiness.breakdown.mastery).toBe(0);
     });
 
-    it("identifies weak topics from quiz attempts and calculates Exam Ready tier", () => {
+    it("identifies weak topics from quiz attempts and calculates the Exam ready tier", () => {
       const materials: Material[] = [
         {
           id: "m-1",
@@ -287,7 +287,7 @@ describe("examReadiness", () => {
       );
 
       expect(readiness.score).toBeGreaterThanOrEqual(75);
-      expect(readiness.tier).toBe("Exam Ready");
+      expect(readiness.tier).toBe("Exam ready");
       expect(readiness.weakTopics).toEqual([
         "Lineweaver-Burk Plot",
         "Allosteric Regulation",
@@ -364,7 +364,7 @@ describe("examReadiness", () => {
       const now = new Date("2026-09-01T00:00:00");
       const readiness = {
         score: 65,
-        tier: "In Progress" as const,
+        tier: "Getting there" as const,
         breakdown: { coverage: 40, mastery: 90, studyTime: 60 },
         weakTopics: [],
         daysRemaining: 9,

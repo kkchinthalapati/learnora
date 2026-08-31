@@ -407,9 +407,9 @@ export function StudyAnalyticsView() {
                   );
 
                   let statusClass = styles.statusBalanced;
-                  if (row.status === "High Urgency") {
+                  if (row.status === "Exam soon") {
                     statusClass = styles.statusHighUrgency;
-                  } else if (row.status === "Under-invested") {
+                  } else if (row.status === "Needs more time") {
                     statusClass = styles.statusUnderInvested;
                   }
 
