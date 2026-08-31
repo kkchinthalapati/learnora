@@ -41,6 +41,5 @@
   "views/settings/settings.module.css": {"hex": 0, "rawFontSize": 0, "rawShadow": 0, "rawBlur": 0, "emerald": 0},
   "views/tasks/tasks.module.css": {"hex": 0, "rawFontSize": 0, "rawShadow": 0, "rawBlur": 0, "emerald": 0},
   "views/terms/terms.module.css": {"hex": 0, "rawFontSize": 0, "rawShadow": 0, "rawBlur": 0, "emerald": 0},
-  "views/timer/MiniTimer.module.css": {"hex": 0, "rawFontSize": 0, "rawShadow": 0, "rawBlur": 0, "emerald": 0},
   "views/timer/timer.module.css": {"hex": 0, "rawFontSize": 0, "rawShadow": 0, "rawBlur": 0, "emerald": 0}
 }

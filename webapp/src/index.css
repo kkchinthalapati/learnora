@@ -13,8 +13,8 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
-html[data-has-mini-timer="true"] {
-  --mini-timer-clearance: 80px;
+html[data-has-focus-hud="true"] {
+  --focus-hud-clearance: 80px;
 }
 
 body {

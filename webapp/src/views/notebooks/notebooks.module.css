@@ -287,7 +287,7 @@
 
 .notebookTitleInput:focus,
 .notebookTitleInput:hover {
-  border-color: var(--border);
+  border-color: var(--line);
   background: var(--surface-2);
 }
 
@@ -380,7 +380,7 @@
 }
 
 .sourceItem:hover {
-  border-color: var(--border);
+  border-color: var(--line);
   background: var(--surface-3, var(--surface-2));
 }
 

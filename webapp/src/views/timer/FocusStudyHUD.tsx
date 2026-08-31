@@ -35,12 +35,12 @@ export function FocusStudyHUD() {
 
   useEffect(() => {
     if (isVisible) {
-      document.documentElement.dataset.hasMiniTimer = "true";
+      document.documentElement.dataset.hasFocusHud = "true";
     } else {
-      delete document.documentElement.dataset.hasMiniTimer;
+      delete document.documentElement.dataset.hasFocusHud;
     }
     return () => {
-      delete document.documentElement.dataset.hasMiniTimer;
+      delete document.documentElement.dataset.hasFocusHud;
     };
   }, [isVisible]);
 
@@ -103,7 +103,10 @@ export function FocusStudyHUD() {
   };
 
   const progress = progressFraction(state);
-  const progressPercent = Math.min(100, Math.max(0, Math.round(progress * 100)));
+  const progressPercent = Math.min(
+    100,
+    Math.max(0, Math.round(progress * 100)),
+  );
 
   return (
     <aside
@@ -183,7 +186,9 @@ export function FocusStudyHUD() {
             style={subjectColor ? { backgroundColor: subjectColor } : undefined}
             data-testid="subject-dot"
             aria-hidden="true"
-            title={currentFolder?.name ? `Subject: ${currentFolder.name}` : undefined}
+            title={
+              currentFolder?.name ? `Subject: ${currentFolder.name}` : undefined
+            }
           />
           <div className={styles.info}>
             <div className={styles.taskLabel} title={taskTitle}>

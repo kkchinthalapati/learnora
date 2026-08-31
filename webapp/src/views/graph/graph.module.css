@@ -3,7 +3,7 @@
 .container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px - var(--mini-timer-clearance, 0px));
+  height: calc(100vh - 64px - var(--focus-hud-clearance, 0px));
   min-height: 580px;
   position: relative;
   overflow: hidden;
@@ -140,11 +140,13 @@
   flex: 1;
   width: 100%;
   height: 100%;
-  background: radial-gradient(
-    circle at center,
-    rgba(var(--accent-rgb), 0.04) 0%,
-    transparent 70%
-  ), var(--surface);
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(var(--accent-rgb), 0.04) 0%,
+      transparent 70%
+    ),
+    var(--surface);
   border: 1px solid var(--glass-border-subtle);
   border-radius: var(--r-lg);
   overflow: hidden;
@@ -192,7 +194,9 @@
   justify-content: center;
   color: var(--text);
   cursor: pointer;
-  transition: background var(--t) ease, transform var(--t) var(--ease-spring);
+  transition:
+    background var(--t) ease,
+    transform var(--t) var(--ease-spring);
 }
 
 .zoomBtn:hover {
@@ -261,7 +265,10 @@
 /* SVG Node and Edge Styling */
 .edgeLine {
   stroke-linecap: round;
-  transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
+  transition:
+    stroke 0.2s ease,
+    stroke-width 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .edgeHighlight {
@@ -312,7 +319,8 @@
 }
 
 @keyframes pulseGap {
-  0%, 100% {
+  0%,
+  100% {
     stroke-opacity: 0.9;
     stroke-width: 2.5px;
   }
