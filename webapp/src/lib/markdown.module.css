@@ -96,3 +96,43 @@
   border-top: 1px solid var(--glass-border);
   margin: 24px 0;
 }
+
+/* ── Maths ────────────────────────────────────────────────────────────────
+   Rendered as MathML (see Math.tsx for why not KaTeX's HTML output), so the
+   browser lays the equation out and there is very little to style here. What
+   does matter is that a long equation scrolls rather than widening its
+   container: model replies are read inside narrow columns — a chat bubble, the
+   480px review drawer — and a wide matrix or a long expansion would otherwise
+   push the whole panel sideways. */
+.mathInline {
+  /* Keep an inline equation on the text baseline and let it break out of a
+     tight column horizontally rather than stretching it. */
+  display: inline-block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  vertical-align: middle;
+}
+
+.mathDisplay {
+  display: block;
+  margin: var(--s-4) 0;
+  text-align: center;
+  /* The scroll container for wide equations. `overscroll-behavior` stops a
+     sideways flick inside an equation from also scrolling the page. */
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  padding-bottom: var(--s-1);
+}
+
+
+/* Until the KaTeX chunk arrives — and permanently if it never does — the
+   element holds the raw TeX as text. Monospace makes that read as "an
+   equation still loading" rather than as broken prose. */
+.mathInline:not(:has(math)),
+.mathDisplay:not(:has(math)) {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--text-muted);
+}

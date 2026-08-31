@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { MathNode } from "./Math";
+import { hasMathDelimiter, splitMath } from "./mathSyntax";
 import styles from "./markdown.module.css";
 
 /* Renders the same markdown subset as `lib/markdown.ts`'s `renderMarkdown`
@@ -59,6 +61,33 @@ const nextKey = () => `md-${keySeed++}`;
  *  lookbehind on the closer — lookbehind is a parse error in older Safari, and
  *  that would take the whole bundle down rather than one paragraph.) */
 function renderInline(text: string): ReactNode[] {
+  /* Maths comes out first: a TeX body is full of characters this pass would
+     otherwise claim: the stars in `$a^*b^*$` would be read as emphasis and
+     eaten. Splitting first means the markdown pass only ever sees prose. */
+  if (hasMathDelimiter(text)) {
+    const parts = splitMath(text);
+    if (parts.some((p) => p.kind === "math")) {
+      const out: ReactNode[] = [];
+      for (const part of parts) {
+        if (part.kind === "math") {
+          out.push(
+            <MathNode
+              key={nextKey()}
+              tex={part.value}
+              display={part.display === true}
+            />,
+          );
+        } else {
+          out.push(...renderInlineMarkdown(part.value));
+        }
+      }
+      return out;
+    }
+  }
+  return renderInlineMarkdown(text);
+}
+
+function renderInlineMarkdown(text: string): ReactNode[] {
   const out: ReactNode[] = [];
   /* One pass, longest-delimiter-first, matching renderMarkdown's ordering. */
   const pattern =
@@ -178,12 +207,40 @@ function renderProse(prose: string): ReactNode[] {
     list = flushList(list, out);
   };
 
-  for (const rawLine of prose.split("\n")) {
+  const lines = prose.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
     const line = rawLine.trimEnd();
 
     if (line.trim() === "") {
       closeBlocks();
       continue;
+    }
+
+    /* A display equation opened on its own line and closed on a later one.
+       The paragraph path cannot handle it: renderProse works line by line, so
+       a bare `$$` would close as its own paragraph and the equation would
+       render as prose between two rows of dollar signs. Single-line `$$…$$`
+       needs none of this — splitMath catches it inside the paragraph. */
+    const fenceOpen = line.trim() === "$$" ? "$$" : line.trim() === "\\[" ? "\\]" : null;
+    if (fenceOpen) {
+      const body: string[] = [];
+      let j = i + 1;
+      while (j < lines.length && lines[j].trim() !== fenceOpen) {
+        body.push(lines[j]);
+        j++;
+      }
+      /* Only treat it as a fence if it actually closes. An unmatched `$$`
+         falls through to the normal paragraph path rather than swallowing
+         the rest of the reply. */
+      if (j < lines.length && body.join("\n").trim()) {
+        closeBlocks();
+        out.push(
+          <MathNode key={nextKey()} tex={body.join("\n").trim()} display />,
+        );
+        i = j;
+        continue;
+      }
     }
 
     const heading = HEADING_LEVELS.find((h) => line.startsWith(h.prefix));

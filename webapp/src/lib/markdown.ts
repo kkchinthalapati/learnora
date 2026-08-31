@@ -14,9 +14,53 @@
  * this function with reserved widget tokens today, so there is nothing to
  * preserve compatibility with. */
 
+import { hasMathDelimiter, splitMath } from "./mathSyntax";
+
+/* Maths is lifted out before the prose pipeline runs and put back after.
+ *
+ * It cannot simply be rendered segment by segment: the block rules below are
+ * line-anchored (`^## (.*?)$`), so splitting "## Area of $x$" into three
+ * pieces would leave the heading rule matching only "## Area of " and drop the
+ * equation outside the closing </h2>. A placeholder keeps each line intact.
+ *
+ * The placeholder is wrapped in NUL bytes, and NUL is stripped from the input
+ * first — so no document, however hostile, can contain a token that survives
+ * to the swap-back step. That is the failure the vanilla's removed
+ * `restoreWidgets` had (see the file header), and the reason this is a
+ * stripped sentinel rather than a clever string.
+ *
+ * The output is a Quill formula blot: `clipboard.convert()` matches it by
+ * class and rebuilds it from `data-value`, so the TeX survives an edit-save
+ * round trip. See lib/quillMath.ts for the blot itself. */
+function escapeAttribute(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+const MATH_TOKEN = (index: number) => `\u0000MATH${index}\u0000`;
+
 export function renderMarkdown(md: string | null | undefined): string {
   if (!md) return "";
-  let html = md;
+
+  const equations: string[] = [];
+  /* Strip NUL so the sentinel below cannot be forged. Written as a Unicode
+     escape rather than \0 for the same reason the swap-back regex is. */
+  // oxlint-disable-next-line no-control-regex
+  let source = md.replace(/\u0000/g, "");
+  if (hasMathDelimiter(source)) {
+    source = splitMath(source)
+      .map((part) => {
+        if (part.kind !== "math") return part.value;
+        equations.push(part.value);
+        return MATH_TOKEN(equations.length - 1);
+      })
+      .join("");
+  }
+
+  let html = source;
 
   // Escape HTML first.
   html = html
@@ -87,6 +131,18 @@ export function renderMarkdown(md: string | null | undefined): string {
 
   // Newlines to <br> (not inside code blocks — already handled above).
   html = html.replace(/\n/g, "<br/>");
+
+  /* Equations back in, now that every line-anchored rule has run. */
+  if (equations.length > 0) {
+    /* The control character is the point: it is a sentinel that cannot
+       survive from user input, because NUL is stripped above. */
+    // oxlint-disable-next-line no-control-regex
+    html = html.replace(/\u0000MATH(\d+)\u0000/g, (whole, index: string) => {
+      const tex = equations[Number(index)];
+      if (tex === undefined) return whole;
+      return `<span class="ql-formula" data-value="${escapeAttribute(tex)}"></span>`;
+    });
+  }
 
   return html;
 }
