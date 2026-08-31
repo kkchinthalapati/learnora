@@ -179,13 +179,23 @@ export function StudyAnalyticsView() {
             </div>
           </div>
           <p className={styles.statValue} style={{ fontSize: "20px" }}>
-            {formatHour(peakWindow.startHour)} –{" "}
-            {formatHour(peakWindow.endHour)}
+            {peakWindow.hasData ? (
+              <>
+                {formatHour(peakWindow.startHour)} –{" "}
+                {formatHour(peakWindow.endHour)}
+              </>
+            ) : (
+              "—"
+            )}
           </p>
           <div className={styles.statSub}>
-            <span className={styles.statBadge}>
-              {peakWindow.label.split("(")[0].trim()}
-            </span>
+            {peakWindow.hasData ? (
+              <span className={styles.statBadge}>
+                {peakWindow.label.split("(")[0].trim()}
+              </span>
+            ) : (
+              <span>Study a few sessions and we'll spot your best time</span>
+            )}
           </div>
         </Card>
 

@@ -42,6 +42,9 @@ export interface HourlyStats {
 }
 
 export interface PeakFocusWindow {
+  /* False when there are no logged sessions to infer a window from. The card
+     must not print a time in that case — see the maxScore <= 0 branch. */
+  hasData: boolean;
   label: string;
   startHour: number;
   endHour: number;
@@ -309,8 +312,13 @@ export function detectPeakFocusWindow(
   const endHour = (bestStartHour + 3) % 24;
   const timeLabel = `${formatHour(bestStartHour)} – ${formatHour(endHour)}`;
 
+  /* No sessions logged at all. This used to return 9 AM - 12 PM / "Morning
+     Deep Work", which the stat card then printed as a large, confident time —
+     a fabricated personal finding shown to every brand-new student, since the
+     card never rendered the caveat in `description`. hasData lets it say so. */
   if (maxScore <= 0) {
     return {
+      hasData: false,
       label: "Morning Deep Work",
       startHour: 9,
       endHour: 12,
@@ -321,6 +329,7 @@ export function detectPeakFocusWindow(
 
   if (bestStartHour >= 5 && bestStartHour <= 9) {
     return {
+      hasData: true,
       label: `Early Bird Focus (${timeLabel})`,
       startHour: bestStartHour,
       endHour,
@@ -331,6 +340,7 @@ export function detectPeakFocusWindow(
 
   if (bestStartHour >= 10 && bestStartHour <= 13) {
     return {
+      hasData: true,
       label: `Mid-Day Peak (${timeLabel})`,
       startHour: bestStartHour,
       endHour,
@@ -341,6 +351,7 @@ export function detectPeakFocusWindow(
 
   if (bestStartHour >= 14 && bestStartHour <= 17) {
     return {
+      hasData: true,
       label: `Afternoon Flow (${timeLabel})`,
       startHour: bestStartHour,
       endHour,
@@ -350,6 +361,7 @@ export function detectPeakFocusWindow(
   }
 
   return {
+    hasData: true,
     label: `Night Owl Prime (${timeLabel})`,
     startHour: bestStartHour,
     endHour,
