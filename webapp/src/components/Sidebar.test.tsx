@@ -108,16 +108,35 @@ describe("Sidebar", () => {
     expect(onToggleRail).toHaveBeenCalledTimes(1);
   });
 
-  it("uses route families for primary active state", () => {
+  /* Tasks and Exams share Plan's "plan" destination so that sub-routes of the
+     family keep a parent lit. They also have rail entries of their own now, so
+     the item's own path has to win over the shared destination — matching on
+     destination alone marked Plan, Tasks and Exams aria-current="page" all at
+     once on every one of those three routes. */
+  it("lights the item that owns the route, not its whole family", () => {
     renderSidebar({ initialPath: "/tasks" });
-    expect(screen.getByRole("link", { name: "Plan" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Tasks" })).toHaveAttribute(
       "aria-current",
       "page",
+    );
+    expect(screen.getByRole("link", { name: "Plan" })).not.toHaveAttribute(
+      "aria-current",
     );
     expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveAttribute(
       "aria-current",
     );
   });
+
+  it.each(["/", "/plan", "/tasks", "/exams", "/library", "/analytics"])(
+    "marks exactly one sidebar link as the current page on %s",
+    (initialPath) => {
+      renderSidebar({ initialPath });
+      const current = screen
+        .getAllByRole("link")
+        .filter((link) => link.getAttribute("aria-current") === "page");
+      expect(current).toHaveLength(1);
+    },
+  );
 
   it("shows due reviews on Library", () => {
     renderSidebar({ dueCount: 5 });

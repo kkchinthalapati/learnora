@@ -104,7 +104,9 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: /Dashboard/ })).not.toHaveAttribute(
       "aria-current",
     );
-    expect(screen.getByRole("link", { name: /Plan/ })).toHaveAttribute(
+    /* Tasks owns /tasks outright — it shares Plan's route family, but an item
+       with its own rail entry wins over the family it belongs to. */
+    expect(screen.getByRole("link", { name: /Tasks/ })).toHaveAttribute(
       "aria-current",
       "page",
     );

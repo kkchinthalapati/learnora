@@ -194,11 +194,27 @@ function restoreCollapsedSections(storedValue: unknown): SectionId[] {
     : restored;
 }
 
+/* Every `to` in the rail, so a destination match can tell "no item owns this
+   path, highlight the parent" apart from "a sibling owns it exactly". */
+const NAV_PATHS = SECTIONS.flatMap((section) =>
+  section.items.map((item) => item.to),
+);
+
+function pathOwnedBy(pathname: string, to: string): boolean {
+  return pathname === to || pathname.startsWith(`${to}/`);
+}
+
+/* `destination` exists so a sub-route (say /plan/edit) keeps its parent lit.
+   It cannot be the whole test: Plan, Tasks and Exams deliberately share the
+   "plan" destination, so matching on it alone marked all three aria-current
+   ="page" at once on every one of those routes — three highlighted rows, and
+   a screen reader announcing three current pages. An item's own path wins
+   first; the destination is only a fallback for paths no item claims. */
 function routeMatchesItem(pathname: string, item: NavItemConfig): boolean {
-  if (item.destination) {
-    return primaryDestinationForPath(pathname) === item.destination;
-  }
-  return pathname === item.to || pathname.startsWith(`${item.to}/`);
+  if (pathOwnedBy(pathname, item.to)) return true;
+  if (!item.destination) return false;
+  if (NAV_PATHS.some((to) => pathOwnedBy(pathname, to))) return false;
+  return primaryDestinationForPath(pathname) === item.destination;
 }
 
 function activeSecondarySection(pathname: string): SectionId | null {
