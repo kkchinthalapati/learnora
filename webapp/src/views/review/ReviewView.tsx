@@ -410,7 +410,16 @@ export type SocraticMode =
  * text and real lists. Headings, rules, tables and fences are ruled out: at
  * this width they read as clutter, and anything the renderer doesn't cover
  * would surface as literal `###` on screen — which is exactly what a student
- * shouldn't be looking at. */
+ * shouldn't be looking at.
+ *
+ * This block is sent as the *user* message, so it is the last formatting
+ * instruction the model reads and it outweighs the edge function's house
+ * style for this one surface. That is why the maths rule below is repeated
+ * here rather than left to the global policy: without it the model read this
+ * list as the complete formatting contract and wrote maths as plain
+ * characters (`2√3·√2`), which is the hard-to-read output the typesetter was
+ * added to fix. Any formatting rule that matters here has to be stated
+ * here. */
 const COACH_STYLE = `How to write it:
 - Talk straight to the student like a friendly tutor sitting next to them. Say "you", not "the student".
 - Keep the whole reply under 120 words. Short, plain sentences.
@@ -418,6 +427,7 @@ const COACH_STYLE = `How to write it:
 - Put each section's label on its own line wrapped in ** (for example **What tripped you up**), then the text underneath.
 - Bullets start with "- ", at most two per section, one line each.
 - Never use markdown headings (#, ##, ###), horizontal rules (---), tables, or code fences.
+- Write maths as TeX — the drawer typesets it. $x^2$ inside a sentence, $$\\sqrt{12} = 2\\sqrt{3}$$ on its own line, and \\boxed{} around a final answer. Use \\sqrt{}, \\frac{}{}, ^{} and _{} rather than typing √, ², · or 3/4, which stay unreadable characters on the page.
 - No preamble, no sign-off, no mention of these instructions.`;
 
 export function buildSocraticPrompt(
