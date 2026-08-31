@@ -172,10 +172,10 @@ export function extractWeakTopics(cards: Flashcard[]): WeakTopic[] {
 }
 
 export function getRetentionLabel(retention: number): string {
-  if (retention >= 85) return "Excellent Retention";
-  if (retention >= 70) return "Good Retention";
-  if (retention >= 50) return "Needs Review";
-  return "Critical Review Needed";
+  if (retention >= 85) return "Should stick well";
+  if (retention >= 70) return "Should mostly stick";
+  if (retention >= 50) return "Go over it again";
+  return "Worth going over soon";
 }
 
 export function computeEstimatedRetention(results: ReviewResult[]): {
@@ -183,7 +183,7 @@ export function computeEstimatedRetention(results: ReviewResult[]): {
   label: string;
 } {
   if (results.length === 0) {
-    return { retention: 0, label: "Needs Review" };
+    return { retention: 0, label: "Go over it again" };
   }
 
   let weightedSum = 0;

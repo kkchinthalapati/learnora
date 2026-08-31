@@ -158,9 +158,9 @@ export function NotebooksHubView() {
               <div className={styles.cardMeta}>
                 <div className={styles.metaStats}>
                   {feynmanCount > 0 && (
-                    <span className={styles.metaStatItem} title="Feynman breakdowns generated">
+                    <span className={styles.metaStatItem} title="Plain-English breakdowns made">
                       <Icon name="brain" size={13} style={{ color: "var(--accent)" }} />
-                      {feynmanCount} Feynman
+                      {feynmanCount} explainer{feynmanCount === 1 ? "" : "s"}
                     </span>
                   )}
                   {cheatSheetCount > 0 && (
@@ -191,7 +191,7 @@ export function NotebooksHubView() {
             message={
               isFiltered
                 ? "Try adjusting your search query or subject filters to find what you are looking for."
-                : "Create your first revision workspace to attach textbook notes, generate Feynman breakdowns, and build cheat sheets."
+                : "Make your first workspace: pull in your notes, get things explained simply, and build a cheat sheet."
             }
           >
             {isFiltered && (

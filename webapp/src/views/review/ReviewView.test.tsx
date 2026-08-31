@@ -377,7 +377,7 @@ describe("ReviewView", () => {
 
     await user.click(
       screen.getByRole("button", {
-        name: "Review Difficult Cards Again",
+        name: "Go through the hard ones again",
       }),
     );
     expect(await screen.findByText("Q1")).toBeInTheDocument();
@@ -394,11 +394,11 @@ describe("ReviewView", () => {
     ).toBeInTheDocument();
     expect(patchCalls).toBe(2);
     expect(
-      screen.queryByRole("button", { name: "Review Difficult Cards Again" }),
+      screen.queryByRole("button", { name: "Go through the hard ones again" }),
     ).not.toBeInTheDocument();
   });
 
-  it("displays the estimated retention forecast, weak topics, and categorized card breakdown", async () => {
+  it("displays the will-you-remember-it forecast, weak topics, and card breakdown", async () => {
     serve({
       cards: [
         card({
@@ -447,16 +447,16 @@ describe("ReviewView", () => {
     expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
 
     // Retention Card: (25 + 55 + 95) / 3 = 58% -> Needs Review
-    expect(screen.getByText("Estimated 7-Day Retention")).toBeInTheDocument();
+    expect(screen.getByText("How much you’ll still remember in a week")).toBeInTheDocument();
     expect(screen.getByText("58%")).toBeInTheDocument();
-    expect(screen.getByText("Needs Review")).toBeInTheDocument();
+    expect(screen.getByText("Go over it again")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Estimated retention over the next 7 days based on your recall speed & accuracy",
+        "Based on how quickly and how accurately you answered",
       ),
     ).toBeInTheDocument();
     const meter = screen.getByRole("progressbar", {
-      name: "Estimated retention meter",
+      name: "How much you’ll still remember in a week",
     });
     expect(meter).toHaveAttribute("aria-valuenow", "58");
 
@@ -505,7 +505,7 @@ describe("ReviewView", () => {
 
     // Repeat difficult cards action button is present and clickable
     const repeatButton = screen.getByRole("button", {
-      name: "Review Difficult Cards Again",
+      name: "Go through the hard ones again",
     });
     expect(repeatButton).toBeInTheDocument();
     await user.click(repeatButton);
@@ -518,7 +518,7 @@ describe("ReviewView", () => {
     expect(screen.getByText(/Practice round/)).toBeInTheDocument();
   });
 
-  it("stages a 25m focus session and navigates to the timer when Focus on Gaps is clicked", async () => {
+  it("stages a 25m focus session and navigates to the timer when the 25-minute button is clicked", async () => {
     serve({
       cards: [card({ id: "c-1", front: "Q1", back: "A1" })],
     });
@@ -534,7 +534,7 @@ describe("ReviewView", () => {
     expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
 
     const focusBtn = screen.getByRole("button", {
-      name: "Focus on Gaps (25m Timer)",
+      name: "25 minutes on the tricky ones",
     });
     expect(focusBtn).toBeInTheDocument();
     await user.click(focusBtn);
@@ -542,7 +542,7 @@ describe("ReviewView", () => {
     expect(await screen.findByText("Timer view")).toBeInTheDocument();
   });
 
-  it("adds a revision task for tomorrow when Add Revision Task is clicked in recap", async () => {
+  it("adds a revision task for tomorrow when the revise-tomorrow button is clicked in the recap", async () => {
     serve({
       cards: [
         card({
@@ -574,13 +574,13 @@ describe("ReviewView", () => {
     expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
 
     const addTaskBtn = screen.getByRole("button", {
-      name: "Add Revision Task for Tomorrow",
+      name: "Revise this again tomorrow",
     });
     expect(addTaskBtn).toBeInTheDocument();
     await user.click(addTaskBtn);
 
     await waitFor(() => {
-      expect(screen.getByText("Revision Task Scheduled ✓")).toBeInTheDocument();
+      expect(screen.getByText("Added to tomorrow ✓")).toBeInTheDocument();
     });
     expect(taskInserted).not.toBeNull();
     expect(taskInserted.text).toContain("Revise weak topics");

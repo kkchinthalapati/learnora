@@ -66,9 +66,9 @@ export function RecentNotebooksShelf() {
                     </span>
                   )}
                   {feynmanCount > 0 && (
-                    <span className={styles.shelfBadge} title="Feynman breakdown available">
+                    <span className={styles.shelfBadge} title="Has a plain-English breakdown">
                       <Icon name="brain" size={11} />
-                      Feynman
+                      Explainer
                     </span>
                   )}
                 </div>

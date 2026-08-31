@@ -81,7 +81,7 @@ describe("NotebookStudioView", () => {
 
     // Panel 3: Studio Tools & Artifacts
     expect(screen.getByText("Studio Tools")).toBeInTheDocument();
-    expect(screen.getByText("Feynman Breakdown")).toBeInTheDocument();
+    expect(screen.getByText("Explain it simply")).toBeInTheDocument();
     expect(screen.getByText("Revision Cheat Sheet")).toBeInTheDocument();
   });
 

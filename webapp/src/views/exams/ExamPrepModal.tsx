@@ -85,7 +85,7 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
       setAddErrorMsg(
         count > 0
           ? `Added ${count} prep task${count === 1 ? "" : "s"}, but the next task failed. Retry to continue without duplicates.`
-          : "Could not add prep tasks. Please try again.",
+          : "We couldn’t add those tasks. Have another go.",
       );
     } finally {
       setAddingAll(false);
@@ -129,8 +129,8 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Exam Countdown & AI Prep Roadmap"
-      subtitle="Intelligent readiness score and adaptive multi-phase prep blueprint"
+      title="Your exam countdown and prep plan"
+      subtitle="How ready you are, and a plan to get the rest of the way"
       contentClassName={styles.modalDialog}
       closeOnOverlayClick
       footer={
@@ -157,10 +157,10 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
             >
               <Icon name="list-checks" size={16} />
               {addingAll
-                ? "Adding..."
+                ? "Adding…"
                 : allTasksAdded
-                  ? "All Prep Tasks Added"
-                  : "Add All Prep Tasks to Task Manager"}
+                  ? "All tasks added"
+                  : "Add all these to my tasks"}
             </Button>
           </div>
         </div>
@@ -168,7 +168,7 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
     >
       <div className={styles.modalBody}>
         {isPending && !readiness ? (
-          <Skeleton label="Calculating exam readiness..." height={200} />
+          <Skeleton label="Working out how ready you are…" height={200} />
         ) : (
           <>
             {/* Top Hero Section: Exam Details & Circular Readiness Gauge */}
@@ -253,11 +253,11 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
                     />
                   </div>
                   <span className={styles.factorDesc}>
-                    Syllabus notes, lecture materials & study decks synthesized
+                    How much of the syllabus you’ve got notes and decks for
                   </span>
                 </div>
 
-                {/* 2. Retention & Quiz Mastery */}
+                {/* 2. Quiz scores and card maturity */}
                 <div className={styles.factorCard}>
                   <div className={styles.factorHeader}>
                     <span>Quiz Mastery (40%)</span>
@@ -278,7 +278,7 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
                     />
                   </div>
                   <span className={styles.factorDesc}>
-                    Quiz test accuracy & spaced retrieval card maturity
+                    Your quiz scores, and how well your cards are sticking
                   </span>
                 </div>
 

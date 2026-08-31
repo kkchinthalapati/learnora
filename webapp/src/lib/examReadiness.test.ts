@@ -309,15 +309,15 @@ describe("examReadiness", () => {
 
       expect(phases).toHaveLength(4);
       expect(phases[0].title).toContain(
-        "Phase 1: Foundation & Material Synthesis",
+        "Phase 1: Get your material together",
       );
       expect(phases[1].title).toContain(
-        "Phase 2: Active Recall & Spaced Practice",
+        "Phase 2: Test yourself, little and often",
       );
       expect(phases[2].title).toContain(
-        "Phase 3: High-Yield Mock Exams & Weak Topic Polish",
+        "Phase 3: Mocks and weak spots",
       );
-      expect(phases[3].title).toContain("Phase 4: Final Memory Lock & Review");
+      expect(phases[3].title).toContain("Phase 4: Last look, then rest");
 
       phases.forEach((p) => {
         expect(p.tasks.length).toBeGreaterThan(0);

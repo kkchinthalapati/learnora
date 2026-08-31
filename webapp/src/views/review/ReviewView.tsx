@@ -1171,9 +1171,9 @@ function ReviewSession({
 }
 
 function getRetentionBadgeClass(label: string): string {
-  if (label === "Excellent Retention") return styles.badgeExcellent;
-  if (label === "Good Retention") return styles.badgeGood;
-  if (label === "Needs Review") return styles.badgeNeedsReview;
+  if (label === "Should stick well") return styles.badgeExcellent;
+  if (label === "Should mostly stick") return styles.badgeGood;
+  if (label === "Go over it again") return styles.badgeNeedsReview;
   return styles.badgeCritical;
 }
 
@@ -1292,10 +1292,10 @@ function ReviewRecap({
           </p>
         ) : null}
 
-        {/* Estimated Retention Card */}
+        {/* How much you’ll remember */}
         <div className={styles.retentionCard}>
           <div className={styles.retentionHeader}>
-            <h3 className={styles.retentionTitle}>Estimated 7-Day Retention</h3>
+            <h3 className={styles.retentionTitle}>How much you’ll still remember in a week</h3>
             <span
               className={`${styles.retentionBadge} ${getRetentionBadgeClass(
                 recap.retentionLabel,
@@ -1315,7 +1315,7 @@ function ReviewRecap({
             aria-valuenow={recap.estimatedRetention}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label="Estimated retention meter"
+            aria-label="How much you’ll still remember in a week"
           >
             <div
               className={styles.retentionBar}
@@ -1323,15 +1323,14 @@ function ReviewRecap({
             />
           </div>
           <p className={styles.retentionExplanation}>
-            Estimated retention over the next 7 days based on your recall speed
-            &amp; accuracy
+            Based on how quickly and how accurately you answered
           </p>
         </div>
 
         {/* Recall Accuracy */}
         <div className={styles.recallSummary}>
           <strong>{recap.recallPercent}%</strong>
-          <span>recall accuracy</span>
+          <span>of cards recalled</span>
         </div>
         <p className={styles.recapMessage}>
           {recap.confident} of {results.length} cards were recalled confidently
@@ -1524,9 +1523,9 @@ function ReviewRecap({
           </div>
         </div>
 
-        {/* Next Study Actions & Remediation Loop */}
+        {/* What to do next */}
         <div className={styles.nextStepsSection}>
-          <h3 className={styles.nextStepsTitle}>Next Study Actions</h3>
+          <h3 className={styles.nextStepsTitle}>What to do next</h3>
           <div className={styles.recapActionsGrid}>
             <Button
               variant="primary"
@@ -1534,7 +1533,7 @@ function ReviewRecap({
               className={styles.recapActionBtn}
             >
               <Icon name="clock" size={16} />
-              <span>Focus on Gaps (25m Timer)</span>
+              <span>25 minutes on the tricky ones</span>
             </Button>
             {recap.weakTopics.length > 0 && (
               <Button
@@ -1544,7 +1543,7 @@ function ReviewRecap({
                 className={styles.recapActionBtn}
               >
                 <Icon name="list-checks" size={16} />
-                <span>{taskAdded ? "Revision Task Scheduled ✓" : "Add Revision Task for Tomorrow"}</span>
+                <span>{taskAdded ? "Added to tomorrow ✓" : "Revise this again tomorrow"}</span>
               </Button>
             )}
             {onRepeatDifficult ? (
@@ -1554,7 +1553,7 @@ function ReviewRecap({
                 className={styles.recapActionBtn}
               >
                 <Icon name="refresh-cw" size={16} />
-                <span>Review Difficult Cards Again</span>
+                <span>Go through the hard ones again</span>
               </Button>
             ) : null}
             <Button

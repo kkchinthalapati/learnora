@@ -103,7 +103,7 @@ describe("review session helpers", () => {
       { card: card("c2"), quality: 4 },
     ]);
     expect(allEasy.estimatedRetention).toBe(95);
-    expect(allEasy.retentionLabel).toBe("Excellent Retention");
+    expect(allEasy.retentionLabel).toBe("Should stick well");
 
     // All Good cards -> 85% Excellent Retention
     const allGood = recapFrom([
@@ -111,7 +111,7 @@ describe("review session helpers", () => {
       { card: card("c2"), quality: 3 },
     ]);
     expect(allGood.estimatedRetention).toBe(85);
-    expect(allGood.retentionLabel).toBe("Excellent Retention");
+    expect(allGood.retentionLabel).toBe("Should stick well");
 
     // Good (85) + Hard (55) -> 70% Good Retention
     const goodAndHard = recapFrom([
@@ -119,22 +119,22 @@ describe("review session helpers", () => {
       { card: card("c2"), quality: 2 },
     ]);
     expect(goodAndHard.estimatedRetention).toBe(70);
-    expect(goodAndHard.retentionLabel).toBe("Good Retention");
+    expect(goodAndHard.retentionLabel).toBe("Should mostly stick");
 
     // Hard only (55) -> 55% Needs Review
     const hardOnly = recapFrom([{ card: card("c1"), quality: 2 }]);
     expect(hardOnly.estimatedRetention).toBe(55);
-    expect(hardOnly.retentionLabel).toBe("Needs Review");
+    expect(hardOnly.retentionLabel).toBe("Go over it again");
 
     // Again only (25) -> 25% Critical Review Needed
     const againOnly = recapFrom([{ card: card("c1"), quality: 1 }]);
     expect(againOnly.estimatedRetention).toBe(25);
-    expect(againOnly.retentionLabel).toBe("Critical Review Needed");
+    expect(againOnly.retentionLabel).toBe("Worth going over soon");
 
     // Empty results -> 0% Needs Review
     const emptyRecap = recapFrom([]);
     expect(emptyRecap.estimatedRetention).toBe(0);
-    expect(emptyRecap.retentionLabel).toBe("Needs Review");
+    expect(emptyRecap.retentionLabel).toBe("Go over it again");
   });
 
   it("extracts weak topics from cards graded Again and Hard, filtering stop words and ranking by frequency", () => {

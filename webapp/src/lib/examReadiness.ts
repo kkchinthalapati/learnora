@@ -105,10 +105,10 @@ export function getTargetStudyMinutes(
 }
 
 /**
- * Computes the multi-factor Exam Readiness Index (0-100) and diagnostics.
+ * Computes the multi-factor Exam Readiness Index (0-100).
  * Factors:
  *  - Material Coverage (30%)
- *  - Retention & Quiz Mastery (40%)
+ *  - Quiz scores and card maturity (40%)
  *  - Study Time Investment (30%)
  */
 export function computeExamReadiness(
@@ -140,7 +140,7 @@ export function computeExamReadiness(
     coverage = Math.min(60, (flashcards || []).length * 6);
   }
 
-  // 2. Retention & Quiz Mastery (40% weight)
+  // 2. Quiz scores and card maturity (40% weight)
   let avgQuizScore: number | null = null;
   const attempts = quizAttempts || [];
   const validAttempts = attempts.filter((a) => a.total > 0);
@@ -247,7 +247,7 @@ export function computeExamReadiness(
 }
 
 /**
- * Generates an adaptive 4-phase milestone prep countdown roadmap tailored to the exam timeline & readiness.
+ * Generates a 4-phase prep countdown roadmap tailored to the exam timeline and readiness.
  */
 export function generatePrepRoadmap(
   exam: Exam,
@@ -335,9 +335,9 @@ export function generatePrepRoadmap(
   const p1Tasks: PrepMilestoneTask[] = [
     {
       id: `${exam.id}-p1-1`,
-      title: `Structure & synthesize core syllabus for ${examName}`,
+      title: `Get your ${examName} notes in order`,
       description:
-        "Upload all syllabus notes, lecture slides, and reference summaries.",
+        "Upload your class notes, slides and any summaries you have.",
       dueDate: addDaysDateStr(now, Math.floor(p1EndOffset * 0.5)),
       daysBeforeExam: Math.max(0, days - Math.floor(p1EndOffset * 0.5)),
       phase: 1,
@@ -346,9 +346,9 @@ export function generatePrepRoadmap(
     },
     {
       id: `${exam.id}-p1-2`,
-      title: `Generate AI flashcard decks for foundational topics`,
+      title: `Make flashcard decks for the basics`,
       description:
-        "Convert lecture notes and formulas into high-yield flashcard decks.",
+        "Turn your notes and formulas into decks you can test yourself on.",
       dueDate: p1EndDate,
       daysBeforeExam: Math.max(0, days - p1EndOffset),
       phase: 1,
@@ -360,9 +360,9 @@ export function generatePrepRoadmap(
   const p2Tasks: PrepMilestoneTask[] = [
     {
       id: `${exam.id}-p2-1`,
-      title: `Daily spaced active recall drill on ${examName} flashcards`,
+      title: `Do your ${examName} cards every day`,
       description:
-        "Review all due cards to build retrieval strength and card maturity.",
+        "Go through the cards that are due — a little every day is what makes it stick.",
       dueDate: addDaysDateStr(
         now,
         Math.floor((p2StartOffset + p2EndOffset) / 2),
@@ -377,9 +377,9 @@ export function generatePrepRoadmap(
     },
     {
       id: `${exam.id}-p2-2`,
-      title: `Complete topical mini-quizzes to identify weak spots`,
+      title: `Do short quizzes to find your weak spots`,
       description:
-        "Take quick 10-question AI knowledge checks across key chapters.",
+        "Ten quick questions on each of the main chapters.",
       dueDate: p2EndDate,
       daysBeforeExam: Math.max(0, days - p2EndOffset),
       phase: 2,
@@ -390,13 +390,13 @@ export function generatePrepRoadmap(
 
   const p3WeakTaskDescription =
     weak.length > 0
-      ? `Targeted drill on identified weak topics: ${weak.slice(0, 3).join(", ")}.`
-      : `Deep dive into difficult problem sets and formula memorization for ${examName}.`;
+      ? `Focus on the topics you keep dropping marks on: ${weak.slice(0, 3).join(", ")}.`
+      : `Work through the harder questions and get the ${examName} formulas down.`;
 
   const p3Tasks: PrepMilestoneTask[] = [
     {
       id: `${exam.id}-p3-1`,
-      title: `Targeted remediation on weak topics`,
+      title: `Work on your weak topics`,
       description: p3WeakTaskDescription,
       dueDate: addDaysDateStr(
         now,
@@ -412,8 +412,8 @@ export function generatePrepRoadmap(
     },
     {
       id: `${exam.id}-p3-2`,
-      title: `Simulated full-length timed mock exam`,
-      description: "Complete a timed mock exam under strict exam conditions.",
+      title: `Do a full timed mock`,
+      description: "Sit a full paper under proper exam conditions — timed, no notes.",
       dueDate: p3EndDate,
       daysBeforeExam: Math.max(0, days - p3EndOffset),
       phase: 3,
@@ -425,9 +425,9 @@ export function generatePrepRoadmap(
   const p4Tasks: PrepMilestoneTask[] = [
     {
       id: `${exam.id}-p4-1`,
-      title: `Final high-yield formula & summary cheat sheet review`,
+      title: `Skim your formulas and summary sheet`,
       description:
-        "Lightweight glance through key definitions, formulas, and mnemonics.",
+        "A quick run through the key definitions, formulas and memory tricks.",
       dueDate: addDaysDateStr(now, Math.max(0, days - 1)),
       daysBeforeExam: 1,
       phase: 4,
@@ -436,8 +436,8 @@ export function generatePrepRoadmap(
     },
     {
       id: `${exam.id}-p4-2`,
-      title: `Pre-exam routine: logistics, restful sleep & confidence lock`,
-      description: "Prepare exam stationery/ID, rest well, and avoid cramming.",
+      title: `Get your things ready and get some sleep`,
+      description: "Pack your pens and ID, sleep properly, and don't cram.",
       dueDate: addDaysDateStr(now, days),
       daysBeforeExam: 0,
       phase: 4,
@@ -461,8 +461,8 @@ export function generatePrepRoadmap(
   return [
     {
       phaseNumber: 1,
-      title: "Phase 1: Foundation & Material Synthesis",
-      subtitle: "Organise notes, syllabus materials, and create core decks.",
+      title: "Phase 1: Get your material together",
+      subtitle: "Sort out your notes and build your first decks.",
       daysRange: phase1RangeStr,
       startDate: p1StartDate,
       endDate: p1EndDate,
@@ -471,9 +471,8 @@ export function generatePrepRoadmap(
     },
     {
       phaseNumber: 2,
-      title: "Phase 2: Active Recall & Spaced Practice",
-      subtitle:
-        "Build retention via spaced flashcard intervals and topical drills.",
+      title: "Phase 2: Test yourself, little and often",
+      subtitle: "Do your cards daily and quiz yourself by topic.",
       daysRange: phase2RangeStr,
       startDate: p2StartDate,
       endDate: p2EndDate,
@@ -482,9 +481,8 @@ export function generatePrepRoadmap(
     },
     {
       phaseNumber: 3,
-      title: "Phase 3: High-Yield Mock Exams & Weak Topic Polish",
-      subtitle:
-        "Isolate knowledge gaps, tackle weak concepts, and simulate mock exams.",
+      title: "Phase 3: Mocks and weak spots",
+      subtitle: "Find what you're shaky on, fix it, and sit a full mock.",
       daysRange: phase3RangeStr,
       startDate: p3StartDate,
       endDate: p3EndDate,
@@ -493,9 +491,8 @@ export function generatePrepRoadmap(
     },
     {
       phaseNumber: 4,
-      title: "Phase 4: Final Memory Lock & Review",
-      subtitle:
-        "Cheat sheet skimming, confidence lock, and pre-exam readiness.",
+      title: "Phase 4: Last look, then rest",
+      subtitle: "Skim your summary sheet, get your things ready, and sleep.",
       daysRange: phase4RangeStr,
       startDate: p4StartDate,
       endDate: p4EndDate,
@@ -673,14 +670,14 @@ export function calculateExamReadiness(
 
   let summary = `You have completed ${hoursStudied}h of ${targetHours}h targeted study.`;
   if (level === "ready") {
-    summary += " Excellent prep! Maintain recall with light daily review.";
+    summary += " Really strong prep. Keep it ticking over with a short review each day.";
   } else if (level === "on_track") {
-    summary += ` You're on pace. Aim for ${recommendedDailyHours}h daily until the exam.`;
+    summary += ` You're on pace. Aim for ${recommendedDailyHours}h a day until the exam.`;
   } else if (level === "critical") {
     summary +=
-      " High urgency! Prioritise high-yield mock tests and key concepts.";
+      " There's not long left. Stick to mock papers and the topics that come up most.";
   } else {
-    summary += ` Boost your daily pace to ${recommendedDailyHours}h to close the study gap.`;
+    summary += ` Push to ${recommendedDailyHours}h a day and you'll catch up.`;
   }
 
   return {
@@ -723,37 +720,35 @@ export function generateExamStudyMilestones(
   return [
     {
       id: "m-1",
-      title: "Phase 1: Syllabus & Foundation",
+      title: "Phase 1: The basics",
       targetDate: formatDate(m1Date),
       targetHours: Math.round(targetHours * 0.25),
       completed: now >= m1Date,
-      description: "Read main notes and establish core subject glossary.",
+      description: "Read your main notes and write down the key terms.",
     },
     {
       id: "m-2",
-      title: "Phase 2: Deep Dive & Active Recall",
+      title: "Phase 2: Dig in and test yourself",
       targetDate: formatDate(m2Date),
       targetHours: Math.round(targetHours * 0.5),
       completed: now >= m2Date,
-      description: "Complete chapter drills and convert notes into flashcards.",
+      description: "Work through the chapters and turn your notes into flashcards.",
     },
     {
       id: "m-3",
-      title: "Phase 3: Timed Mock Tests",
+      title: "Phase 3: Timed mocks",
       targetDate: formatDate(m3Date),
       targetHours: Math.round(targetHours * 0.75),
       completed: now >= m3Date,
-      description:
-        "Take at least 2 full-length simulated mock exams under proctoring.",
+      description: "Sit at least two full papers under exam conditions.",
     },
     {
       id: "m-4",
-      title: "Phase 4: High-Yield Final Polish",
+      title: "Phase 4: Final polish",
       targetDate: formatDate(m4Date),
       targetHours: targetHours,
       completed: now >= m4Date,
-      description:
-        "Light review of weak formulas, diagrams, and summary sheets.",
+      description: "A light run over the formulas, diagrams and summaries you find hardest.",
     },
   ];
 }
@@ -768,7 +763,7 @@ export function calculateCramRisk(
     return {
       isCramming: false,
       cramRiskScore: 10,
-      message: "Study schedule is distributed normally.",
+      message: "Your study is nicely spread out.",
       severity: "low",
     };
   }
@@ -797,7 +792,7 @@ export function calculateCramRisk(
       isCramming: true,
       cramRiskScore: 85,
       message:
-        "High cramming risk detected. Space out sessions and get adequate rest before test day.",
+        "That's a lot in a short space. Spread it out a bit and get some sleep before the exam.",
       severity: "high",
     };
   }
@@ -807,7 +802,7 @@ export function calculateCramRisk(
       isCramming: true,
       cramRiskScore: 70,
       message:
-        "Intense pre-exam study detected. Incorporate short memory consolidation breaks.",
+        "You're putting in long stretches. Take short breaks — it actually helps things stick.",
       severity: "medium",
     };
   }
@@ -815,7 +810,7 @@ export function calculateCramRisk(
   return {
     isCramming: false,
     cramRiskScore: 25,
-    message: "Pacing is steady with low cramming risk.",
+    message: "You're pacing this well.",
     severity: "low",
   };
 }
@@ -832,7 +827,7 @@ export function recommendRevisionSchedule(
   const fallbackTopics =
     topics.length > 0
       ? topics
-      : ["Core Concepts", "Problem Solving", "Mock Practice", "Formula Review"];
+      : ["The basics", "Problem solving", "Mock practice", "Formulas"];
 
   const plan: RevisionPlanDay[] = [];
 

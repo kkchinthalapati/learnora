@@ -243,7 +243,7 @@ Use British English throughout.`;
 
   const handleGenerateFeynman = async () => {
     setIsGenerating(true);
-    showToast("Generating Feynman Concept Breakdown…");
+    showToast("Writing a plain-English breakdown…");
 
     try {
       const sourcesText = selectedSources.map((s) => s.content).join("\n\n");
@@ -269,7 +269,7 @@ Use British English throughout.`;
         content: res.text,
         summary: "Plain-language analogy, concept simplification, and gap-finder questions.",
       });
-      showToast("Feynman Breakdown saved to Notebook Studio!");
+      showToast("Breakdown saved to your notebook.");
     } catch {
       addArtifact({
         type: "feynman",
@@ -277,7 +277,7 @@ Use British English throughout.`;
         content: `### Feynman Concept Breakdown\n\n**Plain-Language Idea**: Think of a circle like a bicycle wheel where all spokes have equal length (the radius).\n\n**Common Gap**: Students often assume chords are diameters unless explicitly stated.`,
         summary: "Plain-language simplification and gap-finder.",
       });
-      showToast("Feynman Breakdown saved!");
+      showToast("Breakdown saved.");
     } finally {
       setIsGenerating(false);
     }
@@ -298,7 +298,7 @@ Use British English throughout.`;
     addArtifact({
       type: "quiz",
       title: `${notebook.subject} Formative Self-Quiz`,
-      content: "5-question diagnostic quiz generated for this notebook topic.",
+      content: "Five quick questions on this notebook's topic.",
       summary: "Formative quiz to verify theorem application.",
     });
   };
@@ -711,7 +711,7 @@ Use British English throughout.`;
                 <div className={styles.toolIconBox}>
                   <Icon name="brain" size={18} />
                 </div>
-                <div className={styles.toolLabel}>Feynman Breakdown</div>
+                <div className={styles.toolLabel}>Explain it simply</div>
                 <div className={styles.toolSubtext}>Explain simply & find knowledge gaps</div>
               </button>
 
@@ -749,7 +749,7 @@ Use British English throughout.`;
                   <Icon name="check" size={18} />
                 </div>
                 <div className={styles.toolLabel}>Practice Quiz</div>
-                <div className={styles.toolSubtext}>Diagnostic self-test</div>
+                <div className={styles.toolSubtext}>Quick self-test</div>
               </button>
             </div>
           </div>
@@ -811,7 +811,7 @@ Use British English throughout.`;
 
               {notebook.artifacts.length === 0 && (
                 <p style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", margin: 0 }}>
-                  Click a Studio Tool above to generate your first Feynman Breakdown or Revision Cheat Sheet!
+                  Pick a tool above to make your first plain-English breakdown or revision sheet.
                 </p>
               )}
             </div>

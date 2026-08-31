@@ -149,7 +149,7 @@ describe("ExamPrepModal", () => {
       await screen.findByText("Advanced Molecular Biology"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Exam Countdown & AI Prep Roadmap"),
+      screen.getByText("Your exam countdown and prep plan"),
     ).toBeInTheDocument();
     expect(screen.getByText(/Material Coverage/i)).toBeInTheDocument();
     expect(screen.getByText(/Quiz Mastery/i)).toBeInTheDocument();
@@ -169,25 +169,25 @@ describe("ExamPrepModal", () => {
     expect(
       await screen.findByRole("heading", {
         level: 5,
-        name: /Phase 1: Foundation & Material Synthesis/i,
+        name: /Phase 1: Get your material together/i,
       }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", {
         level: 5,
-        name: /Phase 2: Active Recall & Spaced Practice/i,
+        name: /Phase 2: Test yourself, little and often/i,
       }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", {
         level: 5,
-        name: /Phase 3: High-Yield Mock Exams & Weak Topic Polish/i,
+        name: /Phase 3: Mocks and weak spots/i,
       }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", {
         level: 5,
-        name: /Phase 4: Final Memory Lock & Review/i,
+        name: /Phase 4: Last look, then rest/i,
       }),
     ).toBeInTheDocument();
   });
@@ -202,7 +202,7 @@ describe("ExamPrepModal", () => {
     );
 
     const taskTitleText =
-      "Pre-exam routine: logistics, restful sleep & confidence lock";
+      "Get your things ready and get some sleep";
     const taskTitle = await screen.findByText(taskTitleText);
     const checkbox = screen.getByRole("checkbox", {
       name: `Mark task completed: ${taskTitleText}`,
@@ -238,7 +238,7 @@ describe("ExamPrepModal", () => {
     );
 
     const addAllBtn = await screen.findByRole("button", {
-      name: /Add All Prep Tasks to Task Manager/i,
+      name: /Add all these to my tasks/i,
     });
 
     await user.click(addAllBtn);
@@ -251,7 +251,7 @@ describe("ExamPrepModal", () => {
       await screen.findByText(/Added \d+ prep tasks to Task Manager!/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "All Prep Tasks Added" }),
+      screen.getByRole("button", { name: "All tasks added" }),
     ).toBeDisabled();
   });
 
@@ -282,7 +282,7 @@ describe("ExamPrepModal", () => {
     );
 
     const addAllBtn = await screen.findByRole("button", {
-      name: "Add All Prep Tasks to Task Manager",
+      name: "Add all these to my tasks",
     });
     await user.click(addAllBtn);
 
