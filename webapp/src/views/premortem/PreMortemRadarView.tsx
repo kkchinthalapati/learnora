@@ -61,19 +61,19 @@ export function PreMortemRadarView({
     return (
       <div className={styles.container}>
         <PageHeader
-          title="Exam Pre-Mortem Failure Radar"
-          eyebrow="Adversarial Audit"
-          sub="No recent stress-test audit found. Launch a gauntlet to compute your failure prediction radar."
+          title="What Could Go Wrong"
+          eyebrow="Study Lab"
+          sub="You haven't tried a set of trap questions yet. Have a go and we'll show you what caught you out."
         />
         <Card variant="panel" padding="lg" style={{ textAlign: "center" }}>
           <p style={{ marginBottom: "var(--s-4)", color: "var(--text-muted)" }}>
-            Ready to stress-test your exam preparation against adversarial traps?
+            Want to see which tricky questions catch you out?
           </p>
           <Button
             variant="primary"
             onClick={() => (onRetest ? onRetest() : navigate("/premortem"))}
           >
-            Go to Pre-Mortem Hub
+            Pick some questions
           </Button>
         </Card>
       </div>
@@ -112,8 +112,8 @@ export function PreMortemRadarView({
   return (
     <div className={styles.container}>
       <PageHeader
-        title="Exam Pre-Mortem Failure Radar"
-        eyebrow={`Adversarial Audit • ${report.subject || "All Subjects"}`}
+        title="What Could Go Wrong"
+        eyebrow={`Study Lab • ${report.subject || "All subjects"}`}
         sub={`Predictive simulation generated on ${new Date(
           report.timestamp
         ).toLocaleDateString()} at ${new Date(
@@ -134,11 +134,11 @@ export function PreMortemRadarView({
       <CognitiveCrossLinkBar
         payload={{
           subject: report.subject || "General",
-          topic: report.predictedFailures[0]?.topic || report.subject || "Exam Preparation",
+          topic: report.predictedFailures[0]?.topic || report.subject || "Exam prep",
           concept: report.predictedFailures[0]?.coreTrap || report.radarData[0]?.topic,
           sourceTool: "premortem",
           sourceId: String(report.timestamp),
-          evidencePrompt: `Pre-Mortem Audit: ${report.gradeEstimate} (${report.predictedScore}%)`,
+          evidencePrompt: `Trap questions: ${report.gradeEstimate} (${report.predictedScore}%)`,
           misconceptions: report.predictedFailures.map(
             (f) => `${f.topic}: ${f.coreTrap} (-${f.predictedLostMarks} marks)`
           ),
@@ -153,10 +153,10 @@ export function PreMortemRadarView({
         currentTool="premortem"
       />
 
-      {/* Top Metric Summary Cards */}
-      <section className={styles.scoreBanner} aria-label="Audit summary metrics">
+      {/* Summary cards */}
+      <section className={styles.scoreBanner} aria-label="Summary of how you did">
         <div className={styles.metricCard}>
-          <span className={styles.metricLabel}>Predicted Exam Score</span>
+          <span className={styles.metricLabel}>Score if the exam were today</span>
           <span className={`${styles.metricValue} ${scoreClass}`}>
             {report.predictedScore}%
           </span>
@@ -164,38 +164,38 @@ export function PreMortemRadarView({
         </div>
 
         <div className={styles.metricCard}>
-          <span className={styles.metricLabel}>Predicted Lost Marks</span>
+          <span className={styles.metricLabel}>Marks you'd drop</span>
           <span className={`${styles.metricValue} ${styles.gradeLow}`}>
             {`-${totalLostMarks} pts`}
           </span>
           <span className={styles.metricSub}>
             {neutralizedTraps.size > 0
-              ? `${neutralizedTraps.size} trap(s) neutralized`
-              : "Vulnerable to professor traps"}
+              ? `${neutralizedTraps.size} sorted so far`
+              : "These are the ones to work on"}
           </span>
         </div>
 
         <div className={styles.metricCard}>
-          <span className={styles.metricLabel}>Audited Questions</span>
+          <span className={styles.metricLabel}>Questions right</span>
           <span className={styles.metricValue}>
             {report.correctCount ?? 0} / {report.totalQuestions ?? 0}
           </span>
           <span className={styles.metricSub}>
-            Adversarial Gauntlet Performance
+            From your last set of trap questions
           </span>
         </div>
       </section>
 
-      {/* Visual Risk Radar & Topic Gauge */}
-      <section className={styles.radarLayout} aria-label="Topic failure radar">
+      {/* Risk chart and topic gauge */}
+      <section className={styles.radarLayout} aria-label="Chart of which topics are riskiest">
         <div className={styles.radarCard}>
-          <h2 className={styles.radarTitle}>Topic Failure Probability Radar</h2>
+          <h2 className={styles.radarTitle}>Where you're most likely to slip</h2>
           <svg
             className={styles.svgRadar}
             width="320"
             height="320"
             viewBox="0 0 320 320"
-            aria-label="SVG radar spiderweb chart"
+            aria-label="Spiderweb chart of how risky each topic is"
           >
             {/* Concentric Guide Circles */}
             {[0.25, 0.5, 0.75, 1.0].map((ratio) => (
@@ -276,7 +276,7 @@ export function PreMortemRadarView({
 
         {/* Topic Breakdown Bars */}
         <div className={styles.topicList}>
-          <h2 className={styles.radarTitle}>Topic Risk Index</h2>
+          <h2 className={styles.radarTitle}>Topic by topic</h2>
           {report.radarData.map((item, idx) => {
             const riskClass =
               item.riskLevel === "high"
@@ -297,7 +297,7 @@ export function PreMortemRadarView({
                 <div className={styles.topicHeader}>
                   <span className={styles.topicName}>{item.topic}</span>
                   <span className={`${styles.riskBadge} ${riskClass}`}>
-                    {item.failureProbability}% {item.riskLevel} Risk
+                    {item.failureProbability}% — {item.riskLevel} risk
                   </span>
                 </div>
                 <div className={styles.progressBarContainer}>
@@ -312,16 +312,16 @@ export function PreMortemRadarView({
         </div>
       </section>
 
-      {/* Predicted Failure Points Section */}
-      <section className={styles.failuresSection} aria-label="Predicted failure points">
+      {/* The traps to work on */}
+      <section className={styles.failuresSection} aria-label="Traps that are likely to catch you out">
         <div className={styles.sectionHeading}>
           <div>
             <h2 className={styles.sectionTitle}>
-              Predicted Exam-Day Failure Traps
+              The traps most likely to catch you
             </h2>
             <p style={{ color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>
-              High-vulnerability trick patterns identified during stress analysis.
-              Disarm each trap with a 1-click Trap Neutralizer drill.
+              These are the question styles you fell for. Tap one and we'll walk you
+              through how to spot it next time.
             </p>
           </div>
         </div>
@@ -358,7 +358,7 @@ export function PreMortemRadarView({
                   <h3 className={styles.failureTopic}>{failure.topic}</h3>
 
                   <div className={styles.statsRow}>
-                    <span>Failure Probability:</span>
+                    <span>Chance of slipping:</span>
                     <strong
                       style={{
                         color:
@@ -387,7 +387,7 @@ export function PreMortemRadarView({
                   {isNeutralized ? (
                     <div className={styles.neutralizedBadge}>
                       <Icon name="check" size={14} />
-                      <span>Trap Neutralized! Deflection Mastered</span>
+                      <span>Sorted — you'll spot this one now</span>
                     </div>
                   ) : (
                     <Button
@@ -397,7 +397,7 @@ export function PreMortemRadarView({
                       onClick={() => handleOpenNeutralizer(failure.neutralizerId)}
                     >
                       <Icon name="zap" size={16} />
-                      <span>Neutralize Trap</span>
+                      <span>Learn to spot it</span>
                     </Button>
                   )}
                 </div>
@@ -410,14 +410,14 @@ export function PreMortemRadarView({
       {/* Footer Navigation */}
       <footer className={styles.footerActions}>
         <Link to="/premortem">
-          <Button variant="secondary">Back to Pre-Mortem Hub</Button>
+          <Button variant="secondary">Back</Button>
         </Link>
 
         <Button
           variant="primary"
           onClick={() => (onRetest ? onRetest() : navigate("/premortem"))}
         >
-          Retest Gauntlet
+          Try another set
         </Button>
       </footer>
 

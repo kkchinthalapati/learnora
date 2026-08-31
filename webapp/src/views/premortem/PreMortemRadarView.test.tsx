@@ -10,7 +10,7 @@ describe("PreMortemRadarView", () => {
     id: "report-1",
     subject: "Calculus & Linear Algebra",
     predictedScore: 72,
-    gradeEstimate: "B (Solid with Edge Blindspots)",
+    gradeEstimate: "B — solid, with a few blind spots",
     radarData: [
       { topic: "Limits & Discontinuities", riskLevel: "high", failureProbability: 75 },
       { topic: "Matrix Inversion", riskLevel: "medium", failureProbability: 40 },
@@ -21,14 +21,14 @@ describe("PreMortemRadarView", () => {
         topic: "Limits & Discontinuities",
         failureProbability: 75,
         predictedLostMarks: 8,
-        coreTrap: "Boundary Condition & Edge Case Traps",
+        coreTrap: "Edge cases",
         neutralizerId: "boundary-condition-tricks",
       },
       {
         topic: "Matrix Inversion",
         failureProbability: 40,
         predictedLostMarks: 5,
-        coreTrap: "Negative Phrasing Distractors",
+        coreTrap: "Questions phrased backwards",
         neutralizerId: "negative-phrasing-distractors",
       },
     ],
@@ -44,61 +44,61 @@ describe("PreMortemRadarView", () => {
   it("renders the score banner, radar visual, and predicted failure cards", () => {
     renderWithAuth(<PreMortemRadarView report={mockReport} />, { session: fakeSession() }, { withRouter: true });
 
-    expect(screen.getByText("Exam Pre-Mortem Failure Radar")).toBeInTheDocument();
+    expect(screen.getByText("What Could Go Wrong")).toBeInTheDocument();
     expect(screen.getByText("72%")).toBeInTheDocument();
-    expect(screen.getByText("B (Solid with Edge Blindspots)")).toBeInTheDocument();
+    expect(screen.getByText("B — solid, with a few blind spots")).toBeInTheDocument();
     expect(screen.getByText("-13 pts")).toBeInTheDocument();
 
     // Radar Section
-    expect(screen.getByText("Topic Failure Probability Radar")).toBeInTheDocument();
-    expect(screen.getByText("Topic Risk Index")).toBeInTheDocument();
+    expect(screen.getByText("Where you're most likely to slip")).toBeInTheDocument();
+    expect(screen.getByText("Topic by topic")).toBeInTheDocument();
     expect(screen.getAllByText("Limits & Discontinuities").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Matrix Inversion").length).toBeGreaterThan(0);
 
     // Predicted Failure Points
-    expect(screen.getByText("Predicted Exam-Day Failure Traps")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /Neutralize Trap/i }).length).toBe(2);
+    expect(screen.getByText("The traps most likely to catch you")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Learn to spot it/i }).length).toBe(2);
   });
 
-  it("opens Trap Neutralizer modal, steps through 3-step trick deconstruction, and completes challenge", async () => {
+  it("opens the trap breakdown modal, steps through it, and completes the challenge", async () => {
     const user = userEvent.setup();
 
     renderWithAuth(<PreMortemRadarView report={mockReport} />, { session: fakeSession() }, { withRouter: true });
 
-    const neutralizeButtons = screen.getAllByRole("button", { name: /Neutralize Trap/i });
+    const neutralizeButtons = screen.getAllByRole("button", { name: /Learn to spot it/i });
     await user.click(neutralizeButtons[0]);
 
     // Modal should be open
     await waitFor(() => {
       const dialog = screen.getByRole("dialog");
       expect(dialog).toBeInTheDocument();
-      expect(within(dialog).getByText("The Professor's Bait")).toBeInTheDocument();
+      expect(within(dialog).getByText("What pulls you in")).toBeInTheDocument();
     });
 
     const dialog = screen.getByRole("dialog");
 
     // Step 1 -> Step 2
-    const nextBtn1 = within(dialog).getByRole("button", { name: /Next: The Hidden Flaw/i });
+    const nextBtn1 = within(dialog).getByRole("button", { name: /Next: the catch/i });
     await user.click(nextBtn1);
 
     await waitFor(() => {
-      expect(within(dialog).getByText("The Hidden Structural Flaw")).toBeInTheDocument();
+      expect(within(dialog).getByText("What's actually wrong with it")).toBeInTheDocument();
     });
 
     // Step 2 -> Step 3
-    const nextBtn2 = within(dialog).getByRole("button", { name: /Next: The Disarm Rule/i });
+    const nextBtn2 = within(dialog).getByRole("button", { name: /Next: how to beat it/i });
     await user.click(nextBtn2);
 
     await waitFor(() => {
-      expect(within(dialog).getByText("The Invariant Disarm Protocol")).toBeInTheDocument();
+      expect(within(dialog).getByText("How to beat it every time")).toBeInTheDocument();
     });
 
     // Step 3 -> Step 4 Practice Challenge
-    const nextBtn3 = within(dialog).getByRole("button", { name: /Next: Practice Drill/i });
+    const nextBtn3 = within(dialog).getByRole("button", { name: /Next: your turn/i });
     await user.click(nextBtn3);
 
     await waitFor(() => {
-      expect(within(dialog).getByText("1-Question Trap Verification Challenge")).toBeInTheDocument();
+      expect(within(dialog).getByText("One question — can you spot it?")).toBeInTheDocument();
       expect(within(dialog).getByText(/For what real values of k does the equation kx² \+ 4x \+ 1 = 0 have exactly ONE real root\?/i)).toBeInTheDocument();
     });
 
@@ -109,27 +109,29 @@ describe("PreMortemRadarView", () => {
     await user.click(optionB);
 
     // Verify answer
-    const checkBtn = within(dialog).getByRole("button", { name: "Check Deflection" });
+    const checkBtn = within(dialog).getByRole("button", { name: "Check my answer" });
     await user.click(checkBtn);
 
     await waitFor(() => {
-      expect(within(dialog).getByText(/Trap Neutralized! Deflection Successful/i)).toBeInTheDocument();
+      expect(within(dialog).getByText(/You spotted it. Nice./i)).toBeInTheDocument();
     });
 
     // Finish modal
-    const doneBtn = within(dialog).getByRole("button", { name: "Done & Return to Radar" });
+    const doneBtn = within(dialog).getByRole("button", { name: "Done" });
     await user.click(doneBtn);
 
     // Trap badge on radar view should update
     await waitFor(() => {
-      expect(screen.getByText("Trap Neutralized! Deflection Mastered")).toBeInTheDocument();
+      expect(screen.getByText("Sorted — you'll spot this one now")).toBeInTheDocument();
     });
   });
 
   it("handles empty report by showing empty state", () => {
     renderWithAuth(<PreMortemRadarView report={null} />, { session: fakeSession() }, { withRouter: true });
 
-    expect(screen.getByText("No recent stress-test audit found. Launch a gauntlet to compute your failure prediction radar.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Go to Pre-Mortem Hub" })).toBeInTheDocument();
+    expect(screen.getByText(
+      "You haven't tried a set of trap questions yet. Have a go and we'll show you what caught you out.",
+    )).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pick some questions" })).toBeInTheDocument();
   });
 });

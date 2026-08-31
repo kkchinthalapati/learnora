@@ -79,61 +79,61 @@ export interface TrapNeutralizer {
 export const DEFAULT_TRAP_ARCHETYPES: TrapArchetype[] = [
   {
     id: "boundary-condition-tricks",
-    name: "Boundary Condition & Edge Case Traps",
+    name: "Edge cases",
     description:
-      "Exploits edge conditions such as zero, null, infinity, negative limits, empty sets, or endpoint intervals where standard formulas break.",
+      "Picks the awkward value — zero, nothing, infinity, the very end of a range — where the usual method stops working.",
     examplePattern:
-      "Assuming strict positivity (x > 0) without checking x = 0, division by zero, or interval bounds [a, b] vs (a, b).",
+      "Assuming x is always positive without checking x = 0, or dividing by something that could be zero.",
     frequency: "Pervasive",
     category: "boundary",
   },
   {
     id: "negative-phrasing-distractors",
-    name: "Negative Phrasing Distractors",
+    name: "Questions phrased backwards",
     description:
-      "Uses 'EXCEPT', 'NOT true', 'LEAST likely', or inverted logic to lure fast readers into selecting the first true-sounding statement.",
+      "Slips in 'EXCEPT', 'NOT true' or 'LEAST likely', so the first sensible-looking answer is the wrong one.",
     examplePattern:
-      "Selecting an undeniably true property because the brain searches for correctness rather than the negated false option.",
+      "Picking a statement that is clearly true, when the question actually asked which one is false.",
     frequency: "High",
     category: "negative",
   },
   {
     id: "multi-step-assumption-traps",
-    name: "Multi-Step Hidden Assumption Traps",
+    name: "Hidden assumptions",
     description:
-      "Embeds a hidden unverified assumption (e.g. ideal conditions, independence, linearity) into an intermediate calculation step.",
+      "Sneaks in something you never checked — perfect conditions, no friction, a straight-line relationship — halfway through the working.",
     examplePattern:
-      "Applying the Central Limit Theorem without checking finite variance, or computing work without accounting for variable friction.",
+      "Using a rule without checking its conditions, or working out a force while ignoring friction that changes.",
     frequency: "Frequent",
     category: "assumption",
   },
   {
     id: "false-synonym-conflation",
-    name: "False Synonym & Definition Conflation",
+    name: "Words that sound alike",
     description:
-      "Conflates subtly related but rigorously distinct technical definitions or jargon to test depth of terminology.",
+      "Swaps in a term that sounds close to the right one but means something different.",
     examplePattern:
-      "Conflating 'Continuous' vs 'Differentiable', 'Authentication' vs 'Authorization', or 'Correlation' vs 'Causation'.",
+      "Mixing up 'continuous' and 'differentiable', or 'correlation' and 'causation'.",
     frequency: "Common",
     category: "conflation",
   },
   {
     id: "unit-conversion-scale-traps",
-    name: "Unit Conversion & Scale Ambush",
+    name: "Units and scale",
     description:
-      "Sneaks mismatched scale factors, metric prefixes (ms vs s, nm vs µm), or geometric dimension powers (cm³ vs m³).",
+      "Mismatches the units — milliseconds against seconds, cm³ against m³ — so the method is right but the number is not.",
     examplePattern:
-      "Correctly calculating kinematic motion but reporting seconds instead of milliseconds, or forgetting the factor of 10^-3.",
+      "Getting the working right but answering in seconds when the question wanted milliseconds.",
     frequency: "High",
     category: "units",
   },
   {
     id: "premature-heuristic-shortcuts",
-    name: "Premature Heuristic Shortcuts",
+    name: "Shortcuts that only sometimes work",
     description:
-      "Provides an intuitive 'shortcut' answer that feels immediately obvious but only holds for a trivial subset of problems.",
+      "Offers an obvious-looking shortcut that happens to be right in easy cases and wrong here.",
     examplePattern:
-      "Choosing a greedy local optimum that causes an asymptotic failure on the global objective.",
+      "Taking the best option at each step and ending up with a worse answer overall.",
     frequency: "Frequent",
     category: "heuristic",
   },
@@ -220,7 +220,7 @@ Return a JSON array where each object has:
           if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].name) {
             return parsed.map((item, idx) => ({
               id: item.id || `trap-${idx + 1}`,
-              name: String(item.name || `Trap Archetype ${idx + 1}`),
+              name: String(item.name || `Trap ${idx + 1}`),
               description: String(item.description || ""),
               examplePattern: String(item.examplePattern || ""),
               frequency: String(item.frequency || "High"),
@@ -765,13 +765,13 @@ export async function evaluatePreMortemTest(
   // Scoring 80% on extreme adversarial test correlates to ~92% on real exam; 40% correlates to ~58%
   const predictedScore = Math.round(Math.min(99, Math.max(35, accuracy * 70 + 30)));
 
-  let gradeEstimate = "A (92%+)";
-  if (predictedScore < 50) gradeEstimate = "F (High Risk Failure)";
-  else if (predictedScore < 60) gradeEstimate = "D (Vulnerable - Needs Urgent Triage)";
-  else if (predictedScore < 70) gradeEstimate = "C (Marginal - Susceptible to Traps)";
-  else if (predictedScore < 80) gradeEstimate = "B (Solid with Edge Blindspots)";
-  else if (predictedScore < 90) gradeEstimate = "A- (Strong Defense)";
-  else gradeEstimate = "A+ (Adversarially Hardened)";
+  let gradeEstimate = "A — really strong";
+  if (predictedScore < 50) gradeEstimate = "U — a lot to work on";
+  else if (predictedScore < 60) gradeEstimate = "D — needs work";
+  else if (predictedScore < 70) gradeEstimate = "C — the traps are catching you";
+  else if (predictedScore < 80) gradeEstimate = "B — solid, with a few blind spots";
+  else if (predictedScore < 90) gradeEstimate = "A- — you spot most of them";
+  else gradeEstimate = "A+ — hard to catch out";
 
   // Build Radar Data by Topic
   const radarData: PreMortemRadarDatum[] = Object.entries(topicFailures).map(
@@ -852,13 +852,13 @@ export async function evaluatePreMortemTest(
 const TRAP_NEUTRALIZERS: Record<string, TrapNeutralizer> = {
   "boundary-condition-tricks": {
     id: "boundary-condition-tricks",
-    trapName: "Boundary Condition & Edge Case Traps",
+    trapName: "Edge cases",
     anatomyOfTrick: {
-      bait: "You instinctively apply a standard general formula (e.g. f(x)/g(x) or distance = v×t) assuming positive, well-behaved numbers in the interior of the domain.",
+      bait: "You reach for the usual formula, quietly assuming the numbers are positive and nothing odd is going on.",
       hiddenFlaw:
-        "The problem evaluates at an extreme boundary (zero denominator, negative root, empty set, or infinity endpoint) where standard algebraic axioms or theorems collapse.",
+        "But the question lands right on an awkward value — a zero on the bottom, a negative under a root, an empty set — where the usual rules stop working.",
       disarmRule:
-        "RULE OF EXTREMES: Before calculating, explicitly test the three boundary conditions: (1) x = 0, (2) extreme limits (±∞), (3) interval endpoints [a, b].",
+        "Check the extremes first. Before you work anything out, try x = 0, try the very large and very small values, and try both ends of the range.",
     },
     disarmRules: [
       "Explicitly test zero and negative inputs before choosing an answer.",
@@ -876,18 +876,18 @@ const TRAP_NEUTRALIZERS: Record<string, TrapNeutralizer> = {
       ],
       answer: 1,
       explanation:
-        "Neutralized! When k = 0, the equation is not quadratic—it becomes the linear equation 4x + 1 = 0 with single root x = -1/4. When k = 4, Δ = 16 - 16 = 0, giving single root x = -1/2. Testing boundary k=0 disarms the trap!",
+        "Got it. When k = 0, the equation is not quadratic—it becomes the linear equation 4x + 1 = 0 with single root x = -1/4. When k = 4, Δ = 16 - 16 = 0, giving single root x = -1/2. Trying k = 0 is what catches this one.",
     },
   },
   "negative-phrasing-distractors": {
     id: "negative-phrasing-distractors",
-    trapName: "Negative Phrasing Distractors",
+    trapName: "Questions phrased backwards",
     anatomyOfTrick: {
       bait: "Your brain scans the four options for a familiar, true fact and immediately selects option A or B because it is factually accurate.",
       hiddenFlaw:
         "The prompt contains a negative modifier ('NOT', 'EXCEPT', 'LEAST likely', 'FALSE'). Option A is true, but the question demanded the FALSE statement.",
       disarmRule:
-        "TRUE/FALSE INVERSION MATRIX: Circle the word 'NOT/EXCEPT'. Write 'T' or 'F' next to every option A, B, C, D and select the single 'F'.",
+        "Circle the word 'NOT' or 'EXCEPT'. Then write T or F next to each option and pick the odd one out.",
     },
     disarmRules: [
       "Circle or highlight negative keywords: NOT, EXCEPT, LEAST, FALSE, INCOMPATIBLE.",
@@ -905,18 +905,18 @@ const TRAP_NEUTRALIZERS: Record<string, TrapNeutralizer> = {
       ],
       answer: 2,
       explanation:
-        "Neutralized! While eigenvalues of symmetric matrices are always real and orthogonal (Options A, B, D are TRUE), a symmetric matrix can have negative or zero eigenvalues, meaning it is NOT necessarily positive definite (Option C is FALSE).",
+        "Got it. While eigenvalues of symmetric matrices are always real and orthogonal (Options A, B, D are TRUE), a symmetric matrix can have negative or zero eigenvalues, meaning it is NOT necessarily positive definite (Option C is FALSE).",
     },
   },
   "multi-step-assumption-traps": {
     id: "multi-step-assumption-traps",
-    trapName: "Multi-Step Hidden Assumption Traps",
+    trapName: "Hidden assumptions",
     anatomyOfTrick: {
       bait: "A multi-step derivation yields an answer that matches Option B perfectly, providing false reassurance.",
       hiddenFlaw:
         "Step 2 made an unverified implicit assumption (e.g. constant mass, zero air resistance, or independent events) that the prompt subtly invalidated in sentence 1.",
       disarmRule:
-        "PRECONDITION CHECKLIST: Before each algebraic leap, verify the 3 core preconditions: (1) Is the system closed? (2) Is the property invariant? (3) Are variables independent?",
+        "Before each big step, check three things: is anything getting in or out, does the thing you're relying on actually stay the same, and are the quantities really independent?",
     },
     disarmRules: [
       "Underline every given physical or mathematical condition in the problem stem.",
@@ -934,18 +934,18 @@ const TRAP_NEUTRALIZERS: Record<string, TrapNeutralizer> = {
       ],
       answer: 0,
       explanation:
-        "Neutralized! √((x - 3)²) = |x - 3|. For x = 4, |4 - 3| = 1 and 5 - 4 = 1. The hidden assumption in step 2 was removing absolute value bars, which happens to hold for x ≥ 3 but would fail for x < 3.",
+        "Got it. √((x - 3)²) = |x - 3|. For x = 4, |4 - 3| = 1 and 5 - 4 = 1. The hidden assumption in step 2 was removing absolute value bars, which happens to hold for x ≥ 3 but would fail for x < 3.",
     },
   },
   "false-synonym-conflation": {
     id: "false-synonym-conflation",
-    trapName: "False Synonym & Definition Conflation",
+    trapName: "Words that sound alike",
     anatomyOfTrick: {
       bait: "Two technical terms sound like synonyms in casual English, so you treat them as interchangeable during problem formulation.",
       hiddenFlaw:
-        "In rigorous academia, the terms have distinct, non-overlapping mathematical domains or directional implications (e.g. necessary vs sufficient, speed vs velocity).",
+        "In the subject they mean genuinely different things, and often only work in one direction — necessary is not the same as sufficient, speed is not velocity.",
       disarmRule:
-        "DIFFERENTIAL DEFINITION PROTOCOL: State the exact one-sentence definition of Term A and Term B side-by-side, noting the asymmetric condition.",
+        "Write out both definitions in one sentence each, side by side, and see exactly where they part company.",
     },
     disarmRules: [
       "Distinguish necessary conditions (if Q then P) from sufficient conditions (if P then Q).",
@@ -963,18 +963,18 @@ const TRAP_NEUTRALIZERS: Record<string, TrapNeutralizer> = {
       ],
       answer: 0,
       explanation:
-        "Neutralized! Differentiability IMPLIES continuity, but continuity does NOT imply differentiability (counterexample: f(x) = |x| at 0). All other options are bidirectional 'if and only if' equivalences.",
+        "Got it. Differentiability IMPLIES continuity, but continuity does NOT imply differentiability (counterexample: f(x) = |x| at 0). All other options are bidirectional 'if and only if' equivalences.",
     },
   },
   "unit-conversion-scale-traps": {
     id: "unit-conversion-scale-traps",
-    trapName: "Unit Conversion & Scale Ambush",
+    trapName: "Units and scale",
     anatomyOfTrick: {
       bait: "You calculate the raw numbers correctly and see your exact number in Option A, feeling 100% confident.",
       hiddenFlaw:
         "Option A has the right digits but the wrong unit scale factor (e.g. mm² to m² is 10⁻⁶, not 10⁻³; minutes to seconds is ×60).",
       disarmRule:
-        "UNIT CANCEL TRACKER: Write unit brackets alongside every single number [e.g. 50 kg × (1000 g / 1 kg)] and cross-cancel units algebraically before pressing enter on calculator.",
+        "Write the units next to every number, e.g. 50 kg × (1000 g / 1 kg), and cancel them out before you touch the calculator.",
     },
     disarmRules: [
       "Always write units in brackets next to every numerical constant.",
@@ -992,22 +992,22 @@ const TRAP_NEUTRALIZERS: Record<string, TrapNeutralizer> = {
       ],
       answer: 1,
       explanation:
-        "Neutralized! 1 m² = 10,000 cm² = 10⁴ cm². Therefore 200 cm² = 0.02 m². Power = 0.02 m² × 1000 W/m² = 20 Watts. Option A fell into the scale ambush!",
+        "Got it. 1 m² = 10,000 cm² = 10⁴ cm². Therefore 200 cm² = 0.02 m². Power = 0.02 m² × 1000 W/m² = 20 Watts. Option A is what you get if you skip the unit conversion.",
     },
   },
   "premature-heuristic-shortcuts": {
     id: "premature-heuristic-shortcuts",
-    trapName: "Premature Heuristic Shortcuts",
+    trapName: "Shortcuts that only sometimes work",
     anatomyOfTrick: {
-      bait: "An obvious pattern or intuitive rule makes the problem seem solvable in 3 seconds without writing anything down.",
+      bait: "There is an obvious-looking pattern that makes the question feel solvable in three seconds without writing anything down.",
       hiddenFlaw:
-        "The problem was specifically constructed with a pathological case or counter-example that breaks the intuitive shortcut.",
+        "The question was built around exactly the case where that shortcut falls over.",
       disarmRule:
-        "ADVERSARIAL COUNTER-EXAMPLE PROBE: Try to construct the smallest possible counter-example (e.g. n=0, n=1, empty graph, alternating sign) to break your intuition before committing.",
+        "Try to break your own shortcut first. Feed it the smallest awkward case you can think of — n = 0, n = 1, a negative — and see if it still holds.",
     },
     disarmRules: [
       "Test small pathological inputs (e.g. n=0, n=1, negative numbers, disconnected graphs).",
-      "Ask yourself: 'Why would the professor put this question on a final exam if it were that easy?'",
+      "Ask yourself why this would be on the paper at all if it were that easy.",
       "Look for non-linear couplings and global constraints that invalidate local greedy choices.",
     ],
     practiceChallenge: {
@@ -1021,7 +1021,7 @@ const TRAP_NEUTRALIZERS: Record<string, TrapNeutralizer> = {
       ],
       answer: 1,
       explanation:
-        "Neutralized! The greedy choice picks the largest coin first (4), requiring two 1s (total 3 coins). But 3 + 3 = 6 uses only 2 coins! Greedy heuristic failed, optimal dynamic programming succeeded.",
+        "Got it. Taking the biggest coin first (4) leaves you needing two 1s — three coins in all. But 3 + 3 = 6 does it in two. The obvious shortcut loses here.",
     },
   },
 };

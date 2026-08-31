@@ -55,12 +55,12 @@ export function TrapNeutralizerModal({
     typeof neutralizer?.anatomyOfTrick === "object"
       ? neutralizer.anatomyOfTrick
       : {
-          bait: "Instinctive quick answer that feels superficially correct.",
+          bait: "The quick answer that looks right at first glance.",
           hiddenFlaw:
             typeof neutralizer?.anatomyOfTrick === "string"
               ? neutralizer.anatomyOfTrick
-              : "Hidden boundary violation or negative phrasing qualifier.",
-          disarmRule: "Apply the invariant precondition checklist before computing.",
+              : "A hidden edge case, or a \"not\" tucked into the wording.",
+          disarmRule: "Check the conditions hold before you start working it out.",
         };
 
   const handleSelectOption = (idx: number) => {
@@ -88,18 +88,18 @@ export function TrapNeutralizerModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={neutralizer?.trapName || "Trap Neutralizer"}
-      subtitle="Interactive 3-Step Trick Deconstruction & Micro-Drill"
+      title={neutralizer?.trapName || "Spotting the trap"}
+      subtitle="Take the trick apart in three steps, then try one yourself"
       contentClassName={styles.container}
     >
       {loading ? (
         <div style={{ padding: "var(--s-8)", textAlign: "center" }}>
-          <p>Analysing professor trick anatomy...</p>
+          <p>Working out how this one catches people…</p>
         </div>
       ) : neutralizer ? (
         <>
           {/* Stepper Header */}
-          <nav className={styles.stepIndicator} aria-label="Neutralizer steps">
+          <nav className={styles.stepIndicator} aria-label="Steps for spotting this trap">
             <button
               type="button"
               className={`${styles.stepItem} ${
@@ -110,7 +110,7 @@ export function TrapNeutralizerModal({
               <span className={styles.stepBadge}>
                 {currentStep > 1 ? <Icon name="check" size={12} /> : "1"}
               </span>
-              <span>1. The Bait</span>
+              <span>1. The bait</span>
             </button>
 
             <button
@@ -123,7 +123,7 @@ export function TrapNeutralizerModal({
               <span className={styles.stepBadge}>
                 {currentStep > 2 ? <Icon name="check" size={12} /> : "2"}
               </span>
-              <span>2. Hidden Flaw</span>
+              <span>2. The catch</span>
             </button>
 
             <button
@@ -136,7 +136,7 @@ export function TrapNeutralizerModal({
               <span className={styles.stepBadge}>
                 {currentStep > 3 ? <Icon name="check" size={12} /> : "3"}
               </span>
-              <span>3. Disarm Rule</span>
+              <span>3. How to beat it</span>
             </button>
 
             <button
@@ -153,7 +153,7 @@ export function TrapNeutralizerModal({
                   "4"
                 )}
               </span>
-              <span>Practice Drill</span>
+              <span>4. Your turn</span>
             </button>
           </nav>
 
@@ -167,14 +167,14 @@ export function TrapNeutralizerModal({
               >
                 <div className={`${styles.sectionHeader} ${styles.baitHeader}`}>
                   <Icon name="alert-triangle" size={18} />
-                  <span>The Professor's Bait</span>
+                  <span>What pulls you in</span>
                 </div>
                 <p className={styles.sectionText}>{anatomy.bait}</p>
               </Card>
 
               <p style={{ color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>
-                Professors engineer answer choices around intuitive psychological shortcuts.
-                Next, let's reveal the mathematical or logical flaw hidden inside.
+                Examiners write the wrong answers to look like the shortcut your brain
+                wants to take. Next, here's what's actually wrong with it.
               </p>
             </div>
           )}
@@ -189,14 +189,14 @@ export function TrapNeutralizerModal({
               >
                 <div className={`${styles.sectionHeader} ${styles.flawHeader}`}>
                   <Icon name="alert-circle" size={18} />
-                  <span>The Hidden Structural Flaw</span>
+                  <span>What's actually wrong with it</span>
                 </div>
                 <p className={styles.sectionText}>{anatomy.hiddenFlaw}</p>
               </Card>
 
               <p style={{ color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>
-                Once you spot the hidden failure condition, the trap loses all surprise value.
-                Now review the actionable disarm rule.
+                Once you've seen it, this trap stops working on you. Here's the habit
+                that keeps it that way.
               </p>
             </div>
           )}
@@ -211,7 +211,7 @@ export function TrapNeutralizerModal({
               >
                 <div className={`${styles.sectionHeader} ${styles.ruleHeader}`}>
                   <Icon name="shield" size={18} />
-                  <span>The Invariant Disarm Protocol</span>
+                  <span>How to beat it every time</span>
                 </div>
                 <p className={styles.sectionText}>{anatomy.disarmRule}</p>
 
@@ -227,7 +227,7 @@ export function TrapNeutralizerModal({
             </div>
           )}
 
-          {/* Step 4: Verification Practice Challenge */}
+          {/* Step 4: your turn */}
           {currentStep === 4 && (
             <div className={styles.stepContent}>
               <Card variant="panel" padding="md">
@@ -244,7 +244,7 @@ export function TrapNeutralizerModal({
                   }}
                 >
                   <Icon name="target" size={16} />
-                  <span>1-Question Trap Verification Challenge</span>
+                  <span>One question — can you spot it?</span>
                 </div>
 
                 <p className={styles.challengePrompt}>
@@ -305,8 +305,8 @@ export function TrapNeutralizerModal({
                       />
                       <span>
                         {isChallengeCorrect
-                          ? "Trap Neutralized! Deflection Successful."
-                          : "Trap Triggered. Study the explanation below."}
+                          ? "You spotted it. Nice."
+                          : "It got you this time. Have a read of why."}
                       </span>
                     </div>
                     <p>{neutralizer.practiceChallenge.explanation}</p>
@@ -324,7 +324,7 @@ export function TrapNeutralizerModal({
                 size="sm"
                 onClick={() => setCurrentStep((s) => (s - 1) as Step)}
               >
-                Previous Step
+                Back
               </Button>
             ) : (
               <div />
@@ -338,10 +338,10 @@ export function TrapNeutralizerModal({
               >
                 Next:{" "}
                 {currentStep === 1
-                  ? "The Hidden Flaw"
+                  ? "the catch"
                   : currentStep === 2
-                  ? "The Disarm Rule"
-                  : "Practice Drill"}
+                  ? "how to beat it"
+                  : "your turn"}
               </Button>
             ) : !isAnswerSubmitted ? (
               <Button
@@ -350,11 +350,11 @@ export function TrapNeutralizerModal({
                 disabled={selectedAnswer === null}
                 onClick={handleVerifyAnswer}
               >
-                Check Deflection
+                Check my answer
               </Button>
             ) : (
               <Button variant="primary" size="sm" onClick={onClose}>
-                Done & Return to Radar
+                Done
               </Button>
             )}
           </div>

@@ -22,7 +22,7 @@ interface StressTestRunnerProps {
 type ConfidenceLevel = "high" | "tricky" | "guess";
 
 export function StressTestRunner({
-  subject = "Exam Pre-Mortem Gauntlet",
+  subject = "Trap questions",
   questions,
   timeLimitSeconds = 300, // 5 minutes default
   onComplete,
@@ -114,15 +114,15 @@ export function StressTestRunner({
     return (
       <div className={styles.container}>
         <Card variant="panel" padding="lg" style={{ textAlign: "center" }}>
-          <h2>No Gauntlet Questions Loaded</h2>
+          <h2>No questions yet</h2>
           <p style={{ margin: "var(--s-4) 0", color: "var(--text-muted)" }}>
-            Please select trap archetypes and launch the gauntlet from the hub.
+            Pick the kinds of trap you want to practise, then start from the previous page.
           </p>
           <Button
             variant="primary"
             onClick={() => (onCancel ? onCancel() : navigate("/premortem"))}
           >
-            Back to Pre-Mortem Hub
+            Back
           </Button>
         </Card>
       </div>
@@ -152,8 +152,7 @@ export function StressTestRunner({
         <div>
           <span className={styles.subjectTitle}>{subject}</span>
           <p style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
-            Adversarial Professor Stress-Test • Question {currentIndex + 1} of{" "}
-            {questions.length} ({answeredCount} answered)
+            Question {currentIndex + 1} of {questions.length} — {answeredCount} answered
           </p>
         </div>
 
@@ -162,7 +161,7 @@ export function StressTestRunner({
             className={`${styles.timerBadge} ${
               timeLeft < 60 ? styles.timerUrgent : ""
             }`}
-            aria-label={`Time remaining: ${timerFormatted}`}
+            aria-label={`Time left: ${timerFormatted}`}
           >
             <Icon name="clock" size={16} />
             <span>{timerFormatted}</span>
@@ -172,7 +171,7 @@ export function StressTestRunner({
             variant="secondary"
             size="sm"
             onClick={() => setIsTimerPaused((p) => !p)}
-            aria-label={isTimerPaused ? "Resume Timer" : "Pause Timer"}
+            aria-label={isTimerPaused ? "Restart the timer" : "Pause the timer"}
           >
             <Icon name={isTimerPaused ? "play" : "pause"} size={16} />
           </Button>
@@ -187,23 +186,23 @@ export function StressTestRunner({
         </div>
       </header>
 
-      {/* Adversarial Trap Warning Indicator */}
+      {/* Trap warning */}
       {currentTrap && (
         <div className={styles.adversarialBanner}>
           <Icon name="alert-triangle" size={20} className={styles.trapIcon} />
           <div>
             <span className={styles.trapLabel}>
-              Adversarial Ambush Detected: {currentTrap.name}
+              Watch out — this one uses: {currentTrap.name}
             </span>
             <p style={{ margin: 0 }}>
-              {currentTrap.description} Keep an eye out for deceptive options.
+              {currentTrap.description} Read the options carefully.
             </p>
           </div>
         </div>
       )}
 
       {/* Question Jumper Grid */}
-      <nav className={styles.jumperBar} aria-label="Question Navigation Jumper">
+      <nav className={styles.jumperBar} aria-label="Jump to a question">
         {questions.map((q, idx) => {
           const isCurrent = idx === currentIndex;
           const isAnswered = answers[q.id] !== undefined;
@@ -242,7 +241,7 @@ export function StressTestRunner({
                   : styles.difficultyHard
               }`}
             >
-              {currentQuestion.difficulty} Difficulty
+              {currentQuestion.difficulty}
             </span>
             {currentQuestion.topic && (
               <span className={styles.questionBadge}>
@@ -260,7 +259,7 @@ export function StressTestRunner({
             aria-pressed={isCurrentFlagged}
           >
             <Icon name="star" size={16} />
-            <span>{isCurrentFlagged ? "Flagged" : "Flag Trap"}</span>
+            <span>{isCurrentFlagged ? "Flagged" : "Flag this one"}</span>
           </button>
         </div>
 
@@ -292,7 +291,7 @@ export function StressTestRunner({
 
         {/* Confidence Tagging Section */}
         <div className={styles.confidenceSection}>
-          <span className={styles.confidenceLabel}>Confidence Tag:</span>
+          <span className={styles.confidenceLabel}>How sure are you?</span>
           <div className={styles.confidenceButtons}>
             <button
               type="button"
@@ -301,7 +300,7 @@ export function StressTestRunner({
               }`}
               onClick={() => handleSetConfidence("high")}
             >
-              <span>🟢 High Confidence</span>
+              <span>🟢 Sure of it</span>
             </button>
 
             <button
@@ -311,7 +310,7 @@ export function StressTestRunner({
               }`}
               onClick={() => handleSetConfidence("tricky")}
             >
-              <span>🟡 Suspicious Trap</span>
+              <span>🟡 Not sure</span>
             </button>
 
             <button
@@ -321,12 +320,12 @@ export function StressTestRunner({
               }`}
               onClick={() => handleSetConfidence("guess")}
             >
-              <span>🔴 Pure Guess</span>
+              <span>🔴 Total guess</span>
             </button>
           </div>
         </div>
 
-        {/* Adversarial Mindset Clue Drawer */}
+        {/* Hint drawer */}
         {currentQuestion.hint && (
           <div>
             <button
@@ -337,14 +336,14 @@ export function StressTestRunner({
               <Icon name="brain" size={16} />
               <span>
                 {showHint
-                  ? "Hide Professor's Mindset Hint"
-                  : "💡 Reveal Professor's Mindset Hint"}
+                  ? "Hide the hint"
+                  : "💡 Show me a hint"}
               </span>
             </button>
 
             {showHint && (
               <div className={styles.hintDrawer} style={{ marginTop: "var(--s-2)" }}>
-                <strong>Adversarial Clue: </strong>
+                <strong>Hint: </strong>
                 <span>{currentQuestion.hint}</span>
               </div>
             )}
@@ -362,7 +361,7 @@ export function StressTestRunner({
             setShowHint(false);
           }}
         >
-          Previous Question
+          Previous
         </Button>
 
         <div style={{ display: "flex", gap: "var(--s-3)" }}>
@@ -374,7 +373,7 @@ export function StressTestRunner({
                 setShowHint(false);
               }}
             >
-              Next Question
+              Next
             </Button>
           ) : (
             <Button
@@ -382,7 +381,7 @@ export function StressTestRunner({
               disabled={isSubmitting}
               onClick={handleSubmit}
             >
-              {isSubmitting ? "Calculating Radar..." : "Submit Gauntlet & View Radar"}
+              {isSubmitting ? "Marking it…" : "Finish and see how you did"}
             </Button>
           )}
         </div>

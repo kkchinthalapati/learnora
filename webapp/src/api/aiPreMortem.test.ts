@@ -100,7 +100,7 @@ describe("aiPreMortem API", () => {
     it("returns rich 3-step deconstruction and verification challenge for known trap", async () => {
       const neutralizer = await getTrapNeutralizer("boundary-condition-tricks");
       expect(neutralizer.id).toBe("boundary-condition-tricks");
-      expect(neutralizer.trapName).toBe("Boundary Condition & Edge Case Traps");
+      expect(neutralizer.trapName).toBe("Edge cases");
       expect(typeof neutralizer.anatomyOfTrick).toBe("object");
       if (typeof neutralizer.anatomyOfTrick === "object") {
         expect(neutralizer.anatomyOfTrick.bait).toBeDefined();

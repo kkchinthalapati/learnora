@@ -165,22 +165,22 @@ export function PreMortemHubView() {
   return (
     <div className={styles.container}>
       <PageHeader
-        title="Adversarial Professor & Exam Pre-Mortem"
-        eyebrow="Diagnostic Engine"
-        sub="Simulate your worst-case exam traps, predict topic failure points, and neutralize cognitive blindspots before test day."
+        title="What Could Go Wrong"
+        eyebrow="Study Lab"
+        sub="Find the traps an examiner might set for you, and sort them out before the real thing."
       />
 
       {/* Hero Banner */}
       <section className={styles.heroCard}>
         <div className={styles.heroTag}>
           <Icon name="shield" size={16} />
-          <span>Pre-Mortem Failure Prediction</span>
+          <span>Spot the traps early</span>
         </div>
-        <h1 className={styles.heroTitle}>Stress-Test Against Professor Tricks</h1>
+        <h1 className={styles.heroTitle}>Practise on the questions designed to catch you out</h1>
         <p className={styles.heroSub}>
-          Real exams aren't failed from lack of study—they're failed from boundary-condition
-          traps, negative phrasing ambushes, and hidden assumption fallacies. Run an adversarial
-          gauntlet now to uncover your failure radar.
+          Most marks are lost to the tricky bits, not to a lack of revision — edge cases,
+          questions phrased backwards, and assumptions you never noticed you were making.
+          Have a go at some now and see which ones catch you.
         </p>
       </section>
 
@@ -188,14 +188,14 @@ export function PreMortemHubView() {
       <section className={styles.configSection} aria-labelledby="config-heading">
         <div className={styles.sectionHeader}>
           <h2 id="config-heading" className={styles.sectionTitle}>
-            1. Target Exam & Subject
+            1. Which exam or subject?
           </h2>
         </div>
 
         <div className={styles.formGrid}>
           <div className={styles.formField}>
             <label className={styles.fieldLabel} htmlFor="exam-select">
-              Select Upcoming Exam or Course
+              Pick an exam or subject
             </label>
             <select
               id="exam-select"
@@ -220,7 +220,7 @@ export function PreMortemHubView() {
           {selectedExamId === "custom" && (
             <div className={styles.formField}>
               <label className={styles.fieldLabel} htmlFor="custom-subject">
-                Enter Custom Subject Name
+                Type the subject in
               </label>
               <input
                 id="custom-subject"
@@ -238,7 +238,7 @@ export function PreMortemHubView() {
 
           <div className={styles.formField}>
             <label className={styles.fieldLabel} htmlFor="intensity-select">
-              Adversarial Intensity Level
+              How hard should they be?
             </label>
             <select
               id="intensity-select"
@@ -246,15 +246,15 @@ export function PreMortemHubView() {
               value={intensity}
               onChange={(e) => setIntensity(e.target.value)}
             >
-              <option value="Extreme Hardcore">Extreme Hardcore (Boundary Edge Cases)</option>
-              <option value="Diabolical Professor">Diabolical Professor (Negative Phrasing & Distractors)</option>
-              <option value="Standard Trap Mode">Standard Trap Mode (Pervasive Fallacies)</option>
+              <option value="Extreme Hardcore">Brutal — the awkward edge cases</option>
+              <option value="Diabolical Professor">Sneaky — questions phrased backwards</option>
+              <option value="Standard Trap Mode">Standard — the usual traps</option>
             </select>
           </div>
 
           <div className={styles.formField}>
             <label className={styles.fieldLabel} htmlFor="count-select">
-              Stress Question Count
+              How many questions?
             </label>
             <select
               id="count-select"
@@ -262,23 +262,23 @@ export function PreMortemHubView() {
               value={questionCount}
               onChange={(e) => setQuestionCount(Number(e.target.value))}
             >
-              <option value={5}>5 Questions (Rapid 5-Minute Sprint)</option>
-              <option value={10}>10 Questions (Full Pre-Mortem Audit)</option>
-              <option value={15}>15 Questions (Mastery Gauntlet)</option>
+              <option value={5}>5 questions — a quick five minutes</option>
+              <option value={10}>10 questions — a proper go</option>
+              <option value={15}>15 questions — the full set</option>
             </select>
           </div>
         </div>
       </section>
 
-      {/* Adversarial Trap Profiles Selection */}
+      {/* Trap type selection */}
       <section className={styles.configSection} aria-labelledby="traps-heading">
         <div className={styles.sectionHeader}>
           <div>
             <h2 id="traps-heading" className={styles.sectionTitle}>
-              2. Select Adversarial Trap Profiles
+              2. Which kinds of trap?
             </h2>
             <p style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
-              {selectedTrapIds.length} of {archetypes.length} trap archetypes active
+              {selectedTrapIds.length} of {archetypes.length} picked
             </p>
           </div>
 
@@ -321,7 +321,7 @@ export function PreMortemHubView() {
                 <p className={styles.archetypeDesc}>{trap.description}</p>
 
                 <div className={styles.patternBox}>
-                  <strong>Example Pattern: </strong>
+                  <strong>Looks like: </strong>
                   <span>{trap.examplePattern}</span>
                 </div>
               </div>
@@ -334,10 +334,10 @@ export function PreMortemHubView() {
       <section className={styles.launchPanel}>
         <div>
           <h3 style={{ margin: "0 0 var(--s-1) 0", fontSize: "var(--fs-lg)" }}>
-            Ready to Run the Gauntlet?
+            Ready to give it a go?
           </h3>
           <p style={{ margin: 0, fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>
-            Targeting {selectedSubject} with {selectedTrapIds.length} active trap archetypes.
+            {selectedSubject}, with {selectedTrapIds.length} kinds of trap.
           </p>
         </div>
 
@@ -349,22 +349,22 @@ export function PreMortemHubView() {
           <Icon name="zap" size={18} />
           <span>
             {isLoading
-              ? "Synthesizing Adversarial Traps..."
-              : "Launch Stress-Test Gauntlet"}
+              ? "Writing your questions…"
+              : "Start"}
           </span>
         </Button>
       </section>
 
-      {/* Past Pre-Mortem Audit Reports History */}
+      {/* Past attempts */}
       {pastReports.length > 0 && (
         <section className={styles.configSection} aria-labelledby="history-heading">
           <div className={styles.sectionHeader}>
             <h2 id="history-heading" className={styles.sectionTitle}>
-              Past Pre-Mortem Audit Reports
+              Your past attempts
             </h2>
             <Link to="/premortem/radar">
               <Button variant="secondary" size="sm">
-                Open Latest Radar
+                Open the latest one
               </Button>
             </Link>
           </div>
@@ -379,7 +379,7 @@ export function PreMortemHubView() {
               >
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontWeight: 700, fontSize: "var(--fs-sm)" }}>
-                    {report.subject || "Pre-Mortem Audit"}
+                    {report.subject || "Past attempt"}
                   </span>
                   <span style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
                     {new Date(report.timestamp).toLocaleDateString()}
@@ -398,7 +398,7 @@ export function PreMortemHubView() {
                   size="sm"
                   onClick={() => handleViewPastReport(report)}
                 >
-                  View Failure Radar
+                  See what tripped me up
                 </Button>
               </Card>
             ))}

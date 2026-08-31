@@ -45,7 +45,7 @@ describe("StressTestRunner", () => {
     localStorage.clear();
   });
 
-  it("renders question text, options, timer, and adversarial trap banner", () => {
+  it("renders question text, options, timer, and trap banner", () => {
     renderWithAuth(
       <StressTestRunner
         subject="Calculus 2"
@@ -61,7 +61,7 @@ describe("StressTestRunner", () => {
     expect(screen.getByText("What happens to the limit of |x|/x as x approaches 0?")).toBeInTheDocument();
     expect(screen.getByText("Limit equals 1")).toBeInTheDocument();
     expect(screen.getByText("Limit does not exist because left and right limits differ")).toBeInTheDocument();
-    expect(screen.getByText(/Adversarial Ambush Detected: Boundary Condition/i)).toBeInTheDocument();
+    expect(screen.getByText(/Watch out — this one uses: Edge cases/i)).toBeInTheDocument();
   });
 
   it("handles selecting options, tagging confidence, and navigation", async () => {
@@ -85,21 +85,21 @@ describe("StressTestRunner", () => {
     expect(optionB).toHaveAttribute("aria-checked", "true");
 
     // Tag confidence
-    const trickyBtn = screen.getByRole("button", { name: /Suspicious Trap/i });
+    const trickyBtn = screen.getByRole("button", { name: /Not sure/i });
     await user.click(trickyBtn);
 
     // Flag question
-    const flagBtn = screen.getByRole("button", { name: "Flag Trap" });
+    const flagBtn = screen.getByRole("button", { name: "Flag this one" });
     await user.click(flagBtn);
     expect(screen.getByText("Flagged")).toBeInTheDocument();
 
     // Reveal hint
-    const hintToggle = screen.getByRole("button", { name: /Reveal Professor's Mindset Hint/i });
+    const hintToggle = screen.getByRole("button", { name: /Show me a hint/i });
     await user.click(hintToggle);
     expect(screen.getByText(/Evaluate one-sided limits approaching from both signs/i)).toBeInTheDocument();
 
     // Navigate to next question
-    const nextBtn = screen.getByRole("button", { name: "Next Question" });
+    const nextBtn = screen.getByRole("button", { name: "Next" });
     await user.click(nextBtn);
 
     expect(screen.getByText(/Question 2 of 2/i)).toBeInTheDocument();
@@ -129,7 +129,7 @@ describe("StressTestRunner", () => {
     );
 
     // Next
-    await user.click(screen.getByRole("button", { name: "Next Question" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
 
     // Answer Q2
     await user.click(
@@ -140,7 +140,7 @@ describe("StressTestRunner", () => {
 
     // Submit
     const submitBtn = screen.getByRole("button", {
-      name: /Submit Gauntlet & View Radar/i,
+      name: /Finish and see how you did/i,
     });
     await user.click(submitBtn);
 
@@ -160,6 +160,6 @@ describe("StressTestRunner", () => {
       { withRouter: true }
     );
 
-    expect(screen.getByText("No Gauntlet Questions Loaded")).toBeInTheDocument();
+    expect(screen.getByText("No questions yet")).toBeInTheDocument();
   });
 });

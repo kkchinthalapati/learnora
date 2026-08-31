@@ -43,24 +43,24 @@ describe("PreMortemHubView", () => {
     );
   });
 
-  it("renders header, hero section, exam selector, and trap archetype cards", async () => {
+  it("renders header, hero section, exam selector, and trap type cards", async () => {
     renderWithAuth(<PreMortemHubView />, { session: fakeSession() }, { withRouter: true });
 
-    expect(screen.getByText("Adversarial Professor & Exam Pre-Mortem")).toBeInTheDocument();
-    expect(screen.getByText("Stress-Test Against Professor Tricks")).toBeInTheDocument();
-    expect(screen.getByText("1. Target Exam & Subject")).toBeInTheDocument();
-    expect(screen.getByText("2. Select Adversarial Trap Profiles")).toBeInTheDocument();
+    expect(screen.getByText("What Could Go Wrong")).toBeInTheDocument();
+    expect(screen.getByText("Practise on the questions designed to catch you out")).toBeInTheDocument();
+    expect(screen.getByText("1. Which exam or subject?")).toBeInTheDocument();
+    expect(screen.getByText("2. Which kinds of trap?")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByRole("option", { name: /Calculus Final/i })).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Boundary Condition & Edge Case Traps")).toBeInTheDocument();
-    expect(screen.getByText("Negative Phrasing Distractors")).toBeInTheDocument();
-    expect(screen.getByText("Multi-Step Hidden Assumption Traps")).toBeInTheDocument();
+    expect(screen.getByText("Edge cases")).toBeInTheDocument();
+    expect(screen.getByText("Questions phrased backwards")).toBeInTheDocument();
+    expect(screen.getByText("Hidden assumptions")).toBeInTheDocument();
   });
 
-  it("allows toggling trap archetypes, select all, and clear", async () => {
+  it("allows toggling trap types, select all, and clear", async () => {
     renderWithAuth(<PreMortemHubView />, { session: fakeSession() }, { withRouter: true });
 
     const selectAllBtn = screen.getByRole("button", { name: "Select All" });
@@ -68,49 +68,49 @@ describe("PreMortemHubView", () => {
 
     // Click Clear
     fireEvent.click(clearBtn);
-    expect(screen.getByText(/0 of \d+ trap archetypes active/i)).toBeInTheDocument();
+    expect(screen.getByText(/0 of \d+ picked/i)).toBeInTheDocument();
 
     // Click Select All
     fireEvent.click(selectAllBtn);
-    expect(screen.getByText(/6 of 6 trap archetypes active/i)).toBeInTheDocument();
+    expect(screen.getByText(/6 of 6 picked/i)).toBeInTheDocument();
 
     // Toggle single trap
-    const boundaryCard = screen.getByText("Boundary Condition & Edge Case Traps").closest('[role="checkbox"]');
+    const boundaryCard = screen.getByText("Edge cases").closest('[role="checkbox"]');
     expect(boundaryCard).toBeInTheDocument();
     if (boundaryCard) {
       fireEvent.click(boundaryCard);
-      expect(screen.getByText(/5 of 6 trap archetypes active/i)).toBeInTheDocument();
+      expect(screen.getByText(/5 of 6 picked/i)).toBeInTheDocument();
     }
   });
 
-  it("launches gauntlet when Launch button is clicked", async () => {
+  it("starts the question set when Start is clicked", async () => {
     const user = userEvent.setup();
     renderWithAuth(<PreMortemHubView />, { session: fakeSession() }, { withRouter: true });
 
-    const launchBtn = screen.getByRole("button", { name: /Launch Stress-Test Gauntlet/i });
+    const launchBtn = screen.getByRole("button", { name: /^Start$/ });
     expect(launchBtn).toBeEnabled();
 
     await user.click(launchBtn);
 
     // Should transition to runner
     await waitFor(() => {
-      expect(screen.getByText(/Adversarial Professor Stress-Test • Question 1 of/i)).toBeInTheDocument();
+      expect(screen.getByText(/Question 1 of/i)).toBeInTheDocument();
     });
   });
 
-  it("displays past pre-mortem audit history and opens radar report", async () => {
+  it("displays past attempts and opens a report", async () => {
     const mockReport: PreMortemReport = {
       id: "hist-audit-1",
       subject: "Linear Algebra",
       predictedScore: 78,
-      gradeEstimate: "B (Solid with Edge Blindspots)",
+      gradeEstimate: "B — solid, with a few blind spots",
       radarData: [{ topic: "Determinants", riskLevel: "medium", failureProbability: 45 }],
       predictedFailures: [
         {
           topic: "Determinants",
           failureProbability: 45,
           predictedLostMarks: 6,
-          coreTrap: "Boundary Condition & Edge Case Traps",
+          coreTrap: "Edge cases",
           neutralizerId: "boundary-condition-tricks",
         },
       ],
@@ -123,17 +123,17 @@ describe("PreMortemHubView", () => {
 
     renderWithAuth(<PreMortemHubView />, { session: fakeSession() }, { withRouter: true });
 
-    expect(screen.getByText("Past Pre-Mortem Audit Reports")).toBeInTheDocument();
+    expect(screen.getByText("Your past attempts")).toBeInTheDocument();
     expect(screen.getByText("Linear Algebra")).toBeInTheDocument();
     expect(screen.getByText("78%")).toBeInTheDocument();
 
-    const viewRadarBtn = screen.getByRole("button", { name: "View Failure Radar" });
+    const viewRadarBtn = screen.getByRole("button", { name: "See what tripped me up" });
     fireEvent.click(viewRadarBtn);
 
     // Should transition to radar view
     await waitFor(() => {
-      expect(screen.getByText("Topic Failure Probability Radar")).toBeInTheDocument();
-      expect(screen.getByText("Predicted Exam-Day Failure Traps")).toBeInTheDocument();
+      expect(screen.getByText("Where you're most likely to slip")).toBeInTheDocument();
+      expect(screen.getByText("The traps most likely to catch you")).toBeInTheDocument();
     });
   });
 });
