@@ -25,8 +25,20 @@ const PRECACHE_ASSETS = [
 
 const STATIC_EXTENSIONS = /\.(?:js|css|woff2?|ttf|png|jpe?g|gif|svg|ico|webp)$/i;
 
+/* Deliberately no `skipWaiting()` here.
+ *
+ * Taking over immediately sounds like the helpful choice, but it cannot
+ * actually update an open tab — that tab is already running the JavaScript it
+ * downloaded, and swapping the worker underneath it changes nothing the
+ * student can see. What it does do is remove the one signal the page could
+ * have used: a worker sitting in `waiting` is precisely how the app knows a
+ * new version exists (src/lib/appUpdate.ts). So the new worker waits, the page
+ * offers a reload, and the message below is what the student's click sends. */
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 self.addEventListener("install", (event) => {
-  self.skipWaiting();
   event.waitUntil(
     caches
       .open(SHELL_CACHE)

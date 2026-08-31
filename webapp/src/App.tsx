@@ -16,6 +16,38 @@ import { FocusStudyHUD } from "./views/timer/FocusStudyHUD";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AppRoutes } from "./routes";
 import { useAuth } from "./context/auth";
+import { useEffect } from "react";
+import { applyAppUpdate, watchForAppUpdate } from "./lib/appUpdate";
+import { useToast } from "./context/toast";
+
+/* Offers a reload when a new build is waiting. Mounted inside ToastProvider
+   and outside the auth gate: a stale tab is stale whether or not anyone is
+   signed in, and the sign-in screen is one of the places a student is most
+   likely to be sitting on an old bundle. */
+function AppUpdatePrompt() {
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    let announced = false;
+    return watchForAppUpdate(() => {
+      /* Once per page life. A student who dismisses the toast has decided to
+         keep working; nagging them every fifteen minutes is worse than
+         waiting for their next natural reload. */
+      if (announced) return;
+      announced = true;
+      showToast("Learnora has been updated.", {
+        actionLabel: "Reload",
+        onAction: applyAppUpdate,
+        /* Effectively persistent, but a real number: setTimeout overflows its
+           32-bit delay above ~24.9 days and fires immediately, which would
+           dismiss this instantly. */
+        duration: 24 * 60 * 60 * 1000,
+      });
+    });
+  }, [showToast]);
+
+  return null;
+}
 
 function SignedInOverlays() {
   const { session } = useAuth();
@@ -35,6 +67,7 @@ export default function App() {
         <SettingsProvider>
           <OverlayStackProvider>
             <ToastProvider>
+              <AppUpdatePrompt />
               <DialogProvider>
                 <AuthProvider>
                   <TimerProvider>
