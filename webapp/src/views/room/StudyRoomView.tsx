@@ -5,6 +5,7 @@ import { StudyDeskCard } from "./StudyDeskCard";
 import { ReactionOverlay } from "./ReactionOverlay";
 import { ambianceEngine } from "./audioAmbiance";
 import type { AmbiancePreset } from "./types";
+import { MAX_MESSAGE_LENGTH } from "../../api/studyRoom";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { useOverlayBehavior } from "../../context/overlayStack";
@@ -348,6 +349,7 @@ export function StudyRoomView() {
           <input
             type="text"
             className={styles.chatInput}
+            maxLength={MAX_MESSAGE_LENGTH}
             placeholder="Send a quiet message…"
             aria-label="Room chat message"
             value={chatInput}

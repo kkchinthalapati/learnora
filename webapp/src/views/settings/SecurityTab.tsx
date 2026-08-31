@@ -24,9 +24,11 @@ export function SecurityTab() {
   const changePassword = useChangePassword();
   const signOutOthers = useSignOutOthers();
 
+  const currentId = useId();
   const newId = useId();
   const confirmId = useId();
 
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordFeedback, setPasswordFeedback] =
@@ -40,12 +42,20 @@ export function SecurityTab() {
       setPasswordFeedback({ kind: "error", message: invalid.message });
       return;
     }
+    if (!currentPassword) {
+      setPasswordFeedback({
+        kind: "error",
+        message: "Please enter your current password.",
+      });
+      return;
+    }
     try {
-      await changePassword.mutateAsync(newPassword);
+      await changePassword.mutateAsync({ currentPassword, newPassword });
       setPasswordFeedback({
         kind: "success",
         message: "Password updated. Other sessions have been signed out.",
       });
+      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
@@ -90,11 +100,22 @@ export function SecurityTab() {
           </span>
           <div>
             <h3 id="settings-password-heading">Change Password</h3>
-            <p>Set a new password for this account.</p>
+            <p>Confirm your current password, then set a new one.</p>
           </div>
         </div>
 
         <div className={styles.passwordStack}>
+          <PasswordField
+            id={currentId}
+            label="Current Password"
+            value={currentPassword}
+            onChange={setCurrentPassword}
+            autoComplete="current-password"
+            /* The default "Min 8 characters" is advice for choosing a new
+               password, which this field is not. */
+            placeholder="Enter your current password"
+          />
+
           <div>
             <PasswordField
               id={newId}

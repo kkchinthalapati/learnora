@@ -28,8 +28,12 @@
   background: var(--glass-bg-strong);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
+  /* --shadow-lg rather than a literal cast: the raw rgba was identical in
+     both themes, so the docked panel had no edge to speak of against a dark
+     page. Matches how the nav drawer lifts off the page
+     (components/Sidebar.module.css). */
   box-shadow:
-    -6px 0 24px rgba(0, 0, 0, 0.16),
+    var(--shadow-lg),
     var(--glass-inner);
   animation: slideInRight var(--t) var(--ease);
 }

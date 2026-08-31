@@ -154,6 +154,13 @@
   --font-head: "Newsreader", "Spectral", Georgia, "Times New Roman", serif;
   /* Figures in stats, timers and tables must not reflow as they tick. */
   --font-numeric: "Instrument Sans", system-ui, sans-serif;
+  /* Reading face for long AI prose (the Socratic Coach's answer). The UI sans
+     is drawn for labels and buttons; a text serif carries several paragraphs
+     of explanation more comfortably. Overridden back to --font whenever the
+     student has picked a font in Settings → Appearance, so an accessibility
+     choice is never silently outranked (src/index.css). */
+  --font-read:
+    "Source Serif 4", ui-serif, Georgia, Cambria, "Times New Roman", serif;
   --fs-xs: 12px;
   --fs-sm: 13px;
   --fs-base: 15px;

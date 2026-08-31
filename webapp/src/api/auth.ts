@@ -38,12 +38,22 @@ interface AuthErrorLike {
   status?: number;
 }
 
+/* `dob` is the "YYYY-MM-DD" an <input type="date"> produces.
+ *
+ * Deliberately not `new Date(dob)`: that form is parsed as UTC midnight,
+ * while the `today` it gets compared against is local. West of Greenwich the
+ * two disagree by a calendar day — `new Date("2013-08-30")` reads back as
+ * August 29th in UTC-7 — which makes the birthday land a day early and lets
+ * someone through the age gate the day before they actually turn 13. Reading
+ * the three fields out of the string keeps both sides on the same calendar. */
 function calculateAge(dob: string): number {
-  const birth = new Date(dob);
+  const [year, month, day] = dob.split("-").map(Number);
+  if (!year || !month || !day) return NaN;
+
   const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+  let age = today.getFullYear() - year;
+  const monthDiff = today.getMonth() + 1 - month;
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < day)) {
     age--;
   }
   return age;
@@ -80,6 +90,28 @@ function friendlyAuthError(error: AuthErrorLike | null | undefined): string {
   return error?.message || "An unexpected error occurred. Please try again.";
 }
 
+/* Sets the new password and evicts every other session. Shared by both
+ * password-change entry points below; the difference between them is what
+ * they require *before* reaching here, not what they do once identity is
+ * settled. */
+async function applyPasswordChange(newPassword: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) {
+    const msg = error.message?.toLowerCase() || "";
+    if (msg.includes("same") || msg.includes("different")) {
+      throw new Error(
+        "New password must be different from your current password.",
+      );
+    }
+    throw new Error(friendlyAuthError(error));
+  }
+  try {
+    await supabase.auth.signOut({ scope: "others" });
+  } catch {
+    // Non-critical — the password was still changed.
+  }
+}
+
 export type SignupOutcome = "ok" | "verification-sent";
 
 export const authApi = {
@@ -98,7 +130,13 @@ export const authApi = {
     dob: string,
   ): Promise<SignupOutcome> {
     if (!dob) throw new Error("Please enter your date of birth.");
-    if (calculateAge(dob) < MIN_SIGNUP_AGE) {
+    const age = calculateAge(dob);
+    /* An unparseable date has to be rejected explicitly: `NaN < 13` is
+     * false, so a comparison on its own would wave it straight through. */
+    if (Number.isNaN(age)) {
+      throw new Error("Please enter a valid date of birth.");
+    }
+    if (age < MIN_SIGNUP_AGE) {
       throw new Error(`You must be at least ${MIN_SIGNUP_AGE} years old.`);
     }
 
@@ -148,23 +186,70 @@ export const authApi = {
     if (error) throw new Error(friendlyAuthError(error));
   },
 
-  /** Change password from the settings page, then invalidate other sessions. */
+  /* Change the password when the caller has *already* proved who they are —
+   * today that is only the recovery flow, where they arrived holding a
+   * single-use token Supabase emailed to the address on the account.
+   *
+   * Every other entry point must go through `changePasswordWithCurrent`
+   * below. `updateUser({ password })` authenticates with nothing but the
+   * access token in this tab, so on its own it turns "borrowed an unlocked
+   * browser" (or any leaked token) into a full account takeover: the
+   * attacker sets a password the owner does not know, and the
+   * `signOut({ scope: "others" })` below then evicts the owner from their
+   * own sessions. */
   async changePassword(newPassword: string): Promise<void> {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) {
-      const msg = error.message?.toLowerCase() || "";
-      if (msg.includes("same") || msg.includes("different")) {
+    await applyPasswordChange(newPassword);
+  },
+
+  /** Change the password from Settings, re-authenticating with the current
+   *  one first.
+   *
+   *  Supabase has no "verify this password" endpoint, so the check is a real
+   *  `signInWithPassword` against the signed-in user's own email: it succeeds
+   *  only for the right password, and the session it mints replaces this
+   *  tab's with an equivalent one for the same user. A wrong password leaves
+   *  the existing session untouched and the account's password unchanged. */
+  async changePasswordWithCurrent(
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    if (!currentPassword) {
+      throw new Error("Please enter your current password.");
+    }
+
+    /* Read the email from the server-verified user rather than from a cached
+     * session object, so a stale local session can't aim the re-auth at some
+     * other address. */
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user?.email) {
+      throw new Error("Your session has expired. Please log in again.");
+    }
+
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+    if (reauthError) {
+      const msg = reauthError.message?.toLowerCase() || "";
+      /* Supabase rate-limits repeated password attempts. Passing that through
+       * verbatim matters here — "wrong password" would be actively wrong and
+       * send the user round the loop again. */
+      if (
+        reauthError.status === 429 ||
+        msg.includes("rate limit") ||
+        msg.includes("too many")
+      ) {
         throw new Error(
-          "New password must be different from your current password.",
+          "Too many attempts. Please wait a minute and try again.",
         );
       }
-      throw new Error(friendlyAuthError(error));
+      throw new Error("Your current password is incorrect.");
     }
-    try {
-      await supabase.auth.signOut({ scope: "others" });
-    } catch {
-      // Non-critical — the password was still changed.
-    }
+
+    await applyPasswordChange(newPassword);
   },
 
   /** Sign out all other sessions (not the current one). */

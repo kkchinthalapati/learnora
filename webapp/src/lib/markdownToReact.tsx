@@ -42,13 +42,27 @@ const nextKey = () => `md-${keySeed++}`;
 /* ---------- inline ---------- */
 
 /** Split on the first delimiter pair that matches, recursing into the parts.
- *  Applied in the vanilla's order: code, then ***, **, *. */
+ *  Applied in the vanilla's order: code, then ***, **, *.
+ *
+ *  Two departures from the vanilla's `[^*]+` bodies, both because a model that
+ *  writes `**a *b* c**` should not put stray asterisks on a student's screen:
+ *
+ *   1. **Bodies are lazy `.+?`, not "no asterisks allowed".** `[^*]+` cannot
+ *      match across a nested `*`, so the outer `**…**` was skipped and the
+ *      inner `*…*` matched instead — leaving the outer pair rendered as
+ *      literal `*` characters.
+ *   2. **Emphasis bodies recurse.** The inner `*b*` in the example is markdown
+ *      too, so it is rendered rather than shown raw.
+ *
+ *  `(?!\s)` on the opener keeps arithmetic out of it: `2 * 3 * 4` has a space
+ *  after each `*`, so nothing there opens an emphasis run. (A lookahead, not a
+ *  lookbehind on the closer — lookbehind is a parse error in older Safari, and
+ *  that would take the whole bundle down rather than one paragraph.) */
 function renderInline(text: string): ReactNode[] {
   const out: ReactNode[] = [];
-  /* One pass, longest-delimiter-first, matching renderMarkdown's ordering.
-     `[^`\n]+` and `[^*]+` are the vanilla's own patterns. */
+  /* One pass, longest-delimiter-first, matching renderMarkdown's ordering. */
   const pattern =
-    /(`[^`\n]+`)|(\*\*\*[^*]+\*\*\*)|(\*\*[^*]+\*\*)|(\*[^*]+\*)/g;
+    /(`[^`\n]+`)|(\*\*\*(?!\s).+?\*\*\*)|(\*\*(?!\s).+?\*\*)|(\*(?!\s).+?\*)/g;
   let last = 0;
   let match: RegExpExecArray | null;
 
@@ -56,6 +70,7 @@ function renderInline(text: string): ReactNode[] {
     if (match.index > last) out.push(text.slice(last, match.index));
     const token = match[0];
     if (token.startsWith("`")) {
+      /* Code spans are literal by definition — no recursion. */
       out.push(
         <code key={nextKey()} className={styles.code}>
           {token.slice(1, -1)}
@@ -64,13 +79,15 @@ function renderInline(text: string): ReactNode[] {
     } else if (token.startsWith("***")) {
       out.push(
         <strong key={nextKey()}>
-          <em>{token.slice(3, -3)}</em>
+          <em>{renderInline(token.slice(3, -3))}</em>
         </strong>,
       );
     } else if (token.startsWith("**")) {
-      out.push(<strong key={nextKey()}>{token.slice(2, -2)}</strong>);
+      out.push(
+        <strong key={nextKey()}>{renderInline(token.slice(2, -2))}</strong>,
+      );
     } else {
-      out.push(<em key={nextKey()}>{token.slice(1, -1)}</em>);
+      out.push(<em key={nextKey()}>{renderInline(token.slice(1, -1))}</em>);
     }
     last = match.index + token.length;
   }
@@ -198,7 +215,9 @@ function renderProse(prose: string): ReactNode[] {
     }
 
     const bullet = /^- (.*)$/.exec(line);
-    const numbered = /^\d+\. (.*)$/.exec(line);
+    /* Models number lists both ways — `1.` and `1)`. The second used to
+       fall through to a paragraph, so the items lost their list. */
+    const numbered = /^\d+[.)] (.*)$/.exec(line);
     if (bullet || numbered) {
       renderParagraph(paragraph, out);
       const ordered = !!numbered;
