@@ -112,7 +112,7 @@ export function ConceptNodeDrawer({
         ref={drawerRef}
         className={`${styles.drawer} ${isOpen ? styles.drawerOpen : ""}`}
         role="dialog"
-        aria-label={`Concept details for ${node.label}`}
+        aria-label={`Details for ${node.label}`}
         aria-modal="true"
       >
         <div className={styles.drawerHeader}>
@@ -143,14 +143,14 @@ export function ConceptNodeDrawer({
             type="button"
             className={styles.drawerCloseBtn}
             onClick={onClose}
-            aria-label="Close concept drawer"
+            aria-label="Close this topic"
           >
             <Icon name="x" size={18} />
           </button>
         </div>
 
         <div className={styles.drawerBody}>
-          {/* Cognitive Bridge Cross-Tool AI Actions */}
+          {/* Cross-tool AI actions */}
           <CognitiveCrossLinkBar
             payload={{
               subject: node.folderName || "General",
@@ -158,7 +158,7 @@ export function ConceptNodeDrawer({
               concept: node.label,
               sourceTool: "graph",
               sourceId: node.id,
-              evidencePrompt: `Concept Node: ${node.label} (${node.masteryScore}% mastery)`,
+              evidencePrompt: `${node.label} — you know ${node.masteryScore}% of this`,
               misconceptions: node.gapDetails?.remediationReasons,
               severity:
                 node.masteryScore < 50
@@ -176,16 +176,16 @@ export function ConceptNodeDrawer({
             }}
           />
 
-          {/* Knowledge Gap Alert Banner & 1-Click Remediation Trigger */}
+          {/* Weak-topic banner and quick practice */}
           {node.isKnowledgeGap && (
             <div className={styles.gapBanner} role="alert">
               <Icon name="alert-triangle" size={20} className={styles.gapBannerIcon} />
               <div className={styles.gapBannerText} style={{ width: "100%" }}>
-                <strong>Knowledge Gap Identified</strong>
+                <strong>This one needs some work</strong>
                 <div>
                   {node.gapDetails?.remediationReasons && node.gapDetails.remediationReasons.length > 0
                     ? node.gapDetails.remediationReasons.join(" • ")
-                    : `Your current retention score is ${node.masteryScore}%. Focused active recall practice is recommended.`}
+                    : `You know about ${node.masteryScore}% of this so far. A bit of testing yourself will help.`}
                 </div>
 
                 <div className={styles.remediateActionRow}>
@@ -196,38 +196,38 @@ export function ConceptNodeDrawer({
                     aria-expanded={showRecoveryDrill}
                   >
                     <Icon name="zap" size={16} />
-                    {showRecoveryDrill ? "Hide Recovery Drill" : "1-Click Remediate Knowledge Gap (5-Min Drill)"}
+                    {showRecoveryDrill ? "Hide the five-minute practice" : "Give me five minutes of practice"}
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Interactive 5-Minute Recovery Drill View */}
+          {/* Five-minute practice */}
           {showRecoveryDrill && recoveryDrill && (
-            <div className={styles.recoveryDrillCard} role="region" aria-label="5-minute recovery drill">
+            <div className={styles.recoveryDrillCard} role="region" aria-label="Five-minute practice">
               <div className={styles.drillHeader}>
                 <div className={styles.drillTitleGroup}>
                   <Icon name="zap" size={18} style={{ color: "var(--accent)" }} />
-                  <h3 className={styles.drillTitle}>5-Minute Recovery Drill</h3>
+                  <h3 className={styles.drillTitle}>Five minutes on this</h3>
                 </div>
-                <span className={styles.drillBadge}>⚡ 5 Min Active Recall</span>
+                <span className={styles.drillBadge}>⚡ 5 minutes</span>
               </div>
 
-              {/* High Yield Concept Takeaway */}
+              {/* The main point */}
               <div className={styles.takeawayBox}>
                 <div className={styles.takeawayTitle}>
                   <Icon name="file-text" size={14} />
-                  Core Takeaway & Key Mechanism
+                  The main point
                 </div>
                 <p style={{ margin: 0 }}>{recoveryDrill.summaryTakeaway}</p>
               </div>
 
-              {/* Prerequisite Foundations Review Checklist */}
+              {/* What to get straight first */}
               {recoveryDrill.prerequisiteReview.length > 0 && (
                 <div className={styles.prereqChecklist}>
                   <div className={styles.prereqChecklistTitle}>
-                    Prerequisite Foundations to Solidify First:
+                    Get these straight first:
                   </div>
                   {recoveryDrill.prerequisiteReview.map((prereq) => (
                     <button
@@ -235,7 +235,7 @@ export function ConceptNodeDrawer({
                       type="button"
                       className={styles.prereqItem}
                       onClick={() => onSelectRelated(prereq.id)}
-                      title={`Review prerequisite ${prereq.label}`}
+                      title={`Go over ${prereq.label} first`}
                     >
                       <span>{prereq.label}</span>
                       <span
@@ -251,10 +251,10 @@ export function ConceptNodeDrawer({
                 </div>
               )}
 
-              {/* Interactive Rapid-Fire Recall Questions */}
+              {/* Quick questions */}
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
                 <h4 style={{ margin: 0, fontSize: "var(--fs-xs)", fontWeight: 700, textTransform: "uppercase", color: "var(--text-muted)", letterSpacing: "0.5px" }}>
-                  Active Recall Check ({answeredCount}/{totalQuestions})
+                  Quick questions ({answeredCount}/{totalQuestions})
                 </h4>
 
                 {recoveryDrill.highYieldQuestions.map((q) => {
@@ -299,7 +299,7 @@ export function ConceptNodeDrawer({
                             borderLeft: `3px solid ${isCorrect ? "var(--success)" : "var(--danger)"}`,
                           }}
                         >
-                          <strong>{isCorrect ? "✓ Correct! " : "✕ Review Key Concept: "}</strong>
+                          <strong>{isCorrect ? "✓ Correct. " : "✕ Not quite: "}</strong>
                           {q.explanation}
                         </div>
                       )}
@@ -308,20 +308,20 @@ export function ConceptNodeDrawer({
                 })}
               </div>
 
-              {/* Completion Banner */}
+              {/* Finished banner */}
               {answeredCount === totalQuestions && (
                 <div className={styles.drillScoreBanner}>
-                  <span>Drill Completed: {correctCount} of {totalQuestions} Correct</span>
-                  <span style={{ fontSize: 11 }}>⚡ Retention Pathway Reinforced</span>
+                  <span>Done — {correctCount} of {totalQuestions} right</span>
+                  <span style={{ fontSize: 11 }}>⚡ That&apos;ll help it stick</span>
                 </div>
               )}
             </div>
           )}
 
-          {/* Mastery Meter */}
+          {/* How well you know it */}
           <div className={styles.masteryCard}>
             <div className={styles.masteryCardHeader}>
-              <span className={styles.masteryLabel}>Concept Mastery</span>
+              <span className={styles.masteryLabel}>How well you know this</span>
               <span className={styles.masteryScoreValue} style={{ color: masteryColor }}>
                 {node.masteryScore}%
               </span>
@@ -337,18 +337,18 @@ export function ConceptNodeDrawer({
             </div>
           </div>
 
-          {/* Prerequisite & Dependency Hierarchy Section */}
+          {/* What leads into what */}
           <div className={styles.hierarchySection}>
             <h3 className={styles.sectionTitle}>
               <Icon name="network" size={16} />
-              Prerequisite & Dependency Hierarchy
+              What leads into what
             </h3>
 
-            {/* Upstream Prerequisites (Must Learn First) */}
+            {/* What you need first */}
             <div className={styles.hierarchyGroup}>
               <span className={styles.hierarchyGroupLabel}>
                 <Icon name="layers" size={14} />
-                Prerequisites (Learn First)
+                Learn these first
               </span>
               {prereqNodes.length > 0 ? (
                 <div className={styles.hierarchyList}>
@@ -358,8 +358,8 @@ export function ConceptNodeDrawer({
                       type="button"
                       className={styles.hierarchyCard}
                       onClick={() => onSelectRelated(prereq.id)}
-                      title={`Jump to prerequisite ${prereq.label}`}
-                      aria-label={`Jump to prerequisite ${prereq.label}`}
+                      title={`Go to ${prereq.label}`}
+                      aria-label={`Go to ${prereq.label}, which you need first`}
                     >
                       <div className={styles.hierarchyCardLeft}>
                         <span
@@ -383,23 +383,23 @@ export function ConceptNodeDrawer({
                             prereq.masteryScore >= 70 ? "var(--success)" : "var(--danger)",
                         }}
                       >
-                        {prereq.masteryScore}% {prereq.masteryScore >= 70 ? "Mastered" : "Gap"}
+                        {prereq.masteryScore}% {prereq.masteryScore >= 70 ? "— solid" : "— needs work"}
                       </span>
                     </button>
                   ))}
                 </div>
               ) : (
                 <p style={{ margin: 0, fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
-                  No upstream prerequisites required (entry foundation).
+                  Nothing needed before this one — it&apos;s a starting point.
                 </p>
               )}
             </div>
 
-            {/* Downstream Dependents (Unlocks Next) */}
+            {/* What this leads on to */}
             <div className={styles.hierarchyGroup}>
               <span className={styles.hierarchyGroupLabel}>
                 <Icon name="network" size={14} />
-                Unlocks Next (Advanced Topics)
+                This leads on to
               </span>
               {depNodes.length > 0 ? (
                 <div className={styles.hierarchyList}>
@@ -409,8 +409,8 @@ export function ConceptNodeDrawer({
                       type="button"
                       className={styles.hierarchyCard}
                       onClick={() => onSelectRelated(dep.id)}
-                      title={`Jump to dependent ${dep.label}`}
-                      aria-label={`Jump to dependent ${dep.label}`}
+                      title={`Go to ${dep.label}`}
+                      aria-label={`Go to ${dep.label}, which builds on this`}
                     >
                       <div className={styles.hierarchyCardLeft}>
                         <span
@@ -437,18 +437,18 @@ export function ConceptNodeDrawer({
                 </div>
               ) : (
                 <p style={{ margin: 0, fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
-                  No downstream dependent topics detected.
+                  Nothing else builds on this one yet.
                 </p>
               )}
             </div>
           </div>
 
-          {/* Study Content Coverage */}
+          {/* What you have on this topic */}
           <div className={styles.coverageGrid}>
             <div className={styles.coverageItem}>
               <Icon name="file-text" size={20} className={styles.coverageIcon} />
               <span className={styles.coverageCount}>{node.notesCount}</span>
-              <span className={styles.coverageLabel}>Note Mentions</span>
+              <span className={styles.coverageLabel}>Mentions in notes</span>
             </div>
             <div className={styles.coverageItem}>
               <Icon name="layers" size={20} className={styles.coverageIcon} />
@@ -458,16 +458,16 @@ export function ConceptNodeDrawer({
             <div className={styles.coverageItem}>
               <Icon name="help-circle" size={20} className={styles.coverageIcon} />
               <span className={styles.coverageCount}>{node.quizzesCount}</span>
-              <span className={styles.coverageLabel}>Quiz Questions</span>
+              <span className={styles.coverageLabel}>Quiz questions</span>
             </div>
           </div>
 
-          {/* Linked Notes Snippets */}
+          {/* Bits from your notes */}
           {node.noteSnippets.length > 0 && (
             <div>
               <h3 className={styles.sectionTitle}>
                 <Icon name="file-text" size={16} />
-                Linked Notes Context
+                From your notes
               </h3>
               <div className={styles.snippetsList} style={{ marginTop: 8 }}>
                 {node.noteSnippets.map((snippet, idx) => (
@@ -479,12 +479,12 @@ export function ConceptNodeDrawer({
             </div>
           )}
 
-          {/* Related Concepts */}
+          {/* Related topics */}
           {relatedList.length > 0 && (
             <div>
               <h3 className={styles.sectionTitle}>
                 <Icon name="share-2" size={16} />
-                Connected Concepts ({relatedList.length})
+                Related topics ({relatedList.length})
               </h3>
               <div className={styles.relatedPills} style={{ marginTop: 8 }}>
                 {relatedList.map((rel) => (
@@ -493,8 +493,8 @@ export function ConceptNodeDrawer({
                     type="button"
                     className={styles.relatedPill}
                     onClick={() => onSelectRelated(rel.id)}
-                    title={`Jump to ${rel.label}`}
-                    aria-label={`Jump to ${rel.label}`}
+                    title={`Go to ${rel.label}`}
+                    aria-label={`Go to ${rel.label}`}
                   >
                     <span
                       style={{
@@ -516,7 +516,7 @@ export function ConceptNodeDrawer({
           {practiceLink ? (
             <Link to={practiceLink} className={styles.practiceBtn} onClick={onClose}>
               <Icon name="play" size={18} />
-              Practice Concept Now
+              Practise this now
             </Link>
           ) : (
             <button
@@ -533,7 +533,7 @@ export function ConceptNodeDrawer({
               }}
             >
               <Icon name="plus" size={18} />
-              Generate Practice Flashcards
+              Make some flashcards
             </button>
           )}
 
@@ -545,7 +545,7 @@ export function ConceptNodeDrawer({
                 onClick={onClose}
               >
                 <Icon name="file-text" size={14} />
-                Open Note
+                Open note
               </Link>
             )}
             <button

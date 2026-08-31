@@ -89,7 +89,7 @@ describe("ConceptNodeDrawer", () => {
     },
   ];
 
-  it("renders concept summary, mastery meter, coverage metrics, and gap alert", () => {
+  it("renders the topic summary, how-well-you-know-it meter, counts, and weak-topic alert", () => {
     renderWithAuth(
       <MemoryRouter>
         <ConceptNodeDrawer
@@ -109,17 +109,17 @@ describe("ConceptNodeDrawer", () => {
     expect(screen.getByTestId("cross-link-debugger-btn")).toBeInTheDocument();
     expect(screen.getByTestId("cross-link-feynman-btn")).toBeInTheDocument();
     expect(screen.getByTestId("cross-link-premortem-btn")).toBeInTheDocument();
-    expect(screen.getByText("Knowledge Gap Identified")).toBeInTheDocument();
+    expect(screen.getByText("This one needs some work")).toBeInTheDocument();
     expect(screen.getByText("45%")).toBeInTheDocument();
-    expect(screen.getByText("Note Mentions")).toBeInTheDocument();
+    expect(screen.getByText("Mentions in notes")).toBeInTheDocument();
     expect(screen.getByText("Flashcards")).toBeInTheDocument();
-    expect(screen.getByText("Quiz Questions")).toBeInTheDocument();
+    expect(screen.getByText("Quiz questions")).toBeInTheDocument();
     expect(screen.getByText(/Enzymes lower the activation energy/)).toBeInTheDocument();
-    expect(screen.getByText("Practice Concept Now")).toBeInTheDocument();
-    expect(screen.getByText("1-Click Remediate Knowledge Gap (5-Min Drill)")).toBeInTheDocument();
+    expect(screen.getByText("Practise this now")).toBeInTheDocument();
+    expect(screen.getByText("Give me five minutes of practice")).toBeInTheDocument();
   });
 
-  it("opens and interacts with the 5-minute recovery drill", async () => {
+  it("opens and interacts with the five-minute practice", async () => {
     const user = userEvent.setup();
 
     renderWithAuth(
@@ -136,13 +136,13 @@ describe("ConceptNodeDrawer", () => {
     );
 
     const remediateBtn = screen.getByRole("button", {
-      name: /1-Click Remediate Knowledge Gap/i,
+      name: /Give me five minutes of practice/i,
     });
     await user.click(remediateBtn);
 
-    expect(screen.getByText("5-Minute Recovery Drill")).toBeInTheDocument();
-    expect(screen.getByText("Core Takeaway & Key Mechanism")).toBeInTheDocument();
-    expect(screen.getByText(/Active Recall Check/)).toBeInTheDocument();
+    expect(screen.getByText("Five minutes on this")).toBeInTheDocument();
+    expect(screen.getByText("The main point")).toBeInTheDocument();
+    expect(screen.getByText(/Quick questions/)).toBeInTheDocument();
 
     // Click an option in question 1
     const optionBtn = screen.getByRole("button", {
@@ -150,7 +150,7 @@ describe("ConceptNodeDrawer", () => {
     });
     await user.click(optionBtn);
 
-    expect(screen.getByText(/Correct!/)).toBeInTheDocument();
+    expect(screen.getByText(/✓ Correct\./)).toBeInTheDocument();
   });
 
   it("renders prerequisite hierarchy and calls onSelectRelated when prerequisite card is clicked", async () => {
@@ -170,11 +170,11 @@ describe("ConceptNodeDrawer", () => {
       { session: fakeSession() },
     );
 
-    expect(screen.getByText("Prerequisite & Dependency Hierarchy")).toBeInTheDocument();
-    expect(screen.getByText("Prerequisites (Learn First)")).toBeInTheDocument();
-    expect(screen.getByText("Unlocks Next (Advanced Topics)")).toBeInTheDocument();
+    expect(screen.getByText("What leads into what")).toBeInTheDocument();
+    expect(screen.getByText("Learn these first")).toBeInTheDocument();
+    expect(screen.getByText("This leads on to")).toBeInTheDocument();
 
-    const prereqCard = screen.getByRole("button", { name: /Jump to prerequisite Catalysts/i });
+    const prereqCard = screen.getByRole("button", { name: /Go to Catalysts, which you need first/i });
     await user.click(prereqCard);
     expect(onSelectRelated).toHaveBeenCalledWith("concept-catalysts");
   });
@@ -196,7 +196,7 @@ describe("ConceptNodeDrawer", () => {
       { session: fakeSession() },
     );
 
-    const pill = screen.getByRole("button", { name: /Jump to Catalysts/i });
+    const pill = screen.getByRole("button", { name: /^Go to Catalysts$/i });
     await user.click(pill);
     expect(onSelectRelated).toHaveBeenCalledWith("concept-catalysts");
   });
@@ -218,7 +218,7 @@ describe("ConceptNodeDrawer", () => {
       { session: fakeSession() },
     );
 
-    const closeBtn = screen.getByRole("button", { name: /Close concept drawer/i });
+    const closeBtn = screen.getByRole("button", { name: /Close this topic/i });
     await user.click(closeBtn);
     expect(onClose).toHaveBeenCalled();
   });

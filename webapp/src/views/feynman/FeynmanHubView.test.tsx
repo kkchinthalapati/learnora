@@ -41,10 +41,10 @@ describe("FeynmanHubView Component", () => {
   it("renders page header, persona choices, and topic setup form", () => {
     renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
 
-    expect(screen.getByText("Feynman AI Apprentice")).toBeInTheDocument();
-    expect(screen.getByText(/Teach-to-Master Arena/i)).toBeInTheDocument();
+    expect(screen.getByText("Explain It Simply")).toBeInTheDocument();
+    expect(screen.getByText(/Study Lab/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Subject")).toBeInTheDocument();
-    expect(screen.getByLabelText("Topic or Concept to Master")).toBeInTheDocument();
+    expect(screen.getByLabelText("Topic")).toBeInTheDocument();
 
     // Check personas
     expect(screen.getByTestId("persona-curious_beginner")).toBeInTheDocument();
@@ -72,7 +72,7 @@ describe("FeynmanHubView Component", () => {
     const quantumChip = screen.getByText(/Quantum Entanglement/i);
     await user.click(quantumChip);
 
-    const topicInput = screen.getByLabelText("Topic or Concept to Master") as HTMLInputElement;
+    const topicInput = screen.getByLabelText("Topic") as HTMLInputElement;
     expect(topicInput.value).toBe("Quantum Entanglement");
 
     const subjectInput = screen.getByLabelText("Subject") as HTMLInputElement;
@@ -132,7 +132,7 @@ describe("FeynmanHubView Component", () => {
     expect(banner).toBeInTheDocument();
     expect(within(banner).getByText(/Cellular Respiration/i)).toBeInTheDocument();
 
-    const resumeBtn = within(banner).getByText(/Resume Teaching/i);
+    const resumeBtn = within(banner).getByText(/Carry on/i);
     await user.click(resumeBtn);
 
     expect(mockNavigate).toHaveBeenCalledWith("/feynman/studio/active-123");

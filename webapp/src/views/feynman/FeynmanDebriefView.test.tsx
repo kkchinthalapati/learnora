@@ -108,7 +108,7 @@ describe("FeynmanDebriefView Component", () => {
     renderWithProviders(<FeynmanDebriefView />, undefined, { withRouter: true });
 
     expect(screen.getByTestId("concept-mastered-item")).toHaveTextContent("Light Absorption");
-    expect(screen.getByText("Pedagogical Strengths")).toBeInTheDocument();
+    expect(screen.getByText("What you did well")).toBeInTheDocument();
     expect(screen.getByTestId("flashcards-export-section")).toBeInTheDocument();
     expect(screen.getByTestId("flashcard-preview-item")).toBeInTheDocument();
   });

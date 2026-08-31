@@ -100,7 +100,7 @@ describe("ConceptGraphView", () => {
     },
   ];
 
-  it("renders toolbar controls, summary statistics, and interactive SVG canvas", async () => {
+  it("renders toolbar controls, summary counts, and the interactive SVG canvas", async () => {
     server.use(
       http.get(rest("folders"), () => HttpResponse.json(mockFolders)),
       http.get(rest("materials"), () => HttpResponse.json(mockMaterials)),
@@ -121,23 +121,23 @@ describe("ConceptGraphView", () => {
     /* The view shows a skeleton until its seven queries resolve, so the
        first lookup awaits the loaded state; everything after it is stable. */
     expect(
-      await screen.findByPlaceholderText("Search concepts or notes…"),
+      await screen.findByPlaceholderText("Search topics or notes…"),
     ).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Filter by subject folder" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Knowledge Gaps/ })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Filter by subject" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Needs work/ })).toBeInTheDocument();
 
     // Stats Bar
-    expect(screen.getByText("Concepts:")).toBeInTheDocument();
-    expect(screen.getByText("Edges:")).toBeInTheDocument();
-    expect(screen.getByText("Avg Mastery:")).toBeInTheDocument();
+    expect(screen.getByText("Topics:")).toBeInTheDocument();
+    expect(screen.getByText("Links:")).toBeInTheDocument();
+    expect(screen.getByText("Average:")).toBeInTheDocument();
 
     // SVG Map & interactive nodes
-    expect(screen.getByRole("group", { name: /Interactive concept map/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^Concept Enzymes, mastery/i })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /^Concept /i }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("group", { name: /Map of how your topics connect/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Enzymes, you know/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /, you know \d+% of this$/i }).length).toBeGreaterThan(0);
   });
 
-  it("supports searching and filtering concepts", async () => {
+  it("supports searching and filtering topics", async () => {
     const user = userEvent.setup();
     server.use(
       http.get(rest("folders"), () => HttpResponse.json(mockFolders)),
@@ -157,21 +157,21 @@ describe("ConceptGraphView", () => {
     );
 
     const searchInput = await screen.findByPlaceholderText(
-      "Search concepts or notes…",
+      "Search topics or notes…",
     );
     await user.type(searchInput, "NonExistentConceptXYZ");
 
     // Empty state when search yields no matches
-    expect(await screen.findByText("No Concepts Match Your Filter")).toBeInTheDocument();
+    expect(await screen.findByText("Nothing matches")).toBeInTheDocument();
 
     // Reset filters button
-    const resetBtn = screen.getByRole("button", { name: "Reset Filters" });
+    const resetBtn = screen.getByRole("button", { name: "Clear filters" });
     await user.click(resetBtn);
 
-    expect(screen.getByRole("group", { name: /Interactive concept map/i })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /Map of how your topics connect/i })).toBeInTheDocument();
   });
 
-  it("toggles knowledge gaps filter and opens drawer on node click", async () => {
+  it("toggles the needs-work filter and opens the drawer on node click", async () => {
     const user = userEvent.setup();
     server.use(
       http.get(rest("folders"), () => HttpResponse.json(mockFolders)),
@@ -191,20 +191,20 @@ describe("ConceptGraphView", () => {
     );
 
     const gapToggle = await screen.findByRole("button", {
-      name: /Knowledge Gaps/,
+      name: /Needs work/,
     });
     await user.click(gapToggle);
     expect(gapToggle).toHaveAttribute("aria-pressed", "true");
 
     // Click a node in the graph
-    const nodeButton = screen.getAllByRole("button", { name: /Concept /i })[0];
+    const nodeButton = screen.getAllByRole("button", { name: /, you know \d+% of this$/i })[0];
     if (nodeButton) {
       await user.click(nodeButton);
-      expect(await screen.findByRole("dialog", { name: /Concept details for/i })).toBeInTheDocument();
+      expect(await screen.findByRole("dialog", { name: /Details for/i })).toBeInTheDocument();
     }
   });
 
-  it("triggers 1-Click Remediate Top Gap action and opens recovery drill", async () => {
+  it("triggers the weakest-topic action and opens the five-minute practice", async () => {
     const user = userEvent.setup();
     server.use(
       http.get(rest("folders"), () => HttpResponse.json(mockFolders)),
@@ -224,16 +224,16 @@ describe("ConceptGraphView", () => {
     );
 
     const remediateTopBtn = await screen.findByRole("button", {
-      name: /Remediate Top Gap/i,
+      name: /Work on my weakest topic/i,
     });
     expect(remediateTopBtn).toBeInTheDocument();
     await user.click(remediateTopBtn);
 
-    expect(await screen.findByRole("dialog", { name: /Concept details for/i })).toBeInTheDocument();
-    expect(await screen.findByText("5-Minute Recovery Drill")).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: /Details for/i })).toBeInTheDocument();
+    expect(await screen.findByText("Five minutes on this")).toBeInTheDocument();
   });
 
-  it("toggles prerequisites filter", async () => {
+  it("toggles the what-leads-into-what filter", async () => {
     const user = userEvent.setup();
     server.use(
       http.get(rest("folders"), () => HttpResponse.json(mockFolders)),
@@ -253,7 +253,7 @@ describe("ConceptGraphView", () => {
     );
 
     const prereqFilter = await screen.findByRole("button", {
-      name: /Prerequisites/,
+      name: /What leads into what/,
     });
     expect(prereqFilter).toBeInTheDocument();
     await user.click(prereqFilter);

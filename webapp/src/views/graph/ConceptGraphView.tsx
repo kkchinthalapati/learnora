@@ -258,7 +258,7 @@ export function ConceptGraphView() {
   if (isPending) {
     return (
       <div className={styles.container} aria-busy="true">
-        <Skeleton label="Building your concept graph" height={480} />
+        <Skeleton label="Working out how your topics connect" height={480} />
       </div>
     );
   }
@@ -267,8 +267,8 @@ export function ConceptGraphView() {
     return (
       <div className={styles.container}>
         <p role="alert" className={styles.loadError}>
-          Could not load your study data, so the concept map can&apos;t be
-          built. Try refreshing the page.
+          We couldn&apos;t load your study data, so there&apos;s no map to show.
+          Try refreshing the page.
         </p>
       </div>
     );
@@ -280,21 +280,21 @@ export function ConceptGraphView() {
       {demoGraph && (
         <div className={styles.demoBanner} role="note">
           <span>
-            Demo data — a sample of how your own concept map will look as you
-            add notes, decks, and quizzes.
+            This is example data — it shows how your own map will look once you
+            add notes, decks and quizzes.
           </span>
           <button
             type="button"
             className={styles.demoBannerExit}
             onClick={() => setShowDemo(false)}
           >
-            Back to my graph
+            Back to my map
           </button>
         </div>
       )}
 
       {/* Header Toolbar */}
-      <header className={styles.toolbar} role="region" aria-label="Concept Graph Controls">
+      <header className={styles.toolbar} role="region" aria-label="Map controls">
         <div className={styles.filterGroup}>
           {/* Search Box */}
           <div className={styles.searchBox}>
@@ -302,10 +302,10 @@ export function ConceptGraphView() {
             <input
               type="search"
               className={styles.searchInput}
-              placeholder="Search concepts or notes…"
+              placeholder="Search topics or notes…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label="Search concepts"
+              aria-label="Search topics"
             />
           </div>
 
@@ -314,7 +314,7 @@ export function ConceptGraphView() {
             className={styles.folderSelect}
             value={selectedFolder}
             onChange={(e) => setSelectedFolder(e.target.value)}
-            aria-label="Filter by subject folder"
+            aria-label="Filter by subject"
           >
             <option value="all">All Subjects</option>
             {folders.map((f) => (
@@ -332,7 +332,7 @@ export function ConceptGraphView() {
             aria-pressed={knowledgeGapsOnly}
           >
             <Icon name="alert-triangle" size={16} />
-            <span>Knowledge Gaps</span>
+            <span>Needs work</span>
             {rawGraph.stats.knowledgeGapsCount > 0 && (
               <span className={styles.gapBadge}>
                 {rawGraph.stats.knowledgeGapsCount}
@@ -346,10 +346,10 @@ export function ConceptGraphView() {
             className={`${styles.prereqToggleBtn} ${prerequisitesOnly ? styles.prereqToggleBtnActive : ""}`}
             onClick={() => setPrerequisitesOnly((prev) => !prev)}
             aria-pressed={prerequisitesOnly}
-            title="Filter to prerequisite dependency hierarchy"
+            title="Only show what leads into what"
           >
             <Icon name="network" size={16} />
-            <span>Prerequisites</span>
+            <span>What leads into what</span>
             {rawGraph.stats.prerequisitesCount !== undefined && rawGraph.stats.prerequisitesCount > 0 && (
               <span className={styles.gapBadge} style={{ backgroundColor: "var(--accent)" }}>
                 {rawGraph.stats.prerequisitesCount}
@@ -357,38 +357,38 @@ export function ConceptGraphView() {
             )}
           </button>
 
-          {/* 1-Click Remediate Knowledge Gap Action */}
+          {/* Quick action on the weakest topic */}
           {rawGraph.stats.knowledgeGapsCount > 0 && (
             <button
               type="button"
               className={styles.remediateTopGapBtn}
               onClick={handleRemediateTopGap}
-              title="Start targeted 5-minute recovery drill on top knowledge gap"
-              aria-label="1-Click Remediate Top Gap"
+              title="Spend five minutes on the topic you know least well"
+              aria-label="Work on my weakest topic"
             >
               <Icon name="zap" size={16} />
-              <span>Remediate Top Gap</span>
+              <span>Work on my weakest topic</span>
             </button>
           )}
         </div>
 
         {/* Stats Row */}
         <div className={styles.statsRow}>
-          <div className={styles.statItem} title="Total extracted concepts">
+          <div className={styles.statItem} title="How many topics we found">
             <Icon name="network" size={14} />
-            <span>Concepts:</span>
+            <span>Topics:</span>
             <span className={styles.statValue}>{graphData.stats.totalConcepts}</span>
           </div>
 
-          <div className={styles.statItem} title="Total semantic connections">
+          <div className={styles.statItem} title="How many links between topics">
             <Icon name="share-2" size={14} />
-            <span>Edges:</span>
+            <span>Links:</span>
             <span className={styles.statValue}>{graphData.stats.totalEdges}</span>
           </div>
 
-          <div className={styles.statItem} title="Average retention mastery">
+          <div className={styles.statItem} title="How well you know your topics on average">
             <Icon name="target" size={14} />
-            <span>Avg Mastery:</span>
+            <span>Average:</span>
             <span
               className={styles.statValue}
               style={{
@@ -413,17 +413,17 @@ export function ConceptGraphView() {
             <EmptyState
               fill
               icon="share-2"
-              title="Your Concept Map Is Empty"
-              message="Concepts appear here automatically as you add materials, notes, flashcard decks, quizzes, and exams — connected by prerequisites and the topics they share."
+              title="Nothing on your map yet"
+              message="Topics show up here on their own as you add notes, decks, quizzes and exams — joined up by what leads into what."
             >
-              <Chip onClick={() => setShowDemo(true)}>Explore a Demo Graph</Chip>
+              <Chip onClick={() => setShowDemo(true)}>Have a look at an example</Chip>
             </EmptyState>
           ) : (
             <EmptyState
               fill
               icon="share-2"
-              title="No Concepts Match Your Filter"
-              message="Try clearing your search query or toggling off the knowledge gaps or prerequisite filter to view all connected concepts."
+              title="Nothing matches"
+              message="Try clearing your search, or turning off the weak-topics and what-leads-into-what filters."
             >
               <Chip
                 onClick={() => {
@@ -433,7 +433,7 @@ export function ConceptGraphView() {
                   setPrerequisitesOnly(false);
                 }}
               >
-                Reset Filters
+                Clear filters
               </Chip>
             </EmptyState>
           )
@@ -448,7 +448,7 @@ export function ConceptGraphView() {
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               role="group"
-              aria-label="Interactive concept map. Use Tab to move between concept nodes; press Enter to open a node's details."
+              aria-label="Map of how your topics connect. Use Tab to move between topics; press Enter to open one."
             >
               {/* Background Rect for Click-To-Pan */}
               <rect width="1000" height="800" fill="transparent" />
@@ -567,7 +567,7 @@ export function ConceptGraphView() {
                         onMouseLeave={handleNodeMouseLeave}
                         role="button"
                         tabIndex={0}
-                        aria-label={`Concept ${node.label}, mastery ${node.masteryScore}%`}
+                        aria-label={`${node.label}, you know ${node.masteryScore}% of this`}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             setSelectedNodeId(node.id);
@@ -682,23 +682,23 @@ export function ConceptGraphView() {
 
         {/* Legend Box */}
         <div className={styles.legend}>
-          <span className={styles.legendTitle}>Graph Legend</span>
+          <span className={styles.legendTitle}>What the colours mean</span>
           <div className={styles.legendItem}>
             <span className={styles.legendGapDot} />
-            <span>Knowledge Gap (&lt;60%)</span>
+            <span>Needs work (under 60%)</span>
           </div>
           <div className={styles.legendItem}>
             <svg width="18" height="8">
               <line x1="0" y1="4" x2="14" y2="4" stroke="var(--text-muted)" strokeWidth="2" strokeDasharray="4,2" />
               <polygon points="12,1 18,4 12,7" fill="var(--text-muted)" />
             </svg>
-            <span>Prerequisite (depends on)</span>
+            <span>You need this first</span>
           </div>
           <div className={styles.legendItem}>
             <svg width="18" height="6">
               <line x1="0" y1="3" x2="18" y2="3" stroke="var(--text-muted)" strokeWidth="2" strokeDasharray="3,2" />
             </svg>
-            <span>Part of (component)</span>
+            <span>Part of</span>
           </div>
           <div className={styles.legendItem}>
             <svg width="18" height="6">
@@ -714,7 +714,7 @@ export function ConceptGraphView() {
             type="button"
             className={styles.zoomBtn}
             onClick={handleZoomIn}
-            title="Zoom In"
+            title="Zoom in"
             aria-label="Zoom in"
           >
             <Icon name="plus" size={18} />
@@ -723,7 +723,7 @@ export function ConceptGraphView() {
             type="button"
             className={styles.zoomBtn}
             onClick={handleZoomOut}
-            title="Zoom Out"
+            title="Zoom out"
             aria-label="Zoom out"
           >
             <Icon name="x" size={18} />
@@ -732,8 +732,8 @@ export function ConceptGraphView() {
             type="button"
             className={styles.zoomBtn}
             onClick={handleResetView}
-            title="Reset View"
-            aria-label="Reset view"
+            title="Reset the view"
+            aria-label="Reset the view"
           >
             <Icon name="refresh-cw" size={16} />
           </button>

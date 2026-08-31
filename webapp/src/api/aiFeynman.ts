@@ -34,38 +34,38 @@ export interface PersonaProfile {
 export const PERSONA_PROFILES: Record<ApprenticePersona, PersonaProfile> = {
   curious_beginner: {
     id: "curious_beginner",
-    name: "Curious Beginner Alex",
+    name: "Alex, the beginner",
     shortName: "Alex",
     avatar: "🌱",
-    tagline: "Eager & literal, asks endless 'why' questions and takes intuitive leaps.",
+    tagline: "Keen, takes things literally, and asks 'but why?' about everything.",
     description:
-      "Alex is passionate and curious, but mixes up surface analogies with deep mechanisms. Needs intuitive, plain-language explanations with vivid metaphors.",
-    traits: ["Asks 'why' repeatedly", "Confuses correlation with cause", "Craves real-world analogies"],
-    challengeStyle: "Naive logic & everyday misconceptions",
+      "Alex is keen but mixes up a neat comparison with how something actually works. Plain words and a good comparison go a long way.",
+    traits: ["Always asks why", "Mixes up cause and coincidence", "Loves a good comparison"],
+    challengeStyle: "Everyday mix-ups",
     badgeColor: "#10b981",
   },
   overconfident_peer: {
     id: "overconfident_peer",
-    name: "Overconfident Peer Jordan",
+    name: "Jordan, who thinks they know it",
     shortName: "Jordan",
     avatar: "⚡",
-    tagline: "Sharp with buzzwords, skips nuances, and arrogantly dismisses edge cases.",
+    tagline: "Good with the words, skips the details, waves away anything awkward.",
     description:
-      "Jordan sounds convincing on the surface, but glosses over preconditions and hand-waves away rigorous steps. Demands precise proofs, counterexamples, and strict definitions.",
-    traits: ["Heavy jargon usage", "Ignores edge cases", "Needs rigorous proof to concede"],
-    challengeStyle: "Sophisticated half-truths & hand-waving",
+      "Jordan sounds convincing but skips the conditions and the working. You'll need a proper reason or an example that breaks their argument.",
+    traits: ["Uses big words", "Ignores the awkward cases", "Won't back down easily"],
+    challengeStyle: "Convincing half-truths",
     badgeColor: "#f59e0b",
   },
   struggling_student: {
     id: "struggling_student",
-    name: "Struggling Prep Student Taylor",
+    name: "Taylor, who's struggling",
     shortName: "Taylor",
     avatar: "🧩",
-    tagline: "Overwhelmed by formulas, mixes up similar terms, anxious about exams.",
+    tagline: "Thrown by formulas, muddles similar words, worried about the exam.",
     description:
-      "Taylor gets intimidated by dense academic notation and easily gets lost in multi-step chains. Thrives on step-by-step breakdowns, visual scaffolding, and patience.",
-    traits: ["Notation anxiety", "Mixes similar definitions", "Needs step-by-step checkpoints"],
-    challengeStyle: "Step-by-step mechanics & formula deciphering",
+      "Taylor finds heavy notation off-putting and gets lost when there are lots of steps. Take it slowly, one step at a time.",
+    traits: ["Put off by symbols", "Muddles similar words", "Needs it step by step"],
+    challengeStyle: "One step at a time",
     badgeColor: "#8b5cf6",
   },
 };
@@ -116,10 +116,10 @@ export interface FeynmanDebriefReport {
   clarityScore: number; // 0 to 100
   precisionScore: number; // 0 to 100
   pedagogicalRating:
-    | "Master Teacher"
-    | "Proficient Guide"
-    | "Developing Explainer"
-    | "Needs Practice";
+    | "Brilliant explainer"
+    | "Good explainer"
+    | "Getting there"
+    | "Needs a bit more practice";
   summary: string;
   conceptsMastered: string[];
   remainingGaps: string[];
@@ -581,7 +581,8 @@ Rules:
 1. Write a 3-5 sentence draft representing the apprentice's flawed understanding of ${safeTopic}.
 2. Include 2-3 subtle, plausible conceptual misconceptions typical of this persona.
 3. Include an engaging challenge question the apprentice asks the user.
-4. Output in valid JSON matching this schema:
+4. Write everything in plain, everyday British English aimed at a 14-18 year old. Short sentences, no academic jargon in the explanations and hints.
+5. Output in valid JSON matching this schema:
 {
   "draftText": "...",
   "hiddenMisconceptions": [
@@ -823,15 +824,15 @@ export async function generateFeynmanDebrief(
 
   const overallMastery = Math.min(100, Math.round((finalScore * 0.5) + (clarityScore * 0.25) + (precisionScore * 0.25)));
 
-  let pedagogicalRating: FeynmanDebriefReport["pedagogicalRating"] = "Developing Explainer";
+  let pedagogicalRating: FeynmanDebriefReport["pedagogicalRating"] = "Getting there";
   if (overallMastery >= 90) {
-    pedagogicalRating = "Master Teacher";
+    pedagogicalRating = "Brilliant explainer";
   } else if (overallMastery >= 75) {
-    pedagogicalRating = "Proficient Guide";
+    pedagogicalRating = "Good explainer";
   } else if (overallMastery >= 55) {
-    pedagogicalRating = "Developing Explainer";
+    pedagogicalRating = "Getting there";
   } else {
-    pedagogicalRating = "Needs Practice";
+    pedagogicalRating = "Needs a bit more practice";
   }
 
   // Mastered concepts vs remaining gaps
@@ -852,22 +853,22 @@ export async function generateFeynmanDebrief(
 
   // Strengths & Improvement Areas
   const strengths: string[] = [];
-  if (analogyCount > 0) strengths.push("Effective use of intuitive analogies and concrete mental models");
-  if (stepByStepCount > 0) strengths.push("Logical sequential structure and clear cause-and-effect reasoning");
-  if (overallMastery >= 75) strengths.push(`Successfully guided ${PERSONA_PROFILES[persona].shortName} past persistent misconceptions`);
-  if (strengths.length === 0) strengths.push("Clear commitment to explaining core terminology");
+  if (analogyCount > 0) strengths.push("You used comparisons that made the idea easy to picture");
+  if (stepByStepCount > 0) strengths.push("You took it in order, so the cause and effect were clear");
+  if (overallMastery >= 75) strengths.push(`You talked ${PERSONA_PROFILES[persona].shortName} round on things they were stuck on`);
+  if (strengths.length === 0) strengths.push("You stuck with it and explained the key words properly");
 
   const improvementAreas: string[] = [];
-  if (analogyCount === 0) improvementAreas.push("Incorporate more real-world metaphors to anchor abstract concepts");
-  if (stepByStepCount === 0) improvementAreas.push("Break down multi-stage mechanisms into discrete numbered steps");
-  if (remainingGaps.length > 0) improvementAreas.push("Deepen coverage of edge cases and boundary conditions");
-  if (improvementAreas.length === 0) improvementAreas.push("Continue practicing with hostile or overconfident apprentice personas");
+  if (analogyCount === 0) improvementAreas.push("Try a real-world comparison to make the abstract bits land");
+  if (stepByStepCount === 0) improvementAreas.push("Break the longer explanations into numbered steps");
+  if (remainingGaps.length > 0) improvementAreas.push("Say more about the awkward cases where the rule stops working");
+  if (improvementAreas.length === 0) improvementAreas.push("Try explaining to Jordan next — they push back harder");
 
   // Targeted Flashcards based on session discoveries
   const generatedFlashcards: FeynmanFlashcardCandidate[] = draft.hiddenMisconceptions.map((m) => ({
     front: `In ${draft.topic}, what is the common misconception regarding "${m.snippet}"?`,
     back: `${m.explanation}\n\nAccurate understanding: ${m.correctedSnippet}`,
-    rationale: `Targeted review from your teaching session with ${PERSONA_PROFILES[persona].name}.`,
+    rationale: `From the session where you explained this to ${PERSONA_PROFILES[persona].name}.`,
     concept: m.concept,
   }));
 
@@ -875,12 +876,12 @@ export async function generateFeynmanDebrief(
     generatedFlashcards.push({
       front: `What is the core principle of ${draft.topic}?`,
       back: `${draft.topic} governs key relationships in ${draft.subject} via systematic interactions and constraints.`,
-      rationale: "Foundational flashcard generated from your Feynman teaching arena session.",
+      rationale: "Made from the session where you explained this out loud.",
       concept: draft.topic,
     });
   }
 
-  const summary = `You completed an in-depth Feynman Arena teaching session with ${PERSONA_PROFILES[persona].name} on "${draft.topic}". Through ${totalTurns} dialogue exchange${totalTurns === 1 ? "" : "s"}, you guided the apprentice from an initial baseline of 20% up to an understanding score of ${finalScore}%, demonstrating strong ${pedagogicalRating.toLowerCase()} capabilities.`;
+  const summary = `You explained "${draft.topic}" to ${PERSONA_PROFILES[persona].name}. Over ${totalTurns} message${totalTurns === 1 ? "" : "s"} you took them from 20% to ${finalScore}%. On this showing, you're a ${pedagogicalRating.toLowerCase()}.`;
 
   return {
     overallMastery,

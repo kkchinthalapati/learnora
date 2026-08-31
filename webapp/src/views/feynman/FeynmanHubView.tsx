@@ -74,7 +74,7 @@ export function FeynmanHubView() {
     setIsGenerating(true);
     try {
       const draft = await generateApprenticeDraft(
-        subject.trim() || "General Knowledge",
+        subject.trim() || "General knowledge",
         topic.trim(),
         selectedPersona,
         selectedDifficulty
@@ -82,7 +82,7 @@ export function FeynmanHubView() {
 
       const newSession: FeynmanSessionState = {
         id: `feynman-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        subject: subject.trim() || "General Knowledge",
+        subject: subject.trim() || "General knowledge",
         topic: topic.trim(),
         persona: selectedPersona,
         difficulty: selectedDifficulty,
@@ -126,19 +126,19 @@ export function FeynmanHubView() {
         <div className={styles.heroHeader}>
           <div className={styles.heroTitleGroup}>
             <span className={styles.eyebrowBadge}>
-              <Icon name="brain" size={14} /> Teach-to-Master Arena
+              <Icon name="brain" size={14} /> Study Lab
             </span>
-            <h1 className={styles.heroTitle}>Feynman AI Apprentice</h1>
+            <h1 className={styles.heroTitle}>Explain It Simply</h1>
             <p className={styles.heroSubtitle}>
-              True understanding is the ability to teach a concept simply. Choose
-              an AI apprentice with subtle misconceptions, spot their flawed
-              reasoning, and guide them to a lightbulb moment.
+              If you can explain something simply, you understand it. Pick someone
+              to teach — they'll have a few things muddled — spot where they've gone
+              wrong, and talk them round.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Active Session Banner */}
+      {/* Banner for a session in progress */}
       {activeSession && (
         <div className={styles.activeSessionBanner} data-testid="active-session-banner">
           <div className={styles.activeSessionInfo}>
@@ -147,12 +147,12 @@ export function FeynmanHubView() {
             </div>
             <div>
               <div className={styles.activeSessionTitle}>
-                In-Progress Arena: {activeSession.topic}
+                Still going: {activeSession.topic}
               </div>
               <div className={styles.activeSessionMeta}>
-                Apprentice: {PERSONA_PROFILES[activeSession.persona].name} • Current
-                Understanding: {activeSession.currentScore}% • {activeSession.turns.length} Turn
-                {activeSession.turns.length === 1 ? "" : "s"}
+                Teaching {PERSONA_PROFILES[activeSession.persona].name} • they're
+                {" "}{activeSession.currentScore}% of the way there • {activeSession.turns.length}
+                {" "}message{activeSession.turns.length === 1 ? "" : "s"}
               </div>
             </div>
           </div>
@@ -161,19 +161,19 @@ export function FeynmanHubView() {
               variant="primary"
               onClick={() => handleResumeSession(activeSession)}
             >
-              <Icon name="play" size={16} /> Resume Teaching
+              <Icon name="play" size={16} /> Carry on
             </Button>
           </div>
         </div>
       )}
 
-      {/* Arena Setup Card */}
+      {/* Setup card */}
       <div className={styles.heroCard}>
         <div className={styles.configGrid}>
           {/* Topic Configuration */}
           <div className={styles.fieldGroup}>
             <div className={styles.sectionTitle}>
-              <Icon name="target" size={20} /> 1. Select Subject & Topic
+              <Icon name="target" size={20} /> 1. What are you explaining?
             </div>
             <div className={styles.inputRow}>
               <div className={styles.fieldGroup}>
@@ -190,7 +190,7 @@ export function FeynmanHubView() {
               </div>
               <div className={styles.fieldGroup}>
                 <label htmlFor="topic-input" className={styles.fieldLabel}>
-                  Topic or Concept to Master
+                  Topic
                 </label>
                 <input
                   id="topic-input"
@@ -203,7 +203,7 @@ export function FeynmanHubView() {
             </div>
             <div className={styles.topicChips}>
               <span className={styles.fieldLabel} style={{ alignSelf: "center", marginRight: 4 }}>
-                Popular:
+                Try one:
               </span>
               {QUICK_TOPICS.map((item) => (
                 <button
@@ -221,10 +221,10 @@ export function FeynmanHubView() {
             </div>
           </div>
 
-          {/* Apprentice Persona Selection */}
+          {/* Who you are teaching */}
           <div className={styles.fieldGroup}>
             <div className={styles.sectionTitle}>
-              <Icon name="user" size={20} /> 2. Choose Your Apprentice Persona
+              <Icon name="user" size={20} /> 2. Who are you teaching?
             </div>
             <div className={styles.personaGrid}>
               {(Object.keys(PERSONA_PROFILES) as ApprenticePersona[]).map((key) => {
@@ -264,10 +264,10 @@ export function FeynmanHubView() {
             </div>
           </div>
 
-          {/* Difficulty Selection */}
+          {/* How hard */}
           <div className={styles.fieldGroup}>
             <div className={styles.sectionTitle}>
-              <Icon name="award" size={20} /> 3. Select Challenge Depth
+              <Icon name="award" size={20} /> 3. How hard should they push you?
             </div>
             <div className={styles.difficultyRow}>
               {(["beginner", "intermediate", "advanced"] as FeynmanDifficulty[]).map((diff) => (
@@ -280,15 +280,15 @@ export function FeynmanHubView() {
                   onClick={() => setSelectedDifficulty(diff)}
                   data-testid={`difficulty-${diff}`}
                 >
-                  {diff === "beginner" && "Intuition & Analogies (Beginner)"}
-                  {diff === "intermediate" && "Mechanisms & Traps (Intermediate)"}
-                  {diff === "advanced" && "Edge Cases & Proofs (Advanced)"}
+                  {diff === "beginner" && "Gently — just the big idea"}
+                  {diff === "intermediate" && "A bit — how it actually works"}
+                  {diff === "advanced" && "Hard — the tricky cases"}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Launch Button */}
+          {/* Start button */}
           <div className={styles.launchRow}>
             <Button
               variant="primary"
@@ -299,11 +299,11 @@ export function FeynmanHubView() {
             >
               {isGenerating ? (
                 <>
-                  <Icon name="refresh-cw" size={18} /> Preparing Apprentice Draft...
+                  <Icon name="refresh-cw" size={18} /> Getting them ready…
                 </>
               ) : (
                 <>
-                  <Icon name="zap" size={18} /> Enter Teaching Arena
+                  <Icon name="zap" size={18} /> Start teaching
                 </>
               )}
             </Button>
@@ -311,17 +311,17 @@ export function FeynmanHubView() {
         </div>
       </div>
 
-      {/* Past Sessions History */}
+      {/* Past sessions */}
       <div className={styles.historyCard}>
         <div className={styles.sectionTitle}>
-          <Icon name="calendar-week" size={20} /> Past Teaching Sessions ({sessions.length})
+          <Icon name="calendar-week" size={20} /> Things you've explained ({sessions.length})
         </div>
 
         {sessions.length === 0 ? (
           <EmptyState
             icon="brain"
-            title="No teaching sessions yet"
-            message="Launch your first session above to test your depth of understanding on any subject!"
+            title="Nothing here yet"
+            message="Pick a topic above and try explaining it. It's the quickest way to find out what you actually know."
           />
         ) : (
           <div className={styles.sessionList}>
@@ -337,17 +337,17 @@ export function FeynmanHubView() {
                         {sess.topic} <span className={styles.sessionSub}>({sess.subject})</span>
                       </div>
                       <div className={styles.sessionSub}>
-                        <span>Apprentice: {persona.name}</span>
+                        <span>Taught {persona.name}</span>
                         <span>•</span>
                         <span
                           className={`${styles.badge} ${
                             isCompleted ? styles.badgeSuccess : styles.badgeAccent
                           }`}
                         >
-                          {isCompleted ? "Mastered" : "In Progress"} ({sess.currentScore}%)
+                          {isCompleted ? "Nailed it" : "Still going"} ({sess.currentScore}%)
                         </span>
                         <span>•</span>
-                        <span>{sess.turns.length} Turns</span>
+                        <span>{sess.turns.length} messages</span>
                       </div>
                     </div>
                   </div>
@@ -360,7 +360,7 @@ export function FeynmanHubView() {
                         onClick={() => handleViewDebrief(sess)}
                         data-testid="view-debrief-btn"
                       >
-                        <Icon name="file-text" size={14} /> View Debrief
+                        <Icon name="file-text" size={14} /> See how it went
                       </Button>
                     ) : (
                       <Button
@@ -369,14 +369,14 @@ export function FeynmanHubView() {
                         onClick={() => handleResumeSession(sess)}
                         data-testid="resume-session-btn"
                       >
-                        <Icon name="play" size={14} /> Resume
+                        <Icon name="play" size={14} /> Carry on
                       </Button>
                     )}
                     <Button
                       size="sm"
                       variant="danger"
                       onClick={(e) => handleDeleteSession(sess.id, e)}
-                      aria-label="Delete session"
+                      aria-label={`Delete the session on ${sess.topic}`}
                       data-testid="delete-session-btn"
                     >
                       <Icon name="trash" size={14} />

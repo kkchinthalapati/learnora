@@ -439,15 +439,15 @@ export function computeKnowledgeGapDetails(
   let quizDeficit = 0;
   if (quizAvg !== null && quizAvg < 60) {
     quizDeficit = Math.round(60 - quizAvg);
-    reasons.push(`Low average quiz recall score (${quizAvg}%)`);
+    reasons.push(`Your quiz average here is ${quizAvg}%`);
   } else if (collector.isWeakTopic) {
     quizDeficit = 30;
-    reasons.push("Flagged as a weak topic in recent quiz attempts");
+    reasons.push("This came up as a weak spot in your recent quizzes");
   }
 
   const overdueCardsCount = collector.overdueFlashcardsCount || 0;
   if (overdueCardsCount > 0) {
-    reasons.push(`${overdueCardsCount} overdue flashcard${overdueCardsCount > 1 ? "s" : ""} at forgetting risk`);
+    reasons.push(`${overdueCardsCount} flashcard${overdueCardsCount > 1 ? "s are" : " is"} overdue`);
   }
 
   let examProximityDays: number | null = null;
@@ -468,9 +468,9 @@ export function computeKnowledgeGapDetails(
     nearestExamName = closestExam.exam_name;
 
     if (examProximityDays <= 3) {
-      reasons.push(`High urgency: ${closestExam.exam_name} is in ${examProximityDays === 0 ? "today" : `${examProximityDays} day(s)`}`);
+      reasons.push(`${closestExam.exam_name} is ${examProximityDays === 0 ? "today" : `in ${examProximityDays} day${examProximityDays === 1 ? "" : "s"}`}`);
     } else if (examProximityDays <= 7) {
-      reasons.push(`Upcoming exam: ${closestExam.exam_name} in ${examProximityDays} days`);
+      reasons.push(`${closestExam.exam_name} is in ${examProximityDays} days`);
     }
   }
 
@@ -745,7 +745,7 @@ export function buildConceptGraph(input: BuildGraphInput): ConceptGraphData {
 
   for (const collector of conceptCollectors.values()) {
     const folder = collector.folderId ? folderMap.get(collector.folderId) : undefined;
-    const folderName = folder ? folder.name : "General Knowledge";
+    const folderName = folder ? folder.name : "General knowledge";
     const folderColor = folder ? folder.color : "#0f766e";
 
     // Compute Mastery Score (0 - 100)
@@ -1149,7 +1149,7 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
         examProximityDays: 8,
         examName: "Biology Midterm",
         urgency: "high",
-        remediationReasons: ["Low retention mastery score (42%)", "2 overdue flashcards at forgetting risk"],
+        remediationReasons: ["You know about 42% of this", "2 flashcards are overdue"],
       },
       notesCount: 1,
       flashcardsCount: 2,
@@ -1202,7 +1202,7 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
         examProximityDays: 4,
         examName: "Chemistry Final",
         urgency: "critical",
-        remediationReasons: ["Low mastery (48%)", "Exam approaching in 4 days", "2 overdue flashcards"],
+        remediationReasons: ["You know about 48% of this", "Exam in 4 days", "2 flashcards overdue"],
       },
       notesCount: 2,
       flashcardsCount: 2,
@@ -1233,7 +1233,7 @@ export function generateSampleGraph(folders: Folder[] = []): ConceptGraphData {
         examProximityDays: 4,
         examName: "Chemistry Final",
         urgency: "critical",
-        remediationReasons: ["Low mastery (35%)", "Exam in 4 days"],
+        remediationReasons: ["You know about 35% of this", "Exam in 4 days"],
       },
       notesCount: 1,
       flashcardsCount: 1,
@@ -1419,53 +1419,53 @@ export function generateRecoveryDrill(
   if (node.noteSnippets && node.noteSnippets.length > 0) {
     summaryTakeaway = node.noteSnippets[0];
   } else {
-    summaryTakeaway = `Core foundational principles and applications of ${node.label}.`;
+    summaryTakeaway = `The main ideas behind ${node.label}, and where you use them.`;
   }
 
   const prereqHint = prereqNodes.length > 0
     ? prereqNodes.map((p) => p.label).join(", ")
-    : "foundational concepts";
+    : "the basics";
 
   const questions: RecoveryDrillQuestion[] = [
     {
       id: 1,
-      question: `What is the core definition or mechanism of ${node.label}?`,
+      question: `What does ${node.label} actually mean?`,
       options: [
         node.noteSnippets[0]
           ? node.noteSnippets[0].slice(0, 85)
-          : `Essential process driving ${node.label} in ${node.folderName}`,
-        `An unrelated peripheral process in ${node.folderName}`,
-        `A temporary inhibitor with no catalytic activity`,
-        `A non-functional structural artifact`,
+          : `The main idea behind ${node.label} in ${node.folderName}`,
+        `Something unrelated from ${node.folderName}`,
+        `Something that slows things down and does nothing else`,
+        `A leftover that does nothing at all`,
       ],
       correctIndex: 0,
-      explanation: `Mastering ${node.label} starts with its core definition: ${node.noteSnippets[0] || `${node.label} is a central topic in ${node.folderName}.`}`,
+      explanation: `Start with what it means: ${node.noteSnippets[0] || `${node.label} is a key topic in ${node.folderName}.`}`,
       conceptTarget: node.label,
     },
     {
       id: 2,
-      question: `When applying ${node.label}, what prerequisite foundational idea is essential to understand?`,
+      question: `What do you need to understand first, before ${node.label} makes sense?`,
       options: [
-        `It operates in isolation without influencing other components`,
-        `It builds on connected prerequisite topics such as ${prereqHint}`,
-        `It only functions when deactivated or degraded`,
-        `It is completely independent of all biological and chemical laws`,
+        `Nothing — it stands entirely on its own`,
+        `It builds on things like ${prereqHint}`,
+        `It only works once it has stopped working`,
+        `Nothing — it ignores all the usual rules`,
       ],
       correctIndex: 1,
-      explanation: `${node.label} relies on its prerequisite foundation (${prereqHint}). Reviewing prerequisites solidifies understanding.`,
+      explanation: `${node.label} rests on ${prereqHint}. Go over those and this gets much easier.`,
       conceptTarget: node.label,
     },
     {
       id: 3,
-      question: `What is the most effective active recall strategy to remediate this knowledge gap in ${node.label}?`,
+      question: `What is the best way to get ${node.label} to stick?`,
       options: [
-        `Passive re-reading of entire textbook chapters without self-testing`,
-        `Targeted active retrieval practice and explaining core mechanisms under timed intervals`,
-        `Ignoring the gap until the morning of the exam`,
-        `Memorizing without understanding prerequisite terms`,
+        `Reading the chapter again without testing yourself`,
+        `Testing yourself on it, and explaining it out loud`,
+        `Leaving it until the morning of the exam`,
+        `Memorising the words without knowing what they mean`,
       ],
       correctIndex: 1,
-      explanation: `Spaced retrieval practice reinforces neural pathways for ${node.label}, quickly closing the retention gap.`,
+      explanation: `Testing yourself over a few days is what makes ${node.label} stick. Rereading it feels productive but does much less.`,
       conceptTarget: node.label,
     },
   ];

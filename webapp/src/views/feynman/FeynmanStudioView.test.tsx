@@ -82,7 +82,7 @@ describe("FeynmanStudioView Component", () => {
     const user = userEvent.setup();
     renderWithProviders(<FeynmanStudioView />, undefined, { withRouter: true });
 
-    const hintBtn = screen.getByText(/View pedagogical hint/i);
+    const hintBtn = screen.getByText(/Give me a hint/i);
     await user.click(hintBtn);
 
     expect(screen.getByTestId("hint-misc-1")).toHaveTextContent(
@@ -94,7 +94,7 @@ describe("FeynmanStudioView Component", () => {
     const user = userEvent.setup();
     renderWithProviders(<FeynmanStudioView />, undefined, { withRouter: true });
 
-    const analogyBtn = screen.getByText(/💡 Explain with Analogy/i);
+    const analogyBtn = screen.getByText(/💡 Use a comparison/i);
     await user.click(analogyBtn);
 
     const textarea = screen.getByTestId("teaching-textarea") as HTMLTextAreaElement;
@@ -140,6 +140,6 @@ describe("FeynmanStudioView Component", () => {
     clearFeynmanSessions();
     renderWithProviders(<FeynmanStudioView />, undefined, { withRouter: true });
 
-    expect(screen.getByText(/Session Not Found/i)).toBeInTheDocument();
+    expect(screen.getByText(/We can’t find that session/i)).toBeInTheDocument();
   });
 });

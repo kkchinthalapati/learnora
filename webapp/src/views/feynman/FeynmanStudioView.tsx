@@ -52,12 +52,12 @@ export function FeynmanStudioView() {
     return (
       <div className={styles.container}>
         <div className={styles.card} style={{ textAlign: "center", padding: "40px" }}>
-          <h2>Session Not Found</h2>
+          <h2>We can’t find that session</h2>
           <p style={{ color: "var(--text-muted)", marginTop: "8px", marginBottom: "20px" }}>
-            The requested teaching arena session could not be located or has expired.
+            It may have been deleted, or it was from a while ago.
           </p>
           <Button variant="primary" onClick={() => navigate("/feynman")}>
-            <Icon name="chevron-down" size={16} style={{ transform: "rotate(90deg)" }} /> Return to Feynman Hub
+            <Icon name="chevron-down" size={16} style={{ transform: "rotate(90deg)" }} /> Back
           </Button>
         </div>
       </div>
@@ -189,20 +189,20 @@ export function FeynmanStudioView() {
 
   return (
     <div className={styles.container}>
-      {/* Top Arena Header & Quick Action Bar */}
+      {/* Header and quick actions */}
       <div className={styles.arenaHeader}>
         <div className={styles.headerLeft}>
           <Button
             variant="secondary"
             size="sm"
             onClick={() => navigate("/feynman")}
-            aria-label="Back to Feynman Hub"
+            aria-label="Back to Explain It Simply"
           >
-            <Icon name="x" size={14} /> Hub
+            <Icon name="x" size={14} /> Back
           </Button>
           <div className={styles.headerTitleGroup}>
             <span className={styles.headerEyebrow}>
-              {session.subject} • {session.difficulty} depth
+              {session.subject} • {session.difficulty}
             </span>
             <div className={styles.headerTitle}>
               {session.topic}
@@ -222,7 +222,7 @@ export function FeynmanStudioView() {
             data-testid="revise-draft-btn"
           >
             <Icon name="refresh-cw" size={14} />{" "}
-            {isRevising ? "Revising..." : "Ask Apprentice to Revise"}
+            {isRevising ? "Rewriting…" : "Ask them to try again"}
           </Button>
           <Button
             variant="primary"
@@ -230,24 +230,24 @@ export function FeynmanStudioView() {
             onClick={handleFinishAndDebrief}
             data-testid="finish-session-btn"
           >
-            <Icon name="award" size={14} /> Finish & View Debrief
+            <Icon name="award" size={14} /> Finish and see how it went
           </Button>
         </div>
       </div>
 
       {/* Split Workspace */}
       <div className={styles.splitWorkspace}>
-        {/* Left Pane: The Apprentice's Flawed Draft & Questions */}
+        {/* Left pane: their attempt and their questions */}
         <div className={styles.draftPane}>
-          {/* Working Essay Card */}
+          {/* Their attempt */}
           <div className={styles.card}>
             <div className={styles.cardTitle}>
               <span>
-                <Icon name="pencil" size={18} /> {persona.shortName}&apos;s Draft Essay
+                <Icon name="pencil" size={18} /> What {persona.shortName} wrote
               </span>
               <span className={styles.personaBadge} style={{ fontSize: "11px" }}>
                 {session.draft.hiddenMisconceptions.filter(isConceptSolved).length}/
-                {session.draft.hiddenMisconceptions.length} Flaws Resolved
+                {session.draft.hiddenMisconceptions.length} sorted
               </span>
             </div>
 
@@ -255,7 +255,7 @@ export function FeynmanStudioView() {
               <p>{session.draft.draftText}</p>
             </div>
 
-            {/* Misconceptions Detail & Hints */}
+            {/* What they have got muddled, with hints */}
             <div className={styles.misconceptionList}>
               <div
                 style={{
@@ -265,7 +265,7 @@ export function FeynmanStudioView() {
                   marginTop: "8px",
                 }}
               >
-                Misconception Clues & Weak Spots:
+                What they’ve got muddled:
               </div>
               {session.draft.hiddenMisconceptions.map((misc) => {
                 const solved = isConceptSolved(misc);
@@ -287,7 +287,7 @@ export function FeynmanStudioView() {
                           solved ? styles.resolved : ""
                         }`}
                       >
-                        {solved ? "✅ Resolved & Understood" : "⚠️ Active Flaw"}
+                        {solved ? "✅ Sorted" : "⚠️ Still muddled"}
                       </span>
                     </div>
                     <div className={styles.misconceptionSnippet}>
@@ -302,7 +302,7 @@ export function FeynmanStudioView() {
                       onClick={() => toggleHint(misc.id)}
                     >
                       <Icon name="help-circle" size={13} />
-                      {showHint ? "Hide hint" : "View pedagogical hint"}
+                      {showHint ? "Hide hint" : "Give me a hint"}
                     </button>
                     {showHint && (
                       <div className={styles.hintBox} data-testid={`hint-${misc.id}`}>
@@ -315,21 +315,21 @@ export function FeynmanStudioView() {
             </div>
           </div>
 
-          {/* Apprentice Challenge Question */}
+          {/* Their question */}
           <div className={styles.challengeCard} data-testid="challenge-question-card">
             <div className={styles.challengeTitle}>
-              <Icon name="help-circle" size={16} /> {persona.shortName}&apos;s Direct Question:
+              <Icon name="help-circle" size={16} /> {persona.shortName} asks:
             </div>
             <div className={styles.challengeText}>
               &quot;{session.draft.challengeQuestion}&quot;
             </div>
           </div>
 
-          {/* Learning Objectives Checklist */}
+          {/* What to get across */}
           <div className={styles.card}>
             <div className={styles.cardTitle}>
               <span>
-                <Icon name="list-checks" size={18} /> Mastery Objectives
+                <Icon name="list-checks" size={18} /> What to get across
               </span>
             </div>
             <div className={styles.objectivesList}>
@@ -350,17 +350,17 @@ export function FeynmanStudioView() {
           </div>
         </div>
 
-        {/* Right Pane: Student Teaching Console & Dynamic Gauge */}
+        {/* Right pane: where you type, and how they’re doing */}
         <div className={styles.teachingPane}>
-          {/* Dynamic Reactive Understanding Gauge */}
+          {/* How much they’ve got */}
           <div className={styles.gaugeCard} data-testid="understanding-gauge">
             <div className={styles.gaugeHeader}>
               <div className={styles.gaugeTitle}>
                 <Icon name="activity" size={18} />
-                {persona.shortName}&apos;s Understanding Meter
+                How much {persona.shortName} has got
               </div>
 
-              {/* Reactive Emotion Badge */}
+              {/* How they’re feeling */}
               <div
                 className={`${styles.emotionBadge} ${
                   currentEmotion === "confused"
@@ -374,13 +374,13 @@ export function FeynmanStudioView() {
                 data-testid="apprentice-emotion-badge"
               >
                 {currentEmotion === "confused" && "🤔 Confused"}
-                {currentEmotion === "skeptical" && "🤨 Skeptical"}
-                {currentEmotion === "lightbulb" && "💡 Lightbulb Moment!"}
-                {currentEmotion === "convinced" && "🎓 Convinced / Mastered!"}
+                {currentEmotion === "skeptical" && "🤨 Not convinced"}
+                {currentEmotion === "lightbulb" && "💡 It just clicked"}
+                {currentEmotion === "convinced" && "🎓 They’ve got it"}
               </div>
             </div>
 
-            {/* Gauge Progress Bar */}
+            {/* Progress bar */}
             <div className={styles.gaugeProgressTrack}>
               <div
                 className={styles.gaugeProgressBar}
@@ -390,41 +390,41 @@ export function FeynmanStudioView() {
             </div>
 
             <div className={styles.gaugeMetaRow}>
-              <span className={styles.scoreNumber}>{currentScore}% Comprehension</span>
+              <span className={styles.scoreNumber}>{currentScore}% of the way there</span>
               {lastTurn && lastTurn.delta > 0 && (
                 <span className={styles.deltaBadge}>
-                  +{lastTurn.delta}% Understanding Gain
+                  +{lastTurn.delta}% from your last go
                 </span>
               )}
             </div>
           </div>
 
-          {/* Dialogue Feed */}
+          {/* The conversation */}
           <div className={styles.card} style={{ flex: 1, minHeight: "260px" }}>
             <div className={styles.cardTitle}>
               <span>
-                <Icon name="users" size={18} /> Teaching Dialogue ({session.turns.length} Turns)
+                <Icon name="users" size={18} /> Your conversation ({session.turns.length})
               </span>
             </div>
 
             <div className={styles.dialogueStream} data-testid="dialogue-stream">
               {session.turns.length === 0 ? (
                 <div style={{ textAlign: "center", color: "var(--text-muted)", padding: "24px 0" }}>
-                  <p>No teaching exchanges yet.</p>
+                  <p>Nothing said yet.</p>
                   <p style={{ fontSize: "12px", marginTop: "4px" }}>
-                    Read {persona.shortName}&apos;s draft on the left and explain the key concept in simple words below!
+                    Read what {persona.shortName} wrote on the left, then explain it to them below in your own words.
                   </p>
                 </div>
               ) : (
                 session.turns.map((turn, idx) => (
                   <div key={turn.id || idx} className={styles.dialogueTurn}>
-                    {/* User Explanation */}
+                    {/* What you said */}
                     <div className={styles.userMessageBubble} data-testid="user-turn-bubble">
-                      <strong>You (Teacher):</strong>
+                      <strong>You:</strong>
                       <p style={{ marginTop: "4px" }}>{turn.userExplanation}</p>
                     </div>
 
-                    {/* Apprentice Reactive Response */}
+                    {/* What they said back */}
                     <div className={styles.apprenticeReplyBubble} data-testid="apprentice-turn-bubble">
                       <strong>{persona.name}:</strong>
                       <p>{turn.apprenticeReaction}</p>
@@ -432,7 +432,7 @@ export function FeynmanStudioView() {
                         <div className={styles.turnFeedbackPills}>
                           {turn.solvedPoints.map((s, sIdx) => (
                             <span key={sIdx} className={styles.solvedPill}>
-                              ✓ Clarified: {s}
+                              ✓ Got it: {s}
                             </span>
                           ))}
                         </div>
@@ -445,9 +445,9 @@ export function FeynmanStudioView() {
             </div>
           </div>
 
-          {/* Student Teaching Console & Input Area */}
+          {/* Where you type */}
           <div className={styles.consoleCard}>
-            {/* Scaffolding Shortcuts */}
+            {/* Starter phrases */}
             <div className={styles.shortcutsRow}>
               <button
                 type="button"
@@ -458,18 +458,18 @@ export function FeynmanStudioView() {
                   )
                 }
               >
-                💡 Explain with Analogy
+                💡 Use a comparison
               </button>
               <button
                 type="button"
                 className={styles.shortcutBtn}
                 onClick={() =>
                   handleApplyShortcut(
-                    "The misconception in your draft is that..."
+                    "The bit you've got wrong is..."
                   )
                 }
               >
-                ⚠️ Point out Error
+                ⚠️ Point out the mistake
               </button>
               <button
                 type="button"
@@ -480,7 +480,7 @@ export function FeynmanStudioView() {
                   )
                 }
               >
-                🪜 Walk Step-by-Step
+                🪜 Go step by step
               </button>
               <button
                 type="button"
@@ -491,7 +491,7 @@ export function FeynmanStudioView() {
                   )
                 }
               >
-                🔬 Counter-Example
+                🔬 Give an example that breaks it
               </button>
             </div>
 
@@ -499,7 +499,7 @@ export function FeynmanStudioView() {
             <div className={styles.inputWrapper}>
               <textarea
                 className={styles.teachingTextarea}
-                placeholder={`Explain ${session.topic} to ${persona.shortName} in simple terms. Correct their misconception and answer their question...`}
+                placeholder={`Explain ${session.topic} to ${persona.shortName} in your own words. Put them right, and answer what they asked...`}
                 value={explanationText}
                 onChange={(e) => setExplanationText(e.target.value)}
                 rows={3}
@@ -513,16 +513,16 @@ export function FeynmanStudioView() {
               />
             </div>
 
-            {/* Console Footer */}
+            {/* Footer */}
             <div className={styles.consoleFooter}>
               <label className={styles.voiceToggle}>
                 <input
                   type="checkbox"
                   checked={voiceMode}
                   onChange={handleVoiceToggle}
-                  aria-label="Voice simulation mode"
+                  aria-label="Practise saying it out loud"
                 />
-                <Icon name="mic" size={14} /> Voice Simulation
+                <Icon name="mic" size={14} /> Say it out loud
                 {isSimulatingSpeech && (
                   <span className={styles.voiceActiveIndicator}>● Listening</span>
                 )}
@@ -536,11 +536,11 @@ export function FeynmanStudioView() {
               >
                 {isSubmitting ? (
                   <>
-                    <Icon name="refresh-cw" size={14} /> Evaluating...
+                    <Icon name="refresh-cw" size={14} /> Reading it…
                   </>
                 ) : (
                   <>
-                    <Icon name="send" size={14} /> Teach Apprentice
+                    <Icon name="send" size={14} /> Send
                   </>
                 )}
               </Button>
