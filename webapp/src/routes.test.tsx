@@ -48,7 +48,7 @@ describe("route skeleton", () => {
     ["/library/notes", "Library"],
     ["/plan", "This week's plan"],
     ["/friends", "Friends"],
-    ["/analytics", "Analytics"],
+    ["/analytics", "Progress"],
     ["/graph", "How Topics Connect"],
     ["/feynman", "Explain It Simply"],
     ["/debugger", "Find My Mistake"],

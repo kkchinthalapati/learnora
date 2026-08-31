@@ -108,7 +108,7 @@ export function DashboardTasksWidget({
           {pending.length === 0 ? (
             <li className={styles.empty}>
               {all.length
-                ? "All caught up — nothing pending. 🎉"
+                ? "All caught up — nothing pending."
                 : "No tasks yet. Add your first above."}
             </li>
           ) : (

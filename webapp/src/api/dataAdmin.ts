@@ -347,7 +347,7 @@ export const dataAdminApi = {
 <body>
   <div class="container">
     <header>
-      <h1>📊 Your Study Report</h1>
+      <h1>Your Study Report</h1>
       <p class="report-date">Generated on ${new Date().toLocaleDateString("en-US", {
         weekday: "long",
         year: "numeric",
@@ -371,12 +371,12 @@ export const dataAdminApi = {
       </div>
       <div class="stat-card">
         <div class="stat-value">${streak}</div>
-        <div class="stat-label">Day Streak 🔥</div>
+        <div class="stat-label">Day Streak</div>
       </div>
     </div>
 
     <section>
-      <h2>📚 Tasks</h2>
+      <h2>Tasks</h2>
       ${
         tasks.length > 0
           ? `
@@ -410,7 +410,7 @@ export const dataAdminApi = {
     </section>
 
     <section>
-      <h2>🎓 Exams</h2>
+      <h2>Exams</h2>
       ${
         exams.length > 0
           ? `

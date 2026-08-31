@@ -76,7 +76,10 @@ export function sectionLabel(
   if (isLibrarySection(pathname)) return t("nav_library");
   if (pathname.startsWith("/timer")) return t("nav_timer");
   if (pathname.startsWith("/tasks")) return t("nav_tasks");
-  if (pathname.startsWith("/analytics")) return "Analytics";
+  /* "Progress" everywhere — it is the rail's label and the student's own
+     word for this. The page header used to say "Analytics", so one
+     destination had two names depending on where you read it. */
+  if (pathname.startsWith("/analytics")) return "Progress";
   if (pathname.startsWith("/graph")) return "How Topics Connect";
   if (pathname.startsWith("/feynman")) return "Explain It Simply";
   if (pathname.startsWith("/debugger")) return "Find My Mistake";

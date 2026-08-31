@@ -501,20 +501,20 @@ export function generateStudyInsights(
   // 1. Streak & Consistency insight
   if (heatData.currentStreak >= 3) {
     insights.push(
-      `🔥 You're on a ${heatData.currentStreak}-day streak. A short session every day beats one long cram.`,
+      `You're on a ${heatData.currentStreak}-day streak. A short session every day beats one long cram.`,
     );
   } else if (heatData.activeDays > 0) {
     insights.push(
-      `🔥 You've studied on ${heatData.activeDays} days this year. Do 25 minutes today and you'll start a streak.`,
+      `You've studied on ${heatData.activeDays} days this year. Do 25 minutes today and you'll start a streak.`,
     );
   } else {
     insights.push(
-      `🔥 Start a streak: 20–30 minutes a day adds up faster than you'd think.`,
+      `Start a streak: 20–30 minutes a day adds up faster than you'd think.`,
     );
   }
 
   // 2. Chronotype & Peak window
-  insights.push(`⚡ When you focus best: ${peak.label}. ${peak.description}`);
+  insights.push(`When you focus best: ${peak.label}. ${peak.description}`);
 
   // 3. Focus Volume & Pacing
   const hours = Math.floor(heatData.totalMinutes / 60);
@@ -542,22 +542,22 @@ export function generateStudyInsights(
 
     if (avgScore >= 80) {
       insights.push(
-        `🎯 Quizzes: you're averaging ${avgScore}%. That's strong — try a timed mock paper next.`,
+        `Quizzes: you're averaging ${avgScore}%. That's strong — try a timed mock paper next.`,
       );
     } else {
       insights.push(
-        `🎯 Quizzes: you're averaging ${avgScore}%. Go back over the topics you're getting wrong, then try again in a couple of days.`,
+        `Quizzes: you're averaging ${avgScore}%. Go back over the topics you're getting wrong, then try again in a couple of days.`,
       );
     }
   } else {
     insights.push(
-      `🎯 Try a quiz: testing yourself on your notes sticks far better than reading them again.`,
+      `Try a quiz: testing yourself on your notes sticks far better than reading them again.`,
     );
   }
 
   // 5. Spacing & Subject Interleaving
   insights.push(
-    `💡 Mix it up: switching between subjects in a week keeps you fresher and helps things stick.`,
+    `Mix it up: switching between subjects in a week keeps you fresher and helps things stick.`,
   );
 
   return insights;

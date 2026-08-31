@@ -103,7 +103,7 @@ export function StudyAnalyticsView() {
         <div
           className={styles.rangeGroup}
           role="group"
-          aria-label="Analytics date range"
+          aria-label="Progress date range"
         >
           {RANGE_OPTIONS.map((rangeOption) => (
             <button

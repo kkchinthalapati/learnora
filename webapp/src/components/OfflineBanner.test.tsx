@@ -35,9 +35,11 @@ describe("OfflineBanner", () => {
 
     render(<OfflineBanner />);
     expect(
-      screen.getByText("⚡ Offline Mode — Changes will sync when reconnected"),
+      screen.getByText(
+        "You're offline. Your work is saved and will sync when you reconnect.",
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Sync Now" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sync now" })).toBeInTheDocument();
   });
 
   it("shows syncing message when active sync is in progress", () => {
@@ -49,7 +51,9 @@ describe("OfflineBanner", () => {
     });
 
     render(<OfflineBanner />);
-    expect(screen.getByText("🔄 Syncing 3 offline actions...")).toBeInTheDocument();
+    expect(
+      screen.getByText("Syncing 3 saved changes…"),
+    ).toBeInTheDocument();
     const btn = screen.getByRole("button");
     expect(btn).toBeDisabled();
   });
@@ -66,7 +70,7 @@ describe("OfflineBanner", () => {
     });
 
     render(<OfflineBanner />);
-    const btn = screen.getByRole("button", { name: "Sync Now" });
+    const btn = screen.getByRole("button", { name: "Sync now" });
     await user.click(btn);
 
     expect(syncNowMock).toHaveBeenCalled();
