@@ -1,6 +1,7 @@
 import { useEffect, useImperativeHandle, useRef, type RefObject } from "react";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
+import { loadMathTypesetter } from "../lib/quillMath";
 import styles from "./RichTextEditor.module.css";
 
 /* Hand-rolled Quill wrapper (archive/REACT_MIGRATION.md Decision #8) rather than
@@ -141,7 +142,24 @@ export function RichTextEditor({
   useImperativeHandle(
     ref,
     () => ({
-      getPlainText: () => quillRef.current?.getText() ?? "",
+      getPlainText: () => {
+        const quill = quillRef.current;
+        if (!quill) return "";
+        /* Not `quill.getText()`: an embed contributes a single replacement
+           character to it, so every equation in the document would reach the
+           AI sidebar as \uFFFD — the maths simply gone. Walking the Delta puts
+           the TeX back, in the same $…$ form the model is asked to write, so
+           asking "explain this step" about an equation still works. */
+        return quill
+          .getContents()
+          .ops.map((op) => {
+            if (typeof op.insert === "string") return op.insert;
+            const formula = (op.insert as { formula?: string } | undefined)
+              ?.formula;
+            return typeof formula === "string" ? `$${formula}$` : "";
+          })
+          .join("");
+      },
       appendText: (text) => {
         const quill = quillRef.current;
         if (!quill || !text.trim()) return;
@@ -241,31 +259,47 @@ export function RichTextEditor({
        toolbar and the editor inside one node React owns and tears down
        wholesale on unmount, instead of leaving the toolbar as a stray
        sibling outside anything React is tracking. */
-    const target = document.createElement("div");
-    wrapper.appendChild(target);
+    let cancelled = false;
 
-    const quill = new Quill(target, {
-      theme: "snow",
-      placeholder,
-      modules: { toolbar: TOOLBAR_CONFIG },
-      formats: ALLOWED_FORMATS,
-    });
-    quillRef.current = quill;
-    setContentsFromHtml(quill, initialHtml);
-    quill.enable(!readOnly);
-
-    quill.on("text-change", (_delta, _oldDelta, source) => {
-      if (source !== "user") return;
-      onUserChangeRef.current?.(quill.root.innerHTML);
+    /* KaTeX first, so a note containing maths opens already typeset instead of
+       flashing its raw TeX and re-rendering. `loadMathTypesetter` never
+       rejects — a failed load leaves the TeX fallback in place — so this runs
+       the setup below either way rather than leaving the student with no
+       editor at all. */
+    void loadMathTypesetter().then(() => {
+      const host = wrapperRef.current;
+      if (cancelled || !host) return;
+      mount(host);
     });
 
-    quill.on("selection-change", (range) => {
-      onSelectionChangeRef.current?.(
-        range ? { index: range.index, length: range.length } : null,
-      );
-    });
+    function mount(host: HTMLDivElement) {
+      const target = document.createElement("div");
+      host.appendChild(target);
+
+      const quill = new Quill(target, {
+        theme: "snow",
+        placeholder,
+        modules: { toolbar: TOOLBAR_CONFIG },
+        formats: ALLOWED_FORMATS,
+      });
+      quillRef.current = quill;
+      setContentsFromHtml(quill, initialHtml);
+      quill.enable(!readOnly);
+
+      quill.on("text-change", (_delta, _oldDelta, source) => {
+        if (source !== "user") return;
+        onUserChangeRef.current?.(quill.root.innerHTML);
+      });
+
+      quill.on("selection-change", (range) => {
+        onSelectionChangeRef.current?.(
+          range ? { index: range.index, length: range.length } : null,
+        );
+      });
+    }
 
     return () => {
+      cancelled = true;
       quillRef.current = null;
       onSelectionChangeRef.current = null;
       wrapper.innerHTML = "";

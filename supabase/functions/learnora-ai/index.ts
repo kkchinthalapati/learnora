@@ -313,7 +313,7 @@ const PROSE_STYLE = `
     - Keep paragraphs short — one idea each. Depth comes from more sections, not longer paragraphs.
     - Headings (##, ###), bold, bullets, numbered lists, blockquotes and code fences are all fine.
     - Never use tables or [text](url) links: the app cannot render them and they reach the student as raw punctuation.
-    - Write maths as plain readable characters — √12, 3/4, x², 2×3 — not as TeX. Notes open in the document editor, which has no TeX typesetter, so $\\sqrt{12}$ would sit in the page as literal dollar signs and backslashes.`;
+    - Write maths as TeX: $x^2$ inline, $$\\sqrt{12} = 2\\sqrt{3}$$ on its own line, \\boxed{} around a final answer. The notes editor typesets it. Use real TeX for roots, fractions and indices — \\sqrt{12}, \\frac{3}{4}, x^{2} — never sqrt(12) or 3/4.`;
 
 /* JSON modes get no formatting rules at all — a prose-style instruction next
    to a "return only raw JSON" instruction is how a model ends up emitting

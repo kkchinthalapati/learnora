@@ -3,8 +3,8 @@ import { render, screen } from "@testing-library/react";
 import {
   renderMarkdownNodes,
   renderMarkdownSegments,
-  splitMath,
 } from "./markdownToReact";
+import { splitMath } from "./mathSyntax";
 
 function renderMd(markdown: string) {
   return render(<div data-testid="out">{renderMarkdownNodes(markdown)}</div>);
