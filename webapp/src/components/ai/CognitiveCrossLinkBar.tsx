@@ -38,28 +38,28 @@ const TOOL_CONFIGS: {
 }[] = [
   {
     id: "debugger",
-    label: "Decompile in Debugger",
+    label: "Find my mistake",
     route: "/debugger",
     icon: "zap",
     action: "debug_stack",
   },
   {
     id: "feynman",
-    label: "Teach in Feynman",
+    label: "Explain it simply",
     route: "/feynman",
     icon: "users",
     action: "teach_apprentice",
   },
   {
     id: "premortem",
-    label: "Stress-Test in Pre-Mortem",
+    label: "What could go wrong",
     route: "/premortem",
     icon: "shield",
     action: "run_premortem",
   },
   {
     id: "graph",
-    label: "View in Concept Graph",
+    label: "How topics connect",
     route: "/graph",
     icon: "network",
     action: "inspect_graph",
@@ -67,12 +67,12 @@ const TOOL_CONFIGS: {
 ];
 
 const SOURCE_TOOL_LABELS: Record<CognitiveSourceTool, string> = {
-  debugger: "Debugger",
-  feynman: "Feynman Apprentice",
-  premortem: "Pre-Mortem Radar",
-  graph: "Concept Graph",
-  quiz: "Quiz Attempt",
-  notes: "Study Notes",
+  debugger: "Find My Mistake",
+  feynman: "Explain It Simply",
+  premortem: "What Could Go Wrong",
+  graph: "How Topics Connect",
+  quiz: "a quiz",
+  notes: "your notes",
 };
 
 export function CognitiveCrossLinkBar({
@@ -177,20 +177,20 @@ export function CognitiveCrossLinkBar({
   return (
     <nav
       className={`${styles.container} ${compact ? styles.compact : ""} ${className}`}
-      aria-label="Cognitive Bridge Cross-Tool AI Actions"
+      aria-label="Carry this topic into another Study Lab tool"
       data-testid="cognitive-cross-link-bar"
     >
-      {/* Top Metadata Row: Active Concept, Subject, Origin, Severity */}
+      {/* Top row: topic, subject, where it came from, how bad */}
       <div className={styles.metaRow}>
         <div className={styles.conceptGroup}>
-          <span className={styles.bridgeIcon} title="Cognitive Bridge Active Link">
+          <span className={styles.bridgeIcon} title="The topic you're carrying between tools">
             <Icon name="brain" size={compact ? 14 : 18} />
           </span>
 
           <span
             className={styles.conceptBadge}
             data-testid="cross-link-concept-badge"
-            title={`Active Concept: ${activeConceptName}`}
+            title={`Topic: ${activeConceptName}`}
           >
             {activeConceptName}
           </span>
@@ -203,7 +203,7 @@ export function CognitiveCrossLinkBar({
 
           <span className={styles.sourceBadge} data-testid="cross-link-source-badge">
             <Icon name="link" size={12} />
-            <span>Origin: {sourceLabel}</span>
+            <span>From: {sourceLabel}</span>
           </span>
 
           {effectivePayload.severity && severityClass && (
@@ -212,10 +212,10 @@ export function CognitiveCrossLinkBar({
               data-testid="cross-link-severity-badge"
             >
               {effectivePayload.severity === "critical"
-                ? "Critical Gap"
+                ? "Needs work"
                 : effectivePayload.severity === "moderate"
-                ? "Moderate Risk"
-                : "Minor Nuance"}
+                ? "Worth a look"
+                : "Nearly there"}
             </span>
           )}
         </div>
@@ -227,8 +227,8 @@ export function CognitiveCrossLinkBar({
                 className={styles.misconceptionCount}
                 data-testid="cross-link-misconceptions-count"
               >
-                {effectivePayload.misconceptions.length} identified gap
-                {effectivePayload.misconceptions.length > 1 ? "s" : ""}
+                {effectivePayload.misconceptions.length} thing
+                {effectivePayload.misconceptions.length > 1 ? "s" : ""} to sort out
               </span>
             )}
 
@@ -237,9 +237,9 @@ export function CognitiveCrossLinkBar({
               type="button"
               className={styles.dismissBtn}
               onClick={handleDismiss}
-              aria-label="Clear active cognitive context"
+              aria-label="Stop carrying this topic between tools"
               data-testid="cross-link-dismiss-btn"
-              title="Clear cognitive bridge context"
+              title="Stop carrying this topic between tools"
             >
               <Icon name="x" size={14} />
             </button>
@@ -247,9 +247,9 @@ export function CognitiveCrossLinkBar({
         </div>
       </div>
 
-      {/* Action Buttons Row: 1-Click Cross-Launch */}
+      {/* Action buttons */}
       <div className={styles.actionsRow} data-testid="cross-link-actions-row">
-        <span className={styles.actionsLabel}>Cross-Tool Actions:</span>
+        <span className={styles.actionsLabel}>Take this to:</span>
         {TOOL_CONFIGS.map((tool) => {
           const isCurrent = (currentTool || effectivePayload.sourceTool) === tool.id;
 
@@ -261,12 +261,12 @@ export function CognitiveCrossLinkBar({
               onClick={() => handleToolClick(tool)}
               data-testid={`cross-link-${tool.id}-btn`}
               aria-label={tool.label}
-              title={`Switch context to ${tool.label}`}
+              title={`Open this topic in ${tool.label}`}
             >
               <Icon name={tool.icon} size={14} />
               <span>{tool.label}</span>
               {isCurrent && (
-                <span className={styles.activeBadge}>Current</span>
+                <span className={styles.activeBadge}>You’re here</span>
               )}
             </button>
           );

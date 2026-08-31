@@ -135,7 +135,7 @@ export function detectPlanDeficit(
       missedBlocks: [],
       remainingDaysCount: 0,
       deficitBySubject: {},
-      recommendation: "No active weekly plan found.",
+      recommendation: "You don't have a plan for this week yet.",
     };
   }
 
@@ -198,7 +198,7 @@ export function detectPlanDeficit(
   const isBehind = totalMissedMinutes >= 15;
   const remainingDaysCount = remainingDays.length;
 
-  let recommendation = "Your study schedule is currently on track!";
+  let recommendation = "You're on track with this week's plan.";
   if (isBehind) {
     const hours = Math.floor(totalMissedMinutes / 60);
     const mins = totalMissedMinutes % 60;
@@ -206,9 +206,9 @@ export function detectPlanDeficit(
 
     if (remainingDaysCount > 0) {
       const avgExtra = Math.round(totalMissedMinutes / remainingDaysCount);
-      recommendation = `You are ${timeStr} behind on planned study time. Auto-rebalance can distribute ~${avgExtra}m across your remaining ${remainingDaysCount} day${remainingDaysCount > 1 ? "s" : ""}.`;
+      recommendation = `You're ${timeStr} behind. We can spread that out — about ${avgExtra} minutes extra on each of your remaining ${remainingDaysCount} day${remainingDaysCount > 1 ? "s" : ""}.`;
     } else {
-      recommendation = `You missed ${timeStr} of study time this week. Generate a new plan for next week to reset your pace.`;
+      recommendation = `You missed ${timeStr} this week. Make a new plan for next week and start fresh.`;
     }
   }
 
@@ -352,7 +352,7 @@ export function rebalanceWeeklyPlan(
   const mins = deficit.totalMissedMinutes % 60;
   const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 
-  const summary = `Auto-rebalanced: Redistributed ${timeStr} of missed study volume across ${deficit.remainingDaysCount} remaining days.`;
+  const summary = `Moved ${timeStr} of missed study across your remaining ${deficit.remainingDaysCount} day${deficit.remainingDaysCount === 1 ? "" : "s"}.`;
 
   const rebalancedPlan: WeeklyPlanJson = {
     ...parsed,

@@ -88,7 +88,7 @@ describe("CommandPalette", () => {
 
     expect(screen.getByText("Start 25m Timer")).toBeInTheDocument();
     expect(screen.getByText("Start 50m Timer")).toBeInTheDocument();
-    expect(screen.getByText("Cognitive Debugger")).toBeInTheDocument();
+    expect(screen.getByText("Find My Mistake")).toBeInTheDocument();
   });
 
   it("does not render when isOpen is false", () => {
@@ -192,7 +192,7 @@ describe("CommandPalette", () => {
     expect(mockClose).toHaveBeenCalled();
   });
 
-  it("supports direct debugger prefix 'debug:' to navigate to Cognitive Debugger", async () => {
+  it("supports direct debugger prefix 'debug:' to navigate to Find My Mistake", async () => {
     const mockClose = vi.fn();
     renderPalette({ isOpen: true, onClose: mockClose });
 
@@ -202,7 +202,7 @@ describe("CommandPalette", () => {
     await user.type(input, "debug: Chain Rule Derivative");
 
     expect(
-      screen.getByText(/debug topic: "chain rule derivative"/i),
+      screen.getByText(/look at: "chain rule derivative"/i),
     ).toBeInTheDocument();
 
     await user.keyboard("{Enter}");

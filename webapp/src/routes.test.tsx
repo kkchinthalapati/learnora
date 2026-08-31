@@ -49,10 +49,10 @@ describe("route skeleton", () => {
     ["/plan", "This week's plan"],
     ["/friends", "Friends"],
     ["/analytics", "Analytics"],
-    ["/graph", "Concept Graph"],
-    ["/feynman", "Feynman AI Apprentice"],
-    ["/debugger", "Cognitive Root-Cause Debugger"],
-    ["/premortem", "Stress-Test Against Professor Tricks"],
+    ["/graph", "How Topics Connect"],
+    ["/feynman", "Explain It Simply"],
+    ["/debugger", "Find My Mistake"],
+    ["/premortem", "Practise on the questions designed to catch you out"],
     ["/settings", "Settings"],
   ])("%s renders the %s view for a signed-in user", (path, heading) => {
     renderAt(path);
@@ -64,8 +64,8 @@ describe("route skeleton", () => {
   /* The defect this guards against shipped on five routes at once: AppShell's
      Header rendered an <h1> from the route's section label, and the view below
      it rendered a second one — so /notebooks printed the word "Notebooks"
-     twice, 150px apart, and /feynman printed "Feynman Apprentice" above
-     "Feynman AI Apprentice". A document has one <h1>; which of the two owns it
+     twice, 150px apart, and /feynman printed a shell title above the hub's own
+     longer hero title. A document has one <h1>; which of the two owns it
      is decided by viewOwnsPageTitle() in lib/sectionLabel.ts. */
   it.each([
     "/",

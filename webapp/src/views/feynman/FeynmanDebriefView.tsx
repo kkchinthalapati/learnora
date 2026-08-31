@@ -159,11 +159,11 @@ export function FeynmanDebriefView() {
 
           <div
             className={`${styles.ratingBadge} ${
-              report.pedagogicalRating === "Master Teacher"
+              report.pedagogicalRating === "Brilliant explainer"
                 ? styles.ratingMaster
-                : report.pedagogicalRating === "Proficient Guide"
+                : report.pedagogicalRating === "Good explainer"
                 ? styles.ratingProficient
-                : report.pedagogicalRating === "Developing Explainer"
+                : report.pedagogicalRating === "Getting there"
                 ? styles.ratingDeveloping
                 : styles.ratingNeedsPractice
             }`}

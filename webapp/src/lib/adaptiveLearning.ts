@@ -620,7 +620,7 @@ export interface SubjectMastery {
   atRiskCount: number;
   averageQuizScore: number; // 0-100
   weakTopics: string[];
-  tier: "Novice" | "Developing" | "Competent" | "Mastered";
+  tier: "Just started" | "Getting there" | "Going well" | "Nailed it";
 }
 
 /**
@@ -762,15 +762,15 @@ export function computeSubjectMastery(
 
   masteryScore = Math.min(100, Math.max(0, masteryScore));
 
-  let tier: SubjectMastery["tier"] = "Novice";
+  let tier: SubjectMastery["tier"] = "Just started";
   if (masteryScore >= 85) {
-    tier = "Mastered";
+    tier = "Nailed it";
   } else if (masteryScore >= 70) {
-    tier = "Competent";
+    tier = "Going well";
   } else if (masteryScore >= 50) {
-    tier = "Developing";
+    tier = "Getting there";
   } else {
-    tier = "Novice";
+    tier = "Just started";
   }
 
   return {

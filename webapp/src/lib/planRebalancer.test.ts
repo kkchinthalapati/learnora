@@ -106,7 +106,7 @@ describe("planRebalancer", () => {
       expect(result.deficitBySubject["Chemistry"]).toBe(30); // 30m Mon
       expect(result.deficitBySubject["Math"]).toBe(60); // 60m Tue
       expect(result.remainingDaysCount).toBe(5); // Wed, Thu, Fri, Sat, Sun
-      expect(result.recommendation).toContain("behind on planned study time");
+      expect(result.recommendation).toContain("behind. We can spread that out");
     });
 
     it("accounts for partial study sessions matched by folder ID or task name", () => {
@@ -265,7 +265,7 @@ describe("planRebalancer", () => {
 
       expect(result.isRebalanced).toBe(true);
       expect(result.redistributedMinutes).toBe(50);
-      expect(result.summary).toContain("Auto-rebalanced");
+      expect(result.summary).toContain("Moved");
 
       // Verify that past days (Mon, Tue) remain untouched
       expect(result.rebalancedPlan.days[0].blocks).toEqual(samplePlan.days[0].blocks);

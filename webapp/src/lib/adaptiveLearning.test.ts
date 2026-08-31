@@ -295,7 +295,7 @@ describe("adaptiveLearning Engine", () => {
       expect(mastery.folderName).toBe("Calculus");
       expect(mastery.cardsCount).toBe(1);
       expect(mastery.averageQuizScore).toBe(85);
-      expect(mastery.tier).toBe("Mastered");
+      expect(mastery.tier).toBe("Nailed it");
       expect(mastery.weakTopics).toEqual(["Limits", "Integration"]);
     });
 
@@ -317,7 +317,7 @@ describe("adaptiveLearning Engine", () => {
           },
         ],
       );
-      expect(novice.tier).toBe("Novice");
+      expect(novice.tier).toBe("Just started");
 
       const developing = computeSubjectMastery(
         "f1",
@@ -336,7 +336,7 @@ describe("adaptiveLearning Engine", () => {
           },
         ],
       );
-      expect(developing.tier).toBe("Developing");
+      expect(developing.tier).toBe("Getting there");
 
       const competent = computeSubjectMastery(
         "f1",
@@ -355,7 +355,7 @@ describe("adaptiveLearning Engine", () => {
           },
         ],
       );
-      expect(competent.tier).toBe("Competent");
+      expect(competent.tier).toBe("Going well");
     });
   });
 

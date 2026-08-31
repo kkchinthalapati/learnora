@@ -44,10 +44,10 @@ describe("CognitiveCrossLinkBar", () => {
       "Inner Derivative Multiplier",
     );
     expect(screen.getByTestId("cross-link-subject-badge")).toHaveTextContent("Calculus");
-    expect(screen.getByTestId("cross-link-source-badge")).toHaveTextContent("Origin: Debugger");
-    expect(screen.getByTestId("cross-link-severity-badge")).toHaveTextContent("Critical Gap");
+    expect(screen.getByTestId("cross-link-source-badge")).toHaveTextContent("From: Find My Mistake");
+    expect(screen.getByTestId("cross-link-severity-badge")).toHaveTextContent("Needs work");
     expect(screen.getByTestId("cross-link-misconceptions-count")).toHaveTextContent(
-      "1 identified gap",
+      "1 thing to sort out",
     );
 
     // 4 tool buttons
@@ -76,9 +76,9 @@ describe("CognitiveCrossLinkBar", () => {
       "Velocity vs Acceleration",
     );
     expect(screen.getByTestId("cross-link-source-badge")).toHaveTextContent(
-      "Origin: Feynman Apprentice",
+      "From: Explain It Simply",
     );
-    expect(screen.getByTestId("cross-link-severity-badge")).toHaveTextContent("Moderate Risk");
+    expect(screen.getByTestId("cross-link-severity-badge")).toHaveTextContent("Worth a look");
   });
 
   it("cross-launches into target tool with custom onNavigate callback and sets suggestedAction", () => {
@@ -144,7 +144,7 @@ describe("CognitiveCrossLinkBar", () => {
     expect(CognitiveBridge.getPayload()?.suggestedAction).toBe("inspect_graph");
   });
 
-  it("highlights the current tool with Current badge", () => {
+  it("highlights the current tool with a you-are-here badge", () => {
     renderWithAuth(
       <CognitiveCrossLinkBar payload={testPayload} currentTool="debugger" />,
       { session: fakeSession() },
@@ -152,7 +152,7 @@ describe("CognitiveCrossLinkBar", () => {
     );
 
     const debuggerBtn = screen.getByTestId("cross-link-debugger-btn");
-    expect(debuggerBtn).toHaveTextContent("Current");
+    expect(debuggerBtn).toHaveTextContent("You’re here");
   });
 
   it("clears cognitive bridge context when clicking dismiss button", () => {

@@ -653,7 +653,7 @@ export function PlanView() {
           padding="none"
           className={styles.rebalanceBanner}
           role="region"
-          aria-label="Auto-rebalance study schedule"
+          aria-label="Fit your missed study time back into the week"
         >
           <div className={styles.rebalanceContent}>
             <div className={styles.rebalanceIcon} aria-hidden="true">
@@ -661,8 +661,7 @@ export function PlanView() {
             </div>
             <div>
               <div className={styles.rebalanceTitle}>
-                Schedule Rebalancing Available ({deficit.totalMissedMinutes}m
-                behind)
+                You&apos;re {deficit.totalMissedMinutes}m behind this week
               </div>
               <p className={styles.rebalanceMessage}>
                 {deficit.recommendation}
@@ -676,7 +675,7 @@ export function PlanView() {
             className={styles.rebalanceButton}
           >
             <Icon name="refresh-cw" size={14} />
-            {updatePlan.isPending ? "Rebalancing…" : "Auto-Rebalance Schedule"}
+            {updatePlan.isPending ? "Moving it around…" : "Fit it back in"}
           </Button>
         </Card>
       )}
@@ -688,12 +687,12 @@ export function PlanView() {
               {adherence.completionPct}%
             </span>
             <span className={styles.adherenceLabel}>
-              of last week&apos;s plan followed
+              of last week&apos;s plan done
             </span>
           </div>
           {adherence.neglectedSubjects.length > 0 ? (
             <p className={styles.adherenceNote}>
-              Under-studied last week:{" "}
+              You did less of these than planned:{" "}
               <span className={styles.neglectedTags}>
                 {adherence.neglectedSubjects.map((subject) => (
                   <span key={subject} className={styles.neglectedTag}>
@@ -701,7 +700,7 @@ export function PlanView() {
                   </span>
                 ))}
               </span>{" "}
-              — the next plan will ease these back in.
+              — your next plan will make room for them.
             </p>
           ) : null}
         </Card>

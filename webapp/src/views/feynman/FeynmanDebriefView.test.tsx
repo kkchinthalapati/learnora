@@ -69,7 +69,7 @@ describe("FeynmanDebriefView Component", () => {
       overallMastery: 92,
       clarityScore: 90,
       precisionScore: 94,
-      pedagogicalRating: "Master Teacher",
+      pedagogicalRating: "Brilliant explainer",
       summary: "You guided Alex smoothly through light absorption.",
       conceptsMastered: ["Light Absorption: Reflects green light and absorbs blue/red light."],
       remainingGaps: [],
@@ -99,7 +99,7 @@ describe("FeynmanDebriefView Component", () => {
 
     expect(screen.getByTestId("mastery-overview-card")).toBeInTheDocument();
     expect(screen.getByTestId("overall-mastery-score")).toHaveTextContent("92");
-    expect(screen.getByTestId("pedagogical-rating-badge")).toHaveTextContent("Master Teacher");
+    expect(screen.getByTestId("pedagogical-rating-badge")).toHaveTextContent("Brilliant explainer");
     expect(screen.getByTestId("clarity-score")).toHaveTextContent("90%");
     expect(screen.getByTestId("precision-score")).toHaveTextContent("94%");
   });

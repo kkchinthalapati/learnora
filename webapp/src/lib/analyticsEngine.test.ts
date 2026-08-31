@@ -244,9 +244,9 @@ describe("analyticsEngine", () => {
         hourly,
       );
       expect(insights.length).toBeGreaterThanOrEqual(4);
-      expect(insights.some((i) => i.includes("Focus Window"))).toBe(true);
-      expect(insights.some((i) => i.includes("Study Volume"))).toBe(true);
-      expect(insights.some((i) => i.includes("Active Recall"))).toBe(true);
+      expect(insights.some((i) => i.includes("When you focus best"))).toBe(true);
+      expect(insights.some((i) => i.includes("Time studied"))).toBe(true);
+      expect(insights.some((i) => i.includes("Quizzes"))).toBe(true);
     });
   });
 
@@ -261,7 +261,7 @@ describe("analyticsEngine", () => {
   });
 
   describe("computeUnifiedExamReadiness", () => {
-    it("computes baseline 100 readiness when no content or exams exist", () => {
+    it("computes a full 100 readiness when no content or exams exist", () => {
       const result = computeUnifiedExamReadiness({});
       expect(result.score).toBeGreaterThanOrEqual(80);
       expect(result.tier).toBe("Exam ready");
@@ -335,10 +335,10 @@ describe("analyticsEngine", () => {
       expect(result.syllabusCoverage).toBeGreaterThanOrEqual(50);
       expect(result.flashcardStability).toBeGreaterThanOrEqual(70);
       expect(result.quizMastery).toBe(95);
-      expect(result.summary).toContain("Excellent preparation");
+      expect(result.summary).toContain("Really strong prep");
     });
 
-    it("identifies critical gaps when quiz accuracy and flashcard retention are low", () => {
+    it("flags the Needs work tier when quiz accuracy and card maturity are low", () => {
       const now = new Date("2026-08-26T12:00:00");
       const flashcards: Flashcard[] = [
         {
@@ -379,7 +379,7 @@ describe("analyticsEngine", () => {
 
       expect(result.score).toBeLessThan(50);
       expect(result.tier).toBe("Needs work");
-      expect(result.summary).toContain("falling behind");
+      expect(result.summary).toContain("ground to make up");
     });
   });
 });

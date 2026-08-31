@@ -615,18 +615,18 @@ describe("DashboardView", () => {
   });
 
   describe("Adaptive health widget", () => {
-    it("renders cognitive health score and navigates to analytics", async () => {
+    it("renders the revision-health widget and navigates to analytics", async () => {
       serveDashboard({
         sessions: [studySession({ minutes: 45 })],
       });
       renderDashboard();
 
       expect(
-        await screen.findByRole("region", { name: "Adaptive learning health" }),
+        await screen.findByRole("region", { name: "How well your revision is sticking" }),
       ).toBeInTheDocument();
-      expect(screen.getByText("Revision Health & AI")).toBeInTheDocument();
+      expect(screen.getByText("Your revision")).toBeInTheDocument();
       expect(
-        screen.getByRole("link", { name: /Full Analytics/i }),
+        screen.getByRole("link", { name: /See more/i }),
       ).toHaveAttribute("href", "/analytics");
     });
   });

@@ -50,11 +50,11 @@ describe("AdaptiveHealthWidget", () => {
     renderWidget();
 
     expect(
-      await screen.findByText("Memory Decay & Retention"),
+      await screen.findByText("What’s sticking, what’s slipping"),
     ).toBeInTheDocument();
-    expect(await screen.findByText("No cards created yet")).toBeInTheDocument();
+    expect(await screen.findByText("No cards yet")).toBeInTheDocument();
     expect(screen.getByText("100")).toBeInTheDocument();
-    expect(screen.getByText("All memory stable")).toBeInTheDocument();
+    expect(screen.getByText("Nothing slipping right now")).toBeInTheDocument();
   });
 
   it("shows an error state instead of a false '100% / no cards' reading when a query fails", async () => {
@@ -68,12 +68,12 @@ describe("AdaptiveHealthWidget", () => {
 
     expect(
       await screen.findByRole("alert"),
-    ).toHaveTextContent("Could not load your adaptive learning data.");
-    expect(screen.queryByText("No cards created yet")).not.toBeInTheDocument();
+    ).toHaveTextContent("We couldn’t load your revision data.");
+    expect(screen.queryByText("No cards yet")).not.toBeInTheDocument();
     expect(screen.queryByText("100")).not.toBeInTheDocument();
   });
 
-  it("renders active cards, calculates retention metrics, and navigates on CTA click", async () => {
+  it("renders active cards, works out the numbers, and navigates on CTA click", async () => {
     const user = userEvent.setup();
 
     const now = new Date();
@@ -152,13 +152,13 @@ describe("AdaptiveHealthWidget", () => {
     renderWidget();
 
     expect(
-      await screen.findByText("Memory Decay & Retention"),
+      await screen.findByText("What’s sticking, what’s slipping"),
     ).toBeInTheDocument();
     expect(await screen.findByText("Neuroscience")).toBeInTheDocument();
     expect(await screen.findByText("NMDA Receptors (1)")).toBeInTheDocument();
 
     const reviewBtn = screen.getByRole("button", {
-      name: /Smart Adaptive Review/i,
+      name: /Go over what's slipping/i,
     });
     expect(reviewBtn).toBeInTheDocument();
 
@@ -168,7 +168,7 @@ describe("AdaptiveHealthWidget", () => {
     ).toBeInTheDocument();
   });
 
-  it("displays pre-exam surge alert when exams are upcoming within 14 days", async () => {
+  it("displays the exam-coming-up alert when exams are within 14 days", async () => {
     const now = new Date();
     const examDate = localDateStr(
       new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000),
@@ -229,11 +229,11 @@ describe("AdaptiveHealthWidget", () => {
     renderWidget();
 
     expect(
-      await screen.findByText(/Pre-Exam Surge Active:/i),
+      await screen.findByText(/Exam coming up:/i),
     ).toBeInTheDocument();
   });
 
-  it("computes and displays unified Exam Readiness Score with breakdown", async () => {
+  it("computes and displays how ready you are, with the breakdown", async () => {
     const now = new Date();
     server.use(
       http.get(rest("materials"), () =>
@@ -293,9 +293,9 @@ describe("AdaptiveHealthWidget", () => {
 
     renderWidget();
 
-    expect(await screen.findByText("Exam Readiness Score")).toBeInTheDocument();
-    expect(screen.getByText(/Syllabus:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Stability:/i)).toBeInTheDocument();
+    expect(await screen.findByText("How ready you are")).toBeInTheDocument();
+    expect(screen.getByText(/Covered:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Cards:/i)).toBeInTheDocument();
     expect(screen.getByText(/Quiz:/i)).toBeInTheDocument();
   });
 });

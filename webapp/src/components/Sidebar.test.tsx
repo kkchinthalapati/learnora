@@ -141,7 +141,7 @@ describe("Sidebar", () => {
 
     await user.click(screen.getByRole("button", { name: "Expand Study Lab" }));
     expect(
-      screen.getByRole("link", { name: "Cognitive Debugger" }),
+      screen.getByRole("link", { name: "Find My Mistake" }),
     ).toHaveAttribute("href", "/debugger");
 
     await user.click(screen.getByRole("button", { name: "Expand Community" }));

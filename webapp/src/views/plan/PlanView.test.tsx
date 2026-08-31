@@ -640,7 +640,7 @@ describe("PlanView", () => {
       expect(await screen.findByText(/Optimal Focus:/i)).toBeInTheDocument();
     });
 
-    it("displays the Auto-Rebalance banner and redistributes blocks on click when user is behind", async () => {
+    it("displays the catch-up banner and redistributes blocks on click when the user is behind", async () => {
       // Build a 7-day plan where past days (e.g. dayOffset(0)) have blocks
       const planWithPastDeficit = {
         summary: "Original full schedule",
@@ -690,18 +690,18 @@ describe("PlanView", () => {
 
       // Only show banner if there are past days with deficit and remaining days in the week
       const rebalanceBtn = await screen.findByRole("button", {
-        name: /Auto-Rebalance Schedule/i,
+        name: /Fit it back in/i,
       });
       expect(rebalanceBtn).toBeInTheDocument();
       expect(
-        screen.getByText(/Schedule Rebalancing Available/i),
+        screen.getByText(/You're \d+m behind this week/i),
       ).toBeInTheDocument();
 
       await userEvent.click(rebalanceBtn);
 
       await waitFor(() => expect(patchedPlanJson).toBeDefined());
       const summary = await screen.findByText(/Original full schedule/i);
-      expect(summary).toHaveTextContent("Auto-rebalanced");
+      expect(summary).toHaveTextContent("Moved");
     });
   });
 
@@ -739,7 +739,7 @@ describe("PlanView", () => {
 
       await screen.findByText("No plan yet for this week");
       expect(
-        screen.queryByText(/of last week's plan followed/),
+        screen.queryByText(/of last week's plan done/),
       ).not.toBeInTheDocument();
     });
 
@@ -770,11 +770,11 @@ describe("PlanView", () => {
 
       expect(await screen.findByText("0%")).toBeInTheDocument();
       expect(
-        screen.getByText("of last week's plan followed"),
+        screen.getByText("of last week's plan done"),
       ).toBeInTheDocument();
       expect(screen.getByText("Chemistry")).toBeInTheDocument();
       expect(
-        screen.getByText(/the next plan will ease these back in/),
+        screen.getByText(/your next plan will make room for them/),
       ).toBeInTheDocument();
     });
 
@@ -818,7 +818,7 @@ describe("PlanView", () => {
 
       expect(await screen.findByText("100%")).toBeInTheDocument();
       expect(
-        screen.queryByText(/the next plan will ease these back in/),
+        screen.queryByText(/your next plan will make room for them/),
       ).not.toBeInTheDocument();
     });
   });

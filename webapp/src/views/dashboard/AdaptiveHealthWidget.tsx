@@ -27,27 +27,27 @@ export function AdaptiveHealthWidget() {
   const getHealthBadge = (retention: number) => {
     if (retention >= 85) {
       return {
-        label: "Optimal",
+        label: "Sticking well",
         className: styles.healthOptimal,
         icon: "check" as const,
       };
     }
     if (retention >= 70) {
       return {
-        label: "Stable",
+        label: "Holding up",
         className: styles.healthGood,
         icon: "brain" as const,
       };
     }
     if (retention >= 50) {
       return {
-        label: "Review Recommended",
+        label: "Worth a review",
         className: styles.healthWarning,
         icon: "alert-triangle" as const,
       };
     }
     return {
-      label: "Needs Refresher",
+      label: "Time for a refresher",
       className: styles.healthDanger,
       icon: "alert-triangle" as const,
     };
@@ -55,11 +55,11 @@ export function AdaptiveHealthWidget() {
 
   const getTierBadgeClass = (tier: string) => {
     switch (tier) {
-      case "Mastered":
+      case "Nailed it":
         return styles.tierMastered;
-      case "Competent":
+      case "Going well":
         return styles.tierCompetent;
-      case "Developing":
+      case "Getting there":
         return styles.tierDeveloping;
       default:
         return styles.tierNovice;
@@ -78,7 +78,7 @@ export function AdaptiveHealthWidget() {
   return (
     <Card
       as="section"
-      aria-label="Adaptive learning health"
+      aria-label="How well your revision is sticking"
       variant="elevated"
       className={styles.widget}
       aria-busy={isPending || undefined}
@@ -89,15 +89,15 @@ export function AdaptiveHealthWidget() {
             <Icon name="brain" size={20} />
           </div>
           <div>
-            <span className={styles.eyebrow}>Revision Health & AI</span>
-            <h2 className={styles.title}>Memory Decay & Retention</h2>
+            <span className={styles.eyebrow}>Your revision</span>
+            <h2 className={styles.title}>What’s sticking, what’s slipping</h2>
           </div>
         </div>
         <div
           style={{ display: "flex", alignItems: "center", gap: "var(--s-3)" }}
         >
           <Link to="/analytics" className={styles.analyticsLink}>
-            Full Analytics →
+            See more →
           </Link>
           {!isPending && !isError && (
             <div className={`${styles.healthBadge} ${healthBadge.className}`}>
@@ -116,38 +116,38 @@ export function AdaptiveHealthWidget() {
             gap: "var(--s-3)",
           }}
         >
-          <Skeleton label="Loading adaptive retention metrics" height={70} />
-          <Skeleton label="Loading subject mastery" height={100} />
+          <Skeleton label="Loading how your revision is going" height={70} />
+          <Skeleton label="Loading your subjects" height={100} />
         </div>
       ) : isError ? (
         <p role="alert" className={styles.emptyPrompt}>
-          Could not load your adaptive learning data.{" "}
+          We couldn’t load your revision data.{" "}
           {(error as Error)?.message}
         </p>
       ) : (
         <>
           <div className={styles.metricsRow}>
             <div className={styles.metricCard}>
-              <span className={styles.metricLabel}>Memory Retention</span>
+              <span className={styles.metricLabel}>Still sticking</span>
               <div className={styles.metricValue}>
                 {totalCardsCount === 0 ? "100" : overallRetentionRate}
                 <span className={styles.metricUnit}>%</span>
               </div>
               <span className={styles.metricSubtext}>
                 {totalCardsCount === 0
-                  ? "No cards created yet"
+                  ? "No cards yet"
                   : `${totalCardsCount} active flashcards`}
               </span>
             </div>
 
             <div className={styles.metricCard}>
-              <span className={styles.metricLabel}>Cards to Refresh</span>
+              <span className={styles.metricLabel}>Cards to go over</span>
               <div className={styles.metricValue}>
                 {atRiskCount}
                 <span className={styles.metricUnit}>cards</span>
               </div>
               <span className={styles.metricSubtext}>
-                {atRiskCount > 0 ? "Ready for a quick revision" : "All memory stable"}
+                {atRiskCount > 0 ? "Worth a quick look" : "Nothing slipping right now"}
               </span>
             </div>
           </div>
@@ -157,7 +157,7 @@ export function AdaptiveHealthWidget() {
               <div className={styles.readinessHeader}>
                 <div className={styles.readinessTitleGroup}>
                   <Icon name="award" size={14} />
-                  <span>Exam Readiness Score</span>
+                  <span>How ready you are</span>
                 </div>
                 <span
                   className={`${styles.tierBadge} ${getTierBadgeClass(examReadiness.tier)}`}
@@ -175,8 +175,8 @@ export function AdaptiveHealthWidget() {
                 />
               </div>
               <div className={styles.readinessBreakdown}>
-                <span>Syllabus: {examReadiness.syllabusCoverage}%</span>
-                <span>Stability: {examReadiness.flashcardStability}%</span>
+                <span>Covered: {examReadiness.syllabusCoverage}%</span>
+                <span>Cards: {examReadiness.flashcardStability}%</span>
                 <span>Quiz: {examReadiness.quizMastery}%</span>
               </div>
             </div>
@@ -188,15 +188,15 @@ export function AdaptiveHealthWidget() {
                 <Icon name="zap" size={16} />
               </span>
               <span>
-                <strong>Pre-Exam Surge Active:</strong> {surgeCount} cards
-                prioritised for upcoming exams.
+                <strong>Exam coming up:</strong> {surgeCount} cards
+                moved to the front of the queue.
               </span>
             </div>
           )}
 
           {subjectMasteries.length > 0 ? (
             <div>
-              <div className={styles.sectionTitle}>Subject Mastery Curves</div>
+              <div className={styles.sectionTitle}>How each subject is going</div>
               <div className={styles.masteryList}>
                 {subjectMasteries.slice(0, 3).map((mastery) => (
                   <div key={mastery.folderId} className={styles.masteryItem}>
@@ -238,14 +238,14 @@ export function AdaptiveHealthWidget() {
             </div>
           ) : (
             <p className={styles.emptyPrompt}>
-              Organise study decks into subjects to track individual mastery
-              curves and revision areas.
+              Put your decks into subjects and we’ll show you how each one is
+              going.
             </p>
           )}
 
           {topWeakTopics.length > 0 && (
             <div>
-              <div className={styles.sectionTitle}>Confidence Boosters</div>
+              <div className={styles.sectionTitle}>Worth a bit of practice</div>
               <div className={styles.weakTopicsContainer}>
                 {topWeakTopics.slice(0, 3).map((topic) => (
                   <span key={topic.topic} className={styles.weakTopicTag}>
@@ -279,8 +279,8 @@ export function AdaptiveHealthWidget() {
                 style={{ marginRight: "var(--s-1)" }}
               />
               {atRiskCount > 0
-                ? `Smart Adaptive Review (${atRiskCount})`
-                : "Smart Adaptive Review"}
+                ? `Go over what's slipping (${atRiskCount})`
+                : "Go over what's slipping"}
             </Button>
           </div>
         </>

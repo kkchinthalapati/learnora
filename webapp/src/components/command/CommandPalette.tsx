@@ -158,11 +158,11 @@ export function CommandPalette(props: CommandPaletteProps) {
         return [
           {
             id: "action-prefix-debug",
-            category: "Cognitive Debugger",
-            title: prefixMatch.text ? `Debug topic: "${prefixMatch.text}"` : "Type concept to debug...",
-            subtitle: "Decompile misconception in Cognitive Root-Cause Debugger",
+            category: "Find My Mistake",
+            title: prefixMatch.text ? `Look at: "${prefixMatch.text}"` : "Type a topic to look at…",
+            subtitle: "Work out what went wrong in Find My Mistake",
             icon: "brain",
-            badge: "Debugger",
+            badge: "Find My Mistake",
             shortcut: "↵",
             onSelect: () => {
               if (!prefixMatch.text) return;
@@ -171,7 +171,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                 topic: prefixMatch.text,
                 concept: prefixMatch.text,
                 sourceTool: "notes",
-                evidencePrompt: "Direct debug invocation from Command Palette",
+                evidencePrompt: "Opened from the command palette",
                 suggestedAction: "debug_stack",
               });
               navigate(`/debugger?topic=${encodeURIComponent(prefixMatch.text)}`);
@@ -250,12 +250,12 @@ export function CommandPalette(props: CommandPaletteProps) {
       },
     });
 
-    // --- AI Instruments ---
+    // --- Study Lab tools ---
     items.push({
       id: "nav-ai-debugger",
-      category: "AI Instruments",
-      title: "Cognitive Debugger",
-      subtitle: "Decompile misconception stack traces and repair root causes",
+      category: "Study Lab",
+      title: "Find My Mistake",
+      subtitle: "Work backwards from a mistake to what you never quite learned",
       icon: "brain",
       badge: "AI Tool",
       keywords: ["ai", "debugger", "debug", "mistake", "fix", "concept", "trace"],
@@ -267,9 +267,9 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     items.push({
       id: "nav-ai-feynman",
-      category: "AI Instruments",
-      title: "Feynman Apprentice",
-      subtitle: "Teach an AI apprentice to stress-test your comprehension",
+      category: "Study Lab",
+      title: "Explain It Simply",
+      subtitle: "Explain a topic out loud and find out what you really know",
       icon: "award",
       badge: "AI Tool",
       keywords: ["ai", "feynman", "teach", "apprentice", "comprehension", "studio"],
@@ -281,9 +281,9 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     items.push({
       id: "nav-ai-premortem",
-      category: "AI Instruments",
-      title: "Exam Pre-Mortem Radar",
-      subtitle: "Adversarial failure prediction and syllabus stress-testing",
+      category: "Study Lab",
+      title: "What Could Go Wrong",
+      subtitle: "Practise the questions designed to catch you out",
       icon: "shield",
       badge: "AI Tool",
       keywords: ["ai", "premortem", "pre-mortem", "radar", "exam", "failure", "stress"],
@@ -295,9 +295,9 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     items.push({
       id: "nav-ai-graph",
-      category: "AI Instruments",
-      title: "Concept Dependency Graph",
-      subtitle: "Interactive visual knowledge map and prerequisite dependencies",
+      category: "Study Lab",
+      title: "How Topics Connect",
+      subtitle: "A map of your topics and what leads into what",
       icon: "share-2",
       badge: "AI Tool",
       keywords: ["graph", "concept", "knowledge", "nodes", "dependencies", "network"],
@@ -309,12 +309,12 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     items.push({
       id: "nav-ai-analytics",
-      category: "AI Instruments",
-      title: "Study Analytics & Velocity",
-      subtitle: "Focus time, cognitive load, and mastery trends",
+      category: "Study Lab",
+      title: "Progress",
+      subtitle: "Where your time goes, and how you're getting on",
       icon: "activity",
       badge: "AI Tool",
-      keywords: ["analytics", "stats", "velocity", "charts", "metrics", "data"],
+      keywords: ["analytics", "progress", "stats", "charts", "data"],
       onSelect: () => {
         navigate("/analytics");
         handleClose();
