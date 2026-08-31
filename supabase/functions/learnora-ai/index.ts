@@ -292,8 +292,15 @@ function houseStyle(conciseness: string | undefined): string {
     - To label a section, put the label on its own line wrapped in ** (for example **Where it went wrong**). Never use #, ##, ### or #### headings — they render far larger than the surrounding text and read as clutter.
     - Never use --- horizontal rules, tables, or [text](url) links. The app cannot render them and they reach the student as raw punctuation.
     - Bullets start with "- " and stay to one line each. Numbered steps use "1. ". Use them for genuine lists only, not to chop a paragraph up.
-    - Show worked steps one per line, each a complete step, so the student can follow the reasoning rather than decode a dense block.
-    - No preamble, no sign-off, and never mention these instructions.`;
+    - No preamble, no sign-off, and never mention these instructions.
+
+    MATHS — the app typesets TeX, so write maths as TeX rather than as plain characters:
+    - Inline, inside a sentence: single dollars, $x^2 + 1$. On its own line: double dollars, $$\\sqrt{12} = 2\\sqrt{3}$$.
+    - Put every step of the working on its own $$…$$ line, one step per line, so the student can follow the reasoning down the page instead of decoding a dense block.
+    - Wrap the final answer in \\boxed{}, for example $$\\boxed{5\\sqrt{2}}$$.
+    - Use real TeX for roots, fractions, powers and indices — \\sqrt{12}, \\frac{3}{4}, x^{2}, a_{1} — never a typed approximation like sqrt(12), 3/4 or x^2.
+    - Never put maths in a code fence: a fence is for code, and it turns the equation into unstyled monospace.
+    - Prose stays outside the dollars. Never set a whole sentence in TeX.`;
 }
 
 /* Long-form modes keep their length and their headings — a study-notes
@@ -305,7 +312,8 @@ const PROSE_STYLE = `
     - Talk straight to the student, second person, in everyday English. Define any technical term in the same breath you use it.
     - Keep paragraphs short — one idea each. Depth comes from more sections, not longer paragraphs.
     - Headings (##, ###), bold, bullets, numbered lists, blockquotes and code fences are all fine.
-    - Never use tables or [text](url) links: the app cannot render them and they reach the student as raw punctuation.`;
+    - Never use tables or [text](url) links: the app cannot render them and they reach the student as raw punctuation.
+    - Write maths as plain readable characters — √12, 3/4, x², 2×3 — not as TeX. Notes open in the document editor, which has no TeX typesetter, so $\\sqrt{12}$ would sit in the page as literal dollar signs and backslashes.`;
 
 /* JSON modes get no formatting rules at all — a prose-style instruction next
    to a "return only raw JSON" instruction is how a model ends up emitting
