@@ -50,7 +50,7 @@ const LOCAL_SESSIONS_KEY = "sessions";
 const MAX_LOCAL_SESSIONS = 500;
 /* The vanilla dispatches this after every local write (js/timer.js:463) so
  * the dashboard's session log and "today" total repaint live even though the
- * timer that logged them can be running on a different route — MiniTimer
+ * timer that logged them can be running on a different route — FocusStudyHUD
  * keeps ticking app-wide. A `storage` event won't do it: that only fires in
  * *other* tabs, never the one that made the write. */
 export const SESSION_LOGGED_EVENT = "learnora:sessionLogged";
@@ -386,7 +386,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       const partial: Partial<TimerConfig> = { focus: mins, countdown: mins };
       setDraft((prev) => ({ ...prev, ...partial }));
       setState((s) => {
-        if (s.isRunning) return stagePresetT(s, partial, s.stagedType ?? s.type);
+        if (s.isRunning)
+          return stagePresetT(s, partial, s.stagedType ?? s.type);
         const { state: next, effects } = applyNowT(s, partial, s.type);
         queueMicrotask(() => effectsRef.current(effects));
         return next;

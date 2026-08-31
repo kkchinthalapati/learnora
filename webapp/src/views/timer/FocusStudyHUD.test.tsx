@@ -7,10 +7,7 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
-import {
-  initialTimerState,
-  persistTimerState,
-} from "../../lib/timer";
+import { initialTimerState, persistTimerState } from "../../lib/timer";
 import { useTimer } from "../../context/timer";
 import { FocusStudyHUD, SCRATCHPAD_STORAGE_KEY } from "./FocusStudyHUD";
 
@@ -94,7 +91,7 @@ describe("FocusStudyHUD", () => {
   it("stays hidden while no session is live", () => {
     renderHUD("/tasks");
     expect(screen.queryByRole("button", { name: "Open the timer" })).toBeNull();
-    expect(document.documentElement.dataset.hasMiniTimer).toBeUndefined();
+    expect(document.documentElement.dataset.hasFocusHud).toBeUndefined();
   });
 
   it("stays hidden on /timer route even when a session is active", () => {
@@ -107,7 +104,7 @@ describe("FocusStudyHUD", () => {
     renderHUD("/timer");
 
     expect(screen.queryByRole("button", { name: "Open the timer" })).toBeNull();
-    expect(document.documentElement.dataset.hasMiniTimer).toBeUndefined();
+    expect(document.documentElement.dataset.hasFocusHud).toBeUndefined();
   });
 
   it("docks on another route once a countdown is active", () => {
@@ -124,7 +121,7 @@ describe("FocusStudyHUD", () => {
     expect(screen.getByText("05:00")).toBeInTheDocument();
     expect(screen.getByText("Focus")).toBeInTheDocument();
     expect(screen.getByText("General Study")).toBeInTheDocument();
-    expect(document.documentElement.dataset.hasMiniTimer).toBe("true");
+    expect(document.documentElement.dataset.hasFocusHud).toBe("true");
   });
 
   it("announces itself politely via role='status' and aria-live='polite'", () => {
@@ -252,11 +249,15 @@ describe("FocusStudyHUD", () => {
         screen.getByRole("dialog", { name: "Distraction scratchpad" }),
       ).toBeInTheDocument();
 
-      const textarea = screen.getByRole("textbox", { name: "Scratchpad notes" });
+      const textarea = screen.getByRole("textbox", {
+        name: "Scratchpad notes",
+      });
       expect(textarea).toHaveFocus();
 
       // Close scratchpad via close button
-      await user.click(screen.getByRole("button", { name: "Close scratchpad" }));
+      await user.click(
+        screen.getByRole("button", { name: "Close scratchpad" }),
+      );
       expect(screen.queryByRole("dialog")).toBeNull();
     });
 
@@ -294,7 +295,9 @@ describe("FocusStudyHUD", () => {
         screen.getByRole("button", { name: "Distraction scratchpad" }),
       );
 
-      const textarea = screen.getByRole("textbox", { name: "Scratchpad notes" });
+      const textarea = screen.getByRole("textbox", {
+        name: "Scratchpad notes",
+      });
       await user.type(textarea, "Check ATP cycle details later");
 
       expect(localStorage.getItem(SCRATCHPAD_STORAGE_KEY)).toBe(
@@ -320,7 +323,9 @@ describe("FocusStudyHUD", () => {
         screen.getByRole("button", { name: "Distraction scratchpad" }),
       );
 
-      const textarea = screen.getByRole("textbox", { name: "Scratchpad notes" });
+      const textarea = screen.getByRole("textbox", {
+        name: "Scratchpad notes",
+      });
       expect(textarea).toHaveValue(
         "Remember to email professor about deadline",
       );
@@ -328,10 +333,7 @@ describe("FocusStudyHUD", () => {
 
     it("clears scratchpad notes when Clear button is clicked", async () => {
       const user = userEvent.setup();
-      localStorage.setItem(
-        SCRATCHPAD_STORAGE_KEY,
-        "Some fleeting thought",
-      );
+      localStorage.setItem(SCRATCHPAD_STORAGE_KEY, "Some fleeting thought");
 
       persistTimerState({
         ...initialTimerState(),
@@ -347,7 +349,9 @@ describe("FocusStudyHUD", () => {
       const clearBtn = screen.getByRole("button", { name: "Clear note" });
       await user.click(clearBtn);
 
-      const textarea = screen.getByRole("textbox", { name: "Scratchpad notes" });
+      const textarea = screen.getByRole("textbox", {
+        name: "Scratchpad notes",
+      });
       expect(textarea).toHaveValue("");
       expect(localStorage.getItem(SCRATCHPAD_STORAGE_KEY)).toBe("");
     });

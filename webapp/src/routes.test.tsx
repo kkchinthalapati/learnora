@@ -78,9 +78,13 @@ describe("route skeleton", () => {
     "/debugger",
     "/premortem",
     "/room",
-  ])("%s renders exactly one level-1 heading", (path) => {
+  ])("%s renders exactly one level-1 heading", async (path) => {
     renderAt(path);
-    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    await waitFor(
+      () =>
+        expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1),
+      { timeout: 5000 },
+    );
   });
 
   /* Its own case rather than a row in the table above: the subject page is
@@ -117,8 +121,9 @@ describe("route skeleton", () => {
     );
     renderAt("/notes/mat-1");
 
-    await waitFor(() =>
-      expect(screen.getByText("Cell division")).toBeInTheDocument(),
+    await waitFor(
+      () => expect(screen.getByText("Cell division")).toBeInTheDocument(),
+      { timeout: 5000 },
     );
   });
 

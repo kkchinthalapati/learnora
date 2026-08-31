@@ -24,7 +24,7 @@ function read(): LocalSessionEntry[] {
 }
 
 /** Re-reads on `SESSION_LOGGED_EVENT`, which `TimerProvider` dispatches after
- *  every write — a running timer is mounted app-wide (MiniTimer), so a
+ *  every write — a running timer is mounted app-wide (FocusStudyHUD), so a
  *  session can finish while the dashboard is the visible route, and a plain
  *  `storage` event never fires in the tab that made the write. */
 export function useLocalSessions(): LocalSessionEntry[] {

@@ -16,13 +16,11 @@ import {
   persistTimerState,
 } from "../../lib/timer";
 import { TimerView } from "./TimerView";
-import { MiniTimer } from "./MiniTimer";
 
 function renderTimer(path = "/timer") {
   return renderWithAuth(
     <MemoryRouter initialEntries={[path]}>
       <TimerView />
-      <MiniTimer />
     </MemoryRouter>,
     { session: fakeSession() },
     { withTimer: true },
@@ -486,89 +484,5 @@ describe("TimerView", () => {
     await user.selectOptions(folderSelect, "Biology");
 
     expect(folderSelect).toHaveValue("f-1");
-  });
-
-  it("does not dock the mini-timer on the timer route itself", async () => {
-    const user = userEvent.setup();
-    renderTimer("/timer");
-
-    await user.click(screen.getByRole("button", { name: "Start" }));
-
-    expect(screen.queryByRole("button", { name: "Open the timer" })).toBeNull();
-  });
-});
-
-describe("MiniTimer", () => {
-  beforeEach(() => {
-    localStorage.clear();
-    mockAuthSession("user-1");
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  function renderMini(path = "/tasks") {
-    return renderWithAuth(
-      <MemoryRouter initialEntries={[path]}>
-        <MiniTimer />
-      </MemoryRouter>,
-      { session: fakeSession() },
-      { withTimer: true },
-    );
-  }
-
-  it("stays hidden while no session is live", () => {
-    renderMini();
-    expect(screen.queryByRole("button", { name: "Open the timer" })).toBeNull();
-    expect(document.documentElement.dataset.hasMiniTimer).toBeUndefined();
-  });
-
-  it("docks on another route once a count-down is part-used", () => {
-    persistTimerState({
-      ...initialTimerState(),
-      timeLeft: 300,
-      totalTime: 1500,
-    });
-    renderMini();
-
-    expect(
-      screen.getByRole("button", { name: "Open the timer" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("05:00")).toBeInTheDocument();
-    expect(screen.getByText("Focus")).toBeInTheDocument();
-    expect(document.documentElement.dataset.hasMiniTimer).toBe("true");
-  });
-
-  it("toggles the timer from its own button", async () => {
-    const user = userEvent.setup();
-    persistTimerState({
-      ...initialTimerState(),
-      timeLeft: 300,
-      totalTime: 1500,
-    });
-    renderMini();
-
-    await user.click(screen.getByRole("button", { name: "Resume timer" }));
-
-    expect(
-      screen.getByRole("button", { name: "Pause timer" }),
-    ).toBeInTheDocument();
-  });
-
-  it("announces itself politely rather than interrupting", () => {
-    persistTimerState({
-      ...initialTimerState(),
-      timeLeft: 300,
-      totalTime: 1500,
-    });
-    renderMini();
-
-    /* The toast container also carries role="status", so scope to the one that
-       actually holds the clock. */
-    const dock = screen
-      .getByRole("button", { name: "Open the timer" })
-      .closest('[role="status"]')!;
-    expect(dock).toHaveAttribute("aria-live", "polite");
   });
 });

@@ -1,3 +1,4 @@
+import { lazy, Suspense, type ReactNode } from "react";
 import { Route, Routes } from "react-router";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AppShell } from "./components/AppShell";
@@ -19,28 +20,61 @@ import { TasksView } from "./views/tasks/TasksView";
 import { ExamsView } from "./views/exams/ExamsView";
 import { TimerView } from "./views/timer/TimerView";
 import { LibraryView } from "./views/library/LibraryView";
-import { SubjectDetailPage } from "./views/library/SubjectDetailPage";
 import { DashboardView } from "./views/dashboard/DashboardView";
-import { NotesView } from "./views/notes/NotesView";
 import { PlanView } from "./views/plan/PlanView";
-import { QuizRunner } from "./views/quiz/QuizRunner";
-import { MockExamRunner } from "./views/quiz/MockExamRunner";
-import { QuizReview } from "./views/quiz/QuizReview";
-import { ReviewView } from "./views/review/ReviewView";
 import { FriendsView } from "./views/friends/FriendsView";
 import { FriendInviteLanding } from "./views/friends/FriendInviteLanding";
-import { StudyRoomView } from "./views/room/StudyRoomView";
 import { StudyAnalyticsView } from "./views/analytics/StudyAnalyticsView";
 import { ConceptGraphView } from "./views/graph/ConceptGraphView";
 import { CognitiveDebuggerView } from "./views/debugger/CognitiveDebuggerView";
 import { PreMortemHubView } from "./views/premortem/PreMortemHubView";
 import { PreMortemRadarView } from "./views/premortem/PreMortemRadarView";
 import { FeynmanHubView } from "./views/feynman/FeynmanHubView";
-import { FeynmanStudioView } from "./views/feynman/FeynmanStudioView";
-import { FeynmanDebriefView } from "./views/feynman/FeynmanDebriefView";
 import { NotebooksHubView } from "./views/notebooks/NotebooksHubView";
-import { NotebookStudioView } from "./views/notebooks/NotebookStudioView";
 import { NotFoundView } from "./views/not-found/NotFoundView";
+
+const LazyNotebookStudioView = lazy(async () => ({
+  default: (await import("./views/notebooks/NotebookStudioView"))
+    .NotebookStudioView,
+}));
+const LazySubjectDetailPage = lazy(async () => ({
+  default: (await import("./views/library/SubjectDetailPage"))
+    .SubjectDetailPage,
+}));
+const LazyNotesView = lazy(async () => ({
+  default: (await import("./views/notes/NotesView")).NotesView,
+}));
+const LazyQuizRunner = lazy(async () => ({
+  default: (await import("./views/quiz/QuizRunner")).QuizRunner,
+}));
+const LazyMockExamRunner = lazy(async () => ({
+  default: (await import("./views/quiz/MockExamRunner")).MockExamRunner,
+}));
+const LazyQuizReview = lazy(async () => ({
+  default: (await import("./views/quiz/QuizReview")).QuizReview,
+}));
+const LazyReviewView = lazy(async () => ({
+  default: (await import("./views/review/ReviewView")).ReviewView,
+}));
+const LazyStudyRoomView = lazy(async () => ({
+  default: (await import("./views/room/StudyRoomView")).StudyRoomView,
+}));
+const LazyFeynmanStudioView = lazy(async () => ({
+  default: (await import("./views/feynman/FeynmanStudioView"))
+    .FeynmanStudioView,
+}));
+const LazyFeynmanDebriefView = lazy(async () => ({
+  default: (await import("./views/feynman/FeynmanDebriefView"))
+    .FeynmanDebriefView,
+}));
+
+function DeferredView({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<p role="status">Loading workspace…</p>}>
+      {children}
+    </Suspense>
+  );
+}
 
 /*
  * Route table mirroring the vanilla app's hash router (js/router.js):
@@ -73,31 +107,115 @@ export function AppRoutes() {
         <Route element={<AppShell />}>
           <Route path="/" element={<DashboardView />} />
           <Route path="/notebooks" element={<NotebooksHubView />} />
-          <Route path="/notebooks/:notebookId" element={<NotebookStudioView />} />
+          <Route
+            path="/notebooks/:notebookId"
+            element={
+              <DeferredView>
+                <LazyNotebookStudioView />
+              </DeferredView>
+            }
+          />
           <Route path="/tasks" element={<TasksView />} />
           <Route path="/exams" element={<ExamsView />} />
           <Route path="/timer" element={<TimerView />} />
           <Route path="/library" element={<LibraryView />} />
           <Route path="/library/:tab" element={<LibraryView />} />
-          <Route path="/folders/:folderId" element={<SubjectDetailPage />} />
-          <Route path="/notes/:materialId" element={<NotesView />} />
+          <Route
+            path="/folders/:folderId"
+            element={
+              <DeferredView>
+                <LazySubjectDetailPage />
+              </DeferredView>
+            }
+          />
+          <Route
+            path="/notes/:materialId"
+            element={
+              <DeferredView>
+                <LazyNotesView />
+              </DeferredView>
+            }
+          />
           <Route path="/plan" element={<PlanView />} />
-          <Route path="/quiz/:quizId" element={<QuizRunner />} />
-          <Route path="/quiz/:quizId/mock-exam" element={<MockExamRunner />} />
-          <Route path="/quiz/:quizId/review" element={<QuizReview />} />
-          <Route path="/review/:deckId" element={<ReviewView />} />
+          <Route
+            path="/quiz/:quizId"
+            element={
+              <DeferredView>
+                <LazyQuizRunner />
+              </DeferredView>
+            }
+          />
+          <Route
+            path="/quiz/:quizId/mock-exam"
+            element={
+              <DeferredView>
+                <LazyMockExamRunner />
+              </DeferredView>
+            }
+          />
+          <Route
+            path="/quiz/:quizId/review"
+            element={
+              <DeferredView>
+                <LazyQuizReview />
+              </DeferredView>
+            }
+          />
+          <Route
+            path="/review/:deckId"
+            element={
+              <DeferredView>
+                <LazyReviewView />
+              </DeferredView>
+            }
+          />
           <Route path="/friends" element={<FriendsView />} />
-          <Route path="/room" element={<StudyRoomView />} />
-          <Route path="/room/:roomId" element={<StudyRoomView />} />
+          <Route
+            path="/room"
+            element={
+              <DeferredView>
+                <LazyStudyRoomView />
+              </DeferredView>
+            }
+          />
+          <Route
+            path="/room/:roomId"
+            element={
+              <DeferredView>
+                <LazyStudyRoomView />
+              </DeferredView>
+            }
+          />
           <Route path="/analytics" element={<StudyAnalyticsView />} />
           <Route path="/graph" element={<ConceptGraphView />} />
           <Route path="/debugger" element={<CognitiveDebuggerView />} />
           <Route path="/premortem" element={<PreMortemHubView />} />
           <Route path="/premortem/radar" element={<PreMortemRadarView />} />
           <Route path="/feynman" element={<FeynmanHubView />} />
-          <Route path="/feynman/studio" element={<FeynmanStudioView />} />
-          <Route path="/feynman/studio/:sessionId" element={<FeynmanStudioView />} />
-          <Route path="/feynman/debrief/:sessionId" element={<FeynmanDebriefView />} />
+          <Route
+            path="/feynman/studio"
+            element={
+              <DeferredView>
+                <LazyFeynmanStudioView />
+              </DeferredView>
+            }
+          />
+          <Route
+            path="/feynman/studio/:sessionId"
+            element={
+              <DeferredView>
+                <LazyFeynmanStudioView />
+              </DeferredView>
+            }
+          />
+          <Route
+            path="/feynman/debrief/:sessionId"
+            element={
+              <DeferredView>
+                <LazyFeynmanDebriefView />
+              </DeferredView>
+            }
+          />
           {/* Inside the guard on purpose: an invite link opened by someone
               who is signed out goes through ProtectedRoute's existing
               `state: { from }` redirect and lands back here after login. */}

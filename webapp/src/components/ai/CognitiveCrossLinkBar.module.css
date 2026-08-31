@@ -15,7 +15,7 @@
 }
 
 .container:hover {
-  border-color: var(--border);
+  border-color: var(--line);
   border-left-color: var(--accent-text);
 }
 
@@ -132,7 +132,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .dismissBtn:hover {
