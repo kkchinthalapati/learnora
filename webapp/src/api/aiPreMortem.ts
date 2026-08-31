@@ -611,17 +611,17 @@ function generateSubjectQuestions(subject: string, count: number, trapIds: strin
         trapExplanation:
           "Dimensional analysis defense: Carrying explicit units prevents scale mismatch errors and immediately catches invalid exponents.",
         difficulty: "Medium",
-        hint: "How does dimensional analysis safeguard calculations?",
+        hint: "How does keeping track of units protect your working?",
         topic: `${subject} Dimensional Analysis`,
       },
       {
         id: "sq-gen-5",
-        question: `When two closely related technical terms are presented in ${subject}, what is the critical step to prevent false synonym conflation?`,
+        question: `When two ${subject} terms sound very similar, what is the safest thing to do?`,
         options: [
-          "Assuming the terms are interchangeable in standard exam contexts.",
-          "Isolating the formal boundary preconditions and operational definitions of each term.",
-          "Choosing whichever term has the shorter spelling.",
-          "Defaulting to the broader colloquial definition.",
+          "Assume they mean the same thing in an exam.",
+          "Write out exactly what each one means, and when each one applies.",
+          "Pick whichever one is shorter.",
+          "Use the everyday meaning of the word.",
         ],
         correctAnswerIndex: 1,
         trapArchetypeId: "false-synonym-conflation",

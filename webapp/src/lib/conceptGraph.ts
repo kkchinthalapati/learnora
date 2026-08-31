@@ -1488,6 +1488,6 @@ export function generateRecoveryDrill(
     remediationReasons:
       node.gapDetails?.remediationReasons && node.gapDetails.remediationReasons.length > 0
         ? node.gapDetails.remediationReasons
-        : (node.isKnowledgeGap ? ["Retention mastery is below target (<60%)"] : []),
+        : (node.isKnowledgeGap ? ["You know less than 60% of this so far"] : []),
   };
 }

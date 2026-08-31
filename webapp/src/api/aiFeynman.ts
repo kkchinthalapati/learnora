@@ -482,9 +482,9 @@ export function generateDynamicDraft(
     ];
     challengeQuestion = `If ${topic} is as simple as that, why don't real-world systems just maximize this endlessly? What holds it in check?`;
     learningObjectives = [
-      `Identify the fundamental governing principles of ${topic}`,
-      `Explain boundary conditions, limiting factors, and feedback loops`,
-      `Provide a concrete, jargon-free real-world analogy`,
+      `Say what actually makes ${topic} work`,
+      `Explain what limits it, and what happens at the extremes`,
+      `Give a real-world comparison, without the jargon`,
     ];
   } else if (persona === "overconfident_peer") {
     draftText = `${topic} in ${subject} is fundamentally an elementary concept that people overcomplicate. You just apply the foundational canonical formula and assume the standard steady-state holds unconditionally. Edge cases and transient dynamics don't meaningfully alter the outcome, so you can safely disregard microscopic fluctuations and boundary friction.`;
@@ -510,8 +510,8 @@ export function generateDynamicDraft(
     ];
     challengeQuestion = `Prove to me why the naive textbook equation for ${topic} fails when conditions drift away from ideal equilibrium.`;
     learningObjectives = [
-      `Challenge superficial jargon with rigorous mechanical explanations`,
-      `Articulate critical preconditions, assumptions, and edge case breakdown scenarios`,
+      `Push past the big words and explain how it really works`,
+      `Spell out the conditions it relies on, and where it breaks down`,
     ];
   } else {
     // struggling_student
@@ -538,8 +538,8 @@ export function generateDynamicDraft(
     ];
     challengeQuestion = `Could you walk me through ${topic} step-by-step from beginning to end, like I am 12 years old?`;
     learningObjectives = [
-      `Demystify technical jargon into accessible, intuitive language`,
-      `Map out clear sequential cause-and-effect stages`,
+      `Turn the technical words into plain English`,
+      `Lay out the steps in order, and why each one follows`,
     ];
   }
 
