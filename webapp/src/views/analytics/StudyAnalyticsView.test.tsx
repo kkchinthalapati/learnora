@@ -245,4 +245,35 @@ describe("StudyAnalyticsView", () => {
       screen.queryByRole("group", { name: "Progress date range" }),
     ).not.toBeInTheDocument();
   });
+
+  it("associates the subject matrix cells with their column headers", async () => {
+    /* Six <th> cells with no scope: a screen reader has to guess which
+       header belongs to which cell, and the table had no name of its own
+       when reached out of context. */
+    server.use(
+      http.get(rest("study_sessions"), () => HttpResponse.json(mockSessions)),
+      http.get(rest("quiz_attempts"), () => HttpResponse.json(mockAttempts)),
+      http.get(rest("folders"), () => HttpResponse.json(mockFolders)),
+      http.get(rest("exams"), () => HttpResponse.json(mockExams)),
+    );
+
+    renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
+
+    const table = await screen.findByRole("table", {
+      name: /Study time logged per subject/,
+    });
+    const headers = within(table).getAllByRole("columnheader");
+    expect(headers).toHaveLength(6);
+    for (const header of headers) {
+      expect(header).toHaveAttribute("scope", "col");
+    }
+    expect(headers.map((h) => h.textContent)).toEqual([
+      "Subject",
+      "Study Time",
+      "Distribution",
+      "Upcoming Exam",
+      "Days Left",
+      "Status",
+    ]);
+  });
 });

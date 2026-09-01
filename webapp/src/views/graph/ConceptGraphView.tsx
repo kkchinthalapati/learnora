@@ -571,6 +571,9 @@ export function ConceptGraphView() {
                         aria-label={`${node.label}, you know ${node.masteryScore}% of this`}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
+                            // Space selects the node; preventDefault stops
+                            // the page scrolling out from under the map.
+                            e.preventDefault();
                             setSelectedNodeId(node.id);
                           }
                         }}

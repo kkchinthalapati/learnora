@@ -202,9 +202,14 @@ export function StudyDeskCard({
               )}
             </div>
             <div className={styles.statusBadgeWrapper}>
+              {/* aria-label on a bare div exposes no accessible name — a
+                  div has no role for the name to attach to, so the status
+                  was silently invisible to screen readers. The dot IS the
+                  status, so role="img" with the label as its alt text. */}
               <div
                 className={`${styles.statusIndicatorDot} ${pulseClass}`}
                 title={`Status: ${statusLabel}`}
+                role="img"
                 aria-label={`Status: ${statusLabel}`}
               />
             </div>
@@ -263,8 +268,11 @@ export function StudyDeskCard({
 
       {/* Desk Actions: Cheers & Sync Button */}
       <div className={styles.deskActions}>
+        {/* Same problem, same fix: a labelled group rather than a bare div,
+            so the cheer buttons are announced as belonging to this desk. */}
         <div
           className={styles.cheerBar}
+          role="group"
           aria-label={`Send cheer to ${participantName}`}
         >
           {CHEER_EMOJIS.map(({ emoji, label }) => {

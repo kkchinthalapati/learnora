@@ -266,6 +266,16 @@
     var(--shadow-sm);
 }
 
+/* The halo above is --surface, the same colour as the card behind the grid:
+   right for lifting a hovered cell off its neighbours, invisible as a focus
+   indicator. The heatmap is a real gridcell grid with roving tabIndex, so
+   keyboard nav is a supported flow and has to be visible — matching the
+   hourly chart bars (.barCol:focus-visible) rather than inventing a cue. */
+.cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .cellLvl0 {
   background-color: var(--surface-2);
 }
@@ -743,4 +753,18 @@
     flex-direction: column;
     gap: var(--s-2);
   }
+}
+
+/* Visually-hidden text that screen readers still announce — same shape as
+   MaterialPanel.module.css. Used for the subject-matrix caption. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

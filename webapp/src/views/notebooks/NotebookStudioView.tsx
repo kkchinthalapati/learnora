@@ -82,6 +82,19 @@ export function NotebookStudioView() {
   } | null>(null);
   const [isExportingArtifact, setIsExportingArtifact] = useState(false);
 
+  /* Shared by the artifact card's click and key handlers so the two can't
+     drift apart — the keyboard path was missing entirely until now. */
+  const openArtifactPreview = (artifact: {
+    title: string;
+    type: string;
+    content: string;
+  }) =>
+    setActiveArtifactPreview({
+      title: artifact.title,
+      type: artifact.type,
+      content: artifact.content,
+    });
+
   const handleAppendToNotes = (content: string) => {
     if (!notebook) return;
     const next = notebook.notes
@@ -933,13 +946,16 @@ Use British English throughout.`;
                 <div
                   key={art.id}
                   className={styles.artifactCard}
-                  onClick={() =>
-                    setActiveArtifactPreview({
-                      title: art.title,
-                      type: art.type,
-                      content: art.content,
-                    })
-                  }
+                  onClick={() => openArtifactPreview(art)}
+                  /* The only role="button" div in the app that had no
+                     onKeyDown at all: reachable by Tab, activatable by
+                     nothing, so the artifact preview was mouse-only. */
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openArtifactPreview(art);
+                    }
+                  }}
                   role="button"
                   tabIndex={0}
                 >

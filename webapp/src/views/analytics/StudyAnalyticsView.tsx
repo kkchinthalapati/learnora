@@ -424,14 +424,34 @@ export function StudyAnalyticsView() {
         ) : (
           <div className={styles.matrixWrapper}>
             <table className={styles.matrixTable}>
+              {/* Without scope, a screen reader has to guess which header
+                  goes with which cell in a six-column table; the caption
+                  gives the table a name when it is reached out of context
+                  (table list, browse mode). */}
+              <caption className={styles.srOnly}>
+                Study time logged per subject, with upcoming exam dates and
+                preparation status
+              </caption>
               <thead>
                 <tr>
-                  <th className={styles.th}>Subject</th>
-                  <th className={styles.th}>Study Time</th>
-                  <th className={styles.th}>Distribution</th>
-                  <th className={styles.th}>Upcoming Exam</th>
-                  <th className={styles.th}>Days Left</th>
-                  <th className={styles.th}>Status</th>
+                  <th scope="col" className={styles.th}>
+                    Subject
+                  </th>
+                  <th scope="col" className={styles.th}>
+                    Study Time
+                  </th>
+                  <th scope="col" className={styles.th}>
+                    Distribution
+                  </th>
+                  <th scope="col" className={styles.th}>
+                    Upcoming Exam
+                  </th>
+                  <th scope="col" className={styles.th}>
+                    Days Left
+                  </th>
+                  <th scope="col" className={styles.th}>
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody>

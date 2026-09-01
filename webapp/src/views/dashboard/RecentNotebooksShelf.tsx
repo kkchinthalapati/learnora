@@ -39,7 +39,12 @@ export function RecentNotebooksShelf() {
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") void navigate(`/notebooks/${nb.id}`);
+                if (e.key === "Enter" || e.key === " ") {
+                  // Space activates the card; preventDefault stops it also
+                  // scrolling the dashboard a screen down.
+                  e.preventDefault();
+                  void navigate(`/notebooks/${nb.id}`);
+                }
               }}
             >
               <div className={styles.shelfCardTop}>

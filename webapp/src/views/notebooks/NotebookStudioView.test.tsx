@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes } from "react-router";
@@ -104,6 +104,94 @@ describe("NotebookStudioView", () => {
 
     expect(
       await screen.findByRole("heading", { name: /Add Study Source to Notebook/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("opens an artifact preview from the keyboard", async () => {
+    /* This card is a role="button" div with tabIndex={0} and, until now, no
+       onKeyDown at all — the only one in the app. Tab reached it and nothing
+       could activate it, so the artifact preview was mouse-only. */
+    server.use(
+      http.get(rest("notebooks"), () =>
+        HttpResponse.json({
+          ...notebook,
+          notebook_artifacts: [
+            {
+              id: "art-1",
+              type: "cheat_sheet",
+              title: "Circle Theorems Cheat Sheet",
+              content: "## Angle at the centre is twice the angle at the rim",
+              created_at: "2026-08-02T00:00:00Z",
+            },
+          ],
+        }),
+      ),
+    );
+    renderWithAuth(
+      <MemoryRouter initialEntries={["/notebooks/nb-1"]}>
+        <Routes>
+          <Route
+            path="/notebooks/:notebookId"
+            element={<NotebookStudioView />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", { name: "Sources" });
+
+    const card = await screen.findByRole("button", {
+      name: /Circle Theorems Cheat Sheet/,
+    });
+
+    // Space activates it *and* is prevented, so the page underneath does not
+    // also scroll a screen down.
+    card.focus();
+    const spaceEvent = fireEvent.keyDown(card, { key: " " });
+    expect(spaceEvent).toBe(false); // fireEvent returns false when prevented
+
+    expect(
+      await screen.findByText(/Angle at the centre is twice the angle/),
+    ).toBeInTheDocument();
+  });
+
+  it("also opens an artifact preview with Enter", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(rest("notebooks"), () =>
+        HttpResponse.json({
+          ...notebook,
+          notebook_artifacts: [
+            {
+              id: "art-1",
+              type: "cheat_sheet",
+              title: "Circle Theorems Cheat Sheet",
+              content: "## Angle at the centre is twice the angle at the rim",
+              created_at: "2026-08-02T00:00:00Z",
+            },
+          ],
+        }),
+      ),
+    );
+    renderWithAuth(
+      <MemoryRouter initialEntries={["/notebooks/nb-1"]}>
+        <Routes>
+          <Route
+            path="/notebooks/:notebookId"
+            element={<NotebookStudioView />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", { name: "Sources" });
+
+    const card = await screen.findByRole("button", {
+      name: /Circle Theorems Cheat Sheet/,
+    });
+    card.focus();
+    await user.keyboard("{Enter}");
+
+    expect(
+      await screen.findByText(/Angle at the centre is twice the angle/),
     ).toBeInTheDocument();
   });
 });

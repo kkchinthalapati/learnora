@@ -82,6 +82,13 @@
   outline: none;
 }
 
+/* The input drops its own outline, so the wrapper carries the indicator —
+   the LibrarySearch pattern. */
+.searchBar:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
 .subjectFilterList {
   display: flex;
   gap: var(--s-2);
@@ -571,6 +578,11 @@
   color: var(--text);
   font-size: var(--fs-base);
   outline: none;
+}
+
+.chatInputRow:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 /* Column 3: Studio Tools & Artifacts */

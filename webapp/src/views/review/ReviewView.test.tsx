@@ -903,6 +903,57 @@ describe("ReviewView", () => {
   });
 
   describe("Socratic AI Failure Interceptor & Coach", () => {
+    it("traps focus inside the coach drawer and hands it back on close", async () => {
+      /* The drawer declared role="dialog" aria-modal="true" while using none
+         of the overlay machinery: Tab walked straight out into the page the
+         screen reader had just been told was inert, and closing dropped
+         focus on <body>. */
+      serve();
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({ text: "Root Cause: a mix-up with chloroplasts." }),
+        ),
+      );
+
+      renderReview();
+      await screen.findByText("What is a mitochondrion?");
+
+      const user = userEvent.setup();
+      await user.click(
+        screen.getByRole("button", { name: "Flip card to see the answer" }),
+      );
+
+      const coachBtn = screen.getByRole("button", {
+        name: "Why did I miss this? (Socratic Coach)",
+      });
+      coachBtn.focus();
+      await user.click(coachBtn);
+
+      const drawer = await screen.findByRole("dialog", {
+        name: "Socratic Coach",
+      });
+      // The dialog is the drawer itself, not the scrim wrapping the viewport.
+      expect(drawer).toHaveClass(/socraticDrawer/);
+      const focused = () => document.activeElement as HTMLElement | null;
+      await waitFor(() => expect(drawer).toContainElement(focused()));
+
+      // Tab from the last focusable wraps back inside rather than escaping to
+      // the page behind.
+      for (let i = 0; i < 40; i++) {
+        await user.tab();
+        expect(drawer).toContainElement(focused());
+      }
+
+      await user.keyboard("{Escape}");
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("dialog", { name: "Socratic Coach" }),
+        ).not.toBeInTheDocument(),
+      );
+      // Focus goes back to what opened it, not to <body>.
+      expect(coachBtn).toHaveFocus();
+    });
+
     it("opens Socratic Coach drawer from flipped card and displays AI guidance", async () => {
       serve();
       let capturedPayload: unknown;

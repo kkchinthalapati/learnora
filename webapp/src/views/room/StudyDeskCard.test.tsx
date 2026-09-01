@@ -104,4 +104,25 @@ describe("StudyDeskCard", () => {
       screen.queryByRole("button", { name: /Sync timer/i })
     ).not.toBeInTheDocument();
   });
+
+  it("gives its labelled decorations a role, so the labels are announced", () => {
+    /* aria-label on a bare <div> exposes no accessible name: a div has no
+       role for the name to attach to, so both of these were labelled in the
+       source and silent in the accessibility tree. */
+    render(
+      <StudyDeskCard
+        participant={mockParticipant}
+        isSelf={false}
+        onCheer={vi.fn()}
+        onSync={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("img", { name: /^Status: / }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: "Send cheer to Ada Lovelace" }),
+    ).toBeInTheDocument();
+  });
 });

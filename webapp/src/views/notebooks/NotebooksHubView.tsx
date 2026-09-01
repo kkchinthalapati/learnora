@@ -131,6 +131,10 @@ export function NotebooksHubView() {
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
+                  // Space on a role="button" activates it; without this it
+                  // also scrolls the page a screen down underneath the
+                  // navigation.
+                  e.preventDefault();
                   void navigate(`/notebooks/${nb.id}`);
                 }
               }}

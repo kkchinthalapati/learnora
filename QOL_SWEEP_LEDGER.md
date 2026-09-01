@@ -3,7 +3,7 @@
 **Audit date:** 2026-09-01  
 **Auditors:** Claude subagent (CSS/visual/a11y) + manual inspection (functional/data-loss)  
 **Total findings:** 32 defects across 4 batches  
-**Status:** Batches 1–2 **DONE** • Batches 3–4 **pending**
+**Status:** Batches 1–3 **DONE** • Batch 4 **pending**
 
 ---
 
@@ -141,70 +141,107 @@ refetches are bounded by staleTime, so bouncing between tabs costs nothing.
 
 ---
 
-## Batch 3 — Keyboard & screen-reader access (7 items) — ⏳ PENDING
+## Batch 3 — Keyboard & screen-reader access (6 items) — ✅ SHIPPED
 
-**Scope:** Missing focus indicators, keyboard handlers, semantic markup, that leave keyboard/screen-reader users without access to features
+**Merged to main:** 2026-09-01 · 6 items · 11 new regression tests  
+**Tests:** 1903/1903 pass · `tsc -b` and `vite build` clean
 
-### 3.1 — Socratic Coach drawer is a fake dialog
+### 3.1 — Socratic Coach drawer is a fake dialog ✅
 
-**Problem:** Declares `role="dialog" aria-modal="true"` but uses no overlay machinery — no `useFocusTrap`, no `useOverlayBehavior`, no focus-on-open, no restore. So Tab walks straight out into the dimmed page behind; on close, focus is lost to `<body>`.
+**Problem:** Declared `role="dialog" aria-modal="true"` with no overlay
+machinery — no `useFocusTrap`, no `useOverlayBehavior`, no focus on open, no
+restore on close. Tab walked straight out into the page a screen reader had
+just been told was inert, and closing dropped focus on `<body>`.
 
-**Impact:** Screen reader user told background is inert, but can tab through it. Focus vanishes on close.
+**Solution:** Wired through `useOverlayBehavior` + `useFocusTrap`, exactly as
+ConceptNodeDrawer does. The bespoke `window` Escape listener is gone — the
+overlay stack owns Escape, so nested overlays now close in order.
+The dialog role also moved from the scrim onto the drawer: a `role="dialog"`
+wrapping its own backdrop claims the whole viewport as dialog content.
 
-**Solution:** Wire it through `useOverlayBehavior` + `useFocusTrap` exactly as `ConceptNodeDrawer.tsx` does.
+**Note:** the scrim is the drawer's positioning parent here (unlike
+ConceptNodeDrawer, where scrim and drawer are siblings), so it deliberately is
+**not** `aria-hidden` — that would hide the dialog inside it along with itself.
 
-**Files:** ReviewView.tsx, review.module.css
+**Files:** ReviewView.tsx  
+**Regression test:** focus enters the drawer on open, 40 tabs never leave it,
+Escape closes it and focus returns to the button that opened it.
 
-### 3.2 — Missing focus indicators (3 sites)
+### 3.2 — Missing focus indicators (3 sites) ✅
 
-**Problem:** All three have `outline: none` with no `:focus` replacement, and module CSS specificity beats the global fallback:
-- Hex input in Custom Theme (appearance.module.css)
-- Notebook hub search box and studio chat box (notebooks.module.css)
-- CommandPalette search on Shift+Tab back (CommandPalette.module.css)
+**Problem:** Each site set `outline: none` with no `:focus` replacement, and
+module-CSS specificity beats the global fallback — so the indicator wasn't
+degraded, it was deleted.
 
-**Impact:** Keyboard users lose their place mid-flow.
+**Solution:** the `:focus-within` accent ring from LibrarySearch, on the
+wrapper that actually has a border to light up: `.hexRow` (custom theme),
+`.searchBar` and `.chatInputRow` (notebooks), `.searchWrapper` (command
+palette, which uses an inset ring since it has only a bottom border).
 
-**Solution:** Use the `:focus-within` accent ring already established at LibrarySearch.
+**Files:** appearance.module.css, notebooks.module.css,
+CommandPalette.module.css
 
-**Files:** 3 CSS modules
+### 3.3 — Keyboard activation gaps (2 sites) ✅
 
-### 3.3 — Keyboard activation gaps (2 sites)
+**Problem:** NotebookStudioView's artifact card was a `role="button"` div with
+`tabIndex={0}` and no `onKeyDown` at all — reachable by Tab, activatable by
+nothing. Three other cards activated on Space without `preventDefault()`, so
+Space both activated them and scrolled the page a screen down.
 
-**Problem:**
-- NotebookStudioView.tsx:786 — `role="button"` div with `tabIndex={0}` and **no `onKeyDown` at all**; the artifact preview is unreachable without a mouse. Only such div in the app.
-- NotebooksHubView, RecentNotebooksShelf, ConceptGraphView — Space activation without `preventDefault()`, so it activates *and* scrolls a screen down.
+**Solution:** the artifact card's click and key paths now share one
+`openArtifactPreview` handler so they can't drift; `preventDefault()` added to
+the Space branch in NotebooksHubView, RecentNotebooksShelf and
+ConceptGraphView.
 
-**Impact:** Keyboard users cannot reach or fully control these features.
+**Files:** NotebookStudioView.tsx, NotebooksHubView.tsx,
+RecentNotebooksShelf.tsx, ConceptGraphView.tsx  
+**Regression tests:** 3 — the artifact preview opens on Space and on Enter,
+and the hub card's Space is prevented while still navigating.
 
-**Solution:** Add `onKeyDown` handler to NotebookStudioView; add `preventDefault()` in Space handler for the others.
+### 3.4 — Invisible heatmap focus ring ✅
 
-**Files:** 4 TSX files
+**Problem:** the only `:focus-visible` style was a `1.5px var(--surface)` halo
+shared with `:hover` — the same colour as the card behind the cell. The
+heatmap is a real `role="gridcell"` grid with roving tabIndex, so keyboard nav
+is a supported flow with no feedback at all.
 
-### 3.4 — Invisible heatmap focus ring
-
-**Problem:** Analytics heatmap `:focus-visible` halo is `box-shadow: 0 0 0 1.5px var(--surface)` — the same colour as the card behind it. The heatmap is a proper `role="gridcell"` grid with roving tabIndex, so keyboard nav is a supported flow.
-
-**Impact:** Keyboard user navigating the grid has no visible feedback where they are.
-
-**Solution:** Change the halo to `var(--accent)`.
+**Solution:** a dedicated `.cell:focus-visible { outline: 2px solid
+var(--accent) }`, matching the hourly-chart bars rather than inventing a new
+cue. The hover halo is left alone — separating an enlarged cell from its
+neighbours is its actual job.
 
 **Files:** analytics.module.css
 
-### 3.5 — Labels on role-less elements
+### 3.5 — Labels on role-less elements ✅
 
-**Problem:** StudyDeskCard.tsx — `aria-label` on bare `<div>`s exposes no accessible name.
+**Problem:** StudyDeskCard put `aria-label` on bare `<div>`s. A div has no
+role for a name to attach to, so both labels were silent.
 
-**Solution:** Add `role="img"` to the status dot, `role="group"` to the cheer bar.
+**Solution:** `role="img"` on the status dot (the dot *is* the status, so the
+label is its alt text), `role="group"` on the cheer bar.
 
-**Files:** 1 TSX file
+**Files:** StudyDeskCard.tsx  
+**Regression test:** both are now reachable by role and name.
 
-### 3.6 — Table semantics
+### 3.6 — Table semantics ✅
 
-**Problem:** StudyAnalyticsView.tsx — six `<th>` cells in the Subject Balance Matrix have no `scope="col"`, and the table has no `<caption>`. Screen readers don't reliably associate data cells with their column headers.
+**Problem:** six `<th>` cells in the Subject Balance Matrix with no
+`scope="col"`, and no `<caption>` — screen readers had to guess the
+cell/header association, and the table had no name out of context.
 
-**Solution:** Add `scope="col"` to each `<th>` and a visually-hidden `<caption>`.
+**Solution:** `scope="col"` on each header plus a visually-hidden `<caption>`
+(`.srOnly`, same shape as MaterialPanel's).
 
-**Files:** 1 TSX file
+**Files:** StudyAnalyticsView.tsx, analytics.module.css  
+**Regression test:** the table is findable by its caption and all six headers
+carry `scope="col"`.
+
+### Guard added
+
+`styles/focusVisible.test.ts` asserts each `outline: none` site has a live
+accent-ring rule and that the heatmap ring is drawn in `--accent`. CSS source
+text, not rendered styles — jsdom applies no stylesheets, the same reason
+`contrast.test.ts` and `drift.test.ts` read files directly.
 
 ---
 
@@ -302,13 +339,16 @@ refetches are bounded by staleTime, so bouncing between tabs costs nothing.
 
 **Batch 1:** Shipped 2026-09-01 · 50 files · +485−176 · 1780/1781 tests pass  
 **Batch 2:** Shipped 2026-09-01 · 4 items · 12 new tests · 1892/1892 tests pass  
-**Batches 3–4:** 15 remaining defects · estimate **15–20 hours** if done sequentially · all a11y or polish, none lose work
+**Batch 3:** Shipped 2026-09-01 · 6 items · 11 new tests · 1903/1903 tests pass  
+**Batch 4:** 8 remaining defects · visual polish and mobile · estimate **6–8 hours**
 
 **Why this structure?** Batch 1 is shared infrastructure (tokens, hooks, toasts) that several later items depend on — done first, unblocks the rest. Batches 2 (correctness) and 3 (a11y) are independent. Batch 4 (polish) can run in parallel if needed.
 
 **Regressions to watch:** 
 - Batch 1's 157-declaration repoint is a real light-mode visual change. Eyeball before shipping if you haven't already.
-- Batch 3.1 touches focus/keyboard state in a way that can regress if tests aren't run.
+- Batch 3.1 shipped with a focus-trap regression test. Note the scrim there
+  must stay un-hidden: it is the dialog's parent, so aria-hidden on it would
+  hide the dialog too (this cost a red test run to find).
 - Batch 2.4 changed cache behaviour app-wide: anything that relied on a
   refetch-on-every-mount for freshness now reuses the cache for 60s.
 - Batch 2.1 shipped with regression tests. The retry-once-then-stop policy is

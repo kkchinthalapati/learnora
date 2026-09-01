@@ -20,6 +20,8 @@ import {
   useUpdateFlashcardReview,
 } from "../../hooks/useFlashcards";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
+import { useOverlayBehavior } from "../../context/overlayStack";
 import { dateInDays } from "../../lib/date";
 import { fenceUntrusted } from "../../lib/actionTags";
 import { executeActions, type ActionHandlers } from "../../lib/chatActions";
@@ -537,6 +539,7 @@ export function SocraticCoachDrawer({
   const [response, setResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -604,29 +607,38 @@ export function SocraticCoachDrawer({
     }
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  /* This drawer declared role="dialog" aria-modal="true" while using none of
+     the overlay machinery behind it: no focus trap, no focus on open, no
+     restore on close. A screen reader was told the page behind was inert
+     while Tab walked straight out into it, and closing the drawer dropped
+     focus on <body>. Wired through the same two hooks ConceptNodeDrawer
+     uses, which also own Escape (via the overlay stack, so nested overlays
+     close in order) and return focus to whatever opened the drawer. */
+  useOverlayBehavior({
+    ref: drawerRef,
+    open: isOpen && !!card,
+    onClose,
+  });
+  useFocusTrap(drawerRef, isOpen && !!card);
 
   if (!isOpen || !card) return null;
 
+  /* The scrim is the drawer's positioning parent here (unlike
+     ConceptNodeDrawer, where the two are siblings), so it must NOT be
+     aria-hidden — that would hide the dialog inside it from the
+     accessibility tree along with itself. A role-less, label-less div
+     contributes nothing to that tree on its own. */
   return (
-    <div
-      className={styles.socraticDrawerOverlay}
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Socratic Coach"
-    >
+    <div className={styles.socraticDrawerOverlay} onClick={onClose}>
+      {/* The dialog is the drawer, not the scrim: a role="dialog" wrapping
+          its own backdrop claims the whole viewport as dialog content. */}
       <div
+        ref={drawerRef}
         className={styles.socraticDrawer}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Socratic Coach"
       >
         <div className={styles.socraticHeader}>
           <div className={styles.socraticHeaderLeft}>

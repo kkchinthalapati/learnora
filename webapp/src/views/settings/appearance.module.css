@@ -461,6 +461,15 @@
   outline: none;
 }
 
+/* The ring lives on the row rather than the input because the input has no
+   border of its own to light up — same shape as LibrarySearch. Without it
+   this field was one of three places in the app where focus simply vanished:
+   module specificity beats the global :focus-visible fallback. */
+.hexRow:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
 .hexInvalid {
   color: var(--danger-text);
 }

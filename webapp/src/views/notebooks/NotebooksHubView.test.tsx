@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Route, Routes } from "react-router";
@@ -96,5 +96,22 @@ describe("NotebooksHubView", () => {
     renderHub();
 
     expect(await screen.findByText(/No study notebooks yet/i)).toBeInTheDocument();
+  });
+
+  it("opens a notebook on Space without also scrolling the page", async () => {
+    renderHub();
+    const card = await screen.findByRole("button", {
+      name: /Grade 9 Mathematics/,
+    });
+
+    /* Space activates a role="button" — and, unprevented, also scrolls the
+       hub a screen down underneath the navigation. fireEvent returns false
+       when the handler called preventDefault. */
+    const notPrevented = fireEvent.keyDown(card, { key: " " });
+    expect(notPrevented).toBe(false);
+
+    expect(
+      await screen.findByRole("heading", { name: "Studio" }),
+    ).toBeInTheDocument();
   });
 });
