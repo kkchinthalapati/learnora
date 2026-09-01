@@ -136,6 +136,55 @@ describe("renderMarkdownNodes", () => {
     );
   });
 
+  /* Diagrams: the tutor draws into an ```svg fence and the app renders it,
+     which is what makes "create me some diagrams" a thing the app can answer
+     rather than decline. */
+  describe("diagrams", () => {
+    const drawing =
+      '<svg viewBox="0 0 100 100"><title>A circle</title>' +
+      '<circle cx="50" cy="50" r="40" stroke="currentColor" fill="none" /></svg>';
+
+    it("renders an svg fence as a drawing, not as a code listing", () => {
+      renderMd(
+        "Here it is:\n\n```svg\n" + drawing + "\n```\n\nNotice the radius.",
+      );
+      expect(out().querySelector("figure svg circle")).toBeInTheDocument();
+      expect(out().querySelector("pre")).toBeNull();
+      expect(out()).toHaveTextContent("Notice the radius.");
+    });
+
+    it("renders an unfenced drawing too — models forget the fence", () => {
+      renderMd("Look at this:\n\n" + drawing + "\n\nThe centre is O.");
+      expect(out().querySelector("figure svg circle")).toBeInTheDocument();
+      expect(out()).toHaveTextContent("Look at this:");
+      expect(out()).toHaveTextContent("The centre is O.");
+    });
+
+    it("still shows the source when a fence tagged svg is not a drawing", () => {
+      renderMd("```svg\nhow do I write an svg?\n```");
+      expect(out().querySelector("svg")).toBeNull();
+      expect(out().querySelector("pre")).toHaveTextContent(
+        "how do I write an svg?",
+      );
+    });
+
+    it("sanitises the drawing rather than trusting the fence", () => {
+      renderMd(
+        '```svg\n<svg viewBox="0 0 10 10"><script>alert(1)</script>' +
+          '<circle cx="5" cy="5" r="4" onclick="alert(2)" /></svg>\n```',
+      );
+      expect(out().querySelector("script")).toBeNull();
+      expect(out().querySelector("circle")?.getAttribute("onclick")).toBeNull();
+      expect(out().querySelector("circle")).toBeInTheDocument();
+    });
+
+    it("keeps a broken drawing's source on screen instead of swallowing it", () => {
+      renderMd('```svg\n<svg viewBox="0 0 10 10"><circle\n```');
+      expect(out().querySelector("svg")).toBeNull();
+      expect(out()).toHaveTextContent("<circle");
+    });
+  });
+
   it("renders nothing for empty input", () => {
     renderMd("");
     expect(out()).toBeEmptyDOMElement();
@@ -270,7 +319,6 @@ describe("maths rendering", () => {
     expect(out().querySelector("em")).toBeNull();
   });
 });
-
 
 /* The safety net for maths the model forgot to wrap in dollars. A bare
  * `\sqrt{3}` reaching the student as literal backslashes is worse than the

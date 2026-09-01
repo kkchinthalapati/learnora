@@ -12,6 +12,11 @@ import { useToast } from "../../context/toast";
 import styles from "./notebooks.module.css";
 import { EmptyState } from "../../components/EmptyState";
 import { renderMarkdownNodes } from "../../lib/markdownToReact";
+import { extractSvgSource } from "../../lib/diagramSvg";
+import {
+  DIAGRAM_CHAT_HINT,
+  buildDiagramTaskPrompt,
+} from "../../lib/diagramPrompt";
 
 function flashcardsFromCheatSheet(content: string) {
   const cards = content
@@ -68,6 +73,10 @@ export function NotebookStudioView() {
   const [chatInput, setChatInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
+
+  // Diagram brief: what the drawing should show, asked before generating.
+  const [isDiagramPromptOpen, setIsDiagramPromptOpen] = useState(false);
+  const [diagramRequest, setDiagramRequest] = useState("");
 
   // New source form state
   const [newSourceTitle, setNewSourceTitle] = useState("");
@@ -198,7 +207,9 @@ ${
     ? "When referencing facts from the provided sources, cite them clearly using bracketed numbers like [1], [2] matching the source index."
     : "No sources are attached, so answer from general subject knowledge and do not invent bracketed citation markers like [1] — there is nothing for them to reference."
 }
-Keep explanations friendly, encouraging, and structured for student success.`;
+Keep explanations friendly, encouraging, and structured for student success.
+
+${DIAGRAM_CHAT_HINT}`;
 
       const response = await callEdge({
         history: [
@@ -315,6 +326,47 @@ Use British English throughout.`;
         summary: "Plain-language simplification and gap-finder.",
       });
       showToast("Breakdown saved.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  /* Unlike the other tools this one has a free-text brief: "a diagram" is
+     never one thing, and a student who wants the circle theorems on a single
+     circle should not get a generic concept map instead. */
+  const handleGenerateDiagram = async (request?: string) => {
+    setIsGenerating(true);
+    showToast("Drawing your diagram…");
+
+    try {
+      const sourcesText = selectedSources.map((s) => s.content).join("\n\n");
+      const res = await callEdge({
+        history: [
+          {
+            role: "user",
+            content: `You are a diagram illustrator for a British revision app. You draw accurate, labelled SVG diagrams for students.\n\nSOURCES:\n${sourcesText}\n\nTASK:\n${buildDiagramTaskPrompt(notebook.title, request)}`,
+          },
+        ],
+      });
+
+      /* A reply with no drawing in it is a failed generation, not an artifact
+         — saving it would put a wall of prose in the diagram slot. */
+      if (!extractSvgSource(res.text)) {
+        showToast("That did not come back as a diagram. Please try again.");
+        return;
+      }
+
+      addArtifact({
+        type: "diagram",
+        title: request?.trim()
+          ? `Diagram: ${request.trim()}`
+          : `${notebook.subject} Diagram: ${notebook.title}`,
+        content: res.text,
+        summary: "Labelled diagram drawn from your notebook sources.",
+      });
+      showToast("Diagram saved to your Notebook Studio!");
+    } catch {
+      showToast("Could not draw that diagram. Please try again in a moment.");
     } finally {
       setIsGenerating(false);
     }
@@ -695,6 +747,18 @@ Use British English throughout.`;
                       >
                         ⚠️ Exam traps
                       </button>
+                      <button
+                        type="button"
+                        className={styles.filterPill}
+                        style={{ fontSize: "11px", padding: "4px 8px" }}
+                        onClick={() =>
+                          handleSendChat(
+                            "Draw me a labelled diagram of this topic.",
+                          )
+                        }
+                      >
+                        📐 Draw a diagram
+                      </button>
                     </div>
 
                     <div className={styles.chatInputRow}>
@@ -842,6 +906,17 @@ Use British English throughout.`;
                   >
                     📝 3 Practice questions
                   </button>
+                  <button
+                    type="button"
+                    className={styles.filterPill}
+                    onClick={() =>
+                      handleSendChat(
+                        "Draw me a labelled diagram that shows how this topic fits together.",
+                      )
+                    }
+                  >
+                    📐 Draw a diagram
+                  </button>
                 </div>
 
                 <div className={styles.chatInputRow}>
@@ -891,6 +966,21 @@ Use British English throughout.`;
                 <div className={styles.toolLabel}>Explain it simply</div>
                 <div className={styles.toolSubtext}>
                   Explain simply & find knowledge gaps
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className={styles.toolButton}
+                onClick={() => setIsDiagramPromptOpen(true)}
+                disabled={isGenerating}
+              >
+                <div className={styles.toolIconBox}>
+                  <Icon name="network" size={18} />
+                </div>
+                <div className={styles.toolLabel}>Diagram</div>
+                <div className={styles.toolSubtext}>
+                  Draw & label the concept
                 </div>
               </button>
 
@@ -969,7 +1059,9 @@ Use British English throughout.`;
                               ? "file-text"
                               : art.type === "flashcards"
                                 ? "layers"
-                                : "check"
+                                : art.type === "diagram"
+                                  ? "network"
+                                  : "check"
                         }
                         size={12}
                       />
@@ -1007,8 +1099,8 @@ Use British English throughout.`;
                     margin: 0,
                   }}
                 >
-                  Pick a tool above to make your first plain-English breakdown
-                  or revision sheet.
+                  Pick a tool above to draw your first diagram, or make a
+                  plain-English breakdown or revision sheet.
                 </p>
               )}
             </div>
@@ -1131,6 +1223,88 @@ Use British English throughout.`;
               </Button>
               <Button type="submit" variant="primary">
                 Add source
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Diagram Brief Modal */}
+      {isDiagramPromptOpen && (
+        <Modal
+          open={isDiagramPromptOpen}
+          onClose={() => setIsDiagramPromptOpen(false)}
+          title="Draw a diagram"
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const request = diagramRequest;
+              setIsDiagramPromptOpen(false);
+              setDiagramRequest("");
+              void handleGenerateDiagram(request);
+            }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--s-4)",
+            }}
+          >
+            <div>
+              <label
+                htmlFor="diagram-brief"
+                style={{
+                  display: "block",
+                  fontSize: "var(--fs-sm)",
+                  fontWeight: 600,
+                  marginBottom: "var(--s-1)",
+                }}
+              >
+                What should the diagram show?
+              </label>
+              <textarea
+                id="diagram-brief"
+                placeholder="e.g. the circle theorems labelled on one big circle"
+                value={diagramRequest}
+                onChange={(e) => setDiagramRequest(e.target.value)}
+                rows={3}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  borderRadius: "var(--r-md)",
+                  border: "1px solid var(--border)",
+                  background: "var(--surface)",
+                  color: "var(--text)",
+                  fontFamily: "inherit",
+                }}
+              />
+              <p
+                style={{
+                  fontSize: "var(--fs-xs)",
+                  color: "var(--text-muted)",
+                  margin: "var(--s-1) 0 0",
+                }}
+              >
+                Leave it blank and your AI Tutor will pick the most useful
+                diagram for {notebook.title}.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "var(--s-2)",
+              }}
+            >
+              <Button
+                type="button"
+                onClick={() => setIsDiagramPromptOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" disabled={isGenerating}>
+                {isGenerating ? "Drawing…" : "Draw it"}
               </Button>
             </div>
           </form>

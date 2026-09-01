@@ -329,3 +329,88 @@ export const friendRequests = [
     created_at: daysAgo(2),
   },
 ];
+
+/* ------------------------------------------------------------- notebooks */
+
+/** A diagram exactly as the tutor is told to draw one (see
+ *  `lib/diagramPrompt.ts`): a viewBox, a title, `currentColor` construction
+ *  lines so it follows the theme, and every element the prose refers to
+ *  labelled. It doubles as the reference for what "good" looks like. */
+export const sampleDiagramSvg = `<svg viewBox="0 0 640 420" xmlns="http://www.w3.org/2000/svg">
+  <title>Circle theorems on one circle</title>
+  <circle cx="320" cy="210" r="160" fill="none" stroke="currentColor" stroke-width="2" />
+  <circle cx="320" cy="210" r="4" fill="currentColor" />
+  <text x="320" y="234" text-anchor="middle" font-size="15" fill="currentColor">O</text>
+
+  <!-- Angle at the centre is twice the angle at the circumference -->
+  <line x1="180" y1="130" x2="320" y2="210" stroke="#2563EB" stroke-width="2" />
+  <line x1="460" y1="130" x2="320" y2="210" stroke="#2563EB" stroke-width="2" />
+  <line x1="180" y1="130" x2="320" y2="370" stroke="#2E9E6B" stroke-width="2" />
+  <line x1="460" y1="130" x2="320" y2="370" stroke="#2E9E6B" stroke-width="2" />
+
+  <text x="180" y="118" text-anchor="middle" font-size="15" fill="currentColor">A</text>
+  <text x="460" y="118" text-anchor="middle" font-size="15" fill="currentColor">B</text>
+  <text x="320" y="392" text-anchor="middle" font-size="15" fill="currentColor">P</text>
+
+  <text x="320" y="180" text-anchor="middle" font-size="15" fill="#2563EB">2x</text>
+  <text x="320" y="352" text-anchor="middle" font-size="15" fill="#2E9E6B">x</text>
+
+  <!-- Angle in a semicircle -->
+  <line x1="160" y1="210" x2="480" y2="210" stroke="currentColor" stroke-width="2" stroke-dasharray="6 6" />
+  <text x="120" y="215" text-anchor="middle" font-size="15" fill="currentColor">C</text>
+  <text x="520" y="215" text-anchor="middle" font-size="15" fill="currentColor">D</text>
+  <text x="320" y="410" text-anchor="middle" font-size="15" fill="currentColor">CD is a diameter</text>
+</svg>`;
+
+export const notebooks = [
+  {
+    id: "nb-1",
+    user_id: USER_ID,
+    title: "Grade 9 Mathematics: Circle Theorems",
+    subject: "Mathematics",
+    color: "#4A90E2",
+    description: "Core theorems and proof strategies.",
+    notes: "Angle at the centre = 2 x angle at the circumference.\n",
+    created_at: daysAgo(6),
+    updated_at: daysAgo(1),
+    notebook_sources: [
+      {
+        id: "nb-src-1",
+        title: "Chapter 10: Circles & Proofs.pdf",
+        type: "pdf",
+        content:
+          "Equal chords of a circle subtend equal angles at the centre. The angle subtended by an arc at the centre is twice the angle it subtends at any point on the remaining part of the circle.",
+        url: null,
+        selected: true,
+        created_at: daysAgo(6),
+      },
+    ],
+    notebook_artifacts: [
+      {
+        id: "nb-art-1",
+        type: "diagram",
+        title: "Diagram: circle theorems on one big circle",
+        content: `### Circle theorems on one circle\n\n\`\`\`svg\n${sampleDiagramSvg}\n\`\`\`\n\n- **O** is the centre, so OA and OB are radii.\n- The blue angle **2x** at the centre is twice the green angle **x** at P.\n- **CD** is a diameter, so any angle drawn from C to D on the circle is 90°.`,
+        summary: "Labelled diagram drawn from your notebook sources.",
+        created_at: daysAgo(1),
+      },
+    ],
+    notebook_messages: [
+      {
+        id: "nb-msg-1",
+        role: "user",
+        content:
+          "a diagram showing the different circle theorems on one big circle",
+        citations: null,
+        created_at: daysAgo(1),
+      },
+      {
+        id: "nb-msg-2",
+        role: "assistant",
+        content: `Here is the whole set on one circle.\n\n\`\`\`svg\n${sampleDiagramSvg}\n\`\`\`\n\nNotice that the angle at the centre (2x) is always double the angle at the circumference (x) standing on the same arc AB.`,
+        citations: null,
+        created_at: daysAgo(1),
+      },
+    ],
+  },
+];

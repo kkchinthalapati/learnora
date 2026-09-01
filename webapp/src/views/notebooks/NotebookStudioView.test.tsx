@@ -10,6 +10,12 @@ import { renderWithAuth } from "../../test/auth";
 import { NotebookStudioView } from "./NotebookStudioView";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
+const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
+
+const DRAWING =
+  '<svg viewBox="0 0 200 200"><title>Circle theorems</title>' +
+  '<circle cx="100" cy="100" r="80" fill="none" stroke="currentColor" />' +
+  '<text x="100" y="40" text-anchor="middle">O</text></svg>';
 
 /* Notebooks moved from localStorage to Supabase, so the studio renders against
  * MSW like every other data-backed view. fetchOne() uses .maybeSingle(), which
@@ -103,7 +109,9 @@ describe("NotebookStudioView", () => {
     await user.click(screen.getByRole("button", { name: /Add source/i }));
 
     expect(
-      await screen.findByRole("heading", { name: /Add Study Source to Notebook/i }),
+      await screen.findByRole("heading", {
+        name: /Add Study Source to Notebook/i,
+      }),
     ).toBeInTheDocument();
   });
 
@@ -152,6 +160,156 @@ describe("NotebookStudioView", () => {
     expect(
       await screen.findByText(/Angle at the centre is twice the angle/),
     ).toBeInTheDocument();
+  });
+
+  describe("diagrams", () => {
+    it("draws a diagram from a brief and saves it as an artifact", async () => {
+      const user = userEvent.setup();
+      let sentPrompt = "";
+      let savedArtifact: Record<string, unknown> = {};
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          const body = (await request.json()) as {
+            history: { content: string }[];
+          };
+          sentPrompt = body.history[0].content;
+          return HttpResponse.json({
+            text: "Here it is:\n\n```svg\n" + DRAWING + "\n```",
+          });
+        }),
+        http.post(rest("notebook_artifacts"), async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>[];
+          savedArtifact = body[0];
+          return HttpResponse.json({
+            id: "art-diagram",
+            type: "diagram",
+            title: savedArtifact.title,
+            content: savedArtifact.content,
+            summary: savedArtifact.summary,
+            created_at: "2026-08-03T00:00:00Z",
+          });
+        }),
+      );
+      renderStudio();
+      await screen.findByRole("heading", { name: "Sources" });
+
+      await user.click(screen.getByRole("button", { name: /Diagram/ }));
+      await user.type(
+        screen.getByLabelText("What should the diagram show?"),
+        "the circle theorems on one big circle",
+      );
+      await user.click(screen.getByRole("button", { name: "Draw it" }));
+
+      await vi.waitFor(() => expect(savedArtifact.type).toBe("diagram"));
+      /* The student's brief has to reach the model — a generic concept map is
+         not what "the circle theorems on one big circle" asked for. */
+      expect(sentPrompt).toContain("the circle theorems on one big circle");
+      /* And the notebook's own sources ground it, like every other tool. */
+      expect(sentPrompt).toContain("Equal chords of a circle");
+      expect(String(savedArtifact.content)).toContain("<svg");
+    });
+
+    it("does not save a reply that came back with no drawing in it", async () => {
+      const user = userEvent.setup();
+      let saved = false;
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({ text: "I would sketch a circle here." }),
+        ),
+        http.post(rest("notebook_artifacts"), () => {
+          saved = true;
+          return HttpResponse.json({});
+        }),
+      );
+      renderStudio();
+      await screen.findByRole("heading", { name: "Sources" });
+
+      await user.click(screen.getByRole("button", { name: /Diagram/ }));
+      await user.click(screen.getByRole("button", { name: "Draw it" }));
+
+      expect(
+        await screen.findByText(/did not come back as a diagram/),
+      ).toBeInTheDocument();
+      expect(saved).toBe(false);
+    });
+
+    it("renders a saved diagram artifact as a picture in its preview", async () => {
+      const user = userEvent.setup();
+      server.use(
+        http.get(rest("notebooks"), () =>
+          HttpResponse.json({
+            ...notebook,
+            notebook_artifacts: [
+              {
+                id: "art-1",
+                type: "diagram",
+                title: "Circle theorems diagram",
+                content: "```svg\n" + DRAWING + "\n```",
+                created_at: "2026-08-02T00:00:00Z",
+              },
+            ],
+          }),
+        ),
+      );
+      /* renderStudio() installs its own notebooks handler, which would win
+         over the one above — MSW resolves the most recently added first. */
+      renderWithAuth(
+        <MemoryRouter initialEntries={["/notebooks/nb-1"]}>
+          <Routes>
+            <Route
+              path="/notebooks/:notebookId"
+              element={<NotebookStudioView />}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await screen.findByRole("heading", { name: "Sources" });
+
+      await user.click(
+        await screen.findByRole("button", { name: /Circle theorems diagram/ }),
+      );
+
+      expect(
+        await screen.findByRole("img", { name: "Circle theorems" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Download SVG/ }),
+      ).toBeInTheDocument();
+    });
+
+    it("tells the tutor it can draw, so it stops refusing", async () => {
+      const user = userEvent.setup();
+      let sentPrompt = "";
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          const body = (await request.json()) as {
+            history: { content: string }[];
+          };
+          sentPrompt = body.history[0].content;
+          return HttpResponse.json({ text: "```svg\n" + DRAWING + "\n```" });
+        }),
+        http.post(rest("notebook_messages"), () =>
+          HttpResponse.json({
+            id: "msg-1",
+            role: "assistant",
+            content: "ok",
+            citations: null,
+            created_at: "2026-08-03T00:00:00Z",
+          }),
+        ),
+      );
+      renderStudio();
+      await screen.findByRole("heading", { name: "Sources" });
+
+      await user.click(
+        screen.getAllByRole("button", { name: /Draw a diagram/ })[0],
+      );
+
+      await vi.waitFor(() =>
+        expect(sentPrompt).toContain("You can draw diagrams"),
+      );
+      expect(sentPrompt).toContain("```svg");
+    });
   });
 
   it("also opens an artifact preview with Enter", async () => {

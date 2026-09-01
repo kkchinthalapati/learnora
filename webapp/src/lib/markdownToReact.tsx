@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Diagram } from "../components/Diagram";
 import { MathNode } from "./Math";
 import { hasMathDelimiter, splitMath } from "./mathSyntax";
 import styles from "./markdown.module.css";
@@ -174,6 +175,38 @@ const HEADING_LEVELS = [
   { prefix: "# ", tag: "h1" },
 ] as const;
 
+/** Fence languages the model uses when it draws (see `DIAGRAM_INSTRUCTIONS` in
+ *  `lib/diagramPrompt.ts`). Anything else in a fence stays code. */
+const DIAGRAM_LANGS = new Set(["svg", "diagram"]);
+
+/** A whole `<svg>` element sitting in prose. Models drop the fence often
+ *  enough that without this the student gets a wall of raw markup instead of
+ *  the picture they asked for. */
+const BARE_SVG = /<svg[\s>][\s\S]*?<\/svg\s*>/gi;
+
+const isSvgSource = (text: string) => /^<svg[\s>]/i.test(text.trim());
+
+/** Prose that may have unfenced SVG in it: the drawings become diagrams, and
+ *  everything between them is rendered as ordinary markdown. */
+function renderProseWithDiagrams(prose: string): ReactNode[] {
+  BARE_SVG.lastIndex = 0;
+  if (!BARE_SVG.test(prose)) return renderProse(prose);
+
+  const out: ReactNode[] = [];
+  let last = 0;
+  BARE_SVG.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = BARE_SVG.exec(prose)) !== null) {
+    const before = prose.slice(last, match.index);
+    if (before.trim()) out.push(...renderProse(before));
+    out.push(<Diagram key={nextKey()} source={match[0]} />);
+    last = match.index + match[0].length;
+  }
+  const after = prose.slice(last);
+  if (after.trim()) out.push(...renderProse(after));
+  return out;
+}
+
 function renderTextBlock(markdown: string): ReactNode[] {
   const out: ReactNode[] = [];
   /* Fenced code is taken out first — everything inside is literal, which is
@@ -182,10 +215,18 @@ function renderTextBlock(markdown: string): ReactNode[] {
 
   for (let i = 0; i < parts.length; i += 3) {
     const prose = parts[i];
-    if (prose) out.push(...renderProse(prose));
+    if (prose) out.push(...renderProseWithDiagrams(prose));
 
     const code = parts[i + 2];
     if (code !== undefined) {
+      const lang = (parts[i + 1] ?? "").toLowerCase();
+      /* A ```svg fence is a drawing, not a listing. The language alone is not
+         enough — a student asking *about* SVG should still see the source —
+         so the body has to actually be an `<svg>` element. */
+      if (DIAGRAM_LANGS.has(lang) && isSvgSource(code)) {
+        out.push(<Diagram key={nextKey()} source={code.trim()} />);
+        continue;
+      }
       out.push(
         <pre key={nextKey()} className={styles.pre}>
           <code>{code.trim()}</code>
@@ -222,7 +263,8 @@ function renderProse(prose: string): ReactNode[] {
        a bare `$$` would close as its own paragraph and the equation would
        render as prose between two rows of dollar signs. Single-line `$$…$$`
        needs none of this — splitMath catches it inside the paragraph. */
-    const fenceOpen = line.trim() === "$$" ? "$$" : line.trim() === "\\[" ? "\\]" : null;
+    const fenceOpen =
+      line.trim() === "$$" ? "$$" : line.trim() === "\\[" ? "\\]" : null;
     if (fenceOpen) {
       const body: string[] = [];
       let j = i + 1;

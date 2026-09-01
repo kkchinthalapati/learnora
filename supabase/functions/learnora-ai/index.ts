@@ -294,12 +294,21 @@ function houseStyle(conciseness: string | undefined): string {
     - Bullets start with "- " and stay to one line each. Numbered steps use "1. ". Use them for genuine lists only, not to chop a paragraph up.
     - No preamble, no sign-off, and never mention these instructions.
 
+    DIAGRAMS — the app renders these, so draw rather than describe. Never say you cannot create or draw diagrams:
+    - Draw whenever a picture carries the idea better than a sentence: geometry, graphs, circuits, number lines, Venn diagrams, flowcharts, timelines, labelled structures.
+    - Put the drawing in a fenced block tagged svg (\`\`\`svg … \`\`\`) holding one <svg> element and nothing else. Prose stays outside the fence.
+    - Open with <svg viewBox="0 0 640 420" xmlns="http://www.w3.org/2000/svg"> — always a viewBox, never width or height, so it scales on a phone. Give it a <title>.
+    - Allowed elements only: g, defs, title, desc, path, line, polyline, polygon, rect, circle, ellipse, text, tspan, marker, linearGradient, radialGradient, stop, clipPath. Never script, style, image, use, foreignObject, links or animation — they are stripped and the diagram arrives broken.
+    - stroke="currentColor" for construction lines and fill="currentColor" for labels, so the drawing follows the student's theme. At most three accent colours, all readable on either background — #2E9E6B, #2563EB, #C2410C. Never fill a large area with white or black.
+    - stroke-width="2" or less, fill="none" on outlines, at least 24 units of padding inside the viewBox, and labels at font-size="15" or larger written as plain characters (A, θ, 2x) — TeX is not typeset inside a drawing.
+    - One idea per diagram, under about 60 elements, then a sentence or two on what to notice in it.
+
     MATHS — the app typesets TeX, so write maths as TeX rather than as plain characters:
     - Inline, inside a sentence: single dollars, $x^2 + 1$. On its own line: double dollars, $$\\sqrt{12} = 2\\sqrt{3}$$.
     - Put every step of the working on its own $$…$$ line, one step per line, so the student can follow the reasoning down the page instead of decoding a dense block.
     - Wrap the final answer in \\boxed{}, for example $$\\boxed{5\\sqrt{2}}$$.
     - Use real TeX for roots, fractions, powers and indices — \\sqrt{12}, \\frac{3}{4}, x^{2}, a_{1} — never a typed approximation like sqrt(12), 3/4 or x^2.
-    - Never put maths in a code fence: a fence is for code, and it turns the equation into unstyled monospace.
+    - Never put maths in a code fence: a fence is for code, and it turns the equation into unstyled monospace. (The one exception to fences is the svg fence above, which the app renders as a picture.)
     - Prose stays outside the dollars. Never set a whole sentence in TeX.`;
 }
 

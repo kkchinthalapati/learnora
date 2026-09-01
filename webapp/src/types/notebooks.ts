@@ -1,4 +1,5 @@
-export type SourceType = "pdf" | "note" | "web" | "textbook" | "syllabus" | "past_paper";
+export type SourceType =
+  "pdf" | "note" | "web" | "textbook" | "syllabus" | "past_paper";
 
 export interface NotebookSource {
   id: string;
@@ -10,7 +11,8 @@ export interface NotebookSource {
   uploadedAt: string;
 }
 
-export type ArtifactType = "feynman" | "cheat_sheet" | "flashcards" | "quiz" | "summary";
+export type ArtifactType =
+  "feynman" | "cheat_sheet" | "flashcards" | "quiz" | "summary" | "diagram";
 
 export interface NotebookArtifact {
   id: string;
