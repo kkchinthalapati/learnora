@@ -202,9 +202,13 @@ describe("ExamsView", () => {
     renderExams();
     await gridReady();
 
-    const classes = ["Easy one", "Mid one", "Hard one"].map(
-      (n) => screen.getByText(n).className,
-    );
+    // The same exam name also appears in the Upcoming exams list, so
+    // scope to each exam's own calendar cell instead of a bare text query.
+    const classes = [
+      { day: 10, name: "Easy one" },
+      { day: 11, name: "Mid one" },
+      { day: 12, name: "Hard one" },
+    ].map(({ day, name }) => within(cellFor(day)).getByText(name).className);
     expect(new Set(classes).size).toBe(3);
   });
 
@@ -276,7 +280,9 @@ describe("ExamsView", () => {
     renderExams();
     await gridReady();
 
-    await user.click(screen.getByText("Physics Final"));
+    // The same exam name also appears in the Upcoming exams list, so
+    // scope to the calendar cell to click the bar, not that entry.
+    await user.click(within(cellFor(20)).getByText("Physics Final"));
 
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("Edit exam")).toBeInTheDocument();

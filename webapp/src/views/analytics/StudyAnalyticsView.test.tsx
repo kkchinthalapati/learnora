@@ -127,7 +127,7 @@ describe("StudyAnalyticsView", () => {
     renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
 
     const rangeGroup = screen.getByRole("group", {
-      name: "Analytics date range",
+      name: "Progress date range",
     });
     const yearBtn = within(rangeGroup).getByRole("button", {
       name: "52 Weeks (1Y)",
@@ -191,7 +191,7 @@ describe("StudyAnalyticsView", () => {
     renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
 
     const rangeGroup = screen.getByRole("group", {
-      name: "Analytics date range",
+      name: "Progress date range",
     });
     const thirtyDays = within(rangeGroup).getByRole("button", {
       name: "30 Days",
