@@ -169,16 +169,24 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
     return achievements.filter((a) => a.category === selectedCategory);
   }, [achievements, selectedCategory]);
 
+  // Mirrors each field's own <input min max> — the JSX attributes alone only
+  // stop scroll/arrow-key nudges past the edge; a typed value needs the same
+  // ceiling enforced here, or a fat-fingered extra digit saves a goal no
+  // amount of studying could ever reach.
+  const GOAL_LIMITS: Record<keyof StudyGoals, { min: number; max: number }> = {
+    dailyMinutesGoal: { min: 5, max: 480 },
+    dailyCardsGoal: { min: 1, max: 500 },
+    dailyTasksGoal: { min: 1, max: 50 },
+  };
+
   const handleGoalChange = (
     field: keyof StudyGoals,
     value: number,
   ) => {
-    // Minutes' own <input min="5"> promises a 5-minute floor (also the
-    // lowest of this field's [15,30,45,60] presets); cards/tasks genuinely
-    // mean it down to 1, matching their own <input min="1">.
+    const { min, max } = GOAL_LIMITS[field];
     const nextGoals: StudyGoals = {
       ...goals,
-      [field]: Math.max(field === "dailyMinutesGoal" ? 5 : 1, value),
+      [field]: Math.min(max, Math.max(min, value)),
     };
     setGoals(nextGoals);
     saveStudyGoals(nextGoals);

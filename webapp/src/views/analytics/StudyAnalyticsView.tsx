@@ -268,6 +268,11 @@ export function StudyAnalyticsView() {
                 role="group"
                 aria-label="Hourly study distribution bar chart"
               >
+                {!peakWindow.hasData && (
+                  <p className={styles.chartEmptyMessage}>
+                    No sessions logged yet — this fills in once you study.
+                  </p>
+                )}
                 {hourlyStats.map((h) => {
                   const heightPercent = Math.max(
                     4,

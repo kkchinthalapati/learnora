@@ -87,6 +87,7 @@ export function ConceptGraphView() {
   const [knowledgeGapsOnly, setKnowledgeGapsOnly] = useState<boolean>(false);
   const [prerequisitesOnly, setPrerequisitesOnly] = useState<boolean>(false);
   const [showDemo, setShowDemo] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(true);
 
   // Check for bridged cognitive context on mount
   useEffect(() => {
@@ -681,9 +682,20 @@ export function ConceptGraphView() {
         )}
 
         {/* Legend Box */}
-        <div className={styles.legend}>
-          <span className={styles.legendTitle}>What the colours mean</span>
-          <div className={styles.legendItem}>
+        {legendOpen ? (
+          <div className={styles.legend}>
+            <div className={styles.legendHead}>
+              <span className={styles.legendTitle}>What the colours mean</span>
+              <button
+                type="button"
+                className={styles.legendCloseBtn}
+                onClick={() => setLegendOpen(false)}
+                aria-label="Hide legend"
+              >
+                <Icon name="x" size={14} />
+              </button>
+            </div>
+            <div className={styles.legendItem}>
             <span className={styles.legendGapDot} />
             <span>Needs work (under 60%)</span>
           </div>
@@ -706,7 +718,18 @@ export function ConceptGraphView() {
             </svg>
             <span>Related to</span>
           </div>
-        </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className={styles.legendReopenBtn}
+            onClick={() => setLegendOpen(true)}
+            aria-label="Show legend"
+            title="What the colours mean"
+          >
+            <Icon name="help-circle" size={16} />
+          </button>
+        )}
 
         {/* Floating Zoom & Pan Controls */}
         <div className={styles.zoomControls}>
