@@ -15,6 +15,16 @@ import {
 } from "../../api/aiFeynman";
 import styles from "./FeynmanStudioView.module.css";
 
+/* Why a turn scored nothing. Without this the studio showed a reply and no
+   change to the bar, which reads as the app having lost the message. */
+const SKIPPED_TURN_LABELS: Record<string, string> = {
+  empty: "⚠ Nothing sent",
+  gibberish: "⚠ Didn't count — not readable as an explanation",
+  too_short: "⚠ Didn't count — too short to mark",
+  repeated: "⚠ Didn't count — same as your last go",
+  off_topic: "⚠ Didn't count — not about this topic",
+};
+
 export function FeynmanStudioView() {
   const { sessionId: paramSessionId } = useParams<{ sessionId?: string }>();
   const navigate = useNavigate();
@@ -432,13 +442,22 @@ export function FeynmanStudioView() {
                     <div className={styles.apprenticeReplyBubble} data-testid="apprentice-turn-bubble">
                       <strong>{persona.name}:</strong>
                       <p>{turn.apprenticeReaction}</p>
-                      {turn.solvedPoints.length > 0 && (
+                      {(turn.solvedPoints.length > 0 ||
+                        (turn.quality && turn.quality !== "substantive")) && (
                         <div className={styles.turnFeedbackPills}>
                           {turn.solvedPoints.map((s, sIdx) => (
                             <span key={sIdx} className={styles.solvedPill}>
                               ✓ Got it: {s}
                             </span>
                           ))}
+                          {turn.quality && turn.quality !== "substantive" && (
+                            <span
+                              className={styles.skippedPill}
+                              data-testid="turn-skipped-pill"
+                            >
+                              {SKIPPED_TURN_LABELS[turn.quality]}
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
