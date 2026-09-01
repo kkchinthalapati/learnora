@@ -32,6 +32,13 @@ import styles from "./notes.module.css";
 
 export const SAVE_DEBOUNCE_MS = 2000;
 const SAVED_STATUS_LINGER_MS = 2000;
+/* How long to wait before looking again when a save was already in flight.
+   Short, because the edit is already typed and sitting in memory — this is
+   just yielding to the request ahead of it. */
+export const SAVE_BUSY_RETRY_MS = 300;
+/* One automatic retry after a failed save, spaced far enough to clear a
+   momentary blip (a tunnel, a dropped Wi-Fi handoff) without hammering. */
+export const SAVE_ERROR_RETRY_MS = 3000;
 
 const COMPLEXITY_LABELS = {
   1: "ELI5",
@@ -129,6 +136,10 @@ export function NotesEditorPane({
      stale `note`/mutation. Same pattern useTaskActions.ts uses for its own
      flush-on-unmount. */
   const flushRef = useRef<() => void>(() => {});
+  /* One automatic retry per edit, reset on every success and on every new
+     keystroke — enough to ride out a blip, not enough to spin. */
+  const retriedRef = useRef(false);
+  const mountedRef = useRef(true);
 
   const { settings } = useSettings();
   const { showToast } = useToast();
@@ -240,34 +251,95 @@ ${fenceUntrusted(currentHtml)}
     }, SAVED_STATUS_LINGER_MS);
   }, []);
 
+  const scheduleSave = useCallback((delayMs: number) => {
+    /* Nothing to come back to after unmount — the cleanup effect below does a
+       final flush, and beforeunload covers a closing tab. Rescheduling past
+       that point would leave a timer running against a dead component. */
+    if (!mountedRef.current) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(
+      () => flushRef.current(),
+      delayMs,
+    );
+  }, []);
+
   const flush = useCallback(() => {
     if (!note || dirtyHtmlRef.current === null) return;
     /* A save already in flight is left to finish rather than raced — the
-       vanilla's own guard (js/editor.js:130). Whichever edit is current by
-       the time this one settles gets its own turn: the debounce timer is
-       reset on every keystroke regardless, so nothing beyond this one save
-       cycle is silently dropped. */
-    if (updateHtml.isPending) return;
+       vanilla's own guard (js/editor.js:130). But bailing out *without
+       rescheduling* is how the last edit of a session gets stranded: the
+       debounce fires while a slow save is in flight, this returns, the
+       student stops typing, and nothing ever re-triggers. `dirtyHtmlRef`
+       stays populated and the edit is never sent. Come back for it.
+
+       On unmount there is no "later" to come back in, so the save goes out
+       alongside the in-flight one rather than being dropped: both carry the
+       same note and the newer body is issued second. */
+    if (updateHtml.isPending && mountedRef.current) {
+      scheduleSave(SAVE_BUSY_RETRY_MS);
+      return;
+    }
 
     const html = dirtyHtmlRef.current;
     dirtyHtmlRef.current = null;
     setStatus("saving");
     updateHtml.mutate(
       { id: note.id, htmlContent: html },
-      { onSuccess: acknowledgeSaved, onError: () => setStatus("failed") },
+      {
+        onSuccess: () => {
+          retriedRef.current = false;
+          acknowledgeSaved();
+        },
+        onError: () => {
+          /* Put the edit back so it is never dropped on the floor. A newer
+             keystroke landing mid-request already owns the ref and wins —
+             it's a superset of what this save was carrying. */
+          if (dirtyHtmlRef.current === null) dirtyHtmlRef.current = html;
+          if (retriedRef.current) {
+            /* Second failure: stop retrying and say so. The text stays in
+               the editor and beforeunload still guards the tab, so the
+               student can copy it out or hit Save again. */
+            setStatus("failed");
+            return;
+          }
+          retriedRef.current = true;
+          setStatus("unsaved");
+          scheduleSave(SAVE_ERROR_RETRY_MS);
+        },
+      },
     );
-  }, [note, updateHtml, acknowledgeSaved]);
+  }, [note, updateHtml, acknowledgeSaved, scheduleSave]);
   flushRef.current = flush;
 
-  const handleUserChange = useCallback((html: string) => {
-    dirtyHtmlRef.current = html;
-    setStatus("unsaved");
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(
-      () => flushRef.current(),
-      SAVE_DEBOUNCE_MS,
-    );
-  }, []);
+  const handleUserChange = useCallback(
+    (html: string) => {
+      dirtyHtmlRef.current = html;
+      /* A fresh edit earns a fresh retry budget — the previous failure may
+         well have been about the previous request. */
+      retriedRef.current = false;
+      setStatus("unsaved");
+      scheduleSave(SAVE_DEBOUNCE_MS);
+    },
+    [scheduleSave],
+  );
+
+  /* Warn before a tab closes on work that hasn't reached the server, the way
+     useQuizDraft does for an in-progress attempt. Previously a student could
+     close the tab on a red "Failed to save" label and lose the note with no
+     prompt at all. */
+  useEffect(() => {
+    const unsaved =
+      status === "unsaved" || status === "saving" || status === "failed";
+    if (!unsaved) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      // Custom message text is ignored by every modern browser — only
+      // preventDefault + returnValue actually trigger the native prompt.
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [status]);
 
   const dismissInlineUi = useCallback(() => {
     requestIdRef.current += 1;
@@ -534,9 +606,14 @@ ${fenceUntrusted(currentHtml)}
      does the same fire-and-forget save (js/editor.js:180-189), so navigating
      away inside the 2s debounce window doesn't lose the edit. */
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       if (lingerTimerRef.current) clearTimeout(lingerTimerRef.current);
+      /* Marked unmounted *before* the final flush: that flush is the last
+         chance to send the edit, so it should issue the save rather than
+         schedule a retry no one will be around to run. */
+      mountedRef.current = false;
       flushRef.current();
     };
   }, []);

@@ -18,6 +18,8 @@ import { useQuizAttempts } from "../../hooks/useQuizzes";
 import { useTasks } from "../../hooks/useTasks";
 import { useExams } from "../../hooks/useExams";
 import { useExamReadiness } from "../../hooks/useExamReadiness";
+import { Skeleton } from "../../components/Skeleton";
+import { anyPending } from "../../lib/queryState";
 import { parseStoredAnswers } from "../quiz/quizMeta";
 import { computeStreak, remoteTotals } from "../dashboard/analytics";
 import styles from "./achievementsModal.module.css";
@@ -71,11 +73,25 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
   const tasksInputId = useId();
 
   // Queries for live metrics
-  const { data: sessions = [] } = useSessionsSince(90);
-  const { data: flashcards = [] } = useFlashcards();
-  const { data: quizAttempts = [] } = useQuizAttempts();
-  const { data: tasks = [] } = useTasks();
-  const { data: exams = [] } = useExams();
+  const { data: sessions = [], isPending: sessionsPending } =
+    useSessionsSince(90);
+  const { data: flashcards = [], isPending: flashcardsPending } =
+    useFlashcards();
+  const { data: quizAttempts = [], isPending: attemptsPending } =
+    useQuizAttempts();
+  const { data: tasks = [], isPending: tasksPending } = useTasks();
+  const { data: exams = [], isPending: examsPending } = useExams();
+
+  /* Unlock state is derived from all five of these. Rendering before they
+     land shows every badge locked and a 0-day streak — the app telling a
+     student who has been studying for weeks that they've done nothing. */
+  const isPending = anyPending(
+    sessionsPending,
+    flashcardsPending,
+    attemptsPending,
+    tasksPending,
+    examsPending,
+  );
 
   const streak = useMemo(() => computeStreak(sessions), [sessions]);
   const totals = useMemo(() => remoteTotals(sessions), [sessions]);
@@ -195,6 +211,22 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
   };
 
   if (!open) return null;
+
+  if (isPending) {
+    return (
+      <Modal
+        open={open}
+        onClose={onClose}
+        title="Trophy Cabinet & Goals"
+        subtitle="Track your study streaks, earn milestone badges, and customize your daily targets."
+        contentClassName={styles.modalDialog}
+      >
+        <div className={styles.container} aria-busy="true">
+          <Skeleton label="Checking which badges you've earned" height={420} />
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal

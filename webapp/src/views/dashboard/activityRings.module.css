@@ -7,9 +7,9 @@
   border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.08));
   border-radius: var(--r-lg, 16px);
   padding: var(--s-3, 12px) var(--s-4, 16px);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--shadow-sm);
 }
 
 .svgWrap {
@@ -51,7 +51,7 @@
   justify-content: center;
   font-size: var(--fs-xs, 12px);
   font-weight: 700;
-  color: var(--text, #fff);
+  color: var(--text);
   pointer-events: none;
 }
 
@@ -75,7 +75,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -87,29 +87,29 @@
 }
 
 .dotFocus {
-  background: #38bdf8;
-  box-shadow: 0 0 6px rgba(56, 189, 248, 0.5);
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent-glow);
 }
 
 .dotCards {
-  background: #34d399;
-  box-shadow: 0 0 6px rgba(52, 211, 153, 0.5);
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success-soft);
 }
 
 .dotTasks {
-  background: #fbbf24;
-  box-shadow: 0 0 6px rgba(251, 191, 36, 0.5);
+  background: var(--warning);
+  box-shadow: 0 0 6px var(--warning-soft);
 }
 
 .metricValue {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--text, #fff);
+  color: var(--text);
   white-space: nowrap;
 }
 
 .metricPercent {
-  font-size: 0.85em;
-  color: var(--text-muted, #94a3b8);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
   margin-left: 4px;
 }

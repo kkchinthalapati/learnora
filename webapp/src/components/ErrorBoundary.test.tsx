@@ -5,6 +5,12 @@ import { MemoryRouter } from "react-router";
 import { renderWithProviders } from "../test/render";
 import { ErrorBoundary } from "./ErrorBoundary";
 
+const applyAppUpdateMock = vi.hoisted(() => vi.fn());
+vi.mock("../lib/appUpdate", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../lib/appUpdate")>()),
+  applyAppUpdate: applyAppUpdateMock,
+}));
+
 function Bomb({ armed }: { armed: boolean }): null {
   if (armed) throw new Error("boom");
   return null;
@@ -82,6 +88,54 @@ describe("ErrorBoundary", () => {
     expect(screen.getByText("Recovered")).toBeInTheDocument();
     expect(
       screen.queryByText("Something went wrong"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers the update path, not Try again, when a lazy chunk fails to load", async () => {
+    /* What a deploy looks like from inside an open tab: the running bundle
+       asks for a hashed chunk filename the server no longer has. "Try again"
+       re-runs the same import() against the same missing file, so the
+       generic fallback loops forever on a blank screen mid-quiz. */
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const user = userEvent.setup();
+
+    function ChunkBomb(): null {
+      throw new TypeError(
+        "Failed to fetch dynamically imported module: /assets/QuizRunner-a1b2c3.js",
+      );
+    }
+
+    renderWithProviders(
+      <ErrorBoundary>
+        <ChunkBomb />
+      </ErrorBoundary>,
+      undefined,
+      { withRouter: true },
+    );
+
+    expect(screen.getByText("A new version is ready")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Try again" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Reload Learnora" }));
+    expect(applyAppUpdateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the generic fallback for errors that are not chunk failures", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    renderWithProviders(
+      <ErrorBoundary>
+        <Bomb armed />
+      </ErrorBoundary>,
+      undefined,
+      { withRouter: true },
+    );
+
+    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Reload Learnora" }),
     ).not.toBeInTheDocument();
   });
 });

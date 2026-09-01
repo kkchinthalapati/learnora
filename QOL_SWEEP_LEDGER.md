@@ -3,7 +3,7 @@
 **Audit date:** 2026-09-01  
 **Auditors:** Claude subagent (CSS/visual/a11y) + manual inspection (functional/data-loss)  
 **Total findings:** 32 defects across 4 batches  
-**Status:** Batch 1 **DONE** • Batches 2–4 **pending**
+**Status:** Batches 1–2 **DONE** • Batches 3–4 **pending**
 
 ---
 
@@ -68,55 +68,76 @@
 
 ---
 
-## Batch 2 — Data loss & correctness (notes autosave, reload loop, loading flashes, query defaults) — ⏳ PENDING
+## Batch 2 — Data loss & correctness (notes autosave, reload loop, loading flashes, query defaults) — ✅ SHIPPED
 
-**Scope:** 4 items affecting silent failures, lost work, and missing state visibility  
+**Merged to main:** 2026-09-01 · 4 items · 12 new regression tests  
+**Tests:** 1892/1892 pass · `tsc -b` and `vite build` clean
 
-### 2.1 — Notes autosave can strand the last edit
+### 2.1 — Notes autosave can strand the last edit ✅
 
-**Problem:** `flush()` returns early when a save is in flight **without rescheduling**. A student types → debounce fires while slow save is pending → student stops typing → `dirtyHtmlRef` stays populated but nothing re-triggers. The only failure handling is a silent `status: "failed"` label. No unload guard exists (unlike quizzes).
+**Problem:** `flush()` returned early when a save was in flight **without
+rescheduling**. A student types → the debounce fires while a slow save is
+pending → the student stops typing → `dirtyHtmlRef` stays populated and
+nothing re-triggers, so the edit is never sent. No unload guard existed either.
 
-**Impact:** **The only item on this list that loses student work.** A student closes the tab on a red "failed" label and loses the work.
-
-**Solution (3-part):**
-1. Reschedule on the early return, so a pending save doesn't block subsequent changes
-2. Retry once on error, then show a persistent error state
-3. Register a `beforeunload` guard while dirty (matching useQuizDraft pattern)
+**Solution (all 3 parts shipped):**
+1. The busy branch now calls `scheduleSave(SAVE_BUSY_RETRY_MS)` (300ms) so a
+   blocked save comes back for the edit. On unmount it falls through and
+   issues the save alongside the in-flight one rather than dropping it.
+2. A failed save puts the html back in `dirtyHtmlRef` and retries once after
+   3s; a second failure latches `status: "failed"` and stops. A new keystroke
+   resets the retry budget.
+3. `beforeunload` guard registered whenever status is unsaved/saving/failed,
+   matching the `useQuizDraft` pattern.
 
 **Files:** NotesEditorPane.tsx  
-**Test needed:** Regression test for the reschedule + unload flow
+**Regression tests:** new `NotesEditorPane.autosave.test.tsx` — 4 tests on fake
+timers covering the reschedule, the single retry then stop, the unload guard
+while dirty, and its release after a successful save.
 
-### 2.2 — Chunk-load-error recovery
+### 2.2 — Chunk-load-error recovery ✅
 
-**Problem:** After a deploy, an open tab's `import()` for a lazy route 404s → throws to ErrorBoundary → shows generic "Something went wrong" → "Try again" re-renders the same failing import, looping forever. The app already detects new builds; the boundary should too.
+**Problem:** After a deploy, an open tab's dynamic import for a lazy route
+404s → ErrorBoundary shows "Something went wrong" → "Try again" re-renders the
+same failing import, looping forever.
 
-**Impact:** A student mid-quiz or mid-review hits a blank screen with no recovery path.
+**Solution:** `isChunkLoadError()` added to `lib/appUpdate.ts`, matching the six
+message shapes browsers use for a failed dynamic import (no engine exposes a
+code, so text matching is the only option). ErrorBoundary branches on it:
+"A new version is ready" with a **Reload Learnora** button wired to
+`applyAppUpdate`, instead of the dead "Try again".
 
-**Solution:** Have ErrorBoundary recognise chunk errors and offer `applyAppUpdate` instead of `reset`. Wire it through the same path `appUpdate.ts` uses.
+**Files:** ErrorBoundary.tsx, appUpdate.ts  
+**Regression tests:** 2 new — the chunk path offers the update and calls
+`applyAppUpdate`; a plain error still gets the generic fallback.  
+**Note:** routes.tsx needed no change — the boundary at `App.tsx:80` already
+catches lazy-import failures.
 
-**Files:** ErrorBoundary.tsx, routes.tsx  
-**Test needed:** Simulate a chunk load error and verify the correct message + action appear
+### 2.3 — Analytics & Achievements flash fake empty state ✅
 
-### 2.3 — Analytics & Achievements flash fake empty state
+**Problem:** Nine query hooks destructured as `data: x = []` with no
+`isPending` gate, fed straight into the stat engines. Every open rendered
+"0 hours", 0% consistency, an empty heatmap and every badge locked.
 
-**Problem:** Five query hooks destructured as `data: x = []` with **zero `isPending` gate**, fed to stat engines directly. Every open renders "0 hours", 0% consistency, empty heatmap, all badges locked — then pops when data arrives. `FEATURE_BACKLOG.md` records fixing this exact bug twice already.
+**Solution:** Both views now aggregate their pending flags and hold a
+`Skeleton` until all queries land, following ConceptGraphView. Added
+`anyPending()` in `lib/queryState.ts` so the omission is visible in review — a
+view that pulls four queries and never calls it is missing its gate.
 
-**Impact:** False impression of zero activity on first load of these screens.
+**Files:** StudyAnalyticsView.tsx, AchievementsModal.tsx, lib/queryState.ts  
+**Regression tests:** 2 new (one per view) holding the pending window open with
+a never-resolving handler; 8 existing tests updated to await the data.
 
-**Solution:** Copy the aggregated-pending → `Skeleton` pattern from ConceptGraphView. Possibly add a `useAggregatePending` helper to prevent a fourth recurrence.
+### 2.4 — Invert query defaults ✅
 
-**Files:** StudyAnalyticsView.tsx, AchievementsModal.tsx  
-**Test needed:** Render both views with `isPending: true` and verify Skeleton is shown, not empty stats
+**Problem:** `staleTime` unset (0) while `refetchOnWindowFocus: false` —
+navigating to Analytics refetched 365 days of sessions every time, while a tab
+left open an hour refetched nothing on return.
 
-### 2.4 — Invert query defaults (staleTime vs refetchOnWindowFocus)
+**Solution:** `staleTime: 60_000` and `refetchOnWindowFocus: true`. Focus
+refetches are bounded by staleTime, so bouncing between tabs costs nothing.
 
-**Problem:** `staleTime` is unset (defaults to 0) while `refetchOnWindowFocus: false`. Result: navigating to Analytics refetches 365 days of sessions *every time*, but coming back to a tab left open an hour refetches *nothing*. Backwards.
-
-**Impact:** Expensive repeated refetches on navigation; stale data on window focus.
-
-**Solution:** Set a 30–60s `staleTime` on the heavy read queries. Re-enable `refetchOnWindowFocus` for session-scoped ones where correctness matters more than a round trip.
-
-**Files:** queryClient.ts  
+**Files:** queryClient.ts
 
 ---
 
@@ -280,11 +301,16 @@
 ## Rollup & notes
 
 **Batch 1:** Shipped 2026-09-01 · 50 files · +485−176 · 1780/1781 tests pass  
-**Batches 2–4:** ~20 remaining defects · estimate **20–25 hours** if done sequentially · 1 high-leverage item (2.1) that prevents data loss
+**Batch 2:** Shipped 2026-09-01 · 4 items · 12 new tests · 1892/1892 tests pass  
+**Batches 3–4:** 15 remaining defects · estimate **15–20 hours** if done sequentially · all a11y or polish, none lose work
 
 **Why this structure?** Batch 1 is shared infrastructure (tokens, hooks, toasts) that several later items depend on — done first, unblocks the rest. Batches 2 (correctness) and 3 (a11y) are independent. Batch 4 (polish) can run in parallel if needed.
 
 **Regressions to watch:** 
 - Batch 1's 157-declaration repoint is a real light-mode visual change. Eyeball before shipping if you haven't already.
 - Batch 3.1 touches focus/keyboard state in a way that can regress if tests aren't run.
-- Batch 2.1 is the only item that loses work — regression tests are critical.
+- Batch 2.4 changed cache behaviour app-wide: anything that relied on a
+  refetch-on-every-mount for freshness now reuses the cache for 60s.
+- Batch 2.1 shipped with regression tests. The retry-once-then-stop policy is
+  deliberate — surviving a longer outage needs a durable local draft
+  (useQuizDraft's model), not more retries.

@@ -14,6 +14,8 @@ import {
   formatHour,
   type HourlyStats,
 } from "../../lib/analyticsEngine";
+import { Skeleton } from "../../components/Skeleton";
+import { anyPending } from "../../lib/queryState";
 import { StudyHeatmap } from "./StudyHeatmap";
 import styles from "./analytics.module.css";
 
@@ -31,10 +33,23 @@ export function StudyAnalyticsView() {
   const [selectedHour, setSelectedHour] = useState<HourlyStats | null>(null);
 
   // Fetch 365 days of sessions for deep engine calculations
-  const { data: sessions = [] } = useSessionsSince(365);
-  const { data: quizAttempts = [] } = useQuizAttempts();
-  const { data: folders = [] } = useFolders();
-  const { data: exams = [] } = useExams();
+  const { data: sessions = [], isPending: sessionsPending } =
+    useSessionsSince(365);
+  const { data: quizAttempts = [], isPending: attemptsPending } =
+    useQuizAttempts();
+  const { data: folders = [], isPending: foldersPending } = useFolders();
+  const { data: exams = [], isPending: examsPending } = useExams();
+
+  /* Every stat below reads all four of these at once, so a partial load
+     renders a confident, wrong screen — 0 hours, 0% consistency, an empty
+     heatmap — that pops when the data lands. Gate on the aggregate the way
+     ConceptGraphView does. */
+  const isPending = anyPending(
+    sessionsPending,
+    attemptsPending,
+    foldersPending,
+    examsPending,
+  );
 
   // Filter sessions according to active range if needed, or pass full 365 to heatmap
   const heatData = useMemo(() => {
@@ -93,6 +108,14 @@ export function StudyAnalyticsView() {
     // Wraps around midnight
     return hour >= startHour || hour < endHour;
   };
+
+  if (isPending) {
+    return (
+      <div className={styles.container} aria-busy="true">
+        <Skeleton label="Working out your study progress" height={480} />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>

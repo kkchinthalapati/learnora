@@ -94,8 +94,8 @@ describe("StudyAnalyticsView", () => {
       screen.queryByText("Study Analytics & Insights"),
     ).not.toBeInTheDocument();
 
-    // Summary cards
-    expect(screen.getByText("Study time")).toBeInTheDocument();
+    // Summary cards (awaited: the view skeletons until all four queries land)
+    expect(await screen.findByText("Study time")).toBeInTheDocument();
     expect(screen.getByText("Active days")).toBeInTheDocument();
     expect(screen.getByText("Peak study window")).toBeInTheDocument();
     expect(screen.getByText("Quiz average")).toBeInTheDocument();
@@ -126,7 +126,10 @@ describe("StudyAnalyticsView", () => {
 
     renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
 
-    const rangeGroup = screen.getByRole("group", {
+    /* Every stat on this screen is derived from four queries at once, so
+       the view holds a skeleton until all four land rather than rendering a
+       confident "0 hours". */
+    const rangeGroup = await screen.findByRole("group", {
       name: "Progress date range",
     });
     const yearBtn = within(rangeGroup).getByRole("button", {
@@ -190,7 +193,10 @@ describe("StudyAnalyticsView", () => {
 
     renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
 
-    const rangeGroup = screen.getByRole("group", {
+    /* Every stat on this screen is derived from four queries at once, so
+       the view holds a skeleton until all four land rather than rendering a
+       confident "0 hours". */
+    const rangeGroup = await screen.findByRole("group", {
       name: "Progress date range",
     });
     const thirtyDays = within(rangeGroup).getByRole("button", {
@@ -213,5 +219,30 @@ describe("StudyAnalyticsView", () => {
     expect(
       await screen.findByText(/50 minutes across 1 session/),
     ).toBeInTheDocument();
+  });
+
+  it("shows a skeleton instead of zeroed stats while its queries are in flight", async () => {
+    /* A request that never resolves stands in for the moment before the
+       first byte arrives. Before the pending gate, this window rendered a
+       fully-populated screen reporting 0 hours studied, 0% consistency and
+       an empty heatmap to a student who had been studying for months. */
+    server.use(
+      http.get(rest("study_sessions"), () => new Promise(() => {})),
+      http.get(rest("quiz_attempts"), () => HttpResponse.json(mockAttempts)),
+      http.get(rest("folders"), () => HttpResponse.json(mockFolders)),
+      http.get(rest("exams"), () => HttpResponse.json(mockExams)),
+    );
+
+    renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
+
+    expect(
+      await screen.findByRole("status", {
+        name: "Working out your study progress",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Study time")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: "Progress date range" }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -1,8 +1,22 @@
 import { useState, useEffect } from "react";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
-import type { GroupTimerSyncPayload } from "../../api/studyRoom";
 import styles from "./groupTimerBanner.module.css";
+
+/* The shape this banner renders. Declared here rather than imported from
+   api/studyRoom: the room channel's TimerSyncPayload carries a single
+   presenter's clock (targetEndTime, a Focus/Break/Flow mode), while a group
+   timer is the host's pomodoro cycle that every member reads. Nothing
+   broadcasts this yet — the component is ahead of its transport. */
+export interface GroupTimerSyncPayload {
+  hostUserId: string;
+  hostName: string;
+  mode: "focus" | "short_break" | "long_break";
+  durationMinutes: number;
+  endsAtEpochMs: number | null;
+  isRunning: boolean;
+  cycleIndex: number;
+}
 
 export interface GroupTimerBannerProps {
   timerState: GroupTimerSyncPayload | null;
@@ -24,13 +38,14 @@ export function GroupTimerBanner({
   const [secondsRemaining, setSecondsRemaining] = useState<number>(0);
 
   useEffect(() => {
-    if (!timerState || !timerState.isRunning || !timerState.endsAtEpochMs) {
+    const endsAt = timerState?.endsAtEpochMs;
+    if (!timerState || !timerState.isRunning || !endsAt) {
       setSecondsRemaining(0);
       return;
     }
 
     const update = () => {
-      const remainingMs = Math.max(0, timerState.endsAtEpochMs - Date.now());
+      const remainingMs = Math.max(0, endsAt - Date.now());
       setSecondsRemaining(Math.ceil(remainingMs / 1000));
     };
 

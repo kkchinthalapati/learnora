@@ -140,3 +140,33 @@ export function applyAppUpdate(): void {
       }
     });
 }
+
+/* Message shapes browsers use when a dynamic `import()` can't be fetched.
+ * Every engine words this differently and none of them expose a code, so
+ * matching text is the only option available. Kept deliberately broad: a
+ * false positive costs a reload the student could have had anyway, while a
+ * false negative costs the reload loop this exists to break. */
+const CHUNK_ERROR_PATTERNS = [
+  /failed to fetch dynamically imported module/i,
+  /error loading dynamically imported module/i,
+  /importing a module script failed/i,
+  /loading chunk \S+ failed/i,
+  /loading css chunk \S+ failed/i,
+  /unable to preload css/i,
+];
+
+/**
+ * True when an error is a lazy route's chunk failing to load.
+ *
+ * This is what a deploy looks like from inside an already-open tab: the
+ * bundle it is running references hashed chunk filenames that no longer
+ * exist on the server, so the first navigation into a lazy route 404s. The
+ * generic "Try again" is useless here — re-rendering re-runs the same
+ * `import()` against the same missing file, forever. The fix is the update
+ * path the service worker already knows about (`applyAppUpdate`).
+ */
+export function isChunkLoadError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const text = `${error.name}: ${error.message}`;
+  return CHUNK_ERROR_PATTERNS.some((pattern) => pattern.test(text));
+}

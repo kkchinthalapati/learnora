@@ -3,6 +3,9 @@ import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "../../test/render";
 import { AchievementsModal } from "./AchievementsModal";
+import { http } from "msw";
+import { server } from "../../test/mocks/server";
+import { SUPABASE_URL } from "../../lib/supabase";
 import { loadStudyGoals } from "../../lib/achievements";
 
 describe("AchievementsModal", () => {
@@ -17,12 +20,16 @@ describe("AchievementsModal", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("renders the modal title, trophy cabinet, and daily goal controls", () => {
+  it("renders the modal title, trophy cabinet, and daily goal controls", async () => {
     renderWithProviders(<AchievementsModal open={true} onClose={vi.fn()} />);
 
+    /* Awaited throughout this file: badge unlock state is derived from five
+       queries, so the modal holds a skeleton until they land rather than
+       telling a student with a live streak that every badge is locked. */
     expect(
-      screen.getByRole("dialog", { name: "Trophy Cabinet & Goals" }),
+      await screen.findByRole("dialog", { name: "Trophy Cabinet & Goals" }),
     ).toBeInTheDocument();
+    expect(await screen.findByText("Trophy Cabinet")).toBeInTheDocument();
     expect(screen.getByText("Trophy Cabinet")).toBeInTheDocument();
     expect(screen.getByText("Customize Daily Study Goals")).toBeInTheDocument();
     expect(
@@ -38,7 +45,7 @@ describe("AchievementsModal", () => {
     renderWithProviders(<AchievementsModal open={true} onClose={vi.fn()} />);
 
     // Initially all 16 badges are rendered
-    expect(screen.getByText("First Spark")).toBeInTheDocument();
+    expect(await screen.findByText("First Spark")).toBeInTheDocument();
     expect(screen.getByText("Focus Initiate")).toBeInTheDocument();
 
     // Click "Focus" tab
@@ -53,7 +60,7 @@ describe("AchievementsModal", () => {
     const user = userEvent.setup();
     renderWithProviders(<AchievementsModal open={true} onClose={vi.fn()} />);
 
-    const focusGoalInput = screen.getByLabelText(
+    const focusGoalInput = await screen.findByLabelText(
       "Daily focus goal in minutes",
     );
     expect(focusGoalInput).toHaveValue(30);
@@ -73,7 +80,7 @@ describe("AchievementsModal", () => {
     const user = userEvent.setup();
     renderWithProviders(<AchievementsModal open={true} onClose={vi.fn()} />);
 
-    const preset45 = screen.getByRole("button", { name: "45m" });
+    const preset45 = await screen.findByRole("button", { name: "45m" });
     const preset30 = screen.getByRole("button", { name: "30m" });
     expect(preset45).toHaveAttribute("aria-pressed", "false");
 
@@ -83,10 +90,10 @@ describe("AchievementsModal", () => {
     expect(preset30).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("floors the minutes goal at 5 (its own input's stated minimum) rather than 1", () => {
+  it("floors the minutes goal at 5 (its own input's stated minimum) rather than 1", async () => {
     renderWithProviders(<AchievementsModal open={true} onClose={vi.fn()} />);
 
-    const focusGoalInput = screen.getByLabelText(
+    const focusGoalInput = await screen.findByLabelText(
       "Daily focus goal in minutes",
     );
 
@@ -96,10 +103,10 @@ describe("AchievementsModal", () => {
     expect(loadStudyGoals().dailyMinutesGoal).toBe(5);
   });
 
-  it("still floors the cards/tasks goals at 1, unlike minutes", () => {
+  it("still floors the cards/tasks goals at 1, unlike minutes", async () => {
     renderWithProviders(<AchievementsModal open={true} onClose={vi.fn()} />);
 
-    const cardsGoalInput = screen.getByLabelText(
+    const cardsGoalInput = await screen.findByLabelText(
       "Daily flashcards review goal",
     );
 
@@ -126,7 +133,7 @@ describe("AchievementsModal", () => {
     const user = userEvent.setup();
     renderWithProviders(<AchievementsModal open={true} onClose={vi.fn()} />);
 
-    const allTab = screen.getByRole("tab", { name: /^All/ });
+    const allTab = await screen.findByRole("tab", { name: /^All/ });
     const consistencyTab = screen.getByRole("tab", { name: /^Consistency/ });
     const focusTab = screen.getByRole("tab", { name: /^Focus/ });
     const masteryTab = screen.getByRole("tab", { name: /^Mastery/ });
@@ -180,5 +187,27 @@ describe("AchievementsModal", () => {
     await user.keyboard("{Home}");
     expect(allTab).toHaveFocus();
     expect(allTab).toHaveAttribute("tabindex", "0");
+  });
+
+  it("skeletons the badge grid until its metric queries land", async () => {
+    /* Sessions that never resolve stand in for the moment before the first
+       byte arrives. Ungated, that window rendered a 0-day streak and every
+       badge locked — the app telling a student who has been studying for
+       weeks that they have done nothing. */
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/study_sessions`, () =>
+        new Promise(() => {}),
+      ),
+    );
+
+    renderWithProviders(<AchievementsModal open={true} onClose={vi.fn()} />);
+
+    expect(
+      await screen.findByRole("status", {
+        name: "Checking which badges you've earned",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("First Spark")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Day Streak/)).not.toBeInTheDocument();
   });
 });
