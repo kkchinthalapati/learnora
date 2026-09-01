@@ -15,7 +15,7 @@
 }
 
 .icon {
-  color: var(--danger);
+  color: var(--danger-text);
   margin-bottom: var(--s-3);
 }
 

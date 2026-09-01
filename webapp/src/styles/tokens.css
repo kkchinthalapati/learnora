@@ -73,6 +73,31 @@
      clears --danger-on there (ink, 6.05:1). */
   --danger-2: #97362d;
 
+  /* The semantic colours when they are the *text*, not the fill — the same
+     split, and the same reason, as --accent-text above. A fill only has to
+     clear 3:1 against what surrounds it; a label has to clear 4.5:1. As text
+     on a light surface the light-mode fills do not: --warning scores 2.93:1
+     on --surface and --success 4.09:1, so every "warning"/"success" chip,
+     badge, secondary button and inline-feedback label in the app sat under
+     AA in light mode and correct in dark — which is why an audit run in dark
+     mode never caught it.
+
+     These are the same hue and saturation walked down in lightness until they
+     clear 4.5:1 against the *worst* backdrop each actually lands on: its own
+     --*-soft wash composited over --surface-active, the darkest opaque light
+     surface (success 4.53:1, warning 4.56:1, danger 4.53:1). On a plain
+     surface they run 5.1-7.4:1. --danger was already over the line as text
+     (4.99:1) but gets a token anyway, so a consumer never has to know which
+     of the three happened to pass. --danger-text landing a shade off
+     --danger-2 is a coincidence, not a relation: that token is the exam
+     chip's second gradient stop and is not free to move with this one.
+
+     Dark mode points all three back at the fill (themes.css), where the
+     fills are light-on-dark and already clear AA as text. */
+  --success-text: #15634b;
+  --warning-text: #76511b;
+  --danger-text: #96352d;
+
   /* --- Page surfaces --- */
   --bg: #f7f5f0;
   --bg-tint-1: rgba(15, 118, 110, 0.05);
@@ -105,6 +130,11 @@
   --text-on-accent: #ffffff;
 
   /* --- Borders & lines --- */
+  /* SHORTHAND, not a colour — `border: var(--border)`, never
+     `border-color: var(--border)`. The latter is invalid and the browser
+     drops the whole declaration silently, which is how ResumeLearningCard
+     ended up with a hover that did nothing. Reach for --glass-border-subtle
+     when you need just the colour. */
   --border: 1px solid var(--glass-border-subtle);
   --line: rgba(28, 24, 18, 0.06);
 

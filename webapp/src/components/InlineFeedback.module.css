@@ -27,13 +27,13 @@
 
 .success {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
   border: 1px solid rgba(52, 184, 138, 0.2);
 }
 
 .error {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
   border: 1px solid rgba(224, 90, 78, 0.2);
 }
 

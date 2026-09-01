@@ -116,7 +116,7 @@
 .tabBtnDanger {
   position: relative;
   margin-top: var(--s-4);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .tabBtnDanger::before {
@@ -133,7 +133,7 @@
 .tabBtnDanger[aria-selected="true"] {
   background: var(--danger-soft);
   border-color: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .tabBtnDanger[aria-selected="true"] .tabIcon {
@@ -150,7 +150,7 @@
 
 .logoutBtn {
   min-height: 44px;
-  color: var(--danger);
+  color: var(--danger-text);
   font-size: var(--fs-sm);
   font-weight: 600;
 }
@@ -397,7 +397,7 @@
 
 .dangerCard .cardHeader h3,
 .dangerCard .cardIcon {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .dangerCard .cardIcon {

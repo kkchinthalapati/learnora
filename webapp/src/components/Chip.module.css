@@ -72,31 +72,42 @@
   padding: 5px 10px;
 }
 
-/* ---- Tones: [--chip-color] fill + [--chip-soft] hover wash -------------
-   Applied to .base, so Chip and Badge share one ramp. */
+/* ---- Tones: [--chip-color] fill + [--chip-text] label + [--chip-soft] wash
+   Applied to .base, so Chip and Badge share one ramp.
+
+   Fill and label are separate because they are held to different contrast
+   floors: --chip-color is painted behind --chip-on (needs 3:1 as a surface),
+   while --chip-text is painted *as* the label on --chip-soft (needs 4.5:1).
+   One value cannot do both — which is why the accent tone read at 2.28:1 on
+   the Hacker preset and the warning tone at 2.93:1 in light mode. */
 
 .neutral {
   --chip-color: var(--text);
+  --chip-text: var(--text);
   --chip-soft: var(--surface-hover);
   --chip-on: var(--surface);
 }
 .accent {
   --chip-color: var(--accent);
+  --chip-text: var(--accent-text);
   --chip-soft: var(--accent-soft);
   --chip-on: var(--accent-on);
 }
 .success {
   --chip-color: var(--success);
+  --chip-text: var(--success-text);
   --chip-soft: var(--success-soft);
   --chip-on: var(--success-on);
 }
 .warning {
   --chip-color: var(--warning);
+  --chip-text: var(--warning-text);
   --chip-soft: var(--warning-soft);
   --chip-on: var(--warning-on);
 }
 .danger {
   --chip-color: var(--danger);
+  --chip-text: var(--danger-text);
   --chip-soft: var(--danger-soft);
   --chip-on: var(--danger-on);
 }
@@ -104,14 +115,14 @@
 .chip:hover:not(:disabled):not(.pressed) {
   background: var(--chip-soft);
   border-color: color-mix(in srgb, var(--chip-color) 40%, transparent);
-  color: var(--chip-color);
+  color: var(--chip-text);
 }
 
 /* Status look: tone visible at rest. */
 .soft {
   background: var(--chip-soft);
   border-color: color-mix(in srgb, var(--chip-color) 30%, transparent);
-  color: var(--chip-color);
+  color: var(--chip-text);
 }
 
 .pressed {

@@ -101,7 +101,7 @@
 
 .healthOptimal {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
   border: 1px solid rgba(30, 142, 107, 0.3);
 }
 
@@ -113,13 +113,13 @@
 
 .healthWarning {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
   border: 1px solid rgba(201, 138, 46, 0.35);
 }
 
 .healthDanger {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
   border: 1px solid rgba(194, 69, 58, 0.35);
 }
 
@@ -226,7 +226,7 @@
 }
 
 .surgeIcon {
-  color: var(--warning);
+  color: var(--warning-text);
   flex-shrink: 0;
 }
 
@@ -282,7 +282,7 @@
 
 .tierMastered {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .tierCompetent {
@@ -292,7 +292,7 @@
 
 .tierDeveloping {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .tierNovice {
@@ -335,7 +335,7 @@
   align-items: center;
   gap: 4px;
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
   border-radius: var(--r-pill);
   padding: 2px 8px;
   font-size: var(--fs-xs);

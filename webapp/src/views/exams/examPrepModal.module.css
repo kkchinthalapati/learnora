@@ -85,7 +85,7 @@
 }
 
 .countdownPillUrgent {
-  color: var(--danger);
+  color: var(--danger-text);
   background: color-mix(in srgb, var(--danger) 12%, transparent);
 }
 
@@ -134,15 +134,15 @@
 }
 
 .tierReady {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .tierProgress {
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .tierGap {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .gaugeCenter {
@@ -228,7 +228,7 @@
 
 .weakBannerIcon {
   flex: none;
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .weakBannerContent {
@@ -250,7 +250,7 @@
 
 .weakPill {
   padding: 5px 9px;
-  color: var(--warning);
+  color: var(--warning-text);
   background: color-mix(in srgb, var(--warning) 12%, transparent);
 }
 
@@ -338,7 +338,7 @@
 }
 
 .statusCompleted {
-  color: var(--success);
+  color: var(--success-text);
   background: color-mix(in srgb, var(--success) 12%, transparent);
 }
 

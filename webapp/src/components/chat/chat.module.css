@@ -163,7 +163,7 @@
 .errorBubble {
   background: var(--danger-soft);
   border-color: transparent;
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .attachment {
@@ -265,7 +265,7 @@
   gap: 6px;
   font-size: var(--fs-sm);
   font-weight: 600;
-  color: var(--success);
+  color: var(--success-text);
   flex-shrink: 0;
 }
 
@@ -352,7 +352,7 @@
   font-size: var(--fs-sm);
   background: transparent;
   border: none;
-  color: var(--danger);
+  color: var(--danger-text);
   cursor: pointer;
 }
 

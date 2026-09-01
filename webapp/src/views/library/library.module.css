@@ -61,7 +61,7 @@
 }
 
 .loadError {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 /* ---- Cards ------------------------------------------------------------- */
@@ -400,7 +400,7 @@
 .workspaceLoadError {
   margin-top: var(--s-5);
   padding: var(--s-4);
-  color: var(--danger);
+  color: var(--danger-text);
   background: var(--danger-soft);
   border: 1px solid var(--danger);
   border-radius: var(--r-md);
@@ -516,7 +516,7 @@
 .rowDelete:hover,
 .rowDelete:focus-visible {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .rowDelete:focus-visible {
@@ -563,7 +563,7 @@
   background: var(--danger-soft);
   border: 1px solid var(--danger-soft);
   border-radius: var(--r-md);
-  color: var(--danger);
+  color: var(--danger-text);
   font-size: var(--fs-xs);
   display: flex;
   flex-direction: column;
@@ -576,7 +576,7 @@
   background: var(--warning-soft);
   border: 1px solid var(--warning-soft);
   border-radius: var(--r-md);
-  color: var(--warning);
+  color: var(--warning-text);
   font-size: var(--fs-xs);
   display: flex;
   flex-direction: column;

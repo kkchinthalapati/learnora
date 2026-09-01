@@ -120,12 +120,12 @@
 
 .badgeDeltaPositive {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .badgeDeltaNegative {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .subjectList {
@@ -277,7 +277,7 @@
 
 .weakCountBadge {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
   padding: 0.1rem 0.4rem;
   border-radius: 9999px;
   font-size: var(--fs-xs);

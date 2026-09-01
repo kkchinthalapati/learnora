@@ -45,15 +45,15 @@
 }
 
 .gradeHigh {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .gradeMed {
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .gradeLow {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 /* Radar & Topic Layout */
@@ -135,17 +135,17 @@
 
 .riskHigh {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .riskMedium {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .riskLow {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .progressBarContainer {
@@ -254,7 +254,7 @@
 
 .lostMarksBadge {
   font-weight: 700;
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .neutralizedBadge {
@@ -263,7 +263,7 @@
   gap: 4px;
   font-size: var(--fs-xs);
   font-weight: 700;
-  color: var(--success);
+  color: var(--success-text);
   background: var(--success-soft);
   padding: 4px 10px;
   border-radius: var(--r-pill);

@@ -462,7 +462,7 @@
 }
 
 .hexInvalid {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .eyedropperBtn {

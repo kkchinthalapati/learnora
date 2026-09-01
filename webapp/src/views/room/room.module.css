@@ -89,7 +89,7 @@
   border-radius: var(--r-pill);
   font-size: var(--fs-xs);
   font-weight: 700;
-  color: var(--success);
+  color: var(--success-text);
   letter-spacing: 0.02em;
 }
 
@@ -573,13 +573,13 @@
 
 .statusPillFocus {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
   border: 1px solid var(--success-soft);
 }
 
 .statusPillBreak {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
   border: 1px solid var(--warning-soft);
 }
 

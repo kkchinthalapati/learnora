@@ -49,6 +49,21 @@ body.dark-theme {
   --danger-on: #0d0c0a;
   --danger-2: #c25f50;
 
+  /* Dark-mode counterparts to the --*-text split in tokens.css. Success and
+     warning are light enough as fills that they already clear AA as text on
+     every dark surface (worst case 4.95:1 and 5.10:1, measured against their
+     own soft wash over --surface-active), so they point straight back at the
+     fill and the split costs nothing here.
+
+     --danger does not: at 3.76:1 on that same worst-case backdrop it is the
+     one semantic colour that is under AA as text in *both* themes, for
+     opposite reasons. Light mode needed it darker; dark mode needs it
+     lighter. Same hue and saturation walked up instead of down, to 4.51:1
+     worst case and 5.5-7.2:1 on a plain surface. */
+  --success-text: var(--success);
+  --warning-text: var(--warning);
+  --danger-text: #de8576;
+
   /* Warm-neutral paper ramp. Each step is a ~4% lift, which is enough to
      separate a surface from the page without a shadow — elevation here is
      carried by tone and a hairline, not by a glow. */

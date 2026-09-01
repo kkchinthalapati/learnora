@@ -54,7 +54,7 @@
 }
 
 .loadError {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 /* --- The flip card --- */
@@ -377,11 +377,11 @@
 }
 
 .scoreAgain dd {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .scoreHard dd {
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .scoreGood dd {
@@ -389,7 +389,7 @@
 }
 
 .scoreEasy dd {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .repeatPanel p,
@@ -442,7 +442,7 @@
 
 .badgeExcellent {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
   border: 1px solid var(--success-soft);
 }
 
@@ -454,13 +454,13 @@
 
 .badgeNeedsReview {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
   border: 1px solid var(--warning-soft);
 }
 
 .badgeCritical {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
   border: 1px solid var(--danger-soft);
 }
 
@@ -670,12 +670,12 @@
 
 .gradeBadgeAgain {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .gradeBadgeHard {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .gradeBadgeGood {
@@ -685,7 +685,7 @@
 
 .gradeBadgeEasy {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .cardFrontPreview,

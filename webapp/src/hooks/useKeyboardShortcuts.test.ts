@@ -189,6 +189,82 @@ describe("useKeyboardShortcuts", () => {
     expect(callback).not.toHaveBeenCalled();
   });
 
+  /* Regression: the hook matched on e.key alone and called
+     preventDefault() on a match, so a browser chord that happened to share a
+     letter with a registered shortcut was both swallowed and misread as the
+     shortcut. In QuizRunner that made Cmd/Ctrl+D submit answer "D" instead of
+     bookmarking; in ReviewView, Cmd/Ctrl+1-4 graded a flashcard instead of
+     switching tab. */
+  it.each([
+    ["ctrlKey", { ctrlKey: true }],
+    ["metaKey", { metaKey: true }],
+    ["altKey", { altKey: true }],
+  ])("ignores a %s chord and leaves it to the browser", (_label, modifier) => {
+    const callback = vi.fn();
+    renderHook(() => useKeyboardShortcuts({ d: callback }));
+
+    const event = new KeyboardEvent("keydown", {
+      key: "d",
+      cancelable: true,
+      ...modifier,
+    });
+    document.dispatchEvent(event);
+
+    expect(callback).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it("still fires on a bare key and prevents its default", () => {
+    const callback = vi.fn();
+    renderHook(() => useKeyboardShortcuts({ d: callback }));
+
+    const event = new KeyboardEvent("keydown", { key: "d", cancelable: true });
+    document.dispatchEvent(event);
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("fires on a Shift chord, which is ordinary typing not a browser chord", () => {
+    const callback = vi.fn();
+    renderHook(() => useKeyboardShortcuts({ a: callback }));
+
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "A", shiftKey: true }),
+    );
+
+    expect(callback).toHaveBeenCalledTimes(1);
+  });
+
+  /* The map is an object literal at every call site, so it is a new
+     reference on every render. Re-registering is not merely wasteful: a
+     keypress arriving while the listener is detached is dropped. */
+  it("keeps one listener across re-renders with a fresh shortcut map", () => {
+    const addSpy = vi.spyOn(document, "addEventListener");
+    const first = vi.fn();
+    const { rerender } = renderHook(
+      ({ cb }) => useKeyboardShortcuts({ a: cb }),
+      { initialProps: { cb: first } },
+    );
+    const addsAfterMount = addSpy.mock.calls.filter(
+      ([type]) => type === "keydown",
+    ).length;
+
+    const second = vi.fn();
+    rerender({ cb: second });
+
+    const addsAfterRerender = addSpy.mock.calls.filter(
+      ([type]) => type === "keydown",
+    ).length;
+    expect(addsAfterRerender).toBe(addsAfterMount);
+
+    /* ...and the surviving listener still calls the newest callback. */
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(first).not.toHaveBeenCalled();
+    addSpy.mockRestore();
+  });
+
   it("cleanups event listener on unmount", () => {
     const callback = vi.fn();
     const { unmount } = renderHook(() =>

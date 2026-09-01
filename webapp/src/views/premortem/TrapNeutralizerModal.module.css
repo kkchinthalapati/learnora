@@ -34,7 +34,7 @@
 }
 
 .stepItemCompleted {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .stepBadge {
@@ -97,15 +97,15 @@
 }
 
 .baitHeader {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .flawHeader {
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .ruleHeader {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .sectionText {
@@ -133,7 +133,7 @@
 }
 
 .ruleListIcon {
-  color: var(--success);
+  color: var(--success-text);
   flex-shrink: 0;
   margin-top: 2px;
 }

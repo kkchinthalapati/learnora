@@ -115,7 +115,7 @@ select.field {
   background: color-mix(in srgb, var(--danger) 12%, transparent);
   border-left: 3px solid var(--danger);
   border-radius: var(--r-sm);
-  color: var(--danger);
+  color: var(--danger-text);
   font-size: var(--fs-sm);
 }
 

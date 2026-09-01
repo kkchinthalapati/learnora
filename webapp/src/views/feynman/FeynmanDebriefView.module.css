@@ -77,7 +77,7 @@
 
 .ratingMaster {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
   border: 1px solid var(--success);
 }
 
@@ -89,13 +89,13 @@
 
 .ratingDeveloping {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
   border: 1px solid var(--warning);
 }
 
 .ratingNeedsPractice {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
   border: 1px solid var(--danger);
 }
 
@@ -275,7 +275,7 @@
   justify-content: space-between;
   gap: var(--s-3);
   flex-wrap: wrap;
-  color: var(--success);
+  color: var(--success-text);
   font-size: var(--fs-sm);
   font-weight: 600;
 }

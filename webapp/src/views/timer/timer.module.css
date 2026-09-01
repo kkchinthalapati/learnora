@@ -366,24 +366,24 @@
 
 .ghostDanger {
   background: transparent;
-  color: var(--danger);
+  color: var(--danger-text);
   border-color: transparent;
 }
 
 .ghostDanger:hover:not(:disabled) {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .ghostSuccess {
   background: transparent;
-  color: var(--success);
+  color: var(--success-text);
   border-color: transparent;
 }
 
 .ghostSuccess:hover:not(:disabled) {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .studyRoomWidget {

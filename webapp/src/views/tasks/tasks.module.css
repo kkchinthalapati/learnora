@@ -424,12 +424,12 @@
 
 .dueToday {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .overdue {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .deleteBtn {
@@ -440,7 +440,7 @@
   border: none;
   font-family: inherit;
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
   border-radius: var(--r-sm);
   backdrop-filter: blur(var(--glass-blur));
   cursor: pointer;

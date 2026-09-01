@@ -52,7 +52,7 @@
   padding: 5px 12px;
   border-radius: var(--r-pill);
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
   font-size: var(--fs-xs);
   font-weight: 700;
   border: 1px solid var(--success-soft);
@@ -195,13 +195,13 @@
 
 .statusPill.focusing {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
   border: 1px solid var(--success-soft);
 }
 
 .statusPill.break {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
   border: 1px solid var(--warning-soft);
 }
 

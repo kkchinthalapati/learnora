@@ -683,7 +683,7 @@
   border: 1px solid rgba(239, 68, 68, 0.4);
   border-radius: var(--r-md);
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
   display: flex;
   flex-direction: column;
   gap: var(--s-3);

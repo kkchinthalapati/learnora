@@ -61,7 +61,7 @@
   display: flex;
   align-items: center;
   gap: var(--s-1);
-  color: var(--danger);
+  color: var(--danger-text);
   font-size: var(--fs-xs);
   font-weight: 700;
   margin: var(--s-2) 0 0;
@@ -83,7 +83,7 @@
 
 .loadError {
   margin-top: var(--s-4);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 /* --- Last week's adherence recap --- */
@@ -211,7 +211,7 @@
   padding: 2px 6px;
   border-radius: var(--r-pill);
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
   font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.02em;

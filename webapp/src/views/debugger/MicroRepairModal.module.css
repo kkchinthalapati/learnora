@@ -127,13 +127,13 @@
 .optionCorrect {
   background: var(--success-soft) !important;
   border-color: var(--success) !important;
-  color: var(--success) !important;
+  color: var(--success-text) !important;
 }
 
 .optionIncorrect {
   background: var(--danger-soft) !important;
   border-color: var(--danger) !important;
-  color: var(--danger) !important;
+  color: var(--danger-text) !important;
 }
 
 .optionMarker {
@@ -162,13 +162,13 @@
 .feedbackSuccess {
   background: var(--success-soft);
   border: 1px solid var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .feedbackError {
   background: var(--danger-soft);
   border: 1px solid var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .feedbackTitle {

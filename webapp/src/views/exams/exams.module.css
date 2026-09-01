@@ -324,13 +324,13 @@
 /* Ghost danger — de-emphasized destructive action so Save stays primary. */
 .ghostDanger {
   background: transparent;
-  color: var(--danger);
+  color: var(--danger-text);
   border-color: transparent;
 }
 
 .ghostDanger:hover:not(:disabled) {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .dateError {
@@ -446,19 +446,19 @@
 
 .badgeReady {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
   border: 1px solid var(--success-soft);
 }
 
 .badgeProgress {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
   border: 1px solid var(--warning-soft);
 }
 
 .badgeGap {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
   border: 1px solid var(--danger-soft);
 }
 

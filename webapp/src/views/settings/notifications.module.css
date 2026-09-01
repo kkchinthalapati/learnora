@@ -7,11 +7,11 @@
 }
 
 .granted {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .denied {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .default,

@@ -288,17 +288,17 @@
 
 .diffEasy {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .diffMedium {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .diffHard {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 /* Readiness pill → <Chip soft tone={success|warning|danger} size="sm">. */
@@ -618,7 +618,7 @@
 }
 
 .ringIconComplete {
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .goalInfo {
@@ -649,7 +649,7 @@
 }
 
 .goalStatusAchieved {
-  color: var(--warning);
+  color: var(--warning-text);
   font-weight: 700;
 }
 
@@ -758,7 +758,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: var(--success);
+  color: var(--success-text);
   font-weight: 700;
 }
 
@@ -788,7 +788,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--success);
+  color: var(--success-text);
   font-weight: 700;
   text-decoration: none;
   font-size: var(--fs-xs);

@@ -81,15 +81,15 @@
 }
 
 .statusUnsaved {
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .statusSaved {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .statusFailed {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .complexityBar {
@@ -518,7 +518,7 @@
 }
 
 .loadError {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 /* ---- Processing / Failure Banner --------------------------------------- */
@@ -546,13 +546,13 @@
 .warningBanner {
   background: var(--warning-soft);
   border: 1px solid var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .errorBanner {
   background: var(--danger-soft);
   border: 1px solid var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .bannerContent {

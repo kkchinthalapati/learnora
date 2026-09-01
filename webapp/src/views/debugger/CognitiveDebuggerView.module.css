@@ -282,13 +282,13 @@
   padding: 0.25rem 0.6rem;
   border-radius: 9999px;
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
   border: 1px solid var(--danger-soft);
 }
 
 .rootCauseBadgeHealthy {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
   border-color: var(--success-soft);
 }
 
@@ -367,12 +367,12 @@
 
 .level3Badge {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .level2Badge {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .level1Badge {

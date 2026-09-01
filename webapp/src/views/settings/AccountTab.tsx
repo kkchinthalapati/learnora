@@ -8,6 +8,7 @@ import {
 } from "../../components/InlineFeedback";
 import { useAuth } from "../../context/auth";
 import { useDialog } from "../../context/dialog";
+import { useToast } from "../../context/toast";
 import { useExportData } from "../../hooks/useDataAdmin";
 import { useUpdateEmail, useUpdateProfile } from "../../hooks/useAuthActions";
 import { initialsFor } from "./profile";
@@ -16,6 +17,7 @@ import styles from "./settings.module.css";
 export function AccountTab() {
   const { user } = useAuth();
   const { confirm } = useDialog();
+  const { showToast } = useToast();
   const updateProfile = useUpdateProfile();
   const updateEmail = useUpdateEmail();
   const exportData = useExportData();
@@ -80,12 +82,21 @@ export function AccountTab() {
     }
   }
 
+  /* A failed export was the quietest failure in the app: the student
+     confirms a dialog, the dialog closes, and nothing whatsoever happens —
+     indistinguishable from a browser that blocked the download. Success needs
+     no toast (a file appears), so only the failure is announced. */
+  function reportExportFailure(err: Error) {
+    showToast(`Could not export your data. ${err.message}`, { error: true });
+  }
+
   async function onExportHtml() {
     const ok = await confirm(
       "Download an interactive HTML report of your study data?",
       { title: "Export Report?", confirmText: "Export" },
     );
-    if (ok) exportData.mutate({ format: "html" });
+    if (ok)
+      exportData.mutate({ format: "html" }, { onError: reportExportFailure });
   }
 
   async function onExportCsv() {
@@ -93,7 +104,8 @@ export function AccountTab() {
       "Download a CSV copy of all your study logs and tasks to your device?",
       { title: "Export Data?", confirmText: "Export" },
     );
-    if (ok) exportData.mutate({ format: "csv" });
+    if (ok)
+      exportData.mutate({ format: "csv" }, { onError: reportExportFailure });
   }
 
   return (

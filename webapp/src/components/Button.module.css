@@ -97,7 +97,7 @@
 
 .danger {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
   border-color: transparent;
   box-shadow: var(--btn-sheen);
 }
@@ -116,7 +116,7 @@
 
 .warning {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
   border-color: transparent;
   box-shadow: var(--btn-sheen);
 }
@@ -135,7 +135,7 @@
 
 .success {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
   border-color: transparent;
   box-shadow: var(--btn-sheen);
 }

@@ -15,7 +15,11 @@
 }
 
 .card:hover {
-  border-color: var(--border-hover, var(--border));
+  /* --border-hover was never defined, and the fallback was --border: a
+     *shorthand*, which is not a valid border-color, so this declaration was
+     dropped and the card was the one dashboard card with a dead hover.
+     --accent-ring is what the others use (dashboard.module.css:448 et al). */
+  border-color: var(--accent-ring);
 }
 
 .header {

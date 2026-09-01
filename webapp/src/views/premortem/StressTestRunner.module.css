@@ -43,7 +43,7 @@
 
 .timerUrgent {
   background: rgba(194, 69, 58, 0.15);
-  color: var(--danger);
+  color: var(--danger-text);
   border-color: var(--danger);
   animation: pulse 1s infinite alternate;
 }
@@ -67,7 +67,7 @@
 }
 
 .trapIcon {
-  color: var(--warning);
+  color: var(--warning-text);
   flex-shrink: 0;
 }
 
@@ -76,7 +76,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-size: var(--fs-xs);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 /* Question Jumper Grid */
@@ -165,12 +165,12 @@
 
 .difficultyExtreme {
   background: rgba(194, 69, 58, 0.15);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .difficultyHard {
   background: rgba(201, 138, 46, 0.15);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .flagButton {
@@ -189,7 +189,7 @@
 }
 
 .flagButtonActive {
-  color: var(--warning);
+  color: var(--warning-text);
   background: rgba(201, 138, 46, 0.12);
 }
 

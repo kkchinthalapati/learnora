@@ -393,12 +393,12 @@
 
 .badgeSuccess {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .badgeWarning {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .badgeAccent {

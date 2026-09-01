@@ -44,7 +44,7 @@
 
 .statusSevered {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
   border: 1px solid var(--danger-soft);
   box-shadow: 0 0 12px var(--danger-soft);
 }
@@ -52,14 +52,14 @@
 .statusRestored,
 .statusHealthy {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
   border: 1px solid var(--success-soft);
   box-shadow: 0 0 12px var(--success-soft);
 }
 
 .statusShaky {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
   border: 1px solid var(--warning-soft);
   box-shadow: 0 0 12px var(--warning-soft);
 }

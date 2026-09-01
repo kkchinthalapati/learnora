@@ -64,18 +64,36 @@ export function useTaskActions() {
     [toggleTask, addTask, showToast],
   );
 
+  /* Both edits are optimistic, so a failure silently reverts the row on the
+     next refetch — the student sees their rename or date undo itself with no
+     explanation and no idea it ever reached the server. Say so, in the same
+     shape as the add/toggle handlers above. */
   const rename = useCallback(
     (task: Task, text: string) => {
-      updateText.mutate({ id: task.id, text });
+      updateText.mutate(
+        { id: task.id, text },
+        {
+          onError: (err) =>
+            showToast(`Could not rename task. ${err.message}`, { error: true }),
+        },
+      );
     },
-    [updateText],
+    [updateText, showToast],
   );
 
   const setDueDate = useCallback(
     (task: Task, dueDate: string | null) => {
-      updateDueDate.mutate({ id: task.id, dueDate });
+      updateDueDate.mutate(
+        { id: task.id, dueDate },
+        {
+          onError: (err) =>
+            showToast(`Could not update the due date. ${err.message}`, {
+              error: true,
+            }),
+        },
+      );
     },
-    [updateDueDate],
+    [updateDueDate, showToast],
   );
 
   const remove = useCallback(

@@ -68,7 +68,7 @@
 
 .pre code {
   font-family: "Fira Code", monospace;
-  color: var(--success);
+  color: var(--success-text);
   font-size: var(--fs-sm);
   line-height: 1.5;
   white-space: pre;

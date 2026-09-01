@@ -138,7 +138,7 @@
 
 .savedPill {
   font-size: var(--fs-xs);
-  color: var(--success);
+  color: var(--success-text);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -454,11 +454,11 @@
   gap: 5px;
   font-size: var(--fs-xs);
   font-weight: 700;
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .unlockedChipDark {
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .emptyState {

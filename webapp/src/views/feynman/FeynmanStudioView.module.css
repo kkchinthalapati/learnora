@@ -185,12 +185,12 @@
   padding: 2px 8px;
   border-radius: var(--r-pill);
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .flawBadge.resolved {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .misconceptionSnippet {
@@ -316,22 +316,22 @@
 
 .emotionConfused {
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .emotionSkeptical {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .emotionLightbulb {
   background: rgba(234, 179, 8, 0.18);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .emotionConvinced {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .gaugeProgressTrack {
@@ -365,7 +365,7 @@
 
 .deltaBadge {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
   font-weight: 700;
   padding: 2px 8px;
   border-radius: var(--r-pill);
@@ -423,7 +423,7 @@
 
 .solvedPill {
   background: var(--success-soft);
-  color: var(--success);
+  color: var(--success-text);
   font-size: var(--fs-xs);
   font-weight: 600;
   padding: 1px 6px;
@@ -516,7 +516,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--danger);
+  color: var(--danger-text);
   font-weight: 700;
   animation: pulse 1.5s infinite;
 }

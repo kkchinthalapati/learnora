@@ -167,7 +167,7 @@
   padding: 2px 8px;
   border-radius: var(--r-pill);
   background: var(--danger-soft);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .archetypeDesc {
