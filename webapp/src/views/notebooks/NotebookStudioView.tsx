@@ -24,13 +24,21 @@ function flashcardsFromCheatSheet(content: string) {
       const back = details.join(":").trim();
       return back
         ? { front: `What should you remember about ${term.trim()}?`, back }
-        : { front: "What is a key point from this revision sheet?", back: line };
+        : {
+            front: "What is a key point from this revision sheet?",
+            back: line,
+          };
     })
     .slice(0, 20);
 
   return cards.length > 0
     ? cards
-    : [{ front: "What are the key ideas in this revision sheet?", back: content.trim() }];
+    : [
+        {
+          front: "What are the key ideas in this revision sheet?",
+          back: content.trim(),
+        },
+      ];
 }
 
 export function NotebookStudioView() {
@@ -51,8 +59,12 @@ export function NotebookStudioView() {
     isLoading,
   } = useNotebook(notebookId);
 
-  const [activeViewMode, setActiveViewMode] = useState<"split" | "chat" | "notes">("split");
-  const [mobilePanel, setMobilePanel] = useState<"sources" | "canvas" | "tools">("canvas");
+  const [activeViewMode, setActiveViewMode] = useState<
+    "split" | "chat" | "notes"
+  >("split");
+  const [mobilePanel, setMobilePanel] = useState<
+    "sources" | "canvas" | "tools"
+  >("canvas");
   const [chatInput, setChatInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
@@ -72,7 +84,9 @@ export function NotebookStudioView() {
 
   const handleAppendToNotes = (content: string) => {
     if (!notebook) return;
-    const next = notebook.notes ? `${notebook.notes}\n\n---\n\n${content}` : content;
+    const next = notebook.notes
+      ? `${notebook.notes}\n\n---\n\n${content}`
+      : content;
     updateNotes(next);
     showToast("Appended to your Notes Canvas!");
     setActiveArtifactPreview(null);
@@ -83,7 +97,10 @@ export function NotebookStudioView() {
     setIsExportingArtifact(true);
     try {
       const cards = flashcardsFromCheatSheet(activeArtifactPreview.content);
-      const deck = await decksApi.add(null, `${notebook.title} — Revision Cheat Sheet`);
+      const deck = await decksApi.add(
+        null,
+        `${notebook.title} — Revision Cheat Sheet`,
+      );
       await flashcardsApi.addBatch(deck.id, cards);
       showToast(`Created a flashcard deck with ${cards.length} cards.`);
       setActiveArtifactPreview(null);
@@ -229,7 +246,8 @@ Use British English throughout.`;
         type: "cheat_sheet",
         title: `${notebook.subject}: High-Yield Revision Cheat Sheet`,
         content: res.text,
-        summary: "Structured summary covering core theorems, definitions, and exam pitfalls.",
+        summary:
+          "Structured summary covering core theorems, definitions, and exam pitfalls.",
       });
       showToast("Cheat Sheet saved to your Notebook Studio!");
     } catch {
@@ -272,7 +290,8 @@ Use British English throughout.`;
         type: "feynman",
         title: `Feynman Intuition: ${notebook.title}`,
         content: res.text,
-        summary: "Plain-language analogy, concept simplification, and gap-finder questions.",
+        summary:
+          "Plain-language analogy, concept simplification, and gap-finder questions.",
       });
       showToast("Breakdown saved to your notebook.");
     } catch {
@@ -293,7 +312,8 @@ Use British English throughout.`;
     addArtifact({
       type: "flashcards",
       title: `${notebook.subject} Flashcard Pack (8 Cards)`,
-      content: "Flashcard deck created from your selected notebook sources. Ready to review in Library.",
+      content:
+        "Flashcard deck created from your selected notebook sources. Ready to review in Library.",
       summary: "8 active recall cards generated from notebook sources.",
     });
   };
@@ -314,7 +334,11 @@ Use British English throughout.`;
       <header className={styles.studioTopBar}>
         <div className={styles.topBarLeft}>
           <Link to="/notebooks" className={styles.backBtn}>
-            <Icon name="chevron-down" size={16} style={{ transform: "rotate(90deg)" }} />
+            <Icon
+              name="chevron-down"
+              size={16}
+              style={{ transform: "rotate(90deg)" }}
+            />
             Notebooks
           </Link>
           <span style={{ color: "var(--line)", userSelect: "none" }}>|</span>
@@ -342,7 +366,11 @@ Use British English throughout.`;
           <Button
             variant="secondary"
             onClick={() => void navigate("/timer")}
-            style={{ display: "inline-flex", alignItems: "center", gap: "var(--s-1)" }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "var(--s-1)",
+            }}
           >
             <Icon name="clock" size={15} />
             Focus session
@@ -381,14 +409,24 @@ Use British English throughout.`;
       {/* 3-Column Studio Body */}
       <div className={styles.studioColumns}>
         {/* PANEL 1: Sources Desk (Left Column) */}
-        <aside className={`${styles.sourcesDesk} ${mobilePanel !== "sources" ? styles.mobileHidden : ""}`}>
+        <aside
+          className={`${styles.sourcesDesk} ${mobilePanel !== "sources" ? styles.mobileHidden : ""}`}
+        >
           <div className={styles.panelHeader}>
             <div className={styles.panelTitleGroup}>
-              <Icon name="layers" size={16} style={{ color: "var(--accent)" }} />
+              <Icon
+                name="layers"
+                size={16}
+                style={{ color: "var(--accent)" }}
+              />
               <h2 className={styles.panelHeading}>Sources</h2>
-              <span className={styles.sourceCountBadge}>{notebook.sources.length}</span>
+              <span className={styles.sourceCountBadge}>
+                {notebook.sources.length}
+              </span>
             </div>
-            <span style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
+            <span
+              style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}
+            >
               {selectedSources.length} active
             </span>
           </div>
@@ -410,7 +448,9 @@ Use British English throughout.`;
                 <div className={styles.sourceInfo}>
                   <div className={styles.sourceTitle}>{source.title}</div>
                   <div className={styles.sourceMeta}>
-                    <span className={styles.sourceTypeBadge}>{source.type}</span>
+                    <span className={styles.sourceTypeBadge}>
+                      {source.type}
+                    </span>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -436,10 +476,21 @@ Use British English throughout.`;
             ))}
 
             {notebook.sources.length === 0 && (
-              <div style={{ textAlign: "center", padding: "var(--s-6) var(--s-3)", color: "var(--text-muted)" }}>
-                <Icon name="upload-cloud" size={28} style={{ opacity: 0.5, marginBottom: "var(--s-2)" }} />
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "var(--s-6) var(--s-3)",
+                  color: "var(--text-muted)",
+                }}
+              >
+                <Icon
+                  name="upload-cloud"
+                  size={28}
+                  style={{ opacity: 0.5, marginBottom: "var(--s-2)" }}
+                />
                 <p style={{ fontSize: "var(--fs-sm)", margin: 0 }}>
-                  No sources attached yet. Add notes or textbook excerpts to ground your AI tutor.
+                  No sources attached yet. Add notes or textbook excerpts to
+                  ground your AI tutor.
                 </p>
               </div>
             )}
@@ -449,7 +500,13 @@ Use British English throughout.`;
             <Button
               variant="secondary"
               onClick={() => setIsAddSourceOpen(true)}
-              style={{ width: "100%", display: "inline-flex", justifyContent: "center", alignItems: "center", gap: "var(--s-2)" }}
+              style={{
+                width: "100%",
+                display: "inline-flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: "var(--s-2)",
+              }}
             >
               <Icon name="plus" size={15} />
               Add source
@@ -458,7 +515,9 @@ Use British English throughout.`;
         </aside>
 
         {/* PANEL 2: Grounded Canvas (Centre Column) */}
-        <main className={`${styles.canvasColumn} ${mobilePanel !== "canvas" ? styles.mobileHidden : ""}`}>
+        <main
+          className={`${styles.canvasColumn} ${mobilePanel !== "canvas" ? styles.mobileHidden : ""}`}
+        >
           <div className={styles.canvasTabs}>
             <button
               type="button"
@@ -492,12 +551,30 @@ Use British English throughout.`;
               <div className={styles.splitCanvasLayout}>
                 {/* Split Left: Notes */}
                 <div className={styles.splitNotesPane}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--s-2)" }}>
-                    <span style={{ fontSize: "var(--fs-xs)", fontWeight: 700, textTransform: "uppercase", color: "var(--text-muted)" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: "var(--s-2)",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "var(--fs-xs)",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        color: "var(--text-muted)",
+                      }}
+                    >
                       Study Working & Notes
                     </span>
                     <span className={styles.saveIndicator}>
-                      <Icon name="check" size={12} style={{ color: "var(--success)" }} />
+                      <Icon
+                        name="check"
+                        size={12}
+                        style={{ color: "var(--success)" }}
+                      />
                       Autosaved
                     </span>
                   </div>
@@ -531,7 +608,9 @@ Use British English throughout.`;
                         <div
                           key={msg.id}
                           className={`${styles.messageBubble} ${
-                            msg.role === "user" ? styles.userMessage : styles.assistantMessage
+                            msg.role === "user"
+                              ? styles.userMessage
+                              : styles.assistantMessage
                           }`}
                         >
                           {/* Only the model's reply is markdown. A student's own message stays
@@ -547,11 +626,20 @@ Use British English throughout.`;
 
                           {msg.citations && msg.citations.length > 0 && (
                             <div className={styles.citationRow}>
-                              <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  color: "var(--text-muted)",
+                                }}
+                              >
                                 Citations:
                               </span>
                               {msg.citations.map((c, i) => (
-                                <span key={i} className={styles.citationChip} title={c.snippet}>
+                                <span
+                                  key={i}
+                                  className={styles.citationChip}
+                                  title={c.snippet}
+                                >
                                   [{i + 1}] {c.sourceTitle}
                                 </span>
                               ))}
@@ -562,12 +650,23 @@ Use British English throughout.`;
                       <div ref={chatBottomRef} />
                     </div>
 
-                    <div style={{ display: "flex", gap: "var(--s-1)", flexWrap: "wrap", marginBottom: "var(--s-2)" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "var(--s-1)",
+                        flexWrap: "wrap",
+                        marginBottom: "var(--s-2)",
+                      }}
+                    >
                       <button
                         type="button"
                         className={styles.filterPill}
                         style={{ fontSize: "11px", padding: "4px 8px" }}
-                        onClick={() => handleSendChat("Summarise the key theorems and proof steps from my sources.")}
+                        onClick={() =>
+                          handleSendChat(
+                            "Summarise the key theorems and proof steps from my sources.",
+                          )
+                        }
                       >
                         ✨ Key theorems
                       </button>
@@ -575,7 +674,11 @@ Use British English throughout.`;
                         type="button"
                         className={styles.filterPill}
                         style={{ fontSize: "11px", padding: "4px 8px" }}
-                        onClick={() => handleSendChat("What are common exam traps on this topic?")}
+                        onClick={() =>
+                          handleSendChat(
+                            "What are common exam traps on this topic?",
+                          )
+                        }
                       >
                         ⚠️ Exam traps
                       </button>
@@ -608,7 +711,13 @@ Use British English throughout.`;
                 </div>
               </div>
             ) : activeViewMode === "notes" ? (
-              <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  height: "100%",
+                }}
+              >
                 <textarea
                   value={notebook.notes}
                   onChange={(e) => updateNotes(e.target.value)}
@@ -637,7 +746,9 @@ Use British English throughout.`;
                     <div
                       key={msg.id}
                       className={`${styles.messageBubble} ${
-                        msg.role === "user" ? styles.userMessage : styles.assistantMessage
+                        msg.role === "user"
+                          ? styles.userMessage
+                          : styles.assistantMessage
                       }`}
                     >
                       {/* Only the model's reply is markdown. A student's own message stays
@@ -653,11 +764,20 @@ Use British English throughout.`;
 
                       {msg.citations && msg.citations.length > 0 && (
                         <div className={styles.citationRow}>
-                          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              color: "var(--text-muted)",
+                            }}
+                          >
                             Citations:
                           </span>
                           {msg.citations.map((c, i) => (
-                            <span key={i} className={styles.citationChip} title={c.snippet}>
+                            <span
+                              key={i}
+                              className={styles.citationChip}
+                              title={c.snippet}
+                            >
                               [{i + 1}] {c.sourceTitle}
                             </span>
                           ))}
@@ -668,25 +788,44 @@ Use British English throughout.`;
                   <div ref={chatBottomRef} />
                 </div>
 
-                <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap", marginBottom: "var(--s-2)" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "var(--s-2)",
+                    flexWrap: "wrap",
+                    marginBottom: "var(--s-2)",
+                  }}
+                >
                   <button
                     type="button"
                     className={styles.filterPill}
-                    onClick={() => handleSendChat("Summarise the key theorems and proof steps from my sources.")}
+                    onClick={() =>
+                      handleSendChat(
+                        "Summarise the key theorems and proof steps from my sources.",
+                      )
+                    }
                   >
                     ✨ Summarise key theorems
                   </button>
                   <button
                     type="button"
                     className={styles.filterPill}
-                    onClick={() => handleSendChat("What are the most common exam mistakes students make on this topic?")}
+                    onClick={() =>
+                      handleSendChat(
+                        "What are the most common exam mistakes students make on this topic?",
+                      )
+                    }
                   >
                     ⚠️ Common exam traps
                   </button>
                   <button
                     type="button"
                     className={styles.filterPill}
-                    onClick={() => handleSendChat("Give me 3 practice questions to test my understanding.")}
+                    onClick={() =>
+                      handleSendChat(
+                        "Give me 3 practice questions to test my understanding.",
+                      )
+                    }
                   >
                     📝 3 Practice questions
                   </button>
@@ -721,7 +860,9 @@ Use British English throughout.`;
         </main>
 
         {/* PANEL 3: Studio Tools & Artifacts (Right Column) */}
-        <aside className={`${styles.studioToolsPanel} ${mobilePanel !== "tools" ? styles.mobileHidden : ""}`}>
+        <aside
+          className={`${styles.studioToolsPanel} ${mobilePanel !== "tools" ? styles.mobileHidden : ""}`}
+        >
           <div>
             <div className={styles.toolsSectionTitle}>Studio Tools</div>
             <div className={styles.toolsGrid}>
@@ -735,7 +876,9 @@ Use British English throughout.`;
                   <Icon name="brain" size={18} />
                 </div>
                 <div className={styles.toolLabel}>Explain it simply</div>
-                <div className={styles.toolSubtext}>Explain simply & find knowledge gaps</div>
+                <div className={styles.toolSubtext}>
+                  Explain simply & find knowledge gaps
+                </div>
               </button>
 
               <button
@@ -748,7 +891,9 @@ Use British English throughout.`;
                   <Icon name="file-text" size={18} />
                 </div>
                 <div className={styles.toolLabel}>Revision Cheat Sheet</div>
-                <div className={styles.toolSubtext}>High-yield formulas & definitions</div>
+                <div className={styles.toolSubtext}>
+                  High-yield formulas & definitions
+                </div>
               </button>
 
               <button
@@ -760,7 +905,9 @@ Use British English throughout.`;
                   <Icon name="layers" size={18} />
                 </div>
                 <div className={styles.toolLabel}>Flashcard Deck</div>
-                <div className={styles.toolSubtext}>Generate active recall deck</div>
+                <div className={styles.toolSubtext}>
+                  Generate active recall deck
+                </div>
               </button>
 
               <button
@@ -778,7 +925,9 @@ Use British English throughout.`;
           </div>
 
           <div>
-            <div className={styles.toolsSectionTitle}>Generated Artifacts ({notebook.artifacts.length})</div>
+            <div className={styles.toolsSectionTitle}>
+              Generated Artifacts ({notebook.artifacts.length})
+            </div>
             <div className={styles.artifactsList}>
               {notebook.artifacts.map((art) => (
                 <div
@@ -828,13 +977,22 @@ Use British English throughout.`;
                     </button>
                   </div>
                   <h3 className={styles.artifactTitle}>{art.title}</h3>
-                  {art.summary && <p className={styles.artifactSummary}>{art.summary}</p>}
+                  {art.summary && (
+                    <p className={styles.artifactSummary}>{art.summary}</p>
+                  )}
                 </div>
               ))}
 
               {notebook.artifacts.length === 0 && (
-                <p style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", margin: 0 }}>
-                  Pick a tool above to make your first plain-English breakdown or revision sheet.
+                <p
+                  style={{
+                    fontSize: "var(--fs-xs)",
+                    color: "var(--text-muted)",
+                    margin: 0,
+                  }}
+                >
+                  Pick a tool above to make your first plain-English breakdown
+                  or revision sheet.
                 </p>
               )}
             </div>
@@ -849,9 +1007,23 @@ Use British English throughout.`;
           onClose={() => setIsAddSourceOpen(false)}
           title="Add Study Source to Notebook"
         >
-          <form onSubmit={handleAddSourceSubmit} style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
+          <form
+            onSubmit={handleAddSourceSubmit}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--s-4)",
+            }}
+          >
             <div>
-              <label style={{ display: "block", fontSize: "var(--fs-sm)", fontWeight: 600, marginBottom: "var(--s-1)" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "var(--fs-sm)",
+                  fontWeight: 600,
+                  marginBottom: "var(--s-1)",
+                }}
+              >
                 Source Title
               </label>
               <input
@@ -872,7 +1044,14 @@ Use British English throughout.`;
             </div>
 
             <div>
-              <label style={{ display: "block", fontSize: "var(--fs-sm)", fontWeight: 600, marginBottom: "var(--s-1)" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "var(--fs-sm)",
+                  fontWeight: 600,
+                  marginBottom: "var(--s-1)",
+                }}
+              >
                 Source Type
               </label>
               <select
@@ -896,7 +1075,14 @@ Use British English throughout.`;
             </div>
 
             <div>
-              <label style={{ display: "block", fontSize: "var(--fs-sm)", fontWeight: 600, marginBottom: "var(--s-1)" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "var(--fs-sm)",
+                  fontWeight: 600,
+                  marginBottom: "var(--s-1)",
+                }}
+              >
                 Source Content / Notes Text
               </label>
               <textarea
@@ -917,7 +1103,13 @@ Use British English throughout.`;
               />
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--s-2)" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "var(--s-2)",
+              }}
+            >
               <Button type="button" onClick={() => setIsAddSourceOpen(false)}>
                 Cancel
               </Button>
@@ -942,11 +1134,23 @@ Use British English throughout.`;
           >
             {renderMarkdownNodes(activeArtifactPreview.content)}
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--s-2)", marginTop: "var(--s-4)", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "var(--s-2)",
+              marginTop: "var(--s-4)",
+              flexWrap: "wrap",
+            }}
+          >
             <Button
               variant="secondary"
               onClick={() => handleAppendToNotes(activeArtifactPreview.content)}
-              style={{ display: "inline-flex", alignItems: "center", gap: "var(--s-1)" }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "var(--s-1)",
+              }}
             >
               <Icon name="file-text" size={14} />
               Append to Notes
@@ -956,22 +1160,33 @@ Use British English throughout.`;
                 variant="secondary"
                 onClick={() => void handleCreateDeckFromArtifact()}
                 disabled={isExportingArtifact}
-                style={{ display: "inline-flex", alignItems: "center", gap: "var(--s-1)" }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "var(--s-1)",
+                }}
               >
                 <Icon name="layers" size={14} />
-                {isExportingArtifact ? "Creating deck..." : "Create Flashcard Deck"}
+                {isExportingArtifact
+                  ? "Creating deck..."
+                  : "Create Flashcard Deck"}
               </Button>
             )}
             <Button
               variant="secondary"
               onClick={() => {
-                void navigator.clipboard.writeText(activeArtifactPreview.content);
+                void navigator.clipboard.writeText(
+                  activeArtifactPreview.content,
+                );
                 showToast("Copied to clipboard!");
               }}
             >
               Copy to clipboard
             </Button>
-            <Button variant="primary" onClick={() => setActiveArtifactPreview(null)}>
+            <Button
+              variant="primary"
+              onClick={() => setActiveArtifactPreview(null)}
+            >
               Close
             </Button>
           </div>
