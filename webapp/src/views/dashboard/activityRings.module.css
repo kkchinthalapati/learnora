@@ -1,0 +1,115 @@
+/* ActivityRings.module.css */
+.ringsContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4, 16px);
+  background: var(--surface-1, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--r-lg, 16px);
+  padding: var(--s-3, 12px) var(--s-4, 16px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.svgWrap {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.ringBg {
+  opacity: 0.15;
+  transition: opacity 0.2s ease;
+}
+
+.ringFg {
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ringComplete {
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+.centerIcon {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-xs, 12px);
+  font-weight: 700;
+  color: var(--text, #fff);
+  pointer-events: none;
+}
+
+.metricsList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.metricRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--fs-xs, 12px);
+  gap: 8px;
+}
+
+.metricLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted, #94a3b8);
+  white-space: nowrap;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotFocus {
+  background: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.5);
+}
+
+.dotCards {
+  background: #34d399;
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.5);
+}
+
+.dotTasks {
+  background: #fbbf24;
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.5);
+}
+
+.metricValue {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text, #fff);
+  white-space: nowrap;
+}
+
+.metricPercent {
+  font-size: 0.85em;
+  color: var(--text-muted, #94a3b8);
+  margin-left: 4px;
+}

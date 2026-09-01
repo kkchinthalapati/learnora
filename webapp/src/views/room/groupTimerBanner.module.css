@@ -1,0 +1,123 @@
+/* GroupTimerBanner.module.css */
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s-3, 12px);
+  background: linear-gradient(
+    135deg,
+    rgba(56, 189, 248, 0.12) 0%,
+    rgba(99, 102, 241, 0.12) 100%
+  );
+  border: 1px solid var(--primary, #38bdf8);
+  border-radius: var(--r-xl, 18px);
+  padding: var(--s-4, 16px) var(--s-5, 20px);
+  margin-bottom: var(--s-6, 24px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 24px rgba(56, 189, 248, 0.15);
+}
+
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4, 16px);
+}
+
+.iconBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 20px;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.5);
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.8);
+  }
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  font-size: var(--fs-md, 15px);
+  font-weight: 700;
+  color: var(--text, #fff);
+  margin: 0;
+}
+
+.phaseBadge {
+  font-size: var(--fs-xs, 12px);
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.phaseFocus {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.phaseBreak {
+  background: rgba(52, 211, 153, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.4);
+}
+
+.hostSubtitle {
+  font-size: var(--fs-xs, 12px);
+  color: var(--text-muted, #94a3b8);
+  margin: 0;
+}
+
+.centerTimer {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.digits {
+  font-size: var(--fs-3xl, 32px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text, #fff);
+  font-variant-numeric: tabular-nums;
+}
+
+.statusText {
+  font-size: var(--fs-xs, 12px);
+  color: var(--text-muted, #94a3b8);
+  text-transform: uppercase;
+}
+
+.rightControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
