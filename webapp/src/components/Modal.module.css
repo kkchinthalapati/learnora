@@ -54,6 +54,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* Was ~34px square — under the 44px floor tokens.css commits to, on the
+     one control every modal has. */
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
   padding: var(--s-2);
   border: 1px solid transparent;
   border-radius: var(--r-sm);

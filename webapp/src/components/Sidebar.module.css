@@ -215,6 +215,12 @@ body[data-sidebar-style="transparent"] .sidebar {
   background: var(--accent);
 }
 
+/* Holds the badge's slot while its count query is in flight, so the nav row
+   is the same shape before and after the number arrives. */
+.badgePlaceholder {
+  visibility: hidden;
+}
+
 .badge {
   min-width: 20px;
   height: 20px;

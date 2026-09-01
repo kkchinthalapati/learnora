@@ -32,6 +32,8 @@ import { PreMortemRadarView } from "./views/premortem/PreMortemRadarView";
 import { FeynmanHubView } from "./views/feynman/FeynmanHubView";
 import { NotebooksHubView } from "./views/notebooks/NotebooksHubView";
 import { NotFoundView } from "./views/not-found/NotFoundView";
+import { Skeleton } from "./components/Skeleton";
+import styles from "./routes.module.css";
 
 const LazyNotebookStudioView = lazy(async () => ({
   default: (await import("./views/notebooks/NotebookStudioView"))
@@ -68,9 +70,22 @@ const LazyFeynmanDebriefView = lazy(async () => ({
     .FeynmanDebriefView,
 }));
 
+/* The fallback covers the seven heaviest screens — quiz runner, review,
+   notes, the notebook studio — so it is on screen for a real moment on a slow
+   connection. A bare unstyled paragraph collapses the whole layout and then
+   snaps back; a Skeleton holds roughly the shape of what is coming, which is
+   the same thing ConceptGraphView and Analytics do while their data loads. */
 function DeferredView({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<p role="status">Loading workspace…</p>}>
+    <Suspense
+      fallback={
+        <div className={styles.deferredFallback} aria-busy="true">
+          <Skeleton label="Loading workspace" height={32} width="40%" />
+          <Skeleton height={220} />
+          <Skeleton height={160} />
+        </div>
+      }
+    >
       {children}
     </Suspense>
   );

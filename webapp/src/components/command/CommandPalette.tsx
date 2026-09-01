@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -48,7 +48,6 @@ export function CommandPalette(props: CommandPaletteProps) {
   const paletteRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  const titleId = useId();
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -598,15 +597,10 @@ export function CommandPalette(props: CommandPaletteProps) {
         className={styles.palette}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titleId}
         aria-label="Command Palette"
         tabIndex={-1}
         onKeyDown={handleKeyDown}
       >
-        <span id={titleId} className="sr-only" style={{ display: "none" }}>
-          Command Palette
-        </span>
-
         {/* Search header bar */}
         <div className={styles.searchWrapper}>
           <span className={styles.searchIcon} aria-hidden="true">

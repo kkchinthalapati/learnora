@@ -679,6 +679,20 @@
 }
 
 @media (max-width: 768px) {
+  /* 12px is a hard target for a thumb. A full 44px is impossible — 53 weeks
+     of them would be 2300px wide — but the wrapper already scrolls
+     horizontally, so the cells can grow to something reachable and let the
+     year scroll. */
+  .cell {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+  }
+
+  .weekdayLabels {
+    height: 158px;
+  }
+
   .container {
     gap: var(--s-4);
     padding-bottom: calc(112px + env(safe-area-inset-bottom));

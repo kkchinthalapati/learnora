@@ -78,7 +78,11 @@
   gap: var(--s-1);
   padding: 3px 10px;
   background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
+  /* Was hardcoded #ffffff, inside a pill whose own text colour is
+     --accent-on / --warning-on — near-black in 8 of the 13 light presets, so
+     the label was white-on-pale and unreadable. Inheriting the pill's colour
+     is right in every preset by construction. */
+  color: inherit;
   border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: var(--r-pill);
   font-size: var(--fs-xs);

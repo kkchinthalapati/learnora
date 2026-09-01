@@ -116,7 +116,10 @@
 /* Notebook Grid */
 .notebooksGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  /* min() rather than a bare 340px: AppShell leaves the viewport minus 32px,
+     so a 360px Android overflows the track by ~12px — and overflow-x: hidden
+     on the app chrome clips that permanently instead of scrolling it. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
   gap: var(--s-6);
   align-items: stretch;
 }

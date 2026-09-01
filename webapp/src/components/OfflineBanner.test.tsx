@@ -39,7 +39,25 @@ describe("OfflineBanner", () => {
         "You're offline. Your work is saved and will sync when you reconnect.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Sync now" })).toBeInTheDocument();
+    /* No Sync now button while offline: pressing it can only fail, and the
+       message already promises the work syncs on reconnect. */
+    expect(
+      screen.queryByRole("button", { name: "Sync now" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers Sync now once the connection is back and changes are still queued", () => {
+    vi.mocked(offlineSync.useOnlineStatus).mockReturnValue({
+      isOnline: true,
+      queueSize: 2,
+      isSyncing: false,
+      syncNow: vi.fn(),
+    });
+
+    render(<OfflineBanner />);
+    expect(
+      screen.getByRole("button", { name: "Sync now" }),
+    ).toBeInTheDocument();
   });
 
   it("shows syncing message when active sync is in progress", () => {

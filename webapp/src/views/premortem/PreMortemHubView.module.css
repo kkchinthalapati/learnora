@@ -118,7 +118,9 @@
 /* Trap Archetypes Cards Grid */
 .archetypesGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  /* min() so a narrow viewport shrinks the track instead of overflowing into
+     the app chrome, which clips rather than scrolls. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: var(--s-4);
 }
 
@@ -202,7 +204,7 @@
 /* History Section */
 .historyGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: var(--s-4);
 }
 

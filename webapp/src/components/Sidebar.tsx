@@ -237,8 +237,10 @@ export function Sidebar({
 }) {
   const { pathname } = useLocation();
   const { openCreateModal } = useCreateModal();
-  const { data: dueCount = 0 } = useFlashcardsDueCount();
-  const { data: incomingRequestCount = 0 } = useIncomingFriendRequestCount();
+  const { data: dueCount = 0, isPending: duePending } =
+    useFlashcardsDueCount();
+  const { data: incomingRequestCount = 0, isPending: requestsPending } =
+    useIncomingFriendRequestCount();
   const t = useTranslation();
 
   const [collapsedSections, setCollapsedSections] = useState<SectionId[]>(() =>
@@ -365,6 +367,16 @@ export function Sidebar({
                       : item.badgeType === "friend_requests"
                         ? incomingRequestCount
                         : 0;
+                  /* `data: x = 0` reads as "zero due" while the count is
+                     still in flight, so the badge was absent on first paint
+                     and then appeared. Hold its slot until the answer is
+                     actually known. */
+                  const badgePending =
+                    item.badgeType === "due_flashcards"
+                      ? duePending
+                      : item.badgeType === "friend_requests"
+                        ? requestsPending
+                        : false;
 
                   return (
                     <li key={item.to}>
@@ -384,7 +396,12 @@ export function Sidebar({
                       >
                         <Icon name={item.icon} size={18} />
                         <span className={styles.navLabel}>{label}</span>
-                        {badgeCount > 0 ? (
+                        {badgePending ? (
+                          <span
+                            className={`${styles.badge} ${styles.badgePlaceholder}`}
+                            aria-hidden="true"
+                          />
+                        ) : badgeCount > 0 ? (
                           <span className={styles.badge}>{badgeCount}</span>
                         ) : null}
                       </Link>

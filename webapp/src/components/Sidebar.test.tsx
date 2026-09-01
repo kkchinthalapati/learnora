@@ -23,10 +23,11 @@ describe("Sidebar", () => {
     initialPath = "/",
     dueCount = 0,
     incomingRequests = 0,
+    countsPending = false,
   } = {}) {
     vi.spyOn(useFlashcardsModule, "useFlashcardsDueCount").mockReturnValue({
-      data: dueCount,
-      isPending: false,
+      data: countsPending ? undefined : dueCount,
+      isPending: countsPending,
       isError: false,
       error: null,
     } as unknown as ReturnType<
@@ -141,6 +142,18 @@ describe("Sidebar", () => {
   it("shows due reviews on Library", () => {
     renderSidebar({ dueCount: 5 });
     expect(screen.getByText("5")).toBeInTheDocument();
+  });
+
+  it("holds the badge's slot while the due count is still loading", () => {
+    /* `data: dueCount = 0` reads as "nothing due" while the request is in
+       flight, so the badge was absent on first paint and then appeared. The
+       placeholder keeps the row the same shape either way. */
+    const { container } = renderSidebar({ dueCount: 5, countsPending: true });
+
+    expect(screen.queryByText("5")).not.toBeInTheDocument();
+    const placeholder = container.querySelector('[class*="badgePlaceholder"]');
+    expect(placeholder).not.toBeNull();
+    expect(placeholder).toHaveAttribute("aria-hidden", "true");
   });
 
   it("expands secondary groups and shows their routes", async () => {

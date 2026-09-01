@@ -1,0 +1,7 @@
+/* Layout for the lazy-route Suspense fallback in routes.tsx. */
+.deferredFallback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-6) 0;
+}

@@ -3,7 +3,7 @@
 **Audit date:** 2026-09-01  
 **Auditors:** Claude subagent (CSS/visual/a11y) + manual inspection (functional/data-loss)  
 **Total findings:** 32 defects across 4 batches  
-**Status:** Batches 1–3 **DONE** • Batch 4 **pending**
+**Status:** All 4 batches **DONE** — sweep complete
 
 ---
 
@@ -245,85 +245,113 @@ text, not rendered styles — jsdom applies no stylesheets, the same reason
 
 ---
 
-## Batch 4 — Visual polish & mobile (8 items) — ⏳ PENDING
+## Batch 4 — Visual polish & mobile (7 items) — ✅ SHIPPED
 
-**Scope:** Responsive layout breaks, touch target misses, disabled/hover state visibility, dead code
+**Merged to main:** 2026-09-01 · 7 items · 5 new regression tests  
+**Tests:** 1906/1906 pass · `tsc -b` and `vite build` clean
 
-### 4.1 — Mobile grid overflow that is clipped, not scrollable
+### 4.1 — Mobile grid overflow that is clipped, not scrollable ✅
 
-**Problem:** notebooks.module.css, PreMortemHubView/RadarView — `minmax(340px, 1fr)` with no mobile override. AppShell leaves `viewport − 32px`, so 360px Android overflows ~12px — and `overflow-x: hidden` on the app chrome **clips it permanently**.
+**Problem:** `repeat(auto-fill, minmax(340px, 1fr))` with no mobile override.
+AppShell leaves `viewport − 32px`, so a 360px Android overflows by ~12px — and
+`overflow-x: hidden` on the app chrome clips it permanently.
 
-**Impact:** Card content is permanently cut off on narrow viewports.
+**Solution:** `minmax(min(100%, 340px), 1fr)`, the idiom already in
+library.module.css. Applied to the four `auto-fill`/`auto-fit` tracks at 300px
+and up (notebooks, both PreMortem views, room). Tracks at 280px and below
+still fit a 320px viewport and were left alone; the dashboard's fixed
+multi-column grids already collapse under media queries.
 
-**Solution:** Use `minmax(min(100%, 340px), 1fr)`.
+**Files:** notebooks.module.css, PreMortemHubView.module.css,
+PreMortemRadarView.module.css, room.module.css
 
-**Files:** 3 CSS modules
+### 4.2 — Suspense fallback is a bare unstyled paragraph ✅
 
-### 4.2 — Suspense fallback is a bare unstyled paragraph
+**Problem:** `<p role="status">Loading workspace…</p>` covers the seven
+heaviest screens — full layout collapse, then snap-back, on every entry.
 
-**Problem:** routes.tsx — `<p role="status">Loading workspace…</p>` covers the seven heaviest screens. Full layout collapse then snap-back on every entry.
+**Solution:** a `Skeleton` stack roughly the shape of what is coming, in a new
+`routes.module.css`. Same treatment ConceptGraphView and Analytics give their
+own loads.
 
-**Impact:** Visual jank every time you enter a heavy view.
+**Files:** routes.tsx, routes.module.css
 
-**Solution:** Use the `Skeleton` component for a consistent loading state.
+### 4.3 — `OfflineBanner` sync button invisible in most themes ✅
 
-**Files:** 1 TSX file
+**Problem:** hardcoded `color: #ffffff` inside a pill whose text colour is
+`--accent-on` / `--warning-on` — near-black in 8 of the 13 light presets, so
+the label was white-on-pale.
 
-### 4.3 — `OfflineBanner` sync button invisible in most themes
+**Solution:** `color: inherit`, correct in every preset by construction. The
+button is also hidden while offline, where pressing it can only fail and the
+message already promises a sync on reconnect.
 
-**Problem:** OfflineBanner.module.css — hardcoded `color: #ffffff` inside a pill whose text colour is `--accent-on`/`--warning-on` (near-black in 8 of 13 light presets).
+**Files:** OfflineBanner.module.css, OfflineBanner.tsx  
+**Regression tests:** the button is absent offline and present once the
+connection is back with work still queued.
 
-**Impact:** The "Sync now" button label is unreadable in most theme combinations.
+**Not done:** mounting the banner above AppShell so auth screens get an
+offline signal. That moves a global element for a screen where the app can do
+nothing offline anyway — a product call, not a defect fix.
 
-**Solution:** Change to `color: inherit`. Also hide the button when offline (it's a no-op) and consider mounting the banner above AppShell so auth screens get an offline signal too.
+### 4.4 — Touch targets under the app's stated floor ✅
 
-**Files:** 2 (OfflineBanner.module.css, OfflineBanner.tsx)
+**Problem:** `--touch-target-min: 44px` is declared "globally" and enforced
+nowhere. Missed by the settings toggle (44×24), every modal's close button
+(~34px), and the analytics heatmap cells (12px).
 
-### 4.4 — Touch targets under the app's stated floor
+**Solution:** the toggle keeps its 44×24 track — growing it would wreck the
+switch's proportions — and stretches the *hit area* past it with a
+pseudo-element, so the full 44px responds with no layout shift. The modal
+close button takes `min-width`/`min-height: var(--touch-target-min)`. Heatmap
+cells go to 20px under 768px; a real 44px is impossible (53 weeks of them is
+2300px wide) but the wrapper already scrolls horizontally.
 
-**Problem:** tokens.css commits to `--touch-target-min: 44px` "globally". Missed by:
-- ToggleSwitch — 44×24px (the most-used control in Settings)
-- Modal close X at ~34px
-- Analytics heatmap cells at 12px
+**Files:** ToggleSwitch.module.css, Modal.module.css, analytics.module.css
 
-**Impact:** Fiddly tap targets on touch.
+### 4.5 — Disabled toggle looks identical to enabled ✅
 
-**Solution:** Bump switches and close button to `min-height/min-width: var(--touch-target-min)`. Heatmap cells scale up under mobile media query.
+**Solution:** `opacity: 0.5` + `cursor: not-allowed` on
+`input:disabled + .toggleSlider`.
 
-**Files:** 3 CSS modules
+**Files:** ToggleSwitch.module.css
 
-### 4.5 — Disabled toggle looks identical to enabled
+### 4.6 — Sidebar badges pop in after load ✅
 
-**Problem:** ToggleSwitch.module.css has no `input:disabled + .toggleSlider` rule despite the component accepting `disabled`.
+**Problem:** `data: dueCount = 0` reads as "nothing due" while the count is in
+flight, so the badge was absent on first paint and then appeared.
 
-**Impact:** Users click repeatedly with no feedback.
+**Solution:** gate on `isPending` and hold the badge's slot with a
+visually-hidden placeholder, so the row is the same shape either way.
 
-**Solution:** Add opacity + cursor rules for disabled state.
+**Files:** Sidebar.tsx, Sidebar.module.css  
+**Regression test:** pending renders the placeholder, not the count.
 
-**Files:** 1 CSS module
+### 4.7 — Dead code with live traps ✅
 
-### 4.6 — Sidebar badges pop in after load
+- **StudyRoomView.module.css** (419 lines, imported by nothing) — deleted.
+- **CommandBar** — deleted. Its own header comment claimed it was "mounted
+  globally in App.tsx via SignedInOverlays"; SignedInOverlays renders
+  FocusStudyHUD and TurboChat only. The single thing rendering it was
+  DashboardView.test.tsx, which propped up a component no user could reach —
+  that test went with it. **Worth a second opinion:** the alternative was to
+  mount it for real, but that adds a sixth global "ask the AI" entry point,
+  which is the product question already sitting in Deferred.
+- **CommandPalette's `aria-labelledby`** — pointed at a `display: none` span
+  using an `sr-only` class this app never defines, and beat the `aria-label`
+  beneath it, so the dialog's accessible name resolved to nothing. Dropped it
+  (plus the now-unused span and `useId`); the `aria-label` alone is correct.
 
-**Problem:** Sidebar.tsx — `data: dueCount = 0` defaults, so badges are absent on first paint then appear and shift the nav.
+Both deletions also cleared their `drift.baseline.json` entries.
 
-**Impact:** Layout shift on page load.
+**Files:** 3 deleted, 4 edited
 
-**Solution:** Check `isPending` explicitly and show a skeleton or hide the badge during load.
+### Guard added
 
-**Files:** 1 TSX file
-
-### 4.7 — Dead code with live traps (3 items)
-
-**Problem:**
-- StudyRoomView.module.css — 419 lines, imported by nothing. Edits here silently have no effect.
-- CommandBar — exported, imported nowhere; header comment says it assumes no sidebar.
-- CommandPalette.tsx:606 — `aria-labelledby` pointing at a `display: none` span using a class that doesn't exist.
-
-**Impact:** None today, but a trap for the next editor.
-
-**Solution:** Delete StudyRoomView.module.css and CommandBar component. Drop the `aria-labelledby` and keep the `aria-label`.
-
-**Files:** 3 (2 delete, 1 edit)
+`styles/touchTargets.test.ts` asserts the toggle's hit-area pseudo-element and
+the modal close button still reference `--touch-target-min`, and that the
+disabled toggle keeps its style. The toggle's `::after` is the fragile one —
+it carries no visible styles, so it reads as deletable in a later cleanup.
 
 ---
 
@@ -340,7 +368,8 @@ text, not rendered styles — jsdom applies no stylesheets, the same reason
 **Batch 1:** Shipped 2026-09-01 · 50 files · +485−176 · 1780/1781 tests pass  
 **Batch 2:** Shipped 2026-09-01 · 4 items · 12 new tests · 1892/1892 tests pass  
 **Batch 3:** Shipped 2026-09-01 · 6 items · 11 new tests · 1903/1903 tests pass  
-**Batch 4:** 8 remaining defects · visual polish and mobile · estimate **6–8 hours**
+**Batch 4:** Shipped 2026-09-01 · 7 items · 5 new tests · 1906/1906 tests pass  
+**Total:** 23 defects fixed across 4 batches · 28 new regression tests · 3 new CSS guards (focusVisible, touchTargets, alongside drift/contrast)
 
 **Why this structure?** Batch 1 is shared infrastructure (tokens, hooks, toasts) that several later items depend on — done first, unblocks the rest. Batches 2 (correctness) and 3 (a11y) are independent. Batch 4 (polish) can run in parallel if needed.
 

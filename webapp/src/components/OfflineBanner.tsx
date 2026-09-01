@@ -37,24 +37,34 @@ export function OfflineBanner() {
       <div className={`${styles.pill} ${pillClass}`}>
         <Icon name={icon} size={14} aria-hidden />
         <span className={styles.message}>{message}</span>
-        <button
-          type="button"
-          className={styles.syncBtn}
-          onClick={() => {
-            void syncNow();
-          }}
-          disabled={isSyncing}
-          title="Sync your saved changes now"
-        >
-          {isSyncing ? (
-            <>
-              <Icon name="refresh-cw" size={13} className={styles.spin} aria-hidden />{" "}
-              Syncing…
-            </>
-          ) : (
-            "Sync now"
-          )}
-        </button>
+        {/* Offline, syncing is a no-op that fails the moment it is asked —
+            the banner already says the work will sync on reconnect, so the
+            button only appears when pressing it can do something. */}
+        {isOnline && (
+          <button
+            type="button"
+            className={styles.syncBtn}
+            onClick={() => {
+              void syncNow();
+            }}
+            disabled={isSyncing}
+            title="Sync your saved changes now"
+          >
+            {isSyncing ? (
+              <>
+                <Icon
+                  name="refresh-cw"
+                  size={13}
+                  className={styles.spin}
+                  aria-hidden
+                />{" "}
+                Syncing…
+              </>
+            ) : (
+              "Sync now"
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

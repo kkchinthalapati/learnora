@@ -13,7 +13,6 @@ import { Storage } from "../../lib/storage";
 import type { Exam, Folder, StudySession, Task } from "../../api/types";
 import { ChatProvider } from "../../context/ChatProvider";
 import { TurboChat } from "../../components/chat/TurboChat";
-import { CommandBar } from "./CommandBar";
 import { DashboardView } from "./DashboardView";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -99,9 +98,9 @@ function serveDashboard({
 
 function renderDashboard() {
   return renderWithAuth(
-    /* The dashboard's command bar and AI card both talk to the chat, and
-       ChatProvider has to sit inside the router (it navigates) — which the
-       harness now supplies, since the create dialog needs it too. */
+    /* The dashboard's AI card talks to the chat, and ChatProvider has to sit
+       inside the router (it navigates) — which the harness now supplies,
+       since the create dialog needs it too. */
     <ChatProvider>
       <Routes>
         <Route path="/" element={<DashboardView />} />
@@ -111,11 +110,8 @@ function renderDashboard() {
         <Route path="/library/flashcards" element={<h1>Flashcards</h1>} />
         <Route path="/plan" element={<h1>Weekly plan</h1>} />
       </Routes>
-      {/* App.tsx renders both beside the routes, not inside a view — the
-          command bar isn't dashboard-only, it's a global Cmd/Ctrl+K entry
-          point (see CommandBar.tsx), so the "same conversation" tests below
-          need it mounted the same way App.tsx does. */}
-      <CommandBar />
+      {/* App.tsx renders TurboChat beside the routes rather than inside a
+          view, so the "same conversation" test below mounts it the same way. */}
       <TurboChat />
     </ChatProvider>,
     { session: fakeSession() },
@@ -430,28 +426,6 @@ describe("DashboardView", () => {
       expect(
         await screen.findByRole("textbox", { name: "AI chat input" }),
       ).toHaveValue("Quiz me on ");
-    });
-
-    it("sends the command bar's question into the same conversation", async () => {
-      const user = userEvent.setup();
-      serveDashboard();
-      server.use(
-        http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () =>
-          HttpResponse.json({ text: "Two tasks are due this week." }),
-        ),
-      );
-      renderDashboard();
-
-      const bar = await screen.findByRole("textbox", {
-        name: "Ask Learnora AI",
-      });
-      await user.type(bar, "what is due?");
-      await user.click(screen.getByRole("button", { name: "Send AI command" }));
-
-      expect(
-        await screen.findByText("Two tasks are due this week."),
-      ).toBeInTheDocument();
-      expect(bar).toHaveValue("");
     });
 
     it("asks before replacing a plan that already exists", async () => {

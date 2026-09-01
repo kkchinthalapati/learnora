@@ -40,6 +40,32 @@
   transition: transform var(--t-fast) var(--ease-spring);
 }
 
+/* tokens.css commits to a 44px minimum touch target "globally" and this,
+   the most-used control in Settings, is 44x24 — the width is fine, the height
+   misses by 20px. Growing the track would break the switch's proportions, so
+   the slider's own hit area is stretched past it instead: invisible, no
+   layout shift, and the whole 44px responds to a thumb. */
+.toggleSlider::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc((var(--touch-target-min) - 24px) / -2);
+  bottom: calc((var(--touch-target-min) - 24px) / -2);
+}
+
+/* The component accepts `disabled` and, until now, looked identical either
+   way — so the only feedback for a locked switch was that clicking it kept
+   doing nothing. */
+.toggleSwitch input:disabled + .toggleSlider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggleSwitch input:disabled + .toggleSlider::before {
+  box-shadow: none;
+}
+
 .toggleSwitch input:checked + .toggleSlider {
   background: var(--accent);
 }
