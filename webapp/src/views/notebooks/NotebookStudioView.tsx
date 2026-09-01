@@ -9,6 +9,7 @@ import { callEdge } from "../../api/ai";
 import { decksApi } from "../../api/decks";
 import { flashcardsApi } from "../../api/flashcards";
 import { useToast } from "../../context/toast";
+import { renderMarkdownNodes } from "../../lib/markdownToReact";
 import styles from "./notebooks.module.css";
 import { EmptyState } from "../../components/EmptyState";
 import { renderMarkdownNodes } from "../../lib/markdownToReact";
@@ -534,7 +535,16 @@ Use British English throughout.`;
                             msg.role === "user" ? styles.userMessage : styles.assistantMessage
                           }`}
                         >
-                          <div>{renderMarkdownNodes(msg.content)}</div>
+                          {/* Only the model's reply is markdown. A student's own message stays
+                              literal, the same split the main chat makes in ChatMessage.tsx —
+                              rendering it would eat any asterisk they typed. */}
+                          {msg.role === "user" ? (
+                            <div className={styles.userText}>{msg.content}</div>
+                          ) : (
+                            <div className={styles.replyProse}>
+                              {renderMarkdownNodes(msg.content)}
+                            </div>
+                          )}
 
                           {msg.citations && msg.citations.length > 0 && (
                             <div className={styles.citationRow}>
@@ -631,7 +641,16 @@ Use British English throughout.`;
                         msg.role === "user" ? styles.userMessage : styles.assistantMessage
                       }`}
                     >
-                      <div>{renderMarkdownNodes(msg.content)}</div>
+                      {/* Only the model's reply is markdown. A student's own message stays
+                          literal, the same split the main chat makes in ChatMessage.tsx —
+                          rendering it would eat any asterisk they typed. */}
+                      {msg.role === "user" ? (
+                        <div className={styles.userText}>{msg.content}</div>
+                      ) : (
+                        <div className={styles.replyProse}>
+                          {renderMarkdownNodes(msg.content)}
+                        </div>
+                      )}
 
                       {msg.citations && msg.citations.length > 0 && (
                         <div className={styles.citationRow}>
@@ -918,8 +937,11 @@ Use British English throughout.`;
           onClose={() => setActiveArtifactPreview(null)}
           title={activeArtifactPreview.title}
         >
-          <div style={{ maxHeight: "60vh", overflowY: "auto", whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: "var(--fs-base)" }}>
-            {activeArtifactPreview.content}
+          <div
+            className={styles.replyProse}
+            style={{ maxHeight: "60vh", overflowY: "auto" }}
+          >
+            {renderMarkdownNodes(activeArtifactPreview.content)}
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--s-2)", marginTop: "var(--s-4)", flexWrap: "wrap" }}>
             <Button

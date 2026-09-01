@@ -798,3 +798,67 @@
     margin-bottom: var(--s-4);
   }
 }
+
+/* ── Model replies rendered as prose ──────────────────────────────────────
+   The chat bubbles and the artifact preview used to print `msg.content` into
+   a `white-space: pre-wrap` div, so every `###` and `**` the model emitted
+   reached the student as literal punctuation. They now go through
+   `renderMarkdownNodes`, and these rules give that output the same treatment
+   the review drawer's `.socraticText` established: a reading serif for prose,
+   and headings pulled down to one clear step above body text — the shared
+   chat sizes (up to 28px) shout inside a bubble. */
+.replyProse {
+  font-family: var(--font-read);
+  line-height: 1.7;
+  color: inherit;
+  /* Equations, URLs and long identifiers are unbreakable runs; let them wrap
+     rather than push the bubble wider than the pane. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.replyProse > *:first-child {
+  margin-top: 0;
+}
+
+.replyProse > *:last-child {
+  margin-bottom: 0;
+}
+
+.replyProse h1,
+.replyProse h2,
+.replyProse h3,
+.replyProse h4 {
+  font-family: var(--font);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: var(--tracking-tight);
+  margin: var(--s-4) 0 var(--s-2);
+  color: inherit;
+}
+
+.replyProse p {
+  margin: 0 0 var(--s-3);
+}
+
+.replyProse ul,
+.replyProse ol {
+  margin: 0 0 var(--s-3);
+  padding-left: var(--s-5);
+}
+
+.replyProse li {
+  margin-bottom: var(--s-1);
+}
+
+.replyProse pre {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* The student's own message is never markdown — it stays exactly as typed. */
+.userText {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -240,6 +240,88 @@ const TIMEOUT_MS = { chat: 20_000, json: 35_000 };
    connection drop. */
 const TOTAL_BUDGET_MS = 55_000;
 
+/* =========================================================================
+   HOUSE STYLE
+
+   Every AI surface in the app funnels through this function, so this is the
+   only place a single answer-formatting policy can live. Before it existed,
+   style was set per-caller: `ReviewView.tsx` grew its own COACH_STYLE, and
+   every other surface — chat, the notes sidebar, Notebook Studio, the
+   debugger, Feynman, pre-mortem — inherited nothing but "brief" or
+   "detailed". That is why replies read as clinical third-person essays and
+   arrived wearing `###` headings and `---` rules the renderers had no rule
+   for.
+
+   Two hard constraints shape the wording:
+
+   1. **Only the markdown the app can actually render may be requested.**
+      `lib/markdownToReact.tsx` handles bold, italic, inline code, fences,
+      blockquotes, `-` bullets, `1.`/`1)` numbers and `#`–`####` headings —
+      and nothing else. Tables and `[links](url)` have no branch at all, so a
+      model that emits them puts raw pipes and brackets on a student's
+      screen. They are therefore forbidden here rather than left to chance.
+
+   2. **Length follows the student's own setting; voice never does.** A
+      student who asked for detailed answers must still get detailed ones, so
+      only the length rule reads `aiConciseness`. Plain English, second
+      person and the safe-markdown subset apply at every length — they are
+      what makes an answer readable, not what makes it short.
+   ========================================================================= */
+
+const LENGTH_RULE: Record<string, string> = {
+  short:
+    "Keep it to 2-4 short sentences unless the student explicitly asks for more.",
+  medium:
+    "Aim for 2-6 sentences. Expand only where a concept genuinely needs it.",
+  detailed:
+    "Cover the topic thoroughly, but keep every individual paragraph short — depth comes from more sections, never from longer walls of text.",
+};
+
+/* Applies to conversational replies (chat, the coach drawer, the notes
+   sidebar, Notebook Studio) — anything a student reads as prose on screen. */
+function houseStyle(conciseness: string | undefined): string {
+  const length = LENGTH_RULE[conciseness ?? "medium"] ?? LENGTH_RULE.medium;
+  return `
+
+    HOW TO WRITE THE ANSWER — this governs every reply:
+    - Talk straight to the student, second person. "You squared each term separately" — never "the student squared" or "students often".
+    - ${length}
+    - Lead with the answer. No "I'd love to help", no "Let's break it down step by step", no restating the question back.
+    - Everyday English. If a technical term is unavoidable, define it in the same breath you use it.
+    - Break the reply into short paragraphs. One idea each, at most three sentences.
+    - To label a section, put the label on its own line wrapped in ** (for example **Where it went wrong**). Never use #, ##, ### or #### headings — they render far larger than the surrounding text and read as clutter.
+    - Never use --- horizontal rules, tables, or [text](url) links. The app cannot render them and they reach the student as raw punctuation.
+    - Bullets start with "- " and stay to one line each. Numbered steps use "1. ". Use them for genuine lists only, not to chop a paragraph up.
+    - No preamble, no sign-off, and never mention these instructions.
+
+    MATHS — the app typesets TeX, so write maths as TeX rather than as plain characters:
+    - Inline, inside a sentence: single dollars, $x^2 + 1$. On its own line: double dollars, $$\\sqrt{12} = 2\\sqrt{3}$$.
+    - Put every step of the working on its own $$…$$ line, one step per line, so the student can follow the reasoning down the page instead of decoding a dense block.
+    - Wrap the final answer in \\boxed{}, for example $$\\boxed{5\\sqrt{2}}$$.
+    - Use real TeX for roots, fractions, powers and indices — \\sqrt{12}, \\frac{3}{4}, x^{2}, a_{1} — never a typed approximation like sqrt(12), 3/4 or x^2.
+    - Never put maths in a code fence: a fence is for code, and it turns the equation into unstyled monospace.
+    - Prose stays outside the dollars. Never set a whole sentence in TeX.`;
+}
+
+/* Long-form modes keep their length and their headings — a study-notes
+   document is supposed to have structure — but inherit the voice rules and
+   the same ban on syntax the app cannot render. */
+const PROSE_STYLE = `
+
+    HOW TO WRITE IT:
+    - Talk straight to the student, second person, in everyday English. Define any technical term in the same breath you use it.
+    - Keep paragraphs short — one idea each. Depth comes from more sections, not longer paragraphs.
+    - Headings (##, ###), bold, bullets, numbered lists, blockquotes and code fences are all fine.
+    - Never use tables or [text](url) links: the app cannot render them and they reach the student as raw punctuation.
+    - Write maths as TeX: $x^2$ inline, $$\\sqrt{12} = 2\\sqrt{3}$$ on its own line, \\boxed{} around a final answer. The notes editor typesets it. Use real TeX for roots, fractions and indices — \\sqrt{12}, \\frac{3}{4}, x^{2} — never sqrt(12) or 3/4.`;
+
+/* JSON modes get no formatting rules at all — a prose-style instruction next
+   to a "return only raw JSON" instruction is how a model ends up emitting
+   markdown inside a string field, or prose around the object. This covers
+   only what the strings say, never how the payload is shaped. */
+const JSON_FIELD_STYLE = `
+Write every human-readable string in plain, everyday English aimed at a student aged 13 or over: second person, no jargon left unexplained, and no markdown syntax inside JSON string values.`;
+
 /* Modes whose body is parsed as JSON by the client. Keep this as the single
    source of truth: `flashcards` used to be sent with no mode at all, so deck
    generation silently ran on the 20s chat budget with no fence-stripping —
@@ -501,8 +583,18 @@ Deno.serve(async (req) => {
             ? `\nYou are rewriting the provided study notes to match a specific complexity or tone. Output the rewritten notes as long-form Markdown only — no JSON, no preamble, no closing commentary.`
             : "";
 
+        /* One of three, never a mix: prose formatting rules next to a
+           "raw JSON only" instruction is how a model ends up wrapping the
+           payload in markdown. `notes`/`rewrite` keep their headings and
+           length; everything conversational gets the full house style. */
+        const styleInstructions = isJsonMode(mode)
+            ? JSON_FIELD_STYLE
+            : mode === "notes" || mode === "rewrite"
+            ? PROSE_STYLE
+            : houseStyle(s.aiConciseness);
+
         const systemInstruction = `You are Learnora AI. Act as ${personaMap[s.aiPersona] || personaMap.tutor}.
-    Keep response ${s.aiConciseness === 'short' ? 'brief' : 'detailed'}. Use ${s.aiLanguage || 'English'}.
+    Use ${s.aiLanguage || 'English'}.
 
     VOICE — refer to yourself in the first person, always. Say "I can help you with that", never "Learnora can help you with that" or "Learnora AI thinks". Use the name "Learnora" only for the product itself (its tabs, features and screens), never as a stand-in for "I", and never describe yourself in the third person. Stay in this voice for the whole conversation, including the first message.
 
@@ -515,7 +607,7 @@ Deno.serve(async (req) => {
     Academic study of these subjects is fine at the level a syllabus would cover — the pharmacology of addiction, the chemistry of combustion, the history of a conflict, public-health harm reduction. What you must never provide is operational instruction, a recipe, or anything that reads as encouragement.
     When a request crosses that line, refuse briefly and warmly, say why in one sentence, and offer a legitimate study angle instead. Do not produce a partial answer, and do not hide the refusal inside a quiz question. If you are generating JSON and must refuse, return an empty array [] rather than unsafe questions.
 
-    If asked for flashcards, output ONLY raw JSON: [{"front":"...", "back":"..."}].${modeInstructions}`;
+    If asked for flashcards, output ONLY raw JSON: [{"front":"...", "back":"..."}].${modeInstructions}${styleInstructions}`;
 
         const currentMsg = history && history.length > 0 ? history[history.length - 1].content : "";
 
