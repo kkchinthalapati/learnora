@@ -11,6 +11,18 @@
   animation: hud-in var(--t) var(--ease);
 }
 
+/* AppShell's padding-bottom compensates for the HUD's height (see
+   --focus-hud-clearance), but nothing compensated for its width: at the
+   viewport's true left edge, the card's own width pushed it past the
+   sidebar and over the start of the main content column. The sidebar is an
+   off-canvas drawer below this breakpoint (Sidebar.module.css), so it isn't
+   occupying screen space there and no horizontal offset is needed. */
+@media (min-width: 769px) {
+  .hudContainer {
+    left: calc(var(--sidebar-width-v2) + clamp(20px, 4vw, 36px));
+  }
+}
+
 @keyframes hud-in {
   from {
     opacity: 0;

@@ -248,6 +248,9 @@ export function TimerView() {
                   }
                 />
               </div>
+              {draftConfig.focus < 1 && (
+                <p className={styles.numberHint}>Minimum 1 minute</p>
+              )}
               <div className={styles.configRow}>
                 <label htmlFor={shortId}>{t("config_short")}</label>
                 <input

@@ -126,6 +126,13 @@
   text-align: center;
 }
 
+.numberHint {
+  margin: calc(-1 * var(--s-3)) 0 var(--s-4);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  text-align: right;
+}
+
 .typeNote {
   margin-top: var(--s-3);
   font-size: var(--fs-sm);

@@ -41,6 +41,13 @@
   position: relative;
   /* The sound menu is anchored inside the header and needs to escape it. */
   overflow: visible;
+  /* backdrop-filter on both this header and .roomCheerBar below gives each
+     its own stacking context; with neither declaring a z-index, they paint
+     in DOM order, so the cheer bar (later in the DOM) covered the ambiance
+     popover regardless of its own z-index: 200, which only ranks it inside
+     THIS stacking context. An explicit z-index here outranks the cheer
+     bar's implicit 0 and lets the popover actually sit on top. */
+  z-index: 1;
 }
 
 .roomHeaderLeft {

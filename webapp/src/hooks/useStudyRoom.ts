@@ -82,10 +82,17 @@ export function useStudyRoom(
   roomIdParam?: string,
   options?: UseStudyRoomOptions,
 ): UseStudyRoomReturn {
-  const normalizedRoomId = roomIdParam?.trim() || "global";
+  const { session, user } = useAuth();
+
+  /* No explicit room id (the sidebar's bare "Study Room" link, or /room with
+     nothing after it) used to fall back to the literal string "global" —
+     which put every visitor with no invite link, friend or stranger, into
+     the exact same shared realtime channel. Falling back to the viewer's own
+     user id instead gives everyone a private room by default; an invite
+     link (an explicit :roomId) is still required to actually share one. */
+  const normalizedRoomId = roomIdParam?.trim() || user?.id || "global";
   const channelName = `study-room:${normalizedRoomId}`;
 
-  const { session, user } = useAuth();
   const timer = useTimer();
   const toastCtx = useContext(ToastContext);
 

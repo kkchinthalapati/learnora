@@ -174,13 +174,13 @@ describe("useStudyRoom", () => {
     vi.restoreAllMocks();
   });
 
-  it("subscribes to the default global channel and tracks initial presence on mount", () => {
+  it("subscribes to the caller's own private channel by default and tracks initial presence on mount", () => {
     const { result } = renderHook(() => useStudyRoom(), {
       wrapper: createWrapper(),
     });
 
     expect(supabase.channel).toHaveBeenCalledWith(
-      "study-room:global",
+      "study-room:user-123",
       expect.objectContaining({
         config: {
           presence: {
@@ -193,10 +193,10 @@ describe("useStudyRoom", () => {
       }),
     );
 
-    const channel = mockChannelsMap.get("study-room:global");
+    const channel = mockChannelsMap.get("study-room:user-123");
     expect(channel).toBeDefined();
     expect(channel?.subscribe).toHaveBeenCalled();
-    expect(result.current.roomId).toBe("global");
+    expect(result.current.roomId).toBe("user-123");
     expect(result.current.isConnected).toBe(true);
     expect(result.current.selfParticipant).toBeDefined();
     expect(result.current.selfParticipant?.name).toBe("Ada Lovelace");
