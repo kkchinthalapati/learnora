@@ -50,7 +50,6 @@ const SUGGESTIONS = [
 
 interface Position {
   left: number;
-  top: number;
 }
 
 export function TurboChat() {
@@ -100,20 +99,20 @@ export function TurboChat() {
     if (feed) feed.scrollTop = feed.scrollHeight;
   }, [messages]);
 
-  /* Dragging pins the panel with inline left/top. Those survive a window
-     resize and leaving fullscreen, either of which can put the header — and
+  /* Dragging pins the panel with an inline `left`. That survives a window
+     resize and leaving fullscreen, either of which can push the header — and
      with it the only close button — outside the viewport, leaving the panel
-     impossible to close by clicking (js/ai.js:1530-1548). */
+     impossible to close by clicking (js/ai.js:1530-1548).
+     Horizontal only: the panel's height is deliberately locked to 100vh (a
+     full-height docked surface, like the nav drawer — see chat.module.css),
+     so there is never any vertical room to move within and no `top` to
+     track. */
   const clampIntoView = useCallback(() => {
     const panel = panelRef.current;
     setPosition((prev) => {
       if (!prev || !panel) return prev;
       const maxLeft = Math.max(0, window.innerWidth - panel.offsetWidth);
-      const maxTop = Math.max(0, window.innerHeight - panel.offsetHeight);
-      return {
-        left: Math.max(0, Math.min(prev.left, maxLeft)),
-        top: Math.max(0, Math.min(prev.top, maxTop)),
-      };
+      return { left: Math.max(0, Math.min(prev.left, maxLeft)) };
     });
   }, []);
 
@@ -133,14 +132,11 @@ export function TurboChat() {
 
     const rect = panel.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
-    const offsetY = e.clientY - rect.top;
 
     const onMove = (move: PointerEvent) => {
       const maxLeft = Math.max(0, window.innerWidth - panel.offsetWidth);
-      const maxTop = Math.max(0, window.innerHeight - panel.offsetHeight);
       setPosition({
         left: Math.max(0, Math.min(move.clientX - offsetX, maxLeft)),
-        top: Math.max(0, Math.min(move.clientY - offsetY, maxTop)),
       });
     };
     const onUp = () => {
@@ -181,9 +177,7 @@ export function TurboChat() {
         position && !isFullscreen
           ? {
               left: position.left,
-              top: position.top,
               right: "auto",
-              bottom: "auto",
             }
           : undefined
       }

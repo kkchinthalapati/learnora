@@ -51,7 +51,10 @@ export function TaskPanel({ onClose, onDone }: TaskPanelProps) {
           className={shared.field}
           type="text"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            if (error) setError(null);
+          }}
           placeholder="e.g. Finish reading chapter 4"
           autoFocus
         />
