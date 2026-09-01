@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { callEdge } from "../../api/ai";
 import type { Flashcard } from "../../api/types";
@@ -22,7 +23,10 @@ import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { dateInDays } from "../../lib/date";
 import { fenceUntrusted } from "../../lib/actionTags";
 import { executeActions, type ActionHandlers } from "../../lib/chatActions";
-import { renderMarkdownNodes } from "../../lib/markdownToReact";
+import {
+  renderMarkdownNodes,
+  renderMathText,
+} from "../../lib/markdownToReact";
 import {
   availableReviewLengths,
   createReviewSnapshot,
@@ -383,6 +387,20 @@ export function cleanCardText(text: string): string {
     .replace(/<!--\s*source(?:_context)?:\s*[\s\S]*?-->/gi, "")
     .replace(/<!--\s*material_id:\s*[\s\S]*?-->/gi, "")
     .trim();
+}
+
+/** A card face as it goes on screen: cleaned, then typeset.
+ *
+ *  `renderMathText` handles the maths and nothing else — a card front is one
+ *  question, not a document, so the full markdown pass is deliberately not
+ *  used here (see its comment in `lib/markdownToReact.tsx`). Everything that
+ *  is not an equation stays a text node, which is what keeps this safe for
+ *  text that came back out of the database.
+ *
+ *  Prompts keep calling `cleanCardText` directly: a model wants the string,
+ *  not React nodes. */
+function cardFace(text: string): ReactNode[] {
+  return renderMathText(cleanCardText(text));
 }
 
 /* Card text and the student's typed answer are fenced before entering the
@@ -1040,7 +1058,7 @@ function ReviewSession({
               regardless, so without aria-hidden a screen reader announces
               the answer immediately, before the student ever flips. */}
           <div className={styles.face} aria-hidden={flipped}>
-            <div className={styles.cardText}>{cleanCardText(card.front)}</div>
+            <div className={styles.cardText}>{cardFace(card.front)}</div>
             {!flipped ? <p className={styles.hint}>Click to flip</p> : null}
           </div>
           <div
@@ -1048,7 +1066,7 @@ function ReviewSession({
             aria-hidden={!flipped}
           >
             <div className={`${styles.cardText} ${styles.backText}`}>
-              {cleanCardText(card.back)}
+              {cardFace(card.back)}
             </div>
           </div>
         </button>
@@ -1525,11 +1543,11 @@ function ReviewRecap({
                     </div>
                     <div className={styles.cardFrontPreview}>
                       <span className={styles.cardPreviewLabel}>Q:</span>
-                      {cleanCardText(card.front)}
+                      {cardFace(card.front)}
                     </div>
                     <div className={styles.cardBackPreview}>
                       <span className={styles.cardPreviewLabel}>A:</span>
-                      {cleanCardText(card.back)}
+                      {cardFace(card.back)}
                     </div>
                     {cardSource?.quote ? (
                       <div className={styles.cardBreakdownQuote}>

@@ -3,6 +3,7 @@ import { Button } from "../Button";
 import {
   renderMarkdownNodes,
   renderMarkdownSegments,
+  renderMathText,
   type MarkdownSegment,
 } from "../../lib/markdownToReact";
 import type { ActionWidget, ChatMessage as Message } from "../../context/chat";
@@ -113,8 +114,12 @@ export function ChatMessageBubble({
         <dl className={styles.cards}>
           {message.cards.map((card, i) => (
             <div key={i} className={styles.card}>
-              <dt>{card.front}</dt>
-              <dd>{card.back}</dd>
+              {/* Typeset, not printed — same treatment the review screen
+                  gives these cards once they are saved, so a deck does not
+                  change appearance the moment it lands in the library.
+                  Maths only: a card face is one question, not a document. */}
+              <dt>{renderMathText(card.front)}</dt>
+              <dd>{renderMathText(card.back)}</dd>
             </div>
           ))}
         </dl>

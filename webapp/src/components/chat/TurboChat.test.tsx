@@ -799,6 +799,23 @@ describe("TurboChat", () => {
       expect(screen.queryByText(/"front"/)).not.toBeInTheDocument();
     });
 
+    it("typesets TeX in a card list", async () => {
+      /* The same card is typeset on the review screen once "Save as deck"
+         has written it, so the bubble must not print raw dollars. */
+      serveReply(
+        JSON.stringify([{ front: "Simplify $x^2$", back: "It is $y^3$" }]),
+      );
+      renderChat();
+      await openChat();
+      await ask("make me flashcards");
+
+      const term = await screen.findByText(/Simplify/);
+      const list = term.closest("dl");
+      expect(list?.textContent).toContain("Simplify");
+      expect(list?.textContent).toContain("It is");
+      expect(list?.textContent).not.toContain("$");
+    });
+
     /* A conversational answer that happens to quote a card or two must not be
        swallowed by a card list (js/ai.js:1309-1315). */
     it("leaves a conversational reply that only quotes a card alone", async () => {
