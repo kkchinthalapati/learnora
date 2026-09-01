@@ -9,7 +9,6 @@ import { callEdge } from "../../api/ai";
 import { decksApi } from "../../api/decks";
 import { flashcardsApi } from "../../api/flashcards";
 import { useToast } from "../../context/toast";
-import { renderMarkdownNodes } from "../../lib/markdownToReact";
 import styles from "./notebooks.module.css";
 import { EmptyState } from "../../components/EmptyState";
 import { renderMarkdownNodes } from "../../lib/markdownToReact";
