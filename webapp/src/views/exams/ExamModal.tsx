@@ -47,6 +47,7 @@ export function ExamModal({
   const [difficulty, setDifficulty] = useState(exam?.difficulty ?? "Medium");
   const [status, setStatus] = useState(exam?.status ?? "Scheduled");
   const [dateInvalid, setDateInvalid] = useState(false);
+  const [nameInvalid, setNameInvalid] = useState(false);
 
   const today = localDateStr();
   const maxDate = (() => {
@@ -57,6 +58,13 @@ export function ExamModal({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!name.trim()) {
+      setNameInvalid(false);
+      requestAnimationFrame(() => setNameInvalid(true));
+      showToast("Give the exam a name.", { error: true });
+      return;
+    }
 
     /* Only a *new* exam is forced into the future — an existing one may
        legitimately sit in the past, e.g. being marked Completed after the
@@ -71,7 +79,7 @@ export function ExamModal({
     try {
       await saveExam.mutateAsync({
         payload: {
-          exam_name: name,
+          exam_name: name.trim(),
           exam_date: date,
           difficulty,
           status: editing ? status : "Scheduled",
@@ -127,8 +135,10 @@ export function ExamModal({
             type="text"
             required
             maxLength={120}
+            className={nameInvalid ? styles.dateError : undefined}
             placeholder="e.g. AP Chemistry Midterm"
             value={name}
+            onAnimationEnd={() => setNameInvalid(false)}
             onChange={(e) => setName(e.target.value)}
           />
         </div>

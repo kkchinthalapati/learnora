@@ -1,5 +1,5 @@
-import { useContext, useState, type Ref } from "react";
-import { UNSAFE_NavigationContext } from "react-router";
+import { useState, type Ref } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "../../components/Button";
 import { Skeleton } from "../../components/Skeleton";
 import { useOptionalTimer } from "../../context/timer";
@@ -38,7 +38,7 @@ export function DashboardTasksWidget({
   const { data: tasks, isPending } = useTasks();
   const addTask = useAddTask();
   const timer = useOptionalTimer();
-  const navCtx = useContext(UNSAFE_NavigationContext);
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const { toggle, setDueDate, visible } = useTaskActions();
 
@@ -167,9 +167,7 @@ export function DashboardTasksWidget({
                       onClick={(e) => {
                         e.stopPropagation();
                         timer?.prepareFocus(25, task.text);
-                        if (navCtx?.navigator) {
-                          navCtx.navigator.push("/timer");
-                        }
+                        navigate("/timer");
                       }}
                     >
                       Focus

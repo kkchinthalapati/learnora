@@ -1,6 +1,6 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { UNSAFE_NavigationContext } from "react-router";
+import { useNavigate } from "react-router";
 import { Icon } from "../../components/Icon";
 import { useOptionalTimer } from "../../context/timer";
 import type { Task } from "../../api/types";
@@ -42,7 +42,7 @@ export function TaskItem({
   onDelete,
 }: TaskItemProps) {
   const timer = useOptionalTimer();
-  const navCtx = useContext(UNSAFE_NavigationContext);
+  const navigate = useNavigate();
   const isRecurring = isRecurringWeekly(task.text);
   const displayText = formatRecurrenceCleanText(task.text) || task.text;
 
@@ -229,9 +229,7 @@ export function TaskItem({
               onClick={(e) => {
                 e.stopPropagation();
                 timer?.prepareFocus(25, task.text);
-                if (navCtx?.navigator) {
-                  navCtx.navigator.push("/timer");
-                }
+                navigate("/timer");
               }}
             >
               <Icon name="clock" size={12} />

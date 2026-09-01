@@ -52,16 +52,22 @@ describe("DashboardTasksWidget", () => {
 
   it("distinguishes 'nothing pending' from 'no tasks at all'", async () => {
     serveTasks([task(1, "Old thing", { is_done: true })]);
-    const { unmount } = renderWithAuth(<DashboardTasksWidget />, {
-      session: fakeSession(),
-    });
+    const { unmount } = renderWithAuth(
+      <DashboardTasksWidget />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
     expect(
-      await screen.findByText("All caught up — nothing pending. 🎉"),
+      await screen.findByText("All caught up — nothing pending."),
     ).toBeInTheDocument();
     unmount();
 
     serveTasks([]);
-    renderWithAuth(<DashboardTasksWidget />, { session: fakeSession() });
+    renderWithAuth(
+      <DashboardTasksWidget />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
     expect(
       await screen.findByText("No tasks yet. Add your first above."),
     ).toBeInTheDocument();
@@ -73,7 +79,11 @@ describe("DashboardTasksWidget", () => {
       task(99, "Finished", { is_done: true }),
       task(100, "Urgent", { due_date: "2026-01-01" }),
     ]);
-    renderWithAuth(<DashboardTasksWidget />, { session: fakeSession() });
+    renderWithAuth(
+      <DashboardTasksWidget />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     await screen.findByText("Urgent");
     const items = screen.getAllByRole("checkbox");
@@ -92,7 +102,11 @@ describe("DashboardTasksWidget", () => {
         return HttpResponse.json(null, { status: 201 });
       }),
     );
-    renderWithAuth(<DashboardTasksWidget />, { session: fakeSession() });
+    renderWithAuth(
+      <DashboardTasksWidget />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
     await screen.findByText("No tasks yet. Add your first above.");
 
     const input = screen.getByRole("textbox", { name: "Quick add task" });
@@ -113,7 +127,11 @@ describe("DashboardTasksWidget", () => {
         return HttpResponse.json(null, { status: 201 });
       }),
     );
-    renderWithAuth(<DashboardTasksWidget />, { session: fakeSession() });
+    renderWithAuth(
+      <DashboardTasksWidget />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
     await screen.findByText("No tasks yet. Add your first above.");
 
     await user.click(screen.getByRole("button", { name: "Add" }));
@@ -133,6 +151,7 @@ describe("DashboardTasksWidget", () => {
         <TasksView />
       </>,
       { session: fakeSession() },
+      { withRouter: true },
     );
 
     await waitFor(() =>
@@ -144,7 +163,7 @@ describe("DashboardTasksWidget", () => {
     // Widget shows only pending work, so the row leaves it entirely...
     await waitFor(() =>
       expect(
-        screen.getByText("All caught up — nothing pending. 🎉"),
+        screen.getByText("All caught up — nothing pending."),
       ).toBeInTheDocument(),
     );
     // ...while the full list keeps it, now checked.
@@ -163,7 +182,11 @@ describe("DashboardTasksWidget", () => {
         return new HttpResponse(null, { status: 204 });
       }),
     );
-    renderWithAuth(<DashboardTasksWidget />, { session: fakeSession() });
+    renderWithAuth(
+      <DashboardTasksWidget />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
     await screen.findByText("Study history");
 
     const tomorrowBtn = screen.getByRole("button", { name: "Tomorrow" });
@@ -184,7 +207,11 @@ describe("DashboardTasksWidget", () => {
         return new HttpResponse(null, { status: 204 });
       }),
     );
-    renderWithAuth(<DashboardTasksWidget />, { session: fakeSession() });
+    renderWithAuth(
+      <DashboardTasksWidget />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
     await screen.findByText("Study history");
 
     const nextWeekBtn = screen.getByRole("button", { name: "Next week" });
@@ -209,7 +236,11 @@ describe("DashboardTasksWidget", () => {
         return HttpResponse.json(null, { status: 201 });
       }),
     );
-    renderWithAuth(<DashboardTasksWidget />, { session: fakeSession() });
+    renderWithAuth(
+      <DashboardTasksWidget />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     const checkbox = await screen.findByRole("checkbox", {
       name: "Weekly problem set [🔁 Weekly]",

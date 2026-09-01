@@ -512,6 +512,11 @@
   transition:
     transform var(--t-fast) ease,
     border-color var(--t-fast) ease;
+  /* .upcomingGrid is a CSS grid; without this, a grid item's default
+     min-width is auto (its content's min-content size), so a long exam name
+     forced the card — and the whole track — wider than the grid column
+     instead of letting .upcomingName's own ellipsis kick in. */
+  min-width: 0;
 }
 
 .upcomingCard:hover {
