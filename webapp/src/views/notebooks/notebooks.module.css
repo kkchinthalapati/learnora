@@ -766,6 +766,21 @@
   .mobileStudioNav {
     display: flex;
   }
+  .studioTopBar {
+    flex-wrap: wrap;
+    row-gap: var(--s-2);
+  }
+  .topBarLeft {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .notebookTitleInput {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .topBarRight {
+    flex-shrink: 0;
+  }
   .studioColumns {
     grid-template-columns: 1fr;
   }

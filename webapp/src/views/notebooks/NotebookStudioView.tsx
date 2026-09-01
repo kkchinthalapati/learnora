@@ -11,6 +11,7 @@ import { flashcardsApi } from "../../api/flashcards";
 import { useToast } from "../../context/toast";
 import styles from "./notebooks.module.css";
 import { EmptyState } from "../../components/EmptyState";
+import { renderMarkdownNodes } from "../../lib/markdownToReact";
 
 function flashcardsFromCheatSheet(content: string) {
   const cards = content
@@ -162,7 +163,11 @@ export function NotebookStudioView() {
 
       const systemPrompt = `You are Learnora's AI Study Tutor in a deep revision Notebook Studio for ${notebook.subject}.
 Answer questions accurately, clearly, and concisely in British English (e.g. colour, organise, summarise, prioritise).
-When referencing facts from the provided sources, cite them clearly using bracketed numbers like [1], [2] matching the source index.
+${
+  selectedSources.length > 0
+    ? "When referencing facts from the provided sources, cite them clearly using bracketed numbers like [1], [2] matching the source index."
+    : "No sources are attached, so answer from general subject knowledge and do not invent bracketed citation markers like [1] — there is nothing for them to reference."
+}
 Keep explanations friendly, encouraging, and structured for student success.`;
 
       const response = await callEdge({
@@ -529,7 +534,7 @@ Use British English throughout.`;
                             msg.role === "user" ? styles.userMessage : styles.assistantMessage
                           }`}
                         >
-                          <div style={{ whiteSpace: "pre-wrap" }}>{msg.content}</div>
+                          <div>{renderMarkdownNodes(msg.content)}</div>
 
                           {msg.citations && msg.citations.length > 0 && (
                             <div className={styles.citationRow}>
@@ -626,7 +631,7 @@ Use British English throughout.`;
                         msg.role === "user" ? styles.userMessage : styles.assistantMessage
                       }`}
                     >
-                      <div style={{ whiteSpace: "pre-wrap" }}>{msg.content}</div>
+                      <div>{renderMarkdownNodes(msg.content)}</div>
 
                       {msg.citations && msg.citations.length > 0 && (
                         <div className={styles.citationRow}>
