@@ -430,6 +430,17 @@
   border-radius: 4px;
 }
 
+/* Marks a turn the apprentice couldn't make anything of, so a submission
+   that scored nothing reads as scoring nothing rather than as silence. */
+.skippedPill {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
 /* Student Teaching Console */
 .consoleCard {
   background: var(--surface);

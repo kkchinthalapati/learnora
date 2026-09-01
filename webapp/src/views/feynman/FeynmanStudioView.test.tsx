@@ -122,6 +122,25 @@ describe("FeynmanStudioView Component", () => {
     });
   });
 
+  it("marks a junk submission as not counting and leaves the gauge alone", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<FeynmanStudioView />, undefined, { withRouter: true });
+
+    await user.type(screen.getByTestId("teaching-textarea"), "sdsi");
+    await user.click(screen.getByTestId("submit-explanation-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("turn-skipped-pill")).toHaveTextContent(
+        /not readable as an explanation/i
+      );
+    });
+
+    expect(screen.getByTestId("apprentice-turn-bubble")).toHaveTextContent(/can't read that/i);
+    expect(screen.getByTestId("understanding-gauge")).toHaveTextContent("20% of the way there");
+    expect(screen.getByTestId("understanding-gauge")).not.toHaveTextContent("from your last go");
+    expect(screen.queryByText(/Got it:/)).not.toBeInTheDocument();
+  });
+
   it("allows revising draft and finishing session to debrief", async () => {
     const user = userEvent.setup();
     renderWithProviders(<FeynmanStudioView />, undefined, { withRouter: true });
