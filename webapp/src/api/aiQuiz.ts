@@ -95,6 +95,10 @@ STRICT DIVERSITY & QUALITY RULES:
    - Extensions & Applications (Applying the concept to related contexts or generalizations)
 3. DISTRACTORS: All wrong choices MUST be realistic, meaningful, and carefully crafted. No obvious filler or duplicate choices across options.
 4. FEEDBACK: For EACH question, include a comprehensive "feedback" string. The feedback MUST explain why the correct answer is right and why each incorrect option is wrong, written in the voice of the chosen AI Host Personality (${personality}). Address the student directly and engage them.
+5. FEEDBACK NEUTRALITY (CRITICAL): The same "feedback" string is shown to every student, including those who answered INCORRECTLY. It is written before anyone answers, so it CANNOT know what the student chose.
+   - NEVER open with or include praise or congratulation: no "Nice work!", "Great job!", "Exactly right!", "Correct!", "You got it", "Well done", or any equivalent.
+   - NEVER assert or imply what the student picked: no "you chose", "you correctly identified", "you've got this one", "your answer".
+   - Write it as a neutral explanation of the question itself — e.g. "The AAS criterion applies here because…", not "Nice work! You've got AAS here because…".
 
 Material / Topic Content:
 """

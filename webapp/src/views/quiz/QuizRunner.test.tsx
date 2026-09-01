@@ -117,12 +117,42 @@ describe("QuizRunner", () => {
       screen.getByRole("button", { name: "Mitochondrion" }),
     );
 
+    expect(screen.getByText("Correct!")).toBeInTheDocument();
     expect(
       screen.getByText("The mitochondrion is where respiration happens."),
     ).toBeInTheDocument();
   });
 
-  it("falls back to Correct!/Incorrect. when a question has no feedback", async () => {
+  /* The regression this guards: `feedback` is generated once per question and
+     shown whatever the student picked, so a model that wrote it as praise
+     ("Nice work! …") congratulated someone who had just answered wrongly. The
+     verdict now comes from the runner, and praise stored in an existing quiz
+     is dropped on the way to the bubble. */
+  it("names the right answer instead of praising a wrong one", async () => {
+    serveQuiz([
+      {
+        id: "q1",
+        question: "Which triangle criterion applies?",
+        choices: ["ASA", "AAS"],
+        correctIndex: 1,
+        feedback: "Nice work! The AAS criterion proves congruence here.",
+      },
+    ]);
+    renderRunner();
+    await screen.findByText("Question 1 of 1");
+
+    await userEvent.click(screen.getByRole("button", { name: "ASA" }));
+
+    expect(
+      screen.getByText("Not quite — the correct answer is “AAS”."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("The AAS criterion proves congruence here."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Nice work/)).not.toBeInTheDocument();
+  });
+
+  it("states a verdict when a question has no feedback", async () => {
     serveQuiz();
     renderRunner();
     await screen.findByText("Question 1 of 2");
@@ -137,7 +167,11 @@ describe("QuizRunner", () => {
       screen.getByRole("button", { name: "Dinitrogen acetate" }),
     );
 
-    expect(screen.getByText("Incorrect.")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Not quite — the correct answer is “Deoxyribonucleic acid”.",
+      ),
+    ).toBeInTheDocument();
   });
 
   /* A wrong verdict is announced, not just coloured — the vanilla's host

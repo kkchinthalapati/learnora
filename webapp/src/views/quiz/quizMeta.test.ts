@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   answerForIndex,
+  hostFeedback,
   parseProctorTermination,
   parseStoredAnswers,
   parseStoredQuestions,
+  stripPraiseOpener,
   weakTopicsFrom,
   type StoredAnswer,
 } from "./quizMeta";
@@ -191,5 +193,65 @@ describe("parseProctorTermination", () => {
   it("returns null for plain array answers without proctor termination", () => {
     expect(parseProctorTermination([{ questionId: 0, chosenIndex: 1, correct: true }])).toBeNull();
     expect(parseProctorTermination(null)).toBeNull();
+  });
+});
+
+/* A question's `feedback` is written before anyone answers and shown whatever
+   the student picked, so praise stored in it lands on wrong answers too. */
+describe("stripPraiseOpener", () => {
+  it("drops a leading praise interjection", () => {
+    expect(stripPraiseOpener("Nice work! AAS proves congruence.")).toBe(
+      "AAS proves congruence.",
+    );
+    expect(stripPraiseOpener("Exactly right! Two angles suffice.")).toBe(
+      "Two angles suffice.",
+    );
+    expect(stripPraiseOpener("  Well done. The base case holds.")).toBe(
+      "The base case holds.",
+    );
+  });
+
+  it("returns an empty string when praise was the whole message", () => {
+    expect(stripPraiseOpener("Nice work!")).toBe("");
+  });
+
+  it("leaves a real sentence that merely starts with a praise word", () => {
+    const sentence = "Exactly one of these choices survives the edge case.";
+    expect(stripPraiseOpener(sentence)).toBe(sentence);
+  });
+
+  it("leaves feedback that never opened with praise", () => {
+    const neutral = "The AAS criterion applies because two angles match.";
+    expect(stripPraiseOpener(neutral)).toBe(neutral);
+  });
+});
+
+describe("hostFeedback", () => {
+  const question = {
+    question: "Which criterion applies?",
+    choices: ["ASA", "AAS"],
+    correctIndex: 1,
+    feedback: "Nice work! AAS proves congruence.",
+  };
+
+  it("names the right answer and strips the praise when wrong", () => {
+    expect(hostFeedback(question, false)).toEqual({
+      verdict: "Not quite — the correct answer is “AAS”.",
+      detail: "AAS proves congruence.",
+    });
+  });
+
+  it("keeps the feedback as written when right", () => {
+    expect(hostFeedback(question, true)).toEqual({
+      verdict: "Correct!",
+      detail: "Nice work! AAS proves congruence.",
+    });
+  });
+
+  it("still gives a verdict for a question with no feedback", () => {
+    expect(hostFeedback({ ...question, feedback: undefined }, false)).toEqual({
+      verdict: "Not quite — the correct answer is “AAS”.",
+      detail: "",
+    });
   });
 });

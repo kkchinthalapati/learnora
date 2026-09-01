@@ -223,6 +223,22 @@
   margin: 0;
 }
 
+/* The verdict carries the result on its own — the avatar's glow used to be
+   the only thing separating "you got it" from "you didn't". */
+.hostVerdict {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.toneCorrect .hostVerdict {
+  color: var(--success);
+}
+
+.toneIncorrect .hostVerdict {
+  color: var(--danger);
+}
+
 @keyframes quiz-pop-in {
   0% {
     opacity: 0;

@@ -7,6 +7,7 @@ import {
   parseProctorTermination,
   parseStoredAnswers,
   parseStoredQuestions,
+  stripPraiseOpener,
 } from "./quizMeta";
 import { ExitLink, QUIZZES_PATH } from "./QuizRunner";
 import styles from "./quiz.module.css";
@@ -119,6 +120,9 @@ export function QuizReview() {
             const given = answerForIndex(answers, questions, index);
             const chosenIndex = given ? given.chosenIndex : null;
             const wasCorrect = !!given?.correct;
+            const feedback = wasCorrect
+              ? question.feedback
+              : stripPraiseOpener(question.feedback ?? "");
 
             return (
               <article key={index} className={styles.reviewQuestion}>
@@ -166,8 +170,11 @@ export function QuizReview() {
                     );
                   })}
                 </ul>
-                {question.feedback ? (
-                  <p className={styles.reviewFeedback}>{question.feedback}</p>
+                {/* Praise stored in the feedback is dropped against a question
+                    the student got wrong — it was written before anyone
+                    answered, so it congratulates them either way. */}
+                {feedback ? (
+                  <p className={styles.reviewFeedback}>{feedback}</p>
                 ) : null}
               </article>
             );
