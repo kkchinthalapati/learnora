@@ -633,11 +633,35 @@ describe("PlanView", () => {
       expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();
     });
 
-    it("displays the chronotype peak focus window badge in the plan header", async () => {
+    it("displays the chronotype peak focus window badge once there's real session history", async () => {
       servePlan(planRow(SAMPLE_PLAN));
+      server.use(
+        http.get(rest("study_sessions"), () =>
+          HttpResponse.json([
+            {
+              id: "s-peak-1",
+              user_id: "user-1",
+              task: "Biology",
+              folder_id: null,
+              minutes: 45,
+              timer_type: "pomodoro",
+              started_at: `${TODAY}T09:00:00.000Z`,
+              created_at: `${TODAY}T09:45:00.000Z`,
+            },
+          ]),
+        ),
+      );
       renderPlan();
 
       expect(await screen.findByText(/Optimal Focus:/i)).toBeInTheDocument();
+    });
+
+    it("omits the peak focus window badge for a student with no session history", async () => {
+      servePlan(planRow(SAMPLE_PLAN));
+      renderPlan();
+
+      await screen.findByText(SAMPLE_PLAN.summary);
+      expect(screen.queryByText(/Optimal Focus:/i)).not.toBeInTheDocument();
     });
 
     it("displays the catch-up banner and redistributes blocks on click when the user is behind", async () => {

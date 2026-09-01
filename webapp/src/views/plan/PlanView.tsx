@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type FormEvent } from "react";
+import { useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
@@ -240,6 +240,7 @@ function BlockEditor({
   const durationId = useId();
   const hintId = useId();
   const dateId = useId();
+  const subjectInputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(state.initial);
 
   const submit = (event: FormEvent) => {
@@ -260,6 +261,7 @@ function BlockEditor({
       title={state.kind === "edit" ? "Edit study block" : "Add study block"}
       subtitle="Adjust this block without regenerating the rest of your week."
       contentClassName={styles.editorModal}
+      initialFocusRef={subjectInputRef}
       footer={
         <>
           {state.kind === "edit" ? (
@@ -286,6 +288,7 @@ function BlockEditor({
           Subject or focus
           <input
             id={subjectId}
+            ref={subjectInputRef}
             value={draft.subject}
             onChange={(event) =>
               setDraft((current) => ({
@@ -294,7 +297,6 @@ function BlockEditor({
               }))
             }
             placeholder="e.g. Organic chemistry"
-            autoFocus
             required
           />
         </label>
@@ -605,7 +607,7 @@ export function PlanView() {
         <div className={styles.weekContext}>
           <p className={styles.weekLabel}>Current week</p>
           <h2 className={styles.weekRange}>{weekRange}</h2>
-          {peakFocusWindow && (
+          {peakFocusWindow && peakFocusWindow.hasData && (
             <div
               className={styles.chronotypeBadge}
               title={peakFocusWindow.description}

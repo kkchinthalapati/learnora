@@ -1,4 +1,4 @@
-import { useId, useRef, type ReactNode } from "react";
+import { useId, useRef, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useOverlayBehavior } from "../context/overlayStack";
 import { useFocusTrap } from "../hooks/useFocusTrap";
@@ -17,6 +17,11 @@ interface ModalProps {
   closeOnOverlayClick?: boolean;
   closeLabel?: string;
   contentClassName?: string;
+  /* Which element gets focus on open, instead of the first focusable node in
+     the dialog — which is always the header's Close button, since the head
+     renders before `children`. Pass the ref of the field a caller actually
+     wants the student typing into first. */
+  initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
 export function Modal({
@@ -29,12 +34,13 @@ export function Modal({
   closeOnOverlayClick = false,
   closeLabel = "Close",
   contentClassName,
+  initialFocusRef,
 }: ModalProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const subtitleId = useId();
 
-  useOverlayBehavior({ ref: contentRef, open, onClose });
+  useOverlayBehavior({ ref: contentRef, open, onClose, initialFocusRef });
   useFocusTrap(contentRef, open);
 
   if (!open) return null;
