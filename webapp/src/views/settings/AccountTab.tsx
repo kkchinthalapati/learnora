@@ -160,6 +160,7 @@ export function AccountTab() {
                 placeholder="Your full name"
                 autoComplete="name"
                 autoFocus
+                maxLength={80}
                 value={nameDraft}
                 onChange={(e) => setNameDraft(e.target.value)}
               />
