@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import {
   renderMarkdownNodes,
   renderMarkdownSegments,
+  renderMathText,
 } from "./markdownToReact";
 import { splitMath } from "./mathSyntax";
 
@@ -321,5 +322,88 @@ describe("splitMath — undelimited TeX", () => {
 
   it("leaves ordinary prose with no backslashes untouched", () => {
     expect(mathIn("nothing mathematical here at all")).toEqual([]);
+  });
+});
+
+/* `renderMathText` — the card renderer. Two things have to hold at once: the
+ * maths gets typeset, and nothing else about the text changes. Card faces are
+ * short, student- or model-written strings full of characters the markdown
+ * pass would claim ("1." opens a list, "*" opens emphasis), so the tests that
+ * matter most here are the ones asserting that it does NOT do markdown. */
+describe("renderMathText", () => {
+  const renderCard = (text: string) =>
+    render(<div data-testid="out">{renderMathText(text)}</div>);
+
+  it("typesets an equation in a card face", () => {
+    renderCard("What is $x^2 + 1$ when x = 2?");
+    expect(out().querySelector("span")).toBeInTheDocument();
+    /* The delimiters are consumed, not printed — the whole point. */
+    expect(out().textContent).not.toContain("$");
+  });
+
+  it("typesets a bare command the model forgot to wrap", () => {
+    renderCard("Simplify \\frac{3}{4}");
+    expect(out().querySelector("span")).toBeInTheDocument();
+  });
+
+  it("leaves a card with no maths byte-for-byte as written", () => {
+    const text = "Who wrote the Second Treatise of Government?";
+    renderCard(text);
+    expect(out().textContent).toBe(text);
+    /* No element children at all: the string went straight through. */
+    expect(out().children).toHaveLength(0);
+  });
+
+  it("does not turn a numbered card front into a list", () => {
+    const text = "1. Define entropy";
+    renderCard(text);
+    expect(out().querySelector("ol")).not.toBeInTheDocument();
+    expect(out().querySelector("li")).not.toBeInTheDocument();
+    expect(out().textContent).toBe(text);
+  });
+
+  it("does not wrap a card face in a paragraph", () => {
+    renderCard("The capital of Peru");
+    expect(out().querySelector("p")).not.toBeInTheDocument();
+  });
+
+  it("does not eat an asterisk as emphasis", () => {
+    const text = "What does *args* mean in a Python signature?";
+    renderCard(text);
+    expect(out().querySelector("em")).not.toBeInTheDocument();
+    expect(out().textContent).toBe(text);
+  });
+
+  it("does not read a code fence or backticks as code", () => {
+    const text = "What does `len()` return?";
+    renderCard(text);
+    expect(out().querySelector("code")).not.toBeInTheDocument();
+    expect(out().textContent).toBe(text);
+  });
+
+  it("leaves two prices alone", () => {
+    /* Inherited from splitMath, and the reason cards can reuse it: a study
+       app talks about money, and a card asking about a price must not have
+       half its sentence swallowed into an equation. */
+    const text = "The deposit is $50 and the balance is $200";
+    renderCard(text);
+    expect(out().textContent).toBe(text);
+    expect(out().children).toHaveLength(0);
+  });
+
+  it("renders markup in a card as text, never as elements", () => {
+    /* Card text round-trips through the database and is seeded from model
+       output over uploaded documents, so it is untrusted. This is the
+       property that makes rendering it safe at all. */
+    renderCard('<img src=x onerror="alert(1)"> and $y = 2$');
+    expect(out().querySelector("img")).not.toBeInTheDocument();
+    expect(out().textContent).toContain('<img src=x onerror="alert(1)">');
+  });
+
+  it("renders markup as text even when the card has no maths at all", () => {
+    const text = "<script>alert(1)</script>";
+    renderCard(text);
+    expect(out().querySelector("script")).not.toBeInTheDocument();
+    expect(out().textContent).toBe(text);
   });
 });

@@ -311,3 +311,47 @@ export function renderMarkdownSegments(
 export function renderMarkdownNodes(markdown: string): ReactNode[] {
   return renderTextBlock(markdown);
 }
+
+/** Typeset the maths in a run of text, leaving every other character exactly
+ *  as the author wrote it.
+ *
+ *  WHY THIS AND NOT `renderMarkdownNodes`: the surface it exists for is
+ *  flashcards, and a card face is one question or one answer — not a
+ *  document. The full markdown pass would turn "1. Define entropy" into an
+ *  ordered list, eat the asterisk in "what does * mean in a regex?" as an
+ *  emphasis run, and wrap every card in a `<p>` that the flip-card and
+ *  breakdown layouts do not expect. Maths is the one piece of syntax a card
+ *  genuinely needs typeset — a card whose answer is `\frac{3}{4}` reaches the
+ *  student as literal backslashes without it — so it is the only one applied.
+ *
+ *  Detection is `splitMath`, the same scanner chat and the notes editor use,
+ *  so a card and a reply never disagree about where an equation starts and
+ *  stops — including its currency rules, which is what keeps a card reading
+ *  "the deposit is $50 and the balance is $200" out of the maths path.
+ *
+ *  SAFETY: card text is untrusted — it round-trips through the database and
+ *  is seeded from model output over uploaded documents. Everything that is
+ *  not maths is returned as a plain string, so React emits it as a text node;
+ *  the maths goes to `MathNode`, whose KaTeX call runs with `trust: false`.
+ *  There is no path here by which card text becomes markup. */
+export function renderMathText(text: string): ReactNode[] {
+  if (!hasMathDelimiter(text)) return [text];
+
+  const parts = splitMath(text);
+  /* No maths after all — `hasMathDelimiter` is a cheap pre-filter, not a
+     verdict. Return the original string rather than the scanner's pieces so
+     the common case is byte-identical to what was passed in. */
+  if (!parts.some((p) => p.kind === "math")) return [text];
+
+  return parts.map((part) =>
+    part.kind === "math" ? (
+      <MathNode
+        key={nextKey()}
+        tex={part.value}
+        display={part.display === true}
+      />
+    ) : (
+      part.value
+    ),
+  );
+}

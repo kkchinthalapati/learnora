@@ -14,6 +14,7 @@ import {
   getActiveFeynmanSessionId,
 } from "../../api/aiFeynman";
 import { CognitiveCrossLinkBar } from "../../components/ai/CognitiveCrossLinkBar";
+import { renderMathText } from "../../lib/markdownToReact";
 import styles from "./FeynmanDebriefView.module.css";
 
 export function FeynmanDebriefView() {
@@ -336,8 +337,15 @@ export function FeynmanDebriefView() {
           {report.generatedFlashcards.map((card, idx) => (
             <div key={idx} className={styles.flashcardPreview} data-testid="flashcard-preview-item">
               <span className={styles.flashcardLabel}>{card.concept}</span>
-              <div className={styles.flashcardFront}>Q: {card.front}</div>
-              <div className={styles.flashcardBack}>A: {card.back}</div>
+              {/* Typeset for the same reason the review screen does it:
+                  these are the cards the "Revise them now" button exports,
+                  so the preview and the saved deck must read alike. */}
+              <div className={styles.flashcardFront}>
+                Q: {renderMathText(card.front)}
+              </div>
+              <div className={styles.flashcardBack}>
+                A: {renderMathText(card.back)}
+              </div>
             </div>
           ))}
         </div>

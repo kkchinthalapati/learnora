@@ -147,6 +147,28 @@ describe("ReviewView", () => {
     ).toBeInTheDocument();
   });
 
+  it("typesets TeX on both card faces instead of printing the dollars", async () => {
+    serve({
+      cards: [
+        card({ front: "Simplify $\\sqrt{12}$", back: "It is $2\\sqrt{3}$" }),
+      ],
+    });
+    renderReview();
+
+    /* Both faces are mounted at once — `backface-visibility` hides one
+       visually — so one query covers the question and the answer. */
+    const flip = await screen.findByRole("button", {
+      name: "Flip card to see the answer",
+    });
+    await waitFor(() => expect(flip.textContent).toContain("Simplify"));
+
+    /* The dollars are delimiters, not content. Asserting their absence is
+       the stable check: it holds while the raw TeX is still on screen and
+       after KaTeX has replaced it, so the test never races the async load. */
+    expect(flip.textContent).not.toContain("$");
+    expect(flip.textContent).toContain("It is");
+  });
+
   it("hides the turned-away face from assistive tech, not just visually", async () => {
     /* backface-visibility only hides a face visually — without aria-hidden a
        screen reader announces the answer immediately, before the card is

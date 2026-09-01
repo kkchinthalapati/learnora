@@ -113,6 +113,35 @@ describe("FeynmanDebriefView Component", () => {
     expect(screen.getByTestId("flashcard-preview-item")).toBeInTheDocument();
   });
 
+  it("typesets TeX in the flashcard preview", () => {
+    /* The preview and the deck the export button writes hold the same card,
+       so they have to read the same way — the review screen typesets it. */
+    clearFeynmanSessions();
+    saveFeynmanSession({
+      ...sampleCompletedSession,
+      debriefReport: {
+        ...sampleCompletedSession.debriefReport!,
+        generatedFlashcards: [
+          {
+            front: "Simplify $\\sqrt{12}$",
+            back: "It is $2\\sqrt{3}$",
+            rationale: "Targeted review card.",
+            concept: "Surds",
+          },
+        ],
+      },
+    });
+    setActiveFeynmanSessionId(sampleCompletedSession.id);
+
+    renderWithProviders(<FeynmanDebriefView />, undefined, { withRouter: true });
+
+    const preview = screen.getByTestId("flashcard-preview-item");
+    expect(preview.textContent).toContain("Simplify");
+    expect(preview.textContent).toContain("It is");
+    /* Delimiters, not content. Holds both before and after KaTeX loads. */
+    expect(preview.textContent).not.toContain("$");
+  });
+
   it("exports generated flashcards to library on click", async () => {
     const user = userEvent.setup();
     renderWithProviders(<FeynmanDebriefView />, undefined, { withRouter: true });
