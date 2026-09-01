@@ -18,9 +18,14 @@ export type HostTone = "correct" | "incorrect" | null;
 
 export function QuizHost({
   message,
+  verdict,
   tone = null,
 }: {
   message: string;
+  /** Rendered ahead of `message`, in the tone's colour. The verdict is stated
+   *  here rather than left to `message` because `message` is model-written
+   *  feedback stored per question, identical for a right and a wrong answer. */
+  verdict?: string;
   tone?: HostTone;
 }) {
   const classes = [
@@ -33,14 +38,19 @@ export function QuizHost({
 
   return (
     <div
-      key={message}
+      key={`${verdict ?? ""}${message}`}
       className={classes}
       role={tone === "incorrect" ? "alert" : "status"}
     >
       <span className={styles.hostAvatar}>
         <Icon name="brain" size={20} />
       </span>
-      <p className={styles.hostMessage}>{message}</p>
+      <p className={styles.hostMessage}>
+        {verdict ? (
+          <strong className={styles.hostVerdict}>{verdict}</strong>
+        ) : null}
+        {message}
+      </p>
     </div>
   );
 }

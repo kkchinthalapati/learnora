@@ -147,6 +147,53 @@ export function answerForIndex(
   return answers.find((a) => a.questionId === key) || answers[index] || null;
 }
 
+/* A question's `feedback` is written once, when the quiz is generated, and is
+ * then shown to every student whatever they picked — so a model that opened it
+ * with "Nice work!" (they do, and did before the generation prompt in
+ * api/aiQuiz.ts started forbidding it) congratulates someone who has just got
+ * the question wrong. Every quiz already in a library still carries those
+ * openers, so the praise is also stripped here, at render time.
+ *
+ * Only a short interjection is stripped. The length cap is what keeps the
+ * match to a "Nice work!"-shaped clause and off a real opening sentence that
+ * happens to start with one of these words ("Exactly one of these choices
+ * survives the edge case."). */
+const PRAISE_OPENER =
+  /^(?:nice(?: work| job| one)?|great(?: work| job)?|good(?: work| job)?|well done|excellent|perfect|exactly(?: right)?|correct|right|that's right|spot on|you (?:got it|nailed it)|yes|yep|bingo|awesome|brilliant)\b[^.!?]*[.!?]+/i;
+
+const PRAISE_OPENER_MAX = 28;
+
+/** Drop a leading "Nice work!"-style interjection from a question's feedback.
+ *  Returns `""` when praise was the whole message — the caller then has only
+ *  its own verdict to show, which is the honest result for a wrong answer. */
+export function stripPraiseOpener(feedback: string): string {
+  const trimmed = feedback.trim();
+  const match = PRAISE_OPENER.exec(trimmed);
+  if (!match || match[0].length > PRAISE_OPENER_MAX) return trimmed;
+  return trimmed.slice(match[0].length).trim();
+}
+
+/** What the quiz host says once a question is answered: an explicit verdict
+ *  that never depends on the model's prose, plus the question's explanation.
+ *
+ *  The two are kept apart so the verdict can be rendered as its own element —
+ *  a wrong answer used to be handed `question.feedback` alone (which reads as
+ *  praise) and told apart from a right one only by the avatar's colour. */
+export function hostFeedback(
+  question: QuizQuestion,
+  correct: boolean,
+): { verdict: string; detail: string } {
+  const answer = question.choices[question.correctIndex];
+  const verdict = correct
+    ? "Correct!"
+    : answer
+      ? `Not quite — the correct answer is “${answer}”.`
+      : "Not quite.";
+
+  const feedback = question.feedback?.trim() ?? "";
+  return { verdict, detail: correct ? feedback : stripPraiseOpener(feedback) };
+}
+
 /** Topics of the questions answered wrongly, deduplicated — what
  *  `fetchWeakTopics` later aggregates across attempts. */
 export function weakTopicsFrom(answers: StoredAnswer[]): string[] {

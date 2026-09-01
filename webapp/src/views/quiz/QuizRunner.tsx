@@ -13,6 +13,7 @@ import { useQuizDraft } from "../../hooks/useQuizDraft";
 import { Storage } from "../../lib/storage";
 import type { QuizQuestion } from "../../lib/aiJson";
 import {
+  hostFeedback,
   parseStoredQuestions,
   weakTopicsFrom,
   type StoredAnswer,
@@ -337,11 +338,17 @@ function QuizSession({
     );
   }
 
+  /* The verdict is stated by the runner, never left to `question.feedback`:
+     that string is generated once per question and shown whatever the student
+     picked, so a wrong answer used to be met with the model's "Nice work!"
+     and only the avatar's colour to say otherwise. */
   let hostMessage = "";
+  let hostVerdict: string | undefined;
   let hostTone: HostTone = null;
   if (answered) {
-    hostMessage =
-      question.feedback || (answered.correct ? "Correct!" : "Incorrect.");
+    const { verdict, detail } = hostFeedback(question, answered.correct);
+    hostVerdict = verdict;
+    hostMessage = detail;
     hostTone = answered.correct ? "correct" : "incorrect";
   } else if (index === 0) {
     hostMessage = "Welcome to the quiz. Let's see what you've got!";
@@ -350,8 +357,12 @@ function QuizSession({
   return (
     <div className={styles.view}>
       <Card variant="panel" padding="lg" className={styles.panel}>
-        {hostMessage ? (
-          <QuizHost message={hostMessage} tone={hostTone} />
+        {hostMessage || hostVerdict ? (
+          <QuizHost
+            message={hostMessage}
+            verdict={hostVerdict}
+            tone={hostTone}
+          />
         ) : null}
         <ExitLink />
         <p className={styles.progress}>
