@@ -75,15 +75,17 @@
   padding: 0;
   border: none;
   border-radius: 20px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
   transform-style: preserve-3d;
   transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
   cursor: pointer;
 }
 
+/* backdrop-filter and transform-style: preserve-3d don't mix: a filter on a
+   preserve-3d element forces the browser to flatten its children into 2D
+   before compositing, which turns .back's rotateY(180deg) into a literal
+   mirror instead of a right-reading face. The glass background lives on each
+   .face instead — .face has no preserve-3d of its own, so the filter is
+   safe there and the flip stays a real 3D rotation. */
 .face {
   position: absolute;
   inset: 0;
@@ -94,6 +96,10 @@
   padding: 40px;
   font-size: var(--fs-xl);
   border-radius: 20px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  box-shadow: var(--glass-inner), var(--shadow-sm);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }

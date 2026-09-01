@@ -367,6 +367,17 @@ function failureMessage(stage: StudyStage, err: unknown): string {
   return isOurs ? (err as Error).message : STAGE_FALLBACK[stage];
 }
 
+/* Titling a deck/quiz appends a noun so a bare topic like "Photosynthesis"
+   reads as "Photosynthesis Flashcards" in the library. Skip it when the
+   title — typed by the student, or derived from a filename/topic — already
+   ends in that word, so "Chapter 5 Quiz" doesn't become "Chapter 5 Quiz
+   Quiz". */
+function withOutputSuffix(baseTitle: string, suffix: string): string {
+  return baseTitle.toLowerCase().endsWith(suffix.toLowerCase())
+    ? baseTitle
+    : `${baseTitle} ${suffix}`;
+}
+
 /** Turn a source into a material plus whichever outputs were asked for.
  *
  *  Throws only when the *source* can't be resolved (no file, oversized file,
@@ -563,7 +574,7 @@ export async function createStudyPackage(
       result.deck = await generateDeck({
         sourceText,
         folderId,
-        title: `${baseTitle} Flashcards`,
+        title: withOutputSuffix(baseTitle, "Flashcards"),
         count: options.cardCount,
         settings,
       });
@@ -579,7 +590,7 @@ export async function createStudyPackage(
         sourceText,
         // A filename or material title is not app-authored text either.
         topic: fenceUntrusted(topic),
-        title: `${baseTitle} Quiz`,
+        title: withOutputSuffix(baseTitle, "Quiz"),
         materialId: result.material?.id ?? null,
         folderId,
         settings,

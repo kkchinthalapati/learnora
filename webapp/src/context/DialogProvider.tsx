@@ -152,6 +152,14 @@ function DialogHost({
   });
   useFocusTrap(contentRef, true);
 
+  /* While the native Fullscreen API has an element fullscreened (e.g. the
+     proctored mock exam), only that element's own subtree is composited on
+     screen — a portal to document.body mounts outside it and is never
+     visible, so a confirm() opened mid-fullscreen (like "End Exam Early")
+     would otherwise render a dialog nobody can see or click. Portal into the
+     fullscreen element itself when there is one. */
+  const portalTarget = document.fullscreenElement ?? document.body;
+
   return createPortal(
     <div
       className={modalStyles.overlay}
@@ -215,6 +223,6 @@ function DialogHost({
         </div>
       </div>
     </div>,
-    document.body,
+    portalTarget,
   );
 }

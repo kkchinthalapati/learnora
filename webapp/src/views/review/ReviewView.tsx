@@ -67,6 +67,16 @@ export function ReviewView() {
 
   const cardsQuery = isDailyDrill ? allDueCardsQuery : deckCardsQuery;
 
+  /* Grading the last due card triggers a background refetch that recomputes
+     `due` to []. Without this, the `due.length === 0` guard below would
+     unmount ReviewLauncher — and with it the just-earned Session Recap —
+     the instant that refetch lands, replacing the recap the student hasn't
+     even seen yet with the plain "All caught up" empty state. A ref (not
+     state) is enough: it only needs to be true by the time this component
+     re-renders from the refetch, and ReviewLauncher sets it synchronously,
+     well before that. */
+  const sessionActiveRef = useRef(false);
+
   if (decks.isPending || cardsQuery.isPending) {
     return (
       <div className={styles.view} aria-busy="true">
@@ -115,7 +125,7 @@ export function ReviewView() {
     ? cardsQuery.data || []
     : dueCardsFrom(cardsQuery.data);
 
-  if (due.length === 0) {
+  if (due.length === 0 && !sessionActiveRef.current) {
     return (
       <div className={styles.view}>
         <ExitLink />
@@ -140,6 +150,9 @@ export function ReviewView() {
       deckTitle={deck.title}
       folderId={deck.folder_id ?? null}
       dueCards={due}
+      onSessionStart={() => {
+        sessionActiveRef.current = true;
+      }}
     />
   );
 }
@@ -149,11 +162,13 @@ function ReviewLauncher({
   deckTitle,
   folderId,
   dueCards,
+  onSessionStart,
 }: {
   deckId: string;
   deckTitle: string;
   folderId?: string | null;
   dueCards: Flashcard[];
+  onSessionStart: () => void;
 }) {
   const [sessionCards, setSessionCards] = useState<Flashcard[] | null>(null);
 
@@ -172,9 +187,10 @@ function ReviewLauncher({
     <ReviewSetup
       deckTitle={deckTitle}
       dueCards={dueCards}
-      onStart={(length, order) =>
-        setSessionCards(createReviewSnapshot(dueCards, length, order))
-      }
+      onStart={(length, order) => {
+        onSessionStart();
+        setSessionCards(createReviewSnapshot(dueCards, length, order));
+      }}
     />
   );
 }
@@ -1013,10 +1029,7 @@ function ReviewSession({
               turned away *visually* — both stay in the accessibility tree
               regardless, so without aria-hidden a screen reader announces
               the answer immediately, before the student ever flips. */}
-          <div
-            className={`${styles.face} ${styles.front}`}
-            aria-hidden={flipped}
-          >
+          <div className={styles.face} aria-hidden={flipped}>
             <div className={styles.cardText}>{cleanCardText(card.front)}</div>
             {!flipped ? <p className={styles.hint}>Click to flip</p> : null}
           </div>
