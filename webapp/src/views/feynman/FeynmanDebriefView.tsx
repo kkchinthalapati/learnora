@@ -27,13 +27,20 @@ export function FeynmanDebriefView() {
   const [exportMessage, setExportMessage] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     const targetId = paramSessionId || getActiveFeynmanSessionId();
-    if (!targetId) return;
+    if (!targetId) {
+      setNotFound(true);
+      return;
+    }
 
     const loaded = loadFeynmanSession(targetId);
-    if (!loaded) return;
+    if (!loaded) {
+      setNotFound(true);
+      return;
+    }
 
     setSession(loaded);
 
@@ -78,6 +85,22 @@ export function FeynmanDebriefView() {
               Try again
             </Button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.card} style={{ textAlign: "center", padding: "40px" }}>
+          <h2>We can’t find that session</h2>
+          <p style={{ color: "var(--text-muted)", marginTop: "8px", marginBottom: "20px" }}>
+            It may have been deleted, or it was from a while ago.
+          </p>
+          <Button variant="primary" onClick={() => navigate("/feynman")}>
+            <Icon name="chevron-down" size={16} style={{ transform: "rotate(90deg)" }} /> Back
+          </Button>
         </div>
       </div>
     );

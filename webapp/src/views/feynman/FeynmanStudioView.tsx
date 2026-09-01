@@ -76,8 +76,12 @@ export function FeynmanStudioView() {
     t.solvedPoints.forEach((p) => allSolvedConcepts.add(p.toLowerCase()));
   });
 
+  /* Was also `|| currentScore >= 88` — one high-scoring reply blanket-
+     credited every listed misconception, including ones the student never
+     addressed, which defeats the point of listing them individually.
+     Credit is per-concept only, based on what solvedPoints actually names. */
   const isConceptSolved = (misc: Misconception) =>
-    allSolvedConcepts.has(misc.concept.toLowerCase()) || currentScore >= 88;
+    allSolvedConcepts.has(misc.concept.toLowerCase());
 
   const toggleHint = (id: string) => {
     setExpandedHints((prev) => ({ ...prev, [id]: !prev[id] }));

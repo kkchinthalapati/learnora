@@ -698,7 +698,14 @@ export async function evaluateTeachingExplanation(
           .filter((w) => w.length > 4)
           .some((w) => lowerExp.includes(w)));
 
-    if (hitCount >= 2 || (isSnippetMentioned && wordCount > 12) || (wordCount > 35 && hasStepByStep)) {
+    /* Was also `|| (wordCount > 35 && hasStepByStep)` — a long, sequenced-
+       sounding answer ("...then...because...") tripped that for every
+       misconception in this loop, independent of whether the answer said
+       anything about THIS one. A student explaining just the general
+       process at length got every listed misconception credited, including
+       ones they never touched. Credit now requires actual topical overlap
+       with this specific misconception's own terms or snippet. */
+    if (hitCount >= 2 || (isSnippetMentioned && wordCount > 12)) {
       newlySolved.push(misc.concept);
     } else {
       remainingConfusion.push(misc.concept);

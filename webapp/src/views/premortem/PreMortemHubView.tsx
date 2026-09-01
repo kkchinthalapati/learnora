@@ -343,7 +343,11 @@ export function PreMortemHubView() {
 
         <Button
           variant="primary"
-          disabled={selectedTrapIds.length === 0 || isLoading}
+          disabled={
+            selectedTrapIds.length === 0 ||
+            isLoading ||
+            (selectedExamId === "custom" && !customSubjectInput.trim())
+          }
           onClick={handleLaunchGauntlet}
         >
           <Icon name="zap" size={18} />
