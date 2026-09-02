@@ -42,8 +42,8 @@ export function StudyAnalyticsView() {
 
   /* Every stat below reads all four of these at once, so a partial load
      renders a confident, wrong screen — 0 hours, 0% consistency, an empty
-     heatmap — that pops when the data lands. Gate on the aggregate the way
-     ConceptGraphView does. */
+     heatmap — that pops when the data lands. Gate on the aggregate so nothing
+     pops when the data lands. */
   const isPending = anyPending(
     sessionsPending,
     attemptsPending,

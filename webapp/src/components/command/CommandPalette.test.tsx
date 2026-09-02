@@ -66,7 +66,6 @@ describe("CommandPalette", () => {
           <Route path="/debugger" element={<div>Debugger Page</div>} />
           <Route path="/feynman" element={<div>Feynman Page</div>} />
           <Route path="/premortem" element={<div>Pre-Mortem Page</div>} />
-          <Route path="/graph" element={<div>Graph Page</div>} />
           <Route path="/analytics" element={<div>Analytics Page</div>} />
           <Route path="/folders/:folderId" element={<div>Subject Folder Page</div>} />
           <Route path="/notes/:materialId" element={<div>Notes Page</div>} />

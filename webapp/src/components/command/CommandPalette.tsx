@@ -292,19 +292,6 @@ export function CommandPalette(props: CommandPaletteProps) {
       },
     });
 
-    items.push({
-      id: "nav-ai-graph",
-      category: "Study Lab",
-      title: "How Topics Connect",
-      subtitle: "A map of your topics and what leads into what",
-      icon: "share-2",
-      badge: "AI Tool",
-      keywords: ["graph", "concept", "knowledge", "nodes", "dependencies", "network"],
-      onSelect: () => {
-        navigate("/graph");
-        handleClose();
-      },
-    });
 
     items.push({
       id: "nav-ai-analytics",

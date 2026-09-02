@@ -66,7 +66,7 @@ describe("KnowledgeCircuit Component", () => {
     render(<KnowledgeCircuit layers={mockBrokenLayers} />);
 
     const statusBadge = screen.getByTestId("circuit-signal-status");
-    expect(statusBadge).toHaveTextContent(/A link is missing/i);
+    expect(statusBadge).toHaveTextContent(/Missing link/i);
     expect(
       screen.getByText(/You never quite got \[Inner Variable Invariance\]/i),
     ).toBeInTheDocument();

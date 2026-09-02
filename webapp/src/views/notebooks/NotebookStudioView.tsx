@@ -12,6 +12,11 @@ import { useToast } from "../../context/toast";
 import styles from "./notebooks.module.css";
 import { EmptyState } from "../../components/EmptyState";
 import { renderMarkdownNodes } from "../../lib/markdownToReact";
+import {
+  useStudyBuddyChecks,
+  type StudyBuddyCheckItem,
+} from "../../hooks/useStudyBuddyChecks";
+import { StudyBuddyGutter } from "../notes/StudyBuddyGutter";
 
 function flashcardsFromCheatSheet(content: string) {
   const cards = content
@@ -68,6 +73,22 @@ export function NotebookStudioView() {
   const [chatInput, setChatInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
+
+  const {
+    checks: studyBuddyChecks,
+    isScanning: isStudyBuddyScanning,
+    dismissCheck: dismissStudyBuddyCheck,
+  } = useStudyBuddyChecks(notebook?.notes ?? "", {
+    enabled: !!notebook,
+    subject: notebook?.title,
+  });
+
+  const handleApplyNotebookBuddyFix = (item: StudyBuddyCheckItem) => {
+    if (!notebook) return;
+    const addition = `\n\n---\n[Study Buddy Note: ${item.suggestedFix}]`;
+    updateNotes((notebook.notes || "") + addition);
+    showToast("Study Buddy fix added to your Notes Canvas!");
+  };
 
   // New source form state
   const [newSourceTitle, setNewSourceTitle] = useState("");
@@ -582,14 +603,28 @@ Use British English throughout.`;
                     >
                       Study Working & Notes
                     </span>
-                    <span className={styles.saveIndicator}>
-                      <Icon
-                        name="check"
-                        size={12}
-                        style={{ color: "var(--success)" }}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "var(--s-2)",
+                      }}
+                    >
+                      <StudyBuddyGutter
+                        checks={studyBuddyChecks}
+                        isScanning={isStudyBuddyScanning}
+                        onAcceptFix={handleApplyNotebookBuddyFix}
+                        onDismiss={dismissStudyBuddyCheck}
                       />
-                      Autosaved
-                    </span>
+                      <span className={styles.saveIndicator}>
+                        <Icon
+                          name="check"
+                          size={12}
+                          style={{ color: "var(--success)" }}
+                        />
+                        Autosaved
+                      </span>
+                    </div>
                   </div>
                   <textarea
                     value={notebook.notes}
@@ -731,6 +766,31 @@ Use British English throughout.`;
                   height: "100%",
                 }}
               >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: "var(--s-2)",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "var(--fs-xs)",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      color: "var(--text-muted)",
+                    }}
+                  >
+                    Notes Canvas
+                  </span>
+                  <StudyBuddyGutter
+                    checks={studyBuddyChecks}
+                    isScanning={isStudyBuddyScanning}
+                    onAcceptFix={handleApplyNotebookBuddyFix}
+                    onDismiss={dismissStudyBuddyCheck}
+                  />
+                </div>
                 <textarea
                   value={notebook.notes}
                   onChange={(e) => updateNotes(e.target.value)}
@@ -933,6 +993,24 @@ Use British English throughout.`;
                 </div>
                 <div className={styles.toolLabel}>Practice Quiz</div>
                 <div className={styles.toolSubtext}>Quick self-test</div>
+              </button>
+
+              <button
+                type="button"
+                className={styles.toolButton}
+                onClick={() => {
+                  void navigate(
+                    `/sparring?notebookId=${encodeURIComponent(notebook.id)}&topic=${encodeURIComponent(notebook.title)}`,
+                  );
+                }}
+              >
+                <div className={styles.toolIconBox}>
+                  <Icon name="mic" size={18} />
+                </div>
+                <div className={styles.toolLabel}>Voice Study Partner</div>
+                <div className={styles.toolSubtext}>
+                  Socratic sparring with Alex & Jordan
+                </div>
               </button>
             </div>
           </div>

@@ -121,16 +121,14 @@ export function resolveWikiLink(
         type: "concept",
         id: matchedConcept.id,
         title: matchedConcept.name,
-        url: `/graph`,
       };
     }
   }
 
-  // Fallback as concept term linking to concept graph
+  // Fallback as concept term
   return {
     type: "concept",
     id: target.toLowerCase().replace(/\s+/g, "-"),
     title: target,
-    url: `/graph`,
   };
 }

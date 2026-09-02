@@ -122,7 +122,7 @@ export function DashboardView() {
         </section>
       )}
 
-      {/* Section 3: Progress, Streak & Memory Decay */}
+      {/* Section 3: Progress, Streak & Memory Refresher */}
       {sections.progressStreak && (
         <section
           className={styles.dashboardRegion}

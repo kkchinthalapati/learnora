@@ -128,7 +128,16 @@ const SECTIONS: NavSection[] = [
     title: "Study Lab",
     collapsible: true,
     items: [
-      { to: "/graph", icon: "share-2", label: "How Topics Connect" },
+      {
+        to: "/sparring",
+        icon: "mic",
+        label: "Voice Study Partner",
+      },
+      {
+        to: "/exam-detective",
+        icon: "search",
+        label: "Exam Trap Radar",
+      },
       {
         to: "/debugger",
         icon: "brain",

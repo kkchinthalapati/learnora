@@ -92,7 +92,7 @@ const SECTION_DESCRIPTIONS: Record<
     icon: "clock",
   },
   progressStreak: {
-    title: "Progress, Streak & Memory Decay",
+    title: "Progress, Streak & Memory Refresher",
     desc: "Study streak calendar, focus sparklines, and forgetting curve health",
     icon: "activity",
   },

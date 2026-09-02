@@ -32,7 +32,7 @@ describe("CognitiveCrossLinkBar", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders active concept, subject, source tool, severity, and 4 cross-launch buttons", () => {
+  it("renders active concept, subject, source tool, severity, and 3 cross-launch buttons", () => {
     renderWithAuth(
       <CognitiveCrossLinkBar payload={testPayload} />,
       { session: fakeSession() },
@@ -50,11 +50,10 @@ describe("CognitiveCrossLinkBar", () => {
       "1 thing to sort out",
     );
 
-    // 4 tool buttons
+    // 3 tool buttons
     expect(screen.getByTestId("cross-link-debugger-btn")).toBeInTheDocument();
     expect(screen.getByTestId("cross-link-feynman-btn")).toBeInTheDocument();
     expect(screen.getByTestId("cross-link-premortem-btn")).toBeInTheDocument();
-    expect(screen.getByTestId("cross-link-graph-btn")).toBeInTheDocument();
   });
 
   it("reads from persisted CognitiveBridge storage when props are omitted", () => {
@@ -123,25 +122,6 @@ describe("CognitiveCrossLinkBar", () => {
 
     expect(handleNavigate).toHaveBeenCalledWith("/premortem", "premortem");
     expect(CognitiveBridge.getPayload()?.suggestedAction).toBe("run_premortem");
-  });
-
-  it("cross-launches into Concept Graph and updates bridge action", () => {
-    const handleNavigate = vi.fn();
-
-    renderWithAuth(
-      <CognitiveCrossLinkBar
-        payload={testPayload}
-        onNavigate={handleNavigate}
-      />,
-      { session: fakeSession() },
-      { withRouter: true },
-    );
-
-    const graphBtn = screen.getByTestId("cross-link-graph-btn");
-    fireEvent.click(graphBtn);
-
-    expect(handleNavigate).toHaveBeenCalledWith("/graph", "graph");
-    expect(CognitiveBridge.getPayload()?.suggestedAction).toBe("inspect_graph");
   });
 
   it("highlights the current tool with a you-are-here badge", () => {

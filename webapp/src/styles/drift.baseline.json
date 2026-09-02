@@ -161,13 +161,6 @@
     "rawBlur": 0,
     "emerald": 0
   },
-  "views/graph/graph.module.css": {
-    "hex": 0,
-    "rawFontSize": 0,
-    "rawShadow": 1,
-    "rawBlur": 0,
-    "emerald": 0
-  },
   "views/library/LibrarySearch.module.css": {
     "hex": 0,
     "rawFontSize": 0,

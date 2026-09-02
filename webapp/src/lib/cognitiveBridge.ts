@@ -5,14 +5,12 @@
  * - Cognitive Root-Cause Debugger (/debugger)
  * - Feynman Active Apprentice (/feynman)
  * - Pre-Mortem Adversarial Radar (/premortem)
- * - Concept Dependency Graph (/graph)
  */
 
 export type CognitiveSourceTool =
   | "debugger"
   | "feynman"
   | "premortem"
-  | "graph"
   | "quiz"
   | "notes";
 
@@ -21,19 +19,18 @@ export type CognitiveSeverity = "critical" | "moderate" | "minor";
 export type CognitiveSuggestedAction =
   | "debug_stack"
   | "teach_apprentice"
-  | "run_premortem"
-  | "inspect_graph";
+  | "run_premortem";
 
 export interface CognitiveContextPayload {
   subject: string;
   topic: string;
   concept?: string;
-  sourceTool: "debugger" | "feynman" | "premortem" | "graph" | "quiz" | "notes";
+  sourceTool: "debugger" | "feynman" | "premortem" | "quiz" | "notes";
   sourceId?: string;
   evidencePrompt?: string;
   misconceptions?: string[];
   severity?: "critical" | "moderate" | "minor";
-  suggestedAction?: "debug_stack" | "teach_apprentice" | "run_premortem" | "inspect_graph";
+  suggestedAction?: "debug_stack" | "teach_apprentice" | "run_premortem";
 }
 
 export const COGNITIVE_BRIDGE_STORAGE_KEY = "learnora:cognitive_bridge_payload";
@@ -138,7 +135,7 @@ export const CognitiveBridge = {
     };
   },
 
-  getTargetRoute(tool: "debugger" | "feynman" | "premortem" | "graph"): string {
+  getTargetRoute(tool: "debugger" | "feynman" | "premortem"): string {
     switch (tool) {
       case "debugger":
         return "/debugger";
@@ -146,8 +143,6 @@ export const CognitiveBridge = {
         return "/feynman";
       case "premortem":
         return "/premortem";
-      case "graph":
-        return "/graph";
       default:
         return "/";
     }

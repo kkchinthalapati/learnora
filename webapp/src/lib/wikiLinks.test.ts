@@ -68,7 +68,6 @@ describe("wikiLinks", () => {
       type: "concept",
       id: "thermodynamics",
       title: "Thermodynamics",
-      url: "/graph",
     });
   });
 });

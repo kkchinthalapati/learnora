@@ -55,9 +55,12 @@ export function primaryDestinationForPath(
 }
 
 export function isStudyLabSection(pathname: string): boolean {
-  return ["/graph", "/debugger", "/feynman", "/premortem"].some((routePrefix) =>
-    pathname.startsWith(routePrefix),
-  );
+  return [
+    "/debugger",
+    "/feynman",
+    "/premortem",
+    "/exam-detective",
+  ].some((routePrefix) => pathname.startsWith(routePrefix));
 }
 
 export function isCommunitySection(pathname: string): boolean {
@@ -78,9 +81,9 @@ export function sectionLabel(
      destination had two names depending on where you read it. */
   if (pathname.startsWith("/analytics")) return "Progress";
   if (pathname.startsWith("/trajectory")) return "Trajectory";
-  if (pathname.startsWith("/graph")) return "How Topics Connect";
   if (pathname.startsWith("/feynman")) return "Explain It Simply";
   if (pathname.startsWith("/debugger")) return "Find My Mistake";
+  if (pathname.startsWith("/exam-detective")) return "Exam Trap Radar";
   if (pathname.startsWith("/premortem")) return "What Could Go Wrong";
   if (pathname.startsWith("/my-week")) return "My week";
   if (pathname.startsWith("/plan")) return "This week's plan";
@@ -113,6 +116,7 @@ const HERO_ROUTES = [
   "/premortem",
   "/debugger",
   "/room",
+  "/exam-detective",
 ];
 
 export function viewOwnsPageTitle(pathname: string): boolean {

@@ -285,7 +285,7 @@ export function TrajectoryView() {
       <PageHeader
         eyebrow="Trajectory"
         title="The grade you are heading for"
-        sub="Every topic projected forward to exam day under real memory decay, against the hours you actually have."
+        sub="Every topic projected forward to exam day under your study habits and timely refreshers, against the hours you actually have."
       />
       <ProGate feature="trajectory" loadingHeight={220}>
         <TrajectoryBody />

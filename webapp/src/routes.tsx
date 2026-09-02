@@ -25,7 +25,6 @@ import { PlanView } from "./views/plan/PlanView";
 import { FriendsView } from "./views/friends/FriendsView";
 import { FriendInviteLanding } from "./views/friends/FriendInviteLanding";
 import { StudyAnalyticsView } from "./views/analytics/StudyAnalyticsView";
-import { ConceptGraphView } from "./views/graph/ConceptGraphView";
 import { CognitiveDebuggerView } from "./views/debugger/CognitiveDebuggerView";
 import { PreMortemHubView } from "./views/premortem/PreMortemHubView";
 import { PreMortemRadarView } from "./views/premortem/PreMortemRadarView";
@@ -35,6 +34,10 @@ import { NotFoundView } from "./views/not-found/NotFoundView";
 import { Skeleton } from "./components/Skeleton";
 import styles from "./routes.module.css";
 
+const LazyExamDetectiveHubView = lazy(async () => ({
+  default: (await import("./views/exam-detective/ExamDetectiveHubView"))
+    .ExamDetectiveHubView,
+}));
 const LazyNotebookStudioView = lazy(async () => ({
   default: (await import("./views/notebooks/NotebookStudioView"))
     .NotebookStudioView,
@@ -78,12 +81,16 @@ const LazyFeynmanDebriefView = lazy(async () => ({
   default: (await import("./views/feynman/FeynmanDebriefView"))
     .FeynmanDebriefView,
 }));
+const LazySocraticSparringView = lazy(async () => ({
+  default: (await import("./views/sparring/SocraticSparringView"))
+    .SocraticSparringView,
+}));
 
 /* The fallback covers the seven heaviest screens — quiz runner, review,
    notes, the notebook studio — so it is on screen for a real moment on a slow
    connection. A bare unstyled paragraph collapses the whole layout and then
    snaps back; a Skeleton holds roughly the shape of what is coming, which is
-   the same thing ConceptGraphView and Analytics do while their data loads. */
+   the same thing Analytics does while its data loads. */
 function DeferredView({ children }: { children: ReactNode }) {
   return (
     <Suspense
@@ -227,8 +234,15 @@ export function AppRoutes() {
               </DeferredView>
             }
           />
-          <Route path="/graph" element={<ConceptGraphView />} />
           <Route path="/debugger" element={<CognitiveDebuggerView />} />
+          <Route
+            path="/exam-detective"
+            element={
+              <DeferredView>
+                <LazyExamDetectiveHubView />
+              </DeferredView>
+            }
+          />
           <Route path="/premortem" element={<PreMortemHubView />} />
           <Route path="/premortem/radar" element={<PreMortemRadarView />} />
           <Route path="/feynman" element={<FeynmanHubView />} />
@@ -253,6 +267,22 @@ export function AppRoutes() {
             element={
               <DeferredView>
                 <LazyFeynmanDebriefView />
+              </DeferredView>
+            }
+          />
+          <Route
+            path="/sparring"
+            element={
+              <DeferredView>
+                <LazySocraticSparringView />
+              </DeferredView>
+            }
+          />
+          <Route
+            path="/sparring/:sessionId"
+            element={
+              <DeferredView>
+                <LazySocraticSparringView />
               </DeferredView>
             }
           />

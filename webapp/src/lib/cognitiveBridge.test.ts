@@ -83,7 +83,6 @@ describe("CognitiveBridge", () => {
     expect(CognitiveBridge.getTargetRoute("debugger")).toBe("/debugger");
     expect(CognitiveBridge.getTargetRoute("feynman")).toBe("/feynman");
     expect(CognitiveBridge.getTargetRoute("premortem")).toBe("/premortem");
-    expect(CognitiveBridge.getTargetRoute("graph")).toBe("/graph");
   });
 
   it("handles storage persistence gracefully", () => {

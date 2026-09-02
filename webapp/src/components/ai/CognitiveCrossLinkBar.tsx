@@ -21,19 +21,19 @@ export interface CognitiveCrossLinkBarProps {
   misconceptions?: string[];
   severity?: CognitiveSeverity;
   suggestedAction?: CognitiveSuggestedAction;
-  currentTool?: "debugger" | "feynman" | "premortem" | "graph";
+  currentTool?: "debugger" | "feynman" | "premortem";
   compact?: boolean;
   className?: string;
-  onNavigate?: (route: string, tool: "debugger" | "feynman" | "premortem" | "graph") => void;
+  onNavigate?: (route: string, tool: "debugger" | "feynman" | "premortem") => void;
   onClear?: () => void;
   showDismiss?: boolean;
 }
 
 const TOOL_CONFIGS: {
-  id: "debugger" | "feynman" | "premortem" | "graph";
+  id: "debugger" | "feynman" | "premortem";
   label: string;
   route: string;
-  icon: "zap" | "users" | "shield" | "network";
+  icon: "zap" | "users" | "shield";
   action: CognitiveSuggestedAction;
 }[] = [
   {
@@ -57,20 +57,12 @@ const TOOL_CONFIGS: {
     icon: "shield",
     action: "run_premortem",
   },
-  {
-    id: "graph",
-    label: "How topics connect",
-    route: "/graph",
-    icon: "network",
-    action: "inspect_graph",
-  },
 ];
 
 const SOURCE_TOOL_LABELS: Record<CognitiveSourceTool, string> = {
   debugger: "Find My Mistake",
   feynman: "Explain It Simply",
   premortem: "What Could Go Wrong",
-  graph: "How Topics Connect",
   quiz: "a quiz",
   notes: "your notes",
 };

@@ -1,0 +1,776 @@
+/* Socratic Audio Sparring CSS Module
+ *
+ * Adheres strictly to design tokens from tokens.css.
+ * No raw hex, no raw font sizes, no raw shadows, no raw blurs.
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--s-6) var(--s-4) var(--s-16);
+}
+
+/* Header & Topic Selector */
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.headerTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.titleArea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  color: var(--accent-text);
+}
+
+.pageTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-tight);
+  color: var(--text);
+  margin: 0;
+}
+
+.pageSubtitle {
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  line-height: var(--lh);
+  color: var(--text-muted);
+  max-width: var(--measure);
+  margin: 0;
+}
+
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.audioToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text);
+  border: var(--border);
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.audioToggleBtn:hover {
+  background: var(--surface-hover);
+}
+
+/* Starter / Topic Chooser Panel */
+.topicCard {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--s-6);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.topicCardTitle {
+  font-family: var(--font);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.topicInputRow {
+  display: flex;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+.topicInput {
+  flex: 1;
+  min-width: 240px;
+  padding: var(--s-3) var(--s-4);
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  color: var(--text);
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--r-md);
+  outline: none;
+  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+
+.topicInput:focus {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-accent);
+}
+
+.starterChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.chipsLabel {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--text-faint);
+  margin-right: var(--s-1);
+}
+
+.chipBtn {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: var(--border);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+
+.chipBtn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  border-color: var(--accent-ring);
+}
+
+/* Sparring Stage */
+.stageContainer {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr 1fr;
+  gap: var(--s-4);
+  align-items: center;
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--r-2xl);
+  padding: var(--s-6);
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .stageContainer {
+    grid-template-columns: 1fr;
+  }
+}
+
+.avatarPod {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-radius: var(--r-xl);
+  background: var(--surface-2);
+  border: var(--border);
+  transition: all var(--t) var(--ease);
+  position: relative;
+}
+
+.podSpeaking {
+  background: var(--glass-bg-strong);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-accent);
+  transform: translateY(-2px);
+}
+
+.avatarRing {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--s-16);
+  height: var(--s-16);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  border: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.avatarGlyph {
+  font-size: var(--fs-2xl);
+  user-select: none;
+}
+
+.pulseRing {
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--accent);
+  opacity: 0.8;
+  animation: podPulseAnim 2s infinite var(--ease);
+}
+
+@keyframes podPulseAnim {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+}
+
+.podInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.podNameRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+}
+
+.podName {
+  font-family: var(--font);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.podBadge {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-pill);
+}
+
+.badgeAlex {
+  background: var(--success-soft);
+  color: var(--success-text);
+}
+
+.badgeJordan {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+
+.podDescription {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  line-height: var(--lh-snug);
+  margin: 0;
+}
+
+/* Center Arena */
+.centerArena {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-2);
+}
+
+.anchorBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-3);
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border-radius: var(--r-pill);
+}
+
+.statusAnnouncement {
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+  text-align: center;
+  min-height: var(--s-6);
+}
+
+.stageActions {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.centerMicBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-6);
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--accent-on);
+  border: none;
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: all var(--t-fast) var(--ease);
+}
+
+.centerMicBtn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: scale(1.02);
+}
+
+.centerMicBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.centerMicBtnRecording {
+  background: var(--danger);
+  color: var(--danger-on);
+  box-shadow: var(--shadow-lg);
+}
+
+.centerMicBtnRecording:hover:not(:disabled) {
+  background: var(--danger);
+}
+
+.centerMicIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.centerMicText {
+  user-select: none;
+}
+
+.micAura {
+  position: absolute;
+  inset: -6px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--danger);
+  animation: micAuraAnim 1.5s infinite var(--ease);
+}
+
+@keyframes micAuraAnim {
+  0% {
+    transform: scale(0.98);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(0.98);
+    opacity: 0.8;
+  }
+}
+
+/* Audio Waveform */
+.waveformContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 320px;
+}
+
+.waveformBars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 100%;
+  width: 100%;
+  justify-content: center;
+}
+
+.waveBar {
+  flex: 1;
+  max-width: 5px;
+  border-radius: var(--r-pill);
+  background: var(--surface-active);
+  transition: height var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+
+.waveAlex .waveBar {
+  background: var(--success);
+}
+
+.waveJordan .waveBar {
+  background: var(--warning);
+}
+
+.waveStudent .waveBar {
+  background: var(--accent);
+}
+
+.waveBarActive {
+  animation: wavePulse 0.8s infinite alternate var(--ease-spring);
+}
+
+@keyframes wavePulse {
+  0% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Dialogue Stream Area */
+.dialogueSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.dialogueSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dialogueSectionTitle {
+  font-family: var(--font);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dialogueStream {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  max-height: 520px;
+  overflow-y: auto;
+  padding: var(--s-2) var(--s-1);
+}
+
+.dialogueBubble {
+  display: flex;
+  gap: var(--s-3);
+  max-width: 85%;
+  animation: bubbleFadeIn var(--t) var(--ease);
+}
+
+@keyframes bubbleFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bubbleAlex,
+.bubbleJordan {
+  align-self: flex-start;
+}
+
+.bubbleStudent {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.bubbleAvatar {
+  font-size: var(--fs-xl);
+  line-height: 1;
+  padding-top: var(--s-1);
+  user-select: none;
+}
+
+.bubbleBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  border: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.bubbleAlex .bubbleBody {
+  border-left: 3px solid var(--success);
+}
+
+.bubbleJordan .bubbleBody {
+  border-left: 3px solid var(--warning);
+}
+
+.bubbleStudent .bubbleBody {
+  background: var(--accent-soft);
+  border-color: var(--accent-ring);
+}
+
+.bubbleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.bubbleSpeakerName {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.bubbleTime {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+
+.bubbleContent {
+  font-family: var(--font-read);
+  font-size: var(--fs-base);
+  line-height: var(--lh);
+  color: var(--text);
+  margin: 0;
+}
+
+/* Citations & Feedback Inside Bubble */
+.citationsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-1);
+}
+
+.citationPill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-1) var(--s-2);
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: var(--border);
+  border-radius: var(--r-sm);
+}
+
+.feedbackBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  margin-top: var(--s-2);
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--r-md);
+}
+
+.feedbackHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.feedbackScoreGroup {
+  display: flex;
+  gap: var(--s-3);
+}
+
+.scoreItem {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.scoreVal {
+  font-weight: 700;
+  color: var(--accent-text);
+}
+
+.critiqueText {
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  color: var(--text);
+  line-height: var(--lh-snug);
+  margin: 0;
+}
+
+/* Live Interim Transcript Card */
+.liveTranscriptCard {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface);
+  border: 1px dashed var(--accent);
+  border-radius: var(--r-lg);
+  font-family: var(--font-read);
+  font-size: var(--fs-base);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.liveDot {
+  width: var(--s-2);
+  height: var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--danger);
+  margin-top: var(--s-2);
+  animation: liveDotBlink 1s infinite var(--ease);
+}
+
+@keyframes liveDotBlink {
+  0% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+/* Input Area / Keyboard Fallback */
+.inputSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--s-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.textInputRow {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+}
+
+.answerInput {
+  flex: 1;
+  padding: var(--s-3) var(--s-4);
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  color: var(--text);
+  background: var(--surface-2);
+  border: var(--border);
+  border-radius: var(--r-md);
+  outline: none;
+}
+
+.answerInput:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.hintsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.hintPill {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  background: var(--surface-2);
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-sm);
+}
+
+/* Celebration / Cumulative Metrics */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--s-4);
+}
+
+.metricCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding: var(--s-4);
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.metricLabel {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--text-muted);
+}
+
+.metricValue {
+  font-family: var(--font-numeric);
+  font-size: var(--fs-stat);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  color: var(--accent-text);
+}
+
+.metricSub {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulseRing,
+  .micAura,
+  .waveBarActive,
+  .liveDot,
+  .dialogueBubble {
+    animation: none;
+  }
+}
