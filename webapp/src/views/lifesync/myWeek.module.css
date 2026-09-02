@@ -1,0 +1,457 @@
+/* My week — a setup screen built as a readable column of sections rather than
+ * a form. Each card is one question about the student's life, in the order the
+ * answers matter to the scheduler. */
+
+.view {
+  max-width: 940px;
+  margin: 0 auto;
+  padding-bottom: var(--s-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  color: var(--text);
+}
+
+.subTitle {
+  margin: var(--s-3) 0 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-sm);
+  color: var(--text);
+}
+
+.sectionCopy {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.footNote {
+  max-width: 62ch;
+  margin: 0 auto;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* --- Fields ----------------------------------------------------------- */
+
+.fieldRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-5);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.fieldLabel {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.timeInput,
+.textInput,
+.select,
+.textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md, 8px);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+}
+
+.timeInput {
+  /* Long enough for a 12-hour control with an AM/PM segment; the native
+     picker collapses its own text otherwise and shows "9:3…". */
+  min-width: 8.5rem;
+}
+
+.textInput {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--fs-xs);
+}
+
+.timeInput:focus-visible,
+.textInput:focus-visible,
+.select:focus-visible,
+.textarea:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 1px;
+}
+
+/* --- Chronotype choices ----------------------------------------------- */
+
+.choiceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--s-3);
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md, 8px);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.choice:hover {
+  background: var(--surface-hover);
+}
+
+.choice:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+.choiceOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.choiceLabel {
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.choiceHint {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+/* --- Day toggles ------------------------------------------------------ */
+
+.dayToggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dayToggle {
+  /* 40px square: a seven-across row of day pills is the easiest thing on this
+     screen to mis-tap on a phone, so it holds the full touch target. */
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dayToggle:hover {
+  background: var(--surface-hover);
+}
+
+.dayToggle:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+.dayToggleOn {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+/* --- Capacity stepper -------------------------------------------------- */
+
+.stepper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.stepperControls {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.stepperValue {
+  min-width: 5rem;
+  color: var(--text);
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* --- Commitments ------------------------------------------------------ */
+
+.commitmentList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.commitmentRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md, 8px);
+  background: var(--surface-2);
+}
+
+.commitmentTop {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.commitmentBottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.timeRange {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--text-faint);
+}
+
+.rowError {
+  margin: 0;
+  color: var(--danger-text);
+  font-size: var(--fs-xs);
+}
+
+.rowHint {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+/* --- Calendar import --------------------------------------------------- */
+
+.privacy {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+.importedRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-3);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-md, 8px);
+  background: var(--accent-soft);
+}
+
+.importedName {
+  display: block;
+  color: var(--text);
+  font-size: var(--fs-sm);
+}
+
+.importedMeta {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+.importActions {
+  display: flex;
+  gap: var(--s-3);
+}
+
+/* The native file input is unstylable and its "No file chosen" text is noise;
+   the visible control is a real Button that forwards the click. */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.paste {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.paste > summary {
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.paste > summary:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+/* --- Preview ----------------------------------------------------------- */
+
+.previewList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.previewDay {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--s-3);
+  border-radius: var(--r-md, 8px);
+  background: var(--surface-2);
+}
+
+.previewHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.previewName {
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.previewMeta {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+.previewBusy {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewBlocks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.previewBlock {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr auto;
+  gap: var(--s-3);
+  align-items: baseline;
+  font-size: var(--fs-xs);
+}
+
+.previewTime {
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.previewLabel {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewDuration {
+  color: var(--text-faint);
+}
+
+.shortfall {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  margin: 0;
+  padding: var(--s-3);
+  border: 1px solid var(--warning);
+  border-radius: var(--r-md, 8px);
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+
+@media (max-width: 560px) {
+  .commitmentBottom {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fieldRow {
+    gap: var(--s-4);
+  }
+}

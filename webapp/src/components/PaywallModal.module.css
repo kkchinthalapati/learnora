@@ -1,0 +1,201 @@
+/* Paywall and Pro-gate surfaces. Deliberately quiet: no gradients, no
+ * countdowns, no pulsing badge. The pitch is the feature, not the packaging. */
+
+.dialog {
+  max-width: 520px;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  margin: var(--s-4) 0 var(--s-2);
+}
+
+.priceList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.price {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: var(--s-4);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md, 8px);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.price:hover {
+  background: var(--surface-hover);
+}
+
+.price:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+.priceOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.priceHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.priceLabel {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.saving {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success-text);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.priceAmount {
+  color: var(--text);
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+
+.priceInterval {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 400;
+}
+
+.priceNote {
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feature {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+
+.tick {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.featureName {
+  display: block;
+  color: var(--text);
+  font-size: var(--fs-sm);
+}
+
+.featureBlurb {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+
+.promise {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+/* --- ProGate ---------------------------------------------------------- */
+
+.gate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-5);
+  border: 1px dashed var(--glass-border);
+  border-radius: var(--r-lg, 12px);
+  background: var(--surface-2);
+}
+
+.gateIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.gateTitle {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+}
+
+.gateCopy {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+/* --- Pro badge -------------------------------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-on);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.badgeQuiet {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}

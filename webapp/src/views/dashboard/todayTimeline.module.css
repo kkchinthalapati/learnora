@@ -1,0 +1,249 @@
+/* Today's timeline. A three-column row — clock, rail, content — repeated down
+ * the day, so the eye can scan the left edge for "when" without reading any
+ * of the labels. The rail is what makes it read as one day rather than a list
+ * of unrelated cards. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.link {
+  font-weight: 600;
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.link:hover {
+  color: var(--accent-hover);
+}
+
+/* --- Setup invitation ------------------------------------------------- */
+
+.invite {
+  display: flex;
+  gap: var(--s-4);
+  align-items: flex-start;
+  padding: var(--s-2) 0 var(--s-1);
+}
+
+.inviteIcon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.inviteTitle {
+  margin: 0 0 var(--s-2);
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  color: var(--text);
+}
+
+.inviteCopy {
+  max-width: 46ch;
+  margin: 0 0 var(--s-4);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+/* --- Summary ---------------------------------------------------------- */
+
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+
+.summaryLead {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.summaryLead strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.notes {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+.quiet {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+/* --- Timeline --------------------------------------------------------- */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 4.5rem 10px 1fr auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-2) var(--s-2) 0;
+  border-radius: var(--r-md, 10px);
+}
+
+/* Done is dimmed, not hidden: seeing the morning you actually completed is
+   most of what makes the afternoon feel manageable. */
+.rowPast {
+  opacity: 0.5;
+}
+
+.rowLive {
+  background: var(--accent-soft);
+  opacity: 1;
+}
+
+.time {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* The rail: a vertical stroke per row that visually joins into one line down
+   the day, because the rows sit at a 4px gap. */
+.rail {
+  align-self: stretch;
+  width: 3px;
+  min-height: 28px;
+  margin: 0 auto;
+  border-radius: 999px;
+}
+
+.railMuted {
+  background: var(--glass-border);
+}
+
+.railStudy {
+  background: var(--accent);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.commitmentLabel {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studyBody {
+  gap: 3px;
+}
+
+.studyHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.prime {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.studyLabel {
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.part {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.meta {
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+.shortfall {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  margin: 0;
+  padding: var(--s-3);
+  border: 1px solid var(--warning);
+  border-radius: var(--r-md, 10px);
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+
+.shortfall .link {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* On a narrow screen the Start button drops under the content rather than
+   squeezing the label to two characters. */
+@media (max-width: 560px) {
+  .row {
+    grid-template-columns: 3.75rem 10px 1fr;
+    row-gap: var(--s-2);
+  }
+
+  .row > button {
+    grid-column: 3;
+    justify-self: start;
+  }
+}
