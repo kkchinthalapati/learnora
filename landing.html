@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learnora | Know Your Grade. Own Your Study.</title>
+    <meta name="description" content="The only study app that forecasts your grade and tells you what every hour is worth. AI-powered exam preparation.">
+    <link rel="icon" href="learnora.jpg" type="image/jpeg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #7c3aed;
+            --primary-dark: #6d28d9;
+            --accent: #ec4899;
+            --bg: #0f172a;
+            --bg-light: #1e293b;
+            --text: #f1f5f9;
+            --text-muted: #cbd5e1;
+            --border: #334155;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(124, 58, 237, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+            animation: drift 15s ease-in-out infinite;
+        }
+
+        @keyframes drift {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(30px, -20px); }
+        }
+
+        /* Header */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.5rem;
+            text-decoration: none;
+            color: var(--text);
+        }
+
+        .logo img {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+        }
+
+        nav {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.3s;
+            font-size: 0.95rem;
+        }
+
+        nav a:hover {
+            color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(124, 58, 237, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(124, 58, 237, 0.1);
+        }
+
+        /* Hero Section */
+        .hero {
+            max-width: 1200px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+            background: linear-gradient(135deg, var(--text), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+
+        .hero-demo {
+            max-width: 800px;
+            margin: 3rem auto;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: rgba(30, 41, 59, 0.5);
+            aspect-ratio: 16/9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero-demo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Vision Section */
+        .section {
+            max-width: 1200px;
+            margin: 6rem auto;
+            padding: 0 2rem;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .section-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 3rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .vision-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .vision-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: all 0.3s;
+        }
+
+        .vision-card:hover {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: var(--primary);
+            transform: translateY(-5px);
+        }
+
+        .vision-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .vision-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+            color: var(--primary);
+        }
+
+        .vision-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        /* Features Section */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .feature:hover {
+            background: rgba(124, 58, 237, 0.1);
+            border-color: var(--primary);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature h4 {
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .feature p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* Plans Section */
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .plan-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s;
+        }
+
+        .plan-card.pro {
+            border-color: var(--primary);
+            background: rgba(124, 58, 237, 0.1);
+        }
+
+        .plan-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .plan-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            width: fit-content;
+            margin-bottom: 1rem;
+        }
+
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-price {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+        }
+
+        .plan-period {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .plan-features {
+            list-style: none;
+            margin-bottom: 2rem;
+            flex: 1;
+        }
+
+        .plan-features li {
+            padding: 0.5rem 0;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            font-size: 0.95rem;
+        }
+
+        .plan-features li:before {
+            content: "✓ ";
+            color: var(--primary);
+            font-weight: 700;
+            margin-right: 0.75rem;
+        }
+
+        /* CTA Section */
+        .cta {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(236, 72, 153, 0.2));
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            margin: 4rem auto;
+        }
+
+        .cta h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .cta p {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 3rem 2rem;
+            margin-top: 6rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h4 {
+            margin-bottom: 1rem;
+        }
+
+        .footer-section a {
+            display: block;
+            color: var(--text-muted);
+            text-decoration: none;
+            margin-bottom: 0.5rem;
+            transition: color 0.3s;
+        }
+
+        .footer-section a:hover {
+            color: var(--primary);
+        }
+
+        .socials {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .social-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(124, 58, 237, 0.1);
+            border-radius: 8px;
+            color: var(--primary);
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 1.2rem;
+        }
+
+        .social-link:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            nav {
+                gap: 1rem;
+            }
+
+            nav a {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <a href="#" class="logo">
+                <img src="learnora.jpg" alt="Learnora">
+                Learnora
+            </a>
+            <nav>
+                <a href="#vision">Why Learnora</a>
+                <a href="#features">Features</a>
+                <a href="#plans">Plans</a>
+                <a href="index.html" class="btn btn-primary">Sign In</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+        <h1>Know Your Grade.<br>Own Your Study.</h1>
+        <p>The only study app that forecasts your exam score and tells you what every hour is worth. Let AI and real memory science guide your prep.</p>
+        <div class="hero-buttons">
+            <a href="index.html" class="btn btn-primary">Get Started Free</a>
+            <a href="#plans" class="btn btn-secondary">Explore Plans</a>
+        </div>
+        <div class="hero-demo">
+            <div style="width: 100%; height: 100%; background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(236, 72, 153, 0.1)); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--text-muted);">
+                📊 Trajectory forecasting — coming soon
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Learnora -->
+    <section class="section" id="vision">
+        <h2 class="section-title">Why Learnora is Different</h2>
+        <p class="section-subtitle">Every study app generates flashcards. Only Learnora owns the outcome.</p>
+
+        <div class="vision-grid">
+            <div class="vision-card">
+                <div class="vision-icon">📈</div>
+                <h3>Exam Trajectory</h3>
+                <p>See the grade you're heading for on exam day. Our model reads your actual memory (from spaced repetition) and your real schedule (from Life Sync) to forecast with a confidence band.</p>
+            </div>
+
+            <div class="vision-card">
+                <div class="vision-icon">⏰</div>
+                <h3>Time Worth</h3>
+                <p>"One hour on titration is worth 6× the same hour on bonding." Get told, down to the minute, what your next study block is worth in exam points.</p>
+            </div>
+
+            <div class="vision-card">
+                <div class="vision-icon">📅</div>
+                <h3>Life Sync</h3>
+                <p>Import your real timetable and work schedule. Every study plan builds around the hours you're actually free — not around a fantasy calendar.</p>
+            </div>
+
+            <div class="vision-card">
+                <div class="vision-icon">🧠</div>
+                <h3>Memory Science</h3>
+                <p>Spaced repetition that learns your memory speed. Cards adapt interval and difficulty in real time based on how you actually remember.</p>
+            </div>
+
+            <div class="vision-card">
+                <div class="vision-icon">🤖</div>
+                <h3>AI Study Partner</h3>
+                <p>Generate flashcards, quizzes, and notes from anything. Ask Learnora AI to explain, quiz you, or build a study plan for tomorrow.</p>
+            </div>
+
+            <div class="vision-card">
+                <div class="vision-icon">🎯</div>
+                <h3>Study Rooms</h3>
+                <p>Study with friends in real time. Share notes, quiz each other, and track progress together across exams.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section" id="features">
+        <h2 class="section-title">Everything You Need</h2>
+        <p class="section-subtitle">All the tools to study smarter, backed by science.</p>
+
+        <div class="features-grid">
+            <div class="feature">
+                <div class="feature-icon">📚</div>
+                <h4>Flashcards & Quizzes</h4>
+                <p>AI-generated from any source. Spaced repetition that adapts to you.</p>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">⏱️</div>
+                <h4>Focus Timer</h4>
+                <p>25-min pomodoro sessions with automatic break tracking.</p>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">📝</div>
+                <h4>Notes & Notebooks</h4>
+                <p>Unlimited notebooks (Pro). Write, organize, and search your notes.</p>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <h4>Task Manager</h4>
+                <p>Due cards, deadlines, and exam countdowns all in one place.</p>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">👥</div>
+                <h4>Study Rooms</h4>
+                <p>Study live with friends. No distance, no limits.</p>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">📱</div>
+                <h4>Mobile Ready</h4>
+                <p>Study on your phone, tablet, or desktop. Everything syncs.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Plans -->
+    <section class="section" id="plans">
+        <h2 class="section-title">Simple, Transparent Pricing</h2>
+        <p class="section-subtitle">Everything you need to study smarter. Pro is optional, not required.</p>
+
+        <div class="plans-grid">
+            <div class="plan-card">
+                <h3 class="plan-name">Free</h3>
+                <div class="plan-price">$0</div>
+                <div class="plan-period">Forever free</div>
+                <ul class="plan-features">
+                    <li>Unlimited tasks & exams</li>
+                    <li>Focus timer</li>
+                    <li>AI-generated flashcards (25/day)</li>
+                    <li>Spaced repetition</li>
+                    <li>3 notebooks</li>
+                    <li>Study with friends</li>
+                    <li>Community support</li>
+                </ul>
+                <a href="index.html" class="btn btn-secondary">Get Started</a>
+            </div>
+
+            <div class="plan-card pro">
+                <span class="plan-badge">Most Popular</span>
+                <h3 class="plan-name">Pro</h3>
+                <div class="plan-price">£5.99</div>
+                <div class="plan-period">per month</div>
+                <ul class="plan-features">
+                    <li>Exam Trajectory (predict your grade)</li>
+                    <li>Calendar import (.ics)</li>
+                    <li>Auto-scheduled study blocks</li>
+                    <li>Unlimited notebooks</li>
+                    <li>AI generations (400/day)</li>
+                    <li>Calendar sync (export to Google)</li>
+                    <li>Priority support</li>
+                </ul>
+                <a href="index.html" class="btn btn-primary">Upgrade to Pro</a>
+            </div>
+
+            <div class="plan-card">
+                <h3 class="plan-name">Pro Annual</h3>
+                <div class="plan-price">£49.99</div>
+                <div class="plan-period">per year</div>
+                <div style="color: var(--primary); font-weight: 600; margin-bottom: 1rem;">Save 30%</div>
+                <ul class="plan-features">
+                    <li>Exam Trajectory</li>
+                    <li>Calendar import & export</li>
+                    <li>Auto-scheduled days</li>
+                    <li>Unlimited notebooks</li>
+                    <li>400 AI generations/day</li>
+                    <li>Priority support</li>
+                    <li>Early access to new features</li>
+                </ul>
+                <a href="index.html" class="btn btn-primary">Get Annual Plan</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta">
+        <h2>Ready to own your exam prep?</h2>
+        <p>Join thousands of students who forecast their grades and study smarter, not longer.</p>
+        <a href="index.html" class="btn btn-primary">Start Free Today</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Product</h4>
+                <a href="#features">Features</a>
+                <a href="#plans">Pricing</a>
+                <a href="index.html">Sign In</a>
+            </div>
+
+            <div class="footer-section">
+                <h4>Company</h4>
+                <a href="#">About</a>
+                <a href="#">Blog</a>
+                <a href="terms.html">Terms of Service</a>
+            </div>
+
+            <div class="footer-section">
+                <h4>Connect</h4>
+                <div class="socials">
+                    <a href="https://discord.gg/fqckPf3bXB" class="social-link" title="Discord">💬</a>
+                    <a href="https://instagram.com/learnorastudy" class="social-link" title="Instagram">📷</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>© 2026 Learnora. Built for students, by students. Exam prep, evolved.</p>
+        </div>
+    </footer>
+</body>
+</html>
