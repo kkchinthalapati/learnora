@@ -32,12 +32,7 @@ export function isNotebooksSection(pathname: string): boolean {
 }
 
 export type PrimaryDestination =
-  | "dashboard"
-  | "notebooks"
-  | "library"
-  | "plan"
-  | "focus"
-  | "progress";
+  "dashboard" | "notebooks" | "library" | "plan" | "focus" | "progress";
 
 export function primaryDestinationForPath(
   pathname: string,
@@ -47,13 +42,15 @@ export function primaryDestinationForPath(
   if (isLibrarySection(pathname)) return "library";
   if (
     pathname.startsWith("/plan") ||
+    pathname.startsWith("/my-week") ||
     pathname.startsWith("/tasks") ||
     pathname.startsWith("/exams")
   ) {
     return "plan";
   }
   if (pathname.startsWith("/timer")) return "focus";
-  if (pathname.startsWith("/analytics")) return "progress";
+  if (pathname.startsWith("/analytics") || pathname.startsWith("/trajectory"))
+    return "progress";
   return null;
 }
 
@@ -80,10 +77,12 @@ export function sectionLabel(
      word for this. The page header used to say "Analytics", so one
      destination had two names depending on where you read it. */
   if (pathname.startsWith("/analytics")) return "Progress";
+  if (pathname.startsWith("/trajectory")) return "Trajectory";
   if (pathname.startsWith("/graph")) return "How Topics Connect";
   if (pathname.startsWith("/feynman")) return "Explain It Simply";
   if (pathname.startsWith("/debugger")) return "Find My Mistake";
   if (pathname.startsWith("/premortem")) return "What Could Go Wrong";
+  if (pathname.startsWith("/my-week")) return "My week";
   if (pathname.startsWith("/plan")) return "This week's plan";
   if (pathname.startsWith("/exams")) return "Exams";
   if (pathname.startsWith("/room")) return "Study Room";

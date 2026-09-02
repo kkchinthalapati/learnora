@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tasksApi } from "../api/tasks";
 import type { Task } from "../api/types";
 import { toggleTask as toggleTaskOffline } from "../lib/offlineSync";
+import { recordTaskCompletedToday } from "../lib/achievements";
 
 export const tasksKeys = { all: ["tasks"] as const };
 
@@ -43,7 +44,8 @@ export function useToggleTask() {
       id: number;
       currentStatus: boolean;
     }) => toggleTaskOffline({ id, currentStatus }),
-    onMutate: async ({ id }) => {
+    onMutate: async ({ id, currentStatus }) => {
+      if (!currentStatus) recordTaskCompletedToday();
       await qc.cancelQueries({ queryKey: tasksKeys.all });
       const previous = qc.getQueryData<Task[]>(tasksKeys.all);
       qc.setQueryData<Task[]>(tasksKeys.all, (old) =>

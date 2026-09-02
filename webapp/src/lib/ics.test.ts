@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { generateICS } from "./ics";
+import { escapeIcsText, generateICS, generateScheduleICS } from "./ics";
+import type { ScheduledBlock } from "./autoSchedule";
 import type { Exam, WeeklyPlan } from "../api/types";
 import type { WeeklyPlanJson } from "./aiJson";
 
@@ -274,5 +275,115 @@ describe("ics utils", () => {
       const ics = generateICS(exams, []);
       expect(ics).toMatch(/DTSTAMP:\d{8}T\d{6}Z/);
     });
+  });
+});
+
+function block(patch: Partial<ScheduledBlock> = {}): ScheduledBlock {
+  return {
+    id: "b1",
+    demandId: "d1",
+    date: "2026-09-01",
+    startMin: 570,
+    endMin: 615,
+    label: "Kinetics, part 2",
+    kind: "task",
+    load: 2,
+    subject: null,
+    folderId: null,
+    energy: 0.6,
+    ...patch,
+  };
+}
+
+describe("escapeIcsText", () => {
+  it("escapes the characters that would split a property in two", () => {
+    /* A block called "Revise: kinetics, part 2" would otherwise import
+       truncated at the comma, because an unescaped comma starts a new value. */
+    expect(escapeIcsText("kinetics, part 2; lab")).toBe(
+      "kinetics\\, part 2\\; lab",
+    );
+    expect(escapeIcsText("line\nbreak")).toBe("line\\nbreak");
+  });
+});
+
+describe("generateScheduleICS", () => {
+  it("returns a valid empty calendar for an empty schedule", () => {
+    const ics = generateScheduleICS([]);
+    expect(ics).toMatch(/^BEGIN:VCALENDAR/);
+    expect(ics).toMatch(/END:VCALENDAR$/);
+    expect(ics).not.toContain("BEGIN:VEVENT");
+  });
+
+  it("writes timed events rather than all-day ones", () => {
+    /* The whole point of this export: an all-day entry lands in the strip at
+       the top of a calendar where it reads as a note, while a timed event
+       lands in the day's column next to the lecture it has to fit around. */
+    const ics = generateScheduleICS([block()]);
+    expect(ics).toContain("DTSTART:20260901T093000");
+    expect(ics).toContain("DTEND:20260901T101500");
+    expect(ics).not.toContain("VALUE=DATE");
+  });
+
+  it("uses floating local time so a block does not follow the student abroad", () => {
+    expect(generateScheduleICS([block()])).not.toMatch(/DTSTART:\d{8}T\d{6}Z/);
+  });
+
+  it("names a block by its kind", () => {
+    expect(generateScheduleICS([block({ kind: "review" })])).toContain(
+      "SUMMARY:Review:",
+    );
+    expect(generateScheduleICS([block({ kind: "exam" })])).toContain(
+      "SUMMARY:Exam prep:",
+    );
+  });
+
+  it("escapes a label that would otherwise split the SUMMARY", () => {
+    expect(generateScheduleICS([block()])).toContain("Kinetics\\, part 2");
+  });
+
+  it("says which part of a split demand a block is", () => {
+    expect(
+      generateScheduleICS([block({ part: { index: 2, total: 3 } })]),
+    ).toContain("(2/3)");
+  });
+
+  it("attaches a reminder alarm by default", () => {
+    const ics = generateScheduleICS([block()]);
+    expect(ics).toContain("BEGIN:VALARM");
+    expect(ics).toContain("TRIGGER:-PT10M");
+  });
+
+  it("honours a custom lead, and omits the alarm entirely at zero", () => {
+    expect(generateScheduleICS([block()], { reminderMins: 30 })).toContain(
+      "TRIGGER:-PT30M",
+    );
+    expect(generateScheduleICS([block()], { reminderMins: 0 })).not.toContain(
+      "BEGIN:VALARM",
+    );
+  });
+
+  it("marks blocks busy so the rest of the student's life routes around them", () => {
+    expect(generateScheduleICS([block()])).toContain("TRANSP:OPAQUE");
+  });
+
+  it("calls out a block that landed in one of the day's best hours", () => {
+    expect(generateScheduleICS([block({ energy: 0.9 })])).toContain(
+      "best hours",
+    );
+    expect(generateScheduleICS([block({ energy: 0.4 })])).not.toContain(
+      "best hours",
+    );
+  });
+
+  it("gives every event a distinct UID", () => {
+    /* A calendar client treats a duplicate UID as an update to the same
+       event, so a collision silently replaces one study block with another. */
+    const ics = generateScheduleICS([
+      block({ id: "a" }),
+      block({ id: "b", startMin: 700, endMin: 740 }),
+    ]);
+    const uids = [...ics.matchAll(/UID:(.+)/g)].map((m) => m[1]);
+    expect(uids).toHaveLength(2);
+    expect(uids[0]).not.toBe(uids[1]);
   });
 });

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useParams } from "react-router";
 import { useStudyRoom } from "./useStudyRoom";
 import { StudyDeskCard } from "./StudyDeskCard";
+import { GroupTimerBanner } from "./GroupTimerBanner";
 import { ReactionOverlay } from "./ReactionOverlay";
 import { ambianceEngine } from "./audioAmbiance";
 import type { AmbiancePreset } from "./types";
@@ -38,6 +39,12 @@ export function StudyRoomView() {
     syncWithParticipant,
     copyInviteLink,
     isCopied,
+    groupTimerState,
+    isGroupTimerHost,
+    startGroupFocus,
+    pauseGroupTimer,
+    nextGroupPhase,
+    syncMyTimerToGroup,
   } = useStudyRoom(roomId);
 
   // Chat message draft state
@@ -267,6 +274,16 @@ export function StudyRoomView() {
           ))}
         </div>
       </section>
+
+      {/* Synchronized Group Pomodoro */}
+      <GroupTimerBanner
+        timerState={groupTimerState}
+        isHost={isGroupTimerHost}
+        onStartGroupFocus={startGroupFocus}
+        onPauseGroupTimer={pauseGroupTimer}
+        onNextPhase={nextGroupPhase}
+        onSyncMyTimer={syncMyTimerToGroup}
+      />
 
       {/* Desks Grid */}
       <section className={styles.desksGrid} aria-label="Student Study Desks">

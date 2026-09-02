@@ -15,6 +15,10 @@ describe("StudyRoomView", () => {
   const mockCopyInviteLink = vi.fn().mockResolvedValue(true);
   const mockSendMessage = vi.fn().mockResolvedValue(undefined);
   const mockSendReaction = vi.fn().mockResolvedValue(undefined);
+  const mockStartGroupFocus = vi.fn();
+  const mockPauseGroupTimer = vi.fn();
+  const mockNextGroupPhase = vi.fn();
+  const mockSyncMyTimerToGroup = vi.fn();
 
   const selfParticipant: StudyParticipant = {
     id: "user-1",
@@ -78,6 +82,12 @@ describe("StudyRoomView", () => {
       copyInviteLink: mockCopyInviteLink,
       isCopied: false,
       isConnected: true,
+      groupTimerState: null,
+      isGroupTimerHost: false,
+      startGroupFocus: mockStartGroupFocus,
+      pauseGroupTimer: mockPauseGroupTimer,
+      nextGroupPhase: mockNextGroupPhase,
+      syncMyTimerToGroup: mockSyncMyTimerToGroup,
       ...studyRoomOverrides,
     });
 
@@ -260,5 +270,70 @@ describe("StudyRoomView", () => {
     renderView("/room");
 
     expect(screen.queryByRole("toolbar")).not.toBeInTheDocument();
+  });
+
+  describe("Group timer banner", () => {
+    it("offers to start a group Pomodoro when nobody is hosting one", async () => {
+      const { user } = renderView("/room", { groupTimerState: null });
+
+      const btn = screen.getByRole("button", {
+        name: /Start 25m Group Pomodoro/i,
+      });
+      await user.click(btn);
+      expect(mockStartGroupFocus).toHaveBeenCalledWith(25);
+    });
+
+    it("shows host controls only when you are the host", () => {
+      const timerState = {
+        hostUserId: "user-1",
+        hostName: "Ada Lovelace",
+        mode: "focus" as const,
+        durationMinutes: 25,
+        endsAtEpochMs: Date.now() + 1_500_000,
+        pausedRemainingMs: null,
+        isRunning: true,
+        cycleIndex: 0,
+      };
+
+      renderView("/room", {
+        groupTimerState: timerState,
+        isGroupTimerHost: true,
+      });
+
+      expect(
+        screen.getByRole("region", { name: "Synchronized Group Focus Session" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/Hosted by Ada Lovelace/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Pause/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Start Break/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("hides pause and next-phase controls from a non-host peer", () => {
+      const timerState = {
+        hostUserId: "user-2",
+        hostName: "Charles Babbage",
+        mode: "focus" as const,
+        durationMinutes: 25,
+        endsAtEpochMs: Date.now() + 1_500_000,
+        pausedRemainingMs: null,
+        isRunning: true,
+        cycleIndex: 0,
+      };
+
+      renderView("/room", {
+        groupTimerState: timerState,
+        isGroupTimerHost: false,
+      });
+
+      expect(screen.getByText(/Hosted by Charles Babbage/)).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /Pause/i }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Sync My HUD/i }),
+      ).toBeInTheDocument();
+    });
   });
 });

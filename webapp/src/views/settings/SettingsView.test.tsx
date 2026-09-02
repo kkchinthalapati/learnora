@@ -20,7 +20,7 @@ describe("SettingsView", () => {
     vi.restoreAllMocks();
   });
 
-  it("exposes all six tabs as a tablist with one selected", () => {
+  it("exposes every tab as a tablist with one selected", () => {
     renderSettings();
     const tabs = screen.getAllByRole("tab");
     expect(tabs.map((tab) => tab.getAttribute("aria-label"))).toEqual([
@@ -28,6 +28,7 @@ describe("SettingsView", () => {
       "Appearance",
       "Security",
       "Preferences",
+      "Plan",
       "Notifications",
       "Danger Zone",
     ]);

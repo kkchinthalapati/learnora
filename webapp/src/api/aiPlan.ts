@@ -33,6 +33,14 @@ import {
   formatAdherenceNote,
 } from "../lib/planAdherence";
 import { parseStoredPlan } from "../lib/planShape";
+import { availabilityRange } from "../lib/availability";
+import {
+  AVAILABILITY_RULE,
+  formatAvailabilityNote,
+  formatChronotypeNote,
+} from "../lib/availabilityPrompt";
+import { importIcsForRange } from "../lib/icsImport";
+import { isLifeContextConfigured, loadLifeContext } from "../lib/lifeContext";
 import type { Settings } from "../lib/settings";
 import type { WeeklyPlan } from "./types";
 
@@ -54,6 +62,8 @@ export function buildPlanPrompt({
   weakTopics = "None",
   weakFlashcardDecks = "None",
   lastWeekAdherence = "None",
+  availability = "None",
+  chronotype = "Unknown",
   isTriage = false,
 }: {
   weekStartISO: string;
@@ -72,6 +82,14 @@ export function buildPlanPrompt({
    *  actually happened, and which subjects fell short — "None" for a
    *  student's first-ever plan, when there's nothing to compare against. */
   lastWeekAdherence?: string;
+  /** `formatAvailabilityNote`'s per-day summary of when this student is
+   *  actually free, from their own timetable and imported calendar. "None"
+   *  when they have not set up My week, in which case the rule below is left
+   *  out too — a binding instruction about an empty list would have the model
+   *  refuse to schedule anything at all. */
+  availability?: string;
+  /** When their head works best, for placing the demanding blocks. */
+  chronotype?: string;
   /** When true, the AI is instructed to ignore long-term tasks and focus purely on
    * an emergency 80/20 survival schedule for the most urgent exam. */
   isTriage?: boolean;
@@ -96,7 +114,14 @@ Upcoming exams: ${upcomingExams}
 Recent weak topics from quizzes: ${weakTopics}
 Weak flashcard decks: ${weakFlashcardDecks}
 Last week's adherence: ${lastWeekAdherence}
-Prioritize subjects with closer/harder exams, tasks with closer due dates, and topics the student is weak on. If last week shows a subject was under-studied, ease it back in with shorter blocks rather than repeating the exact same plan. Keep daily blocks realistic (30-90 minutes each, a couple of blocks per day at most). If there is no exam/task data, suggest light general review blocks.`;
+When the student is actually free: ${availability}
+When their head works best: ${chronotype}
+${
+  availability === "None"
+    ? ""
+    : `${AVAILABILITY_RULE}
+`
+}Prioritize subjects with closer/harder exams, tasks with closer due dates, and topics the student is weak on. If last week shows a subject was under-studied, ease it back in with shorter blocks rather than repeating the exact same plan. Keep daily blocks realistic (30-90 minutes each, a couple of blocks per day at most). If there is no exam/task data, suggest light general review blocks.`;
 }
 
 /** The workspace summary both the planner and the chat feed to the model.
@@ -174,9 +199,35 @@ export async function loadAdaptiveContext(monday: Date): Promise<{
   return { weakTopics, weakFlashcardDecks, lastWeekAdherence };
 }
 
+/** The student's own week, for the days the plan will cover.
+ *
+ * Synchronous and local — life context lives in localStorage and the calendar
+ * import never leaves the device, so unlike every other context loader here
+ * there is nothing to await and nothing to fail. A student who has not set up
+ * My week gets "None" for both, and `buildPlanPrompt` drops the scheduling
+ * rule accordingly rather than binding the model to an empty list. */
+export function loadLifeAvailabilityContext(
+  weekStartISO: string,
+  dayCount: number = 7,
+): { availability: string; chronotype: string } {
+  const ctx = loadLifeContext();
+  if (!isLifeContextConfigured(ctx)) {
+    return { availability: "None", chronotype: "Unknown" };
+  }
+  const calendar = ctx.importedIcs
+    ? importIcsForRange(ctx.importedIcs, weekStartISO, dayCount).events
+    : [];
+  return {
+    availability: formatAvailabilityNote(
+      availabilityRange(ctx, weekStartISO, dayCount, calendar),
+    ),
+    chronotype: formatChronotypeNote(ctx.chronotype),
+  };
+}
+
 export async function generateWeeklyPlan(
   settings: Settings,
-  isTriage: boolean = false
+  isTriage: boolean = false,
 ): Promise<WeeklyPlan> {
   const todayStr = localDateStr();
   const monday = mondayOfWeek();
@@ -189,6 +240,8 @@ export async function generateWeeklyPlan(
     loadWorkspaceContext(todayStr),
     loadAdaptiveContext(monday),
   ]);
+  const { availability, chronotype } =
+    loadLifeAvailabilityContext(weekStartISO);
 
   const { text } = await callEdge({
     history: [
@@ -202,6 +255,8 @@ export async function generateWeeklyPlan(
           weakTopics,
           weakFlashcardDecks,
           lastWeekAdherence,
+          availability,
+          chronotype,
           isTriage,
         }),
       },

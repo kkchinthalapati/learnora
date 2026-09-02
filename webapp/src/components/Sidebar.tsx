@@ -78,6 +78,15 @@ const SECTIONS: NavSection[] = [
          AI experiments sat in the rail as top-level destinations. Both already
          resolve to the "plan" destination in primaryDestinationForPath(), so
          they highlight as part of Plan rather than competing with it. */
+      /* "My week" is the life side of the planner — the student's timetable,
+         not their study plan — so it sits next to Plan and resolves to the
+         same destination rather than competing with it in the rail. */
+      {
+        to: "/my-week",
+        icon: "calendar-week",
+        label: "My week",
+        destination: "plan",
+      },
       {
         to: "/tasks",
         icon: "list-checks",
@@ -100,6 +109,16 @@ const SECTIONS: NavSection[] = [
         to: "/analytics",
         icon: "activity",
         label: "Progress",
+        destination: "progress",
+      },
+      /* Trajectory sits under Progress rather than beside it: they answer the
+         same question at two different tenses — what has happened, and what is
+         going to. Both resolve to the "progress" destination so the rail
+         highlights one section, not two. */
+      {
+        to: "/trajectory",
+        icon: "target",
+        label: "Trajectory",
         destination: "progress",
       },
     ],
@@ -237,8 +256,7 @@ export function Sidebar({
 }) {
   const { pathname } = useLocation();
   const { openCreateModal } = useCreateModal();
-  const { data: dueCount = 0, isPending: duePending } =
-    useFlashcardsDueCount();
+  const { data: dueCount = 0, isPending: duePending } = useFlashcardsDueCount();
   const { data: incomingRequestCount = 0, isPending: requestsPending } =
     useIncomingFriendRequestCount();
   const t = useTranslation();

@@ -36,6 +36,9 @@ export interface StudyParticipant {
   totalTime?: number;
   streak?: number;
   subjectColor?: string | null;
+  /** Set only on the presence entry of whoever is hosting a group Pomodoro;
+   *  null/absent otherwise. */
+  groupTimer?: GroupTimerSyncPayload | null;
 }
 
 export interface RoomReaction {
@@ -67,6 +70,28 @@ export interface TimerSyncPayload {
   targetMinutes: number;
   mode: "Focus" | "Break" | "Flow";
   targetEndTime: number | null;
+}
+
+export type GroupTimerMode = "focus" | "short_break" | "long_break";
+
+/** The host's shared Pomodoro cycle, as opposed to TimerSyncPayload's
+ *  one-shot "I started a timer, want to join?" broadcast. Carried in the
+ *  host's own presence payload (so a late joiner gets it for free from
+ *  presence sync) and also broadcast on every change for low-latency
+ *  updates to peers already in the room. */
+export interface GroupTimerSyncPayload {
+  hostUserId: string;
+  hostName: string;
+  mode: GroupTimerMode;
+  durationMinutes: number;
+  /** Countdown target while running; null while paused. */
+  endsAtEpochMs: number | null;
+  /** Remaining time frozen at the moment of pause. Authoritative only while
+   *  isRunning is false — ignored while running, where endsAtEpochMs drives
+   *  the countdown instead. */
+  pausedRemainingMs: number | null;
+  isRunning: boolean;
+  cycleIndex: number;
 }
 
 export interface RoomMessage {
@@ -216,6 +241,61 @@ export function sanitizeTimerSync(payload: unknown): TimerSyncPayload | null {
   };
 }
 
+/** Bounds on a hosted group timer's block length. One minute to three
+ *  hours — long enough for a deep-work block, short enough that a stray
+ *  value can't leave a banner counting down for a week. */
+export const MIN_GROUP_TIMER_MINUTES = 1;
+export const MAX_GROUP_TIMER_MINUTES = 180;
+
+/** Normalises a group-timer payload (carried on a host's presence entry, and
+ *  broadcast on every change), or returns null to drop it. */
+export function sanitizeGroupTimer(payload: unknown): GroupTimerSyncPayload | null {
+  if (!isRecord(payload)) return null;
+
+  const hostUserId = asString(payload.hostUserId, 64);
+  if (!hostUserId) return null;
+
+  const rawDuration = asFiniteNumber(payload.durationMinutes, NaN);
+  if (!Number.isFinite(rawDuration)) return null;
+  const durationMinutes = Math.min(
+    MAX_GROUP_TIMER_MINUTES,
+    Math.max(MIN_GROUP_TIMER_MINUTES, Math.round(rawDuration)),
+  );
+
+  const mode: GroupTimerMode =
+    payload.mode === "short_break" || payload.mode === "long_break"
+      ? payload.mode
+      : "focus";
+
+  const endsAtEpochMs =
+    typeof payload.endsAtEpochMs === "number" &&
+    Number.isFinite(payload.endsAtEpochMs)
+      ? payload.endsAtEpochMs
+      : null;
+
+  const pausedRemainingMs =
+    typeof payload.pausedRemainingMs === "number" &&
+    Number.isFinite(payload.pausedRemainingMs)
+      ? Math.max(0, payload.pausedRemainingMs)
+      : null;
+
+  const cycleIndex = Math.max(
+    0,
+    Math.round(asFiniteNumber(payload.cycleIndex, 0)),
+  );
+
+  return {
+    hostUserId,
+    hostName: asString(payload.hostName, MAX_NAME_LENGTH) || "Room Host",
+    mode,
+    durationMinutes,
+    endsAtEpochMs,
+    pausedRemainingMs,
+    isRunning: payload.isRunning === true,
+    cycleIndex,
+  };
+}
+
 /** Clamps the free-text fields of a presence entry. Presence keys are set by
  *  the channel rather than the payload, so the identity here is already the
  *  peer's own — only the strings it renders need bounding. */
@@ -250,6 +330,7 @@ export function sanitizeParticipant(
     task,
     activeSubject: subject || null,
     subject: subject || null,
+    groupTimer: sanitizeGroupTimer(participant.groupTimer),
   };
 }
 

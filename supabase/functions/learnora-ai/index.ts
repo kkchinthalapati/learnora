@@ -451,20 +451,40 @@ function safetyRefusalResponse(mode: string | undefined, headers: Record<string,
    ========================================================================= */
 
 const RATE_LIMIT_MAX = Number(Deno.env.get("AI_RATE_LIMIT_MAX")) || 30;
+/* Pro accounts get a higher burst ceiling *and* a daily allowance the free
+   tier does not have. The burst limit above exists to protect Learnora's
+   shared provider quota from a runaway client; the daily allowance below is
+   the actual product boundary, and the two are separate on purpose — raising
+   one to sell a plan should never quietly weaken the other.
+
+   Kept in step with QUOTAS in webapp/src/lib/entitlements.ts. The client shows
+   the numbers, this enforces them; a value in the browser is not a payment. */
+const RATE_LIMIT_MAX_PRO = Number(Deno.env.get("AI_RATE_LIMIT_MAX_PRO")) || 90;
+const DAILY_LIMIT_FREE = Number(Deno.env.get("AI_DAILY_LIMIT_FREE")) || 25;
+const DAILY_LIMIT_PRO = Number(Deno.env.get("AI_DAILY_LIMIT_PRO")) || 400;
+
+const DAILY_LIMIT_MESSAGE_FREE =
+  "You've used today's AI generations on the free plan. They reset at midnight — or Learnora Pro raises the limit.";
+const DAILY_LIMIT_MESSAGE_PRO =
+  "You've hit today's generation limit. It resets at midnight.";
 const RATE_LIMIT_WINDOW_MS = (Number(Deno.env.get("AI_RATE_LIMIT_WINDOW_MINUTES")) || 10) * 60_000;
 
 const RATE_LIMIT_MESSAGE =
   "You're sending requests faster than I can keep up with. Wait a few minutes and try again.";
 
-function rateLimitResponse(mode: string | undefined, headers: Record<string, string>): Response {
+function rateLimitResponse(
+  mode: string | undefined,
+  headers: Record<string, string>,
+  message: string = RATE_LIMIT_MESSAGE,
+): Response {
   if (isJsonMode(mode)) {
     return new Response(
-      JSON.stringify({ error: RATE_LIMIT_MESSAGE, refused: true }),
+      JSON.stringify({ error: message, refused: true }),
       { status: 429, headers },
     );
   }
   return new Response(
-    JSON.stringify({ text: RATE_LIMIT_MESSAGE, refused: true, modelUsed: "rate-limit" }),
+    JSON.stringify({ text: message, refused: true, modelUsed: "rate-limit" }),
     { status: 429, headers },
   );
 }
@@ -477,12 +497,41 @@ function rateLimitResponse(mode: string | undefined, headers: Record<string, str
  * with it trades one small risk (a burst slips through while the table is
  * unreachable) for a much worse one (AI goes fully offline because a
  * side-table had a bad moment). */
+type RateLimitVerdict = { allowed: true } | { allowed: false; message: string };
+
+/** Is this caller on Pro right now?
+ *
+ * Read through the caller's own JWT'd client, so RLS guarantees they can only
+ * see their own row and there is no user id to get wrong. Fails to "free" on
+ * any error, which is the safe direction: the worst case is a paying user
+ * briefly held to the free ceiling, rather than the ceiling not existing. */
+async function isProUser(supabase: any, userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("plan, plan_status")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error || !data) return false;
+    return (
+      data.plan === "pro" &&
+      ["active", "trialing", "past_due"].includes(data.plan_status)
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function checkAndLogRateLimit(
   supabase: any,
   userId: string,
   mode: string | undefined,
-): Promise<boolean> {
+): Promise<RateLimitVerdict> {
   try {
+    const pro = await isProUser(supabase, userId);
+    const burstMax = pro ? RATE_LIMIT_MAX_PRO : RATE_LIMIT_MAX;
+    const dailyMax = pro ? DAILY_LIMIT_PRO : DAILY_LIMIT_FREE;
+
     const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
     const { count, error: countError } = await supabase
       .from("ai_request_log")
@@ -492,12 +541,32 @@ async function checkAndLogRateLimit(
 
     if (countError) {
       console.error("[rate-limit] count query failed, failing open", countError);
-      return true;
+      return { allowed: true };
     }
 
-    if ((count ?? 0) >= RATE_LIMIT_MAX) {
-      console.warn("[rate-limit] blocked", { userId, mode, count });
-      return false;
+    if ((count ?? 0) >= burstMax) {
+      console.warn("[rate-limit] burst blocked", { userId, mode, count, pro });
+      return { allowed: false, message: RATE_LIMIT_MESSAGE };
+    }
+
+    /* The daily allowance, counted from midnight UTC. UTC rather than the
+       student's own timezone because this is a machine boundary, not a
+       calendar promise — the alternative is reading profiles.timezone and
+       explaining to a traveller why their allowance reset twice. */
+    const midnight = new Date();
+    midnight.setUTCHours(0, 0, 0, 0);
+    const { count: today, error: dailyError } = await supabase
+      .from("ai_request_log")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", midnight.toISOString());
+
+    if (!dailyError && (today ?? 0) >= dailyMax) {
+      console.warn("[rate-limit] daily blocked", { userId, mode, today, pro });
+      return {
+        allowed: false,
+        message: pro ? DAILY_LIMIT_MESSAGE_PRO : DAILY_LIMIT_MESSAGE_FREE,
+      };
     }
 
     const { error: insertError } = await supabase
@@ -507,10 +576,10 @@ async function checkAndLogRateLimit(
       console.error("[rate-limit] log insert failed (request still allowed)", insertError);
     }
 
-    return true;
+    return { allowed: true };
   } catch (err) {
     console.error("[rate-limit] unexpected failure, failing open", err);
-    return true;
+    return { allowed: true };
   }
 }
 
@@ -618,9 +687,9 @@ Deno.serve(async (req) => {
         // resource. Checked (and logged) ahead of the safety screen so a
         // flood of unsafe-topic probes counts against the sender's budget
         // too, rather than getting a free pass because they were refused.
-        const withinRateLimit = await checkAndLogRateLimit(supabase, user.id, mode);
-        if (!withinRateLimit) {
-            return rateLimitResponse(mode, jsonHeaders);
+        const rateLimit = await checkAndLogRateLimit(supabase, user.id, mode);
+        if (!rateLimit.allowed) {
+            return rateLimitResponse(mode, jsonHeaders, rateLimit.message);
         }
 
         // Screen before spending a token. `history` carries the workspace

@@ -50,6 +50,41 @@ smoothing the newer surfaces, not adding another pillar.
   were due, and it had no test file to catch it. Fixed to check `isPending`
   explicitly; added `TasksCard.test.tsx`.
 
+## Shipped since 08-24: Life Sync (2026-09-02)
+
+The largest gap this file never named: Learnora knew everything about a
+student's *studying* and nothing about their *life*, so every plan it made
+was a wish rather than a schedule. `/my-week` now captures the timetable,
+sleep window, honest daily capacity and chronotype, imports a real `.ics`
+calendar (on-device, never uploaded), and a deterministic scheduler places
+due cards, tasks, exam prep and weak topics into the windows that are
+actually free — hardest work in the best hours, deadlines never moved.
+Surfaces as `TodayTimelineCard` on the dashboard, block reminders, a timed
+`.ics` export with alarms, and availability context in the AI weekly plan.
+
+See `LIFE_SYNC.md` for the design, the deliberate limits, and the four known
+gaps worth closing next (in-tab-only reminders, no cross-device sync of the
+life context, download-not-subscription export, and no a11y pass on
+`/my-week` yet).
+
+## Shipped 2026-09-02: Trajectory, and the Pro plan
+
+**Trajectory** (`TRAJECTORY.md`) is the answer to "why are we better than
+NotebookLM / Notion / Turbo AI". They are all artifact factories — they optimise
+the material. Trajectory owns the outcome: it projects every topic forward to
+exam day under real memory decay, against the hours Life Sync says the student
+genuinely has, and reports the grade they are heading for, what doing nothing
+costs, and what the next hour is worth per topic in points. It is only possible
+because we hold both a memory model and a time model, and that combination is
+the moat — not the chart.
+
+**Pro** (`STRIPE_SETUP.md`) is built end to end and switches on when the Stripe
+keys are set: entitlements table, plan columns with a trigger that stops any
+client granting itself Pro, checkout + webhook edge functions, `<ProGate>`,
+paywall, Settings → Plan, and plan-aware server-side AI quotas. Nothing that
+already shipped free became paid — that rule is written into
+`lib/entitlements.ts` where it can be read before it is broken.
+
 ## Quick wins (small, concrete, high value-per-effort)
 
 - **Study Circle framing is still leaderboard-only.** `StudyCircleCard` +

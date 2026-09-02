@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { Modal } from "../../components/Modal";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
+import type { IconName } from "../../components/icons";
 import { Storage } from "../../lib/storage";
 
 export const DASHBOARD_LAYOUT_KEY = "learnora_dashboard_layout_v2";
 
 export interface DashboardLayoutPreferences {
   visibleSections: {
+    todayTimeline: boolean;
     activityRings: boolean;
     recentNotebooks: boolean;
     priorities: boolean;
@@ -19,6 +21,7 @@ export interface DashboardLayoutPreferences {
 
 export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayoutPreferences = {
   visibleSections: {
+    todayTimeline: true,
     activityRings: true,
     recentNotebooks: true,
     priorities: true,
@@ -29,10 +32,23 @@ export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayoutPreferences = {
 };
 
 export function loadDashboardLayout(): DashboardLayoutPreferences {
-  return Storage.get<DashboardLayoutPreferences>(
+  const stored = Storage.get<Partial<DashboardLayoutPreferences>>(
     DASHBOARD_LAYOUT_KEY,
     DEFAULT_DASHBOARD_LAYOUT,
   );
+  /* Merged onto the defaults rather than returned as-is. A student who has
+     ever opened this modal has a stored object listing the sections that
+     existed *then*, so every section added afterwards reads as `undefined` —
+     which is falsy, so a new card ships hidden for exactly the people who
+     already use the dashboard, and visible only to new accounts. */
+  return {
+    ...DEFAULT_DASHBOARD_LAYOUT,
+    ...stored,
+    visibleSections: {
+      ...DEFAULT_DASHBOARD_LAYOUT.visibleSections,
+      ...stored?.visibleSections,
+    },
+  };
 }
 
 export function saveDashboardLayout(layout: DashboardLayoutPreferences): void {
@@ -48,8 +64,13 @@ interface DashboardCustomizeModalProps {
 
 const SECTION_DESCRIPTIONS: Record<
   keyof DashboardLayoutPreferences["visibleSections"],
-  { title: string; desc: string; icon: string }
+  { title: string; desc: string; icon: IconName }
 > = {
+  todayTimeline: {
+    title: "Today's Timeline",
+    desc: "Your study blocks placed around your real lectures, shifts and commitments",
+    icon: "calendar",
+  },
   activityRings: {
     title: "Daily Activity Rings",
     desc: "Apple-style 3-ring focus, flashcards, and task goal visualizer",
@@ -58,7 +79,7 @@ const SECTION_DESCRIPTIONS: Record<
   recentNotebooks: {
     title: "Recent Notebooks Shelf",
     desc: "Quick access to your active study notebooks and grounded research",
-    icon: "book",
+    icon: "folder",
   },
   priorities: {
     title: "Priorities Region",
@@ -73,7 +94,7 @@ const SECTION_DESCRIPTIONS: Record<
   progressStreak: {
     title: "Progress, Streak & Memory Decay",
     desc: "Study streak calendar, focus sparklines, and forgetting curve health",
-    icon: "trending-up",
+    icon: "activity",
   },
   sessionsCommunity: {
     title: "Sessions & Community",
@@ -171,7 +192,7 @@ export function DashboardCustomizeModal({
                     color: isVisible ? "var(--primary)" : "var(--text-muted)",
                   }}
                 >
-                  <Icon name={info.icon as unknown as any} size={16} />
+                  <Icon name={info.icon} size={16} />
                 </span>
                 <div>
                   <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>

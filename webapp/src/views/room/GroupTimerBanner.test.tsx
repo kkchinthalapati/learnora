@@ -35,6 +35,7 @@ describe("GroupTimerBanner", () => {
       mode: "focus" as const,
       durationMinutes: 25,
       endsAtEpochMs: Date.now() + 1500 * 1000,
+      pausedRemainingMs: null,
       isRunning: true,
       cycleIndex: 1,
     };
@@ -58,5 +59,38 @@ describe("GroupTimerBanner", () => {
     const user = userEvent.setup();
     await user.click(syncBtn);
     expect(onSync).toHaveBeenCalled();
+  });
+
+  /* Regression: pausing used to reset the displayed clock to 00:00 instead
+     of freezing it, because the countdown effect zeroed secondsRemaining
+     whenever isRunning was false rather than reading pausedRemainingMs. */
+  it("freezes the clock at the paused remainder instead of showing 00:00", () => {
+    const timerState = {
+      hostUserId: "host-1",
+      hostName: "Alice",
+      mode: "focus" as const,
+      durationMinutes: 25,
+      endsAtEpochMs: null,
+      pausedRemainingMs: 90_000,
+      isRunning: false,
+      cycleIndex: 1,
+    };
+
+    render(
+      <GroupTimerBanner
+        timerState={timerState}
+        isHost={true}
+        onStartGroupFocus={() => {}}
+        onPauseGroupTimer={() => {}}
+        onNextPhase={() => {}}
+        onSyncMyTimer={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("01:30")).toBeInTheDocument();
+    expect(screen.getByText("Paused")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Resume/i }),
+    ).toBeInTheDocument();
   });
 });

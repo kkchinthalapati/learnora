@@ -58,6 +58,15 @@ const LazyQuizReview = lazy(async () => ({
 const LazyReviewView = lazy(async () => ({
   default: (await import("./views/review/ReviewView")).ReviewView,
 }));
+/* Life Sync's setup screen: a long form nobody opens twice a week, and it
+   pulls in the whole availability/scheduling engine. Deferred for the same
+   reason the studio and the quiz runner are. */
+const LazyMyWeekView = lazy(async () => ({
+  default: (await import("./views/lifesync/MyWeekView")).MyWeekView,
+}));
+const LazyTrajectoryView = lazy(async () => ({
+  default: (await import("./views/trajectory/TrajectoryView")).TrajectoryView,
+}));
 const LazyStudyRoomView = lazy(async () => ({
   default: (await import("./views/room/StudyRoomView")).StudyRoomView,
 }));
@@ -153,6 +162,14 @@ export function AppRoutes() {
           />
           <Route path="/plan" element={<PlanView />} />
           <Route
+            path="/my-week"
+            element={
+              <DeferredView>
+                <LazyMyWeekView />
+              </DeferredView>
+            }
+          />
+          <Route
             path="/quiz/:quizId"
             element={
               <DeferredView>
@@ -202,6 +219,14 @@ export function AppRoutes() {
             }
           />
           <Route path="/analytics" element={<StudyAnalyticsView />} />
+          <Route
+            path="/trajectory"
+            element={
+              <DeferredView>
+                <LazyTrajectoryView />
+              </DeferredView>
+            }
+          />
           <Route path="/graph" element={<ConceptGraphView />} />
           <Route path="/debugger" element={<CognitiveDebuggerView />} />
           <Route path="/premortem" element={<PreMortemHubView />} />

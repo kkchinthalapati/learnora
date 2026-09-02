@@ -39,6 +39,7 @@ import {
   type ReviewResult,
 } from "./session";
 import { dueCardsFrom, nextReviewState } from "./srs";
+import { recordCardReviewedToday } from "../../lib/achievements";
 import styles from "./review.module.css";
 
 /* Flashcard Review — ports `startReview` (js/router.js:640-792) and the
@@ -911,6 +912,7 @@ function ReviewSession({
           },
         );
         setResults((current) => [...current, { card, quality }]);
+        recordCardReviewedToday();
       }
       aiGradeInFlight.current = false;
       setIndex((i) => i + 1);

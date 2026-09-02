@@ -378,8 +378,7 @@ export function generatePrepRoadmap(
     {
       id: `${exam.id}-p2-2`,
       title: `Do short quizzes to find your weak spots`,
-      description:
-        "Ten quick questions on each of the main chapters.",
+      description: "Ten quick questions on each of the main chapters.",
       dueDate: p2EndDate,
       daysBeforeExam: Math.max(0, days - p2EndOffset),
       phase: 2,
@@ -413,7 +412,8 @@ export function generatePrepRoadmap(
     {
       id: `${exam.id}-p3-2`,
       title: `Do a full timed mock`,
-      description: "Sit a full paper under proper exam conditions — timed, no notes.",
+      description:
+        "Sit a full paper under proper exam conditions — timed, no notes.",
       dueDate: p3EndDate,
       daysBeforeExam: Math.max(0, days - p3EndOffset),
       phase: 3,
@@ -670,7 +670,8 @@ export function calculateExamReadiness(
 
   let summary = `You have completed ${hoursStudied}h of ${targetHours}h targeted study.`;
   if (level === "ready") {
-    summary += " Really strong prep. Keep it ticking over with a short review each day.";
+    summary +=
+      " Really strong prep. Keep it ticking over with a short review each day.";
   } else if (level === "on_track") {
     summary += ` You're on pace. Aim for ${recommendedDailyHours}h a day until the exam.`;
   } else if (level === "critical") {
@@ -732,7 +733,8 @@ export function generateExamStudyMilestones(
       targetDate: formatDate(m2Date),
       targetHours: Math.round(targetHours * 0.5),
       completed: now >= m2Date,
-      description: "Work through the chapters and turn your notes into flashcards.",
+      description:
+        "Work through the chapters and turn your notes into flashcards.",
     },
     {
       id: "m-3",
@@ -748,7 +750,8 @@ export function generateExamStudyMilestones(
       targetDate: formatDate(m4Date),
       targetHours: targetHours,
       completed: now >= m4Date,
-      description: "A light run over the formulas, diagrams and summaries you find hardest.",
+      description:
+        "A light run over the formulas, diagrams and summaries you find hardest.",
     },
   ];
 }
@@ -863,4 +866,34 @@ export function recommendRevisionSchedule(
   }
 
   return plan;
+}
+
+/** The subject folder an exam most likely belongs to.
+ *
+ * Exams carry a free-text name and no folder id, so the link has to be
+ * inferred from the two strings. Exact match first, then containment either
+ * way ("Chemistry Paper 1" ↔ "Chemistry"), which is loose enough to catch how
+ * students actually name things and strict enough not to attach a Biology
+ * folder to a Physics exam.
+ *
+ * Extracted from `useExamReadiness`, which had this inline, so the Trajectory
+ * engine resolves an exam to a folder exactly the same way rather than
+ * disagreeing with the readiness score on the same screen.
+ */
+export function matchExamFolder<T extends { id: string; name: string }>(
+  exam: Exam | null | undefined,
+  folders: T[] | null | undefined,
+): T | null {
+  if (!exam || !folders || folders.length === 0) return null;
+  const name = exam.exam_name.toLowerCase().trim();
+  return (
+    folders.find((f) => {
+      const folderName = f.name.toLowerCase().trim();
+      return (
+        folderName === name ||
+        name.includes(folderName) ||
+        folderName.includes(name)
+      );
+    }) ?? null
+  );
 }

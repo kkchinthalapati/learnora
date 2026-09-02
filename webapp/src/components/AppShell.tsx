@@ -3,6 +3,7 @@ import { Outlet } from "react-router";
 import { Header } from "./Header";
 import { OfflineBanner } from "./OfflineBanner";
 import { Sidebar } from "./Sidebar";
+import { useBlockReminders } from "../hooks/useBlockReminders";
 import styles from "./AppShell.module.css";
 
 const MOBILE_BREAKPOINT = 768;
@@ -14,6 +15,12 @@ function checkIsMobile(): boolean {
 }
 
 export function AppShell() {
+  /* Mounted on the shell, not the dashboard card that renders the same
+     schedule: a reminder that only fires while the student happens to be
+     looking at their dashboard is a reminder for the one case they did not
+     need one. */
+  useBlockReminders();
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(() => checkIsMobile());

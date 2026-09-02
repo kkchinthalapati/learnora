@@ -9,6 +9,7 @@ import { useSessionsSince } from "./useSessions";
 import {
   computeExamReadiness,
   generatePrepRoadmap,
+  matchExamFolder,
   type ExamReadiness,
   type PrepMilestonePhase,
 } from "../lib/examReadiness";
@@ -41,18 +42,10 @@ export function useExamReadiness(
     quizAttemptsPending ||
     sessionsPending;
 
-  const matchingFolder = useMemo(() => {
-    if (!exam || !folders || folders.length === 0) return null;
-    const name = exam.exam_name.toLowerCase().trim();
-    return (
-      folders.find(
-        (f) =>
-          f.name.toLowerCase().trim() === name ||
-          name.includes(f.name.toLowerCase().trim()) ||
-          f.name.toLowerCase().trim().includes(name),
-      ) ?? null
-    );
-  }, [exam, folders]);
+  const matchingFolder = useMemo(
+    () => matchExamFolder(exam, folders),
+    [exam, folders],
+  );
 
   const scopedData = useMemo(() => {
     // An exam without a matching subject folder must not inherit account-wide

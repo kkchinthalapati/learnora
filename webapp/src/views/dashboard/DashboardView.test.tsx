@@ -588,6 +588,54 @@ describe("DashboardView", () => {
     });
   });
 
+  describe("Customize dashboard", () => {
+    it("hides a section once toggled off and remembers it on reload", async () => {
+      const user = userEvent.setup();
+      serveDashboard({ tasks: [task()] });
+      renderDashboard();
+
+      expect(
+        await screen.findByRole("heading", { name: "Priorities" }),
+      ).toBeInTheDocument();
+
+      await user.click(
+        screen.getByRole("button", { name: "Customize dashboard layout" }),
+      );
+      const dialog = await screen.findByRole("dialog", {
+        name: "Customize Dashboard",
+      });
+      const prioritiesRow = within(dialog)
+        .getByText("Priorities Region")
+        .closest("div")!.parentElement!.parentElement!;
+      await user.click(
+        within(prioritiesRow).getByRole("button", { name: "Visible" }),
+      );
+      await user.click(
+        within(dialog).getByRole("button", { name: "Save Layout" }),
+      );
+
+      expect(
+        screen.queryByRole("heading", { name: "Priorities" }),
+      ).not.toBeInTheDocument();
+
+      // Reload: preference persisted through DashboardCustomizeModal's storage.
+      const { unmount } = renderDashboard();
+      expect(
+        screen.queryAllByRole("heading", { name: "Priorities" }),
+      ).toHaveLength(0);
+      unmount();
+    });
+
+    it("shows the daily activity rings by default", async () => {
+      serveDashboard();
+      renderDashboard();
+
+      expect(
+        await screen.findByRole("region", { name: "Daily Activity Rings" }),
+      ).toBeInTheDocument();
+    });
+  });
+
   describe("Adaptive health widget", () => {
     it("renders the revision-health widget and navigates to analytics", async () => {
       serveDashboard({

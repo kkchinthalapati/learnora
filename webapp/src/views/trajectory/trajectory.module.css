@@ -1,0 +1,421 @@
+/* Trajectory — laid out as an argument, not a dashboard: the number, then the
+ * evidence for it, then the one decision to make about it. */
+
+.view {
+  max-width: 900px;
+  margin: 0 auto;
+  padding-bottom: var(--s-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.sectionTitle {
+  margin: 0 0 var(--s-2);
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  color: var(--text);
+}
+
+.sectionCopy {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.link {
+  font-weight: 600;
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.link:hover {
+  color: var(--accent-hover);
+}
+
+.footNote {
+  max-width: 68ch;
+  margin: 0;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+/* --- Exam picker ------------------------------------------------------ */
+
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.pickerBtn {
+  min-height: 36px;
+  padding: 0 var(--s-4);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pickerBtn:hover {
+  background: var(--surface-hover);
+}
+
+.pickerBtn:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+.pickerBtnOn {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+/* --- Hero ------------------------------------------------------------- */
+
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-5);
+}
+
+.heroMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.heroEyebrow {
+  composes: overline from "../../styles/text.module.css";
+  color: var(--text-muted);
+}
+
+.heroScore {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-head);
+  font-size: var(--fs-stat-lg);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.heroOutOf {
+  color: var(--text-faint);
+  font-size: var(--fs-xl);
+  font-weight: 500;
+}
+
+.heroBand {
+  max-width: 42ch;
+  margin: var(--s-2) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.verdict {
+  flex: 1 1 16rem;
+  margin: 0;
+  padding: var(--s-4);
+  border-radius: var(--r-md, 8px);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.good {
+  background: var(--success-soft);
+  color: var(--success-text);
+}
+
+.warn {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+
+.bad {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+}
+
+/* --- Chart ------------------------------------------------------------ */
+
+.chartFigure {
+  margin: 0;
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  height: 200px;
+  overflow: visible;
+}
+
+.axisLine {
+  stroke: var(--glass-border);
+  stroke-width: 1;
+}
+
+.axisLabel {
+  fill: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+.targetLine {
+  stroke: var(--text-faint);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+
+/* The gap between the two lines is the message, so it is filled rather than
+   left as whitespace the eye has to measure. */
+.gapArea {
+  fill: var(--accent);
+  opacity: 0.14;
+}
+
+.projectedLine {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.driftLine {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+  stroke-linecap: round;
+}
+
+.projectedDot {
+  fill: var(--accent);
+}
+
+.driftDot {
+  fill: var(--danger);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-4);
+  margin-top: var(--s-3);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+.swatch {
+  width: 14px;
+  height: 3px;
+  border-radius: 999px;
+}
+
+.swatchProjected {
+  background: var(--accent);
+}
+
+.swatchDrift {
+  background: var(--danger);
+}
+
+.swatchTarget {
+  background: var(--text-faint);
+}
+
+/* --- Deltas ----------------------------------------------------------- */
+
+.deltaRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--s-4);
+}
+
+.delta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md, 8px);
+  background: var(--surface-2);
+}
+
+.deltaLabel {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.deltaBad,
+.deltaGood,
+.deltaWarn {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.deltaBad {
+  color: var(--danger-text);
+}
+
+.deltaGood {
+  color: var(--success-text);
+}
+
+.deltaWarn {
+  color: var(--warning-text);
+}
+
+.deltaNote {
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
+/* --- Interventions ---------------------------------------------------- */
+
+.headline {
+  margin: 0;
+  padding: var(--s-4);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-md, 8px) var(--r-md, 8px) 0;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+}
+
+.interventions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.intervention {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(60px, 1fr) auto auto;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-3);
+  border-radius: var(--r-md, 8px);
+  background: var(--surface-2);
+}
+
+.interventionMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.interventionLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.risk {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.interventionMeta {
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+.bar {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-hover);
+  overflow: hidden;
+}
+
+.bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--fill, 0%);
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.perHour {
+  color: var(--accent-text);
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.perHourUnit {
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .intervention {
+    grid-template-columns: 1fr auto;
+    row-gap: var(--s-2);
+  }
+
+  .bar {
+    grid-column: 1 / -1;
+  }
+}
