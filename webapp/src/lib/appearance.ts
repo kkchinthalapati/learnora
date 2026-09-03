@@ -309,6 +309,18 @@ export function persistAppearanceDefaults(): void {
   Storage.set("learnora_size", APPEARANCE_DEFAULTS.size);
 }
 
+/* Clear all appearance settings from localStorage (used on logout/user switch). */
+export function clearAppearance(): void {
+  Storage.remove("learnora_mode");
+  Storage.remove(THEME_KEY);
+  Storage.remove("learnora_accent");
+  Storage.remove("learnora_sidebar");
+  Storage.remove("learnora_bg");
+  Storage.remove("learnora_font");
+  Storage.remove("learnora_size");
+  Storage.remove(CUSTOM_THEME_KEY);
+}
+
 /* ------------------------------------------------------------------ *
  * Custom-theme mutations (pure — each returns the next theme)
  * ------------------------------------------------------------------ */

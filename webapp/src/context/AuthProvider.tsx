@@ -9,6 +9,7 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { queryClient } from "../lib/queryClient";
+import { clearAppearance } from "../lib/appearance";
 import { AuthContext } from "./auth";
 
 /* Port of Auth.getSession / Auth.logout from js/api.js.
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const nextUserId = nextSession?.user.id ?? null;
     if (lastUserId.current !== undefined && lastUserId.current !== nextUserId) {
       queryClient.clear();
+      clearAppearance();
     }
     lastUserId.current = nextUserId;
     setSession(nextSession);

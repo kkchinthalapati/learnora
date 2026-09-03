@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import {
   APPEARANCE_DEFAULTS,
   applyAppearanceToDom,
+  clearAppearance,
   defaultCustomTheme,
   normalizeCustomTheme,
   persistAppearance,
@@ -14,6 +15,7 @@ import {
 } from "../lib/appearance";
 import { Storage } from "../lib/storage";
 import { CUSTOM_THEME_KEY } from "../lib/appearance";
+import { useAuth } from "./auth";
 import { AppearanceContext, type AppearanceApi } from "./appearance";
 
 /* Ports js/ui.js's `_activeAppearanceState` + initTheme (:698-742, :1028-1063).
@@ -28,6 +30,7 @@ import { AppearanceContext, type AppearanceApi } from "./appearance";
  * style the whole app, not only the Settings route. */
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [appearance, setAppearanceState] = useState<AppearanceState>(() =>
     readStoredAppearance(),
   );
@@ -37,6 +40,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   /* Bumped on every save/reset so `dirty` recomputes against fresh storage —
      reading localStorage during render would otherwise be invisible to React. */
   const [savedAt, setSavedAt] = useState(0);
+  const lastUserId = useRef<string | null>(null);
 
   /* Applying to <body> is a side effect on a node React doesn't own, so it
      belongs in an effect rather than in the setters — that way a state change
@@ -45,6 +49,22 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     applyAppearanceToDom(appearance, customTheme);
   }, [appearance, customTheme]);
+
+  /* Reset appearance when user logs out or switches accounts — don't carry
+     device-local appearance across different user sessions. */
+  useEffect(() => {
+    const currentUserId = user?.id ?? null;
+    if (
+      lastUserId.current !== undefined &&
+      lastUserId.current !== currentUserId
+    ) {
+      clearAppearance();
+      setAppearanceState({ ...APPEARANCE_DEFAULTS });
+      setCustomThemeState(defaultCustomTheme());
+      setSavedAt((n) => n + 1);
+    }
+    lastUserId.current = currentUserId;
+  }, [user?.id]);
 
   /* Only "system" mode cares about the OS switching underneath us. Re-running
      applyAppearanceToDom is enough — the state itself hasn't changed, just
