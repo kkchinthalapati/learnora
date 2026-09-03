@@ -4,8 +4,7 @@
   "outputDirectory": "dist",
 
   "rewrites": [
-    { "source": "/", "destination": "/api/home" },
-    { "source": "/landing", "destination": "/landing.html" },
+    { "source": "/", "destination": "/landing.html" },
     { "source": "/app", "destination": "/app/index.html" },
     { "source": "/app/:path*", "destination": "/app/index.html" },
     { "source": "/about", "destination": "/about.html" },
