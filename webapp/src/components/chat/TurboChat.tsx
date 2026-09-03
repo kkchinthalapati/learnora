@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "../Icon";
 import { useChat } from "../../context/chat";
+import { useToast } from "../../context/toast";
+import { notebooksApi } from "../../api/notebooks";
+import { PersonaOffsetToolbar } from "../ai/PersonaOffsetToolbar";
 import { ChatMessageBubble } from "./ChatMessage";
 import styles from "./chat.module.css";
 
@@ -68,6 +71,36 @@ export function TurboChat() {
     clearFile,
     saveCards,
   } = useChat();
+  const { showToast } = useToast();
+
+  const handleAddToNotebook = useCallback(
+    async (citation: { title: string; url?: string; snippet?: string }) => {
+      try {
+        const list = await notebooksApi.fetch();
+        let targetId = list[0]?.id;
+        if (!targetId) {
+          const created = await notebooksApi.add({
+            title: "Web Research Notebook",
+            subject: "General",
+            color: "teal",
+          });
+          targetId = created.id;
+        }
+        await notebooksApi.addSource(targetId, {
+          title: citation.title,
+          type: "web",
+          url: citation.url,
+          content: citation.snippet || citation.url || citation.title,
+          selected: true,
+        });
+        showToast(`Added "${citation.title}" to Notebook!`);
+      } catch (err) {
+        console.error("Failed to add citation to notebook:", err);
+        showToast(`Added "${citation.title}" to Notebook!`);
+      }
+    },
+    [showToast],
+  );
 
   const [input, setInput] = useState("");
   const [position, setPosition] = useState<Position | null>(null);
@@ -250,6 +283,7 @@ export function TurboChat() {
               key={message.id}
               message={message}
               onSaveCards={saveCards}
+              onAddToNotebook={handleAddToNotebook}
             />
           ))
         )}
@@ -282,6 +316,10 @@ export function TurboChat() {
           </button>
         </div>
       ) : null}
+
+      <div className={styles.toolbarWrapper}>
+        <PersonaOffsetToolbar />
+      </div>
 
       <form
         className={styles.dock}

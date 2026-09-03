@@ -11,6 +11,7 @@ import { flashcardsApi } from "../../api/flashcards";
 import { useToast } from "../../context/toast";
 import styles from "./notebooks.module.css";
 import { EmptyState } from "../../components/EmptyState";
+import { WebSourceImportModal } from "./WebSourceImportModal";
 import { renderMarkdownNodes } from "../../lib/markdownToReact";
 import {
   useStudyBuddyChecks,
@@ -73,6 +74,7 @@ export function NotebookStudioView() {
   const [chatInput, setChatInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
+  const [isWebSearchOpen, setIsWebSearchOpen] = useState(false);
 
   const {
     checks: studyBuddyChecks,
@@ -531,6 +533,20 @@ Use British English throughout.`;
           </div>
 
           <div className={styles.addSourceFooter}>
+            <Button
+              variant="secondary"
+              onClick={() => setIsWebSearchOpen(true)}
+              style={{
+                width: "100%",
+                display: "inline-flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: "var(--s-2)",
+                marginBottom: "var(--s-2)",
+              }}
+            >
+              🌐 Web Search
+            </Button>
             <Button
               variant="secondary"
               onClick={() => setIsAddSourceOpen(true)}
@@ -1286,6 +1302,16 @@ Use British English throughout.`;
           </div>
         </Modal>
       )}
+
+      <WebSourceImportModal
+        open={isWebSearchOpen}
+        onClose={() => setIsWebSearchOpen(false)}
+        onImport={(source) => {
+          addSource(source);
+          setIsWebSearchOpen(false);
+          showToast(`Added "${source.title}" to sources!`);
+        }}
+      />
     </div>
   );
 }

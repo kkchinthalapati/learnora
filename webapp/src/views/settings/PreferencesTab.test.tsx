@@ -100,4 +100,27 @@ describe("PreferencesTab", () => {
       notifyTimerAlerts: false,
     });
   });
+
+  it("updates and saves AI Study Persona & Web Access settings", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PreferencesTab />);
+
+    expect(
+      screen.getByRole("heading", { name: "AI Study Persona & Web Access" }),
+    ).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Depth Level"), "4: Advanced Analysis");
+    await user.selectOptions(screen.getByLabelText("Study Style"), "visual");
+    await user.click(screen.getByRole("switch", { name: "Auto-Adapt Persona" }));
+    await user.click(screen.getByRole("switch", { name: "Live Web Intelligence" }));
+
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+
+    expect(loadSettings()).toMatchObject({
+      aiDepth: 4,
+      aiStyle: "visual",
+      aiAutoAdapt: false,
+      webAccess: false,
+    });
+  });
 });

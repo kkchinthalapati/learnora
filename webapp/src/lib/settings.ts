@@ -12,6 +12,8 @@ export const SETTINGS_KEY = "learnora_settings";
 
 export type AiPersona = "tutor" | "coach" | "buddy" | "professor";
 export type AiConciseness = "short" | "medium" | "detailed";
+export type PersonaDepth = 1 | 2 | 3 | 4 | 5;
+export type StudyStyle = "visual" | "rigorous" | "exam_trap" | "concise";
 
 export interface Settings {
   aiPersona: AiPersona;
@@ -31,6 +33,10 @@ export interface Settings {
    *  tab-switch or fullscreen exit. Defaults to on (graceful), but can be
    *  disabled for stricter enforcement. See useExamProctor. */
   examTerminationGrace: boolean;
+  aiDepth: PersonaDepth;
+  aiStyle: StudyStyle;
+  aiAutoAdapt: boolean;
+  webAccess: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = Object.freeze({
@@ -43,6 +49,10 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   notifyTimerAlerts: true,
   timerFocusWatchdog: true,
   examTerminationGrace: true,
+  aiDepth: 3,
+  aiStyle: "concise",
+  aiAutoAdapt: true,
+  webAccess: true,
 });
 
 export const AI_PERSONA_OPTIONS: ReadonlyArray<{
@@ -103,6 +113,27 @@ export const AI_LANGUAGE_OPTIONS: ReadonlyArray<{
   { value: "Hindi", label: "हिन्दी (Hindi)" },
 ];
 
+export const AI_DEPTH_OPTIONS: ReadonlyArray<{
+  value: PersonaDepth;
+  label: string;
+}> = [
+  { value: 1, label: "1: Quick Intuition" },
+  { value: 2, label: "2: Conceptual Foundations" },
+  { value: 3, label: "3: Standard" },
+  { value: 4, label: "4: Advanced Analysis" },
+  { value: 5, label: "5: Deep Academic" },
+];
+
+export const AI_STYLE_OPTIONS: ReadonlyArray<{
+  value: StudyStyle;
+  label: string;
+}> = [
+  { value: "visual", label: "Visual 🎨" },
+  { value: "rigorous", label: "Rigorous 📐" },
+  { value: "exam_trap", label: "Exam Trap 🎯" },
+  { value: "concise", label: "Concise ⚡" },
+];
+
 function pick<T extends string>(
   value: unknown,
   allowed: readonly { value: T }[],
@@ -151,6 +182,21 @@ export function loadSettings(): Settings {
       typeof stored.examTerminationGrace === "boolean"
         ? stored.examTerminationGrace
         : DEFAULT_SETTINGS.examTerminationGrace,
+    aiDepth:
+      typeof stored.aiDepth === "number" &&
+      stored.aiDepth >= 1 &&
+      stored.aiDepth <= 5
+        ? (stored.aiDepth as PersonaDepth)
+        : DEFAULT_SETTINGS.aiDepth,
+    aiStyle: pick(stored.aiStyle, AI_STYLE_OPTIONS, DEFAULT_SETTINGS.aiStyle),
+    aiAutoAdapt:
+      typeof stored.aiAutoAdapt === "boolean"
+        ? stored.aiAutoAdapt
+        : DEFAULT_SETTINGS.aiAutoAdapt,
+    webAccess:
+      typeof stored.webAccess === "boolean"
+        ? stored.webAccess
+        : DEFAULT_SETTINGS.webAccess,
   };
 }
 

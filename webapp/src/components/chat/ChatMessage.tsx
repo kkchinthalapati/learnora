@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Icon } from "../Icon";
 import { Button } from "../Button";
 import {
@@ -6,7 +7,7 @@ import {
   renderMathText,
   type MarkdownSegment,
 } from "../../lib/markdownToReact";
-import type { ActionWidget, ChatMessage as Message } from "../../context/chat";
+import type { ActionWidget, ChatMessage as Message, WebCitation } from "../../context/chat";
 import styles from "./chat.module.css";
 
 /* One chat bubble — ports `_appendBubble` (js/ai.js:1276-1298) and the action
@@ -51,9 +52,39 @@ function ThinkingDots() {
   );
 }
 
+function extractDomain(url?: string): string {
+  if (!url) return "web";
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "web";
+  }
+}
+
+function extractInlineWebCitations(text: string): WebCitation[] {
+  if (!text) return [];
+  const regex = /<WEB_CITATION>([\s\S]*?)<\/WEB_CITATION>/gi;
+  const list: WebCitation[] = [];
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    const parts = match[1].split("||");
+    const title = parts[0]?.trim() || "Web Source";
+    const url = parts[1]?.trim() || "";
+    const snippet = parts[2]?.trim() || "";
+    list.push({
+      title,
+      url,
+      snippet,
+      domain: extractDomain(url),
+    });
+  }
+  return list;
+}
+
 export function ChatMessageBubble({
   message,
   onSaveCards,
+  onAddToNotebook,
 }: {
   message: Message;
   /** Persists `message.cards` as a real deck. Omitted where a cards-shaped
@@ -61,7 +92,14 @@ export function ChatMessageBubble({
    *  see NotesAiSidebar's header comment), so the button silently isn't
    *  offered rather than wired to nothing. */
   onSaveCards?: (messageId: string) => void;
+  onAddToNotebook?: (citation: {
+    title: string;
+    url?: string;
+    snippet?: string;
+  }) => void | Promise<void>;
 }) {
+  const [addedCitations, setAddedCitations] = useState<Set<string>>(new Set());
+
   if (message.role === "user") {
     return (
       <div className={`${styles.bubble} ${styles.userBubble}`}>
@@ -83,6 +121,18 @@ export function ChatMessageBubble({
   ]
     .filter(Boolean)
     .join(" ");
+
+  // Extract or resolve web citations
+  const inlineCitations = extractInlineWebCitations(message.text);
+  const webSources: WebCitation[] =
+    message.webSources && message.webSources.length > 0
+      ? message.webSources
+      : inlineCitations;
+
+  // Clean raw tags from message text for display
+  const cleanDisplayContent = message.text
+    ? message.text.replace(/<WEB_CITATION>[\s\S]*?<\/WEB_CITATION>/gi, "").trim()
+    : "";
 
   let body;
   if (message.pending) {
@@ -135,17 +185,91 @@ export function ChatMessageBubble({
           },
     );
     body = renderMarkdownSegments(segments);
-  } else if (message.text) {
-    body = renderMarkdownNodes(message.text);
+  } else if (cleanDisplayContent) {
+    body = renderMarkdownNodes(cleanDisplayContent);
   } else {
     /* Every visible word was an action tag — the vanilla said the same
        (js/ai.js:1256). */
     body = <em>Action completed.</em>;
   }
 
+  const handleAddCitation = (citation: WebCitation) => {
+    setAddedCitations((prev) => new Set([...prev, citation.title]));
+    onAddToNotebook?.({
+      title: citation.title,
+      url: citation.url,
+      snippet: citation.snippet,
+    });
+  };
+
   return (
     <div className={classes} role={message.error ? "alert" : undefined}>
       {body}
+
+      {/* Web Citation Cards */}
+      {webSources.length > 0 && !message.pending && (
+        <div className={styles.citationsWrapper} data-testid="web-citations-container">
+          <div className={styles.citationsHeader}>
+            <Icon name="globe" size={12} />
+            <span>Web Sources ({webSources.length})</span>
+          </div>
+          <div className={styles.citationList}>
+            {webSources.map((citation, i) => {
+              const isAdded = addedCitations.has(citation.title);
+              const domain = citation.domain || extractDomain(citation.url);
+              return (
+                <div
+                  key={citation.id || `cit-${i}`}
+                  className={styles.citationCard}
+                  data-testid="web-citation-card"
+                >
+                  <div className={styles.citationHeader}>
+                    {citation.url ? (
+                      <a
+                        href={citation.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={styles.citationTitle}
+                      >
+                        {citation.title} ↗
+                      </a>
+                    ) : (
+                      <span className={styles.citationTitle}>
+                        {citation.title}
+                      </span>
+                    )}
+                    <span className={styles.citationDomainBadge}>
+                      🌐 {domain}
+                    </span>
+                  </div>
+
+                  {citation.snippet && (
+                    <p className={styles.citationSnippet}>{citation.snippet}</p>
+                  )}
+
+                  <div className={styles.citationAction}>
+                    <button
+                      type="button"
+                      className={`${styles.addCitationBtn}${
+                        isAdded ? ` ${styles.addCitationBtnSuccess}` : ""
+                      }`}
+                      onClick={() => handleAddCitation(citation)}
+                      disabled={isAdded}
+                      aria-label={
+                        isAdded
+                          ? `Added ${citation.title} to Notebook`
+                          : `Add ${citation.title} to Notebook`
+                      }
+                    >
+                      {isAdded ? "✓ Added to Notebook" : "📥 Add to Notebook"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

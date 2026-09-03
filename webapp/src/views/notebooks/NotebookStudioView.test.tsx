@@ -194,4 +194,19 @@ describe("NotebookStudioView", () => {
       await screen.findByText(/Angle at the centre is twice the angle/),
     ).toBeInTheDocument();
   });
+
+  it("opens WebSourceImportModal when 🌐 Web Search button is clicked", async () => {
+    const user = userEvent.setup();
+    renderStudio();
+    await screen.findByRole("heading", { name: "Sources" });
+
+    const webSearchBtn = screen.getByRole("button", { name: /Web Search/i });
+    expect(webSearchBtn).toBeInTheDocument();
+
+    await user.click(webSearchBtn);
+
+    expect(
+      await screen.findByRole("dialog", { name: /Import Web Intelligence/i }),
+    ).toBeInTheDocument();
+  });
 });

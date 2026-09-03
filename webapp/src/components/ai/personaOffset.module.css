@@ -1,0 +1,356 @@
+/* PersonaOffsetToolbar styles strictly adhering to DESIGN.md and tokens.css
+ * 0 raw hex, 0 raw font sizes, 0 raw shadows, 0 raw blurs.
+ * Touch targets >= 44px (--touch-target-min).
+ */
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  width: 100%;
+  position: relative;
+}
+
+.compactRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  padding: var(--s-1) var(--s-2);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: var(--border);
+  border-radius: var(--r-pill);
+}
+
+.quickPillGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  flex-wrap: wrap;
+}
+
+.quickPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  padding: var(--s-1) var(--s-3);
+  min-height: var(--touch-target-min);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quickPill {
+    transition: none;
+  }
+}
+
+.quickPill:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  border-color: var(--glass-border);
+}
+
+.quickPillActive {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent-ring);
+  font-weight: 600;
+}
+
+.adjustBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  padding: var(--s-1) var(--s-3);
+  min-height: var(--touch-target-min);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: auto;
+  transition: background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adjustBtn {
+    transition: none;
+  }
+}
+
+.adjustBtn:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
+.adjustBtnActive {
+  background: var(--accent);
+  color: var(--accent-on);
+  border-color: var(--accent);
+}
+
+/* Popover / Drawer Panel */
+.drawer {
+  position: absolute;
+  bottom: calc(100% + var(--s-2));
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  z-index: 50;
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.drawerTitle {
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.closeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  border-radius: var(--r-pill);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.closeBtn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.sectionLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--text-faint);
+  margin: 0;
+}
+
+.sectionValue {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+/* Stepper / Slider Controls */
+.stepperRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.stepBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  border-radius: var(--r-pill);
+  border: var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--font-numeric);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stepBtn {
+    transition: none;
+  }
+}
+
+.stepBtn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
+.stepBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sliderTrack {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.slider {
+  width: 100%;
+  height: var(--s-2);
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--surface-active);
+  border-radius: var(--r-pill);
+  outline: none;
+  cursor: pointer;
+  min-height: var(--touch-target-min);
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--s-5);
+  height: var(--s-5);
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  border: 2px solid var(--surface);
+}
+
+.slider::-moz-range-thumb {
+  width: var(--s-5);
+  height: var(--s-5);
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  border: 2px solid var(--surface);
+}
+
+.chipGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  min-height: var(--touch-target-min);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: none;
+  }
+}
+
+.chip:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent-ring);
+}
+
+.chipActive {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent);
+  font-weight: 600;
+  box-shadow: var(--shadow-accent);
+}
+
+.drawerFooter {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--line);
+}
+
+.applyBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-2) var(--s-4);
+  min-height: var(--touch-target-min);
+  border-radius: var(--r-pill);
+  border: none;
+  background: var(--accent);
+  color: var(--accent-on);
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .applyBtn {
+    transition: none;
+  }
+}
+
+.applyBtn:hover {
+  background: var(--accent-hover);
+}

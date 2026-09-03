@@ -3,6 +3,7 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Combobox } from "../../components/Combobox";
 import { Icon } from "../../components/Icon";
+import { ToggleSwitch } from "../../components/ToggleSwitch";
 import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
 import { useTranslation } from "../../hooks/useTranslation";
@@ -11,12 +12,16 @@ import { examsApi } from "../../api/exams";
 import { plansApi } from "../../api/plans";
 import { generateICS, downloadICS } from "../../lib/ics";
 import {
+  AI_DEPTH_OPTIONS,
   AI_LANGUAGE_OPTIONS,
   AI_LENGTH_OPTIONS,
   AI_PERSONA_OPTIONS,
+  AI_STYLE_OPTIONS,
   UI_LANGUAGE_OPTIONS,
   type AiConciseness,
   type AiPersona,
+  type PersonaDepth,
+  type StudyStyle,
 } from "../../lib/settings";
 import type { TranslationKey } from "../../lib/i18n";
 import styles from "./settings.module.css";
@@ -46,6 +51,10 @@ export function PreferencesTab() {
 
   const personaId = useId();
   const lengthId = useId();
+  const aiDepthId = useId();
+  const aiStyleId = useId();
+  const autoAdaptId = useId();
+  const webAccessId = useId();
   const uiLangId = useId();
   const aiLangId = useId();
   const tzId = useId();
@@ -130,6 +139,111 @@ export function PreferencesTab() {
                 </option>
               ))}
             </select>
+          </div>
+        </div>
+      </Card>
+
+      <Card
+        as="section"
+        variant="elevated"
+        radius="lg"
+        padding="lg"
+        className={styles.card}
+        aria-labelledby="settings-persona-web-heading"
+      >
+        <div className={styles.cardHeader}>
+          <span className={styles.cardIcon}>
+            <Icon name="sparkles" size={18} />
+          </span>
+          <div>
+            <h3 id="settings-persona-web-heading">AI Study Persona & Web Access</h3>
+            <p>Customize response depth, pedagogical style, and web intelligence defaults.</p>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={aiDepthId}>Depth Level</label>
+            <p className={styles.fieldDesc}>
+              Controls cognitive depth of explanations (1: Quick Intuition, 3: Standard, 5: Deep Academic)
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={aiDepthId}
+              value={settings.aiDepth}
+              onChange={(e) =>
+                setSettings({ aiDepth: Number(e.target.value) as PersonaDepth })
+              }
+            >
+              {AI_DEPTH_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={aiStyleId}>Study Style</label>
+            <p className={styles.fieldDesc}>
+              Primary pedagogical style for study interactions
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={aiStyleId}
+              value={settings.aiStyle}
+              onChange={(e) =>
+                setSettings({ aiStyle: e.target.value as StudyStyle })
+              }
+            >
+              {AI_STYLE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <span className={styles.labelText} id={autoAdaptId}>
+              Auto-Adapt Persona
+            </span>
+            <p className={styles.fieldDesc}>
+              Automatically adjust explanations based on follow-ups and confusion patterns
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <ToggleSwitch
+              labelledBy={autoAdaptId}
+              label="Auto-Adapt Persona"
+              checked={settings.aiAutoAdapt}
+              onChange={(checked) => setSettings({ aiAutoAdapt: checked })}
+            />
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <span className={styles.labelText} id={webAccessId}>
+              Live Web Intelligence
+            </span>
+            <p className={styles.fieldDesc}>
+              Enable live academic search and paper citations in study sessions
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <ToggleSwitch
+              labelledBy={webAccessId}
+              label="Live Web Intelligence"
+              checked={settings.webAccess}
+              onChange={(checked) => setSettings({ webAccess: checked })}
+            />
           </div>
         </div>
       </Card>

@@ -436,3 +436,136 @@
   border-radius: var(--r-lg);
   pointer-events: none;
 }
+
+/* --- Persona Offset Toolbar Container --- */
+.toolbarWrapper {
+  padding: 0 var(--s-4) var(--s-2);
+  flex-shrink: 0;
+}
+
+/* --- Web Citations in AI message bubble --- */
+.citationsWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--line);
+}
+
+.citationsHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+.citationList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.citationCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding: var(--s-2) var(--s-3);
+  border: var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.citationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.citationTitle {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.citationTitle:hover {
+  color: var(--accent-text);
+  text-decoration: underline;
+}
+
+.citationDomainBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.citationSnippet {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  line-height: var(--lh);
+  margin: 0;
+}
+
+.citationAction {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--s-1);
+}
+
+.addCitationBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  padding: var(--s-1) var(--s-3);
+  min-height: var(--touch-target-min);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .addCitationBtn {
+    transition: none;
+  }
+}
+
+.addCitationBtn:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.addCitationBtnSuccess {
+  background: var(--success-soft);
+  color: var(--success-text);
+  border-color: var(--success);
+  cursor: default;
+}
+

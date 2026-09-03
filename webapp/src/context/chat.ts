@@ -24,6 +24,14 @@ export interface ActionWidget {
 export type ReplyPart =
   { kind: "text"; text: string } | { kind: "widget"; widget: ActionWidget };
 
+export interface WebCitation {
+  id?: string;
+  title: string;
+  url?: string;
+  domain?: string;
+  snippet?: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "ai";
@@ -45,6 +53,8 @@ export interface ChatMessage {
   savedDeckId?: string;
   /** True while `saveCards` is persisting this message's `cards`. */
   savingCards?: boolean;
+  /** Web citations attached to this AI response. */
+  webSources?: WebCitation[];
 }
 
 export interface AttachedFile {

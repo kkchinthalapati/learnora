@@ -890,4 +890,48 @@ describe("TurboChat", () => {
 
     expect(screen.getByText("first answer")).toBeInTheDocument();
   });
+
+  it("renders the PersonaOffsetToolbar in the chat panel", async () => {
+    renderChat();
+    await openChat();
+
+    expect(
+      screen.getByRole("region", { name: "AI Study Persona & Source Settings" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Lvl 3: Standard/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Source mode 🌐 Web" })).toBeInTheDocument();
+  });
+
+  it("renders web citation cards with 1-click Add to Notebook action", async () => {
+    serveReply(
+      "Here is the research on transformers.<WEB_CITATION>Attention Is All You Need||https://arxiv.org/abs/1706.03762||The Transformer model relies entirely on self-attention mechanisms.</WEB_CITATION>",
+    );
+    server.use(
+      http.get(rest("notebooks"), () =>
+        HttpResponse.json([{ id: "nb-1", title: "Study Notebook", notebook_sources: [] }]),
+      ),
+      http.post(rest("notebook_sources"), () =>
+        HttpResponse.json({ id: "src-1" }),
+      ),
+    );
+
+    renderChat();
+    await openChat();
+    await ask("tell me about transformers");
+
+    expect(await screen.findByText("Here is the research on transformers.")).toBeInTheDocument();
+    expect(screen.getByTestId("web-citations-container")).toBeInTheDocument();
+    expect(screen.getByText("Attention Is All You Need ↗")).toBeInTheDocument();
+    expect(screen.getByText("🌐 arxiv.org")).toBeInTheDocument();
+    expect(
+      screen.getByText("The Transformer model relies entirely on self-attention mechanisms."),
+    ).toBeInTheDocument();
+
+    const addBtn = screen.getByRole("button", { name: "Add Attention Is All You Need to Notebook" });
+    expect(addBtn).toHaveTextContent("📥 Add to Notebook");
+
+    await userEvent.click(addBtn);
+    expect(await screen.findByText("✓ Added to Notebook")).toBeInTheDocument();
+  });
 });
+
