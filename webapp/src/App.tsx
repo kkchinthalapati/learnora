@@ -63,13 +63,13 @@ function SignedInOverlays() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppearanceProvider>
-        <SettingsProvider>
-          <OverlayStackProvider>
-            <ToastProvider>
-              <AppUpdatePrompt />
-              <DialogProvider>
-                <AuthProvider>
+      <AuthProvider>
+        <AppearanceProvider>
+          <SettingsProvider>
+            <OverlayStackProvider>
+              <ToastProvider>
+                <AppUpdatePrompt />
+                <DialogProvider>
                   <TimerProvider>
                     <BrowserRouter
                       basename={import.meta.env.BASE_URL.replace(/\/$/, "")}
@@ -86,12 +86,12 @@ export default function App() {
                       </CreateModalProvider>
                     </BrowserRouter>
                   </TimerProvider>
-                </AuthProvider>
-              </DialogProvider>
-            </ToastProvider>
-          </OverlayStackProvider>
-        </SettingsProvider>
-      </AppearanceProvider>
+                </DialogProvider>
+              </ToastProvider>
+            </OverlayStackProvider>
+          </SettingsProvider>
+        </AppearanceProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

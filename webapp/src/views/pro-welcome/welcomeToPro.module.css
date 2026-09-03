@@ -1,0 +1,304 @@
+/* Welcome to Pro — an onboarding tour, not a dashboard. Motion is used once,
+   on entry, to make the moment feel earned; nothing here loops or nags. */
+
+@keyframes wtp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes wtp-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotate(-12deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08) rotate(4deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.view {
+  max-width: 880px;
+  margin: 0 auto;
+  padding-bottom: var(--s-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+}
+
+/* --- Hero --------------------------------------------------------------- */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-6) var(--s-4) var(--s-2);
+  text-align: center;
+  animation: wtp-rise 0.5s ease both;
+}
+
+.heroSparkle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--s-2);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  animation: wtp-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+}
+
+.heroEyebrow {
+  margin: 0;
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.heroTitle {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl, 2rem);
+  font-weight: 800;
+}
+
+.heroSub {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+}
+
+/* --- Feature grid --------------------------------------------------------- */
+
+.featureGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--s-4);
+}
+
+.featureCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  animation: wtp-rise 0.45s ease both;
+}
+
+.featureGrid .featureCard:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.featureGrid .featureCard:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.featureGrid .featureCard:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.featureGrid .featureCard:nth-child(4) {
+  animation-delay: 0.2s;
+}
+.featureGrid .featureCard:nth-child(5) {
+  animation-delay: 0.25s;
+}
+.featureGrid .featureCard:nth-child(6) {
+  animation-delay: 0.3s;
+}
+
+.featureHead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+
+.featureHead h3 {
+  margin: 0 0 2px;
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+}
+
+.featureHead p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+
+.featureIcon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md, 10px);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.expandBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.expandBtn:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.expandBtn svg {
+  transition: transform 0.18s ease;
+}
+
+.expandIconOpen {
+  transform: rotate(180deg);
+}
+
+.featurePitch {
+  margin: 0;
+  padding-top: var(--s-1);
+  border-top: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  animation: wtp-rise 0.25s ease both;
+}
+
+.featureCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: var(--s-2);
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.featureCta:hover {
+  text-decoration: underline;
+}
+
+.ctaArrow {
+  transform: rotate(-90deg);
+}
+
+/* --- Quota comparison ----------------------------------------------------- */
+
+.quotaCard {
+  animation: wtp-rise 0.5s ease 0.3s both;
+}
+
+.quotaTitle {
+  margin: 0 0 var(--s-3);
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+}
+
+.quotaList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quotaRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--glass-border);
+  font-size: var(--fs-sm);
+}
+
+.quotaRow:last-child {
+  border-bottom: none;
+}
+
+.quotaLabel {
+  color: var(--text);
+}
+
+.quotaFree {
+  color: var(--text-faint);
+  text-decoration: line-through;
+}
+
+.quotaArrowIcon {
+  transform: rotate(-90deg);
+  color: var(--text-faint);
+}
+
+.quotaPro {
+  min-width: 4ch;
+  color: var(--success-text);
+  font-weight: 700;
+  text-align: right;
+}
+
+/* --- Footer ----------------------------------------------------------------- */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  padding-top: var(--s-2);
+  animation: wtp-rise 0.5s ease 0.35s both;
+}
+
+/* --- "Setting up" interstitial --------------------------------------------- */
+
+.settingUp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  max-width: 480px;
+  margin: var(--s-8) auto 0;
+  padding: var(--s-6) var(--s-4);
+  text-align: center;
+}
+
+.settingUpSkeleton {
+  width: 100%;
+  margin-top: var(--s-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .heroSparkle,
+  .featureCard,
+  .featurePitch,
+  .quotaCard,
+  .footer {
+    animation: none;
+  }
+}

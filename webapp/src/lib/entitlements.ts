@@ -74,7 +74,8 @@ export type FeatureId =
   | "autoSchedule"
   | "scheduleExport"
   | "unlimitedNotebooks"
-  | "prioritySupport";
+  | "prioritySupport"
+  | "customAppearance";
 
 export interface FeatureMeta {
   id: FeatureId;
@@ -131,6 +132,14 @@ export const FEATURES: Record<FeatureId, FeatureMeta> = {
     name: "Priority support",
     blurb: "We answer you first.",
     pitch: "Questions and bug reports from Pro accounts go to the top.",
+    minimumPlan: "pro",
+  },
+  customAppearance: {
+    id: "customAppearance",
+    name: "Theme colours",
+    blurb: "Any accent colour, or build your own from scratch.",
+    pitch:
+      "Pick from thirteen curated accents or mix up to three colours of your own — every button, glow and gradient in the workspace repaints to match.",
     minimumPlan: "pro",
   },
 };

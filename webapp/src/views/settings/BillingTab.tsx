@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
@@ -41,27 +42,27 @@ export function BillingTab() {
   const openPortal = useOpenBillingPortal();
   const refresh = useRefreshSubscription();
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [paywallOpen, setPaywallOpen] = useState(false);
 
   /* Stripe sends the student back with ?checkout=success. The webhook usually
-     wins the race, but not always — so we re-read the plan on arrival and
-     again shortly after, which covers the gap without polling forever. */
+     wins the race, but not always — the onboarding screen we forward to does
+     its own polling for the gap, so this only needs to fire the first read
+     and get out of the way. */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const outcome = params.get("checkout");
     if (!outcome) return;
 
     if (outcome === "success") {
-      showToast("Thanks — welcome to Pro. Setting up your account…");
       refresh();
-      const retry = setTimeout(refresh, 3000);
-      window.history.replaceState({}, "", window.location.pathname);
-      return () => clearTimeout(retry);
+      navigate("/welcome-pro?checkout=success", { replace: true });
+      return;
     }
     if (outcome === "cancelled") {
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, [refresh, showToast]);
+  }, [refresh, navigate]);
 
   const manage = () => {
     openPortal.mutate(undefined, {
@@ -122,13 +123,21 @@ export function BillingTab() {
               </div>
               <div className={styles.fieldAction}>
                 {isPro ? (
-                  <Button
-                    variant="secondary"
-                    onClick={manage}
-                    disabled={openPortal.isPending}
-                  >
-                    {openPortal.isPending ? "Opening…" : "Manage billing"}
-                  </Button>
+                  <>
+                    <Button
+                      variant="ghost"
+                      onClick={() => navigate("/welcome-pro")}
+                    >
+                      See what's included
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={manage}
+                      disabled={openPortal.isPending}
+                    >
+                      {openPortal.isPending ? "Opening…" : "Manage billing"}
+                    </Button>
+                  </>
                 ) : (
                   <Button
                     variant="primary"

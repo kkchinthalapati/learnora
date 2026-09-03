@@ -85,6 +85,10 @@ const LazySocraticSparringView = lazy(async () => ({
   default: (await import("./views/sparring/SocraticSparringView"))
     .SocraticSparringView,
 }));
+const LazyWelcomeToProView = lazy(async () => ({
+  default: (await import("./views/pro-welcome/WelcomeToProView"))
+    .WelcomeToProView,
+}));
 
 /* The fallback covers the seven heaviest screens — quiz runner, review,
    notes, the notebook studio — so it is on screen for a real moment on a slow
@@ -291,6 +295,14 @@ export function AppRoutes() {
               `state: { from }` redirect and lands back here after login. */}
           <Route path="/friends/add/:code" element={<FriendInviteLanding />} />
           <Route path="/settings" element={<SettingsView />} />
+          <Route
+            path="/welcome-pro"
+            element={
+              <DeferredView>
+                <LazyWelcomeToProView />
+              </DeferredView>
+            }
+          />
           <Route path="*" element={<NotFoundView />} />
         </Route>
       </Route>
