@@ -38,6 +38,7 @@ VANILLA_PATHS=(
   learnora.jpg
   study-planner-imageandlogo.jpg
   public.css
+  landing.html
   about.html
   contact.html
   privacy.html

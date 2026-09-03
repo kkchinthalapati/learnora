@@ -229,10 +229,10 @@ export const PRICES: PriceOption[] = [
   {
     id: "annual",
     label: "Yearly",
-    amountPence: 4999,
+    amountPence: 4900,
     interval: "year",
-    note: "£4.16 a month, billed once a year",
-    savingPercent: 30,
+    note: "£4.08 a month, billed once a year",
+    savingPercent: 32,
   },
 ];
 
