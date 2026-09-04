@@ -25,11 +25,17 @@ describe("aiSparring API", () => {
           speechText:
             "If every action has an equal and opposite reaction, why doesn't everything cancel out?",
           conceptAnchor: "Newton's Third Law & Forces",
-          suggestedHints: ["Forces act on different objects", "Draw a free-body diagram"],
+          suggestedHints: [
+            "Forces act on different objects",
+            "Draw a free-body diagram",
+          ],
         }),
       });
 
-      const session = await startSparringSession("Newton's Laws", "Action-reaction pairs act on different bodies.");
+      const session = await startSparringSession(
+        "Newton's Laws",
+        "Action-reaction pairs act on different bodies.",
+      );
 
       expect(session.topic).toBe("Newton's Laws");
       expect(session.currentRound).toBe(1);
@@ -37,16 +43,23 @@ describe("aiSparring API", () => {
       expect(session.dialogue[0].speaker).toBe("alex");
       expect(session.dialogue[0].name).toBe("Alex");
       expect(session.currentChallenge.speaker).toBe("alex");
-      expect(session.currentChallenge.speechText).toContain("equal and opposite reaction");
+      expect(session.currentChallenge.speechText).toContain(
+        "equal and opposite reaction",
+      );
       expect(session.currentChallenge.citations).toBeDefined();
       expect(session.currentChallenge.citations?.length).toBeGreaterThan(0);
       expect(mockedCallEdge).toHaveBeenCalledTimes(1);
     });
 
     it("falls back gracefully to offline generator when callEdge throws", async () => {
-      mockedCallEdge.mockRejectedValueOnce(new Error("Network connection lost"));
+      mockedCallEdge.mockRejectedValueOnce(
+        new Error("Network connection lost"),
+      );
 
-      const session = await startSparringSession("Photosynthesis vs Respiration", "Plants perform both processes.");
+      const session = await startSparringSession(
+        "Photosynthesis vs Respiration",
+        "Plants perform both processes.",
+      );
 
       expect(session.topic).toBe("Photosynthesis vs Respiration");
       expect(session.currentRound).toBe(1);
@@ -54,6 +67,49 @@ describe("aiSparring API", () => {
       expect(["alex", "jordan"]).toContain(session.dialogue[0].speaker);
       expect(session.currentChallenge.speechText.length).toBeGreaterThan(10);
       expect(session.status).toBe("active");
+    });
+
+    it("aims the opening round with the student's measured performance", async () => {
+      mockedCallEdge.mockResolvedValueOnce({
+        text: JSON.stringify({
+          speaker: "jordan",
+          speechText: "Walk me through why the light reaction needs water.",
+          conceptAnchor: "Photosynthesis",
+          suggestedHints: ["Think about the electron source"],
+        }),
+      });
+
+      const session = await startSparringSession(
+        "Biology",
+        "Notes about plants.",
+        undefined,
+        "PERFORMANCE EVIDENCE:\n  · Photosynthesis: 31% (4/13 correct)",
+      );
+
+      const prompt = mockedCallEdge.mock.calls[0][0].history[0].content;
+      expect(prompt).toContain("Photosynthesis: 31%");
+      // Evidence steers where it probes; it is not read out to the student.
+      expect(prompt).toMatch(
+        /do not (?:tell the student their scores|quote a percentage)/i,
+      );
+      // Carried on the session so later rounds are aimed the same way.
+      expect(session.performanceEvidence).toContain("Photosynthesis: 31%");
+    });
+
+    it("omits the evidence section entirely when there is none to pass", async () => {
+      mockedCallEdge.mockResolvedValueOnce({
+        text: JSON.stringify({
+          speaker: "alex",
+          speechText: "Why does that hold?",
+          conceptAnchor: "Topic",
+        }),
+      });
+
+      await startSparringSession("Biology", "Notes about plants.");
+
+      const prompt = mockedCallEdge.mock.calls[0][0].history[0].content;
+      expect(prompt).not.toContain("PERFORMANCE EVIDENCE");
+      expect(prompt).not.toContain("NEVER TESTED");
     });
   });
 
@@ -65,11 +121,16 @@ describe("aiSparring API", () => {
           rigourScore: 82,
           accuracyScore: 90,
           reactionTone: "enthusiastic",
-          shortCritique: "Great distinction between internal and external forces.",
-          keyConceptsMastered: ["Equal and opposite reaction", "System boundaries"],
+          shortCritique:
+            "Great distinction between internal and external forces.",
+          keyConceptsMastered: [
+            "Equal and opposite reaction",
+            "System boundaries",
+          ],
           missingPoints: [],
           nextSpeaker: "jordan",
-          nextSpeechText: "Fine, but what happens when you consider non-inertial frames of reference?",
+          nextSpeechText:
+            "Fine, but what happens when you consider non-inertial frames of reference?",
           nextConceptAnchor: "Inertial Frames",
           suggestedHints: ["Recall fictitious forces"],
         }),
@@ -189,7 +250,12 @@ describe("aiSparring API", () => {
           speechText: "Alex question",
           conceptAnchor: "Mechanics",
         },
-        cumulativeScores: { clarity: 80, rigour: 80, accuracy: 80, roundsCount: 1 },
+        cumulativeScores: {
+          clarity: 80,
+          rigour: 80,
+          accuracy: 80,
+          roundsCount: 1,
+        },
         createdAt: new Date().toISOString(),
       };
 

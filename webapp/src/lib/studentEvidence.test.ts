@@ -263,6 +263,26 @@ describe("formatEvidenceForPrompt", () => {
     expect(text).toContain("Beta");
   });
 
+  it("hands grade projection to Trajectory rather than deriving its own", () => {
+    // Both the populated and the empty summary must carry the rule: the empty
+    // case is exactly where a model is most tempted to fill the gap.
+    const populated = formatEvidenceForPrompt(
+      buildStudentEvidence({
+        quizzes: [],
+        attempts: [attempt("a1", "q1", [["Alpha", true]])],
+      }),
+    );
+    const empty = formatEvidenceForPrompt(EMPTY_EVIDENCE);
+
+    for (const text of [populated, empty]) {
+      expect(text).toContain("FORECAST AUTHORITY");
+      expect(text).toContain("Trajectory");
+      expect(text).toMatch(
+        /never convert the accuracy above into a predicted exam grade/i,
+      );
+    }
+  });
+
   it("fences a topic that tries to smuggle an action tag into the prompt", () => {
     const text = formatEvidenceForPrompt(
       buildStudentEvidence({

@@ -25,13 +25,17 @@ export interface SparringPersonaProfile {
   voiceRate: number;
 }
 
-export const SPARRING_PERSONAS: Record<SparringPersona, SparringPersonaProfile> = {
+export const SPARRING_PERSONAS: Record<
+  SparringPersona,
+  SparringPersonaProfile
+> = {
   alex: {
     id: "alex",
     name: "Alex",
     avatar: "🌱",
     title: "Curious Beginner",
-    description: "Asks 'but why?' and tests whether you truly understand the foundational intuition.",
+    description:
+      "Asks 'but why?' and tests whether you truly understand the foundational intuition.",
     voicePitch: 1.15,
     voiceRate: 1.0,
   },
@@ -40,7 +44,8 @@ export const SPARRING_PERSONAS: Record<SparringPersona, SparringPersonaProfile> 
     name: "Jordan",
     avatar: "⚡",
     title: "Sharp Peer",
-    description: "Throws counter-examples and tricky edge cases to test your argument rigour.",
+    description:
+      "Throws counter-examples and tricky edge cases to test your argument rigour.",
     voicePitch: 0.92,
     voiceRate: 1.08,
   },
@@ -85,6 +90,11 @@ export interface SparringSession {
   topic: string;
   notebookId?: string;
   notesContext?: string;
+  /** The student's measured quiz performance, pre-rendered by
+   *  `lib/studentEvidence.ts`. Carried on the session so every round after the
+   *  first is aimed with the same evidence the opening was, without the view
+   *  having to pass it again. */
+  performanceEvidence?: string;
   status: "active" | "completed";
   currentRound: number;
   dialogue: SparringDialogueEntry[];
@@ -101,13 +111,16 @@ export interface SparringSession {
 export interface SparringContext {
   notesContext?: string;
   notebookId?: string;
+  performanceEvidence?: string;
   session?: SparringSession;
 }
 
 // In-memory active session cache
 const activeSessions = new Map<string, SparringSession>();
 
-export function getSparringSession(sessionId: string): SparringSession | undefined {
+export function getSparringSession(
+  sessionId: string,
+): SparringSession | undefined {
   return activeSessions.get(sessionId);
 }
 
@@ -115,7 +128,10 @@ export function saveSparringSession(session: SparringSession): void {
   activeSessions.set(session.id, session);
 }
 
-function extractCitationsFromNotes(notes: string | undefined, topic: string): GroundedCitation[] {
+function extractCitationsFromNotes(
+  notes: string | undefined,
+  topic: string,
+): GroundedCitation[] {
   if (!notes || !notes.trim()) return [];
   const lines = notes
     .split("\n")
@@ -139,7 +155,10 @@ function extractCitationsFromNotes(notes: string | undefined, topic: string): Gr
   }));
 }
 
-function generateOfflineOpening(topic: string, notesContext?: string): SparringRound {
+function generateOfflineOpening(
+  topic: string,
+  notesContext?: string,
+): SparringRound {
   const t = topic.toLowerCase();
   let speaker: SparringPersona = "alex";
   let speechText = "";
@@ -150,7 +169,12 @@ function generateOfflineOpening(topic: string, notesContext?: string): SparringR
     "Highlight the difference between cause and effect",
   ];
 
-  if (t.includes("newton") || t.includes("motion") || t.includes("momentum") || t.includes("physics")) {
+  if (
+    t.includes("newton") ||
+    t.includes("motion") ||
+    t.includes("momentum") ||
+    t.includes("physics")
+  ) {
     speaker = "alex";
     conceptAnchor = "Action-Reaction & System Boundaries";
     speechText =
@@ -160,7 +184,12 @@ function generateOfflineOpening(topic: string, notesContext?: string): SparringR
       "Draw a free-body diagram for a single object",
       "Think about pushing against the ground to walk",
     ];
-  } else if (t.includes("photo") || t.includes("respir") || t.includes("cell") || t.includes("bio")) {
+  } else if (
+    t.includes("photo") ||
+    t.includes("respir") ||
+    t.includes("cell") ||
+    t.includes("bio")
+  ) {
     speaker = "jordan";
     conceptAnchor = "Cellular Bioenergetics";
     speechText =
@@ -170,7 +199,12 @@ function generateOfflineOpening(topic: string, notesContext?: string): SparringR
       "Chloroplast light reactions vs mitochondria",
       "Carbon fixation stores net biomass",
     ];
-  } else if (t.includes("econ") || t.includes("market") || t.includes("inflation") || t.includes("money")) {
+  } else if (
+    t.includes("econ") ||
+    t.includes("market") ||
+    t.includes("inflation") ||
+    t.includes("money")
+  ) {
     speaker = "jordan";
     conceptAnchor = "Monetary & Supply Dynamics";
     speechText =
@@ -211,7 +245,16 @@ function evaluateStudentSpeechLocally(
   const lower = speech.toLowerCase();
 
   // Keyword check
-  const reasoningTerms = ["because", "therefore", "since", "so", "means", "causes", "acts on", "different"];
+  const reasoningTerms = [
+    "because",
+    "therefore",
+    "since",
+    "so",
+    "means",
+    "causes",
+    "acts on",
+    "different",
+  ];
   const matches = reasoningTerms.filter((term) => lower.includes(term));
 
   let clarityScore = 65;
@@ -226,7 +269,9 @@ function evaluateStudentSpeechLocally(
   clarityScore = Math.min(98, clarityScore);
   rigourScore = Math.min(95, rigourScore);
   accuracyScore = Math.min(96, Math.round((clarityScore + rigourScore) / 2));
-  const overallScore = Math.round((clarityScore * 0.4) + (rigourScore * 0.4) + (accuracyScore * 0.2));
+  const overallScore = Math.round(
+    clarityScore * 0.4 + rigourScore * 0.4 + accuracyScore * 0.2,
+  );
 
   let reactionTone: StudentFeedback["reactionTone"] = "intrigued";
   let shortCritique = "";
@@ -236,12 +281,18 @@ function evaluateStudentSpeechLocally(
   if (overallScore >= 80) {
     reactionTone = "enthusiastic";
     shortCritique = `Excellent intuition! You clearly distinguished the core conditions and justified your reasoning directly.`;
-    keyConceptsMastered.push("Core conceptual causality", "Boundary conditions identification");
+    keyConceptsMastered.push(
+      "Core conceptual causality",
+      "Boundary conditions identification",
+    );
   } else if (overallScore >= 65) {
     reactionTone = "challenging";
     shortCritique = `Good direction, but your argument glosses over the exact mechanism that prevents ambiguity.`;
     keyConceptsMastered.push("General conceptual foundation");
-    missingPoints.push("Formal specification of interacting entities", "Rigorous step-by-step causality");
+    missingPoints.push(
+      "Formal specification of interacting entities",
+      "Rigorous step-by-step causality",
+    );
   } else {
     reactionTone = "skeptical";
     shortCritique = `A bit brief or ambiguous. Try unpacking why this occurs rather than just stating that it does.`;
@@ -249,7 +300,8 @@ function evaluateStudentSpeechLocally(
   }
 
   // Next speaker alternates
-  const nextSpeaker: SparringPersona = round.speaker === "alex" ? "jordan" : "alex";
+  const nextSpeaker: SparringPersona =
+    round.speaker === "alex" ? "jordan" : "alex";
   const nextRoundNumber = round.roundNumber + 1;
 
   let nextSpeech = "";
@@ -301,6 +353,7 @@ export async function startSparringSession(
   topic: string,
   notesContext?: string,
   notebookId?: string,
+  performanceEvidence?: string,
 ): Promise<SparringSession> {
   const sessionId = `sparring-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const cleanTopic = topic.trim() || "General Study Topic";
@@ -314,7 +367,7 @@ You have two personas:
 - Jordan (⚡): Overconfident peer, sharp, challenges assumptions, tests edge cases.
 
 ${notesContext ? `STUDENT REVISION NOTES:\n${notesContext.slice(0, 1500)}\n` : ""}
-
+${performanceEvidence ? `${performanceEvidence}\n\nAim the opening challenge at a topic the evidence shows is genuinely weak, when one of them is relevant to "${cleanTopic}". Do not tell the student their scores and do not quote a percentage back at them — this is a sparring partner, not a report card. Use the evidence only to choose where to push. Never imply you have measured a topic listed as NEVER TESTED.\n` : ""}
 Respond ONLY with valid JSON in this exact schema:
 {
   "speaker": "alex" | "jordan",
@@ -334,7 +387,8 @@ Respond ONLY with valid JSON in this exact schema:
       suggestedHints?: string[];
     };
 
-    const speaker: SparringPersona = parsed.speaker === "jordan" ? "jordan" : "alex";
+    const speaker: SparringPersona =
+      parsed.speaker === "jordan" ? "jordan" : "alex";
     const citations = extractCitationsFromNotes(notesContext, cleanTopic);
 
     initialRound = {
@@ -343,10 +397,15 @@ Respond ONLY with valid JSON in this exact schema:
       speaker,
       personaName: SPARRING_PERSONAS[speaker].name,
       personaAvatar: SPARRING_PERSONAS[speaker].avatar,
-      speechText: parsed.speechText || `Let's dig into ${cleanTopic}. What is the fundamental principle that makes it work?`,
+      speechText:
+        parsed.speechText ||
+        `Let's dig into ${cleanTopic}. What is the fundamental principle that makes it work?`,
       conceptAnchor: parsed.conceptAnchor || cleanTopic,
       citations,
-      suggestedHints: parsed.suggestedHints || ["Start with the basics", "Give a concrete example"],
+      suggestedHints: parsed.suggestedHints || [
+        "Start with the basics",
+        "Give a concrete example",
+      ],
     };
   } catch {
     // Graceful offline fallback
@@ -359,7 +418,10 @@ Respond ONLY with valid JSON in this exact schema:
     name: initialRound.personaName,
     avatar: initialRound.personaAvatar,
     content: initialRound.speechText,
-    timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    timestamp: new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
     citations: initialRound.citations,
   };
 
@@ -368,6 +430,7 @@ Respond ONLY with valid JSON in this exact schema:
     topic: cleanTopic,
     notebookId,
     notesContext,
+    performanceEvidence,
     status: "active",
     currentRound: 1,
     dialogue: [initialEntry],
@@ -418,12 +481,22 @@ export async function submitStudentAnswer(
       ? context
       : context?.notesContext || session.notesContext;
 
+  /* The session's own copy is the fallback, so a caller that passes only notes
+     (the string form of `context`) still gets evidence-aware evaluation. */
+  const performanceEvidence =
+    typeof context === "string"
+      ? session.performanceEvidence
+      : context?.performanceEvidence || session.performanceEvidence;
+
   const currentRound = session.currentChallenge;
   const studentText = studentSpeech.trim() || "(Student passed)";
 
   // Append student turn to dialogue
   const studentEntryId = `entry-${Date.now()}-student`;
-  const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const timestamp = new Date().toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   let feedback: StudentFeedback;
   let nextRound: SparringRound;
@@ -437,6 +510,7 @@ STUDENT ANSWER:
 "${studentText}"
 
 ${notesContext ? `GROUNDING REVISION NOTES:\n${notesContext.slice(0, 1200)}\n` : ""}
+${performanceEvidence ? `${performanceEvidence}\n\nScore this answer on its own merits — the evidence above is background for choosing what to probe next, never a reason to mark an answer up or down. Do not quote the student's past percentages back at them.\n` : ""}
 
 Respond ONLY with valid JSON in this exact schema:
 {
@@ -459,10 +533,21 @@ Respond ONLY with valid JSON in this exact schema:
 
     const parsed = JSON.parse(res.text);
 
-    const clarityScore = Math.max(0, Math.min(100, Number(parsed.clarityScore) || 75));
-    const rigourScore = Math.max(0, Math.min(100, Number(parsed.rigourScore) || 70));
-    const accuracyScore = Math.max(0, Math.min(100, Number(parsed.accuracyScore) || 75));
-    const overallScore = Math.round((clarityScore * 0.4) + (rigourScore * 0.4) + (accuracyScore * 0.2));
+    const clarityScore = Math.max(
+      0,
+      Math.min(100, Number(parsed.clarityScore) || 75),
+    );
+    const rigourScore = Math.max(
+      0,
+      Math.min(100, Number(parsed.rigourScore) || 70),
+    );
+    const accuracyScore = Math.max(
+      0,
+      Math.min(100, Number(parsed.accuracyScore) || 75),
+    );
+    const overallScore = Math.round(
+      clarityScore * 0.4 + rigourScore * 0.4 + accuracyScore * 0.2,
+    );
 
     feedback = {
       clarityScore,
@@ -470,12 +555,19 @@ Respond ONLY with valid JSON in this exact schema:
       accuracyScore,
       overallScore,
       reactionTone: parsed.reactionTone || "intrigued",
-      shortCritique: parsed.shortCritique || "Thoughtful explanation addressing the core question.",
-      keyConceptsMastered: Array.isArray(parsed.keyConceptsMastered) ? parsed.keyConceptsMastered : [],
-      missingPoints: Array.isArray(parsed.missingPoints) ? parsed.missingPoints : [],
+      shortCritique:
+        parsed.shortCritique ||
+        "Thoughtful explanation addressing the core question.",
+      keyConceptsMastered: Array.isArray(parsed.keyConceptsMastered)
+        ? parsed.keyConceptsMastered
+        : [],
+      missingPoints: Array.isArray(parsed.missingPoints)
+        ? parsed.missingPoints
+        : [],
     };
 
-    const nextSpeaker: SparringPersona = parsed.nextSpeaker === "jordan" ? "jordan" : "alex";
+    const nextSpeaker: SparringPersona =
+      parsed.nextSpeaker === "jordan" ? "jordan" : "alex";
     const nextRoundNumber = currentRound.roundNumber + 1;
     const citations = extractCitationsFromNotes(notesContext, session.topic);
 
@@ -485,13 +577,23 @@ Respond ONLY with valid JSON in this exact schema:
       speaker: nextSpeaker,
       personaName: SPARRING_PERSONAS[nextSpeaker].name,
       personaAvatar: SPARRING_PERSONAS[nextSpeaker].avatar,
-      speechText: parsed.nextSpeechText || `That is a solid point. But how would you apply that in practice?`,
+      speechText:
+        parsed.nextSpeechText ||
+        `That is a solid point. But how would you apply that in practice?`,
       conceptAnchor: parsed.nextConceptAnchor || `Advancing ${session.topic}`,
       citations,
-      suggestedHints: parsed.suggestedHints || ["Consider edge cases", "Relate back to the notebook notes"],
+      suggestedHints: parsed.suggestedHints || [
+        "Consider edge cases",
+        "Relate back to the notebook notes",
+      ],
     };
   } catch {
-    const local = evaluateStudentSpeechLocally(session.topic, studentText, currentRound, notesContext);
+    const local = evaluateStudentSpeechLocally(
+      session.topic,
+      studentText,
+      currentRound,
+      notesContext,
+    );
     feedback = local.feedback;
     nextRound = local.nextRound;
   }
@@ -512,19 +614,28 @@ Respond ONLY with valid JSON in this exact schema:
     name: nextRound.personaName,
     avatar: nextRound.personaAvatar,
     content: nextRound.speechText,
-    timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    timestamp: new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
     citations: nextRound.citations,
   };
 
   const roundsCount = session.cumulativeScores.roundsCount + 1;
   const newClarity = Math.round(
-    (session.cumulativeScores.clarity * session.cumulativeScores.roundsCount + feedback.clarityScore) / roundsCount,
+    (session.cumulativeScores.clarity * session.cumulativeScores.roundsCount +
+      feedback.clarityScore) /
+      roundsCount,
   );
   const newRigour = Math.round(
-    (session.cumulativeScores.rigour * session.cumulativeScores.roundsCount + feedback.rigourScore) / roundsCount,
+    (session.cumulativeScores.rigour * session.cumulativeScores.roundsCount +
+      feedback.rigourScore) /
+      roundsCount,
   );
   const newAccuracy = Math.round(
-    (session.cumulativeScores.accuracy * session.cumulativeScores.roundsCount + feedback.accuracyScore) / roundsCount,
+    (session.cumulativeScores.accuracy * session.cumulativeScores.roundsCount +
+      feedback.accuracyScore) /
+      roundsCount,
   );
 
   const updatedSession: SparringSession = {
@@ -557,11 +668,16 @@ export async function generateNextSparringRound(
   notesContext?: string,
 ): Promise<SparringRound> {
   const current = session.currentChallenge;
-  const nextSpeaker: SparringPersona = current.speaker === "alex" ? "jordan" : "alex";
-  const citations = extractCitationsFromNotes(notesContext || session.notesContext, session.topic);
+  const nextSpeaker: SparringPersona =
+    current.speaker === "alex" ? "jordan" : "alex";
+  const citations = extractCitationsFromNotes(
+    notesContext || session.notesContext,
+    session.topic,
+  );
 
   try {
     const prompt = `Generate the next sparring challenge on "${session.topic}" from ${SPARRING_PERSONAS[nextSpeaker].name} (${SPARRING_PERSONAS[nextSpeaker].title}).
+${session.performanceEvidence ? `${session.performanceEvidence}\n\nUse this only to choose where to push — aim at a measured weakness relevant to the topic. Do not quote percentages back at the student, and never imply you have measured a topic listed as NEVER TESTED.\n` : ""}
 Respond ONLY with JSON:
 {
   "speechText": "Spoken question or counter-argument (2 sentences)",
@@ -580,7 +696,9 @@ Respond ONLY with JSON:
       speaker: nextSpeaker,
       personaName: SPARRING_PERSONAS[nextSpeaker].name,
       personaAvatar: SPARRING_PERSONAS[nextSpeaker].avatar,
-      speechText: parsed.speechText || `Let's look at this from another perspective. What is the biggest objection someone might have?`,
+      speechText:
+        parsed.speechText ||
+        `Let's look at this from another perspective. What is the biggest objection someone might have?`,
       conceptAnchor: parsed.conceptAnchor || session.topic,
       citations,
       suggestedHints: parsed.suggestedHints || ["Reflect on limitations"],

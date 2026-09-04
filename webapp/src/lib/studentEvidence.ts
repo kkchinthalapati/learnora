@@ -247,12 +247,36 @@ export function weakTopics(evidence: StudentEvidence): TopicEvidence[] {
   );
 }
 
+/* Which surface owns "what grade will I get?".
+ *
+ * Two engines in this app can answer that, and they answer it from different
+ * evidence: Trajectory projects an exam score forward from SRS memory state
+ * (lib/trajectory.ts), while this module measures quiz accuracy that has
+ * already happened. Both are legitimate; neither is a strict refinement of the
+ * other, so left alone they will disagree — and a student told "you're at 72%"
+ * in chat and "projected 64%" on Trajectory learns to trust neither.
+ *
+ * The split is by *kind of claim* rather than by merging the two models, which
+ * would mean rebuilding one on top of the other and recomputing an SRS
+ * projection on every chat message:
+ *
+ *   - Measurement — what has already been answered, per topic. This module.
+ *     Chat may state these freely; they are facts, not projections.
+ *   - Projection — where the student lands on exam day. Trajectory only, with
+ *     its confidence band. Chat quotes it or points at it; it never derives a
+ *     competing one from the accuracy numbers above.
+ *
+ * A percentage correct is not a predicted grade, and the rule below exists to
+ * stop the model quietly treating one as the other. */
+const FORECAST_AUTHORITY =
+  "FORECAST AUTHORITY: the accuracy figures above are measurements of what the student has already answered — not a predicted grade. Grade projections are produced only by Learnora's Trajectory screen, which models memory decay and the time left before the exam and states its own confidence band. Never convert the accuracy above into a predicted exam grade, and never present it as one. If the student asks what grade they will get, give the measured facts above, say plainly that the projection lives on Trajectory, and point them there.";
+
 const CONFIDENCE_GUIDANCE: Record<EvidenceConfidence, string> = {
   none: "NO performance data exists. You must not estimate a grade, a percentage, or a readiness level. Say plainly that you have not seen any quiz results yet, and offer to generate a quiz so there is something to measure.",
-  low: "The evidence is thin. Give direction, never a number. If asked to forecast a grade, say the data is too limited to forecast honestly and say how many more quizzes would change that.",
+  low: "The evidence is thin. Say how thin, in the student's own numbers ('this is off 2 quizzes'), and keep to direction rather than precision. Do not characterise overall readiness from this little.",
   moderate:
-    "There is enough evidence for direction but not for a point estimate. Any forecast must be given as a range with the confidence stated, never as a single number.",
-  good: "There is enough evidence to make specific claims about specific topics. Still give forecasts as a range with a stated confidence, and still refuse to score a topic that appears under NEVER TESTED.",
+    "There is enough evidence for direction but not for precision. Describe strengths and weaknesses as tendencies, and say the picture is still forming rather than settled.",
+  good: "There is enough evidence to make specific claims about specific topics — name them and quote their measured numbers. Still refuse to score any topic listed under NEVER TESTED.",
 };
 
 /**
@@ -282,6 +306,7 @@ export function formatEvidenceForPrompt(evidence: StudentEvidence): string {
       );
     }
     lines.push(`- HONESTY RULE: ${CONFIDENCE_GUIDANCE.none}`);
+    lines.push(`- ${FORECAST_AUTHORITY}`);
     return lines.join("\n");
   }
 
@@ -332,6 +357,7 @@ export function formatEvidenceForPrompt(evidence: StudentEvidence): string {
   }
 
   lines.push(`- HONESTY RULE: ${CONFIDENCE_GUIDANCE[evidence.confidence]}`);
+  lines.push(`- ${FORECAST_AUTHORITY}`);
   lines.push(
     "- Never state a performance number that does not appear above. If the student asks how they are doing on something not listed, say you have no quiz data on it yet and offer to generate a quiz — do not estimate.",
   );
