@@ -45,7 +45,25 @@ const USER = {
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   app_metadata: { provider: "email" },
-  user_metadata: { full_name: "Harness Student" },
+  /* The harness account is freshly created on every load, which OnboardingGate
+     would read as a brand new student and redirect to /welcome — so the
+     fixtures would never be visible. Marking it onboarded keeps the harness
+     landing where it always did; the wizard itself is still reachable at
+     ?route=/welcome (or ?route=/welcome%3Freplay=1 to see it pre-filled). */
+  user_metadata: {
+    full_name: "Harness Student",
+    onboarding: {
+      version: 1,
+      goal: "university",
+      focusAreas: ["deadlines", "planning", "recall"],
+      coachStyle: "tutor",
+      detail: "medium",
+      studyTime: "steady",
+      weekdayCapacityMins: 120,
+      completedAt: "2026-01-01T00:00:00.000Z",
+      skipped: false,
+    },
+  },
   identities: [],
 };
 

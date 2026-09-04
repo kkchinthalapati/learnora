@@ -1,0 +1,689 @@
+/* /welcome — the first-run wizard.
+ *
+ * This screen renders outside AppShell, so unlike every other view it owns
+ * its own page background. The motion vocabulary matches welcomeToPro.module
+ * .css deliberately: a short rise on entry, a spring on the one celebratory
+ * mark, nothing that loops, and everything switched off under
+ * prefers-reduced-motion. */
+
+@keyframes wel-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes wel-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotate(-12deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08) rotate(4deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* --- Frame -------------------------------------------------------------- */
+
+.view {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  /* Two soft accent washes behind the content. They give the screen a sense
+     of place without any imagery to load, and fade out well before the text
+     they sit behind. */
+  background-image:
+    radial-gradient(
+      ellipse 70% 50% at 20% -10%,
+      var(--accent-soft),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 60% 45% at 90% 0%,
+      var(--accent-soft),
+      transparent 65%
+    );
+  background-repeat: no-repeat;
+  padding: var(--s-6) var(--s-4) var(--s-12);
+}
+
+.shell {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  color: var(--text);
+  letter-spacing: var(--tracking-tight);
+}
+
+.brand svg {
+  color: var(--accent-text);
+}
+
+.skipBtn {
+  background: none;
+  border: none;
+  padding: var(--s-1) var(--s-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--text-faint);
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  transition: color var(--t-fast) var(--ease);
+}
+
+.skipBtn:hover {
+  color: var(--text-muted);
+}
+
+.skipBtn:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+/* --- Progress ----------------------------------------------------------- */
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+}
+
+.dot {
+  height: 3px;
+  flex: 1;
+  border-radius: var(--r-pill);
+  background: var(--line);
+  transition:
+    background var(--t) var(--ease),
+    box-shadow var(--t) var(--ease);
+}
+
+.dotDone {
+  background: var(--accent);
+  box-shadow: var(--shadow-accent);
+}
+
+.progressLabel {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Step body ---------------------------------------------------------- */
+
+.step {
+  animation: wel-rise 0.32s var(--ease) both;
+}
+
+.hello,
+.question,
+.done {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.hello,
+.done {
+  align-items: flex-start;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text);
+}
+
+/* Focused programmatically on each step change; the ring would be noise on a
+   heading nobody clicked. */
+.title:focus {
+  outline: none;
+}
+
+.sub,
+.lede {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-md);
+  line-height: var(--lh);
+  max-width: 54ch;
+}
+
+.lede {
+  max-width: 46ch;
+}
+
+.footnote {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  max-width: 54ch;
+}
+
+.helloMark,
+.doneMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  animation: wel-pop 0.6s var(--ease-spring) 0.1s both;
+}
+
+.doneMark {
+  background: var(--success-soft);
+  color: var(--success-text);
+}
+
+.helloActions,
+.doneActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+}
+
+.helloMeta {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+
+/* --- Options ------------------------------------------------------------ */
+
+.optionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+}
+
+/* The three time-of-day answers are one short word each; a two-column grid
+   would leave them stranded in acres of space. */
+.optionRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+}
+
+.option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: var(--s-4);
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
+}
+
+.option:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent-ring);
+}
+
+.option:active {
+  transform: translateY(1px);
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+.optionOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: var(--shadow-accent);
+}
+
+.optionIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--accent-text);
+}
+
+.optionOn .optionIcon {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.optionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.optionLabel {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.optionHint {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+/* The sample line on the AI-voice cards. Quoted and italic so it reads as
+   something the tutor would say rather than more description of it. */
+.optionSample {
+  margin-top: var(--s-1);
+  font-family: var(--font-read);
+  font-style: italic;
+  font-size: var(--fs-sm);
+  color: var(--text-faint);
+  line-height: 1.45;
+}
+
+.tick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  color: var(--accent-on);
+  transition:
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+
+.tickOn {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* --- Inline chip choices ------------------------------------------------ */
+
+.inlineChoice {
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  border: none;
+}
+
+.inlineLegend {
+  padding: 0;
+  margin-bottom: var(--s-2);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.chip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: var(--touch-target-min);
+  padding: var(--s-2) var(--s-4);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast) var(--ease),
+    background var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
+}
+
+/* The capacity answers carry a hint line each, so they are cards rather than
+   pills. The flex basis is small enough that all four share one row at the
+   shell's width instead of leaving one stranded underneath. */
+.chipWide {
+  border-radius: var(--r-lg);
+  align-items: flex-start;
+  flex: 1 1 150px;
+}
+
+.chip:hover {
+  border-color: var(--accent-ring);
+  background: var(--surface-hover);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+.chipOn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-on);
+}
+
+.chipLabel {
+  font-weight: 600;
+}
+
+.chipHint {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+
+.chipOn .chipHint {
+  color: var(--accent-on);
+  opacity: 0.85;
+}
+
+/* --- The first-subject form --------------------------------------------- */
+
+.formCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  margin-top: var(--s-2);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldPair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-4);
+}
+
+.fieldLabel {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+.input {
+  min-height: var(--touch-target-min);
+  padding: var(--s-2) var(--s-3);
+  font: inherit;
+  font-size: var(--fs-base);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.fieldNote {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-faint);
+}
+
+/* --- Summary ------------------------------------------------------------ */
+
+.recap {
+  width: 100%;
+  animation: wel-rise 0.45s var(--ease) 0.1s both;
+}
+
+.recapTitle {
+  margin: 0 0 var(--s-3);
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  color: var(--text);
+}
+
+.recapList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.recapRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.recapRow:last-child {
+  border-bottom: none;
+}
+
+.recapIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.recapText {
+  font-size: var(--fs-base);
+  color: var(--text);
+  line-height: 1.45;
+}
+
+/* Where to go to change it. Quiet on purpose — it is reassurance, not a
+   navigation target. */
+.recapWhere {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.nextSteps {
+  width: 100%;
+  animation: wel-rise 0.45s var(--ease) 0.18s both;
+}
+
+.nextGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--s-3);
+}
+
+.nextCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nextIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  margin-bottom: var(--s-1);
+}
+
+.nextTitle {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  color: var(--text);
+}
+
+.nextBlurb {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.nextCta {
+  margin-top: auto;
+  padding: var(--s-2) 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--accent-text);
+  cursor: pointer;
+}
+
+.nextCta:hover {
+  text-decoration: underline;
+}
+
+.nextCta:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.notifyCard {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  width: 100%;
+  animation: wel-rise 0.45s var(--ease) 0.24s both;
+}
+
+.notifyText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* --- Footer ------------------------------------------------------------- */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--glass-border);
+}
+
+/* There is no arrow glyph in the icon set, so the chevron is rotated — the
+   same trick welcomeToPro.module.css uses for its CTAs. */
+.arrow {
+  transform: rotate(-90deg);
+}
+
+.arrowBack {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step,
+  .helloMark,
+  .doneMark,
+  .recap,
+  .nextSteps,
+  .notifyCard {
+    animation: none;
+  }
+
+  .option,
+  .chip,
+  .dot,
+  .tick,
+  .input,
+  .skipBtn {
+    transition: none;
+  }
+}

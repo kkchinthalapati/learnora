@@ -24,6 +24,7 @@ import {
   type StudyStyle,
 } from "../../lib/settings";
 import type { TranslationKey } from "../../lib/i18n";
+import { SetupCard } from "./SetupCard";
 import styles from "./settings.module.css";
 
 const PERSONA_KEYS: Record<AiPersona, TranslationKey> = {
@@ -76,6 +77,7 @@ export function PreferencesTab() {
 
   return (
     <>
+      <SetupCard />
       <Card
         as="section"
         variant="elevated"
@@ -156,8 +158,13 @@ export function PreferencesTab() {
             <Icon name="sparkles" size={18} />
           </span>
           <div>
-            <h3 id="settings-persona-web-heading">AI Study Persona & Web Access</h3>
-            <p>Customize response depth, pedagogical style, and web intelligence defaults.</p>
+            <h3 id="settings-persona-web-heading">
+              AI Study Persona & Web Access
+            </h3>
+            <p>
+              Customize response depth, pedagogical style, and web intelligence
+              defaults.
+            </p>
           </div>
         </div>
 
@@ -165,7 +172,8 @@ export function PreferencesTab() {
           <div className={styles.fieldLabel}>
             <label htmlFor={aiDepthId}>Depth Level</label>
             <p className={styles.fieldDesc}>
-              Controls cognitive depth of explanations (1: Quick Intuition, 3: Standard, 5: Deep Academic)
+              Controls cognitive depth of explanations (1: Quick Intuition, 3:
+              Standard, 5: Deep Academic)
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -215,7 +223,8 @@ export function PreferencesTab() {
               Auto-Adapt Persona
             </span>
             <p className={styles.fieldDesc}>
-              Automatically adjust explanations based on follow-ups and confusion patterns
+              Automatically adjust explanations based on follow-ups and
+              confusion patterns
             </p>
           </div>
           <div className={styles.fieldAction}>

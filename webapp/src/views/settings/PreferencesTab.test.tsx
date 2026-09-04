@@ -22,7 +22,7 @@ describe("PreferencesTab", () => {
       aiPersona: "coach",
       aiLanguage: "Hindi",
     });
-    renderWithProviders(<PreferencesTab />);
+    renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
 
     expect(screen.getByLabelText("AI Persona")).toHaveValue("coach");
     expect(screen.getByLabelText("AI Response Language")).toHaveValue("Hindi");
@@ -30,7 +30,7 @@ describe("PreferencesTab", () => {
 
   it("does not persist until Save Changes is pressed", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<PreferencesTab />);
+    renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
 
     await user.selectOptions(screen.getByLabelText("AI Persona"), "buddy");
     expect(loadSettings().aiPersona).toBe("tutor");
@@ -41,7 +41,7 @@ describe("PreferencesTab", () => {
 
   it("saves all four selects together", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<PreferencesTab />);
+    renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
 
     await user.selectOptions(screen.getByLabelText("AI Persona"), "coach");
     await user.selectOptions(screen.getByLabelText("Response Length"), "short");
@@ -70,7 +70,7 @@ describe("PreferencesTab", () => {
 
   it("confirms the save with a toast", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<PreferencesTab />);
+    renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
 
     await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
@@ -87,6 +87,8 @@ describe("PreferencesTab", () => {
         <NotificationsTab />
         <PreferencesTab />
       </>,
+      undefined,
+      { withRouter: true },
     );
 
     await user.click(screen.getByRole("switch", { name: "Timer Alerts" }));
@@ -103,16 +105,23 @@ describe("PreferencesTab", () => {
 
   it("updates and saves AI Study Persona & Web Access settings", async () => {
     const user = userEvent.setup();
-    renderWithProviders(<PreferencesTab />);
+    renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
 
     expect(
       screen.getByRole("heading", { name: "AI Study Persona & Web Access" }),
     ).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText("Depth Level"), "4: Advanced Analysis");
+    await user.selectOptions(
+      screen.getByLabelText("Depth Level"),
+      "4: Advanced Analysis",
+    );
     await user.selectOptions(screen.getByLabelText("Study Style"), "visual");
-    await user.click(screen.getByRole("switch", { name: "Auto-Adapt Persona" }));
-    await user.click(screen.getByRole("switch", { name: "Live Web Intelligence" }));
+    await user.click(
+      screen.getByRole("switch", { name: "Auto-Adapt Persona" }),
+    );
+    await user.click(
+      screen.getByRole("switch", { name: "Live Web Intelligence" }),
+    );
 
     await user.click(screen.getByRole("button", { name: "Save Changes" }));
 

@@ -1,6 +1,10 @@
 import { lazy, Suspense, type ReactNode } from "react";
 import { Route, Routes } from "react-router";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import {
+  OnboardingGate,
+  WELCOME_PATH,
+} from "./views/onboarding/OnboardingGate";
 import { AppShell } from "./components/AppShell";
 import { LoginView } from "./views/auth/LoginView";
 import { SignupView } from "./views/auth/SignupView";
@@ -89,6 +93,12 @@ const LazyWelcomeToProView = lazy(async () => ({
   default: (await import("./views/pro-welcome/WelcomeToProView"))
     .WelcomeToProView,
 }));
+/* The first-run wizard. Deferred like the rest: it is a screen each account
+   sees once, and it pulls in the folder/exam mutations to create a first
+   subject, so it has no business in the bundle everyone else downloads. */
+const LazyWelcomeView = lazy(async () => ({
+  default: (await import("./views/onboarding/WelcomeView")).WelcomeView,
+}));
 
 /* The fallback covers the seven heaviest screens — quiz runner, review,
    notes, the notebook studio — so it is on screen for a real moment on a slow
@@ -137,173 +147,192 @@ export function AppRoutes() {
       <Route path={VERIFY_PATH} element={<VerifyView />} />
       <Route path="/terms" element={<TermsView />} />
       <Route element={<ProtectedRoute />}>
-        {/* The sidebar/header chrome — see AppShell's own comment for why
+        {/* Deliberately outside both OnboardingGate and AppShell: a guard
+            can't redirect into the screen that satisfies it, and the sidebar
+            full of twenty destinations is the very thing this screen exists
+            to defer. */}
+        <Route
+          path={WELCOME_PATH}
+          element={
+            <DeferredView>
+              <LazyWelcomeView />
+            </DeferredView>
+          }
+        />
+        {/* Everything below is for an account that has been set up. A brand
+            new one is sent to /welcome first. */}
+        <Route element={<OnboardingGate />}>
+          {/* The sidebar/header chrome — see AppShell's own comment for why
             this sits here rather than inside ProtectedRoute itself. */}
-        <Route element={<AppShell />}>
-          <Route path="/" element={<DashboardView />} />
-          <Route path="/notebooks" element={<NotebooksHubView />} />
-          <Route
-            path="/notebooks/:notebookId"
-            element={
-              <DeferredView>
-                <LazyNotebookStudioView />
-              </DeferredView>
-            }
-          />
-          <Route path="/tasks" element={<TasksView />} />
-          <Route path="/exams" element={<ExamsView />} />
-          <Route path="/timer" element={<TimerView />} />
-          <Route path="/library" element={<LibraryView />} />
-          <Route path="/library/:tab" element={<LibraryView />} />
-          <Route
-            path="/folders/:folderId"
-            element={
-              <DeferredView>
-                <LazySubjectDetailPage />
-              </DeferredView>
-            }
-          />
-          <Route
-            path="/notes/:materialId"
-            element={
-              <DeferredView>
-                <LazyNotesView />
-              </DeferredView>
-            }
-          />
-          <Route path="/plan" element={<PlanView />} />
-          <Route
-            path="/my-week"
-            element={
-              <DeferredView>
-                <LazyMyWeekView />
-              </DeferredView>
-            }
-          />
-          <Route
-            path="/quiz/:quizId"
-            element={
-              <DeferredView>
-                <LazyQuizRunner />
-              </DeferredView>
-            }
-          />
-          <Route
-            path="/quiz/:quizId/mock-exam"
-            element={
-              <DeferredView>
-                <LazyMockExamRunner />
-              </DeferredView>
-            }
-          />
-          <Route
-            path="/quiz/:quizId/review"
-            element={
-              <DeferredView>
-                <LazyQuizReview />
-              </DeferredView>
-            }
-          />
-          <Route
-            path="/review/:deckId"
-            element={
-              <DeferredView>
-                <LazyReviewView />
-              </DeferredView>
-            }
-          />
-          <Route path="/friends" element={<FriendsView />} />
-          <Route
-            path="/room"
-            element={
-              <DeferredView>
-                <LazyStudyRoomView />
-              </DeferredView>
-            }
-          />
-          <Route
-            path="/room/:roomId"
-            element={
-              <DeferredView>
-                <LazyStudyRoomView />
-              </DeferredView>
-            }
-          />
-          <Route path="/analytics" element={<StudyAnalyticsView />} />
-          <Route
-            path="/trajectory"
-            element={
-              <DeferredView>
-                <LazyTrajectoryView />
-              </DeferredView>
-            }
-          />
-          <Route path="/debugger" element={<CognitiveDebuggerView />} />
-          <Route
-            path="/exam-detective"
-            element={
-              <DeferredView>
-                <LazyExamDetectiveHubView />
-              </DeferredView>
-            }
-          />
-          <Route path="/premortem" element={<PreMortemHubView />} />
-          <Route path="/premortem/radar" element={<PreMortemRadarView />} />
-          <Route path="/feynman" element={<FeynmanHubView />} />
-          <Route
-            path="/feynman/studio"
-            element={
-              <DeferredView>
-                <LazyFeynmanStudioView />
-              </DeferredView>
-            }
-          />
-          <Route
-            path="/feynman/studio/:sessionId"
-            element={
-              <DeferredView>
-                <LazyFeynmanStudioView />
-              </DeferredView>
-            }
-          />
-          <Route
-            path="/feynman/debrief/:sessionId"
-            element={
-              <DeferredView>
-                <LazyFeynmanDebriefView />
-              </DeferredView>
-            }
-          />
-          <Route
-            path="/sparring"
-            element={
-              <DeferredView>
-                <LazySocraticSparringView />
-              </DeferredView>
-            }
-          />
-          <Route
-            path="/sparring/:sessionId"
-            element={
-              <DeferredView>
-                <LazySocraticSparringView />
-              </DeferredView>
-            }
-          />
-          {/* Inside the guard on purpose: an invite link opened by someone
+          <Route element={<AppShell />}>
+            <Route path="/" element={<DashboardView />} />
+            <Route path="/notebooks" element={<NotebooksHubView />} />
+            <Route
+              path="/notebooks/:notebookId"
+              element={
+                <DeferredView>
+                  <LazyNotebookStudioView />
+                </DeferredView>
+              }
+            />
+            <Route path="/tasks" element={<TasksView />} />
+            <Route path="/exams" element={<ExamsView />} />
+            <Route path="/timer" element={<TimerView />} />
+            <Route path="/library" element={<LibraryView />} />
+            <Route path="/library/:tab" element={<LibraryView />} />
+            <Route
+              path="/folders/:folderId"
+              element={
+                <DeferredView>
+                  <LazySubjectDetailPage />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/notes/:materialId"
+              element={
+                <DeferredView>
+                  <LazyNotesView />
+                </DeferredView>
+              }
+            />
+            <Route path="/plan" element={<PlanView />} />
+            <Route
+              path="/my-week"
+              element={
+                <DeferredView>
+                  <LazyMyWeekView />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/quiz/:quizId"
+              element={
+                <DeferredView>
+                  <LazyQuizRunner />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/quiz/:quizId/mock-exam"
+              element={
+                <DeferredView>
+                  <LazyMockExamRunner />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/quiz/:quizId/review"
+              element={
+                <DeferredView>
+                  <LazyQuizReview />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/review/:deckId"
+              element={
+                <DeferredView>
+                  <LazyReviewView />
+                </DeferredView>
+              }
+            />
+            <Route path="/friends" element={<FriendsView />} />
+            <Route
+              path="/room"
+              element={
+                <DeferredView>
+                  <LazyStudyRoomView />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/room/:roomId"
+              element={
+                <DeferredView>
+                  <LazyStudyRoomView />
+                </DeferredView>
+              }
+            />
+            <Route path="/analytics" element={<StudyAnalyticsView />} />
+            <Route
+              path="/trajectory"
+              element={
+                <DeferredView>
+                  <LazyTrajectoryView />
+                </DeferredView>
+              }
+            />
+            <Route path="/debugger" element={<CognitiveDebuggerView />} />
+            <Route
+              path="/exam-detective"
+              element={
+                <DeferredView>
+                  <LazyExamDetectiveHubView />
+                </DeferredView>
+              }
+            />
+            <Route path="/premortem" element={<PreMortemHubView />} />
+            <Route path="/premortem/radar" element={<PreMortemRadarView />} />
+            <Route path="/feynman" element={<FeynmanHubView />} />
+            <Route
+              path="/feynman/studio"
+              element={
+                <DeferredView>
+                  <LazyFeynmanStudioView />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/feynman/studio/:sessionId"
+              element={
+                <DeferredView>
+                  <LazyFeynmanStudioView />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/feynman/debrief/:sessionId"
+              element={
+                <DeferredView>
+                  <LazyFeynmanDebriefView />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/sparring"
+              element={
+                <DeferredView>
+                  <LazySocraticSparringView />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/sparring/:sessionId"
+              element={
+                <DeferredView>
+                  <LazySocraticSparringView />
+                </DeferredView>
+              }
+            />
+            {/* Inside the guard on purpose: an invite link opened by someone
               who is signed out goes through ProtectedRoute's existing
               `state: { from }` redirect and lands back here after login. */}
-          <Route path="/friends/add/:code" element={<FriendInviteLanding />} />
-          <Route path="/settings" element={<SettingsView />} />
-          <Route
-            path="/welcome-pro"
-            element={
-              <DeferredView>
-                <LazyWelcomeToProView />
-              </DeferredView>
-            }
-          />
-          <Route path="*" element={<NotFoundView />} />
+            <Route
+              path="/friends/add/:code"
+              element={<FriendInviteLanding />}
+            />
+            <Route path="/settings" element={<SettingsView />} />
+            <Route
+              path="/welcome-pro"
+              element={
+                <DeferredView>
+                  <LazyWelcomeToProView />
+                </DeferredView>
+              }
+            />
+            <Route path="*" element={<NotFoundView />} />
+          </Route>
         </Route>
       </Route>
     </Routes>
