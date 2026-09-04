@@ -19,6 +19,7 @@ import {
   VERIFY_PATH,
 } from "./views/auth/authPaths";
 import { TermsView } from "./views/terms/TermsView";
+import { PrivacyView } from "./views/privacy/PrivacyView";
 import { SettingsView } from "./views/settings/SettingsView";
 import { TasksView } from "./views/tasks/TasksView";
 import { ExamsView } from "./views/exams/ExamsView";
@@ -134,7 +135,7 @@ function DeferredView({ children }: { children: ReactNode }) {
  *   /login, /signup, /forgot-password  the auth wall's three forms, one each
  *   /verify                            what a confirmation email links to
  *   /reset-password                    what a recovery email links to
- *   /terms                             linked from the auth screens
+ *   /terms, /privacy                   linked from the auth screens
  */
 
 export function AppRoutes() {
@@ -146,6 +147,7 @@ export function AppRoutes() {
       <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordView />} />
       <Route path={VERIFY_PATH} element={<VerifyView />} />
       <Route path="/terms" element={<TermsView />} />
+      <Route path="/privacy" element={<PrivacyView />} />
       <Route element={<ProtectedRoute />}>
         {/* Deliberately outside both OnboardingGate and AppShell: a guard
             can't redirect into the screen that satisfies it, and the sidebar
