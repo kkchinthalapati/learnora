@@ -244,8 +244,9 @@ describe("TrajectoryView", () => {
     });
     render();
 
-    // 12/20 = 60%, one measured weak topic (Titration, 30%) → 55 ± 5.
-    expect(await screen.findByText(/Chemistry: 50–60/)).toBeInTheDocument();
+    // 12/20 = 60%, one measured weak topic (Titration, 30%) → 55 adjusted.
+    // With only 2 quizzes (4% saturation), the band widens to ±19.
+    expect(await screen.findByText(/Chemistry: 36–74/)).toBeInTheDocument();
     expect(screen.getByText(/Titration \(30%\)/)).toBeInTheDocument();
     expect(screen.queryByText(/Not enough to go on/)).not.toBeInTheDocument();
     // The weaker model has to say that it is the weaker model.
