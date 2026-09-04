@@ -5,6 +5,8 @@ import { Button } from "../../components/Button";
 import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "../../hooks/useSpeechSynthesis";
 import { useNotebooks, useNotebook } from "../../hooks/useNotebooks";
+import { useStudentEvidence } from "../../hooks/useStudentEvidence";
+import { formatEvidenceForPrompt } from "../../lib/studentEvidence";
 import { useToast } from "../../context/toast";
 import {
   startSparringSession,
@@ -35,9 +37,20 @@ export function SocraticSparringView() {
   const { notebooks } = useNotebooks();
   const linkedNotebook = useNotebook(queryNotebookId).notebook;
 
+  /* Sparring without this picks its opening challenge from the topic string
+     alone, so it probes wherever the model feels like — which is as often a
+     topic the student has already nailed as the one they keep failing. */
+  const { evidence: studentEvidence, isPending: isEvidencePending } =
+    useStudentEvidence();
+  const evidenceBlock = isEvidencePending
+    ? undefined
+    : formatEvidenceForPrompt(studentEvidence);
+
   // Session State
   const [topicInput, setTopicInput] = useState(queryTopic || "");
-  const [selectedNotebookId, setSelectedNotebookId] = useState(queryNotebookId || "");
+  const [selectedNotebookId, setSelectedNotebookId] = useState(
+    queryNotebookId || "",
+  );
   const [session, setSession] = useState<SparringSession | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -100,7 +113,9 @@ export function SocraticSparringView() {
   const handleStartSession = async (topicToUse?: string, nbId?: string) => {
     const activeTopic = (topicToUse ?? topicInput).trim();
     if (!activeTopic) {
-      showToast("Please enter or select a topic to start sparring.", { error: true });
+      showToast("Please enter or select a topic to start sparring.", {
+        error: true,
+      });
       return;
     }
 
@@ -117,12 +132,22 @@ export function SocraticSparringView() {
           : undefined;
 
       const notesContext = notebook?.notes || undefined;
-      const newSession = await startSparringSession(activeTopic, notesContext, notebook?.id);
+      const newSession = await startSparringSession(
+        activeTopic,
+        notesContext,
+        notebook?.id,
+        evidenceBlock,
+      );
 
       setSession(newSession);
-      playAiRound(newSession.currentChallenge.speechText, newSession.currentChallenge.speaker);
+      playAiRound(
+        newSession.currentChallenge.speechText,
+        newSession.currentChallenge.speaker,
+      );
     } catch {
-      showToast("Failed to start sparring session. Using offline sparring partner.");
+      showToast(
+        "Failed to start sparring session. Using offline sparring partner.",
+      );
     } finally {
       setIsLoadingSession(false);
     }
@@ -137,7 +162,9 @@ export function SocraticSparringView() {
       }
     } else {
       if (!isSttSupported) {
-        showToast("Speech recognition is not supported in this browser. You can type your answer below.");
+        showToast(
+          "Speech recognition is not supported in this browser. You can type your answer below.",
+        );
         return;
       }
       cancelSpeech();
@@ -163,7 +190,9 @@ export function SocraticSparringView() {
     try {
       const notesContext =
         linkedNotebook?.notes ||
-        (selectedNotebookId ? notebooks.find((n) => n.id === selectedNotebookId)?.notes : undefined);
+        (selectedNotebookId
+          ? notebooks.find((n) => n.id === selectedNotebookId)?.notes
+          : undefined);
 
       const result = await submitStudentAnswer(session, answer, notesContext);
       setSession(result.session);
@@ -171,7 +200,9 @@ export function SocraticSparringView() {
       // Speak next round from AI
       playAiRound(result.nextRound.speechText, result.nextRound.speaker);
     } catch {
-      showToast("Error evaluating answer. Check your connection.", { error: true });
+      showToast("Error evaluating answer. Check your connection.", {
+        error: true,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -185,7 +216,9 @@ export function SocraticSparringView() {
     try {
       const notesContext =
         linkedNotebook?.notes ||
-        (selectedNotebookId ? notebooks.find((n) => n.id === selectedNotebookId)?.notes : undefined);
+        (selectedNotebookId
+          ? notebooks.find((n) => n.id === selectedNotebookId)?.notes
+          : undefined);
 
       const nextRound = await generateNextSparringRound(session, notesContext);
 
@@ -203,7 +236,10 @@ export function SocraticSparringView() {
               name: nextRound.personaName,
               avatar: nextRound.personaAvatar,
               content: nextRound.speechText,
-              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              timestamp: new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
               citations: nextRound.citations,
             },
           ],
@@ -236,7 +272,8 @@ export function SocraticSparringView() {
             </span>
             <h1 className={styles.pageTitle}>Socratic Audio Sparring</h1>
             <p className={styles.pageSubtitle}>
-              Spar with two AI peer personas: Alex 🌱 probes your core intuition, while Jordan ⚡ tests edge cases and counter-arguments.
+              Spar with two AI peer personas: Alex 🌱 probes your core
+              intuition, while Jordan ⚡ tests edge cases and counter-arguments.
             </p>
           </div>
 
@@ -248,9 +285,15 @@ export function SocraticSparringView() {
                 const next = !autoPlayAudio;
                 setAutoPlayAudio(next);
                 if (!next) cancelSpeech();
-                showToast(next ? "Voice playback enabled." : "Voice playback muted.");
+                showToast(
+                  next ? "Voice playback enabled." : "Voice playback muted.",
+                );
               }}
-              title={autoPlayAudio ? "Mute automatic speech output" : "Unmute speech output"}
+              title={
+                autoPlayAudio
+                  ? "Mute automatic speech output"
+                  : "Unmute speech output"
+              }
             >
               <Icon name={autoPlayAudio ? "activity" : "clock"} size={16} />
               <span>{autoPlayAudio ? "Voice: On" : "Voice: Muted"}</span>
@@ -350,34 +393,52 @@ export function SocraticSparringView() {
 
           {/* Cumulative Score Celebration Banner */}
           {session.cumulativeScores.roundsCount > 0 && (
-            <section className={styles.metricsGrid} aria-label="Performance Metrics">
+            <section
+              className={styles.metricsGrid}
+              aria-label="Performance Metrics"
+            >
               <div className={styles.metricCard}>
                 <span className={styles.metricLabel}>Clarity</span>
-                <span className={styles.metricValue}>{session.cumulativeScores.clarity}%</span>
+                <span className={styles.metricValue}>
+                  {session.cumulativeScores.clarity}%
+                </span>
                 <span className={styles.metricSub}>Intuitive explanation</span>
               </div>
               <div className={styles.metricCard}>
                 <span className={styles.metricLabel}>Argument Rigour</span>
-                <span className={styles.metricValue}>{session.cumulativeScores.rigour}%</span>
+                <span className={styles.metricValue}>
+                  {session.cumulativeScores.rigour}%
+                </span>
                 <span className={styles.metricSub}>Causality & boundaries</span>
               </div>
               <div className={styles.metricCard}>
                 <span className={styles.metricLabel}>Accuracy</span>
-                <span className={styles.metricValue}>{session.cumulativeScores.accuracy}%</span>
+                <span className={styles.metricValue}>
+                  {session.cumulativeScores.accuracy}%
+                </span>
                 <span className={styles.metricSub}>Factual precision</span>
               </div>
               <div className={styles.metricCard}>
                 <span className={styles.metricLabel}>Rounds Sparred</span>
-                <span className={styles.metricValue}>{session.cumulativeScores.roundsCount}</span>
-                <span className={styles.metricSub}>Alex & Jordan exchanges</span>
+                <span className={styles.metricValue}>
+                  {session.cumulativeScores.roundsCount}
+                </span>
+                <span className={styles.metricSub}>
+                  Alex & Jordan exchanges
+                </span>
               </div>
             </section>
           )}
 
           {/* Dialogue Stream */}
-          <section className={styles.dialogueSection} aria-label="Socratic Dialogue Stream">
+          <section
+            className={styles.dialogueSection}
+            aria-label="Socratic Dialogue Stream"
+          >
             <div className={styles.dialogueSectionHeader}>
-              <h2 className={styles.dialogueSectionTitle}>Live Socratic Exchange</h2>
+              <h2 className={styles.dialogueSectionTitle}>
+                Live Socratic Exchange
+              </h2>
               <Button
                 variant="ghost"
                 size="sm"
@@ -388,7 +449,11 @@ export function SocraticSparringView() {
               </Button>
             </div>
 
-            <div className={styles.dialogueStream} role="log" aria-live="polite">
+            <div
+              className={styles.dialogueStream}
+              role="log"
+              aria-live="polite"
+            >
               {session.dialogue.map((entry) => {
                 const isStudent = entry.speaker === "student";
                 const isAlex = entry.speaker === "alex";
@@ -399,12 +464,19 @@ export function SocraticSparringView() {
                     : styles.bubbleJordan;
 
                 return (
-                  <div key={entry.id} className={`${styles.dialogueBubble} ${bubbleClass}`}>
+                  <div
+                    key={entry.id}
+                    className={`${styles.dialogueBubble} ${bubbleClass}`}
+                  >
                     <span className={styles.bubbleAvatar}>{entry.avatar}</span>
                     <div className={styles.bubbleBody}>
                       <div className={styles.bubbleHeader}>
-                        <span className={styles.bubbleSpeakerName}>{entry.name}</span>
-                        <span className={styles.bubbleTime}>{entry.timestamp}</span>
+                        <span className={styles.bubbleSpeakerName}>
+                          {entry.name}
+                        </span>
+                        <span className={styles.bubbleTime}>
+                          {entry.timestamp}
+                        </span>
                       </div>
 
                       <p className={styles.bubbleContent}>{entry.content}</p>
@@ -412,16 +484,18 @@ export function SocraticSparringView() {
                       {/* Inline Citations */}
                       {entry.citations && entry.citations.length > 0 && (
                         <div className={styles.citationsList}>
-                          {entry.citations.map((c: GroundedCitation, cIdx: number) => (
-                            <span
-                              key={cIdx}
-                              className={styles.citationPill}
-                              title={`Snippet: "${c.snippet}"`}
-                            >
-                              <Icon name="book-open" size={12} />
-                              <span>{c.sourceTitle}</span>
-                            </span>
-                          ))}
+                          {entry.citations.map(
+                            (c: GroundedCitation, cIdx: number) => (
+                              <span
+                                key={cIdx}
+                                className={styles.citationPill}
+                                title={`Snippet: "${c.snippet}"`}
+                              >
+                                <Icon name="book-open" size={12} />
+                                <span>{c.sourceTitle}</span>
+                              </span>
+                            ),
+                          )}
                         </div>
                       )}
 
@@ -431,21 +505,31 @@ export function SocraticSparringView() {
                           <div className={styles.feedbackHeader}>
                             <div className={styles.feedbackScoreGroup}>
                               <span className={styles.scoreItem}>
-                                Clarity: <strong className={styles.scoreVal}>{entry.feedback.clarityScore}%</strong>
+                                Clarity:{" "}
+                                <strong className={styles.scoreVal}>
+                                  {entry.feedback.clarityScore}%
+                                </strong>
                               </span>
                               <span className={styles.scoreItem}>
-                                Rigour: <strong className={styles.scoreVal}>{entry.feedback.rigourScore}%</strong>
+                                Rigour:{" "}
+                                <strong className={styles.scoreVal}>
+                                  {entry.feedback.rigourScore}%
+                                </strong>
                               </span>
                             </div>
                             <span
                               className={`${styles.podBadge} ${
-                                entry.feedback.overallScore >= 80 ? styles.badgeAlex : styles.badgeJordan
+                                entry.feedback.overallScore >= 80
+                                  ? styles.badgeAlex
+                                  : styles.badgeJordan
                               }`}
                             >
                               {entry.feedback.reactionTone}
                             </span>
                           </div>
-                          <p className={styles.critiqueText}>{entry.feedback.shortCritique}</p>
+                          <p className={styles.critiqueText}>
+                            {entry.feedback.shortCritique}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -457,7 +541,11 @@ export function SocraticSparringView() {
               {isListening && (
                 <div className={styles.liveTranscriptCard} role="status">
                   <span className={styles.liveDot} />
-                  <span>{transcript ? `${transcript} ${interimTranscript}` : interimTranscript || "Listening to your voice…"}</span>
+                  <span>
+                    {transcript
+                      ? `${transcript} ${interimTranscript}`
+                      : interimTranscript || "Listening to your voice…"}
+                  </span>
                 </div>
               )}
 
@@ -466,13 +554,18 @@ export function SocraticSparringView() {
           </section>
 
           {/* Keyboard fallback input and hints */}
-          <section className={styles.inputSection} aria-label="Answer Submission">
+          <section
+            className={styles.inputSection}
+            aria-label="Answer Submission"
+          >
             <div className={styles.hintsRow}>
               <span className={styles.chipsLabel}>Hints:</span>
-              {(session.currentChallenge.suggestedHints || [
-                "Explain the core principle in simple words",
-                "Mention what happens at the boundary",
-              ]).map((hint, idx) => (
+              {(
+                session.currentChallenge.suggestedHints || [
+                  "Explain the core principle in simple words",
+                  "Mention what happens at the boundary",
+                ]
+              ).map((hint, idx) => (
                 <span key={idx} className={styles.hintPill}>
                   💡 {hint}
                 </span>

@@ -34,6 +34,8 @@ import {
 } from "../lib/chatActions";
 import { stripActionTagBlocks, fenceUntrusted } from "../lib/actionTags";
 import { activeContextForPath, buildSystemContext } from "../lib/chatPrompt";
+import { loadStudentEvidence } from "../api/studentEvidence";
+import { formatEvidenceForPrompt } from "../lib/studentEvidence";
 import {
   EMPTY_PERSONA_DRIFT,
   getPersonaDriftNudge,
@@ -363,6 +365,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
            tables can't be read, it just knows less (js/ai.js:911-929). */
         let pendingTasks = "None";
         let upcomingExams = "None";
+        /* Independent of the workspace read and on the path to every reply, so
+           the two overlap rather than queueing. `loadStudentEvidence` resolves
+           rather than throwing, so it needs no catch of its own. */
+        const evidencePromise = loadStudentEvidence();
         try {
           const ctx = await loadWorkspaceContext();
           pendingTasks = ctx.pendingTasks;
@@ -370,6 +376,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         } catch (err) {
           console.warn("[chat] Failed to fetch workspace context:", err);
         }
+        /* Always rendered, including when there is nothing to report: the
+           empty summary is what carries the instruction *not* to guess a
+           grade, which is precisely the case where the model would. */
+        const performanceEvidence = formatEvidenceForPrompt(
+          await evidencePromise,
+        );
 
         const pathname = pathnameRef.current;
         let notesMarkdown: string | null = null;
@@ -407,6 +419,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           persona: settings.aiPersona,
           conciseness: settings.aiConciseness,
           adaptiveNudge: adaptiveNudge?.instruction,
+          performanceEvidence,
         });
 
         const priorHistory = trimHistory(historyRef.current);
