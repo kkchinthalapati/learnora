@@ -145,16 +145,34 @@ export async function callEdge(
       if (!response.ok) {
         const errorBody = (await response.json().catch(() => ({}))) as {
           error?: string;
+          text?: string;
           refused?: boolean;
         };
-        throw new AiError(errorBody.error || GENERIC_FAILURE, {
-          // 4xx means the request itself is wrong (bad/expired token, bad
-          // payload) — retrying it just burns another round trip.
-          retryable: response.status >= 500 || response.status === 429,
-          // A content refusal carries its own explanation and must be shown
-          // verbatim rather than flattened into "generation failed".
-          refused: errorBody.refused === true,
-        });
+        /* `text` as well as `error`, because the edge function's rate-limit
+           replies are not shaped alike: `rateLimitResponse` puts the message
+           under `error` for the JSON modes (quiz, flashcards, plan) and under
+           `text` for everything else — chat, notes, the tutor. Reading only
+           `error` meant the modes a student uses most answered a spent daily
+           allowance with the generic failure line, and the copy that actually
+           explains it ("They reset at midnight — or Learnora Pro raises the
+           limit") never reached anyone. */
+        throw new AiError(
+          errorBody.error || errorBody.text || GENERIC_FAILURE,
+          {
+            // 4xx means the request itself is wrong (bad/expired token, bad
+            // payload) — retrying it just burns another round trip.
+            //
+            // 429 included: both ceilings behind it are measured in hours (a
+            // daily allowance that resets at midnight UTC) or minutes (the
+            // burst window), so a 2-second replay cannot clear either. It only
+            // delayed the message by the retry backoff and spent a second
+            // round trip proving the server meant it.
+            retryable: response.status >= 500,
+            // A content refusal carries its own explanation and must be shown
+            // verbatim rather than flattened into "generation failed".
+            refused: errorBody.refused === true,
+          },
+        );
       }
 
       const fullText = await response.text();

@@ -21,9 +21,11 @@
  *    must prefer Trajectory whenever it can run.
  *  - Its confidence is a sample-size statement, not a probability. It says how
  *    much quizzing is behind the number, not how likely the number is.
- *  - The band is fixed at ±5, which is a floor on uncertainty rather than a
- *    measurement of it. Real uncertainty here is wider; a band this narrow is
- *    defensible only because the confidence figure sits next to it.
+ *  - The band widens as the sample shrinks: ±5 once there is enough quizzing
+ *    behind it, up to ±20 off a single quiz. It is still a floor on real
+ *    uncertainty rather than a measurement of it — nothing here models the
+ *    exam, only the student's own scores — but it no longer prints a guess and
+ *    a well-evidenced estimate to the same precision.
  */
 
 import { parseLocalDate, localDateStr } from "./date";
@@ -39,8 +41,29 @@ import {
  *  exam is likely to probe, so it costs more than its share. */
 export const WEAK_TOPIC_PENALTY = 5;
 
-/** Half-width of the reported range, in points. */
+/** Ceiling on the total weak-topic penalty, in points.
+ *
+ *  The penalty double-counts by design — a weak topic is already dragging the
+ *  measured accuracy down before it is charged again here — and that is
+ *  defensible for two or three holes. Uncapped it stops being: a student
+ *  measured at 60% with eight weak topics was being forecast 15–25, a number
+ *  no evidence in the app supports and which reads as the model having given
+ *  up on them. The cap keeps the adjustment a weighting rather than a verdict.
+ */
+export const MAX_WEAK_TOPIC_PENALTY = 20;
+
+/** Half-width of the reported range at full confidence, in points. */
 export const FORECAST_BAND = 5;
+
+/** Extra half-width added when there is no evidence at all, tapering to zero
+ *  as the sample reaches `CONFIDENCE_SATURATION_QUIZZES`.
+ *
+ *  The band used to be a flat ±5 whatever it was built on, so a forecast off
+ *  one quiz was printed exactly as precisely as one off fifty — and the
+ *  confidence figure beside it was the only thing distinguishing them. A
+ *  student reads the range, not the footnote. Widening the range *is* the
+ *  hedge, stated in the units they are already reading. */
+export const MAX_UNCERTAINTY_BAND = 15;
 
 /** Quizzes at which confidence reaches 100%. Higher than the evidence
  *  module's own saturation point (20) on purpose: that one gates how boldly
@@ -55,10 +78,14 @@ export interface QuizForecast {
   predictedMax: number;
   /** 0-100. A statement about sample size, not probability. */
   confidence: number;
+  /** Half-width of the reported range, in points. Wider on thin evidence. */
+  band: number;
   /** Measured accuracy before any adjustment, 0-100. */
   accuracyNow: number;
   /** The measured weak topics the penalty was drawn from. */
   weakTopics: TopicEvidence[];
+  /** Points actually deducted for those topics, after the cap. */
+  penalty: number;
   /** Whole days from today to the exam. Negative if the exam has passed. */
   daysUntilExam: number;
   /** Quizzes the forecast is built on. */
@@ -104,16 +131,33 @@ export function calculateQuizForecast(
      student's forecast by a whole grade boundary. */
   const weak = weakTopics(evidence);
 
-  const adjusted = Math.max(accuracyNow - weak.length * WEAK_TOPIC_PENALTY, 0);
+  const penalty = Math.min(
+    weak.length * WEAK_TOPIC_PENALTY,
+    MAX_WEAK_TOPIC_PENALTY,
+  );
+  const adjusted = Math.max(accuracyNow - penalty, 0);
+
+  /* How much of the saturation sample is actually behind this, 0-1. The same
+     fraction drives both the confidence figure and the width of the range, so
+     the two can never tell the student different stories about how much is
+     known. */
+  const evidenceFraction = Math.min(
+    evidence.quizzesTaken / CONFIDENCE_SATURATION_QUIZZES,
+    1,
+  );
+
+  const band = Math.round(
+    FORECAST_BAND + (1 - evidenceFraction) * MAX_UNCERTAINTY_BAND,
+  );
 
   return {
-    predictedMin: clampPercent(adjusted - FORECAST_BAND),
-    predictedMax: clampPercent(adjusted + FORECAST_BAND),
-    confidence: Math.round(
-      Math.min(evidence.quizzesTaken / CONFIDENCE_SATURATION_QUIZZES, 1) * 100,
-    ),
+    predictedMin: clampPercent(adjusted - band),
+    predictedMax: clampPercent(adjusted + band),
+    confidence: Math.round(evidenceFraction * 100),
+    band,
     accuracyNow,
     weakTopics: weak,
+    penalty,
     daysUntilExam: daysUntil(examDate, today),
     quizzesTaken: evidence.quizzesTaken,
   };

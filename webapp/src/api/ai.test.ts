@@ -120,13 +120,50 @@ describe("callEdge", () => {
     expect(calls).toBe(1);
   });
 
-  it("marks 429 and 5xx retryable", async () => {
-    for (const status of [429, 500, 503]) {
+  it("marks 5xx retryable", async () => {
+    for (const status of [500, 503]) {
       server.use(http.post(EDGE_URL, () => HttpResponse.json({}, { status })));
       await expect(
         callEdge({ history: [] }, undefined, 0),
       ).rejects.toMatchObject({ retryable: true });
     }
+  });
+
+  /* Both ceilings behind a 429 are measured in hours (the daily allowance,
+     which resets at midnight UTC) or minutes (the burst window). A 2-second
+     replay clears neither — it only delays the explanation by the backoff. */
+  it("does not retry a 429, and does not wait to say so", async () => {
+    let calls = 0;
+    server.use(
+      http.post(EDGE_URL, () => {
+        calls++;
+        return HttpResponse.json({ error: "Slow down" }, { status: 429 });
+      }),
+    );
+
+    await expect(callEdge({ history: [] })).rejects.toMatchObject({
+      retryable: false,
+    });
+    expect(calls).toBe(1);
+  });
+
+  /* The edge function's `rateLimitResponse` puts its message under `error` for
+     the JSON modes and under `text` for chat, notes and the tutor. Reading
+     only `error` meant the modes a student uses most answered a spent daily
+     allowance with the generic failure line. */
+  it("surfaces a rate-limit message sent as `text` rather than `error`", async () => {
+    const message =
+      "You've used today's AI generations on the free plan. They reset at midnight — or Learnora Pro raises the limit.";
+    server.use(
+      http.post(EDGE_URL, () =>
+        HttpResponse.json(
+          { text: message, refused: true, modelUsed: "rate-limit" },
+          { status: 429 },
+        ),
+      ),
+    );
+
+    await expect(callEdge({ history: [] })).rejects.toMatchObject({ message });
   });
 
   it("retries a retryable failure and returns the successful attempt", async () => {
