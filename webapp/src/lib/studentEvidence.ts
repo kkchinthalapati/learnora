@@ -59,6 +59,23 @@ export const MAX_PROMPT_UNQUIZZED = 10;
  *  copy in lib/adaptiveLearning.ts already treats as needing work. */
 export const WEAK_TOPIC_THRESHOLD = 60;
 
+/** …and "strong" above this. Naming what is already solid is not flattery:
+ *  it is what lets the assistant tell a student to *stop* revising something,
+ *  which is the advice they never get and the one that buys back time. */
+export const STRONG_TOPIC_THRESHOLD = 85;
+
+/** How far back performance is read. Beyond this a result says more about who
+ *  the student was than who they are: a topic failed two months and three
+ *  revision sessions ago is not current evidence, and steering today's advice
+ *  by it sends them to relearn something they may already have fixed. */
+export const EVIDENCE_WINDOW_DAYS = 30;
+
+/** Quizzes at which the numeric confidence saturates. Deliberately the same
+ *  shape as the tier below it (`min(quizzes / 20, 1)`) — one is for callers
+ *  that want to scale something continuously, the other for the prompt, and
+ *  they must never disagree about which direction is "more evidence". */
+export const CONFIDENCE_SATURATION_QUIZZES = 20;
+
 export interface TopicEvidence {
   topic: string;
   /** Questions answered on this topic, across every attempt. */
@@ -91,8 +108,18 @@ export interface StudentEvidence {
    *  covered. Unknown, explicitly — never folded in as a low score. */
   unquizzedTopics: string[];
   confidence: EvidenceConfidence;
-  /** ISO timestamp of the most recent attempt, or null. */
+  /** The same judgement as `confidence`, as 0-1, for callers that need to
+   *  scale rather than branch. `min(quizzesTaken / 20, 1)`. */
+  confidenceScore: number;
+  /** ISO timestamp of the most recent attempt inside the window, or null. */
   lastAttemptAt: string | null;
+  /** How many days back the figures above were read from. */
+  windowDays: number;
+  /** Attempts that exist but fell outside the window. Reported rather than
+   *  silently dropped: "you have history, it is just too old to steer by" is
+   *  a different thing to tell a student than "you have never quizzed", and
+   *  the advice that follows each is different too. */
+  staleAttempts: number;
 }
 
 export const EMPTY_EVIDENCE: StudentEvidence = {
@@ -102,7 +129,10 @@ export const EMPTY_EVIDENCE: StudentEvidence = {
   topics: [],
   unquizzedTopics: [],
   confidence: "none",
+  confidenceScore: 0,
   lastAttemptAt: null,
+  windowDays: EVIDENCE_WINDOW_DAYS,
+  staleAttempts: 0,
 };
 
 function normaliseTopic(raw: string): string {
@@ -141,11 +171,36 @@ function tierFor(quizzes: number, answers: number): EvidenceConfidence {
 export function buildStudentEvidence({
   quizzes,
   attempts,
+  windowDays = EVIDENCE_WINDOW_DAYS,
+  now = new Date(),
 }: {
   quizzes: Quiz[];
   attempts: QuizAttempt[];
+  /** Days of history to read. `Infinity` reads everything. */
+  windowDays?: number;
+  now?: Date;
 }): StudentEvidence {
-  if (attempts.length === 0 && quizzes.length === 0) return EMPTY_EVIDENCE;
+  if (attempts.length === 0 && quizzes.length === 0) {
+    return { ...EMPTY_EVIDENCE, windowDays };
+  }
+
+  /* The cutoff, as an ISO string so it compares directly against the stored
+     `created_at` without parsing every row. A row with no timestamp is kept:
+     it is far likelier to be an old row that predates the column than a
+     forgery, and dropping real evidence is the worse error here. */
+  const cutoff = Number.isFinite(windowDays)
+    ? new Date(now.getTime() - windowDays * 86400000).toISOString()
+    : null;
+
+  const inWindow: QuizAttempt[] = [];
+  let staleAttempts = 0;
+  for (const attempt of attempts) {
+    if (cutoff && attempt.created_at && attempt.created_at < cutoff) {
+      staleAttempts += 1;
+      continue;
+    }
+    inWindow.push(attempt);
+  }
 
   const byTopic = new Map<
     string,
@@ -158,7 +213,7 @@ export function buildStudentEvidence({
 
   const attemptedQuizIds = new Set<string>();
 
-  for (const attempt of attempts) {
+  for (const attempt of inWindow) {
     attemptedQuizIds.add(attempt.quiz_id);
 
     if (
@@ -236,7 +291,13 @@ export function buildStudentEvidence({
     topics,
     unquizzedTopics: [...unquizzed.values()].sort((a, b) => a.localeCompare(b)),
     confidence: tierFor(quizzesTaken, questionsAnswered),
+    confidenceScore:
+      Math.round(
+        Math.min(quizzesTaken / CONFIDENCE_SATURATION_QUIZZES, 1) * 100,
+      ) / 100,
     lastAttemptAt,
+    windowDays,
+    staleAttempts,
   };
 }
 
@@ -245,6 +306,17 @@ export function weakTopics(evidence: StudentEvidence): TopicEvidence[] {
   return evidence.topics.filter(
     (t) => !t.provisional && t.accuracy < WEAK_TOPIC_THRESHOLD,
   );
+}
+
+/** The topics solid enough to stop revising. Strongest first — the inverse of
+ *  `topics`' weakest-first order, because this list is read for a different
+ *  decision. Provisional rows are excluded for the same reason as above: "100%
+ *  on the one question you saw" is not mastery. */
+export function strongTopics(evidence: StudentEvidence): TopicEvidence[] {
+  return evidence.topics
+    .filter((t) => !t.provisional && t.accuracy >= STRONG_TOPIC_THRESHOLD)
+    .slice()
+    .reverse();
 }
 
 /* Which surface owns "what grade will I get?".
@@ -294,8 +366,16 @@ export function formatEvidenceForPrompt(evidence: StudentEvidence): string {
 
   if (evidence.confidence === "none") {
     lines.push(
-      "- Quizzes taken: 0. There is no performance data for this student at all.",
+      `- Quizzes taken in the last ${evidence.windowDays} days: 0. There is no current performance data for this student.`,
     );
+    /* The difference between "never quizzed" and "stopped quizzing" changes
+       the advice completely: one needs a first quiz, the other needs a
+       re-test before anything else can be said. */
+    if (evidence.staleAttempts > 0) {
+      lines.push(
+        `- They do have ${evidence.staleAttempts} older attempt(s) from before that window. Those are NOT counted here and you must not quote figures from them — they may no longer reflect where the student is. Suggest a fresh quiz to re-establish the picture.`,
+      );
+    }
     if (evidence.unquizzedTopics.length > 0) {
       const names = evidence.unquizzedTopics
         .slice(0, MAX_PROMPT_UNQUIZZED)
@@ -311,6 +391,9 @@ export function formatEvidenceForPrompt(evidence: StudentEvidence): string {
   }
 
   lines.push(
+    `- Window: the last ${evidence.windowDays} days. Everything below is current performance, not lifetime history.`,
+  );
+  lines.push(
     `- Quizzes taken: ${evidence.quizzesTaken}. Questions answered: ${evidence.questionsAnswered}. Overall accuracy: ${evidence.overallAccuracy}%.`,
   );
   if (evidence.lastAttemptAt) {
@@ -318,7 +401,14 @@ export function formatEvidenceForPrompt(evidence: StudentEvidence): string {
       `- Most recent attempt: ${evidence.lastAttemptAt.slice(0, 10)}.`,
     );
   }
-  lines.push(`- Evidence strength: ${evidence.confidence.toUpperCase()}.`);
+  if (evidence.staleAttempts > 0) {
+    lines.push(
+      `- ${evidence.staleAttempts} older attempt(s) fell outside the window and are excluded. Do not quote figures from them.`,
+    );
+  }
+  lines.push(
+    `- Evidence strength: ${evidence.confidence.toUpperCase()} (${evidence.confidenceScore.toFixed(2)} of 1).`,
+  );
 
   const shown = evidence.topics.slice(0, MAX_PROMPT_TOPICS);
   if (shown.length > 0) {
@@ -342,6 +432,32 @@ export function formatEvidenceForPrompt(evidence: StudentEvidence): string {
     );
   }
 
+  /* Called out separately from the weakest-first list above, because it
+     answers a different question. The list above says where to send them; this
+     says what to leave alone — advice a student almost never gets, and the
+     only kind that gives time back rather than asking for more. */
+  const strong = strongTopics(evidence);
+  if (strong.length > 0) {
+    const names = strong
+      .slice(0, MAX_PROMPT_TOPICS)
+      .map((t) => `${fenceUntrusted(t.topic)} (${t.accuracy}%)`)
+      .join(", ");
+    lines.push(
+      `- SOLID (at or above ${STRONG_TOPIC_THRESHOLD}%, measured): ${names}. Say so when it is useful — recommending revision on these wastes the student's time, and telling them they can stop is as valuable as telling them where to start.`,
+    );
+  }
+
+  const weak = weakTopics(evidence);
+  if (weak.length > 0) {
+    const names = weak
+      .slice(0, MAX_PROMPT_TOPICS)
+      .map((t) => `${fenceUntrusted(t.topic)} (${t.accuracy}%)`)
+      .join(", ");
+    lines.push(
+      `- WEAK (below ${WEAK_TOPIC_THRESHOLD}%, measured): ${names}. These are where revision time actually pays. Lead with them over generic study advice.`,
+    );
+  }
+
   if (evidence.unquizzedTopics.length > 0) {
     const names = evidence.unquizzedTopics
       .slice(0, MAX_PROMPT_UNQUIZZED)
@@ -357,6 +473,12 @@ export function formatEvidenceForPrompt(evidence: StudentEvidence): string {
   }
 
   lines.push(`- HONESTY RULE: ${CONFIDENCE_GUIDANCE[evidence.confidence]}`);
+  /* The failure this whole module exists to prevent. A student who asks for
+     help and gets a listicle they could have found anywhere has learned
+     nothing about themselves, and the app knew better the whole time. */
+  lines.push(
+    "- SPECIFICITY RULE: you have this student's real numbers, so use them. When they ask for help studying, open with what their own data says — their accuracy and the named topics above — and make every suggestion follow from it. Do not answer with generic study tips, a numbered list of general advice, or techniques that would read identically to any other student. Generic advice is only acceptable for something the data above says nothing about, and then say that is why.",
+  );
   lines.push(`- ${FORECAST_AUTHORITY}`);
   lines.push(
     "- Never state a performance number that does not appear above. If the student asks how they are doing on something not listed, say you have no quiz data on it yet and offer to generate a quiz — do not estimate.",
