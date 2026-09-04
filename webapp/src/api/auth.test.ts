@@ -7,7 +7,7 @@ import { authApi } from "./auth";
 describe("authApi.signup", () => {
   it("rejects with no network call when dob is missing", async () => {
     await expect(
-      authApi.signup("Ada", "ada@example.com", "pw", ""),
+      authApi.signup("Ada", "ada@example.com", "pw", "", true),
     ).rejects.toThrow("date of birth");
   });
 
@@ -17,7 +17,7 @@ describe("authApi.signup", () => {
     const dob = twelveYearsAgo.toISOString().slice(0, 10);
 
     await expect(
-      authApi.signup("Ada", "ada@example.com", "pw", dob),
+      authApi.signup("Ada", "ada@example.com", "pw", dob, true),
     ).rejects.toThrow("at least 13 years old");
   });
 
@@ -25,7 +25,7 @@ describe("authApi.signup", () => {
      comparison — it needs rejecting on its own terms. */
   it("rejects an unparseable date of birth rather than waving it through", async () => {
     await expect(
-      authApi.signup("Ada", "ada@example.com", "pw", "not-a-date"),
+      authApi.signup("Ada", "ada@example.com", "pw", "not-a-date", true),
     ).rejects.toThrow("valid date of birth");
   });
 
@@ -50,7 +50,7 @@ describe("authApi.signup", () => {
 
   it("rejects someone whose 13th birthday is tomorrow", async () => {
     await expect(
-      authApi.signup("Ada", "ada@example.com", "pw", localDob(13, 1)),
+      authApi.signup("Ada", "ada@example.com", "pw", localDob(13, 1), true),
     ).rejects.toThrow("at least 13 years old");
   });
 
@@ -65,8 +65,49 @@ describe("authApi.signup", () => {
     );
 
     await expect(
-      authApi.signup("Ada", "ada@example.com", "password123", localDob(13)),
+      authApi.signup(
+        "Ada",
+        "ada@example.com",
+        "password123",
+        localDob(13),
+        true,
+      ),
     ).resolves.toBe("verification-sent");
+  });
+
+  it("rejects signup when AI-provider consent was not given", async () => {
+    await expect(
+      authApi.signup(
+        "Ada",
+        "ada@example.com",
+        "password123",
+        "2000-01-01",
+        false,
+      ),
+    ).rejects.toThrow("agree to share your study data");
+  });
+
+  it("sends consent_given in the signup metadata", async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${SUPABASE_URL}/auth/v1/signup`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          user: { id: "u1", identities: [{ id: "i1" }] },
+          session: null,
+        });
+      }),
+    );
+
+    await authApi.signup(
+      "Ada",
+      "ada@example.com",
+      "password123",
+      "2000-01-01",
+      true,
+    );
+
+    expect(body).toMatchObject({ data: { consent_given: true } });
   });
 
   it("returns 'verification-sent' when signup succeeds without a session", async () => {
@@ -84,6 +125,7 @@ describe("authApi.signup", () => {
       "ada@example.com",
       "password123",
       "2000-01-01",
+      true,
     );
     expect(result).toBe("verification-sent");
   });
@@ -109,6 +151,7 @@ describe("authApi.signup", () => {
       "ada@example.com",
       "password123",
       "2000-01-01",
+      true,
     );
     expect(result).toBe("ok");
   });
@@ -127,7 +170,13 @@ describe("authApi.signup", () => {
     );
 
     await expect(
-      authApi.signup("Ada", "ada@example.com", "password123", "2000-01-01"),
+      authApi.signup(
+        "Ada",
+        "ada@example.com",
+        "password123",
+        "2000-01-01",
+        true,
+      ),
     ).rejects.toThrow("already exists");
   });
 });

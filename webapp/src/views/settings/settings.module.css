@@ -580,9 +580,40 @@
   }
 }
 
+/* The daily AI allowance meter (AiUsageMeter.tsx). Tone is carried by colour
+   *and* by the sentence above the bar — the copy already says how many are
+   left, so someone who cannot distinguish the fill colours loses nothing. */
+.meterTrack {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  background: var(--line);
+  border-radius: 999px;
+}
+
+.meterFill {
+  height: 100%;
+  min-width: 2px;
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width 240ms ease;
+}
+
+.meterFillWarn {
+  background: var(--warning);
+}
+
+.meterFillBad {
+  background: var(--danger);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .panel,
   .inlineForm {
     animation: none;
+  }
+
+  .meterFill {
+    transition: none;
   }
 }

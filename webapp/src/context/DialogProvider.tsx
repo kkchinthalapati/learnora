@@ -105,6 +105,7 @@ function DialogHost({
     danger = false,
     placeholder = "",
     defaultValue = "",
+    inputType = "text",
     resolve,
   } = request;
 
@@ -198,6 +199,7 @@ function DialogHost({
         {isPrompt ? (
           <input
             ref={inputRef}
+            type={inputType}
             className={`${styles.input}${invalid ? ` ${styles.invalid}` : ""}`}
             value={value}
             placeholder={placeholder}

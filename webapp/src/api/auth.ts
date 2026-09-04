@@ -128,6 +128,7 @@ export const authApi = {
     email: string,
     password: string,
     dob: string,
+    consentGiven: boolean,
   ): Promise<SignupOutcome> {
     if (!dob) throw new Error("Please enter your date of birth.");
     const age = calculateAge(dob);
@@ -139,12 +140,26 @@ export const authApi = {
     if (age < MIN_SIGNUP_AGE) {
       throw new Error(`You must be at least ${MIN_SIGNUP_AGE} years old.`);
     }
+    /* The UI already blocks submission with the checkbox unchecked (see
+     * SignupView) — this is the server-facing half of that same rule, so a
+     * request built by hand (or a future caller) can't skip the checkbox by
+     * skipping the form. */
+    if (!consentGiven) {
+      throw new Error(
+        "You must agree to share your study data with our AI providers to create an account.",
+      );
+    }
 
+    /* `consent_given` rides in the same user-metadata bag as `full_name` and
+     * `dob`. The `sync_profile_from_auth_user` trigger (see the migration
+     * alongside this file) copies it into `public.profiles` on insert, so
+     * there is no separate write to make here — one signup call is the whole
+     * flow, same as name and date of birth already were. */
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: name, dob },
+        data: { full_name: name, dob, consent_given: consentGiven },
         emailRedirectTo: authRedirect("/verify"),
       },
     });
@@ -260,7 +275,12 @@ export const authApi = {
 
   /** Delete the account — requires an edge function since the client SDK
    * cannot delete users (admin-only operation). */
-  async deleteAccount(): Promise<void> {
+  /* `password` re-authenticates the person at the keyboard. The session token
+     proves the account; it does not prove that whoever is holding the laptop
+     is its owner, and this action is irreversible. The edge function decides
+     whether a password is required — an OAuth-only account has none — so it
+     is optional here rather than enforced client-side. */
+  async deleteAccount(password?: string): Promise<void> {
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -272,6 +292,7 @@ export const authApi = {
         Authorization: `Bearer ${session.access_token}`,
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({ password: password ?? "" }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));

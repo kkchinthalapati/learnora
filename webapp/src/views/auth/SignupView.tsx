@@ -34,12 +34,14 @@ export function SignupView() {
   const dobId = useId();
   const passwordId = useId();
   const confirmId = useId();
+  const consentId = useId();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [dob, setDob] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [consentGiven, setConsentGiven] = useState(false);
   const [sent, setSent] = useState(false);
 
   const { setStatus, node: statusNode } = useAuthStatus();
@@ -54,6 +56,18 @@ export function SignupView() {
       setStatus({ kind: "error", message: invalid.message });
       return;
     }
+    /* Belt-and-suspenders alongside the checkbox's own `required` attribute:
+       a screen reader or browser that doesn't enforce HTML validation still
+       gets a clear reason the submit did nothing, matching how the age and
+       password checks above are handled. */
+    if (!consentGiven) {
+      setStatus({
+        kind: "error",
+        message:
+          "You must agree to share your study data with our AI providers to continue.",
+      });
+      return;
+    }
 
     setStatus(null);
     try {
@@ -62,6 +76,7 @@ export function SignupView() {
         email: email.trim(),
         password,
         dob,
+        consentGiven,
       });
       if (outcome === "verification-sent") {
         setSent(true);
@@ -169,6 +184,26 @@ export function SignupView() {
             placeholder="Re-enter your password"
             required
           />
+
+          <div className={styles.consentGroup}>
+            <input
+              id={consentId}
+              type="checkbox"
+              className={styles.consentCheckbox}
+              required
+              checked={consentGiven}
+              onChange={(e) => setConsentGiven(e.target.checked)}
+            />
+            <label htmlFor={consentId} className={styles.consentLabel}>
+              I agree to share my study data with Learnora's AI providers
+              (Anthropic's Claude and Google's Gemini) to power AI features.
+              See our{" "}
+              <Link to="/privacy" target="_blank" rel="noopener noreferrer">
+                Privacy Policy
+              </Link>
+              .
+            </label>
+          </div>
 
           <Button
             type="submit"

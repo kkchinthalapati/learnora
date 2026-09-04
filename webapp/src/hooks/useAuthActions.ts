@@ -19,12 +19,14 @@ export function useSignup() {
       email,
       password,
       dob,
+      consentGiven,
     }: {
       name: string;
       email: string;
       password: string;
       dob: string;
-    }) => authApi.signup(name, email, password, dob),
+      consentGiven: boolean;
+    }) => authApi.signup(name, email, password, dob, consentGiven),
   });
 }
 

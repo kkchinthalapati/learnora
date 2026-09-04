@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from "vite";
+import { configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 /* `base` is the piece Step 7 identified as missing and is what makes the
@@ -22,8 +23,28 @@ const BASE = "/app/";
 export default defineConfig({
   base: BASE,
   plugins: [react()],
+  build: {
+    /* "hidden" emits the .map files but omits the `//# sourceMappingURL`
+       comment that points at them, so browsers never fetch them and the
+       source is not linked from the shipped bundle — while the maps still
+       exist for Sentry to symbolicate against.
+
+       Without any sourcemap a production stack trace is minified frames
+       (`a.b is not a function` at `index-4f2a.js:1:88213`), which satisfies
+       "show stack traces" only on a technicality. Turning the maps into
+       readable traces needs them uploaded to Sentry — see MONITORING.md; the
+       upload needs an auth token, so it is a deploy-config step rather than
+       something this file can do. */
+    sourcemap: "hidden",
+  },
   test: {
     environment: "jsdom",
+    /* The Playwright suite in tests/e2e also names its files `*.spec.ts`, so
+     * vitest's default include glob picks them up, imports `@playwright/test`
+     * outside a Playwright runner, and fails collection on the first
+     * `test.describe`. The two runners are separate: vitest owns `src/`,
+     * Playwright owns `tests/e2e/` and is invoked by `npm run test:e2e`. */
+    exclude: [...configDefaults.exclude, "tests/e2e/**"],
     // The fork pool can hang on Windows when the suite mounts many jsdom
     // environments. Threads keep the same isolation contract while making
     // `npm test` deterministic in local and CI runs.

@@ -63,6 +63,10 @@ export function AuthShell({
                     it. */}
                 <Link to="/terms" target="_blank" rel="noopener noreferrer">
                   Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link to="/privacy" target="_blank" rel="noopener noreferrer">
+                  Privacy Policy
                 </Link>
                 .
               </p>

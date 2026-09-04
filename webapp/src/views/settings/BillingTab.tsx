@@ -13,6 +13,7 @@ import {
 } from "../../hooks/useSubscription";
 import { BillingError } from "../../api/billing";
 import { PRO_FEATURES, formatPrice, PRICES } from "../../lib/entitlements";
+import { AiUsageMeter } from "./AiUsageMeter";
 import styles from "./settings.module.css";
 
 /* Plan and billing.
@@ -148,6 +149,11 @@ export function BillingTab() {
                 )}
               </div>
             </div>
+
+            {/* Directly under the plan, because the allowance is the most
+                concrete thing the plan buys — and the number a student
+                actually wants when they come here wondering about limits. */}
+            <AiUsageMeter isPro={isPro} />
 
             {isPro && renews ? (
               <div className={styles.field}>

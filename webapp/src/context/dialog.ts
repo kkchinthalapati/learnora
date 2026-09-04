@@ -9,6 +9,10 @@ export interface DialogOptions {
   danger?: boolean;
   placeholder?: string;
   defaultValue?: string;
+  /** Input type for `promptText`. "password" masks the value and keeps
+   *  password managers from filing it as a username — needed by the
+   *  re-authentication prompt on account deletion. */
+  inputType?: "text" | "password";
 }
 
 export interface DialogRequest extends DialogOptions {

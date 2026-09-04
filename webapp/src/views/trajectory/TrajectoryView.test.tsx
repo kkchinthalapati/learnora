@@ -83,6 +83,8 @@ function serve({
     ...[1, 2, 3, 4, 5].map((i) => card(`s${i}`, "d-strong", 40)),
     ...[1, 2, 3, 4, 5].map((i) => card(`w${i}`, "d-weak", 1)),
   ] as unknown[],
+  attempts = [] as unknown[],
+  quizzes = [] as unknown[],
 } = {}) {
   server.use(
     http.get(rest("profiles"), () => HttpResponse.json(pro ? [PRO_ROW] : [])),
@@ -90,8 +92,33 @@ function serve({
     http.get(rest("folders"), () => HttpResponse.json(folders)),
     http.get(rest("flashcard_decks"), () => HttpResponse.json(decks)),
     http.get(rest("flashcards"), () => HttpResponse.json(cards)),
-    http.get(rest("quiz_attempts"), () => HttpResponse.json([])),
+    http.get(rest("quiz_attempts"), () => HttpResponse.json(attempts)),
+    http.get(rest("quizzes"), () => HttpResponse.json(quizzes)),
   );
+}
+
+/** An attempt of `total` questions on one topic, `correct` of them right. */
+function quizAttempt(
+  id: string,
+  topic: string,
+  correct: number,
+  total: number,
+) {
+  return {
+    id,
+    user_id: "user-1",
+    quiz_id: `quiz-${id}`,
+    score: correct,
+    total,
+    answers_json: Array.from({ length: total }, (_, i) => ({
+      questionId: `${id}-q${i}`,
+      chosenIndex: i < correct ? 0 : 1,
+      correct: i < correct,
+      topic,
+    })),
+    weak_topics: null,
+    created_at: new Date().toISOString(),
+  };
 }
 
 function seedLifeContext() {
@@ -201,6 +228,28 @@ describe("TrajectoryView", () => {
     serve({ decks: [], cards: [] });
     render();
     expect(await screen.findByText(/Not enough to go on/)).toBeInTheDocument();
+  });
+
+  /* No decks means the SRS engine has nothing to project, but a student who
+     has been quizzing is not short of evidence — only of the kind Trajectory
+     reads. They used to get the empty state above regardless. */
+  it("falls back to a quiz-only forecast when there are no decks", async () => {
+    serve({
+      decks: [],
+      cards: [],
+      attempts: [
+        quizAttempt("a1", "Bonding", 9, 10),
+        quizAttempt("a2", "Titration", 3, 10),
+      ],
+    });
+    render();
+
+    // 12/20 = 60%, one measured weak topic (Titration, 30%) → 55 ± 5.
+    expect(await screen.findByText(/Chemistry: 50–60/)).toBeInTheDocument();
+    expect(screen.getByText(/Titration \(30%\)/)).toBeInTheDocument();
+    expect(screen.queryByText(/Not enough to go on/)).not.toBeInTheDocument();
+    // The weaker model has to say that it is the weaker model.
+    expect(screen.getByText(/rough version/i)).toBeInTheDocument();
   });
 
   it("offers a picker when there is more than one exam", async () => {

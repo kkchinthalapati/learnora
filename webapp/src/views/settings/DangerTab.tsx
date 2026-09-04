@@ -16,8 +16,12 @@ import styles from "./settings.module.css";
 
 /* Danger Zone tab — ports index.html:1642-1673 + js/main.js:1140-1170.
  *
- * Both confirmation flows are carried over exactly, including the account
- * deletion's deliberate double prompt. Two adaptations:
+ * The wipe flow is carried over exactly. Account deletion is not: the vanilla
+ * asked "are you sure?" twice, which mostly teaches people to click through
+ * both. The second step is now a password, which is the only part of this
+ * flow a passer-by at an unlocked laptop cannot complete — and re-auth before
+ * an irreversible action is the standard Supabase itself applies to changing
+ * an email. Three adaptations:
  *
  *  - Wipe: the vanilla called `DataAdmin.wipe()`, which reloaded the whole
  *    page to clear the now-stale views (js/api.js). Here every view reads
@@ -28,7 +32,7 @@ import styles from "./settings.module.css";
  *    state change AuthProvider is already listening to. */
 
 export function DangerTab() {
-  const { confirm } = useDialog();
+  const { confirm, promptText } = useDialog();
   const { showToast } = useToast();
   const { signOut } = useAuth();
   const queryClient = useQueryClient();
@@ -67,15 +71,25 @@ export function DangerTab() {
     );
     if (!ok) return;
 
-    const doubleOk = await confirm("Last chance — are you absolutely sure?", {
-      title: "Final confirmation",
-      confirmText: "Delete forever",
-      danger: true,
-    });
-    if (!doubleOk) return;
+    /* Re-authentication, not a second "are you sure?". The old flow asked the
+       same question twice, which trains people to click through both; a
+       password is the only step here that a passer-by at an unlocked laptop
+       cannot complete. Cancelling the prompt returns null and aborts. */
+    const password = await promptText(
+      "Enter your password to confirm. This deletes your account and every piece of data in it, permanently.",
+      {
+        title: "Confirm your password",
+        confirmText: "Delete forever",
+        cancelText: "Keep my account",
+        placeholder: "Your password",
+        inputType: "password",
+        danger: true,
+      },
+    );
+    if (password === null) return;
 
     try {
-      await deleteAccount.mutateAsync();
+      await deleteAccount.mutateAsync(password);
       await signOut();
     } catch (err) {
       setFeedback({ kind: "error", message: (err as Error).message });

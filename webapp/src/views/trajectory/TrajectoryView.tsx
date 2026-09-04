@@ -11,6 +11,7 @@ import { useTrajectory } from "../../hooks/useTrajectory";
 import { formatDuration } from "../../lib/lifeContext";
 import { INTERVENTION_BLOCK_MINS, type Verdict } from "../../lib/trajectory";
 import { TrajectoryChart } from "./TrajectoryChart";
+import { QuizOnlyForecast } from "./QuizOnlyForecast";
 import styles from "./trajectory.module.css";
 
 /* The screen that answers "is what I'm doing going to be enough?"
@@ -77,22 +78,13 @@ function TrajectoryBody() {
     );
   }
 
+  /* No decks means the real engine has nothing to project from. Rather than
+     stopping there, fall back to what the student does have — quiz results —
+     and say plainly that it is the rougher model. An empty screen is a worse
+     answer than a rough number honestly labelled. */
   if (needsMaterial || !forecast) {
     return (
-      <Card as="section" variant="panel" className={styles.section}>
-        <h2 className={styles.sectionTitle}>
-          Not enough to go on for {exam.exam_name}
-        </h2>
-        <p className={styles.sectionCopy}>
-          A forecast needs something to measure. Flashcard decks are what carry
-          memory state, so they are what this projects forward.{" "}
-          <Link to="/library" className={styles.link}>
-            Turn a material into a deck
-          </Link>{" "}
-          and a forecast appears — it gets sharper every time you review or take
-          a quiz.
-        </p>
-      </Card>
+      <QuizOnlyForecast examName={exam.exam_name} examDate={exam.exam_date} />
     );
   }
 
