@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   CONFIDENCE_SATURATION_QUIZZES,
   FORECAST_BAND,
+  MAX_UNCERTAINTY_BAND,
+  MAX_WEAK_TOPIC_PENALTY,
   WEAK_TOPIC_PENALTY,
   calculateQuizForecast,
   daysUntil,
@@ -79,8 +81,8 @@ describe("calculateQuizForecast", () => {
 
     expect(forecast?.accuracyNow).toBe(80);
     expect(forecast?.weakTopics).toEqual([]);
-    expect(forecast?.predictedMin).toBe(80 - FORECAST_BAND);
-    expect(forecast?.predictedMax).toBe(80 + FORECAST_BAND);
+    expect(forecast?.predictedMin).toBe(80 - forecast!.band);
+    expect(forecast?.predictedMax).toBe(80 + forecast!.band);
   });
 
   it("docks the forecast once per measured weak topic", () => {
@@ -97,8 +99,28 @@ describe("calculateQuizForecast", () => {
 
     expect(forecast.weakTopics).toHaveLength(2);
     const adjusted = forecast.accuracyNow - 2 * WEAK_TOPIC_PENALTY;
-    expect(forecast.predictedMin).toBe(adjusted - FORECAST_BAND);
-    expect(forecast.predictedMax).toBe(adjusted + FORECAST_BAND);
+    expect(forecast.penalty).toBe(2 * WEAK_TOPIC_PENALTY);
+    expect(forecast.predictedMin).toBe(adjusted - forecast.band);
+    expect(forecast.predictedMax).toBe(adjusted + forecast.band);
+  });
+
+  /* Uncapped, eight weak topics would deduct 40 points and forecast a student
+     measured at ~47% into the teens — a number nothing in the app supports. */
+  it("caps the total weak-topic penalty however many holes there are", () => {
+    const forecast = calculateQuizForecast(
+      evidenceFrom([
+        attempt("a0", "Strong", 10, 10),
+        ...Array.from({ length: 8 }, (_, i) =>
+          attempt(`w${i}`, `Weak ${i}`, 2, 10),
+        ),
+      ]),
+      "2026-09-14",
+      TODAY,
+    )!;
+
+    expect(forecast.weakTopics).toHaveLength(8);
+    expect(forecast.penalty).toBe(MAX_WEAK_TOPIC_PENALTY);
+    expect(forecast.accuracyNow - forecast.penalty).toBeGreaterThan(0);
   });
 
   it("never reports a negative or above-100 bound", () => {
@@ -136,7 +158,7 @@ describe("calculateQuizForecast", () => {
       TODAY,
     )!;
     expect(forecast.weakTopics).toEqual([]);
-    expect(forecast.predictedMax).toBe(forecast.accuracyNow + FORECAST_BAND);
+    expect(forecast.predictedMax).toBe(forecast.accuracyNow + forecast.band);
   });
 
   it("scales confidence with quiz count and caps it at 100", () => {
@@ -167,9 +189,14 @@ describe("calculateQuizForecast", () => {
    * TEST section states — that line is inconsistent with the FORMULA section
    * directly above it, on both numbers. Following the formula as written:
    *   adjusted   = 72 - (1 * 5) = 67
-   *   range      = 62-72        (the spec's 67-77 skips the weak-topic penalty)
    *   confidence = 20/50 = 40%  (80% would need 40 quizzes, not 20)
-   * The formula is the normative half, so that is what is implemented. */
+   * The formula is the normative half, so that is what is implemented.
+   *
+   * The range is 53-81 rather than the spec's flat ±5, because the band is
+   * scaled by the same sample fraction as the confidence: at 40% of the
+   * saturation sample it is ±14, not ±5. A spec that prints one number to the
+   * same precision whether it rests on one quiz or fifty is the thing this
+   * deliberately departs from. */
   it("matches the spec's formula on its worked example", () => {
     /* 19 clean quizzes at 75% plus one failing topic, tuned so the overall
        lands on 72% with exactly one measured weak topic. */
@@ -188,10 +215,38 @@ describe("calculateQuizForecast", () => {
     expect(forecast.quizzesTaken).toBe(20);
     expect(forecast.accuracyNow).toBe(72); // (19×15 + 3) / 400 = 288/400
     expect(forecast.weakTopics).toHaveLength(1);
-    expect(forecast.predictedMin).toBe(62);
-    expect(forecast.predictedMax).toBe(72);
+    expect(forecast.band).toBe(14);
+    expect(forecast.predictedMin).toBe(53);
+    expect(forecast.predictedMax).toBe(81);
     expect(forecast.confidence).toBe(40);
     expect(forecast.daysUntilExam).toBe(10);
+  });
+
+  /* The point of the band being dynamic: a forecast off one quiz and a
+     forecast off fifty must not be printed to the same precision. */
+  it("widens the range on thin evidence and tightens it as quizzes accumulate", () => {
+    const thin = calculateQuizForecast(
+      evidenceFrom([attempt("a1", "Alpha", 7, 10)]),
+      "2026-09-14",
+      TODAY,
+    )!;
+
+    const thick = calculateQuizForecast(
+      evidenceFrom(
+        Array.from({ length: 50 }, (_, i) => attempt(`q${i}`, "Alpha", 7, 10)),
+      ),
+      "2026-09-14",
+      TODAY,
+    )!;
+
+    expect(thin.band).toBeGreaterThan(thick.band);
+    expect(thick.band).toBe(FORECAST_BAND);
+    expect(thin.band).toBe(
+      Math.round(FORECAST_BAND + (1 - 1 / 50) * MAX_UNCERTAINTY_BAND),
+    );
+
+    // Same measured accuracy either way — only the stated precision moves.
+    expect(thin.accuracyNow).toBe(thick.accuracyNow);
   });
 });
 

@@ -86,6 +86,68 @@ describe("extractQuizJSON", () => {
     expect(extractQuizJSON(null)).toEqual([]);
     expect(extractQuizJSON("I'd rather not.")).toEqual([]);
   });
+
+  /* QuizRunner renders each choice straight into a button (`{choice}`), so a
+     non-string choice is not a cosmetic problem — React throws "Objects are
+     not valid as a React child" and takes the whole run down mid-quiz. */
+  it("rejects choices that are not strings", () => {
+    expect(
+      extractQuizJSON(
+        '[{"question":"q","choices":[{"text":"a"},{"text":"b"}],"correctIndex":0}]',
+      ),
+    ).toEqual([]);
+  });
+
+  it("rejects a blank choice, which renders as an unreadable button", () => {
+    expect(
+      extractQuizJSON(
+        '[{"question":"q","choices":["a","   "],"correctIndex":0}]',
+      ),
+    ).toEqual([]);
+  });
+
+  it("rejects a blank question", () => {
+    expect(
+      extractQuizJSON(
+        '[{"question":"  ","choices":["a","b"],"correctIndex":0}]',
+      ),
+    ).toEqual([]);
+  });
+
+  /* Two identical options make the question unanswerable: picking the copy
+     that isn't `correctIndex` is marked wrong for being the same text. */
+  it("rejects duplicate choices regardless of case or padding", () => {
+    expect(
+      extractQuizJSON(
+        '[{"question":"q","choices":["Paris"," paris "],"correctIndex":0}]',
+      ),
+    ).toEqual([]);
+  });
+
+  /* Nine usable questions is a quiz. The all-or-nothing check used to throw
+     the batch away and leave the student with "Couldn't generate a quiz". */
+  it("keeps the good questions when one in the batch is malformed", () => {
+    const good = { question: "a", choices: ["x", "y"], correctIndex: 0 };
+    const alsoGood = { question: "b", choices: ["x", "y"], correctIndex: 1 };
+    const bad = { question: "c", choices: ["x"], correctIndex: 0 };
+
+    expect(extractQuizJSON(JSON.stringify([good, bad, alsoGood]))).toEqual([
+      good,
+      alsoGood,
+    ]);
+  });
+
+  /* The `[` in the prose used to be taken as the start of the array, so the
+     slice ran from there to the real array's close and parsed to nothing. */
+  it("finds a wrapped array even when the prose contains a bracket", () => {
+    expect(
+      extractQuizJSON(
+        `Here are the questions [as requested]: ${JSON.stringify({
+          questions: [question],
+        })}`,
+      ),
+    ).toEqual([question]);
+  });
 });
 
 describe("extractFlashcardJSON", () => {

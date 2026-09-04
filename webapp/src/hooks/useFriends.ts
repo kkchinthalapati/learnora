@@ -16,10 +16,26 @@ export function useMyFriendCode() {
   });
 }
 
+/** How often the standings re-check while someone is looking at them. */
+const LEADERBOARD_POLL_MS = 60_000;
+
+/* The one screen in the app whose content is *other people*, and the only one
+ * where sitting still and watching is the point. On the app's default query
+ * settings it refetched on mount and on window focus and never again, so a
+ * student with the Friends tab open watched a frozen table while their friends
+ * studied — the standings only moved if they navigated away and back.
+ *
+ * Polling rather than a realtime channel: the underlying figures are rolled-up
+ * study totals rather than a per-row feed, there is no realtime subscription
+ * anywhere else in the app except study rooms (hooks/useStudyRoom.ts), and a
+ * minute is well inside the resolution anyone reads a leaderboard at. React
+ * Query pauses the interval while the tab is in the background by default, so
+ * this costs nothing when nobody is watching. */
 export function useFriendsLeaderboard() {
   return useQuery({
     queryKey: friendsKeys.leaderboard,
     queryFn: friendsApi.fetchLeaderboard,
+    refetchInterval: LEADERBOARD_POLL_MS,
   });
 }
 

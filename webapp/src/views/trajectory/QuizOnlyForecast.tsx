@@ -69,8 +69,9 @@ export function QuizOnlyForecast({
 
       {weak.length > 0 ? (
         <p className={styles.sectionCopy}>
-          <strong>Weak:</strong> {weak.join(", ")}. Each one is costing you
-          about 5 points in this estimate, so they are where the hours pay.
+          <strong>Weak:</strong> {weak.join(", ")}. Together they are costing
+          you about {forecast.penalty} points in this estimate, so they are
+          where the hours pay.
         </p>
       ) : null}
 
