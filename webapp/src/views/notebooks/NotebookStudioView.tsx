@@ -18,6 +18,8 @@ import {
   type StudyBuddyCheckItem,
 } from "../../hooks/useStudyBuddyChecks";
 import { StudyBuddyGutter } from "../notes/StudyBuddyGutter";
+import { useStudentEvidence } from "../../hooks/useStudentEvidence";
+import { formatEvidenceForPrompt } from "../../lib/studentEvidence";
 
 function flashcardsFromCheatSheet(content: string) {
   const cards = content
@@ -75,6 +77,12 @@ export function NotebookStudioView() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isWebSearchOpen, setIsWebSearchOpen] = useState(false);
+
+  /* The tutor in here is asked "am I ready for this?" as often as it is asked
+     to explain something, and until it could see quiz results it answered that
+     from the sources alone — which is to say, it guessed. */
+  const { evidence: studentEvidence, isPending: isEvidencePending } =
+    useStudentEvidence();
 
   const {
     checks: studyBuddyChecks,
@@ -223,11 +231,18 @@ ${
 }
 Keep explanations friendly, encouraging, and structured for student success.`;
 
+      /* While the cache is still filling, the summary would read "0 quizzes
+         taken" — which is a claim, not an absence. Say the true thing
+         instead. */
+      const evidenceBlock = isEvidencePending
+        ? "PERFORMANCE EVIDENCE: still loading. You do not know this student's quiz results right now, so make no claims about how they are performing and give no grade estimate."
+        : formatEvidenceForPrompt(studentEvidence);
+
       const response = await callEdge({
         history: [
           {
             role: "user",
-            content: `${systemPrompt}\n\nSTUDY SOURCES:\n${sourcesContext}\n\nSTUDENT QUESTION:\n${promptToSend}`,
+            content: `${systemPrompt}\n\n${evidenceBlock}\n\nSTUDY SOURCES:\n${sourcesContext}\n\nSTUDENT QUESTION:\n${promptToSend}`,
           },
         ],
       });

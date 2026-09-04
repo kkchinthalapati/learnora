@@ -38,6 +38,11 @@ export interface ChatContext {
   conciseness?: AiConciseness;
   /** A temporary, session-local adjustment inferred from recent chat shape. */
   adaptiveNudge?: string;
+  /** The student's real quiz performance, rendered by
+   *  `lib/studentEvidence.ts`'s `formatEvidenceForPrompt`. Omitted when the
+   *  rows could not be read — the chat still works, it just knows less, the
+   *  same best-effort treatment `pendingTasks` gets. */
+  performanceEvidence?: string;
 }
 
 export const DEFAULT_ACTIVE_CONTEXT = "User is on the general dashboard.";
@@ -110,6 +115,7 @@ export function buildSystemContext({
   persona = "tutor",
   conciseness = "medium",
   adaptiveNudge = "",
+  performanceEvidence = "",
 }: ChatContext): string {
   const voiceInstructions = PERSONA_VOICE[persona];
   const concisenessInstruction = CONCISENESS_INSTRUCTION[conciseness];
@@ -132,7 +138,7 @@ TODAY IS: ${today}
 WORKSPACE STATE:
 - Pending Tasks: ${pendingTasks}
 - Upcoming Exams: ${upcomingExams}
-
+${performanceEvidence ? `\n${performanceEvidence}\n` : ""}
 ACTIVE VIEW:
 ${activeContext}${appendedFileContext}
 
@@ -140,6 +146,8 @@ GROUNDING RULES (important — follow exactly):
 - Only reference tasks and exams that appear in WORKSPACE STATE above. Never invent, assume, or hallucinate tasks, chapters, sections, or deadlines that are not listed there.
 - If "Pending Tasks" is "None", tell the student they have no pending tasks yet — do NOT make any up.
 - If the student mentions something you don't see in the workspace, say you don't see it rather than fabricating details.
+- Performance claims come only from PERFORMANCE EVIDENCE above. Never estimate a grade, a percentage, a readiness level or a "you're probably around…" from anything else — not from how confident the student sounds, not from how much material exists, not from how many tasks they have done. If that section is absent, you have no performance data at all: say so.
+- Saying "I don't know" is a correct answer here and is always preferred to a plausible number. When the student asks about a topic with no quiz data, say you haven't seen quiz data on it yet and offer to generate a quiz (<ADD_QUIZ>Topic Name</ADD_QUIZ>) so there is something to measure.
 - A task listed as "(due YYYY-MM-DD)" carries that deadline; a task listed with no "(due …)" simply has no due date set. When asked to summarise, order or prioritise tasks, sort by due date — soonest first — using TODAY IS above to work out what is overdue, due today, or due this week, and put undated tasks last. If every task is undated, say so plainly and offer to help set due dates.
 
 CAPABILITIES:
