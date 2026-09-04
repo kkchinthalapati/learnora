@@ -11,6 +11,8 @@
 
 import { supabase, SUPABASE_URL } from "../lib/supabase";
 import type { Settings } from "../lib/settings";
+import { queryClient } from "../lib/queryClient";
+import { aiUsageKeys } from "./aiUsage";
 
 const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
 
@@ -129,6 +131,16 @@ export async function callEdge(
         body,
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
+
+      /* The server has just ruled on this user's daily allowance, so whatever
+         the usage meter is showing is now behind: a 2xx spent one generation,
+         and a 429 means they are at the ceiling. Every AI call in the app
+         funnels through here, so this one line keeps the meter honest for all
+         of them. Deliberately not awaited — the meter is cosmetic, and must
+         never delay a generation or fail one by throwing. */
+      if (response.ok || response.status === 429) {
+        void queryClient.invalidateQueries({ queryKey: aiUsageKeys.today });
+      }
 
       if (!response.ok) {
         const errorBody = (await response.json().catch(() => ({}))) as {
