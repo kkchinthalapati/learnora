@@ -97,7 +97,12 @@ else
 fi
 
 echo "==> Building the React app"
-npm --prefix "$ROOT/webapp" ci
+# `npm ci` installs devDependencies because the build needs them (vite,
+# typescript). @playwright/test is in there too, and its install script would
+# otherwise pull ~400MB of browser binaries into every deploy to run tests that
+# never run here. The e2e suite installs them explicitly instead
+# (`npm run test:e2e:install`).
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm --prefix "$ROOT/webapp" ci
 npm --prefix "$ROOT/webapp" run build
 
 if [[ ! -f "$ROOT/webapp/dist/index.html" ]]; then
