@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from "vite";
+import { configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 /* `base` is the piece Step 7 identified as missing and is what makes the
@@ -38,6 +39,12 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    /* The Playwright suite in tests/e2e also names its files `*.spec.ts`, so
+     * vitest's default include glob picks them up, imports `@playwright/test`
+     * outside a Playwright runner, and fails collection on the first
+     * `test.describe`. The two runners are separate: vitest owns `src/`,
+     * Playwright owns `tests/e2e/` and is invoked by `npm run test:e2e`. */
+    exclude: [...configDefaults.exclude, "tests/e2e/**"],
     // The fork pool can hang on Windows when the suite mounts many jsdom
     // environments. Threads keep the same isolation contract while making
     // `npm test` deterministic in local and CI runs.
