@@ -28,6 +28,23 @@ async function confirmDialog(
   await user.click(within(dialog).getByRole("button", { name }));
 }
 
+/** The second step of account deletion: type the password, then confirm. */
+async function confirmPassword(
+  user: ReturnType<typeof userEvent.setup>,
+  password = "hunter2",
+) {
+  const dialog = await screen.findByRole("alertdialog");
+  /* A type="password" input has no implicit ARIA role, so it is reached by
+     its label rather than by getByRole("textbox"). */
+  await user.type(
+    within(dialog).getByLabelText("Confirm your password"),
+    password,
+  );
+  await user.click(
+    within(dialog).getByRole("button", { name: "Delete forever" }),
+  );
+}
+
 describe("DangerTab", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -130,15 +147,17 @@ describe("DangerTab", () => {
     await user.click(screen.getByRole("button", { name: /Delete Account/ }));
     await confirmDialog(user, "Yes, delete my account");
 
-    // Second prompt — backing out here must still not delete anything.
+    // Second step — backing out of the password prompt deletes nothing.
     const second = await screen.findByRole("alertdialog");
-    expect(second).toHaveTextContent("Last chance");
-    await user.click(within(second).getByRole("button", { name: "Cancel" }));
+    expect(second).toHaveTextContent("Enter your password to confirm");
+    await user.click(
+      within(second).getByRole("button", { name: "Keep my account" }),
+    );
 
     expect(called).toBe(false);
   });
 
-  it("deletes the account and signs out after the second confirmation", async () => {
+  it("deletes the account and signs out once the password is confirmed", async () => {
     const user = userEvent.setup();
     const signOut = vi.fn().mockResolvedValue(undefined);
     server.use(
@@ -156,9 +175,39 @@ describe("DangerTab", () => {
 
     await user.click(screen.getByRole("button", { name: /Delete Account/ }));
     await confirmDialog(user, "Yes, delete my account");
-    await confirmDialog(user, "Delete forever");
+    await confirmPassword(user);
 
     await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1));
+  });
+
+  /* The whole point of the second step: the typed password has to reach the
+     server. Sent but ignored would be security theatre. */
+  it("sends the typed password to the endpoint", async () => {
+    const user = userEvent.setup();
+    let body: { password?: string } | null = null;
+    server.use(
+      http.post(
+        `${SUPABASE_URL}/functions/v1/delete-account`,
+        async ({ request }) => {
+          body = (await request.json()) as { password?: string };
+          return HttpResponse.json({ message: "Account deleted" });
+        },
+      ),
+    );
+    vi.spyOn(
+      await import("../../lib/supabase").then((m) => m.supabase.auth),
+      "signOut",
+    ).mockResolvedValue({ error: null } as Awaited<
+      ReturnType<typeof import("../../lib/supabase").supabase.auth.signOut>
+    >);
+    renderDanger();
+
+    await user.click(screen.getByRole("button", { name: /Delete Account/ }));
+    await confirmDialog(user, "Yes, delete my account");
+    await confirmPassword(user, "correct-horse");
+
+    await waitFor(() => expect(body).not.toBeNull());
+    expect(body!.password).toBe("correct-horse");
   });
 
   it("surfaces the edge function's error message", async () => {
@@ -172,7 +221,7 @@ describe("DangerTab", () => {
 
     await user.click(screen.getByRole("button", { name: /Delete Account/ }));
     await confirmDialog(user, "Yes, delete my account");
-    await confirmDialog(user, "Delete forever");
+    await confirmPassword(user);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Account is locked",

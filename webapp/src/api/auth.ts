@@ -260,7 +260,12 @@ export const authApi = {
 
   /** Delete the account — requires an edge function since the client SDK
    * cannot delete users (admin-only operation). */
-  async deleteAccount(): Promise<void> {
+  /* `password` re-authenticates the person at the keyboard. The session token
+     proves the account; it does not prove that whoever is holding the laptop
+     is its owner, and this action is irreversible. The edge function decides
+     whether a password is required — an OAuth-only account has none — so it
+     is optional here rather than enforced client-side. */
+  async deleteAccount(password?: string): Promise<void> {
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -272,6 +277,7 @@ export const authApi = {
         Authorization: `Bearer ${session.access_token}`,
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({ password: password ?? "" }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
