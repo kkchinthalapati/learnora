@@ -35,7 +35,9 @@ import {
   CAPACITY_CHOICES,
   COACH_STYLES,
   EMPTY_ANSWERS,
+  EXAM_BOARDS,
   FOCUS_AREAS,
+  GOALS_WITH_BOARDS,
   ONBOARDING_METADATA_KEY,
   ONBOARDING_VERSION,
   STUDY_GOALS,
@@ -47,9 +49,12 @@ import {
   nextStepsFor,
   readOnboarding,
   settingsPatchFor,
+  studyProfilePatchFor,
   type FocusAreaId,
   type OnboardingAnswers,
 } from "../../lib/onboarding";
+import { profileApi } from "../../api/profile";
+import { useProfileDetails } from "../../hooks/useProfileDetails";
 import {
   loadDashboardLayout,
   saveDashboardLayout,
@@ -111,6 +116,26 @@ export function WelcomeView() {
     return first || null;
   }, [user]);
 
+  /* Exam board and target grade are also editable in Settings ▸ Preferences ▸
+     Study Focus, and that screen writes straight to `profiles`. Replaying the
+     wizard from the answers blob alone would therefore show — and on finish,
+     write back — whatever was answered at signup, silently reverting any edit
+     made there since. Seeding from the live columns keeps Settings the source
+     of truth for the two fields it shares with this screen. */
+  const profileDetails = useProfileDetails();
+  const seededFromProfile = useRef(false);
+  useEffect(() => {
+    if (!replaying || seededFromProfile.current || !profileDetails.data) return;
+    seededFromProfile.current = true;
+    const { examType, targetGrade, subject } = profileDetails.data;
+    setAnswers((prev) => ({
+      ...prev,
+      examType: (examType as OnboardingAnswers["examType"]) ?? prev.examType,
+      targetGrade: targetGrade ?? prev.targetGrade,
+    }));
+    if (subject) setSubjectName(subject);
+  }, [profileDetails.data, replaying]);
+
   /* Each step is a fresh screenful of content in the same document, so focus
      has to be moved deliberately or a screen reader stays where the old
      "Continue" button used to be. */
@@ -160,6 +185,19 @@ export function WelcomeView() {
             "Couldn't create that subject — you can add it from Library.",
           );
         }
+      }
+
+      /* Best-effort, like the folder and exam writes above: these four columns
+         only shape the planner's prompt, so failing to save them must not cost
+         the student the rest of a completed setup. Silent rather than a toast —
+         unlike a subject they typed and can see is missing, there is nothing
+         here for them to act on. */
+      try {
+        await profileApi.updateStudyProfile(
+          studyProfilePatchFor(final, subjectName),
+        );
+      } catch {
+        /* Recoverable from Settings ▸ Preferences ▸ Study Focus. */
       }
 
       const trimmedExam = examName.trim();
@@ -364,10 +402,47 @@ export function WelcomeView() {
                     label={goal.label}
                     hint={goal.hint}
                     selected={answers.goal === goal.id}
-                    onClick={() => patch({ goal: goal.id })}
+                    onClick={() =>
+                      patch({
+                        goal: goal.id,
+                        /* Switching to a goal with no boards clears a board
+                           picked under the previous answer, so the summary and
+                           the planner can't claim they're sitting an exam they
+                           just told us they aren't. */
+                        ...(GOALS_WITH_BOARDS.includes(goal.id)
+                          ? {}
+                          : { examType: null }),
+                      })
+                    }
                   />
                 ))}
               </div>
+
+              {answers.goal && GOALS_WITH_BOARDS.includes(answers.goal) && (
+                <fieldset className={styles.inlineChoice}>
+                  <legend className={styles.inlineLegend}>
+                    Which one? <span className={styles.optional}>optional</span>
+                  </legend>
+                  <div className={styles.chipRow}>
+                    {EXAM_BOARDS.map((board) => (
+                      <button
+                        key={board.id}
+                        type="button"
+                        className={`${styles.chip} ${answers.examType === board.id ? styles.chipOn : ""}`}
+                        aria-pressed={answers.examType === board.id}
+                        onClick={() =>
+                          patch({
+                            examType:
+                              answers.examType === board.id ? null : board.id,
+                          })
+                        }
+                      >
+                        {board.label}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
             </section>
           )}
 
@@ -505,16 +580,37 @@ export function WelcomeView() {
                 padding="lg"
                 className={styles.formCard}
               >
-                <label className={styles.field}>
-                  <span className={styles.fieldLabel}>Subject</span>
-                  <input
-                    className={styles.input}
-                    value={subjectName}
-                    onChange={(e) => setSubjectName(e.target.value)}
-                    placeholder="Organic Chemistry"
-                    autoComplete="off"
-                  />
-                </label>
+                <div className={styles.fieldPair}>
+                  <label className={styles.field}>
+                    <span className={styles.fieldLabel}>Subject</span>
+                    <input
+                      className={styles.input}
+                      value={subjectName}
+                      onChange={(e) => setSubjectName(e.target.value)}
+                      placeholder="Organic Chemistry"
+                      autoComplete="off"
+                    />
+                  </label>
+                  {/* Free text rather than a picker: IB marks out of 7, GCSE
+                      9-1, most US schools use letters. A dropdown here would
+                      have to guess which, and be wrong for most people. */}
+                  <label className={styles.field}>
+                    <span className={styles.fieldLabel}>
+                      Target grade{" "}
+                      <span className={styles.optional}>optional</span>
+                    </span>
+                    <input
+                      className={styles.input}
+                      value={answers.targetGrade ?? ""}
+                      onChange={(e) =>
+                        patch({ targetGrade: e.target.value || null })
+                      }
+                      placeholder="7"
+                      maxLength={20}
+                      autoComplete="off"
+                    />
+                  </label>
+                </div>
                 <div className={styles.fieldPair}>
                   <label className={styles.field}>
                     <span className={styles.fieldLabel}>

@@ -118,6 +118,80 @@ describe("WelcomeView", () => {
     expect(layout.visibleSections.sessionsCommunity).toBe(false);
   });
 
+  /* The wizard is the only place a new account ever sets these, and they are
+     what fills the planner's STUDENT CONTEXT block (api/aiPlan.ts). Before
+     this was wired up the block was empty for every freshly-onboarded
+     student, which is all of them. */
+  it("writes the study profile the planner reads", async () => {
+    let body: Record<string, unknown> | undefined;
+    server.use(
+      http.patch(`${SUPABASE_URL}/rest/v1/profiles`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.click(screen.getByRole("button", { name: /let's set it up/i }));
+    await user.click(screen.getByRole("button", { name: /school exams/i }));
+    await user.click(screen.getByRole("button", { name: /^a-level$/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.click(
+      screen.getByRole("button", { name: /stay on top of deadlines/i }),
+    );
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.click(screen.getByRole("button", { name: /direct coach/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.click(screen.getByRole("button", { name: /^late/i }));
+    await user.click(screen.getByRole("button", { name: /2 hours/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+
+    await user.type(
+      screen.getByRole("textbox", { name: /subject/i }),
+      "Organic Chemistry",
+    );
+    await user.type(screen.getByRole("textbox", { name: /target grade/i }), "A");
+    await user.click(
+      screen.getByRole("button", { name: /create it and finish/i }),
+    );
+
+    await screen.findByRole("heading", { level: 1, name: /you're set up/i });
+
+    await waitFor(() =>
+      expect(body).toEqual({
+        subject: "Organic Chemistry",
+        exam_type: "a_level",
+        target_grade: "A",
+        /* Derived from the "2 hours" capacity answer, not asked again. */
+        study_pace: "intensive",
+      }),
+    );
+  });
+
+  /* "Learning for myself" has no exam board, so the follow-up must not be
+     there to answer — and switching to it must clear a board already picked. */
+  it("only offers an exam board for the goals that have one", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await user.click(screen.getByRole("button", { name: /let's set it up/i }));
+    expect(
+      screen.queryByRole("button", { name: /^a-level$/i }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /school exams/i }));
+    const aLevel = screen.getByRole("button", { name: /^a-level$/i });
+    await user.click(aLevel);
+    expect(aLevel).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: /learning for myself/i }));
+    expect(
+      screen.queryByRole("button", { name: /^a-level$/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("still lets the student through when the metadata write fails", async () => {
     server.use(
       http.put(`${SUPABASE_URL}/auth/v1/user`, () =>

@@ -54,10 +54,21 @@ export type StudyGoalId = "school" | "university" | "professional" | "self";
 export type FocusAreaId =
   "deadlines" | "planning" | "understanding" | "recall" | "exams" | "social";
 export type StudyTimeId = "morning" | "steady" | "night";
+/** Mirrors the `profiles_exam_type_check` constraint. */
+export type ExamTypeId =
+  "ap" | "ib" | "a_level" | "gcse" | "sat" | "act" | "other";
+/** Mirrors the `profiles_study_pace_check` constraint. */
+export type StudyPaceId = "light" | "balanced" | "intensive";
 
 export interface OnboardingAnswers {
   version: number;
   goal: StudyGoalId | null;
+  /** Which qualification, when the goal is one that has boards. Null for
+   *  "learning for myself", and for anyone who skipped the follow-up. */
+  examType: ExamTypeId | null;
+  /** Free text — a syllabus's grading scale is not something to hardcode
+   *  (IB 1-7, GCSE 9-1, letters, percentages). */
+  targetGrade: string | null;
   focusAreas: FocusAreaId[];
   coachStyle: AiPersona;
   detail: AiConciseness;
@@ -72,6 +83,8 @@ export interface OnboardingAnswers {
 export const EMPTY_ANSWERS: OnboardingAnswers = Object.freeze({
   version: ONBOARDING_VERSION,
   goal: null,
+  examType: null,
+  targetGrade: null,
   focusAreas: [],
   coachStyle: "tutor",
   detail: "medium",
@@ -113,6 +126,32 @@ export const STUDY_GOALS: ReadonlyArray<{
     hint: "No deadline — I just want it to stick",
     icon: "compass",
   },
+];
+
+/* Offered as a follow-up to the goal question rather than a step of its own:
+   it is a qualifier on an answer already given, and a whole screen asking
+   "which exam board" would be the most skippable screen in the wizard.
+
+   `self` is deliberately absent from GOALS_WITH_BOARDS below — someone
+   learning for themselves has no board, and asking anyway is the kind of
+   question that makes a product feel like it wasn't listening. */
+export const EXAM_BOARDS: ReadonlyArray<{
+  id: ExamTypeId;
+  label: string;
+}> = [
+  { id: "gcse", label: "GCSE" },
+  { id: "a_level", label: "A-Level" },
+  { id: "ib", label: "IB" },
+  { id: "ap", label: "AP" },
+  { id: "sat", label: "SAT" },
+  { id: "act", label: "ACT" },
+  { id: "other", label: "Something else" },
+];
+
+/** Goals for which "which board?" is a question worth asking. */
+export const GOALS_WITH_BOARDS: ReadonlyArray<StudyGoalId> = [
+  "school",
+  "professional",
 ];
 
 export const FOCUS_AREAS: ReadonlyArray<{
@@ -257,6 +296,13 @@ export function parseAnswers(raw: unknown): OnboardingAnswers | null {
     goal: STUDY_GOALS.some((g) => g.id === r.goal)
       ? (r.goal as StudyGoalId)
       : null,
+    examType: EXAM_BOARDS.some((b) => b.id === r.examType)
+      ? (r.examType as ExamTypeId)
+      : null,
+    targetGrade:
+      typeof r.targetGrade === "string" && r.targetGrade.trim()
+        ? r.targetGrade.trim().slice(0, 20)
+        : null,
     focusAreas: Array.isArray(r.focusAreas)
       ? r.focusAreas.filter(isFocusArea)
       : [],
@@ -363,6 +409,52 @@ export function settingsPatchFor(
     ...(answers.focusAreas.includes("deadlines")
       ? { notifyStudyReminders: true }
       : {}),
+  };
+}
+
+/* Study pace is *derived*, not asked. The rhythm step already establishes how
+   much study is realistic on a weekday, and asking a second, softer version of
+   the same question ("light / balanced / intensive?") would be asking the
+   student to answer it twice and to reconcile the two themselves.
+
+   The thresholds match CAPACITY_CHOICES' own rungs: half an hour is someone
+   fitting study around a full life, an hour is the middle, and two hours or
+   more is someone for whom study is the main thing right now — which is
+   exactly the distinction `STUDY_PACE_HINTS` draws for the planner. */
+export function studyPaceFor(answers: OnboardingAnswers): StudyPaceId | null {
+  const mins = answers.weekdayCapacityMins;
+  if (mins === null) return null;
+  if (mins <= 30) return "light";
+  if (mins <= 60) return "balanced";
+  return "intensive";
+}
+
+/** The `profiles` study-configuration patch implied by the answers.
+ *
+ * These four columns are read by `loadAdaptiveContext` and rendered into the
+ * planner prompt as its STUDENT CONTEXT block (see `api/aiPlan.ts`). Before
+ * this, they were reachable only from Settings ▸ Preferences ▸ Study Focus —
+ * a screen a brand new account has no reason to open — so the block the
+ * planner was built to read was empty for every student who had just
+ * onboarded, which is all of them.
+ *
+ * `subject` comes from the wizard's own subject field rather than the answers
+ * blob: the same string already becomes their first folder, and it is the
+ * one thing here the student typed in their own words. */
+export function studyProfilePatchFor(
+  answers: OnboardingAnswers,
+  subjectName: string,
+): {
+  subject: string | null;
+  examType: string | null;
+  targetGrade: string | null;
+  studyPace: string | null;
+} {
+  return {
+    subject: subjectName.trim() || null,
+    examType: answers.examType,
+    targetGrade: answers.targetGrade,
+    studyPace: studyPaceFor(answers),
   };
 }
 
