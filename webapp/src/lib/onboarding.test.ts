@@ -12,6 +12,8 @@ import {
   readOnboarding,
   settingsPatchFor,
   shouldOnboard,
+  studyPaceFor,
+  studyProfilePatchFor,
   type OnboardingAnswers,
 } from "./onboarding";
 import { DEFAULT_DASHBOARD_LAYOUT } from "../views/dashboard/DashboardCustomizeModal";
@@ -69,6 +71,70 @@ describe("parseAnswers", () => {
     expect(
       parseAnswers({ weekdayCapacityMins: -30 })?.weekdayCapacityMins,
     ).toBe(0);
+  });
+
+  /* exam_type is a CHECK constraint on profiles, so an unrecognised board
+     reaching the write would fail the whole study-profile update. */
+  it("drops an exam board that isn't one of the allowed values", () => {
+    expect(parseAnswers({ examType: "edexcel_igcse" })?.examType).toBeNull();
+    expect(parseAnswers({ examType: "gcse" })?.examType).toBe("gcse");
+  });
+
+  it("trims a target grade and treats a blank one as unset", () => {
+    expect(parseAnswers({ targetGrade: "  A*  " })?.targetGrade).toBe("A*");
+    expect(parseAnswers({ targetGrade: "   " })?.targetGrade).toBeNull();
+    expect(parseAnswers({ targetGrade: 7 })?.targetGrade).toBeNull();
+  });
+});
+
+describe("studyPaceFor", () => {
+  /* Derived from the capacity question the rhythm step already asks, rather
+     than asked again in different words. */
+  it("maps each capacity rung onto a pace", () => {
+    expect(studyPaceFor(answers({ weekdayCapacityMins: 30 }))).toBe("light");
+    expect(studyPaceFor(answers({ weekdayCapacityMins: 60 }))).toBe("balanced");
+    expect(studyPaceFor(answers({ weekdayCapacityMins: 120 }))).toBe(
+      "intensive",
+    );
+    expect(studyPaceFor(answers({ weekdayCapacityMins: 180 }))).toBe(
+      "intensive",
+    );
+  });
+
+  it("stays null when the rhythm step was never answered", () => {
+    expect(studyPaceFor(EMPTY_ANSWERS)).toBeNull();
+  });
+});
+
+describe("studyProfilePatchFor", () => {
+  it("carries the wizard's answers into the columns the planner reads", () => {
+    const patch = studyProfilePatchFor(
+      answers({
+        examType: "ib",
+        targetGrade: "7",
+        weekdayCapacityMins: 120,
+      }),
+      "Organic Chemistry",
+    );
+
+    expect(patch).toEqual({
+      subject: "Organic Chemistry",
+      examType: "ib",
+      targetGrade: "7",
+      studyPace: "intensive",
+    });
+  });
+
+  /* Skipping every optional field must write nulls, not empty strings — the
+     planner renders no STUDENT CONTEXT block at all for a fully-null profile,
+     which is the correct outcome for someone who answered nothing. */
+  it("writes nulls rather than blanks when nothing was answered", () => {
+    expect(studyProfilePatchFor(EMPTY_ANSWERS, "   ")).toEqual({
+      subject: null,
+      examType: null,
+      targetGrade: null,
+      studyPace: null,
+    });
   });
 });
 
