@@ -13,6 +13,7 @@ import { useSettings } from "../../context/settings";
 import { useOptionalTimer } from "../../context/timer";
 import { useToast } from "../../context/toast";
 import { useAllDecks } from "../../hooks/useDecks";
+import { useWeakTopics } from "../../hooks/useQuizzes";
 import { useContinuity } from "../../hooks/useContinuity";
 import { useAddTask } from "../../hooks/useTasks";
 import {
@@ -179,6 +180,10 @@ function ReviewLauncher({
   onSessionStart: () => void;
 }) {
   const [sessionCards, setSessionCards] = useState<Flashcard[] | null>(null);
+  /* Read here rather than in ReviewSetup so the list is already in cache by
+     the time the student picks an order — the snapshot is built synchronously
+     on "Start review" and a pending query would silently order by nothing. */
+  const weakTopics = useWeakTopics(5);
 
   if (sessionCards) {
     return (
@@ -195,9 +200,12 @@ function ReviewLauncher({
     <ReviewSetup
       deckTitle={deckTitle}
       dueCards={dueCards}
+      hasQuizEvidence={(weakTopics.data ?? []).length > 0}
       onStart={(length, order) => {
         onSessionStart();
-        setSessionCards(createReviewSnapshot(dueCards, length, order));
+        setSessionCards(
+          createReviewSnapshot(dueCards, length, order, weakTopics.data ?? []),
+        );
       }}
     />
   );
@@ -206,10 +214,12 @@ function ReviewLauncher({
 function ReviewSetup({
   deckTitle,
   dueCards,
+  hasQuizEvidence,
   onStart,
 }: {
   deckTitle: string;
   dueCards: Flashcard[];
+  hasQuizEvidence: boolean;
   onStart: (length: ReviewLength, order: ReviewOrder) => void;
 }) {
   const [length, setLength] = useState<ReviewLength>(() =>
@@ -280,6 +290,24 @@ function ReviewSetup({
                 <small>Lower-ease cards get priority</small>
               </span>
             </label>
+            {/* Offered only when quizzes have actually named a weak topic —
+                an option that would order by nothing is worse than no
+                option, because it implies evidence that isn't there. */}
+            {hasQuizEvidence ? (
+              <label className={styles.orderChoice}>
+                <input
+                  type="radio"
+                  name="review-order"
+                  value="quiz-weak"
+                  checked={order === "quiz-weak"}
+                  onChange={() => setOrder("quiz-weak")}
+                />
+                <span>
+                  <strong>Quiz weak spots first</strong>
+                  <small>Topics you have been missing on quizzes</small>
+                </span>
+              </label>
+            ) : null}
           </div>
         </fieldset>
 
