@@ -156,6 +156,7 @@ describe("offlineSync", () => {
         "2026-08-26T00:00:00.000Z",
         2,
         2.5,
+        { stability: undefined, difficulty: undefined },
       );
       expect(sessionsApi.log).toHaveBeenCalledWith({
         minutes: 30,
@@ -220,6 +221,7 @@ describe("offlineSync", () => {
         "2026-08-25T00:00:00.000Z",
         1,
         2.5,
+        { stability: undefined, difficulty: undefined },
       );
       expect(getOfflineQueueSize()).toBe(0);
     });

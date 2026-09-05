@@ -34,20 +34,29 @@ export const flashcardsApi = {
     return data ?? [];
   },
 
+  /* Stability and difficulty are written alongside the legacy columns: the
+   * scheduler derives every future interval from them, so a review that
+   * dropped them (as this did) made the next review start from scratch. They
+   * are optional because a queued offline review recorded by an older build
+   * carries only the legacy three. */
   async updateReview(
     cardId: string,
     nextReviewDate: string,
     interval: number,
     ease: number,
+    memory?: { stability?: number; difficulty?: number },
   ): Promise<void> {
     const userId = await requireUserId();
+    const update: Record<string, unknown> = {
+      next_review_date: nextReviewDate,
+      srs_interval: interval,
+      ease_factor: ease,
+    };
+    if (typeof memory?.stability === "number") update.stability = memory.stability;
+    if (typeof memory?.difficulty === "number") update.difficulty = memory.difficulty;
     const { error } = await supabase
       .from("flashcards")
-      .update({
-        next_review_date: nextReviewDate,
-        srs_interval: interval,
-        ease_factor: ease,
-      })
+      .update(update)
       .eq("id", cardId)
       .eq("user_id", userId);
     if (error) throw new Error(error.message);

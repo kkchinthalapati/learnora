@@ -47,6 +47,18 @@ export const DEFAULT_FSRS_PARAMETERS: FsrsParameters = {
 export const R_FACTOR = 19 / 81; // ~0.2345679 ensures R(S, S) = 0.90
 export const R_DECAY = 0.5;
 
+/** Longest gap the app will ever schedule, in days.
+ *
+ *  FSRS's own default ceiling is 36,500 days, which is a spec default rather
+ *  than a product decision: an unbroken run of Good answers compounds
+ *  stability by roughly 2.5x a review, so a card a student never fails
+ *  reaches "due in several decades" after a dozen reviews and effectively
+ *  leaves the rotation. Learnora's material is course- and exam-bound, so a
+ *  year is the longest gap that means anything here — past that the honest
+ *  behaviour is to ask again annually rather than to schedule a review the
+ *  student will never see. */
+export const MAX_REVIEW_INTERVAL_DAYS = 365;
+
 export interface SrsResult {
   interval: number;
   ease: number;
@@ -228,11 +240,18 @@ export function nextForgetStability(
 export function computeFsrsCardState(params: FsrsCardParams): FsrsCardState {
   const {
     quality,
-    desiredRetention: _desiredRetention = DEFAULT_FSRS_PARAMETERS.requestRetention,
+    desiredRetention = DEFAULT_FSRS_PARAMETERS.requestRetention,
     now = new Date(),
   } = params;
 
   const clampedQuality = Math.min(4, Math.max(1, Math.round(quality)));
+
+  /* Only "Again" is a lapse. "Hard" is a *successful* recall that happened to
+     be effortful — grading it as a miss (which this did) threw away every day
+     of scheduling a mature card had earned, so the button students press when
+     they got it but struggled was the most destructive one on the screen. */
+  const isLapse = clampedQuality === 1;
+
   const isNewCard =
     params.previousInterval === undefined ||
     params.previousInterval === 0 ||
@@ -241,8 +260,6 @@ export function computeFsrsCardState(params: FsrsCardParams): FsrsCardState {
   let stability: number;
   let difficulty: number;
   let retrievability: number;
-  let interval: number;
-  let ease: number;
 
   const currentEase =
     typeof params.easeFactor === "number" && !isNaN(params.easeFactor) && params.easeFactor > 0
@@ -253,14 +270,6 @@ export function computeFsrsCardState(params: FsrsCardParams): FsrsCardState {
     stability = initialStability(clampedQuality);
     difficulty = initialDifficulty(clampedQuality);
     retrievability = 1.0;
-
-    if (clampedQuality < 3) {
-      interval = 0;
-      ease = Math.max(1.3, currentEase - 0.2);
-    } else {
-      interval = 1;
-      ease = currentEase + 0.1;
-    }
   } else {
     const currentStability = params.stability || params.previousInterval || 1.0;
     const currentDifficulty =
@@ -272,27 +281,36 @@ export function computeFsrsCardState(params: FsrsCardParams): FsrsCardState {
 
     retrievability = calculateRetrievability(elapsedDays, currentStability);
     difficulty = nextDifficulty(currentDifficulty, clampedQuality);
+    stability = isLapse
+      ? nextForgetStability(difficulty, currentStability, retrievability)
+      : nextRecallStability(
+          difficulty,
+          currentStability,
+          retrievability,
+          clampedQuality,
+        );
+  }
 
-    if (clampedQuality < 3) {
-      stability = nextForgetStability(difficulty, currentStability, retrievability);
-      interval = 0;
-      ease = Math.max(1.3, currentEase - 0.2);
-    } else {
-      stability = nextRecallStability(
-        difficulty,
-        currentStability,
-        retrievability,
-        clampedQuality,
+  /* The interval now comes from stability, which is the whole point of
+     modelling stability: the card is scheduled for the day retrievability is
+     predicted to fall to the target retention. The previous implementation
+     computed all of the above and then discarded it in favour of
+     `previousInterval * ease`, so Good and Easy produced identical dates and
+     ease compounded unboundedly (+0.1 a review, no cap) — ten Good answers
+     scheduled a card 21,362 days out. */
+  const interval = isLapse
+    ? 0
+    : calculateOptimalInterval(
+        stability,
+        desiredRetention,
+        MAX_REVIEW_INTERVAL_DAYS,
       );
 
-      if (params.previousInterval === 1) {
-        interval = 3;
-      } else {
-        interval = Math.round((params.previousInterval || 1) * currentEase);
-      }
-      ease = currentEase + 0.1;
-    }
-  }
+  /* `ease_factor` stays the persisted SM-2-shaped column (other reads depend
+     on it — `fetchWeakDecks` treats < 2.1 as struggling), but it is now
+     derived from difficulty rather than drifting on its own. That keeps it
+     bounded in [1.3, 3.5] and actually meaning "how hard this card is". */
+  const ease = difficultyToEase(difficulty);
 
   // Anchor due dates to local midnight for interval > 0, or exact instant for interval = 0
   const nextDate = new Date(now);
@@ -317,7 +335,12 @@ export function computeFsrsCardState(params: FsrsCardParams): FsrsCardState {
  */
 export function nextReviewState(
   card: Pick<Flashcard, "srs_interval" | "ease_factor"> &
-    Partial<Pick<Flashcard, "next_review_date" | "created_at">>,
+    Partial<
+      Pick<
+        Flashcard,
+        "next_review_date" | "created_at" | "stability" | "difficulty"
+      >
+    >,
   quality: number,
   now = new Date(),
   desiredRetention = DEFAULT_FSRS_PARAMETERS.requestRetention,
@@ -333,9 +356,17 @@ export function nextReviewState(
     elapsedDays = Math.max(0, previousInterval + overdueDays);
   }
 
+  /* Memory state carries across reviews now that the columns exist. A card
+     reviewed before they did has NULL for both, and falls back to the
+     interval/ease pair the way the pre-FSRS scheduler did — so an existing
+     library keeps working and converges on real FSRS state from its next
+     review onward. */
   const fsrs = computeFsrsCardState({
     previousInterval,
     easeFactor,
+    stability: typeof card.stability === "number" ? card.stability : undefined,
+    difficulty:
+      typeof card.difficulty === "number" ? card.difficulty : undefined,
     elapsedDays,
     quality,
     desiredRetention,

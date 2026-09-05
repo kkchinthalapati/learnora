@@ -66,6 +66,11 @@ export interface Flashcard {
   next_review_date: string | null;
   srs_interval: number;
   ease_factor: number;
+  /** FSRS memory stability in days — how long until recall decays to the
+   *  target retention. NULL on cards last reviewed before the column existed. */
+  stability?: number | null;
+  /** FSRS difficulty on a 1..10 scale. NULL on pre-FSRS cards. */
+  difficulty?: number | null;
   created_at: string;
   source_quote?: string | null;
   source_material_id?: string | null;
