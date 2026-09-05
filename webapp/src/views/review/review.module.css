@@ -1258,3 +1258,14 @@
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
+
+/* A card-side image sits under that side's text and is bounded so a tall
+   diagram cannot push the grading buttons off-screen mid-review. */
+.cardImage {
+  display: block;
+  max-width: 100%;
+  max-height: 40vh;
+  margin: var(--s-3) auto 0;
+  border-radius: var(--r-sm);
+  object-fit: contain;
+}

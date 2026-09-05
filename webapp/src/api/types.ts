@@ -71,6 +71,10 @@ export interface Flashcard {
   stability?: number | null;
   /** FSRS difficulty on a 1..10 scale. NULL on pre-FSRS cards. */
   difficulty?: number | null;
+  /** Storage keys in the private `card-media` bucket, read through signed
+   *  URLs. NULL when the side carries no image. */
+  front_image_path?: string | null;
+  back_image_path?: string | null;
   created_at: string;
   source_quote?: string | null;
   source_material_id?: string | null;

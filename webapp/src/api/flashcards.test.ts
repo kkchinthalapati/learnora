@@ -105,4 +105,44 @@ describe("flashcardsApi", () => {
     expect(deckUrl?.searchParams.get("user_id")).toBe("eq.user-1");
     expect(reviewUrl?.searchParams.get("user_id")).toBe("eq.user-1");
   });
+
+  /* The bucket enforces both of these server-side, but the student should
+     hear "that image is too big" before a five-megabyte upload starts, not
+     after it is rejected. */
+  describe("uploadImage guards", () => {
+    it("refuses a file the bucket's mime allowlist would reject", async () => {
+      const file = new File(["x"], "notes.pdf", { type: "application/pdf" });
+      await expect(flashcardsApi.uploadImage(file)).rejects.toThrow(
+        "Card images must be a PNG, JPEG, WebP or GIF.",
+      );
+    });
+
+    it("refuses a file over the bucket's 5 MB limit", async () => {
+      const file = new File(["x"], "huge.png", { type: "image/png" });
+      Object.defineProperty(file, "size", { value: 6 * 1024 * 1024 });
+      await expect(flashcardsApi.uploadImage(file)).rejects.toThrow(
+        "That image is larger than 5 MB. Try a smaller one.",
+      );
+    });
+
+    it("files the object under the owner's user id, which the bucket policy checks", async () => {
+      let uploadPath: string | undefined;
+      server.use(
+        http.post(
+          `${SUPABASE_URL}/storage/v1/object/card-media/:path*`,
+          ({ request }) => {
+            uploadPath = new URL(request.url).pathname;
+            return HttpResponse.json({ Key: "card-media/user-1/x.png" });
+          },
+        ),
+      );
+
+      const path = await flashcardsApi.uploadImage(
+        new File(["x"], "diagram.png", { type: "image/png" }),
+      );
+
+      expect(path.startsWith("user-1/")).toBe(true);
+      expect(uploadPath).toContain("/card-media/user-1/");
+    });
+  });
 });

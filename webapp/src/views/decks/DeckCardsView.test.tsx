@@ -147,7 +147,12 @@ describe("DeckCardsView", () => {
     await waitFor(() => expect(patched).not.toBeNull());
     /* A typo fix is not evidence about recall — rewriting the text must not
        reschedule the card. */
-    expect(patched).toEqual({ front: "Edited front", back: card().back });
+    expect(patched).toEqual({
+      front: "Edited front",
+      back: card().back,
+      front_image_path: null,
+      back_image_path: null,
+    });
   });
 
   it("deletes a single card, leaving the rest of the deck alone", async () => {
@@ -181,5 +186,72 @@ describe("DeckCardsView", () => {
     expect(
       await screen.findByText("This deck no longer exists."),
     ).toBeInTheDocument();
+  });
+
+  it("shows a card's images alongside its text", async () => {
+    serve({
+      cards: [
+        card({
+          front_image_path: "user-1/front.png",
+          back_image_path: "user-1/back.png",
+        }),
+      ],
+    });
+    server.use(
+      http.post(
+        `${SUPABASE_URL}/storage/v1/object/sign/card-media/:path*`,
+        () => HttpResponse.json({ signedURL: "/signed/card.png" }),
+      ),
+    );
+    renderView();
+
+    expect(
+      await screen.findByAltText(/Front of card: What is prophase\?/),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByAltText(/Back of card: The first stage of mitosis\./),
+    ).toBeInTheDocument();
+  });
+
+  it("accepts a card whose front is an image with no text", async () => {
+    serve({ cards: [] });
+    let posted: unknown = null;
+    server.use(
+      http.post(
+        `${SUPABASE_URL}/storage/v1/object/card-media/:path*`,
+        () => HttpResponse.json({ Key: "card-media/user-1/diagram.png" }),
+      ),
+      http.post(rest("flashcards"), async ({ request }) => {
+        posted = await request.json();
+        return HttpResponse.json([card({ id: "card-new" })]);
+      }),
+    );
+    renderView();
+
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: "Write a card" }),
+    );
+
+    /* Front left blank on purpose: a diagram is a legitimate prompt, so the
+       form must accept an image in place of text on that side. */
+    await user.type(screen.getByLabelText("Back"), "The mitochondrion");
+    expect(screen.getByRole("button", { name: "Add card" })).toBeDisabled();
+
+    await user.upload(
+      screen.getByLabelText("Add front image"),
+      new File(["x"], "diagram.png", { type: "image/png" }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Add card" })).toBeEnabled(),
+    );
+    await user.click(screen.getByRole("button", { name: "Add card" }));
+
+    await waitFor(() => expect(posted).not.toBeNull());
+    /* supabase-js posts an array of rows. */
+    const row = (posted as unknown as Record<string, unknown>[])[0];
+    expect(row).toMatchObject({ front: "", back: "The mitochondrion" });
+    expect(row.front_image_path).toEqual(expect.stringContaining("user-1/"));
   });
 });

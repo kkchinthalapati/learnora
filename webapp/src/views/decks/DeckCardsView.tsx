@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useParams } from "react-router";
+import { flashcardsApi, type CardFields } from "../../api/flashcards";
 import type { Flashcard } from "../../api/types";
 import { Button } from "../../components/Button";
+import { CardImage } from "../../components/CardImage";
 import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
 import { PageHeader } from "../../components/PageHeader";
@@ -34,28 +36,119 @@ function BackLink() {
   );
 }
 
+/* One side's image control: pick, preview, replace, remove.
+ *
+ * The upload happens as soon as a file is chosen rather than on submit, so
+ * the student sees the image they picked before committing the card. The
+ * cost is an orphaned object if they then abandon the form — cheap, and far
+ * better than a form that claims to have an image it has not stored. */
+function ImageField({
+  side,
+  path,
+  busy,
+  onChange,
+  onError,
+}: {
+  side: "front" | "back";
+  path: string | null;
+  busy: boolean;
+  onChange: (path: string | null) => void;
+  onError: (message: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const label = side === "front" ? "Front image" : "Back image";
+
+  return (
+    <div className={styles.imageField}>
+      {path ? (
+        <div className={styles.imagePreview}>
+          <CardImage
+            path={path}
+            alt={`${label} preview`}
+            className={styles.previewImg}
+          />
+          <Button
+            type="button"
+            size="sm"
+            disabled={busy || uploading}
+            onClick={() => {
+              /* The object is left in storage until the card is saved: the
+                 student may still cancel, and removing it here would break
+                 the card that is still referencing it on the server. */
+              onChange(null);
+              if (inputRef.current) inputRef.current.value = "";
+            }}
+          >
+            Remove image
+          </Button>
+        </div>
+      ) : null}
+
+      <label className={styles.imagePicker}>
+        <span className={styles.imagePickerLabel}>
+          {uploading
+            ? "Uploading…"
+            : path
+              ? `Replace ${label.toLowerCase()}`
+              : `Add ${label.toLowerCase()}`}
+        </span>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          className={styles.fileInput}
+          disabled={busy || uploading}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            setUploading(true);
+            flashcardsApi
+              .uploadImage(file)
+              .then(onChange)
+              .catch((error: Error) => onError(error.message))
+              .finally(() => setUploading(false));
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
 /** Shared front/back editor, used both for adding a card and editing one. */
 function CardForm({
   initialFront = "",
   initialBack = "",
+  initialFrontImage = null,
+  initialBackImage = null,
   submitLabel,
   busy,
   onSubmit,
   onCancel,
+  onError,
 }: {
   initialFront?: string;
   initialBack?: string;
+  initialFrontImage?: string | null;
+  initialBackImage?: string | null;
   submitLabel: string;
   busy: boolean;
-  onSubmit: (fields: { front: string; back: string }) => void;
+  onSubmit: (fields: CardFields) => void;
   onCancel?: () => void;
+  onError: (message: string) => void;
 }) {
   const [front, setFront] = useState(initialFront);
   const [back, setBack] = useState(initialBack);
+  const [frontImage, setFrontImage] = useState<string | null>(initialFrontImage);
+  const [backImage, setBackImage] = useState<string | null>(initialBackImage);
 
-  /* Both sides are required: a card with an empty side is unreviewable, and
-     saving one silently would put a blank card into the rotation. */
-  const valid = front.trim().length > 0 && back.trim().length > 0;
+  /* Each side needs *something* — text or an image. A card whose front is
+     only a diagram ("what is this structure?") is a real card; one with an
+     empty side is unreviewable, and saving it silently would drop a blank
+     into the rotation. */
+  const frontFilled = front.trim().length > 0 || frontImage !== null;
+  const backFilled = back.trim().length > 0 || backImage !== null;
+  const valid = frontFilled && backFilled;
 
   return (
     <form
@@ -63,7 +156,12 @@ function CardForm({
       onSubmit={(event) => {
         event.preventDefault();
         if (!valid || busy) return;
-        onSubmit({ front: front.trim(), back: back.trim() });
+        onSubmit({
+          front: front.trim(),
+          back: back.trim(),
+          frontImagePath: frontImage,
+          backImagePath: backImage,
+        });
       }}
     >
       <div className={styles.field}>
@@ -78,6 +176,13 @@ function CardForm({
           onChange={(event) => setFront(event.target.value)}
           placeholder="The question or prompt"
         />
+        <ImageField
+          side="front"
+          path={frontImage}
+          busy={busy}
+          onChange={setFrontImage}
+          onError={onError}
+        />
       </div>
 
       <div className={styles.field}>
@@ -91,6 +196,13 @@ function CardForm({
           value={back}
           onChange={(event) => setBack(event.target.value)}
           placeholder="The answer"
+        />
+        <ImageField
+          side="back"
+          path={backImage}
+          busy={busy}
+          onChange={setBackImage}
+          onError={onError}
         />
       </div>
 
@@ -135,9 +247,12 @@ function CardRow({
         <CardForm
           initialFront={card.front}
           initialBack={card.back}
+          initialFrontImage={card.front_image_path ?? null}
+          initialBackImage={card.back_image_path ?? null}
           submitLabel="Save card"
           busy={updateCard.isPending}
           onCancel={() => setEditing(false)}
+          onError={(message) => showToast(message, { error: true })}
           onSubmit={(fields) =>
             updateCard.mutate(
               { cardId: card.id, deckId, fields },
@@ -162,14 +277,24 @@ function CardRow({
     <li className={styles.card}>
       <div className={styles.cardRow}>
         <div className={styles.cardText}>
-          <p className={styles.side}>
+          <div className={styles.side}>
             <span className={styles.sideLabel}>Front</span>
-            {card.front}
-          </p>
-          <p className={`${styles.side} ${styles.back}`}>
+            {card.front ? <p className={styles.sideText}>{card.front}</p> : null}
+            <CardImage
+              path={card.front_image_path}
+              alt={`Front of card: ${card.front || "image"}`}
+              className={styles.rowImg}
+            />
+          </div>
+          <div className={`${styles.side} ${styles.back}`}>
             <span className={styles.sideLabel}>Back</span>
-            {card.back}
-          </p>
+            {card.back ? <p className={styles.sideText}>{card.back}</p> : null}
+            <CardImage
+              path={card.back_image_path}
+              alt={`Back of card: ${card.back || "image"}`}
+              className={styles.rowImg}
+            />
+          </div>
           <p className={styles.schedule}>{scheduleLabel(card)}</p>
         </div>
 
@@ -311,6 +436,7 @@ export function DeckCardsView() {
             submitLabel="Add card"
             busy={addCard.isPending}
             onCancel={() => setAdding(false)}
+            onError={(message) => showToast(message, { error: true })}
             onSubmit={(card) =>
               addCard.mutate(
                 { deckId: deck.id, card },
