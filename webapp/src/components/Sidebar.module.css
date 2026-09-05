@@ -317,3 +317,24 @@ body[data-sidebar-style="transparent"] .sidebar {
     transition: none;
   }
 }
+
+/* Touch sizing.
+ *
+ * Measured on the harness at 360/375/390px: the section headers came out 28px
+ * tall and the brand link 35px, against the 44px the rest of the rail already
+ * honours via --touch-target-min. These are the rail's own controls — the
+ * thing a student taps to reach anything — so they are the worst possible
+ * place to be under-sized.
+ *
+ * Gated on `pointer: coarse` rather than a width breakpoint: a narrow desktop
+ * window is still driven by a mouse, where 28px is a perfectly good target and
+ * padding everything out to 44px only wastes vertical space in the rail. */
+@media (pointer: coarse) {
+  .sectionHeader {
+    min-height: var(--touch-target-min);
+  }
+
+  .brand {
+    min-height: var(--touch-target-min);
+  }
+}

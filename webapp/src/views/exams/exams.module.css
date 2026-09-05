@@ -80,6 +80,12 @@
 .weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  /* Matches .daysGrid below. Both sit inside .calendarScroll, but only the
+     grid carried a min-width — so on any phone (the grid needs 520px, the
+     viewport gives 360-390) the header row stayed viewport-width while the day
+     columns were wider, and "Mon" sat above Tuesday's column. Scrolling right
+     to reach the end of the month left the labels behind entirely. */
+  min-width: 520px;
   text-align: center;
   font-size: var(--fs-xs);
   font-weight: 700;
@@ -616,5 +622,23 @@
   .upcomingRight {
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+}
+
+/* Touch sizing — see the note in Sidebar.module.css.
+ *
+ * `.iconBtn` (previous/next month) sat at 42px, two short of the token, and
+ * the exam bars inside a day cell at 24px. The bars are the only way to open
+ * an exam from the calendar. */
+@media (pointer: coarse) {
+  .iconBtn {
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+  }
+
+  .examBar {
+    min-height: var(--touch-target-min);
+    display: flex;
+    align-items: center;
   }
 }

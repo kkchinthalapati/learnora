@@ -1134,3 +1134,22 @@
   color: var(--accent-text);
   margin-left: auto;
 }
+
+/* Touch sizing — see the note in Sidebar.module.css. The focus presets ("20m",
+ * "45m") measured 37px; they are the fastest path into a session from the
+ * dashboard. */
+@media (pointer: coarse) {
+  .focusPresetBtn {
+    min-height: var(--touch-target-min);
+  }
+
+  /* A card's standalone call-to-action ("Open calendar"), not a link inside a
+     sentence — WCAG 2.5.8 exempts the latter because padding it out would
+     wreck the line spacing of the paragraph around it, but this one stands on
+     its own line and has no such excuse. */
+  .link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--touch-target-min);
+  }
+}

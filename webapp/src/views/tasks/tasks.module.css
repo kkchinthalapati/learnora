@@ -703,3 +703,26 @@
   flex: 1;
   min-width: 0;
 }
+
+/* Touch sizing — see the note in Sidebar.module.css for why this is keyed on
+ * `pointer: coarse` and not a width breakpoint.
+ *
+ * Every one of these is a real action, not a label: `.due` opens the date
+ * picker, `.quickBtn`/`.dashSnoozeBtn` snooze the task, and the focus buttons
+ * start a session on it. They measured 22-24px on every phone viewport — half
+ * the 44px the app's own --touch-target-min asks for, on the screen students
+ * use most. `display` is set alongside the height because a bare `min-height`
+ * on an inline-block button grows the box without moving the label off the
+ * top of it. */
+@media (pointer: coarse) {
+  .due,
+  .quickBtn,
+  .quickFocusBtn,
+  .dashSnoozeBtn,
+  .dashFocusBtn {
+    min-height: var(--touch-target-min);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

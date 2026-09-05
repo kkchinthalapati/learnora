@@ -637,3 +637,13 @@
     transition: none;
   }
 }
+
+/* Touch sizing — see the note in Sidebar.module.css. Both measured 41px, just
+ * under the token, which is enough to make the duration fiddly to hit while
+ * setting up a session one-handed. */
+@media (pointer: coarse) {
+  .smallInput,
+  .taskBinder select {
+    min-height: var(--touch-target-min);
+  }
+}

@@ -100,6 +100,28 @@ textarea::placeholder {
   outline-offset: 2px;
 }
 
+/* Checkboxes and radios, which fell through every rule here.
+ *
+ * The input rule below deliberately excludes them (its accent ring is drawn on
+ * a border and background they don't have), and the selector list above covers
+ * a/button/summary/roles but not `input` — so the only thing marking a focused
+ * checkbox was the UA's own hairline, which renders near-black and is
+ * effectively invisible against the dark surface. Measured on /signup: the
+ * consent checkbox — a required control you cannot submit without — reported a
+ * 1px rgb(16,16,16) outline while every sibling field showed the accent ring.
+ *
+ * `accent-color` additionally makes the *checked* state use the brand colour
+ * rather than the browser's default blue, which is the other half of being
+ * able to see the control's state. */
+input:where([type="checkbox"], [type="radio"]) {
+  accent-color: var(--accent);
+}
+
+input:where([type="checkbox"], [type="radio"]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 input:where(
     :not([type="radio"]):not([type="checkbox"]):not([type="file"]):not(
         [type="range"]
