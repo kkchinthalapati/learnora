@@ -66,17 +66,14 @@ export function useAddFlashcardBatch() {
 export function useUpdateFlashcardReview() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      cardId,
-      nextReviewDate,
-      interval,
-      ease,
-    }: {
+    mutationFn: (payload: {
       cardId: string;
       nextReviewDate: string;
       interval: number;
       ease: number;
-    }) => submitSrsReview({ cardId, nextReviewDate, interval, ease }),
+      stability?: number;
+      difficulty?: number;
+    }) => submitSrsReview(payload),
     onSuccess: ({ queued }) => {
       if (queued) return;
       qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });

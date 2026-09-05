@@ -13,6 +13,10 @@ export interface SrsReviewPayload {
   nextReviewDate: string;
   interval: number;
   ease: number;
+  /** FSRS memory state for the graded card. Optional so a queue persisted by
+   *  an older build still replays. */
+  stability?: number;
+  difficulty?: number;
 }
 
 export type LogSessionPayload = LogSessionInput;
@@ -223,7 +227,13 @@ export async function flushOfflineQueue(): Promise<FlushResult> {
         try {
           if (action.type === "submitSrsReview") {
             const p = action.payload as SrsReviewPayload;
-            await flashcardsApi.updateReview(p.cardId, p.nextReviewDate, p.interval, p.ease);
+            await flashcardsApi.updateReview(
+              p.cardId,
+              p.nextReviewDate,
+              p.interval,
+              p.ease,
+              { stability: p.stability, difficulty: p.difficulty },
+            );
             queryClient.invalidateQueries({ queryKey: ["flashcards"] });
           } else if (action.type === "logSession") {
             const p = action.payload as LogSessionPayload;
@@ -328,6 +338,7 @@ export async function submitSrsReview(payload: SrsReviewPayload): Promise<{ queu
       payload.nextReviewDate,
       payload.interval,
       payload.ease,
+      { stability: payload.stability, difficulty: payload.difficulty },
     );
     queryClient.invalidateQueries({ queryKey: ["flashcards"] });
     return { queued: false };

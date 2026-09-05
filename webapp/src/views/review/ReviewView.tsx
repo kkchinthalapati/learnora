@@ -897,12 +897,17 @@ function ReviewSession({
       const card = cards[index];
       if (!card) return;
       if (!practiceRound) {
-        const { interval, ease, nextReviewDate } = nextReviewState(
-          card,
-          quality,
-        );
+        const { interval, ease, nextReviewDate, stability, difficulty } =
+          nextReviewState(card, quality);
         updateReview.mutate(
-          { cardId: card.id, nextReviewDate, interval, ease },
+          {
+            cardId: card.id,
+            nextReviewDate,
+            interval,
+            ease,
+            stability,
+            difficulty,
+          },
           {
             onError: () =>
               showToast(

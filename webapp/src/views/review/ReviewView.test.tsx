@@ -256,10 +256,17 @@ describe("ReviewView", () => {
 
     expect(await screen.findByText("Q2")).toBeInTheDocument();
     expect(screen.getByText("Card 2 of 2")).toBeInTheDocument();
+    /* A new card answered Good is scheduled from its initial stability
+       (~3.17 days), and `ease_factor` is derived from the card's difficulty
+       rather than nudged by a flat +0.1. Stability and difficulty are
+       persisted now — without them the next review would re-derive memory
+       state from scratch. */
     expect(capturedBody).toEqual({
       next_review_date: expect.any(String),
-      srs_interval: 1,
-      ease_factor: 2.6,
+      srs_interval: 3,
+      ease_factor: 2.45,
+      stability: expect.any(Number),
+      difficulty: expect.any(Number),
     });
     /* The next card starts unflipped again — grading resets the session's
        per-card state. */
@@ -714,7 +721,9 @@ describe("ReviewView", () => {
       expect(
         screen.queryByText("AI is grading your answer..."),
       ).not.toBeInTheDocument();
-      expect(capturedBody).toMatchObject({ srs_interval: 1, ease_factor: 2.6 });
+      /* The mocked reply grades this card Easy, which now schedules further
+         out than Good would — the two grades used to be indistinguishable. */
+      expect(capturedBody).toMatchObject({ srs_interval: 16, ease_factor: 2.96 });
     });
 
     it("shows a loading status while the reply is in flight, and reveals the back", async () => {

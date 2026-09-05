@@ -12,20 +12,13 @@ import {
   nextForgetStability,
   nextRecallStability,
   nextReviewState,
+  MAX_REVIEW_INTERVAL_DAYS,
 } from "./srs";
 
 const NOW = new Date("2026-07-31T12:00:00.000Z");
 
 function card(overrides: { srs_interval?: number; ease_factor?: number } = {}) {
   return { srs_interval: 0, ease_factor: 2.5, ...overrides };
-}
-
-/* Local midnight helper for test expectations */
-function localMidnightDaysFrom(from: Date, days: number): Date {
-  const d = new Date(from);
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + days);
-  return d;
 }
 
 describe("calculateRetrievability (Forgetting Curve)", () => {
@@ -209,8 +202,11 @@ describe("computeFsrsCardState", () => {
     expect(state.retrievability).toBe(1.0);
     expect(state.stability).toBeGreaterThan(0);
     expect(state.difficulty).toBeGreaterThan(0);
-    expect(state.interval).toBe(1);
-    expect(state.ease).toBeCloseTo(2.6);
+    /* S0(Good) is ~3.17 days, and the interval is the day retrievability is
+       predicted to reach the 90% target — so a new card answered Good comes
+       back in about three days, not tomorrow. */
+    expect(state.interval).toBe(3);
+    expect(state.ease).toBeCloseTo(difficultyToEase(state.difficulty), 2);
   });
 
   it("resets interval to 0 on a miss for both new and existing cards", () => {
@@ -226,51 +222,135 @@ describe("computeFsrsCardState", () => {
     });
     expect(existingMiss.interval).toBe(0);
     expect(existingMiss.nextReviewDate).toBe(NOW.toISOString());
-    expect(existingMiss.ease).toBeCloseTo(2.3);
+    /* Ease is derived from difficulty now, and a miss drives difficulty up,
+       so ease falls — it just falls by the amount the model says rather than
+       a flat 0.2. */
+    expect(existingMiss.ease).toBeLessThan(2.5);
+    expect(existingMiss.ease).toBeCloseTo(
+      difficultyToEase(existingMiss.difficulty),
+      2,
+    );
   });
 
   it("progresses stability and interval on repeated successful reviews", () => {
     const round1 = computeFsrsCardState({ quality: 3, now: NOW });
-    expect(round1.interval).toBe(1);
 
     const round2 = computeFsrsCardState({
       previousInterval: round1.interval,
-      easeFactor: round1.ease,
+      stability: round1.stability,
+      difficulty: round1.difficulty,
+      elapsedDays: round1.interval,
       quality: 3,
       now: NOW,
     });
-    expect(round2.interval).toBe(3);
+    expect(round2.stability).toBeGreaterThan(round1.stability);
+    expect(round2.interval).toBeGreaterThan(round1.interval);
 
     const round3 = computeFsrsCardState({
       previousInterval: round2.interval,
-      easeFactor: round2.ease,
+      stability: round2.stability,
+      difficulty: round2.difficulty,
+      elapsedDays: round2.interval,
       quality: 3,
       now: NOW,
     });
-    expect(round3.interval).toBeGreaterThanOrEqual(7);
+    expect(round3.stability).toBeGreaterThan(round2.stability);
+    expect(round3.interval).toBeGreaterThan(round2.interval);
+  });
+
+  it("derives the interval from stability, not from interval x ease", () => {
+    const state = computeFsrsCardState({
+      previousInterval: 10,
+      stability: 40,
+      difficulty: 5,
+      elapsedDays: 10,
+      quality: 3,
+      now: NOW,
+    });
+    expect(state.interval).toBe(calculateOptimalInterval(state.stability, 0.9));
   });
 });
 
-describe("nextReviewState (SM-2 & FSRS Backward Compatibility)", () => {
-  it("resets the interval to zero on a miss (quality < 3)", () => {
+describe("nextReviewState (FSRS scheduling)", () => {
+  it("resets the interval to zero on a miss (Again)", () => {
     const result = nextReviewState(card({ srs_interval: 8 }), 1, NOW);
     expect(result.interval).toBe(0);
     expect(result.nextReviewDate).toBe(NOW.toISOString());
   });
 
-  it("softens the ease factor on a miss, floored at 1.3", () => {
-    expect(
-      nextReviewState(card({ ease_factor: 1.4 }), 2, NOW).ease,
-    ).toBeCloseTo(1.3);
-    expect(nextReviewState(card({ ease_factor: 1.35 }), 1, NOW).ease).toBe(1.3);
+  /* The defect this file exists to pin down. "Hard" is a successful (if
+     effortful) recall, but the scheduler graded every quality < 3 as a lapse,
+     so pressing Hard on a mature card wiped its interval to 0 exactly as
+     Again did. The two buttons were indistinguishable in effect. */
+  it("treats Hard as a recall, not a lapse", () => {
+    const mature = card({ srs_interval: 30, ease_factor: 2.5 });
+    const hard = nextReviewState(mature, 2, NOW);
+    const again = nextReviewState(mature, 1, NOW);
+
+    expect(again.interval).toBe(0);
+    expect(hard.interval).toBeGreaterThan(0);
+    expect(hard.interval).toBeGreaterThan(again.interval);
   });
 
-  it("schedules a brand-new card for tomorrow on the first good answer", () => {
-    const result = nextReviewState(card(), 3, NOW);
-    expect(result.interval).toBe(1);
-    expect(new Date(result.nextReviewDate).getTime()).toBe(
-      localMidnightDaysFrom(NOW, 1).getTime(),
+  /* The second half of the same defect: Good and Easy both fell through to
+     `previousInterval * ease`, which reads neither grade, so the two buttons
+     produced byte-identical schedules. */
+  it("orders intervals by grade: Again < Hard < Good < Easy", () => {
+    const mature = card({ srs_interval: 30, ease_factor: 2.5 });
+    const [again, hard, good, easy] = [1, 2, 3, 4].map(
+      (q) => nextReviewState(mature, q, NOW).interval,
     );
+
+    expect(again).toBe(0);
+    expect(hard).toBeLessThan(good);
+    expect(good).toBeLessThan(easy);
+  });
+
+  it("softens the ease factor on a miss, floored at 1.3", () => {
+    const reviewed = {
+      srs_interval: 10,
+      ease_factor: 1.4,
+      stability: 10,
+      difficulty: easeToDifficulty(1.4),
+    };
+    const missed = nextReviewState(reviewed, 1, NOW);
+    expect(missed.ease).toBeLessThanOrEqual(1.4);
+    expect(missed.ease).toBeGreaterThanOrEqual(1.3);
+    expect(
+      nextReviewState({ ...reviewed, ease_factor: 1.35 }, 1, NOW).ease,
+    ).toBeGreaterThanOrEqual(1.3);
+  });
+
+  it("keeps the ease factor inside the SM-2 band however long the streak", () => {
+    /* Ease used to gain a flat +0.1 on every success with no ceiling, and the
+       interval was `previousInterval * ease` — so the two compounded. Ten
+       Good answers in a row scheduled a card 21,362 days (58 years) out, and
+       `fetchWeakDecks`, which reads `ease_factor < 2.1`, was reading a number
+       that had drifted off its own scale. */
+    let state = { srs_interval: 0, ease_factor: 2.5 } as Parameters<
+      typeof nextReviewState
+    >[0];
+    let at = new Date(NOW);
+    let interval = 0;
+
+    for (let i = 0; i < 15; i++) {
+      const result = nextReviewState(state, 3, at);
+      expect(result.ease).toBeGreaterThanOrEqual(1.3);
+      expect(result.ease).toBeLessThanOrEqual(3.5);
+      interval = result.interval;
+      state = {
+        srs_interval: result.interval,
+        ease_factor: result.ease,
+        next_review_date: result.nextReviewDate,
+        stability: result.stability,
+        difficulty: result.difficulty,
+      };
+      at = new Date(result.nextReviewDate);
+    }
+
+    /* A long unbroken streak now tops out at the app's own ceiling rather
+       than FSRS's 36,500-day spec default. */
+    expect(interval).toBeLessThanOrEqual(MAX_REVIEW_INTERVAL_DAYS);
   });
 
   it("schedules to the start of the due day, not the hour of review", () => {
@@ -287,17 +367,17 @@ describe("nextReviewState (SM-2 & FSRS Backward Compatibility)", () => {
     expect(scheduled.getMilliseconds()).toBe(0);
   });
 
-  it("is due for an earlier session on the following day", () => {
+  it("is due for an earlier session on the due day itself", () => {
     const reviewedAt = new Date(NOW);
     reviewedAt.setHours(20, 0, 0, 0);
 
-    const { nextReviewDate } = nextReviewState(card(), 3, reviewedAt);
+    const { interval, nextReviewDate } = nextReviewState(card(), 3, reviewedAt);
 
-    const nextEvening = new Date(reviewedAt);
-    nextEvening.setDate(nextEvening.getDate() + 1);
-    nextEvening.setHours(19, 0, 0, 0);
+    const dueEvening = new Date(reviewedAt);
+    dueEvening.setDate(dueEvening.getDate() + interval);
+    dueEvening.setHours(19, 0, 0, 0);
 
-    expect(new Date(nextReviewDate) <= nextEvening).toBe(true);
+    expect(new Date(nextReviewDate) <= dueEvening).toBe(true);
   });
 
   it("keeps a missed card due in the same sitting", () => {
@@ -314,32 +394,69 @@ describe("nextReviewState (SM-2 & FSRS Backward Compatibility)", () => {
     expect(nextReviewDate).toBe(reviewedAt.toISOString());
   });
 
-  it("schedules a once-reviewed card for 3 days on the next good answer", () => {
-    const result = nextReviewState(card({ srs_interval: 1 }), 3, NOW);
-    expect(result.interval).toBe(3);
-  });
+  it("collapses stability on a lapse so the card is re-learned, not re-scheduled far out", () => {
+    const mature = {
+      srs_interval: 60,
+      ease_factor: 2.5,
+      stability: 60,
+      difficulty: 5,
+    };
+    const lapsed = nextReviewState(mature, 1, NOW);
+    expect(lapsed.interval).toBe(0);
+    expect(lapsed.stability!).toBeLessThan(60);
 
-  it("multiplies interval by ease and rounds once the interval exceeds 1", () => {
-    const result = nextReviewState(
-      card({ srs_interval: 3, ease_factor: 2.5 }),
-      4,
+    /* Answering Good after the lapse must not jump straight back to two
+       months — the collapsed stability is what keeps the next step short. */
+    const recovered = nextReviewState(
+      {
+        srs_interval: 0,
+        ease_factor: lapsed.ease,
+        stability: lapsed.stability,
+        difficulty: lapsed.difficulty,
+      },
+      3,
       NOW,
     );
-    expect(result.interval).toBe(Math.round(3 * 2.5));
+    expect(recovered.interval).toBeLessThan(60);
   });
 
-  it("increases the ease factor on a good or easy answer", () => {
-    expect(
-      nextReviewState(card({ ease_factor: 2.5 }), 3, NOW).ease,
-    ).toBeCloseTo(2.6);
-    expect(
-      nextReviewState(card({ ease_factor: 2.5 }), 4, NOW).ease,
-    ).toBeCloseTo(2.6);
+  it("carries persisted memory state instead of re-deriving it each review", () => {
+    const withState = nextReviewState(
+      {
+        srs_interval: 10,
+        ease_factor: 2.5,
+        stability: 100,
+        difficulty: 3,
+      },
+      3,
+      NOW,
+    );
+    const withoutState = nextReviewState(
+      card({ srs_interval: 10, ease_factor: 2.5 }),
+      3,
+      NOW,
+    );
+
+    /* A card the model knows to be very stable is scheduled far further out
+       than the same card read only through its legacy interval/ease pair. */
+    expect(withState.interval).toBeGreaterThan(withoutState.interval);
   });
 
-  it("defaults a never-reviewed card's ease factor to 2.5", () => {
+  it("falls back to interval and ease for a card with no stored memory state", () => {
+    const legacy = nextReviewState(
+      card({ srs_interval: 10, ease_factor: 2.5 }),
+      3,
+      NOW,
+    );
+    expect(legacy.interval).toBeGreaterThan(0);
+    expect(legacy.stability).toBeGreaterThan(0);
+    expect(legacy.difficulty).toBeGreaterThan(0);
+  });
+
+  it("defaults a never-reviewed card's ease factor to the average band", () => {
     const result = nextReviewState({ srs_interval: 0, ease_factor: 0 }, 3, NOW);
-    expect(result.ease).toBeCloseTo(2.6);
+    expect(result.ease).toBeGreaterThanOrEqual(1.3);
+    expect(result.ease).toBeLessThanOrEqual(3.5);
   });
 
   it("returns FSRS stability, difficulty, and retrievability metadata", () => {
