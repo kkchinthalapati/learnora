@@ -10,6 +10,7 @@ import {
   MAX_GROUP_TIMER_MINUTES,
   MAX_MESSAGE_LENGTH,
   MAX_ROOM_MESSAGES,
+  MAX_ROOM_PARTICIPANTS,
   MAX_SYNC_MINUTES,
   MIN_GROUP_TIMER_MINUTES,
   MIN_SYNC_MINUTES,
@@ -96,6 +97,10 @@ export interface UseStudyRoomReturn {
   nextGroupPhase: () => void;
   /** Starts your own personal timer matching the group's remaining time. */
   syncMyTimerToGroup: (minutes: number) => void;
+  /** True when the room was already at capacity when you arrived. Your
+   *  presence is withdrawn while this holds, so you are not occupying a seat
+   *  you were not given. */
+  isRoomFull: boolean;
 }
 
 /**
@@ -129,6 +134,8 @@ export function useStudyRoom(
   const [cheerFeed, setCheerFeed] = useState<CheerNotification[]>([]);
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(false);
+  /** True when the room already held its capacity before you arrived. */
+  const [isRoomFull, setIsRoomFull] = useState<boolean>(false);
   /** Set only when this client is hosting a group timer. */
   const [hostGroupTimer, setHostGroupTimer] =
     useState<GroupTimerSyncPayload | null>(null);
@@ -344,11 +351,42 @@ export function useStudyRoom(
           }
         });
 
-        const others = Array.from(participantMap.values())
-          .filter((p) => !p.isSelf && p.userId !== userId)
-          .sort((a, b) => (Number(a.joinedAt) || 0) - (Number(b.joinedAt) || 0));
+        /* Capacity is decided by arrival order, which every client can work
+           out identically from the presence payloads it already has: sort
+           everyone by joinedAt, and whoever falls past the cap is the one who
+           was too late. No server round trip, and no disagreement between
+           clients about who is in — the earliest MAX_ROOM_PARTICIPANTS are,
+           and they stay in even as later arrivals come and go.
+
+           This is cooperative, not enforced. Presence is client-published, so
+           a modified client could ignore the cap the same way it could claim
+           someone else's name (see the note in api/studyRoom.ts). It bounds
+           the honest case — an invite link that got shared more widely than
+           intended — which is the one that actually happens. */
+        const everyone = Array.from(participantMap.values()).sort(
+          (a, b) => (Number(a.joinedAt) || 0) - (Number(b.joinedAt) || 0),
+        );
+        const admitted = everyone.slice(0, MAX_ROOM_PARTICIPANTS);
+        const selfAdmitted =
+          everyone.length <= MAX_ROOM_PARTICIPANTS ||
+          admitted.some((p) => p.isSelf || p.userId === userId);
+
+        setIsRoomFull(!selfAdmitted);
+
+        const others = admitted.filter(
+          (p) => !p.isSelf && p.userId !== userId,
+        );
 
         setRemoteParticipants(others);
+
+        /* Stop advertising yourself once you have been placed outside the
+           cap: staying tracked would keep you in everyone else's presence
+           payloads and let the room keep growing past the limit it just
+           reported. The channel is left subscribed so that a seat freeing up
+           re-admits you on the next sync. */
+        if (!selfAdmitted) {
+          void channel.untrack();
+        }
 
         /* A late joiner has no broadcast history to learn a group timer
            from, but presence sync hands them the full current state
@@ -854,6 +892,7 @@ export function useStudyRoom(
     cheerFeed,
     isConnected,
     roomId: normalizedRoomId,
+    isRoomFull,
     sendReaction,
     broadcastTimerSync,
     sendMessage,

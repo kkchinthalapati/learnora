@@ -8,6 +8,7 @@ import { AuthContext, type AuthState } from "../context/auth";
 import { TimerContext, type TimerApi } from "../context/timer";
 import { ToastContext, type ToastApi } from "../context/toast";
 import { initialTimerState } from "../lib/timer";
+import { MAX_ROOM_PARTICIPANTS } from "../api/studyRoom";
 import type {
   StudyParticipant,
   RoomReaction,
@@ -351,6 +352,124 @@ describe("useStudyRoom", () => {
     expect(result.current.activeFocusCount).toBe(2);
     expect(result.current.activeCount).toBe(2);
     expect(result.current.participants[0].userId).toBe("user-123");
+  });
+
+  /* A room's invite link is a plain URL. One posted in a class group chat
+     admits everyone who clicks it, and presence is O(n²) chatter — so an
+     uncapped room degrades for the people who were studying in it first. */
+  describe("room capacity", () => {
+    function peer(index: number, joinedAt: number): StudyParticipant {
+      return {
+        userId: `peer-${index}`,
+        fullName: `Peer ${index}`,
+        avatarUrl: null,
+        timerStatus: "focus",
+        currentTask: "",
+        activeSubject: null,
+        targetEndTime: null,
+        elapsedSeconds: 0,
+        startedAt: null,
+        joinedAt,
+      };
+    }
+
+    /** A presence state of `peerCount` peers who all arrived before us. */
+    function crowdedRoom(peerCount: number, selfJoinedAt: number) {
+      const state: Record<string, StudyParticipant[]> = {
+        "user-123": [
+          { ...peer(0, selfJoinedAt), userId: "user-123", fullName: "Ada" },
+        ],
+      };
+      for (let i = 1; i <= peerCount; i++) {
+        // Every peer arrived earlier than us.
+        state[`peer-${i}`] = [peer(i, selfJoinedAt - 1000 * (peerCount - i + 1))];
+      }
+      return state;
+    }
+
+    it("admits everyone while the room is under capacity", () => {
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+
+      channel!.presenceState.mockReturnValue(
+        crowdedRoom(MAX_ROOM_PARTICIPANTS - 1, Date.now()),
+      );
+      act(() => channel!._presenceSyncCb?.());
+
+      expect(result.current.isRoomFull).toBe(false);
+      expect(result.current.participants).toHaveLength(MAX_ROOM_PARTICIPANTS);
+    });
+
+    it("reports the room full to the person who arrived past the cap", () => {
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+
+      channel!.presenceState.mockReturnValue(
+        crowdedRoom(MAX_ROOM_PARTICIPANTS, Date.now()),
+      );
+      act(() => channel!._presenceSyncCb?.());
+
+      expect(result.current.isRoomFull).toBe(true);
+    });
+
+    it("withdraws presence when full, so a latecomer does not occupy a seat", () => {
+      renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+
+      channel!.presenceState.mockReturnValue(
+        crowdedRoom(MAX_ROOM_PARTICIPANTS, Date.now()),
+      );
+      act(() => channel!._presenceSyncCb?.());
+
+      expect(channel!.untrack).toHaveBeenCalled();
+    });
+
+    /* Arrival order, not sync order: whoever was here first keeps their seat
+       however many times presence re-syncs. */
+    it("keeps the earliest arrivals and never renders more than the cap", () => {
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+
+      /* We arrived first; twenty peers piled in afterwards. */
+      const now = Date.now();
+      const state: Record<string, StudyParticipant[]> = {
+        "user-123": [{ ...peer(0, now - 999999), userId: "user-123" }],
+      };
+      for (let i = 1; i <= 20; i++) state[`peer-${i}`] = [peer(i, now + i)];
+
+      channel!.presenceState.mockReturnValue(state);
+      act(() => channel!._presenceSyncCb?.());
+
+      expect(result.current.isRoomFull).toBe(false);
+      expect(result.current.participants).toHaveLength(MAX_ROOM_PARTICIPANTS);
+      expect(result.current.participants[0].userId).toBe("user-123");
+    });
+
+    it("re-admits you once a seat frees up", () => {
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState),
+      });
+      const channel = mockChannelsMap.get("study-room:global");
+      const now = Date.now();
+
+      channel!.presenceState.mockReturnValue(crowdedRoom(MAX_ROOM_PARTICIPANTS, now));
+      act(() => channel!._presenceSyncCb?.());
+      expect(result.current.isRoomFull).toBe(true);
+
+      channel!.presenceState.mockReturnValue(
+        crowdedRoom(MAX_ROOM_PARTICIPANTS - 1, now),
+      );
+      act(() => channel!._presenceSyncCb?.());
+      expect(result.current.isRoomFull).toBe(false);
+    });
   });
 
   it("sends reaction and handles incoming reactions", async () => {

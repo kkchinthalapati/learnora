@@ -64,6 +64,7 @@ describe("StudyRoomView", () => {
   ) {
     vi.spyOn(useStudyRoomModule, "useStudyRoom").mockReturnValue({
       roomId: "circle",
+      isRoomFull: false,
       selfParticipant,
       friendsParticipants: [friendParticipant],
       participants: [selfParticipant, friendParticipant],
