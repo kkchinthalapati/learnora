@@ -166,6 +166,51 @@ describe("buildPlanPrompt", () => {
   });
 });
 
+describe("buildPlanPrompt — performance evidence", () => {
+  const base = {
+    weekStartISO: "2026-09-07",
+    dates: ["2026-09-07", "2026-09-08"],
+    pendingTasks: "None",
+    upcomingExams: "None",
+  };
+
+  /* The planner decides where a week's hours go. `weakTopics` alone is a list
+     of names — it says a topic was flagged, not how badly, not what is already
+     solid, and not how much evidence sits behind either. */
+  it("carries the evidence block and the rule that uses it", () => {
+    const prompt = buildPlanPrompt({
+      ...base,
+      weakTopics: "Titration",
+      performanceEvidence:
+        "PERFORMANCE EVIDENCE (from the student's actual quiz results):\n- WEAK (below 60%, measured): Titration (30%).",
+    });
+
+    expect(prompt).toContain("PERFORMANCE EVIDENCE");
+    expect(prompt).toContain("Titration (30%)");
+    expect(prompt).toContain("EVIDENCE RULE");
+    expect(prompt).toContain("SOLID");
+    expect(prompt).toContain("NEVER TESTED");
+  });
+
+  it("carries it into the triage prompt too", () => {
+    const prompt = buildPlanPrompt({
+      ...base,
+      isTriage: true,
+      performanceEvidence: "PERFORMANCE EVIDENCE: Titration 30%.",
+    });
+    expect(prompt).toContain("PERFORMANCE EVIDENCE");
+    expect(prompt).toContain("Triage situation");
+  });
+
+  /* Callers that predate this — and the existing prompt tests — must still
+     get the plain task/exam prompt rather than a "None"-cluttered one. */
+  it("omits the block and its rule entirely when there is no evidence", () => {
+    const prompt = buildPlanPrompt(base);
+    expect(prompt).not.toContain("PERFORMANCE EVIDENCE");
+    expect(prompt).not.toContain("EVIDENCE RULE");
+  });
+});
+
 describe("loadAdaptiveContext", () => {
   beforeEach(() => {
     mockAuthSession("user-1");
@@ -178,11 +223,18 @@ describe("loadAdaptiveContext", () => {
     // Global default handlers already answer quiz_attempts/weekly_plans/
     // study_sessions/folders with empty results — nothing extra to mock.
     const context = await loadAdaptiveContext(mondayOfWeek());
-    expect(context).toEqual({
+    expect(context).toMatchObject({
       weakTopics: "None",
       weakFlashcardDecks: "None",
       lastWeekAdherence: "None",
     });
+    /* The evidence block is rendered even with nothing to report — the empty
+       summary is what carries the instruction not to guess a grade, which is
+       exactly the case where the model otherwise would. */
+    expect(context.performanceEvidence).toContain("PERFORMANCE EVIDENCE");
+    expect(context.performanceEvidence).toContain(
+      "no current performance data",
+    );
   });
 
   it("ranks weak topics by frequency and summarizes last week's adherence", async () => {

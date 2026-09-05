@@ -41,6 +41,8 @@ import {
 } from "../lib/availabilityPrompt";
 import { importIcsForRange } from "../lib/icsImport";
 import { isLifeContextConfigured, loadLifeContext } from "../lib/lifeContext";
+import { loadStudentEvidence } from "./studentEvidence";
+import { formatEvidenceForPrompt } from "../lib/studentEvidence";
 import type { Settings } from "../lib/settings";
 import type { WeeklyPlan } from "./types";
 
@@ -61,6 +63,7 @@ export function buildPlanPrompt({
   upcomingExams,
   weakTopics = "None",
   weakFlashcardDecks = "None",
+  performanceEvidence,
   lastWeekAdherence = "None",
   availability = "None",
   chronotype = "Unknown",
@@ -78,6 +81,13 @@ export function buildPlanPrompt({
   weakTopics?: string;
   /** Decks with low ease-factors, indicating the student is struggling to retain them. */
   weakFlashcardDecks?: string;
+  /** The student's measured quiz performance, rendered by
+   *  `lib/studentEvidence.ts`. `weakTopics` above is only a list of names —
+   *  it says a topic has been flagged, not how badly, not what is already
+   *  solid, and not how much evidence is behind either. A planner deciding
+   *  where a week's hours go needs all three. Optional so existing prompt
+   *  tests keep exercising the plain task/exam prompt. */
+  performanceEvidence?: string;
   /** `formatAdherenceNote`'s one-liner on how much of *last* week's plan
    *  actually happened, and which subjects fell short — "None" for a
    *  student's first-ever plan, when there's nothing to compare against. */
@@ -99,7 +109,7 @@ export function buildPlanPrompt({
 Pending tasks: ${pendingTasks}
 Upcoming exams: ${upcomingExams}
 Recent weak topics from quizzes: ${weakTopics}
-
+${performanceEvidence ? `\n${performanceEvidence}\n` : ""}
 This is a Triage situation. The student is panicking and has limited time. DO NOT generate a standard weekly plan. 
 1. Ignore all tasks and exams that are more than a week away.
 2. Identify the single most urgent exam and the student's weak topics for it.
@@ -114,6 +124,7 @@ Upcoming exams: ${upcomingExams}
 Recent weak topics from quizzes: ${weakTopics}
 Weak flashcard decks: ${weakFlashcardDecks}
 Last week's adherence: ${lastWeekAdherence}
+${performanceEvidence ? `\n${performanceEvidence}\n` : ""}
 When the student is actually free: ${availability}
 When their head works best: ${chronotype}
 ${
@@ -121,6 +132,11 @@ ${
     ? ""
     : `${AVAILABILITY_RULE}
 `
+}${
+  performanceEvidence
+    ? `EVIDENCE RULE: the performance block above is measured, not inferred. Give the most time to the topics it names as WEAK, quoting their measured accuracy in the block's description so the student can see why it was chosen. Do not schedule revision for topics it lists as SOLID unless an exam is imminent — telling a student to stop revising something is how a plan buys back hours. Never schedule against a percentage for a topic listed as NEVER TESTED or marked PROVISIONAL; suggest a quiz on it instead.
+`
+    : ""
 }Prioritize subjects with closer/harder exams, tasks with closer due dates, and topics the student is weak on. If last week shows a subject was under-studied, ease it back in with shorter blocks rather than repeating the exact same plan. Keep daily blocks realistic (30-90 minutes each, a couple of blocks per day at most). If there is no exam/task data, suggest light general review blocks.`;
 }
 
@@ -163,13 +179,14 @@ export async function loadWorkspaceContext(todayStr = localDateStr()): Promise<{
 export async function loadAdaptiveContext(monday: Date): Promise<{
   weakTopics: string;
   weakFlashcardDecks: string;
+  performanceEvidence: string;
   lastWeekAdherence: string;
 }> {
   const prevMonday = new Date(monday);
   prevMonday.setDate(prevMonday.getDate() - 7);
   const prevWeekStartISO = localDateStr(prevMonday);
 
-  const [weakTopicRows, weakDeckRows, prevPlan, sessions, folders] =
+  const [weakTopicRows, weakDeckRows, prevPlan, sessions, folders, evidence] =
     await Promise.all([
       quizzesApi.fetchWeakTopics(5),
       flashcardsApi.fetchWeakDecks(5),
@@ -178,6 +195,10 @@ export async function loadAdaptiveContext(monday: Date): Promise<{
       // current week this runs on.
       sessionsApi.fetchSince(14),
       foldersApi.fetch(),
+      /* Resolves rather than throwing, so it joins the same Promise.all as
+         the rest instead of needing a catch — a planner that can't read the
+         quiz rows should still produce a plan from tasks and exams. */
+      loadStudentEvidence(),
     ]);
 
   const weakTopics = weakTopicRows.map((w) => w.topic).join(", ") || "None";
@@ -196,7 +217,17 @@ export async function loadAdaptiveContext(monday: Date): Promise<{
         )
       : "None";
 
-  return { weakTopics, weakFlashcardDecks, lastWeekAdherence };
+  /* Always rendered, including when there is nothing to report: the empty
+     summary is what carries the instruction not to guess, which is precisely
+     the case where the model would. Same reasoning as ChatProvider's. */
+  const performanceEvidence = formatEvidenceForPrompt(evidence);
+
+  return {
+    weakTopics,
+    weakFlashcardDecks,
+    performanceEvidence,
+    lastWeekAdherence,
+  };
 }
 
 /** The student's own week, for the days the plan will cover.
@@ -235,7 +266,7 @@ export async function generateWeeklyPlan(
 
   const [
     { pendingTasks, upcomingExams },
-    { weakTopics, weakFlashcardDecks, lastWeekAdherence },
+    { weakTopics, weakFlashcardDecks, performanceEvidence, lastWeekAdherence },
   ] = await Promise.all([
     loadWorkspaceContext(todayStr),
     loadAdaptiveContext(monday),
@@ -254,6 +285,7 @@ export async function generateWeeklyPlan(
           upcomingExams,
           weakTopics,
           weakFlashcardDecks,
+          performanceEvidence,
           lastWeekAdherence,
           availability,
           chronotype,
