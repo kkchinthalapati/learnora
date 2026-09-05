@@ -32,10 +32,34 @@
          from by keeping the first and dropping the rest, so the right fonts
          did load — but only by luck of ordering, and deleting the "extra"
          line would have silently swapped the brand's typefaces for fallbacks. -->
+    <!-- Loaded without blocking the first paint.
+
+         As a plain stylesheet this was render-blocking: the browser will not
+         paint anything until it arrives, so every first load in the app was
+         gated on a third party. Measured with the request failing: 12.5s to
+         first paint, against 1.5s once it resolves — a blank page for as long
+         as fonts.googleapis.com takes, and indefinitely where it is blocked
+         or firewalled.
+
+         `media="print"` makes it non-blocking (print styles are not needed to
+         paint the screen); the onload swaps it to `all` the moment it lands,
+         at which point the real faces apply. That trades the block for a brief
+         flash of the fallback stack — which the URL's own `display=swap`
+         already opted into for the font *files*, so this only extends the same
+         decision to the stylesheet that names them. The <noscript> copy keeps
+         the fonts for scripted-off browsers, where the swap can never run. -->
     <link
       href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
     <title>Learnora</title>
   </head>
   <body>
