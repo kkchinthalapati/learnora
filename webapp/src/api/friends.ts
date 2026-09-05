@@ -40,6 +40,11 @@ function firstRow<T>(data: T[] | T | null): T | null {
   return data ?? null;
 }
 
+/** Windows the leaderboard can be read over. The server falls back to
+ *  "week" for anything it does not recognise, so an older client keeps
+ *  working against a newer function and vice versa. */
+export type LeaderboardPeriod = "week" | "month" | "all";
+
 export const friendsApi = {
   /** The signed-in user's own invite code. */
   async fetchMyCode(): Promise<string | null> {
@@ -104,9 +109,12 @@ export const friendsApi = {
     return (data as FriendRequest[] | null) ?? [];
   },
 
-  async fetchLeaderboard(): Promise<LeaderboardEntry[]> {
+  async fetchLeaderboard(
+    period: LeaderboardPeriod = "week",
+  ): Promise<LeaderboardEntry[]> {
     const { data, error } = await supabase.rpc("get_friends_leaderboard", {
       tz: browserTimeZone(),
+      period,
     });
     if (error) throw new Error(error.message);
     return (data as LeaderboardEntry[] | null) ?? [];
