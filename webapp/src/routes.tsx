@@ -66,6 +66,9 @@ const LazyQuizReview = lazy(async () => ({
 const LazyReviewView = lazy(async () => ({
   default: (await import("./views/review/ReviewView")).ReviewView,
 }));
+const LazyDeckCardsView = lazy(async () => ({
+  default: (await import("./views/decks/DeckCardsView")).DeckCardsView,
+}));
 /* Life Sync's setup screen: a long form nobody opens twice a week, and it
    pulls in the whole availability/scheduling engine. Deferred for the same
    reason the studio and the quiz runner are. */
@@ -236,6 +239,14 @@ export function AppRoutes() {
               element={
                 <DeferredView>
                   <LazyReviewView />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/decks/:deckId"
+              element={
+                <DeferredView>
+                  <LazyDeckCardsView />
                 </DeferredView>
               }
             />

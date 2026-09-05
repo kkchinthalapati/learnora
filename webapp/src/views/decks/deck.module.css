@@ -1,0 +1,162 @@
+.view {
+  max-width: 860px;
+  margin: 0 auto;
+  padding-bottom: var(--command-bar-clearance, 0);
+}
+
+.exit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  margin-bottom: var(--s-4);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+}
+
+.exit:hover {
+  color: var(--text);
+}
+
+.loadError {
+  color: var(--danger-text);
+}
+
+.count {
+  color: var(--text-muted);
+}
+
+.list {
+  list-style: none;
+  margin: var(--s-5) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: var(--s-4);
+}
+
+.cardRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-4);
+}
+
+.cardText {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.side {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.sideLabel {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.back {
+  margin-top: var(--s-3);
+  color: var(--text-muted);
+}
+
+.cardActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--s-1);
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.iconBtn:hover {
+  border-color: var(--border);
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.schedule {
+  margin: var(--s-3) 0 0;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.label {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.input {
+  width: 100%;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+.formActions {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.addPanel {
+  margin-top: var(--s-5);
+  padding: var(--s-4);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-lg);
+}
+
+.addPanelTitle {
+  margin: 0 0 var(--s-3);
+  font-size: var(--fs-md);
+}
+
+@media (max-width: 560px) {
+  .cardRow {
+    flex-direction: column;
+  }
+
+  .cardActions {
+    align-self: flex-end;
+  }
+}

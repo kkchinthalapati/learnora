@@ -698,13 +698,27 @@ describe("Library — Flashcards tab", () => {
     serveLibrary({ decks: [deck()] });
     renderLibrary("/library/flashcards");
 
+    /* The deck tile carries two links now — the tile itself opens the review
+       session, the pencil opens the deck's cards — so this has to name the
+       one it means. */
     await user.click(
-      await screen.findByRole("link", { name: /Mitosis basics/ }),
+      await screen.findByRole("link", { name: /^Mitosis basics/ }),
     );
 
     expect(
       await screen.findByRole("heading", { name: "Deck review" }),
     ).toBeInTheDocument();
+  });
+
+  it("links a deck to its cards for editing", async () => {
+    serveLibrary({ decks: [deck()] });
+    renderLibrary("/library/flashcards");
+
+    expect(
+      await screen.findByRole("link", {
+        name: "Edit cards in Mitosis basics",
+      }),
+    ).toHaveAttribute("href", "/decks/deck-1");
   });
 });
 

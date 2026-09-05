@@ -57,6 +57,58 @@ export function useAddFlashcardBatch() {
   });
 }
 
+/* Card-level mutations. Each invalidates the owning deck's list plus the two
+ * due-derived queries, since adding or removing a card changes what the
+ * Library banner and the daily drill count. */
+export function useAddFlashcard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      deckId,
+      card,
+    }: {
+      deckId: string;
+      card: { front: string; back: string };
+    }) => flashcardsApi.add(deckId, card),
+    onSuccess: (_data, { deckId }) => {
+      qc.invalidateQueries({ queryKey: flashcardsKeys.byDeck(deckId) });
+      qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
+      qc.invalidateQueries({ queryKey: ["flashcards", "all-due"] });
+    },
+  });
+}
+
+export function useUpdateFlashcard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      cardId,
+      fields,
+    }: {
+      cardId: string;
+      deckId: string;
+      fields: { front: string; back: string };
+    }) => flashcardsApi.update(cardId, fields),
+    onSuccess: (_data, { deckId }) => {
+      qc.invalidateQueries({ queryKey: flashcardsKeys.byDeck(deckId) });
+      qc.invalidateQueries({ queryKey: ["flashcards", "all-due"] });
+    },
+  });
+}
+
+export function useDeleteFlashcard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ cardId }: { cardId: string; deckId: string }) =>
+      flashcardsApi.delete(cardId),
+    onSuccess: (_data, { deckId }) => {
+      qc.invalidateQueries({ queryKey: flashcardsKeys.byDeck(deckId) });
+      qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
+      qc.invalidateQueries({ queryKey: ["flashcards", "all-due"] });
+    },
+  });
+}
+
 /* The write goes through the offline queue's helper (online-first, enqueue on
  * failure), so a review graded with no connection is replayed on reconnect
  * instead of lost — the queue re-invalidates these same keys after each
