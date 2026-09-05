@@ -112,3 +112,23 @@ export function useRemoveFriend() {
 export function useRegenerateFriendCode() {
   return useFriendMutation<void, string>(() => friendsApi.regenerateCode());
 }
+
+/* Privacy preferences live on the `profiles` row rather than in auth
+ * metadata, because the leaderboard RPC has to read them when it joins. */
+export function usePrivacySettings() {
+  return useQuery({
+    queryKey: ["friends", "privacy"] as const,
+    queryFn: friendsApi.fetchPrivacySettings,
+  });
+}
+
+export function useSetLeaderboardOptOut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (optOut: boolean) => friendsApi.setLeaderboardOptOut(optOut),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["friends", "privacy"] });
+      qc.invalidateQueries({ queryKey: friendsKeys.all });
+    },
+  });
+}

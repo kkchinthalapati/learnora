@@ -109,6 +109,29 @@ export const friendsApi = {
     return (data as FriendRequest[] | null) ?? [];
   },
 
+  /* Reads and writes the caller's own `profiles` row. `authApi.updateProfile`
+   * writes auth user_metadata, which is a different store — a preference the
+   * leaderboard RPC has to read has to live on the table it joins. */
+  async fetchPrivacySettings(): Promise<{ leaderboardOptOut: boolean }> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("leaderboard_opt_out")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { leaderboardOptOut: data?.leaderboard_opt_out === true };
+  },
+
+  async setLeaderboardOptOut(optOut: boolean): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase
+      .from("profiles")
+      .update({ leaderboard_opt_out: optOut })
+      .eq("id", userId);
+    if (error) throw new Error(error.message);
+  },
+
   async fetchLeaderboard(
     period: LeaderboardPeriod = "week",
   ): Promise<LeaderboardEntry[]> {
