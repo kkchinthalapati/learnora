@@ -93,6 +93,7 @@
   flex: 0 0 auto;
   width: 40px;
   height: 40px;
+  overflow: hidden;
   border-radius: var(--r-pill);
   display: grid;
   place-items: center;
@@ -101,6 +102,12 @@
   font-weight: 700;
   font-size: var(--fs-sm);
   text-transform: uppercase;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .personMain {
@@ -120,6 +127,16 @@
   margin: var(--s-1) 0 0;
   font-size: var(--fs-sm);
   color: var(--text-muted);
+}
+
+.personBio {
+  margin: var(--s-1) 0 0;
+  font-size: var(--fs-sm);
+  font-style: italic;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .youTag {

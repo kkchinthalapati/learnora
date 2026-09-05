@@ -43,8 +43,56 @@ import { importIcsForRange } from "../lib/icsImport";
 import { isLifeContextConfigured, loadLifeContext } from "../lib/lifeContext";
 import { loadStudentEvidence } from "./studentEvidence";
 import { formatEvidenceForPrompt } from "../lib/studentEvidence";
+import { profileApi } from "./profile";
 import type { Settings } from "../lib/settings";
 import type { WeeklyPlan } from "./types";
+
+const EXAM_TYPE_LABELS: Record<string, string> = {
+  ap: "AP",
+  ib: "IB",
+  a_level: "A-Level",
+  gcse: "GCSE",
+  sat: "SAT",
+  act: "ACT",
+  other: "another exam board",
+};
+
+const STUDY_PACE_HINTS: Record<string, string> = {
+  light: "prefers a light load — keep blocks short and infrequent rather than filling every day.",
+  balanced: "wants a balanced weekly load — the default 30-90 minute blocks are right for them.",
+  intensive: "is comfortable with an intensive load — longer and more frequent blocks are welcome, not just the minimum.",
+};
+
+/** Self-reported study context from Settings > Preferences, distinct from
+ *  `performanceEvidence` (measured) — this is what the student says about
+ *  themselves, not what quizzes prove. Rendered as a soft steer, not a RULE:
+ *  a stated preference for "intensive" doesn't override an EVIDENCE RULE
+ *  saying a topic is SOLID, it only shapes how much room the plan gives
+ *  itself to work with. Returns "" (nothing rendered) when the student has
+ *  set none of this up, which is the common case for an existing account —
+ *  none of these four fields are backfilled. */
+export function formatStudentContext(profile: {
+  subject: string | null;
+  examType: string | null;
+  targetGrade: string | null;
+  studyPace: string | null;
+}): string {
+  const parts: string[] = [];
+  if (profile.subject) parts.push(`is focused on ${profile.subject}`);
+  if (profile.examType) {
+    const label = EXAM_TYPE_LABELS[profile.examType] ?? profile.examType;
+    parts.push(`is preparing for ${label} exams`);
+  }
+  if (profile.targetGrade) parts.push(`is aiming for ${profile.targetGrade}`);
+
+  const paceHint = profile.studyPace ? STUDY_PACE_HINTS[profile.studyPace] : null;
+
+  if (parts.length === 0 && !paceHint) return "";
+
+  const summary = parts.length > 0 ? `The student ${parts.join(", ")}.` : "";
+  const pace = paceHint ? ` The student ${paceHint}` : "";
+  return `STUDENT CONTEXT: ${summary}${pace}`.trim();
+}
 
 /** Thrown when the model replied but nothing plan-shaped could be recovered
  *  from it — distinct from a transport failure, and worth a different
@@ -64,6 +112,7 @@ export function buildPlanPrompt({
   weakTopics = "None",
   weakFlashcardDecks = "None",
   performanceEvidence,
+  studentContext,
   lastWeekAdherence = "None",
   availability = "None",
   chronotype = "Unknown",
@@ -88,6 +137,10 @@ export function buildPlanPrompt({
    *  where a week's hours go needs all three. Optional so existing prompt
    *  tests keep exercising the plain task/exam prompt. */
   performanceEvidence?: string;
+  /** `formatStudentContext`'s one-liner on self-reported subject, exam
+   *  board, target grade and pace preference. "" when the student hasn't
+   *  set any of it, in which case nothing is rendered for it at all. */
+  studentContext?: string;
   /** `formatAdherenceNote`'s one-liner on how much of *last* week's plan
    *  actually happened, and which subjects fell short — "None" for a
    *  student's first-ever plan, when there's nothing to compare against. */
@@ -124,7 +177,7 @@ Upcoming exams: ${upcomingExams}
 Recent weak topics from quizzes: ${weakTopics}
 Weak flashcard decks: ${weakFlashcardDecks}
 Last week's adherence: ${lastWeekAdherence}
-${performanceEvidence ? `\n${performanceEvidence}\n` : ""}
+${performanceEvidence ? `\n${performanceEvidence}\n` : ""}${studentContext ? `\n${studentContext}\n` : ""}
 When the student is actually free: ${availability}
 When their head works best: ${chronotype}
 ${
@@ -180,26 +233,44 @@ export async function loadAdaptiveContext(monday: Date): Promise<{
   weakTopics: string;
   weakFlashcardDecks: string;
   performanceEvidence: string;
+  studentContext: string;
   lastWeekAdherence: string;
 }> {
   const prevMonday = new Date(monday);
   prevMonday.setDate(prevMonday.getDate() - 7);
   const prevWeekStartISO = localDateStr(prevMonday);
 
-  const [weakTopicRows, weakDeckRows, prevPlan, sessions, folders, evidence] =
-    await Promise.all([
-      quizzesApi.fetchWeakTopics(5),
-      flashcardsApi.fetchWeakDecks(5),
-      plansApi.fetchForWeek(prevWeekStartISO),
-      // 14 days comfortably covers "last week" regardless of which day of the
-      // current week this runs on.
-      sessionsApi.fetchSince(14),
-      foldersApi.fetch(),
-      /* Resolves rather than throwing, so it joins the same Promise.all as
-         the rest instead of needing a catch — a planner that can't read the
-         quiz rows should still produce a plan from tasks and exams. */
-      loadStudentEvidence(),
-    ]);
+  const [
+    weakTopicRows,
+    weakDeckRows,
+    prevPlan,
+    sessions,
+    folders,
+    evidence,
+    studentProfile,
+  ] = await Promise.all([
+    quizzesApi.fetchWeakTopics(5),
+    flashcardsApi.fetchWeakDecks(5),
+    plansApi.fetchForWeek(prevWeekStartISO),
+    // 14 days comfortably covers "last week" regardless of which day of the
+    // current week this runs on.
+    sessionsApi.fetchSince(14),
+    foldersApi.fetch(),
+    /* Resolves rather than throwing, so it joins the same Promise.all as
+       the rest instead of needing a catch — a planner that can't read the
+       quiz rows should still produce a plan from tasks and exams. */
+    loadStudentEvidence(),
+    /* Same reasoning: a student with no Settings > Preferences filled in
+       (the common case today, since none of it is backfilled) should still
+       get a plan, not a failed one. */
+    profileApi.fetchProfile().catch(() => ({
+      bio: null,
+      subject: null,
+      examType: null,
+      targetGrade: null,
+      studyPace: null,
+    })),
+  ]);
 
   const weakTopics = weakTopicRows.map((w) => w.topic).join(", ") || "None";
   const weakFlashcardDecks = weakDeckRows.join(", ") || "None";
@@ -221,11 +292,13 @@ export async function loadAdaptiveContext(monday: Date): Promise<{
      summary is what carries the instruction not to guess, which is precisely
      the case where the model would. Same reasoning as ChatProvider's. */
   const performanceEvidence = formatEvidenceForPrompt(evidence);
+  const studentContext = formatStudentContext(studentProfile);
 
   return {
     weakTopics,
     weakFlashcardDecks,
     performanceEvidence,
+    studentContext,
     lastWeekAdherence,
   };
 }
@@ -266,7 +339,13 @@ export async function generateWeeklyPlan(
 
   const [
     { pendingTasks, upcomingExams },
-    { weakTopics, weakFlashcardDecks, performanceEvidence, lastWeekAdherence },
+    {
+      weakTopics,
+      weakFlashcardDecks,
+      performanceEvidence,
+      studentContext,
+      lastWeekAdherence,
+    },
   ] = await Promise.all([
     loadWorkspaceContext(todayStr),
     loadAdaptiveContext(monday),
@@ -286,6 +365,7 @@ export async function generateWeeklyPlan(
           weakTopics,
           weakFlashcardDecks,
           performanceEvidence,
+          studentContext,
           lastWeekAdherence,
           availability,
           chronotype,

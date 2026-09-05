@@ -170,6 +170,7 @@ export interface FriendRequest {
   user_id: string;
   full_name: string | null;
   avatar_url: string | null;
+  bio: string | null;
   direction: "incoming" | "outgoing";
   created_at: string;
 }

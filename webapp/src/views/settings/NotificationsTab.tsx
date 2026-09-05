@@ -2,11 +2,17 @@ import { useCallback, useId, useState } from "react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
+import { Skeleton } from "../../components/Skeleton";
 import { ToggleSwitch } from "../../components/ToggleSwitch";
 import { useSettings } from "../../context/settings";
 import { useDialog } from "../../context/dialog";
+import { useToast } from "../../context/toast";
 import { isPushSupported } from "../../lib/push";
 import { usePush } from "../../hooks/usePush";
+import {
+  useEmailNotificationPrefs,
+  useUpdateEmailNotificationPrefs,
+} from "../../hooks/useEmailNotifications";
 import styles from "./settings.module.css";
 import notif from "./notifications.module.css";
 
@@ -49,7 +55,13 @@ export function NotificationsTab() {
 
   const push = usePush();
   const { confirm } = useDialog();
+  const { showToast } = useToast();
   const pushConfigured = isPushSupported() && !!VAPID_PUBLIC_KEY;
+
+  const emailPrefs = useEmailNotificationPrefs();
+  const updateEmailPrefs = useUpdateEmailNotificationPrefs();
+  const emailExamsId = useId();
+  const emailFlashcardsId = useId();
 
   const handleRevokeDevice = async (deviceId: string, isCurrent: boolean) => {
     if (isCurrent) {
@@ -324,6 +336,96 @@ export function NotificationsTab() {
               })}
             </ul>
           </div>
+        )}
+      </Card>
+
+      <Card
+        as="section"
+        variant="elevated"
+        radius="lg"
+        padding="lg"
+        className={styles.card}
+        aria-labelledby="settings-email-notif-heading"
+      >
+        <div className={styles.cardHeader}>
+          <span className={styles.cardIcon}>
+            <Icon name="bell" size={18} />
+          </span>
+          <div>
+            <h3 id="settings-email-notif-heading">Email Notifications</h3>
+            <p>
+              Reach you even on a device that has never had push turned on.
+            </p>
+          </div>
+        </div>
+
+        {emailPrefs.isPending ? (
+          <Skeleton label="Loading your email preferences" height={72} />
+        ) : emailPrefs.isError ? (
+          <p role="alert">
+            Could not load your email preferences.{" "}
+            {(emailPrefs.error as Error).message}
+          </p>
+        ) : (
+          <>
+            <div className={styles.field}>
+              <div className={styles.fieldLabel}>
+                <span className={styles.labelText} id={emailExamsId}>
+                  Exam Reminders
+                </span>
+                <p className={styles.fieldDesc}>
+                  An email the day before (and the day of) an upcoming exam
+                </p>
+              </div>
+              <div className={styles.fieldAction}>
+                <ToggleSwitch
+                  checked={emailPrefs.data.notifyExams}
+                  labelledBy={emailExamsId}
+                  disabled={updateEmailPrefs.isPending}
+                  onChange={(checked) =>
+                    updateEmailPrefs.mutate(
+                      { notifyExams: checked },
+                      {
+                        onError: () =>
+                          showToast("Could not save that. Please try again.", {
+                            error: true,
+                          }),
+                      },
+                    )
+                  }
+                />
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <div className={styles.fieldLabel}>
+                <span className={styles.labelText} id={emailFlashcardsId}>
+                  Flashcard Due Email
+                </span>
+                <p className={styles.fieldDesc}>
+                  Once a day, if you have cards due for review
+                </p>
+              </div>
+              <div className={styles.fieldAction}>
+                <ToggleSwitch
+                  checked={emailPrefs.data.notifyFlashcardsDue}
+                  labelledBy={emailFlashcardsId}
+                  disabled={updateEmailPrefs.isPending}
+                  onChange={(checked) =>
+                    updateEmailPrefs.mutate(
+                      { notifyFlashcardsDue: checked },
+                      {
+                        onError: () =>
+                          showToast("Could not save that. Please try again.", {
+                            error: true,
+                          }),
+                      },
+                    )
+                  }
+                />
+              </div>
+            </div>
+          </>
         )}
       </Card>
     </>

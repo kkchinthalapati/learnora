@@ -33,12 +33,18 @@ import styles from "./friends.module.css";
  * duplicated it. PageHeader's title is deliberately *not* "Friends" for the
  * same reason: it names the thing below it, not the page. */
 
-function Avatar({ name }: { name: string | null }) {
+function Avatar({
+  name,
+  avatarUrl,
+}: {
+  name: string | null;
+  avatarUrl?: string | null;
+}) {
   // aria-hidden: the initials restate the name that is already in the row's
   // text, so a screen reader would otherwise announce "AK Ada King".
   return (
     <span className={styles.avatar} aria-hidden="true">
-      {initials(name)}
+      {avatarUrl ? <img src={avatarUrl} alt="" /> : initials(name)}
     </span>
   );
 }
@@ -162,7 +168,7 @@ function RequestRow({ request }: { request: FriendRequest }) {
 
   return (
     <Card variant="row" className={styles.personRow}>
-      <Avatar name={request.full_name} />
+      <Avatar name={request.full_name} avatarUrl={request.avatar_url} />
       <div className={styles.personMain}>
         <p className={styles.personName}>{name}</p>
         <p className={styles.personMeta}>
@@ -170,6 +176,9 @@ function RequestRow({ request }: { request: FriendRequest }) {
             ? "Wants to be your friend"
             : "Request sent — waiting for them"}
         </p>
+        {request.direction === "incoming" && request.bio ? (
+          <p className={styles.personBio}>{request.bio}</p>
+        ) : null}
       </div>
       <div className={styles.personActions}>
         {request.direction === "incoming" ? (
@@ -271,7 +280,7 @@ function LeaderboardRow({
       className={`${styles.personRow} ${entry.is_self ? styles.selfRow : ""}`}
     >
       <span className={styles.rank}>{entry.rank}</span>
-      <Avatar name={entry.full_name} />
+      <Avatar name={entry.full_name} avatarUrl={entry.avatar_url} />
       <div className={styles.personMain}>
         <p className={styles.personName}>
           {name}

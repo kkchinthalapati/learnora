@@ -8,6 +8,7 @@ import { localDateStr, mondayOfWeek } from "../lib/date";
 import {
   PlanShapeError,
   buildPlanPrompt,
+  formatStudentContext,
   generateWeeklyPlan,
   loadAdaptiveContext,
   loadWorkspaceContext,
@@ -208,6 +209,73 @@ describe("buildPlanPrompt — performance evidence", () => {
     const prompt = buildPlanPrompt(base);
     expect(prompt).not.toContain("PERFORMANCE EVIDENCE");
     expect(prompt).not.toContain("EVIDENCE RULE");
+  });
+
+  it("carries studentContext into the prompt when set", () => {
+    const prompt = buildPlanPrompt({
+      ...base,
+      studentContext: "STUDENT CONTEXT: The student is preparing for IB exams.",
+    });
+    expect(prompt).toContain("STUDENT CONTEXT");
+    expect(prompt).toContain("IB exams");
+  });
+
+  it("omits STUDENT CONTEXT when unset, same as performanceEvidence", () => {
+    const prompt = buildPlanPrompt(base);
+    expect(prompt).not.toContain("STUDENT CONTEXT");
+  });
+});
+
+describe("formatStudentContext", () => {
+  it("returns an empty string when nothing is set", () => {
+    expect(
+      formatStudentContext({
+        subject: null,
+        examType: null,
+        targetGrade: null,
+        studyPace: null,
+      }),
+    ).toBe("");
+  });
+
+  it("names subject, exam board and target grade", () => {
+    const text = formatStudentContext({
+      subject: "Organic Chemistry",
+      examType: "ib",
+      targetGrade: "7",
+      studyPace: null,
+    });
+    expect(text).toContain("Organic Chemistry");
+    expect(text).toContain("IB exams");
+    expect(text).toContain("aiming for 7");
+  });
+
+  it("renders a pacing hint distinct from the evidence-derived RULE language", () => {
+    const light = formatStudentContext({
+      subject: null,
+      examType: null,
+      targetGrade: null,
+      studyPace: "light",
+    });
+    expect(light).toContain("light load");
+
+    const intensive = formatStudentContext({
+      subject: null,
+      examType: null,
+      targetGrade: null,
+      studyPace: "intensive",
+    });
+    expect(intensive).toContain("intensive load");
+  });
+
+  it("falls back to the raw value for an exam type it doesn't recognize", () => {
+    const text = formatStudentContext({
+      subject: null,
+      examType: "state_board",
+      targetGrade: null,
+      studyPace: null,
+    });
+    expect(text).toContain("state_board");
   });
 });
 
