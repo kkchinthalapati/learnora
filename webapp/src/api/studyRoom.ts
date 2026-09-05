@@ -135,6 +135,20 @@ export const MAX_NAME_LENGTH = 60;
 /** How many chat messages a room retains. Oldest are dropped past this. */
 export const MAX_ROOM_MESSAGES = 200;
 
+/** How many people one study room holds, the host included.
+ *
+ *  A room had no ceiling at all, and its invite link is a plain URL — one
+ *  posted in a class group chat or on a forum admits everyone who clicks it.
+ *  That is not only a crowded screen: presence is O(n²) chatter, every
+ *  participant re-rendering a desk card for every other, so a room that grows
+ *  without limit degrades for the people who were studying in it first.
+ *
+ *  Twelve is a study group, not a lecture hall. It is above any real
+ *  friend-group session and well below the point where the desk grid stops
+ *  being readable or presence traffic becomes the reason a laptop fan spins
+ *  up. */
+export const MAX_ROOM_PARTICIPANTS = 12;
+
 function asString(value: unknown, max: number): string {
   if (typeof value !== "string") return "";
   /* Sliced before trimming so a megabyte of whitespace is bounded too. */
