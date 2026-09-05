@@ -218,6 +218,8 @@
   border-radius: var(--r-md);
   box-shadow: none;
   cursor: pointer;
+  /* Also worn by a <Link> (edit cards) now, not only <button>s. */
+  text-decoration: none;
   transition:
     background var(--t-fast) ease,
     color var(--t-fast) ease,

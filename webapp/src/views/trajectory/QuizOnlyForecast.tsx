@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { Card } from "../../components/Card";
 import { useStudentEvidence } from "../../hooks/useStudentEvidence";
 import {
+  MIN_FORECAST_QUIZZES,
   calculateQuizForecast,
   formatWeakTopics,
 } from "../../lib/quizForecast";
@@ -28,21 +29,28 @@ export function QuizOnlyForecast({
   const { evidence, isPending } = useStudentEvidence();
   const forecast = isPending ? null : calculateQuizForecast(evidence, examDate);
 
-  /* No decks *and* no quiz results — genuinely nothing to go on, which is the
-     message the screen carried before this existed. */
+  /* No decks, and not enough quizzing to project from. The copy names how
+     many more are needed rather than saying "not enough" and stopping: a
+     student who has taken three quizzes is two away from a forecast, and
+     that is a much more useful thing to be told. */
   if (!forecast) {
+    const taken = evidence.quizzesTaken;
+    const remaining = Math.max(0, MIN_FORECAST_QUIZZES - taken);
+
     return (
       <Card as="section" variant="panel" className={styles.section}>
         <h2 className={styles.sectionTitle}>
-          Not enough to go on for {examName}
+          Not enough data yet for {examName}
         </h2>
         <p className={styles.sectionCopy}>
-          A forecast needs something to measure. Take a quiz, or{" "}
+          {taken === 0
+            ? `A forecast needs something to measure. Take ${MIN_FORECAST_QUIZZES} quizzes and this fills in.`
+            : `You have taken ${taken} ${taken === 1 ? "quiz" : "quizzes"}. ${remaining} more and this fills in — forecasting off fewer would print a range too wide to plan around.`}{" "}
+          You can also{" "}
           <Link to="/library" className={styles.link}>
             turn a material into a deck
-          </Link>
-          , and this fills in — it gets sharper with every review and every
-          quiz.
+          </Link>{" "}
+          for the full forecast, which needs no quizzes at all.
         </p>
       </Card>
     );
@@ -52,6 +60,7 @@ export function QuizOnlyForecast({
 
   return (
     <Card as="section" variant="panel" className={styles.section}>
+      <p className={styles.forecastEyebrow}>Learnora Forecast</p>
       <h2 className={styles.sectionTitle}>
         {examName}: {forecast.predictedMin}–{forecast.predictedMax}
       </h2>
@@ -66,6 +75,44 @@ export function QuizOnlyForecast({
             ? "That is today."
             : "That exam has passed."}
       </p>
+
+      {/* The arithmetic, in full. A forecast a student is asked to plan
+          around should not be a number they have to trust — every term here
+          is one they can check against their own quiz history. */}
+      <details className={styles.mathDetails}>
+        <summary className={styles.mathSummary}>How this is worked out</summary>
+        <ul className={styles.mathList}>
+          <li>
+            <strong>{forecast.accuracyNow}%</strong> — your measured accuracy
+            across {forecast.quizzesTaken}{" "}
+            {forecast.quizzesTaken === 1 ? "quiz" : "quizzes"}.
+          </li>
+          <li>
+            <strong>−{forecast.penalty}</strong> — {forecast.weakTopics.length}{" "}
+            weak {forecast.weakTopics.length === 1 ? "topic" : "topics"} (below{" "}
+            60%), at 5 points each
+            {forecast.penalty === 20 ? ", capped at 20" : ""}.
+          </li>
+          <li>
+            <strong>±{forecast.band}</strong> — the range around that figure.
+          </li>
+          <li>
+            {forecast.accuracyNow} − {forecast.penalty} ± {forecast.band} ={" "}
+            <strong>
+              {forecast.predictedMin}–{forecast.predictedMax}
+            </strong>
+            .
+          </li>
+        </ul>
+        <p className={styles.mathNote}>
+          Confidence is a statement about how much quizzing is behind the
+          number, not about how likely it is. The {forecast.daysUntilExam}{" "}
+          {forecast.daysUntilExam === 1 ? "day" : "days"} until the exam are
+          shown above but are not in this arithmetic — projecting what revision
+          between now and then is worth is what the full deck-based forecast
+          does.
+        </p>
+      </details>
 
       {weak.length > 0 ? (
         <p className={styles.sectionCopy}>

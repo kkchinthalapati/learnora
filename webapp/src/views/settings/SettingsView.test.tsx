@@ -29,6 +29,7 @@ describe("SettingsView", () => {
       "Security",
       "Preferences",
       "Plan",
+      "Privacy",
       "Notifications",
       "Danger Zone",
     ]);

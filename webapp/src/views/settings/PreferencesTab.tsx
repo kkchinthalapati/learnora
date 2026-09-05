@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Combobox } from "../../components/Combobox";
@@ -11,6 +11,10 @@ import { profileApi } from "../../api/profile";
 import { examsApi } from "../../api/exams";
 import { plansApi } from "../../api/plans";
 import { generateICS, downloadICS } from "../../lib/ics";
+import {
+  useProfileDetails,
+  useUpdateStudyProfile,
+} from "../../hooks/useProfileDetails";
 import {
   AI_DEPTH_OPTIONS,
   AI_LANGUAGE_OPTIONS,
@@ -40,6 +44,24 @@ const LENGTH_KEYS: Record<AiConciseness, TranslationKey> = {
   detailed: "opt_long",
 };
 
+const EXAM_TYPE_OPTIONS = [
+  { value: "", label: "Not set" },
+  { value: "ap", label: "AP" },
+  { value: "ib", label: "IB" },
+  { value: "a_level", label: "A-Level" },
+  { value: "gcse", label: "GCSE" },
+  { value: "sat", label: "SAT" },
+  { value: "act", label: "ACT" },
+  { value: "other", label: "Other" },
+] as const;
+
+const STUDY_PACE_OPTIONS = [
+  { value: "", label: "Not set" },
+  { value: "light", label: "Light — short, infrequent sessions" },
+  { value: "balanced", label: "Balanced — the default pace" },
+  { value: "intensive", label: "Intensive — longer, frequent sessions" },
+] as const;
+
 const ALL_TIMEZONES =
   typeof Intl !== "undefined" && typeof Intl.supportedValuesOf === "function"
     ? Intl.supportedValuesOf("timeZone")
@@ -59,6 +81,45 @@ export function PreferencesTab() {
   const uiLangId = useId();
   const aiLangId = useId();
   const tzId = useId();
+  const subjectId = useId();
+  const examTypeId = useId();
+  const targetGradeId = useId();
+  const studyPaceId = useId();
+
+  const profileDetails = useProfileDetails();
+  const updateStudyProfile = useUpdateStudyProfile();
+
+  const [subject, setSubject] = useState("");
+  const [examType, setExamType] = useState("");
+  const [targetGrade, setTargetGrade] = useState("");
+  const [studyPace, setStudyPace] = useState("");
+
+  /* Seeded once the query resolves, then left to the fields — re-syncing on
+   * every refetch would stomp an in-progress edit each time the query
+   * revalidates in the background. */
+  useEffect(() => {
+    if (!profileDetails.data) return;
+    setSubject(profileDetails.data.subject ?? "");
+    setExamType(profileDetails.data.examType ?? "");
+    setTargetGrade(profileDetails.data.targetGrade ?? "");
+    setStudyPace(profileDetails.data.studyPace ?? "");
+  }, [profileDetails.data]);
+
+  function saveStudyProfile() {
+    updateStudyProfile.mutate(
+      {
+        subject: subject || null,
+        examType: examType || null,
+        targetGrade: targetGrade || null,
+        studyPace: studyPace || null,
+      },
+      {
+        onSuccess: () => showToast("Study focus saved."),
+        onError: (err: Error) =>
+          showToast(`Could not save that. ${err.message}`, { error: true }),
+      },
+    );
+  }
 
   const handleExportICS = async () => {
     try {
@@ -254,6 +315,119 @@ export function PreferencesTab() {
               onChange={(checked) => setSettings({ webAccess: checked })}
             />
           </div>
+        </div>
+      </Card>
+
+      <Card
+        as="section"
+        variant="elevated"
+        radius="lg"
+        padding="lg"
+        className={styles.card}
+        aria-labelledby="settings-study-focus-heading"
+      >
+        <div className={styles.cardHeader}>
+          <span className={styles.cardIcon}>
+            <Icon name="graduation-cap" size={18} />
+          </span>
+          <div>
+            <h3 id="settings-study-focus-heading">Study Focus</h3>
+            <p>
+              What you're studying for. The weekly planner reads this — it
+              never overrides measured quiz performance, only shapes how it
+              paces the plan around it.
+            </p>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={subjectId}>Subject</label>
+            <p className={styles.fieldDesc}>What you're mainly studying</p>
+          </div>
+          <div className={styles.fieldAction}>
+            <input
+              id={subjectId}
+              type="text"
+              placeholder="e.g. AP Chemistry"
+              maxLength={80}
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={examTypeId}>Exam Board</label>
+            <p className={styles.fieldDesc}>
+              Which qualification you're preparing for
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={examTypeId}
+              value={examType}
+              onChange={(e) => setExamType(e.target.value)}
+            >
+              {EXAM_TYPE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={targetGradeId}>Target Grade</label>
+            <p className={styles.fieldDesc}>
+              Whatever scale your syllabus uses (e.g. "A", "7", "85%")
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <input
+              id={targetGradeId}
+              type="text"
+              placeholder="e.g. 7"
+              maxLength={20}
+              value={targetGrade}
+              onChange={(e) => setTargetGrade(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={studyPaceId}>Study Pace</label>
+            <p className={styles.fieldDesc}>
+              How much the weekly plan should ask of you
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={studyPaceId}
+              value={studyPace}
+              onChange={(e) => setStudyPace(e.target.value)}
+            >
+              {STUDY_PACE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.actionsRight}>
+          <Button
+            variant="primary"
+            onClick={saveStudyProfile}
+            disabled={updateStudyProfile.isPending}
+          >
+            {updateStudyProfile.isPending ? "Saving..." : "Save Study Focus"}
+          </Button>
         </div>
       </Card>
 

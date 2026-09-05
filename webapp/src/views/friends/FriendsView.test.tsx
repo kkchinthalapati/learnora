@@ -108,12 +108,15 @@ describe("FriendsView", () => {
     renderFriends();
 
     const rows = await screen.findAllByRole("listitem");
-    expect(within(rows[0]).getByText("Grace Hopper")).toBeInTheDocument();
+    /* Shortened on the board: a leaderboard needs to identify someone you
+       already know, not publish their full legal name. */
+    expect(within(rows[0]).getByText("Grace H.")).toBeInTheDocument();
+    expect(within(rows[0]).queryByText("Grace Hopper")).toBeNull();
     expect(
       within(rows[0]).getByText("4h this week · 6 days streak"),
     ).toBeInTheDocument();
 
-    expect(within(rows[1]).getByText("Ada King")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("Ada K.")).toBeInTheDocument();
     expect(within(rows[1]).getByText("You")).toBeInTheDocument();
   });
 
@@ -239,7 +242,40 @@ describe("FriendsView", () => {
 
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     expect(called).toBe(false);
-    expect(screen.getByText("Grace Hopper")).toBeInTheDocument();
+    expect(screen.getByText("Grace H.")).toBeInTheDocument();
+  });
+
+  it("names itself and offers the three periods", async () => {
+    serveLeaderboard([FRIEND, ME]);
+    renderFriends();
+
+    expect(await screen.findByText("Learnora Leaderboard")).toBeInTheDocument();
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.map((t) => t.textContent)).toEqual([
+      "This week",
+      "This month",
+      "All time",
+    ]);
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("asks the server for the chosen period", async () => {
+    const periods: unknown[] = [];
+    server.use(
+      http.post(rpc("get_friends_leaderboard"), async ({ request }) => {
+        const body = (await request.json()) as { period?: unknown };
+        periods.push(body.period);
+        return HttpResponse.json([FRIEND, ME]);
+      }),
+    );
+    renderFriends();
+
+    const user = userEvent.setup();
+    await screen.findByText("Learnora Leaderboard");
+    await user.click(screen.getByRole("tab", { name: "All time" }));
+
+    await waitFor(() => expect(periods).toContain("all"));
+    expect(periods[0]).toBe("week");
   });
 
   it("warns before rotating the code, then reports the new link", async () => {

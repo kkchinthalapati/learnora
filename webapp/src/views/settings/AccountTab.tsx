@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
@@ -11,8 +11,16 @@ import { useDialog } from "../../context/dialog";
 import { useToast } from "../../context/toast";
 import { useExportData } from "../../hooks/useDataAdmin";
 import { useUpdateEmail, useUpdateProfile } from "../../hooks/useAuthActions";
+import {
+  useProfileDetails,
+  useRemoveAvatar,
+  useUpdateBio,
+  useUploadAvatar,
+} from "../../hooks/useProfileDetails";
 import { initialsFor } from "./profile";
 import styles from "./settings.module.css";
+
+const BIO_MAX = 280;
 
 export function AccountTab() {
   const { user } = useAuth();
@@ -21,10 +29,71 @@ export function AccountTab() {
   const updateProfile = useUpdateProfile();
   const updateEmail = useUpdateEmail();
   const exportData = useExportData();
+  const profileDetails = useProfileDetails();
+  const updateBio = useUpdateBio();
+  const uploadAvatar = useUploadAvatar();
+  const removeAvatar = useRemoveAvatar();
+  const bioId = useId();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const email = user?.email ?? "—";
   const metadataName =
     (user?.user_metadata?.full_name as string | undefined) || "Student";
+  const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
+
+  const [bioOpen, setBioOpen] = useState(false);
+  const [bioDraft, setBioDraft] = useState("");
+  const [bioFeedback, setBioFeedback] = useState<FeedbackState | null>(null);
+
+  async function onPickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const url = await uploadAvatar.mutateAsync(file);
+      await updateProfile.mutateAsync({ avatar_url: url });
+      showToast("Photo updated.");
+    } catch (err) {
+      showToast(`Could not update your photo. ${(err as Error).message}`, {
+        error: true,
+      });
+    }
+  }
+
+  async function onRemoveAvatar() {
+    const ok = await confirm("Remove your profile photo?", {
+      title: "Remove Photo?",
+      confirmText: "Remove",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await removeAvatar.mutateAsync();
+      await updateProfile.mutateAsync({ avatar_url: null });
+      showToast("Photo removed.");
+    } catch (err) {
+      showToast(`Could not remove your photo. ${(err as Error).message}`, {
+        error: true,
+      });
+    }
+  }
+
+  async function onSaveBio() {
+    if (bioDraft.length > BIO_MAX) {
+      setBioFeedback({
+        kind: "error",
+        message: `Keep it under ${BIO_MAX} characters.`,
+      });
+      return;
+    }
+    try {
+      await updateBio.mutateAsync(bioDraft);
+      setBioFeedback({ kind: "success", message: "Bio updated." });
+      setBioOpen(false);
+    } catch (err) {
+      setBioFeedback({ kind: "error", message: (err as Error).message });
+    }
+  }
 
   /* Keep the saved name local so the heading updates before session refresh. */
   const [name, setName] = useState(metadataName);
@@ -130,11 +199,43 @@ export function AccountTab() {
 
         <div className={styles.avatar}>
           <div className={styles.avatarCircle} aria-hidden="true">
-            {initialsFor(name)}
+            {avatarUrl ? <img src={avatarUrl} alt="" /> : initialsFor(name)}
           </div>
           <div className={styles.avatarInfo}>
             <h4>{name}</h4>
             <p>{email}</p>
+          </div>
+          <div className={styles.avatarUpload}>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              hidden
+              onChange={(e) => void onPickAvatar(e)}
+            />
+            <Button
+              size="sm"
+              disabled={uploadAvatar.isPending}
+              onClick={() => avatarInputRef.current?.click()}
+            >
+              <Icon name="upload-cloud" size={16} />
+              {uploadAvatar.isPending
+                ? "Uploading..."
+                : avatarUrl
+                  ? "Change Photo"
+                  : "Upload Photo"}
+            </Button>
+            {avatarUrl && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={removeAvatar.isPending}
+                onClick={() => void onRemoveAvatar()}
+              >
+                <Icon name="trash" size={16} />
+                Remove
+              </Button>
+            )}
           </div>
         </div>
 
@@ -187,6 +288,59 @@ export function AccountTab() {
           </div>
         )}
         {nameFeedback && <InlineFeedback {...nameFeedback} />}
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <span className={styles.labelText} id={bioId}>
+              Bio
+            </span>
+            <p className={styles.fieldDesc}>
+              Shown to friends when they decide whether to accept your
+              request. Not shown on the leaderboard or anywhere else.
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <Button
+              size="sm"
+              aria-expanded={bioOpen}
+              aria-controls="settings-bio-form"
+              onClick={() => {
+                setBioOpen((open) => !open);
+                setBioDraft(profileDetails.data?.bio ?? "");
+                setBioFeedback(null);
+              }}
+            >
+              {bioOpen ? "Cancel" : profileDetails.data?.bio ? "Edit" : "Add"}
+            </Button>
+          </div>
+        </div>
+
+        {bioOpen && (
+          <div className={styles.inlineForm} id="settings-bio-form">
+            <div className={styles.inputRow}>
+              <textarea
+                aria-labelledby={bioId}
+                placeholder="A sentence or two about you"
+                autoFocus
+                maxLength={BIO_MAX}
+                rows={3}
+                value={bioDraft}
+                onChange={(e) => setBioDraft(e.target.value)}
+              />
+              <Button
+                variant="primary"
+                onClick={() => void onSaveBio()}
+                disabled={updateBio.isPending}
+              >
+                {updateBio.isPending ? "Saving..." : "Save"}
+              </Button>
+            </div>
+            <p className={styles.fieldDesc}>
+              {bioDraft.length}/{BIO_MAX}
+            </p>
+          </div>
+        )}
+        {bioFeedback && <InlineFeedback {...bioFeedback} />}
 
         <div className={styles.field}>
           <div className={styles.fieldLabel}>

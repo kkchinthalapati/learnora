@@ -9,6 +9,7 @@ import { SecurityTab } from "./SecurityTab";
 import { PreferencesTab } from "./PreferencesTab";
 import { NotificationsTab } from "./NotificationsTab";
 import { BillingTab } from "./BillingTab";
+import { PrivacyTab } from "./PrivacyTab";
 import { DangerTab } from "./DangerTab";
 import styles from "./settings.module.css";
 
@@ -44,6 +45,12 @@ export const SETTINGS_TABS = [
     icon: "sparkles",
   },
   {
+    id: "privacy",
+    label: "Privacy",
+    description: "Visibility and your data",
+    icon: "shield",
+  },
+  {
     id: "notifications",
     label: "Notifications",
     description: "Reminders and devices",
@@ -71,6 +78,7 @@ const PANELS: Record<SettingsTabId, () => React.ReactElement> = {
   preferences: PreferencesTab,
   notifications: NotificationsTab,
   billing: BillingTab,
+  privacy: PrivacyTab,
   danger: DangerTab,
 };
 

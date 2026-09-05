@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { EmptyState } from "../../components/EmptyState";
@@ -5,7 +6,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { Skeleton } from "../../components/Skeleton";
 import { useDialog } from "../../context/dialog";
 import { useToast } from "../../context/toast";
-import { inviteLinkFor } from "../../api/friends";
+import { inviteLinkFor, type LeaderboardPeriod } from "../../api/friends";
 import {
   useFriendRequests,
   useFriendsLeaderboard,
@@ -16,6 +17,7 @@ import {
 } from "../../hooks/useFriends";
 import type { FriendRequest, LeaderboardEntry } from "../../api/types";
 import {
+  boardName,
   displayName,
   findClosestPaceFriend,
   initials,
@@ -31,12 +33,18 @@ import styles from "./friends.module.css";
  * duplicated it. PageHeader's title is deliberately *not* "Friends" for the
  * same reason: it names the thing below it, not the page. */
 
-function Avatar({ name }: { name: string | null }) {
+function Avatar({
+  name,
+  avatarUrl,
+}: {
+  name: string | null;
+  avatarUrl?: string | null;
+}) {
   // aria-hidden: the initials restate the name that is already in the row's
   // text, so a screen reader would otherwise announce "AK Ada King".
   return (
     <span className={styles.avatar} aria-hidden="true">
-      {initials(name)}
+      {avatarUrl ? <img src={avatarUrl} alt="" /> : initials(name)}
     </span>
   );
 }
@@ -160,7 +168,7 @@ function RequestRow({ request }: { request: FriendRequest }) {
 
   return (
     <Card variant="row" className={styles.personRow}>
-      <Avatar name={request.full_name} />
+      <Avatar name={request.full_name} avatarUrl={request.avatar_url} />
       <div className={styles.personMain}>
         <p className={styles.personName}>{name}</p>
         <p className={styles.personMeta}>
@@ -168,6 +176,9 @@ function RequestRow({ request }: { request: FriendRequest }) {
             ? "Wants to be your friend"
             : "Request sent — waiting for them"}
         </p>
+        {request.direction === "incoming" && request.bio ? (
+          <p className={styles.personBio}>{request.bio}</p>
+        ) : null}
       </div>
       <div className={styles.personActions}>
         {request.direction === "incoming" ? (
@@ -242,19 +253,22 @@ function LeaderboardRow({
   const remove = useRemoveFriend();
   const { showToast } = useToast();
   const { confirm } = useDialog();
-  const name = displayName(entry.full_name);
+  /* Shortened on the board — see boardName. The removal dialog below still
+     uses the full name, since that is a decision about a specific person. */
+  const name = boardName(entry.full_name);
+  const fullName = displayName(entry.full_name);
 
   async function onRemove() {
     if (!entry.friendship_id) return;
     const friendshipId = entry.friendship_id;
     const ok = await confirm(
-      `${name} will no longer see your focus time, and you will not see theirs.`,
-      { title: `Remove ${name}?`, confirmText: "Remove", danger: true },
+      `${fullName} will no longer see your focus time, and you will not see theirs.`,
+      { title: `Remove ${fullName}?`, confirmText: "Remove", danger: true },
     );
     if (!ok) return;
 
     remove.mutate(friendshipId, {
-      onSuccess: () => showToast(`Removed ${name}.`),
+      onSuccess: () => showToast(`Removed ${fullName}.`),
       onError: (err: Error) =>
         showToast(`Could not remove. ${err.message}`, { error: true }),
     });
@@ -266,7 +280,7 @@ function LeaderboardRow({
       className={`${styles.personRow} ${entry.is_self ? styles.selfRow : ""}`}
     >
       <span className={styles.rank}>{entry.rank}</span>
-      <Avatar name={entry.full_name} />
+      <Avatar name={entry.full_name} avatarUrl={entry.avatar_url} />
       <div className={styles.personMain}>
         <p className={styles.personName}>
           {name}
@@ -294,8 +308,20 @@ function LeaderboardRow({
   );
 }
 
+const PERIODS: { value: LeaderboardPeriod; label: string }[] = [
+  { value: "week", label: "This week" },
+  { value: "month", label: "This month" },
+  { value: "all", label: "All time" },
+];
+
 function LeaderboardSection() {
-  const { data: entries, isPending, isError, error } = useFriendsLeaderboard();
+  const [period, setPeriod] = useState<LeaderboardPeriod>("week");
+  const {
+    data: entries,
+    isPending,
+    isError,
+    error,
+  } = useFriendsLeaderboard(period);
 
   const friends = entries?.filter((e) => !e.is_self) ?? [];
   const closest =
@@ -303,9 +329,29 @@ function LeaderboardSection() {
 
   return (
     <Card variant="panel" padding="lg" as="section" aria-labelledby="board-h">
-      <h2 className={styles.sectionTitle} id="board-h">
-        This week
-      </h2>
+      <div className={styles.boardHeader}>
+        <h2 className={styles.sectionTitle} id="board-h">
+          Learnora Leaderboard
+        </h2>
+        <div
+          className={styles.periodTabs}
+          role="tablist"
+          aria-label="Leaderboard period"
+        >
+          {PERIODS.map((p) => (
+            <button
+              key={p.value}
+              type="button"
+              role="tab"
+              aria-selected={period === p.value}
+              className={`${styles.periodTab} ${period === p.value ? styles.periodTabActive : ""}`}
+              onClick={() => setPeriod(p.value)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
       {isPending ? (
         <Skeleton label="Loading the leaderboard" height={120} />
       ) : isError ? (
@@ -319,7 +365,7 @@ function LeaderboardSection() {
         <EmptyState
           icon="users"
           title="No friends yet"
-          message="Send someone your invite link. Once they accept, you will both show up here with this week's focus time."
+          message="Send someone your invite link. Once they accept, you will both show up here with your focus time."
         />
       ) : (
         <ul className={styles.rowList}>

@@ -227,7 +227,7 @@ describe("TrajectoryView", () => {
   it("asks for material rather than forecasting off nothing", async () => {
     serve({ decks: [], cards: [] });
     render();
-    expect(await screen.findByText(/Not enough to go on/)).toBeInTheDocument();
+    expect(await screen.findByText(/Not enough data yet/)).toBeInTheDocument();
   });
 
   /* No decks means the SRS engine has nothing to project, but a student who
@@ -237,19 +237,58 @@ describe("TrajectoryView", () => {
     serve({
       decks: [],
       cards: [],
+      /* Three sittings of the same pair: six quizzes, which clears the
+         five-quiz floor, and repeating preserves both accuracies exactly. */
+      attempts: [0, 1, 2].flatMap((round) => [
+        quizAttempt(`a1-${round}`, "Bonding", 9, 10),
+        quizAttempt(`a2-${round}`, "Titration", 3, 10),
+      ]),
+    });
+    render();
+
+    // 36/60 = 60%, one measured weak topic (Titration, 30%) → 55 ± 5.
+    expect(await screen.findByText(/Chemistry: 50–60/)).toBeInTheDocument();
+    expect(screen.getByText(/Titration \(30%\)/)).toBeInTheDocument();
+    expect(screen.queryByText(/Not enough data yet/)).not.toBeInTheDocument();
+    // The weaker model has to say that it is the weaker model.
+    expect(screen.getByText(/rough version/i)).toBeInTheDocument();
+  });
+
+  /* A one-quiz forecast used to render as "60-100" — a range too wide to
+     plan around, which invites reading the top of it. */
+  it("declines to forecast from fewer than five quizzes, and says how many are left", async () => {
+    serve({
+      decks: [],
+      cards: [],
       attempts: [
         quizAttempt("a1", "Bonding", 9, 10),
-        quizAttempt("a2", "Titration", 3, 10),
+        quizAttempt("a2", "Bonding", 8, 10),
       ],
     });
     render();
 
-    // 12/20 = 60%, one measured weak topic (Titration, 30%) → 55 ± 5.
-    expect(await screen.findByText(/Chemistry: 50–60/)).toBeInTheDocument();
-    expect(screen.getByText(/Titration \(30%\)/)).toBeInTheDocument();
-    expect(screen.queryByText(/Not enough to go on/)).not.toBeInTheDocument();
-    // The weaker model has to say that it is the weaker model.
-    expect(screen.getByText(/rough version/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Not enough data yet/)).toBeInTheDocument();
+    expect(screen.getByText(/3 more and this fills in/)).toBeInTheDocument();
+  });
+
+  it("shows the arithmetic behind the number", async () => {
+    serve({
+      decks: [],
+      cards: [],
+      attempts: [0, 1, 2].flatMap((round) => [
+        quizAttempt(`a1-${round}`, "Bonding", 9, 10),
+        quizAttempt(`a2-${round}`, "Titration", 3, 10),
+      ]),
+    });
+    render();
+
+    expect(await screen.findByText("Learnora Forecast")).toBeInTheDocument();
+    expect(screen.getByText("How this is worked out")).toBeInTheDocument();
+    /* 60 − 5 ± 5 = 50–60, every term of it on the screen. */
+    expect(screen.getByText(/60 − 5 ± 5 =/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/are not in this arithmetic/),
+    ).toBeInTheDocument();
   });
 
   it("offers a picker when there is more than one exam", async () => {

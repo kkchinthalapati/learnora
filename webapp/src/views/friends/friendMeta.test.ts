@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  boardName,
   displayName,
   findClosestPaceFriend,
   formatMinutes,
@@ -104,5 +105,32 @@ describe("findClosestPaceFriend", () => {
     ];
     const closest = findClosestPaceFriend(entries);
     expect(closest?.user_id).toBe("u-close");
+  });
+});
+
+describe("boardName", () => {
+  /* The leaderboard is the one screen showing other people's names next to
+     their behaviour. A friend's full legal name is more than that job needs. */
+  it("shortens a full name to a first name and a surname initial", () => {
+    expect(boardName("Grace Hopper")).toBe("Grace H.");
+    expect(boardName("Ada Byron King")).toBe("Ada K.");
+  });
+
+  it("leaves a single name alone — there is nothing to shorten", () => {
+    expect(boardName("Prince")).toBe("Prince");
+  });
+
+  it("keeps the placeholder for an account with no name", () => {
+    expect(boardName(null)).toBe("Learnora student");
+    expect(boardName("   ")).toBe("Learnora student");
+  });
+
+  it("is stable under repeated application, so a re-render cannot double up", () => {
+    const once = boardName("Grace Hopper");
+    expect(boardName(once)).toBe(once);
+  });
+
+  it("uppercases the initial whatever the source casing", () => {
+    expect(boardName("grace hopper")).toBe("grace H.");
   });
 });
