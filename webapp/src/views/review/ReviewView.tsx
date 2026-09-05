@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { callEdge } from "../../api/ai";
 import type { Flashcard } from "../../api/types";
 import { Button } from "../../components/Button";
+import { CardImage } from "../../components/CardImage";
 import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
@@ -1078,6 +1079,11 @@ function ReviewSession({
               the answer immediately, before the student ever flips. */}
           <div className={styles.face} aria-hidden={flipped}>
             <div className={styles.cardText}>{cardFace(card.front)}</div>
+            <CardImage
+              path={card.front_image_path}
+              alt="Image on the front of this card"
+              className={styles.cardImage}
+            />
             {!flipped ? <p className={styles.hint}>Click to flip</p> : null}
           </div>
           <div
@@ -1087,6 +1093,11 @@ function ReviewSession({
             <div className={`${styles.cardText} ${styles.backText}`}>
               {cardFace(card.back)}
             </div>
+            <CardImage
+              path={card.back_image_path}
+              alt="Image on the back of this card"
+              className={styles.cardImage}
+            />
           </div>
         </button>
       </div>

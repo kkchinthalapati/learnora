@@ -2,6 +2,24 @@ import { supabase } from "../lib/supabase";
 import { requireUserId } from "./session";
 import type { Flashcard, FlashcardDue } from "./types";
 
+export const CARD_MEDIA_BUCKET = "card-media";
+export const MAX_CARD_IMAGE_BYTES = 5 * 1024 * 1024;
+export const ALLOWED_CARD_IMAGE_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+];
+
+/** What a student can set on a card. Scheduling columns are deliberately not
+ *  here — see `update`. */
+export interface CardFields {
+  front: string;
+  back: string;
+  frontImagePath?: string | null;
+  backImagePath?: string | null;
+}
+
 /* Direct port of js/api.js's `Flashcards` object (:697-782). */
 export const flashcardsApi = {
   async fetchByDeck(deckId: string): Promise<Flashcard[]> {
@@ -34,14 +52,54 @@ export const flashcardsApi = {
     return data ?? [];
   },
 
+  /* Card images live in the private `card-media` bucket, filed under the
+   * owner's user id — the prefix the bucket's RLS policies check. They are
+   * read back through short-lived signed URLs, the same shape
+   * `materials.storage_path` uses. */
+  async uploadImage(file: File): Promise<string> {
+    const userId = await requireUserId();
+    if (file.size > MAX_CARD_IMAGE_BYTES) {
+      throw new Error("That image is larger than 5 MB. Try a smaller one.");
+    }
+    if (!ALLOWED_CARD_IMAGE_TYPES.includes(file.type)) {
+      throw new Error("Card images must be a PNG, JPEG, WebP or GIF.");
+    }
+
+    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    const path = `${userId}/${Math.random().toString(36).substring(2)}_${Date.now()}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from(CARD_MEDIA_BUCKET)
+      .upload(path, file, { contentType: file.type });
+    if (error) throw new Error(error.message);
+    return path;
+  },
+
+  /* Best-effort: an image the student replaced or removed is no longer
+   * referenced by any row, so failing to delete the object leaks storage but
+   * must not fail the edit that already succeeded. */
+  async removeImage(path: string): Promise<void> {
+    const { error } = await supabase.storage
+      .from(CARD_MEDIA_BUCKET)
+      .remove([path]);
+    if (error) {
+      console.error("[flashcardsApi.removeImage] cleanup failed", error.message);
+    }
+  },
+
+  async getImageUrl(path: string): Promise<string> {
+    const { data, error } = await supabase.storage
+      .from(CARD_MEDIA_BUCKET)
+      .createSignedUrl(path, 3600);
+    if (error) throw new Error(error.message);
+    return data.signedUrl;
+  },
+
   /* Single-card create/edit/delete. The deck was previously write-only from
    * the student's side: cards arrived in AI-generated batches and the only
    * way to remove a bad one was to delete the whole deck. A model that
    * mangles one card in thirty made the other twenty-nine collateral. */
-  async add(
-    deckId: string,
-    card: { front: string; back: string },
-  ): Promise<Flashcard> {
+  async add(deckId: string, card: CardFields): Promise<Flashcard> {
     const userId = await requireUserId();
     const { data, error } = await supabase
       .from("flashcards")
@@ -51,6 +109,8 @@ export const flashcardsApi = {
           deck_id: deckId,
           front: card.front,
           back: card.back,
+          front_image_path: card.frontImagePath ?? null,
+          back_image_path: card.backImagePath ?? null,
         },
       ])
       .select()
@@ -63,14 +123,16 @@ export const flashcardsApi = {
    * alone deliberately: fixing a typo on the back of a card is not evidence
    * about how well it is remembered, and resetting the schedule would punish
    * the student for correcting it. */
-  async update(
-    cardId: string,
-    fields: { front: string; back: string },
-  ): Promise<Flashcard> {
+  async update(cardId: string, fields: CardFields): Promise<Flashcard> {
     const userId = await requireUserId();
     const { data, error } = await supabase
       .from("flashcards")
-      .update({ front: fields.front, back: fields.back })
+      .update({
+        front: fields.front,
+        back: fields.back,
+        front_image_path: fields.frontImagePath ?? null,
+        back_image_path: fields.backImagePath ?? null,
+      })
       .eq("id", cardId)
       .eq("user_id", userId)
       .select()

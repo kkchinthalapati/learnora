@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { flashcardsApi } from "../api/flashcards";
+import { flashcardsApi, type CardFields } from "../api/flashcards";
 import { submitSrsReview } from "../lib/offlineSync";
 
 export const flashcardsKeys = {
@@ -68,7 +68,7 @@ export function useAddFlashcard() {
       card,
     }: {
       deckId: string;
-      card: { front: string; back: string };
+      card: CardFields;
     }) => flashcardsApi.add(deckId, card),
     onSuccess: (_data, { deckId }) => {
       qc.invalidateQueries({ queryKey: flashcardsKeys.byDeck(deckId) });
@@ -87,7 +87,7 @@ export function useUpdateFlashcard() {
     }: {
       cardId: string;
       deckId: string;
-      fields: { front: string; back: string };
+      fields: CardFields;
     }) => flashcardsApi.update(cardId, fields),
     onSuccess: (_data, { deckId }) => {
       qc.invalidateQueries({ queryKey: flashcardsKeys.byDeck(deckId) });
