@@ -9,6 +9,8 @@ import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import type { Flashcard, FlashcardDeck } from "../../api/types";
 import { DeckCardsView } from "./DeckCardsView";
+import { cardDraftKey } from "../../lib/draftKeys";
+import { Storage } from "../../lib/storage";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 
@@ -59,6 +61,10 @@ function renderView(deckId = "deck-1") {
 }
 
 beforeEach(() => {
+  /* The add-card form autosaves a draft, and Testing Library's cleanup
+     unmounts a still-open form after this file's hooks have run — so without
+     this, one test's half-written card pre-fills the next test's form. */
+  localStorage.clear();
   mockAuthSession();
 });
 
@@ -253,5 +259,61 @@ describe("DeckCardsView", () => {
     const row = (posted as unknown as Record<string, unknown>[])[0];
     expect(row).toMatchObject({ front: "", back: "The mitochondrion" });
     expect(row.front_image_path).toEqual(expect.stringContaining("user-1/"));
+  });
+
+  /* A card written but not yet added had nowhere to live: closing the tab, a
+     crash, or the app-wide error boundary firing lost it, and unlike an edit
+     there is no saved row to fall back on. */
+  it("keeps a half-written card across a remount", async () => {
+    serve({ cards: [] });
+    const { unmount } = renderView();
+
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: "Write a card" }),
+    );
+    await user.type(screen.getByLabelText("Front"), "What is ATP?");
+    unmount();
+
+    renderView();
+    await user.click(
+      await screen.findByRole("button", { name: "Write a card" }),
+    );
+    expect(screen.getByLabelText("Front")).toHaveValue("What is ATP?");
+  });
+
+  it("drops the draft once the card is added", async () => {
+    serve({ cards: [] });
+    renderView();
+
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: "Write a card" }),
+    );
+    await user.type(screen.getByLabelText("Front"), "What is ATP?");
+    await user.type(screen.getByLabelText("Back"), "The energy currency.");
+    await user.click(screen.getByRole("button", { name: "Add card" }));
+
+    await waitFor(() =>
+      expect(Storage.get(cardDraftKey("deck-1"))).toBeNull(),
+    );
+  });
+
+  /* Abandoning the form deliberately is a decision, not an interruption —
+     restoring it on the next open would be the app arguing with the student. */
+  it("drops the draft when the form is cancelled", async () => {
+    serve({ cards: [] });
+    renderView();
+
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: "Write a card" }),
+    );
+    await user.type(screen.getByLabelText("Front"), "Abandoned");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() =>
+      expect(Storage.get(cardDraftKey("deck-1"))).toBeNull(),
+    );
   });
 });

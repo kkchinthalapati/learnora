@@ -10,6 +10,7 @@ import { SETTINGS_KEY, DEFAULT_SETTINGS } from "../../lib/settings";
 import { Storage } from "../../lib/storage";
 import { useLocation } from "react-router";
 import { useCreateModal } from "../../context/createModal";
+import { MATERIAL_DRAFT_KEY } from "../../lib/draftKeys";
 
 function Harness() {
   const { openCreateModal } = useCreateModal();
@@ -416,5 +417,42 @@ describe("MaterialPanel guided creation", () => {
       await screen.findByText("Created notes, flashcards."),
     ).toBeInTheDocument();
     expect(materialPosts).toBe(1);
+  });
+
+  /* A pasted transcript is the largest thing a student can lose here, and the
+     panel is a modal — dismissing it, deliberately or by an errant Escape,
+     used to drop however much had been pasted with nothing to recover from. */
+  describe("draft recovery", () => {
+    it("keeps pasted text when the panel is dismissed and reopened", async () => {
+      const user = await openDialog();
+      await chooseText(user, "Mitochondria are the powerhouse of the cell.");
+
+      await user.keyboard("{Escape}");
+
+      await user.click(screen.getByRole("button", { name: "Open create" }));
+      await screen.findByRole("heading", {
+        name: "What are you learning from?",
+      });
+      await user.click(screen.getByRole("radio", { name: /Paste text/ }));
+
+      expect(screen.getByLabelText("Paste your notes or text")).toHaveValue(
+        "Mitochondria are the powerhouse of the cell.",
+      );
+    });
+
+    /* Opening the panel and closing it without typing must not leave a draft
+       behind — otherwise every future open would offer to restore nothing. */
+    it("writes no draft when nothing was typed", async () => {
+      /* Explicitly, not via the shared afterEach: Testing Library's automatic
+         cleanup unmounts the *previous* test's still-open panel after this
+         file's afterEach has already run, and that unmount flushes its
+         pending draft — so the slate is only reliably clean from here. */
+      Storage.remove(MATERIAL_DRAFT_KEY);
+
+      const user = await openDialog();
+      await user.keyboard("{Escape}");
+
+      await waitFor(() => expect(Storage.get(MATERIAL_DRAFT_KEY)).toBeNull());
+    });
   });
 });

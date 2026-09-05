@@ -18,6 +18,8 @@ import {
 } from "./quizMeta";
 import styles from "./quiz.module.css";
 import { QUIZZES_PATH } from "./QuizRunner";
+import { newAttemptKey } from "../../lib/attemptKey";
+import { examDraftKey } from "../../lib/draftKeys";
 
 interface ExamDraftState {
   index: number;
@@ -25,6 +27,9 @@ interface ExamDraftState {
   /** Absolute epoch ms the exam ends at — see the comment where this is
    *  computed in MockExamSession for why it's a timestamp, not a duration. */
   examEndAt: number;
+  /** Identifies this sitting, so recording it twice writes one attempt.
+   *  Optional so a draft written by an older build still resumes. */
+  attemptKey?: string;
 }
 
 function isUsableExamDraft(
@@ -144,7 +149,7 @@ function MockExamSession({
   const navigate = useNavigate();
   const { settings } = useSettings();
 
-  const draftKey = `learnora_exam_draft_${quizId}`;
+  const draftKey = examDraftKey(quizId);
 
   /* A refresh mid-exam drops `isFullscreen` in the parent, so the student
      always lands back on the "Begin Mock Exam" gate first — re-entering
@@ -175,6 +180,15 @@ function MockExamSession({
       : questions.length * 60,
   );
 
+  /* One key for the sitting, carried in the draft so a refresh mid-exam keeps
+     it. It matters more here than in QuizRunner: this screen has *two* record
+     paths — the finished effect below and submitExam's early-exit/termination
+     write — and nothing stopped both firing for one sitting and booking two
+     attempts against it. Same key on both, so the second is a no-op. */
+  const [attemptKey] = useState(
+    () => resumedDraft?.attemptKey ?? newAttemptKey(),
+  );
+
   const finished = index >= questions.length || timeLeft <= 0;
   const score = answers.filter((a) => a.correct).length;
   const total = questions.length;
@@ -192,7 +206,7 @@ function MockExamSession({
 
   const draft = useQuizDraft<ExamDraftState>(
     draftKey,
-    { index, answers, examEndAt },
+    { index, answers, examEndAt, attemptKey },
     {
       enabled: !finished && !submittedRef.current,
       warnOnUnload:
@@ -220,6 +234,7 @@ function MockExamSession({
         total,
         answers,
         weakTopics: weakTopicsFrom(answers),
+        attemptKey,
       },
       {
         onError: () =>
@@ -274,6 +289,7 @@ function MockExamSession({
         total,
         answers: finalAnswers,
         weakTopics: weakTopicsFrom(answers),
+        attemptKey,
       },
       {
         onError: () =>

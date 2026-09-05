@@ -1,6 +1,7 @@
 import { supabase } from "../lib/supabase";
 import { requireUserId } from "./session";
 import type { Quiz, QuizAttempt, WeakTopic } from "./types";
+import { isDuplicateAttempt } from "../lib/attemptKey";
 
 /* Direct port of js/api.js's `Quizzes` object (:1006-1123). */
 export const quizzesApi = {
@@ -61,12 +62,17 @@ export const quizzesApi = {
     if (error) throw new Error(error.message);
   },
 
+  /** `attemptKey` identifies the run, so recording the same finished run
+   *  twice — a replayed mutation, a duplicated tab, a resumed draft — lands on
+   *  the row that already exists instead of inserting a second attempt.
+   *  Optional so a caller with no run to key on still writes. */
   async recordAttempt(
     quizId: string,
     score: number,
     total: number,
     answers: unknown,
     weakTopics: string[],
+    attemptKey?: string,
   ): Promise<void> {
     const userId = await requireUserId();
     const { error } = await supabase.from("quiz_attempts").insert([
@@ -77,9 +83,13 @@ export const quizzesApi = {
         total,
         answers_json: answers,
         weak_topics: weakTopics,
+        ...(attemptKey ? { attempt_key: attemptKey } : {}),
       },
     ]);
-    if (error) throw new Error(error.message);
+    /* Losing the race against the duplicate is the mechanism working, not a
+       failure: the attempt is recorded, just not by this call. Surfacing it
+       would show the student an error over a score that saved fine. */
+    if (error && !isDuplicateAttempt(error)) throw new Error(error.message);
   },
 
   async fetchAllAttempts(): Promise<QuizAttempt[]> {

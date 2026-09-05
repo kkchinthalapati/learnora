@@ -11,6 +11,9 @@ import { Skeleton } from "../../components/Skeleton";
 import { useDialog } from "../../context/dialog";
 import { useToast } from "../../context/toast";
 import { useAllDecks } from "../../hooks/useDecks";
+import { useQuizDraft } from "../../hooks/useQuizDraft";
+import { Storage } from "../../lib/storage";
+import { cardDraftKey } from "../../lib/draftKeys";
 import {
   useAddFlashcard,
   useDeleteFlashcard,
@@ -115,6 +118,13 @@ function ImageField({
   );
 }
 
+interface CardDraft {
+  front: string;
+  back: string;
+  frontImage: string | null;
+  backImage: string | null;
+}
+
 /** Shared front/back editor, used both for adding a card and editing one. */
 function CardForm({
   initialFront = "",
@@ -126,6 +136,7 @@ function CardForm({
   onSubmit,
   onCancel,
   onError,
+  draftKey,
 }: {
   initialFront?: string;
   initialBack?: string;
@@ -136,11 +147,26 @@ function CardForm({
   onSubmit: (fields: CardFields) => void;
   onCancel?: () => void;
   onError: (message: string) => void;
+  /* Set only when adding. A half-written *new* card is the one that had
+     nowhere to live: closing the tab, a crash, or the app-wide error boundary
+     firing lost whatever had been typed, and unlike the edit case there is no
+     saved row to fall back to. An edit already has one, so restoring a stale
+     draft over it would be the more surprising behaviour. */
+  draftKey?: string;
 }) {
-  const [front, setFront] = useState(initialFront);
-  const [back, setBack] = useState(initialBack);
-  const [frontImage, setFrontImage] = useState<string | null>(initialFrontImage);
-  const [backImage, setBackImage] = useState<string | null>(initialBackImage);
+  /* Read once, on mount: the caller decides whether a draft exists to restore,
+     not the autosave hook (which deliberately never applies one itself). */
+  const [restored] = useState<CardDraft | null>(() =>
+    draftKey ? Storage.get<CardDraft>(draftKey) : null,
+  );
+  const [front, setFront] = useState(restored?.front ?? initialFront);
+  const [back, setBack] = useState(restored?.back ?? initialBack);
+  const [frontImage, setFrontImage] = useState<string | null>(
+    restored?.frontImage ?? initialFrontImage,
+  );
+  const [backImage, setBackImage] = useState<string | null>(
+    restored?.backImage ?? initialBackImage,
+  );
 
   /* Each side needs *something* — text or an image. A card whose front is
      only a diagram ("what is this structure?") is a real card; one with an
@@ -150,12 +176,27 @@ function CardForm({
   const backFilled = back.trim().length > 0 || backImage !== null;
   const valid = frontFilled && backFilled;
 
+  /* Worth persisting the moment either side has anything in it — a card is
+     usually abandoned half-finished, which is exactly the state `valid`
+     excludes. Gated so simply opening the form doesn't write an empty draft. */
+  const worthKeeping = Boolean(draftKey) && (frontFilled || backFilled);
+  const { clear: clearDraft } = useQuizDraft<CardDraft>(
+    draftKey ?? "",
+    { front, back, frontImage, backImage },
+    { enabled: worthKeeping, warnOnUnload: worthKeeping },
+  );
+
   return (
     <form
       className={styles.form}
       onSubmit={(event) => {
         event.preventDefault();
         if (!valid || busy) return;
+        /* Cleared before the write, not after it succeeds: the fields are
+           handed to onSubmit here, so a failed save keeps them on screen to
+           retry from. Leaving the draft would restore this same card again on
+           the next mount, after it had already been added. */
+        clearDraft();
         onSubmit({
           front: front.trim(),
           back: back.trim(),
@@ -211,7 +252,14 @@ function CardForm({
           {busy ? "Saving…" : submitLabel}
         </Button>
         {onCancel ? (
-          <Button type="button" onClick={onCancel} disabled={busy}>
+          <Button
+            type="button"
+            onClick={() => {
+              clearDraft();
+              onCancel();
+            }}
+            disabled={busy}
+          >
             Cancel
           </Button>
         ) : null}
@@ -433,6 +481,7 @@ export function DeckCardsView() {
         <h2 className={styles.addPanelTitle}>Add a card</h2>
         {adding ? (
           <CardForm
+            draftKey={cardDraftKey(deck.id)}
             submitLabel="Add card"
             busy={addCard.isPending}
             onCancel={() => setAdding(false)}

@@ -20,6 +20,8 @@ import {
 } from "./quizMeta";
 import { QuizHost, type HostTone } from "./QuizHost";
 import styles from "./quiz.module.css";
+import { newAttemptKey } from "../../lib/attemptKey";
+import { quizDraftKey } from "../../lib/draftKeys";
 
 /* The quiz runner — ports js/router.js's `startQuiz` (:827-945).
  *
@@ -117,6 +119,10 @@ interface Answered {
 interface QuizDraftState {
   index: number;
   answers: StoredAnswer[];
+  /** Identifies this run, so finishing it twice — a resumed draft, a
+   *  duplicated tab, a replayed mutation — records one attempt. Optional so a
+   *  draft written by an older build still resumes. */
+  attemptKey?: string;
 }
 
 function isUsableDraft(
@@ -146,7 +152,7 @@ function QuizSession({
   const { confirm } = useDialog();
   const { recordQuiz } = useContinuity();
 
-  const draftKey = `learnora_quiz_draft_${quizId}`;
+  const draftKey = quizDraftKey(quizId);
 
   /* A stale/corrupt/out-of-range draft (e.g. the quiz was regenerated with
      fewer questions since the draft was written) is treated as no draft at
@@ -162,6 +168,13 @@ function QuizSession({
   );
   const [answered, setAnswered] = useState<Answered | null>(null);
 
+  /* Minted once per run and carried in the draft, so resuming keeps the same
+     key while "Start Over" below mints a fresh one — a genuine second sitting
+     is a second attempt and should count as one. */
+  const [attemptKey, setAttemptKey] = useState(
+    () => resumedDraft?.attemptKey ?? newAttemptKey(),
+  );
+
   /* When the current question went on screen — choose() stamps the elapsed
    * seconds into the stored answer, which is the Speed Demon achievement's
    * speed signal (achievements.ts consumes it via fastQuizCompleted). */
@@ -176,7 +189,7 @@ function QuizSession({
 
   const draft = useQuizDraft<QuizDraftState>(
     draftKey,
-    { index, answers },
+    { index, answers, attemptKey },
     { enabled: !finished, warnOnUnload: !finished && answers.length > 0 },
   );
 
@@ -197,6 +210,7 @@ function QuizSession({
       if (cancelled || keep) return;
       setIndex(0);
       setAnswers([]);
+      setAttemptKey(newAttemptKey());
       draft.clear();
     });
     return () => {
@@ -237,6 +251,7 @@ function QuizSession({
         total,
         answers,
         weakTopics: weakTopicsFrom(answers),
+        attemptKey,
       },
       {
         onError: () =>

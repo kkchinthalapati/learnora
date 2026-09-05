@@ -79,13 +79,25 @@ export function useRecordQuizAttempt() {
       total,
       answers,
       weakTopics,
+      attemptKey,
     }: {
       quizId: string;
       score: number;
       total: number;
       answers: unknown;
       weakTopics: string[];
-    }) => quizzesApi.recordAttempt(quizId, score, total, answers, weakTopics),
+      /** Identifies the run, so a replay of this mutation cannot record a
+       *  second attempt. See lib/attemptKey.ts. */
+      attemptKey?: string;
+    }) =>
+      quizzesApi.recordAttempt(
+        quizId,
+        score,
+        total,
+        answers,
+        weakTopics,
+        attemptKey,
+      ),
     onSuccess: (_data, { quizId }) => {
       qc.invalidateQueries({ queryKey: quizzesKeys.latestAttempt(quizId) });
       qc.invalidateQueries({ queryKey: ["quizzes", "weak-topics"] });

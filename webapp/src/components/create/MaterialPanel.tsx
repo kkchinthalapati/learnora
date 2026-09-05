@@ -9,6 +9,9 @@ import {
 import { useNavigate } from "react-router";
 import { useFolders, useAddFolder } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
+import { useQuizDraft } from "../../hooks/useQuizDraft";
+import { Storage } from "../../lib/storage";
+import { MATERIAL_DRAFT_KEY } from "../../lib/draftKeys";
 import { useCreateStudyPackage } from "../../hooks/useStudyPackage";
 import { useDialog } from "../../context/dialog";
 import { useSettings } from "../../context/settings";
@@ -93,6 +96,13 @@ const SOURCE_OPTIONS: Array<{
   },
 ];
 
+interface MaterialDraft {
+  text: string;
+  link: string;
+  topic: string;
+  titleOverride: string;
+}
+
 export function MaterialPanel({
   folderId: initialFolderId,
   materialId: initialMaterialId,
@@ -102,6 +112,15 @@ export function MaterialPanel({
 }: MaterialPanelProps) {
   const { settings } = useSettings();
   const initialStep: WizardStep = initialMaterialId ? "results" : "source";
+  /* A pasted transcript is the single largest thing a student can lose in
+     this app: the panel lives in a modal, so dismissing it — deliberately, by
+     an accidental Escape, or because the tab reloaded — dropped however many
+     thousand words had been pasted with nothing to recover from. Only the
+     typed content is kept; the wizard's toggles and counts are one click each
+     to redo and are not worth restoring over a fresh set of defaults. */
+  const [restoredDraft] = useState<MaterialDraft | null>(() =>
+    Storage.get<MaterialDraft>(MATERIAL_DRAFT_KEY),
+  );
   const [step, setStep] = useState<WizardStep>(initialStep);
   const [maxStep, setMaxStep] = useState(initialMaterialId ? 1 : 0);
   const [source, setSource] = useState<SourceKind>(
@@ -109,16 +128,18 @@ export function MaterialPanel({
   );
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [text, setText] = useState("");
-  const [link, setLink] = useState("");
+  const [text, setText] = useState(restoredDraft?.text ?? "");
+  const [link, setLink] = useState(restoredDraft?.link ?? "");
   const [materialId, setMaterialId] = useState(initialMaterialId ?? "");
-  const [topic, setTopic] = useState("");
+  const [topic, setTopic] = useState(restoredDraft?.topic ?? "");
   const [wantFlashcards, setWantFlashcards] = useState(
     outputs?.flashcards ?? true,
   );
   const [wantQuiz, setWantQuiz] = useState(outputs?.quiz ?? false);
   const [folderId, setFolderId] = useState(initialFolderId ?? "");
-  const [titleOverride, setTitleOverride] = useState("");
+  const [titleOverride, setTitleOverride] = useState(
+    restoredDraft?.titleOverride ?? "",
+  );
   const [cardCount, setCardCount] = useState(CREATE_DEFAULTS.cardCount);
   const [questionCount, setQuestionCount] = useState(
     CREATE_DEFAULTS.questionCount,
@@ -136,6 +157,20 @@ export function MaterialPanel({
   );
   const [progress, setProgress] = useState<string | null>(null);
   const [extraFolder, setExtraFolder] = useState<Folder | null>(null);
+
+  /* Nothing is written until there is something to lose, so opening and
+     closing the panel leaves no draft behind. `link` is excluded from the
+     test on purpose — a URL is short enough to retype and long enough to look
+     like content, and warning about unload over one is noise. */
+  const worthKeeping =
+    text.trim().length > 0 ||
+    topic.trim().length > 0 ||
+    titleOverride.trim().length > 0;
+  const { clear: clearDraft } = useQuizDraft<MaterialDraft>(
+    MATERIAL_DRAFT_KEY,
+    { text, link, topic, titleOverride },
+    { enabled: worthKeeping, warnOnUnload: worthKeeping },
+  );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -354,6 +389,11 @@ export function MaterialPanel({
       });
 
       if (result.material) {
+        /* The material exists now, so the source text has a home on the
+           server and the draft would only restore a duplicate. Failures in
+           `result.failures` are per-output (flashcards, quiz) and retried
+           from the material, not from this text. */
+        clearDraft();
         setCreatedMaterialId(result.material.id);
       }
 
@@ -424,6 +464,11 @@ export function MaterialPanel({
       });
 
       if (result.material) {
+        /* The material exists now, so the source text has a home on the
+           server and the draft would only restore a duplicate. Failures in
+           `result.failures` are per-output (flashcards, quiz) and retried
+           from the material, not from this text. */
+        clearDraft();
         setCreatedMaterialId(result.material.id);
       }
 
