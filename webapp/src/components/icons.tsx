@@ -445,6 +445,15 @@ export const ICONS = {
       <path d="M12 3v18" />
     </>
   ),
+  "learnora-mark": (
+    <>
+      <circle cx="12" cy="8" r="5.5" />
+      <rect x="10" y="1.5" width="4" height="2" rx="0.5" />
+      <line x1="12" y1="8" x2="15" y2="5" />
+      <path d="M8.5 15 Q12 16.5 12 16.5 Q12 16.5 15.5 15" />
+      <path d="M8.5 19 Q12 20.5 12 20.5 Q12 20.5 15.5 19" />
+    </>
+  ),
 } satisfies Record<string, ReactElement>;
 
 export type IconName = keyof typeof ICONS;

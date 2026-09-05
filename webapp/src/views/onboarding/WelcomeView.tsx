@@ -327,7 +327,7 @@ export function WelcomeView() {
       <div className={styles.shell}>
         <header className={styles.topBar}>
           <span className={styles.brand}>
-            <Icon name="sparkles" size={16} />
+            <Icon name="learnora-mark" size={16} />
             Learnora
           </span>
           {step !== "done" && (

@@ -310,7 +310,7 @@ export function Sidebar({
       <div className={styles.brandRow}>
         <Link to="/" className={styles.brand} onClick={onNavigate}>
           <span className={styles.brandMark} aria-hidden="true">
-            L
+            <Icon name="learnora-mark" size={24} />
           </span>
           <span className={styles.brandName}>Learnora</span>
         </Link>
