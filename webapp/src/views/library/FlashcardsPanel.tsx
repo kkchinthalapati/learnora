@@ -88,6 +88,14 @@ export function FlashcardsPanel() {
             </Link>
 
             <div className={styles.cardActions}>
+              <Link
+                to={`/decks/${deck.id}`}
+                className={styles.iconBtn}
+                aria-label={`Edit cards in ${deck.title}`}
+                title="Edit cards"
+              >
+                <Icon name="pencil" size={16} />
+              </Link>
               <button
                 type="button"
                 className={styles.iconBtn}

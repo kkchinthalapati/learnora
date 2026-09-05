@@ -34,6 +34,61 @@ export const flashcardsApi = {
     return data ?? [];
   },
 
+  /* Single-card create/edit/delete. The deck was previously write-only from
+   * the student's side: cards arrived in AI-generated batches and the only
+   * way to remove a bad one was to delete the whole deck. A model that
+   * mangles one card in thirty made the other twenty-nine collateral. */
+  async add(
+    deckId: string,
+    card: { front: string; back: string },
+  ): Promise<Flashcard> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from("flashcards")
+      .insert([
+        {
+          user_id: userId,
+          deck_id: deckId,
+          front: card.front,
+          back: card.back,
+        },
+      ])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  /* Editing only touches the card's text. Its scheduling columns are left
+   * alone deliberately: fixing a typo on the back of a card is not evidence
+   * about how well it is remembered, and resetting the schedule would punish
+   * the student for correcting it. */
+  async update(
+    cardId: string,
+    fields: { front: string; back: string },
+  ): Promise<Flashcard> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from("flashcards")
+      .update({ front: fields.front, back: fields.back })
+      .eq("id", cardId)
+      .eq("user_id", userId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  async delete(cardId: string): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase
+      .from("flashcards")
+      .delete()
+      .eq("id", cardId)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+  },
+
   /* Stability and difficulty are written alongside the legacy columns: the
    * scheduler derives every future interval from them, so a review that
    * dropped them (as this did) made the next review start from scratch. They
