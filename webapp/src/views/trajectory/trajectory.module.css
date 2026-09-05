@@ -419,3 +419,45 @@
     grid-column: 1 / -1;
   }
 }
+
+/* Quiz-only forecast: names itself, and shows its own arithmetic. */
+.forecastEyebrow {
+  margin: 0 0 var(--s-1);
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mathDetails {
+  margin-top: var(--s-4);
+  padding: var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.mathSummary {
+  color: var(--text);
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.mathList {
+  margin: var(--s-3) 0 0;
+  padding-left: var(--s-5);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.mathList li + li {
+  margin-top: var(--s-1);
+}
+
+.mathNote {
+  margin: var(--s-3) 0 0;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
