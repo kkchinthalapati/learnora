@@ -9,6 +9,15 @@ import styles from "./ErrorBoundary.module.css";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
+  /* What to show instead of the full-page recovery card. The card assumes it
+     owns the viewport, which is right for the routed view and wrong for a
+     docked overlay — a crashed chat panel should quietly disappear, not
+     replace the dashboard the student is still using with an error screen.
+     The error is reported either way. */
+  fallback?: ReactNode;
+  /* Names the boundary in the crash report, so "the chat panel threw" is
+     distinguishable from "a route threw" without reading the stack. */
+  label?: string;
 }
 
 interface ErrorBoundaryState {
@@ -38,8 +47,9 @@ export class ErrorBoundary extends Component<
     /* The console line stays: it is what a developer reads locally, where
        monitoring is deliberately inert. `reportError` is the deployed half,
        and is a no-op when no DSN is configured. */
-    console.error("Uncaught error in app tree:", error, info.componentStack);
-    reportError(error, { componentStack: info.componentStack });
+    const label = this.props.label ?? "app tree";
+    console.error(`Uncaught error in ${label}:`, error, info.componentStack);
+    reportError(error, { componentStack: info.componentStack, boundary: label });
   }
 
   reset = () => {
@@ -48,6 +58,8 @@ export class ErrorBoundary extends Component<
 
   render() {
     if (this.state.error) {
+      if (this.props.fallback !== undefined) return this.props.fallback;
+
       /* A chunk that won't load is a stale tab, not a bug: "Try again" would
          re-run the same failed import() against the same missing file and
          land right back here. Offer the update path instead — the service

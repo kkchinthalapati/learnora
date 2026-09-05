@@ -77,10 +77,19 @@ export default function App() {
                       <CreateModalProvider>
                         <ChatProvider>
                           <CommandPaletteProvider>
-                            <ErrorBoundary>
+                            <ErrorBoundary label="route">
                               <AppRoutes />
                             </ErrorBoundary>
-                            <SignedInOverlays />
+                            {/* Its own boundary, and a silent one. These two
+                                sat outside every boundary in the tree, so a
+                                throw in the chat panel or the focus HUD took
+                                the entire app to a blank tab — the one crash
+                                the app-wide net was added to prevent. A
+                                docked overlay failing should cost the student
+                                the overlay, nothing else. */}
+                            <ErrorBoundary label="overlays" fallback={null}>
+                              <SignedInOverlays />
+                            </ErrorBoundary>
                           </CommandPaletteProvider>
                         </ChatProvider>
                       </CreateModalProvider>

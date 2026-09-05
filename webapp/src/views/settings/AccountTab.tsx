@@ -19,8 +19,8 @@ import {
 } from "../../hooks/useProfileDetails";
 import { initialsFor } from "./profile";
 import styles from "./settings.module.css";
+import { BIO_MAX, NAME_MAX } from "../../lib/fieldLimits";
 
-const BIO_MAX = 280;
 
 export function AccountTab() {
   const { user } = useAuth();
@@ -273,7 +273,7 @@ export function AccountTab() {
                 placeholder="Your full name"
                 autoComplete="name"
                 autoFocus
-                maxLength={80}
+                maxLength={NAME_MAX}
                 value={nameDraft}
                 onChange={(e) => setNameDraft(e.target.value)}
               />

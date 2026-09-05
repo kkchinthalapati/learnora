@@ -11,6 +11,7 @@ import { AuthShell } from "./AuthShell";
 import { useAuthStatus } from "./useAuthStatus";
 import { RedirectIfSignedIn } from "./RedirectIfSignedIn";
 import styles from "./auth.module.css";
+import { NAME_MAX } from "../../lib/fieldLimits";
 
 /* Sign-up — ports index.html:205-292 + js/main.js:567-645.
  *
@@ -127,6 +128,7 @@ export function SignupView() {
               placeholder="Your full name"
               autoComplete="name"
               required
+              maxLength={NAME_MAX}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
