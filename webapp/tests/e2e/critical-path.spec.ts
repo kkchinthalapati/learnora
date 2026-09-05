@@ -151,9 +151,14 @@ test.describe("Auth", () => {
   }) => {
     await loginAs(page);
     await page.goto("settings");
-    /* Two controls carry this name — the sidebar's icon button and the one in
-       the Account panel. This is the panel's. */
-    await page.locator("main").getByRole("button", { name: "Log Out" }).click();
+    /* Two controls carry this name: the header's icon button (Header.tsx,
+       rendered inside <main> by AppShell — "main" alone does not disambiguate
+       it from this one) and this one, in the Settings nav. Scoped to the
+       Settings tabs landmark, which only the second belongs to. */
+    await page
+      .getByRole("navigation", { name: "Settings tabs" })
+      .getByRole("button", { name: "Log Out" })
+      .click();
 
     await expect(page).toHaveURL(/\/login/);
     await expect(page.getByRole("button", { name: /Log In/ })).toBeVisible();
@@ -307,7 +312,14 @@ test.describe("Quizzes", () => {
     await page.getByRole("textbox", { name: "Topic" }).fill("Photosynthesis");
     await page.getByRole("button", { name: /Continue to results/ }).click();
     await page.getByRole("button", { name: /Review and create/ }).click();
-    await page.getByRole("button", { name: /^Create .*quiz/ }).click();
+    /* Scoped to the dialog: the page's own "Create a quiz" trigger button
+       (line above) stays in the DOM behind the modal, and its name also
+       starts with "Create" — an unscoped match resolves to both it and the
+       wizard's real submit button. */
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: /^Create .*quiz/ })
+      .click();
 
     await expect
       .poll(() => backend.table("quizzes").length, { timeout: 30_000 })
@@ -397,13 +409,20 @@ test.describe("Quizzes", () => {
 
 test.describe("Grade forecast", () => {
   /* Trajectory is a Pro feature and needs an exam to project onto; the
-     quiz-only forecast then fills in for a student with no flashcard decks. */
+     quiz-only forecast then fills in for a student with no flashcard decks.
+     Five distinct quizzes, one per topic below — MIN_FORECAST_QUIZZES
+     (lib/quizForecast.ts) refuses to forecast under five, and quizzesTaken
+     counts distinct quiz_ids, not attempt rows (see attemptRow's own
+     comment), so the fixture needs five quizzes, not five attempts at two. */
   test.beforeEach(async ({ backend }) => {
     backend.setPlan("pro");
     backend.seed("exams", [futureExam(30)]);
     backend.seed("quizzes", [
       quizRow({ id: "quiz-cells", title: "Cells" }),
       quizRow({ id: "quiz-genetics", title: "Genetics" }),
+      quizRow({ id: "quiz-ecology", title: "Ecology" }),
+      quizRow({ id: "quiz-biochemistry", title: "Biochemistry" }),
+      quizRow({ id: "quiz-evolution", title: "Evolution" }),
     ]);
   });
 
@@ -411,9 +430,14 @@ test.describe("Grade forecast", () => {
     page,
     backend,
   }) => {
+    /* Five topics at 3/4 (75%, above the 60% weak-topic line) so the
+       overall accuracy is a clean 75% with nothing dragging it down. */
     backend.seed("quiz_attempts", [
-      attemptRow("Cells", 8, 10, 2),
-      attemptRow("Genetics", 7, 10, 5),
+      attemptRow("Cells", 3, 4, 1),
+      attemptRow("Genetics", 3, 4, 2),
+      attemptRow("Ecology", 3, 4, 3),
+      attemptRow("Biochemistry", 3, 4, 4),
+      attemptRow("Evolution", 3, 4, 5),
     ]);
     await loginAs(page);
     await page.goto("trajectory");
@@ -421,7 +445,7 @@ test.describe("Grade forecast", () => {
     await expect(
       page.getByRole("heading", { name: /Biology Paper 1: \d+–\d+/ }),
     ).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByText(/Based on 2 quizzes/)).toBeVisible();
+    await expect(page.getByText(/Based on 5 quizzes/)).toBeVisible();
     await expect(page.getByText(/scoring 75% right now/)).toBeVisible();
   });
 
@@ -429,9 +453,15 @@ test.describe("Grade forecast", () => {
     page,
     backend,
   }) => {
+    /* Genetics alone below 60% — exactly one weak topic, so the penalty is
+       one WEAK_TOPIC_PENALTY (5), not the two-or-more case the cap exists
+       for. The other four sit comfortably clear of the line. */
     backend.seed("quiz_attempts", [
-      attemptRow("Cells", 9, 10, 2),
-      attemptRow("Genetics", 2, 10, 3),
+      attemptRow("Cells", 8, 10, 1),
+      attemptRow("Genetics", 2, 10, 2),
+      attemptRow("Ecology", 8, 10, 3),
+      attemptRow("Biochemistry", 8, 10, 4),
+      attemptRow("Evolution", 8, 10, 5),
     ]);
     await loginAs(page);
     await page.goto("trajectory");
@@ -445,7 +475,23 @@ test.describe("Grade forecast", () => {
     page,
     backend,
   }) => {
-    backend.seed("quiz_attempts", [attemptRow("Cells", 6, 10, 1)]);
+    /* The nudge toward the full deck-based forecast is unconditional in the
+       success render (QuizOnlyForecast.tsx) — any five valid quizzes reach
+       it, so this reuses the same clean 75% shape as the first test. A
+       single attempt (the fixture this used before MIN_FORECAST_QUIZZES was
+       5) instead lands on the *other* branch, "Not enough data yet", whose
+       nudge link reads lowercase ("turn a material into a deck") and so
+       never matches this test's capitalized regex — the two branches use
+       different casing on purpose (a sentence-initial link vs. a mid-sentence
+       one), which is exactly what made this failure silent rather than an
+       obviously wrong string. */
+    backend.seed("quiz_attempts", [
+      attemptRow("Cells", 3, 4, 1),
+      attemptRow("Genetics", 3, 4, 2),
+      attemptRow("Ecology", 3, 4, 3),
+      attemptRow("Biochemistry", 3, 4, 4),
+      attemptRow("Evolution", 3, 4, 5),
+    ]);
     await loginAs(page);
     await page.goto("trajectory");
 
