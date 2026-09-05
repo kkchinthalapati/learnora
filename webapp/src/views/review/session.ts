@@ -1,11 +1,16 @@
 import type { Flashcard } from "../../api/types";
 
 export type ReviewLength = 5 | 10 | 20 | "all";
-export type ReviewOrder = "due" | "difficult";
+export type ReviewOrder = "due" | "difficult" | "quiz-weak";
 
 export interface ReviewResult {
   card: Flashcard;
   quality: number;
+}
+
+export interface WeakTopic {
+  topic: string;
+  count: number;
 }
 
 const SESSION_LENGTHS = [5, 10, 20] as const;
@@ -27,6 +32,41 @@ function dueTime(card: Flashcard): number {
     : Number.NEGATIVE_INFINITY;
 }
 
+/* Quizzes and decks were measuring the same student and never comparing
+ * notes: `quiz_attempts.weak_topics` recorded exactly which topics were being
+ * failed, and it reached the study schedule and the forecast — but never the
+ * review queue, the one place the student can actually do something about it.
+ * A topic missed on three quizzes running still waited its turn behind
+ * whatever happened to be due.
+ *
+ * There is no join to make here. A quiz topic is a free-text label the model
+ * wrote; a flashcard has no topic column. So the link is textual: a card
+ * counts against a weak topic when the topic's words appear in the card's
+ * text or in the title of the material it came from. That is a heuristic and
+ * is treated as one — it only ever reorders cards the student was already
+ * going to see, never filters any out. */
+function cardHaystack(card: Flashcard): string {
+  return [card.front, card.back, card.source_material_title]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+/** How strongly a card is implicated by the student's failed quiz topics:
+ *  the summed attempt-count of every weak topic the card mentions. */
+export function weakTopicScore(
+  card: Flashcard,
+  weakTopics: WeakTopic[],
+): number {
+  if (weakTopics.length === 0) return 0;
+  const haystack = cardHaystack(card);
+  return weakTopics.reduce((score, { topic, count }) => {
+    const needle = topic.trim().toLowerCase();
+    if (!needle) return score;
+    return haystack.includes(needle) ? score + Math.max(1, count) : score;
+  }, 0);
+}
+
 /**
  * Creates the immutable card order used for one review session. The explicit
  * source index makes ties stable even if the runtime's Array#sort behaviour
@@ -36,10 +76,25 @@ export function createReviewSnapshot(
   cards: Flashcard[],
   length: ReviewLength,
   order: ReviewOrder,
+  weakTopics: WeakTopic[] = [],
 ): Flashcard[] {
-  const ordered = cards.map((card, sourceIndex) => ({ card, sourceIndex }));
+  const ordered = cards.map((card, sourceIndex) => ({
+    card,
+    sourceIndex,
+    weakScore:
+      order === "quiz-weak" ? weakTopicScore(card, weakTopics) : 0,
+  }));
 
   ordered.sort((left, right) => {
+    if (order === "quiz-weak") {
+      /* Highest-scoring first. Cards matching nothing score 0 and fall
+         through to the usual due ordering below, so a session is never
+         short of cards just because the quizzes have not named a topic
+         that appears in this deck. */
+      const scoreDifference = right.weakScore - left.weakScore;
+      if (scoreDifference !== 0) return scoreDifference;
+    }
+
     if (order === "difficult") {
       const easeDifference =
         (left.card.ease_factor || 2.5) - (right.card.ease_factor || 2.5);
@@ -57,11 +112,6 @@ export function createReviewSnapshot(
 
   const limit = length === "all" ? ordered.length : length;
   return ordered.slice(0, limit).map(({ card }) => card);
-}
-
-export interface WeakTopic {
-  topic: string;
-  count: number;
 }
 
 export interface CardsByGrade {

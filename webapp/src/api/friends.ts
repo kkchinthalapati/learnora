@@ -40,6 +40,11 @@ function firstRow<T>(data: T[] | T | null): T | null {
   return data ?? null;
 }
 
+/** Windows the leaderboard can be read over. The server falls back to
+ *  "week" for anything it does not recognise, so an older client keeps
+ *  working against a newer function and vice versa. */
+export type LeaderboardPeriod = "week" | "month" | "all";
+
 export const friendsApi = {
   /** The signed-in user's own invite code. */
   async fetchMyCode(): Promise<string | null> {
@@ -104,9 +109,35 @@ export const friendsApi = {
     return (data as FriendRequest[] | null) ?? [];
   },
 
-  async fetchLeaderboard(): Promise<LeaderboardEntry[]> {
+  /* Reads and writes the caller's own `profiles` row. `authApi.updateProfile`
+   * writes auth user_metadata, which is a different store — a preference the
+   * leaderboard RPC has to read has to live on the table it joins. */
+  async fetchPrivacySettings(): Promise<{ leaderboardOptOut: boolean }> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("leaderboard_opt_out")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { leaderboardOptOut: data?.leaderboard_opt_out === true };
+  },
+
+  async setLeaderboardOptOut(optOut: boolean): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase
+      .from("profiles")
+      .update({ leaderboard_opt_out: optOut })
+      .eq("id", userId);
+    if (error) throw new Error(error.message);
+  },
+
+  async fetchLeaderboard(
+    period: LeaderboardPeriod = "week",
+  ): Promise<LeaderboardEntry[]> {
     const { data, error } = await supabase.rpc("get_friends_leaderboard", {
       tz: browserTimeZone(),
+      period,
     });
     if (error) throw new Error(error.message);
     return (data as LeaderboardEntry[] | null) ?? [];

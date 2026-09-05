@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef, type FormEvent } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { useStudyRoom } from "./useStudyRoom";
 import { StudyDeskCard } from "./StudyDeskCard";
 import { GroupTimerBanner } from "./GroupTimerBanner";
 import { ReactionOverlay } from "./ReactionOverlay";
 import { ambianceEngine } from "./audioAmbiance";
 import type { AmbiancePreset } from "./types";
-import { MAX_MESSAGE_LENGTH } from "../../api/studyRoom";
+import {
+  MAX_MESSAGE_LENGTH,
+  MAX_ROOM_PARTICIPANTS,
+} from "../../api/studyRoom";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { useOverlayBehavior } from "../../context/overlayStack";
@@ -45,6 +48,7 @@ export function StudyRoomView() {
     pauseGroupTimer,
     nextGroupPhase,
     syncMyTimerToGroup,
+    isRoomFull,
   } = useStudyRoom(roomId);
 
   // Chat message draft state
@@ -117,6 +121,28 @@ export function StudyRoomView() {
   const activeAmbianceMeta = AMBIANCE_PRESETS.find(
     (p) => p.id === currentAmbiance,
   );
+
+  /* Shown instead of the room, not over it: while you are past the cap your
+     presence is withdrawn, so the desks, chat and group timer below would all
+     be showing a room you are not actually in. */
+  if (isRoomFull) {
+    return (
+      <main className={styles.roomView} aria-label="Virtual Study Room">
+        <div className={styles.roomFull} role="status">
+          <Icon name="users" size={32} />
+          <h1 className={styles.roomFullTitle}>This room is full</h1>
+          <p className={styles.roomFullCopy}>
+            A study room holds {MAX_ROOM_PARTICIPANTS} people, and this one
+            reached that before you arrived. You will join automatically as
+            soon as someone leaves — keep this tab open.
+          </p>
+          <Link to="/room" className={styles.roomFullLink}>
+            Study in your own room instead
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className={styles.roomView} aria-label="Virtual Study Room">

@@ -10,6 +10,28 @@ export function displayName(fullName: string | null | undefined): string {
   return (fullName ?? "").trim() || "Learnora student";
 }
 
+/* A leaderboard is the one screen that shows a student other people's names
+ * next to their behaviour, and a friend's full legal name is more than that
+ * job needs. "Ada B." identifies who you already know without publishing
+ * anything a stranger who got into the circle could use elsewhere.
+ *
+ * Only the leaderboard uses this. A friend *request* still shows the full
+ * name, because deciding whether to accept one is exactly the moment the
+ * whole name matters. */
+export function boardName(fullName: string | null | undefined): string {
+  const full = displayName(fullName);
+  if (full === "Learnora student") return full;
+
+  const words = full.split(/\s+/).filter(Boolean);
+  if (words.length < 2) return words[0] ?? full;
+
+  const surname = words[words.length - 1];
+  /* A one-letter surname is already an initial — "Ada B" must not become
+     "Ada B." twice over on a re-render, and it needs no further shortening. */
+  const initial = surname[0].toUpperCase();
+  return `${words[0]} ${initial}.`;
+}
+
 /** First letter of the first and last word, so "Ada Byron King" reads "AK". */
 export function initials(fullName: string | null | undefined): string {
   const words = displayName(fullName).split(/\s+/).filter(Boolean);

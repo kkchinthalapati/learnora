@@ -55,21 +55,56 @@ export const MAX_WEAK_TOPIC_PENALTY = 20;
 /** Half-width of the reported range at full confidence, in points. */
 export const FORECAST_BAND = 5;
 
-/** Extra half-width added when there is no evidence at all, tapering to zero
- *  as the sample reaches `CONFIDENCE_SATURATION_QUIZZES`.
+/** Quizzes below which no forecast is offered at all.
  *
- *  The band used to be a flat ±5 whatever it was built on, so a forecast off
- *  one quiz was printed exactly as precisely as one off fifty — and the
- *  confidence figure beside it was the only thing distinguishing them. A
- *  student reads the range, not the footnote. Widening the range *is* the
- *  hedge, stated in the units they are already reading. */
-export const MAX_UNCERTAINTY_BAND = 15;
+ *  The band used to carry this job on its own: a one-quiz forecast was shown,
+ *  just very wide (±20). But "60–100" is not a forecast a student can plan
+ *  around — it is the app filling a card because it has a card to fill, and a
+ *  range that wide invites them to read the top of it. Refusing to answer is
+ *  the honest output, and it is the one an empty state can say plainly.
+ *
+ *  With the floor in place the band no longer has to stretch to cover thin
+ *  evidence, which is why it is a flat ±5 below: every forecast that reaches
+ *  a student now rests on at least this much. */
+export const MIN_FORECAST_QUIZZES = 5;
 
 /** Quizzes at which confidence reaches 100%. Higher than the evidence
  *  module's own saturation point (20) on purpose: that one gates how boldly
  *  the assistant *talks*, this one gates a number a student may plan around,
  *  and the bar for the second should be higher. */
 export const CONFIDENCE_SATURATION_QUIZZES = 50;
+
+/** Confidence anchors: (quizzes, confidence %), interpolated linearly
+ *  between. Anchored rather than derived from a formula because these are a
+ *  product judgement about when a student should feel able to act on the
+ *  number, not a statistic — a straight `quizzes / 50` read 10% at the point
+ *  the forecast first appears, which undersells evidence the app is willing
+ *  to forecast from at all. */
+const CONFIDENCE_ANCHORS: readonly (readonly [number, number])[] = [
+  [0, 0],
+  [MIN_FORECAST_QUIZZES, 60],
+  [20, 80],
+  [CONFIDENCE_SATURATION_QUIZZES, 100],
+];
+
+export function confidenceFor(quizzesTaken: number): number {
+  const quizzes = Math.max(0, quizzesTaken);
+  const last = CONFIDENCE_ANCHORS[CONFIDENCE_ANCHORS.length - 1];
+  if (quizzes >= last[0]) return last[1];
+
+  for (let i = 1; i < CONFIDENCE_ANCHORS.length; i++) {
+    const [prevQuizzes, prevConfidence] = CONFIDENCE_ANCHORS[i - 1];
+    const [nextQuizzes, nextConfidence] = CONFIDENCE_ANCHORS[i];
+    if (quizzes <= nextQuizzes) {
+      const span = nextQuizzes - prevQuizzes;
+      const progress = span === 0 ? 1 : (quizzes - prevQuizzes) / span;
+      return Math.round(
+        prevConfidence + progress * (nextConfidence - prevConfidence),
+      );
+    }
+  }
+  return last[1];
+}
 
 export interface QuizForecast {
   /** Low end of the predicted range, 0-100. */
@@ -118,7 +153,11 @@ export function calculateQuizForecast(
   examDate: string,
   today: string = localDateStr(),
 ): QuizForecast | null {
-  if (evidence.questionsAnswered === 0 || evidence.overallAccuracy === null) {
+  if (
+    evidence.questionsAnswered === 0 ||
+    evidence.overallAccuracy === null ||
+    evidence.quizzesTaken < MIN_FORECAST_QUIZZES
+  ) {
     return null;
   }
 
@@ -137,23 +176,16 @@ export function calculateQuizForecast(
   );
   const adjusted = Math.max(accuracyNow - penalty, 0);
 
-  /* How much of the saturation sample is actually behind this, 0-1. The same
-     fraction drives both the confidence figure and the width of the range, so
-     the two can never tell the student different stories about how much is
-     known. */
-  const evidenceFraction = Math.min(
-    evidence.quizzesTaken / CONFIDENCE_SATURATION_QUIZZES,
-    1,
-  );
-
-  const band = Math.round(
-    FORECAST_BAND + (1 - evidenceFraction) * MAX_UNCERTAINTY_BAND,
-  );
+  /* Flat, because `MIN_FORECAST_QUIZZES` now does the job the widening band
+     used to: nothing thinner than that floor gets a forecast at all, so every
+     range that reaches a student rests on evidence the ±5 is defensible on.
+     Confidence still separates a five-quiz forecast from a fifty-quiz one. */
+  const band = FORECAST_BAND;
 
   return {
     predictedMin: clampPercent(adjusted - band),
     predictedMax: clampPercent(adjusted + band),
-    confidence: Math.round(evidenceFraction * 100),
+    confidence: confidenceFor(evidence.quizzesTaken),
     band,
     accuracyNow,
     weakTopics: weak,
