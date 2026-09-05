@@ -232,3 +232,48 @@
     margin-top: var(--s-1);
   }
 }
+
+/* Leaderboard header: the board names itself, and the period it is showing
+   is a control rather than a fixed heading. */
+.boardHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+
+.periodTabs {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+}
+
+.periodTab {
+  padding: var(--s-1) var(--s-3);
+  border: none;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.periodTab:hover {
+  color: var(--text);
+}
+
+.periodTabActive {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.periodTab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
