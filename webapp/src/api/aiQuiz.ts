@@ -18,6 +18,11 @@ import { quizzesApi } from "./quizzes";
 import { extractQuizJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
 import { AI_PERSONA_QUIZ_HOST, type Settings } from "../lib/settings";
+import { misconceptionsApi } from "./misconceptions";
+import {
+  rankMisconceptions,
+  type Misconception,
+} from "../lib/misconceptions";
 import type { Quiz } from "./types";
 
 /** Applied whenever the caller omits a value — the vanilla's `CREATE_DEFAULTS`
@@ -62,18 +67,62 @@ export function difficultyGuidance(difficulty: QuizDifficulty): string {
 - Distractors should reflect typical student misunderstandings.`;
 }
 
+/**
+ * Turn the student's open misconceptions into a targeting instruction.
+ *
+ * Rule 3 below already asks for realistic distractors and the medium-difficulty
+ * guidance already asks them to "reflect typical student misunderstandings" —
+ * but "typical" is a generic model prior, identical for every user. The ledger
+ * makes it specific: these are the beliefs this student has actually
+ * demonstrated, so a distractor built from one is a trap they are known to fall
+ * into rather than one the model imagines a hypothetical student might.
+ *
+ * Returns "" when the ledger has nothing relevant, which leaves the prompt
+ * exactly as it was — the generic wording is the correct fallback, not a
+ * degraded one.
+ */
+export function buildMisconceptionFocus(
+  ledger: Misconception[],
+  topic: string,
+): string {
+  /* Ranked across the whole ledger rather than filtered to the topic string:
+     subjects here are free text and a topic like "Hydrolysis Quiz" will rarely
+     equal the subject a Debugger trace was filed under. Over-including is the
+     safer error — an irrelevant misconception simply goes unused by the model,
+     whereas filtering too hard silently reverts to the generic prompt. */
+  const relevant = rankMisconceptions(ledger).slice(0, 5);
+  if (relevant.length === 0) return "";
+
+  const lines = relevant.map((m) => {
+    const seen =
+      m.timesObserved > 1 ? ` (observed ${m.timesObserved} times)` : "";
+    return `   - ${fenceUntrusted(m.concept)}: ${fenceUntrusted(m.summary)}${seen}`;
+  });
+
+  return `
+TARGET THIS STUDENT'S KNOWN MISCONCEPTIONS (recorded by this app's own diagnostic tools from their real work, for the topic "${topic}" and their wider study):
+${lines.join("\n")}
+- Where a listed misconception is genuinely relevant to the material above, build at least one question whose most tempting WRONG option is exactly what someone holding that belief would pick. Do not label it as a known weakness anywhere in the question or feedback.
+- The feedback for such a question must explain why that specific belief is wrong, not merely why the right answer is right.
+- If none of the listed misconceptions fit this material, ignore them entirely and follow the generic rules. Never bend a question towards an irrelevant one, and never invent a misconception that is not listed.`;
+}
+
 export function buildQuizPrompt({
   sourceText,
   topic,
   difficulty,
   personality,
   count,
+  misconceptionFocus = "",
 }: {
   sourceText: string;
   topic: string;
   difficulty: QuizDifficulty;
   personality: string;
   count: number;
+  /** Rendered by `buildMisconceptionFocus`. Empty when the ledger has nothing
+   *  to say, which leaves this prompt byte-identical to what it was before. */
+  misconceptionFocus?: string;
 }): string {
   return `Generate a high-quality, non-repetitive multiple-choice quiz based on the provided material or topic.
 
@@ -84,6 +133,7 @@ Configuration:
 - Total Questions Required: ${count}
 
 ${difficultyGuidance(difficulty)}
+${misconceptionFocus}
 
 STRICT DIVERSITY & QUALITY RULES:
 1. ABSOLUTELY NO REPETITIVE QUESTIONS: Every single question MUST cover a completely DIFFERENT concept, sub-step, logical component, or angle. DO NOT ask back-to-back similar questions or rephrase the same premise.
@@ -128,6 +178,19 @@ export async function generateQuizFrom({
   settings: Settings;
   options?: QuizOptions;
 }): Promise<Quiz> {
+  /* Best-effort, like every other context read in this app: a quiz that is
+     merely generic is a far smaller loss than no quiz at all, so a failed
+     ledger read falls back to the prompt exactly as it was. */
+  let misconceptionFocus = "";
+  try {
+    misconceptionFocus = buildMisconceptionFocus(
+      await misconceptionsApi.fetchAll(),
+      topic,
+    );
+  } catch (err) {
+    console.warn("[quiz] Could not read misconception ledger:", err);
+  }
+
   const { text } = await callEdge({
     history: [
       {
@@ -144,6 +207,7 @@ export async function generateQuizFrom({
           personality:
             options.personality ?? AI_PERSONA_QUIZ_HOST[settings.aiPersona],
           count: options.questionCount ?? QUIZ_DEFAULTS.questionCount,
+          misconceptionFocus,
         }),
       },
     ],

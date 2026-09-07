@@ -1,4 +1,10 @@
 import { callEdge } from "./ai";
+import { misconceptionsApi } from "./misconceptions";
+import {
+  formatMisconceptionsForPrompt,
+  misconceptionsForSubject,
+  rankMisconceptions,
+} from "../lib/misconceptions";
 
 export type LayerStatus = "healthy" | "shaky" | "severed";
 
@@ -145,12 +151,14 @@ export function buildDiagnosticPrompt(
   subject: string,
   mistakeDescription: string,
   context?: string,
+  priorLedger?: string,
 ): string {
   return `You are the Learnora Cognitive Root-Cause Debugger. Your job is to perform a deep cognitive stack trace on a student's mistake or confusion, peeling back the layers from the surface error down to the broken foundational prerequisite.
 
 Subject: ${subject}
 Mistake/Problem: ${mistakeDescription}
 ${context ? `Additional Context/Attempt: ${context}` : ""}
+${priorLedger ? `\n${priorLedger}\n- PRIOR-DIAGNOSIS RULE: if this mistake traces back to a root cause already listed above, name that same root concept rather than inventing a new phrasing for it — a repeat is the most useful thing you can tell this student, and a fresh label for an old problem hides it. Say plainly in "rootCauseSummary" that this has come up before and what has not stuck. If it is genuinely a new gap, ignore the list entirely and do not mention it.\n` : ""}
 
 Analyze the exact misconception by building a 3-layer Mental Stack Trace:
 - Level 3 (Surface Problem): The immediate problem or formula where the student failed. Status is typically "severed".
@@ -275,7 +283,31 @@ export async function diagnoseCognitiveGap(
   mistakeDescription: string,
   context?: string,
 ): Promise<CognitiveStackTrace> {
-  const prompt = buildDiagnosticPrompt(subject, mistakeDescription, context);
+  /* The Debugger's whole value is finding the root cause underneath a mistake.
+     Without this it re-derives that from scratch every time and cannot tell a
+     first occurrence from the fourth — so a student who has hit the same
+     broken prerequisite all term gets the same fresh-sounding diagnosis, worded
+     differently enough that even they might not notice. Best-effort: a failed
+     read just means the older, historyless prompt. */
+  let priorLedger = "";
+  try {
+    const ledger = await misconceptionsApi.fetchAll();
+    const relevant = subject.trim()
+      ? misconceptionsForSubject(ledger, subject)
+      : rankMisconceptions(ledger);
+    if (relevant.length > 0) {
+      priorLedger = formatMisconceptionsForPrompt(relevant);
+    }
+  } catch (err) {
+    console.warn("[debugger] Could not read misconception ledger:", err);
+  }
+
+  const prompt = buildDiagnosticPrompt(
+    subject,
+    mistakeDescription,
+    context,
+    priorLedger,
+  );
 
   let diagnosisData: { rootCauseSummary: string; layers: CognitiveLayer[] };
 

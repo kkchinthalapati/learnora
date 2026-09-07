@@ -43,6 +43,8 @@ import { importIcsForRange } from "../lib/icsImport";
 import { isLifeContextConfigured, loadLifeContext } from "../lib/lifeContext";
 import { loadStudentEvidence } from "./studentEvidence";
 import { formatEvidenceForPrompt } from "../lib/studentEvidence";
+import { misconceptionsApi } from "./misconceptions";
+import { formatMisconceptionsForPrompt } from "../lib/misconceptions";
 import { profileApi } from "./profile";
 import type { Settings } from "../lib/settings";
 import type { WeeklyPlan } from "./types";
@@ -112,6 +114,7 @@ export function buildPlanPrompt({
   weakTopics = "None",
   weakFlashcardDecks = "None",
   performanceEvidence,
+  misconceptionLedger,
   studentContext,
   lastWeekAdherence = "None",
   availability = "None",
@@ -137,6 +140,15 @@ export function buildPlanPrompt({
    *  where a week's hours go needs all three. Optional so existing prompt
    *  tests keep exercising the plain task/exam prompt. */
   performanceEvidence?: string;
+  /** The student's diagnosed misconceptions, rendered by
+   *  `lib/misconceptions.ts`. Different in kind from both fields above, and
+   *  the one that changes what a block actually contains: `weakTopics` names a
+   *  topic and `performanceEvidence` scores it, but neither says what the
+   *  student has got wrong inside it. "Revise hydrolysis" is a block anyone
+   *  could write; "hydrolysis — you keep treating water as consumed rather
+   *  than added" is one only this app can. Optional, so existing prompt tests
+   *  keep exercising the plain task/exam prompt. */
+  misconceptionLedger?: string;
   /** `formatStudentContext`'s one-liner on self-reported subject, exam
    *  board, target grade and pace preference. "" when the student hasn't
    *  set any of it, in which case nothing is rendered for it at all. */
@@ -177,7 +189,7 @@ Upcoming exams: ${upcomingExams}
 Recent weak topics from quizzes: ${weakTopics}
 Weak flashcard decks: ${weakFlashcardDecks}
 Last week's adherence: ${lastWeekAdherence}
-${performanceEvidence ? `\n${performanceEvidence}\n` : ""}${studentContext ? `\n${studentContext}\n` : ""}
+${performanceEvidence ? `\n${performanceEvidence}\n` : ""}${misconceptionLedger ? `\n${misconceptionLedger}\n` : ""}${studentContext ? `\n${studentContext}\n` : ""}
 When the student is actually free: ${availability}
 When their head works best: ${chronotype}
 ${
@@ -188,6 +200,11 @@ ${
 }${
   performanceEvidence
     ? `EVIDENCE RULE: the performance block above is measured, not inferred. Give the most time to the topics it names as WEAK, quoting their measured accuracy in the block's description so the student can see why it was chosen. Do not schedule revision for topics it lists as SOLID unless an exam is imminent — telling a student to stop revising something is how a plan buys back hours. Never schedule against a percentage for a topic listed as NEVER TESTED or marked PROVISIONAL; suggest a quiz on it instead.
+`
+    : ""
+}${
+  misconceptionLedger
+    ? `LEDGER RULE: the misconception block above is this app's own diagnosis of what the student actually believes wrongly, gathered from their real work. Where a block covers a topic it names, say in that block's description what specifically to fix — the misconception itself, not just the topic. Give a misconception observed more than once a block of its own; repeated evidence is the strongest signal in this prompt and outranks a merely low quiz score. Do not schedule anything for a misconception the block marks resolved.
 `
     : ""
 }Prioritize subjects with closer/harder exams, tasks with closer due dates, and topics the student is weak on. If last week shows a subject was under-studied, ease it back in with shorter blocks rather than repeating the exact same plan. Keep daily blocks realistic (30-90 minutes each, a couple of blocks per day at most). If there is no exam/task data, suggest light general review blocks.`;
@@ -233,6 +250,7 @@ export async function loadAdaptiveContext(monday: Date): Promise<{
   weakTopics: string;
   weakFlashcardDecks: string;
   performanceEvidence: string;
+  misconceptionLedger: string;
   studentContext: string;
   lastWeekAdherence: string;
 }> {
@@ -247,6 +265,7 @@ export async function loadAdaptiveContext(monday: Date): Promise<{
     sessions,
     folders,
     evidence,
+    ledger,
     studentProfile,
   ] = await Promise.all([
     quizzesApi.fetchWeakTopics(5),
@@ -260,6 +279,13 @@ export async function loadAdaptiveContext(monday: Date): Promise<{
        the rest instead of needing a catch — a planner that can't read the
        quiz rows should still produce a plan from tasks and exams. */
     loadStudentEvidence(),
+    /* Same best-effort contract as the evidence read beside it: a planner
+       that cannot reach the ledger should still produce a plan from tasks,
+       exams and quiz scores. */
+    misconceptionsApi.fetchAll().catch((err) => {
+      console.warn("[plan] Could not read misconception ledger:", err);
+      return [];
+    }),
     /* Same reasoning: a student with no Settings > Preferences filled in
        (the common case today, since none of it is backfilled) should still
        get a plan, not a failed one. */
@@ -292,12 +318,14 @@ export async function loadAdaptiveContext(monday: Date): Promise<{
      summary is what carries the instruction not to guess, which is precisely
      the case where the model would. Same reasoning as ChatProvider's. */
   const performanceEvidence = formatEvidenceForPrompt(evidence);
+  const misconceptionLedger = formatMisconceptionsForPrompt(ledger);
   const studentContext = formatStudentContext(studentProfile);
 
   return {
     weakTopics,
     weakFlashcardDecks,
     performanceEvidence,
+    misconceptionLedger,
     studentContext,
     lastWeekAdherence,
   };
@@ -343,6 +371,7 @@ export async function generateWeeklyPlan(
       weakTopics,
       weakFlashcardDecks,
       performanceEvidence,
+      misconceptionLedger,
       studentContext,
       lastWeekAdherence,
     },
@@ -365,6 +394,7 @@ export async function generateWeeklyPlan(
           weakTopics,
           weakFlashcardDecks,
           performanceEvidence,
+          misconceptionLedger,
           studentContext,
           lastWeekAdherence,
           availability,

@@ -211,6 +211,33 @@ describe("buildPlanPrompt — performance evidence", () => {
     expect(prompt).not.toContain("EVIDENCE RULE");
   });
 
+  /* The ledger is a different kind of input from both the weak-topic list and
+     the evidence block: those name and score a topic, this says what the
+     student actually believes wrongly inside it — which is the difference
+     between a block that reads "revise hydrolysis" and one that reads "fix the
+     idea that water is consumed". */
+  it("carries the misconception ledger and the rule that uses it", () => {
+    const prompt = buildPlanPrompt({
+      ...base,
+      misconceptionLedger:
+        "MISCONCEPTION LEDGER (what this student has previously got wrong):\n  · [critical] Hydrolysis: believes water is consumed — seen 3x.",
+    });
+
+    expect(prompt).toContain("MISCONCEPTION LEDGER");
+    expect(prompt).toContain("believes water is consumed");
+    expect(prompt).toContain("LEDGER RULE");
+    /* Recurrence outranking a bad score is the editorial claim of the whole
+       feature; if the rule stops saying so, the planner stops acting on it. */
+    expect(prompt).toContain("outranks a merely low quiz score");
+    expect(prompt).toContain("Do not schedule anything for a misconception");
+  });
+
+  it("omits the ledger block and its rule entirely when there is none", () => {
+    const prompt = buildPlanPrompt(base);
+    expect(prompt).not.toContain("MISCONCEPTION LEDGER");
+    expect(prompt).not.toContain("LEDGER RULE");
+  });
+
   it("carries studentContext into the prompt when set", () => {
     const prompt = buildPlanPrompt({
       ...base,
