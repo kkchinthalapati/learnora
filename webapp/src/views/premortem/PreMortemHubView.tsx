@@ -17,6 +17,8 @@ import {
   type PreMortemReport,
 } from "../../api/aiPreMortem";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
+import { useRecordMisconceptions } from "../../hooks/useMisconceptions";
+import { candidatesFromPreMortem } from "../../lib/misconceptions";
 import { StressTestRunner } from "./StressTestRunner";
 import { PreMortemRadarView } from "./PreMortemRadarView";
 import styles from "./PreMortemHubView.module.css";
@@ -47,6 +49,7 @@ export function PreMortemHubView() {
   const [activeQuestions, setActiveQuestions] = useState<StressQuestion[]>([]);
   const [activeReport, setActiveReport] = useState<PreMortemReport | null>(null);
   const [pastReports, setPastReports] = useState<PreMortemReport[]>([]);
+  const recordMisconceptions = useRecordMisconceptions();
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -131,6 +134,14 @@ export function PreMortemHubView() {
     setActiveReport(report);
     setPastReports(getPreMortemReports());
     setMode("radar");
+    /* The radar's predictions are grounded in stress questions the student has
+       just answered, so a predicted failure is an observed one — and the only
+       calibrated probability any tool in this app produces. Recorded here
+       rather than inside evaluatePreMortemTest so the API layer stays a pure
+       report builder, matching how the debugger and Feynman write. */
+    recordMisconceptions(
+      candidatesFromPreMortem({ ...report, subject: report.subject ?? selectedSubject }),
+    );
   };
 
   const handleViewPastReport = (report: PreMortemReport) => {

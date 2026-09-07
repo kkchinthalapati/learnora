@@ -19,6 +19,8 @@ import { KnowledgeCircuit } from "./KnowledgeCircuit";
 import { MicroRepairModal } from "./MicroRepairModal";
 import { CognitiveCrossLinkBar } from "../../components/ai/CognitiveCrossLinkBar";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
+import { useRecordMisconceptions } from "../../hooks/useMisconceptions";
+import { candidatesFromStackTrace } from "../../lib/misconceptions";
 import styles from "./CognitiveDebuggerView.module.css";
 
 const PRESETS = [
@@ -115,6 +117,8 @@ export function CognitiveDebuggerView() {
     setContext(`This has come up as a weak spot in my recent quizzes.`);
   };
 
+  const recordMisconceptions = useRecordMisconceptions();
+
   const handleDiagnose = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!mistakeDescription.trim()) return;
@@ -125,6 +129,11 @@ export function CognitiveDebuggerView() {
       const trace = await diagnoseCognitiveGap(subject, mistakeDescription.trim(), context.trim());
       setActiveTrace(trace);
       setSavedTraces(getSavedTraces());
+      /* The trace already names the broken prerequisite; without this it died
+         with the component. Recorded so the next quiz, plan and chat know
+         about it — and so a second trace onto the same concept reads as a
+         recurrence rather than a fresh discovery. */
+      recordMisconceptions(candidatesFromStackTrace(trace));
     } finally {
       setIsLoading(false);
     }
@@ -160,6 +169,26 @@ export function CognitiveDebuggerView() {
         })),
       };
       setActiveTrace(updated);
+    }
+
+    /* The other half of the ledger. A repair the student actually passed is
+       the app's best evidence that a diagnosed gap has closed, and without it
+       every Debugger row would stay open forever and keep crowding out newer
+       ones in the ranking. Only the concept the repair targeted is credited —
+       the trace's other layers were not retested. */
+    if (activeRepair) {
+      recordMisconceptions([
+        {
+          subject: activeTrace?.subject ?? "",
+          concept: activeRepair.rootConcept,
+          summary: "",
+          severity: "minor",
+          tool: "debugger",
+          sourceId: traceId,
+          kind: "correction",
+          detail: "The student passed the micro-repair exercise for this concept.",
+        },
+      ]);
     }
 
     setSavedTraces(getSavedTraces());

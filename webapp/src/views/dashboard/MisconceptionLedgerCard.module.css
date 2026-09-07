@@ -1,0 +1,243 @@
+/* Token-only by construction: this file is new, so the drift ratchet in
+   src/styles/drift.test.ts allows it zero raw hex, font-sizes, shadows and
+   blurs. Everything below resolves through tokens.css / themes.css, which is
+   also what makes it follow dark mode and the accent presets. */
+
+.widget {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-md), var(--glass-inner);
+  border-radius: var(--r-xl);
+  padding: var(--s-6);
+  position: relative;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.headerTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.headerIcon {
+  display: grid;
+  place-items: center;
+  width: var(--s-8);
+  height: var(--s-8);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--warning-text);
+  flex-shrink: 0;
+}
+
+.eyebrow {
+  display: block;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 650;
+  color: var(--text);
+}
+
+.loadingStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+  color: var(--text-muted);
+}
+
+.emptyLead {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.emptyBody {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+/* ── Rows ────────────────────────────────────────────────────────────────── */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.rowHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.concept {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.subject {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.summary {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* The line that carries the whole argument for this feature — that the app
+   remembers across tools — so it stays legible rather than shrinking to a
+   footnote. */
+.provenance {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+
+.provenance strong {
+  color: var(--text-muted);
+}
+
+.improving {
+  color: var(--success-text);
+}
+
+/* ── Severity ────────────────────────────────────────────────────────────── */
+
+.severity {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-sm);
+  flex-shrink: 0;
+}
+
+.critical {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+}
+
+.moderate {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+
+.minor {
+  background: var(--surface-2);
+  color: var(--text-faint);
+}
+
+/* ── Actions ─────────────────────────────────────────────────────────────── */
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-shrink: 0;
+}
+
+.dismiss {
+  display: grid;
+  place-items: center;
+  width: var(--s-8);
+  height: var(--s-8);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: color var(--t) var(--ease), border-color var(--t) var(--ease);
+}
+
+.dismiss:hover {
+  color: var(--danger-text);
+  border-color: var(--danger);
+}
+
+.toggle {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  padding: var(--s-1) 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.toggle:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rowActions {
+    justify-content: flex-end;
+  }
+}

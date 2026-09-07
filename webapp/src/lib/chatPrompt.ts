@@ -43,6 +43,16 @@ export interface ChatContext {
    *  rows could not be read — the chat still works, it just knows less, the
    *  same best-effort treatment `pendingTasks` gets. */
   performanceEvidence?: string;
+  /** The student's diagnosed misconceptions, rendered by
+   *  `lib/misconceptions.ts`'s `formatMisconceptionsForPrompt`.
+   *
+   *  Distinct from `performanceEvidence`, and the more useful of the two:
+   *  that one says the student scores 54% on hydrolysis, this one says they
+   *  believe water is consumed rather than added, that the Debugger found it
+   *  and Feynman saw it again a week later. A score tells the model what to
+   *  revise; this tells it what to actually correct. Omitted on a failed read,
+   *  same best-effort treatment as everything else here. */
+  misconceptionLedger?: string;
   /** Provider-returned web snippets. Already labelled and fenced by the
    * caller; this function only places them beside the grounding rules. */
   webEvidence?: string;
@@ -119,6 +129,7 @@ export function buildSystemContext({
   conciseness = "medium",
   adaptiveNudge = "",
   performanceEvidence = "",
+  misconceptionLedger = "",
   webEvidence = "",
 }: ChatContext): string {
   const voiceInstructions = PERSONA_VOICE[persona];
@@ -143,6 +154,7 @@ WORKSPACE STATE:
 - Pending Tasks: ${pendingTasks}
 - Upcoming Exams: ${upcomingExams}
 ${performanceEvidence ? `\n${performanceEvidence}\n` : ""}
+${misconceptionLedger ? `\n${misconceptionLedger}\n` : ""}
 ${webEvidence ? `\nWEB RESEARCH:\n${webEvidence}\n` : ""}
 ACTIVE VIEW:
 ${activeContext}${appendedFileContext}

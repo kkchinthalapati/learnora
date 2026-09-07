@@ -16,6 +16,8 @@ import {
   type SparringPersona,
   type GroundedCitation,
 } from "../../api/aiSparring";
+import { useRecordMisconceptions } from "../../hooks/useMisconceptions";
+import { candidatesFromSparring } from "../../lib/misconceptions";
 import { SparringStage } from "./SparringStage";
 import styles from "./sparring.module.css";
 
@@ -30,6 +32,7 @@ const QUICK_STARTER_TOPICS = [
 export function SocraticSparringView() {
   const [searchParams] = useSearchParams();
   const { showToast } = useToast();
+  const recordMisconceptions = useRecordMisconceptions();
 
   const queryTopic = searchParams.get("topic") || "";
   const queryNotebookId = searchParams.get("notebookId") || "";
@@ -196,6 +199,19 @@ export function SocraticSparringView() {
 
       const result = await submitStudentAnswer(session, answer, notesContext);
       setSession(result.session);
+
+      /* Sparring is the weakest of the four signals — a point left out under
+         debate pressure is not proof the student lacks it — so the extractor
+         files omissions as `minor`. They only become prominent by recurring,
+         which is the right bar for an omission. Concepts defended well are
+         written as corrections, so debating is a way to close a ledger row. */
+      recordMisconceptions(
+        candidatesFromSparring(result.feedback, {
+          subject: result.session.topic,
+          topic: result.session.topic,
+          sessionId: result.session.id,
+        }),
+      );
 
       // Speak next round from AI
       playAiRound(result.nextRound.speechText, result.nextRound.speaker);

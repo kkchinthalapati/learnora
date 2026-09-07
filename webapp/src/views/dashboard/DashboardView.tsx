@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { AdaptiveHealthWidget } from "./AdaptiveHealthWidget";
+import { MisconceptionLedgerCard } from "./MisconceptionLedgerCard";
 import { AIActionsCard } from "./AIActionsCard";
 import { ActivityRingsCard } from "./ActivityRingsCard";
 import { DailyDrillCard } from "./DailyDrillCard";
@@ -142,6 +143,7 @@ export function DashboardView() {
           <div className={styles.progressGrid}>
             <StreakCard />
             <AdaptiveHealthWidget />
+            <MisconceptionLedgerCard />
           </div>
         </section>
       )}

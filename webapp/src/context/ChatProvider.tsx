@@ -36,6 +36,8 @@ import { stripActionTagBlocks, fenceUntrusted } from "../lib/actionTags";
 import { activeContextForPath, buildSystemContext } from "../lib/chatPrompt";
 import { loadStudentEvidence } from "../api/studentEvidence";
 import { formatEvidenceForPrompt } from "../lib/studentEvidence";
+import { misconceptionsApi } from "../api/misconceptions";
+import { formatMisconceptionsForPrompt } from "../lib/misconceptions";
 import { searchWebSources, type WebSearchResult } from "../api/aiWebSearch";
 import {
   EMPTY_PERSONA_DRIFT,
@@ -408,6 +410,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
            the two overlap rather than queueing. `loadStudentEvidence` resolves
            rather than throwing, so it needs no catch of its own. */
         const evidencePromise = loadStudentEvidence();
+        /* Started alongside the evidence read for the same reason, and read
+           the same way: a failure resolves to an empty ledger, which renders
+           as an explicit "no diagnoses on record — do not invent any" rather
+           than as silence the model would fill in. */
+        const ledgerPromise = misconceptionsApi
+          .fetchAll()
+          .catch((err) => {
+            console.warn("[chat] Failed to read misconception ledger:", err);
+            return [];
+          });
         const sourceMode =
           options?.sourceMode ?? (settings.webAccess ? "hybrid" : "notebook");
         const wantsWeb =
@@ -435,6 +447,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
            grade, which is precisely the case where the model would. */
         const performanceEvidence = formatEvidenceForPrompt(
           await evidencePromise,
+        );
+        /* Always rendered too, and for the same reason as the line above: the
+           empty ledger is what carries the instruction not to invent a
+           diagnosis, which is exactly when a model would. */
+        const misconceptionLedger = formatMisconceptionsForPrompt(
+          await ledgerPromise,
         );
         const webResponse = await webPromise;
 
@@ -475,6 +493,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           conciseness: settings.aiConciseness,
           adaptiveNudge: adaptiveNudge?.instruction,
           performanceEvidence,
+          misconceptionLedger,
           webEvidence: webResponse
             ? formatWebEvidence(webResponse.results)
             : "",

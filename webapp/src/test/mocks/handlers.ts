@@ -96,6 +96,22 @@ export const handlers = [
   ),
   http.patch(rest("notes"), () => new HttpResponse(null, { status: 204 })),
 
+  /* The misconception ledger. Read on the dashboard and on every chat send, so
+     without these any test that mounts either trips the unhandled-request
+     guard. An empty ledger is the right default: it exercises the "nothing on
+     record" branch, which is what a fresh account actually sees. */
+  http.get(rest("misconceptions"), () => HttpResponse.json([])),
+  http.post(rest("misconceptions"), () => HttpResponse.json([])),
+  http.delete(
+    rest("misconceptions"),
+    () => new HttpResponse(null, { status: 204 }),
+  ),
+  http.get(rest("misconception_observations"), () => HttpResponse.json([])),
+  http.post(
+    rest("misconception_observations"),
+    () => new HttpResponse(null, { status: 201 }),
+  ),
+
   http.get(rest("study_sessions"), () => HttpResponse.json([])),
   http.delete(
     rest("study_sessions"),

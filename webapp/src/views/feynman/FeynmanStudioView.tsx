@@ -13,6 +13,10 @@ import {
   getActiveFeynmanSessionId,
   setActiveFeynmanSessionId,
 } from "../../api/aiFeynman";
+import { useRecordMisconceptions } from "../../hooks/useMisconceptions";
+/* Imported as a function only: `Misconception` above is Feynman's own planted
+   -error type, which is a different thing from a ledger row. */
+import { candidatesFromTeachingTurn } from "../../lib/misconceptions";
 import styles from "./FeynmanStudioView.module.css";
 
 /* Why a turn scored nothing. Without this the studio showed a reply and no
@@ -28,6 +32,9 @@ const SKIPPED_TURN_LABELS: Record<string, string> = {
 export function FeynmanStudioView() {
   const { sessionId: paramSessionId } = useParams<{ sessionId?: string }>();
   const navigate = useNavigate();
+  /* Above the `if (!session)` early return below — a hook after it changes the
+     hook order between renders. */
+  const recordMisconceptions = useRecordMisconceptions();
 
   const [session, setSession] = useState<FeynmanSessionState | null>(null);
   const [explanationText, setExplanationText] = useState("");
@@ -118,6 +125,7 @@ export function FeynmanStudioView() {
     }
   };
 
+
   const handleTeachSubmit = async () => {
     if (!explanationText.trim() || isSubmitting) return;
 
@@ -141,6 +149,13 @@ export function FeynmanStudioView() {
       setSession(updatedSession);
       saveFeynmanSession(updatedSession);
       setExplanationText("");
+
+      /* Both halves of the turn go to the ledger: what the apprentice was
+         still confused about is evidence, what the student explained well is a
+         correction. The draft is passed only to name the subject and topic —
+         the extractor deliberately ignores its planted misconceptions, which
+         are the app's inventions rather than the student's beliefs. */
+      recordMisconceptions(candidatesFromTeachingTurn(turn, session.draft));
     } catch (err) {
       console.error("Evaluation failed", err);
     } finally {
