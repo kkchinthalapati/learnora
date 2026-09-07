@@ -20,6 +20,10 @@ import {
 import { StudyBuddyGutter } from "../notes/StudyBuddyGutter";
 import { useStudentEvidence } from "../../hooks/useStudentEvidence";
 import { formatEvidenceForPrompt } from "../../lib/studentEvidence";
+import { useSettings } from "../../context/settings";
+import { fenceUntrusted } from "../../lib/actionTags";
+
+const MAX_NOTEBOOK_SOURCE_CHARS = 12_000;
 
 function flashcardsFromCheatSheet(content: string) {
   const cards = content
@@ -53,6 +57,7 @@ export function NotebookStudioView() {
   const { notebookId = "" } = useParams<{ notebookId: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { settings } = useSettings();
 
   const {
     notebook,
@@ -218,7 +223,12 @@ export function NotebookStudioView() {
       const sourcesContext =
         selectedSources.length > 0
           ? selectedSources
-              .map((s, idx) => `[Source ${idx + 1}: ${s.title}]\n${s.content}`)
+              .map(
+                (s, idx) =>
+                  `[Source ${idx + 1}: ${s.title}]\n"""\n${fenceUntrusted(
+                    s.content.slice(0, MAX_NOTEBOOK_SOURCE_CHARS),
+                  )}\n"""`,
+              )
               .join("\n\n---\n\n")
           : "No external sources attached. Use general subject knowledge.";
 
@@ -246,24 +256,35 @@ Keep explanations friendly, encouraging, and structured for student success.`;
           },
         ],
         tool: "notebookStudio",
+        settings,
       });
 
-      const citations = selectedSources.map((s) => ({
-        sourceId: s.id,
-        sourceTitle: s.title,
-        snippet: s.content.slice(0, 120) + "…",
-      }));
+      const citedIndexes = new Set(
+        Array.from(
+          response.text.matchAll(/\[(\d+)]/g),
+          (match) => Number(match[1]) - 1,
+        ),
+      );
+      const citations = selectedSources
+        .filter((_, index) => citedIndexes.has(index))
+        .map((s) => ({
+          sourceId: s.id,
+          sourceTitle: s.title,
+          snippet: s.content.slice(0, 120) + "…",
+        }));
 
       addChatMessage({
         role: "assistant",
         content: response.text,
-        citations: selectedSources.length > 0 ? citations : undefined,
+        citations: citations.length > 0 ? citations : undefined,
       });
-    } catch {
+    } catch (cause) {
       addChatMessage({
         role: "assistant",
         content:
-          "I have grounded your notes for this question. Let's focus on key definitions and proof principles.",
+          cause instanceof Error
+            ? cause.message
+            : "I couldn't answer from these sources. Please try again.",
       });
     } finally {
       setIsGenerating(false);
@@ -293,6 +314,7 @@ Use British English throughout.`;
           },
         ],
         tool: "notebookStudio",
+        settings,
       });
 
       addArtifact({
@@ -338,6 +360,7 @@ Use British English throughout.`;
           },
         ],
         tool: "notebookStudio",
+        settings,
       });
 
       addArtifact({

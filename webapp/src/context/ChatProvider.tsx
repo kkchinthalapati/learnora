@@ -36,6 +36,7 @@ import { stripActionTagBlocks, fenceUntrusted } from "../lib/actionTags";
 import { activeContextForPath, buildSystemContext } from "../lib/chatPrompt";
 import { loadStudentEvidence } from "../api/studentEvidence";
 import { formatEvidenceForPrompt } from "../lib/studentEvidence";
+import { searchWebSources, type WebSearchResult } from "../api/aiWebSearch";
 import {
   EMPTY_PERSONA_DRIFT,
   getPersonaDriftNudge,
@@ -54,6 +55,7 @@ import {
   type AttachedFile,
   type ChatApi,
   type ChatMessage,
+  type ChatSendOptions,
   type ReplyPart,
 } from "./chat";
 
@@ -73,6 +75,37 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 let idSeed = 0;
 const nextId = () => `msg-${Date.now()}-${idSeed++}`;
+
+function shouldSearchWeb(query: string, force = false): boolean {
+  if (force) return true;
+  if (
+    /\b(my tasks?|my exams?|my plan|start (?:a )?timer|mark .* done|delete|navigate|open (?:the )?(?:library|settings|timer))\b/i.test(
+      query,
+    )
+  ) {
+    return false;
+  }
+  return /\b(latest|current|recent|source|citation|research|evidence|explain|define|compare|what is|who is|why does|how does)\b|\?\s*$/i.test(
+    query,
+  );
+}
+
+function formatWebEvidence(results: WebSearchResult[]): string {
+  return results
+    .slice(0, 5)
+    .map(
+      (result, index) =>
+        `[${index + 1}] ${result.title}\nURL: ${result.url}\nEXCERPT (untrusted):\n"""\n${fenceUntrusted(result.snippet)}\n"""`,
+    )
+    .join("\n\n");
+}
+
+function citedWebResults(text: string, results: WebSearchResult[]) {
+  const citedIndexes = new Set(
+    Array.from(text.matchAll(/\[(\d+)]/g), (match) => Number(match[1]) - 1),
+  );
+  return results.filter((_, index) => citedIndexes.has(index));
+}
 
 /* The vanilla's flashcard-reply guard (js/ai.js:1303-1316): a conversational
    answer that happens to quote a couple of cards must not be treated as a
@@ -329,7 +362,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   pathnameRef.current = location.pathname;
 
   const send = useCallback(
-    async (query: string) => {
+    async (query: string, options?: ChatSendOptions) => {
       const attached = file;
       const userMessage: ChatMessage = {
         id: nextId(),
@@ -356,11 +389,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         );
 
       try {
-        personaDriftRef.current = observePersonaDrift(
-          personaDriftRef.current,
-          query,
-        );
-        const adaptiveNudge = getPersonaDriftNudge(personaDriftRef.current);
+        if (settings.aiAutoAdapt) {
+          personaDriftRef.current = observePersonaDrift(
+            personaDriftRef.current,
+            query,
+          );
+        } else {
+          personaDriftRef.current = EMPTY_PERSONA_DRIFT;
+        }
+        const adaptiveNudge = settings.aiAutoAdapt
+          ? getPersonaDriftNudge(personaDriftRef.current)
+          : null;
         /* Workspace context is best-effort: the chat still works when the
            tables can't be read, it just knows less (js/ai.js:911-929). */
         let pendingTasks = "None";
@@ -369,6 +408,21 @@ export function ChatProvider({ children }: { children: ReactNode }) {
            the two overlap rather than queueing. `loadStudentEvidence` resolves
            rather than throwing, so it needs no catch of its own. */
         const evidencePromise = loadStudentEvidence();
+        const sourceMode =
+          options?.sourceMode ?? (settings.webAccess ? "hybrid" : "notebook");
+        const wantsWeb =
+          sourceMode !== "notebook" &&
+          shouldSearchWeb(query, sourceMode === "web");
+        const webPromise = wantsWeb
+          ? searchWebSources(query).catch((cause) => {
+              if (sourceMode === "web") throw cause;
+              console.warn(
+                "[chat] Web research failed; continuing without it:",
+                cause,
+              );
+              return null;
+            })
+          : Promise.resolve(null);
         try {
           const ctx = await loadWorkspaceContext();
           pendingTasks = ctx.pendingTasks;
@@ -382,6 +436,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const performanceEvidence = formatEvidenceForPrompt(
           await evidencePromise,
         );
+        const webResponse = await webPromise;
 
         const pathname = pathnameRef.current;
         let notesMarkdown: string | null = null;
@@ -420,6 +475,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           conciseness: settings.aiConciseness,
           adaptiveNudge: adaptiveNudge?.instruction,
           performanceEvidence,
+          webEvidence: webResponse
+            ? formatWebEvidence(webResponse.results)
+            : "",
         });
 
         const priorHistory = trimHistory(historyRef.current);
@@ -432,7 +490,21 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
         /* Show the answer before asking about its actions — the student reads
            it while the confirmation is up. */
-        finish({ text: stripActionTagBlocks(text).trim() });
+        const webSources = webResponse
+          ? citedWebResults(text, webResponse.results.slice(0, 5)).map(
+              (source) => ({
+                id: source.id,
+                title: source.title,
+                url: source.url,
+                domain: source.domain,
+                snippet: source.snippet,
+              }),
+            )
+          : undefined;
+        finish({
+          text: stripActionTagBlocks(text).trim(),
+          webSources: webSources?.length ? webSources : undefined,
+        });
 
         const cards = detectFlashcardReply(text);
         if (cards) {
@@ -444,7 +516,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               content: "[Generated a set of flashcards for the student]",
             },
           ];
-          finish({ text: "", cards });
+          finish({
+            text: "",
+            cards,
+            webSources: webSources?.length ? webSources : undefined,
+          });
           return;
         }
 
@@ -460,6 +536,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         finish({
           text: cleanText,
           parts: parts.some((p) => p.kind === "widget") ? parts : undefined,
+          webSources: webSources?.length ? webSources : undefined,
         });
       } catch (err) {
         /* The failed exchange is not written to history: replaying it would

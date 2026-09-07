@@ -44,24 +44,6 @@ export function useWeakTopics(limit = 5) {
   });
 }
 
-export function useAddQuiz() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      materialId,
-      folderId,
-      title,
-      questions,
-    }: {
-      materialId: string | null;
-      folderId: string | null;
-      title: string;
-      questions: unknown;
-    }) => quizzesApi.add(materialId, folderId, title, questions),
-    onSuccess: () => qc.invalidateQueries({ queryKey: quizzesKeys.all }),
-  });
-}
-
 export function useDeleteQuiz() {
   const qc = useQueryClient();
   return useMutation({

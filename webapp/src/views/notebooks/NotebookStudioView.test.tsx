@@ -103,7 +103,9 @@ describe("NotebookStudioView", () => {
     await user.click(screen.getByRole("button", { name: /Add source/i }));
 
     expect(
-      await screen.findByRole("heading", { name: /Add Study Source to Notebook/i }),
+      await screen.findByRole("heading", {
+        name: /Add Study Source to Notebook/i,
+      }),
     ).toBeInTheDocument();
   });
 
@@ -206,7 +208,7 @@ describe("NotebookStudioView", () => {
     await user.click(webSearchBtn);
 
     expect(
-      await screen.findByRole("dialog", { name: /Import Web Intelligence/i }),
+      await screen.findByRole("dialog", { name: /Research the web/i }),
     ).toBeInTheDocument();
   });
 });

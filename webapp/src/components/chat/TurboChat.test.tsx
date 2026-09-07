@@ -15,6 +15,7 @@ import { TurboChat } from "./TurboChat";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
+const WEB_RESEARCH_URL = `${SUPABASE_URL}/functions/v1/web-research`;
 
 /** Opens the panel — the app's real entry points do this from the dashboard,
  *  which would drag the whole dashboard into every chat test. */
@@ -36,6 +37,9 @@ function serveWorkspace() {
   server.use(
     http.get(rest("tasks"), () => HttpResponse.json([])),
     http.get(rest("exams"), () => HttpResponse.json([])),
+    http.post(WEB_RESEARCH_URL, () =>
+      HttpResponse.json({ query: "", results: [] }),
+    ),
   );
 }
 
@@ -896,19 +900,38 @@ describe("TurboChat", () => {
     await openChat();
 
     expect(
-      screen.getByRole("region", { name: "AI Study Persona & Source Settings" }),
+      screen.getByRole("region", {
+        name: "AI Study Persona & Source Settings",
+      }),
     ).toBeInTheDocument();
     expect(screen.getByText(/Lvl 3: Standard/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Source mode 🌐 Web" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Source mode 🌐 Web" }),
+    ).toBeInTheDocument();
   });
 
   it("renders web citation cards with 1-click Add to Notebook action", async () => {
-    serveReply(
-      "Here is the research on transformers.<WEB_CITATION>Attention Is All You Need||https://arxiv.org/abs/1706.03762||The Transformer model relies entirely on self-attention mechanisms.</WEB_CITATION>",
-    );
+    serveReply("Here is the research on transformers [1].");
     server.use(
+      http.post(WEB_RESEARCH_URL, () =>
+        HttpResponse.json({
+          query: "transformers",
+          results: [
+            {
+              id: "paper-1",
+              title: "Attention Is All You Need",
+              url: "https://arxiv.org/abs/1706.03762",
+              domain: "arxiv.org",
+              snippet:
+                "The Transformer model relies entirely on self-attention mechanisms.",
+            },
+          ],
+        }),
+      ),
       http.get(rest("notebooks"), () =>
-        HttpResponse.json([{ id: "nb-1", title: "Study Notebook", notebook_sources: [] }]),
+        HttpResponse.json([
+          { id: "nb-1", title: "Study Notebook", notebook_sources: [] },
+        ]),
       ),
       http.post(rest("notebook_sources"), () =>
         HttpResponse.json({ id: "src-1" }),
@@ -917,21 +940,26 @@ describe("TurboChat", () => {
 
     renderChat();
     await openChat();
-    await ask("tell me about transformers");
+    await ask("explain transformers");
 
-    expect(await screen.findByText("Here is the research on transformers.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Here is the research on transformers [1]."),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("web-citations-container")).toBeInTheDocument();
     expect(screen.getByText("Attention Is All You Need ↗")).toBeInTheDocument();
     expect(screen.getByText("🌐 arxiv.org")).toBeInTheDocument();
     expect(
-      screen.getByText("The Transformer model relies entirely on self-attention mechanisms."),
+      screen.getByText(
+        "The Transformer model relies entirely on self-attention mechanisms.",
+      ),
     ).toBeInTheDocument();
 
-    const addBtn = screen.getByRole("button", { name: "Add Attention Is All You Need to Notebook" });
+    const addBtn = screen.getByRole("button", {
+      name: "Add Attention Is All You Need to Notebook",
+    });
     expect(addBtn).toHaveTextContent("📥 Add to Notebook");
 
     await userEvent.click(addBtn);
     expect(await screen.findByText("✓ Added to Notebook")).toBeInTheDocument();
   });
 });
-

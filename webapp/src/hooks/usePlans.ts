@@ -15,21 +15,6 @@ export function usePlanForWeek(weekStartISO: string) {
   });
 }
 
-export function useUpsertPlan() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      weekStartISO,
-      planJson,
-    }: {
-      weekStartISO: string;
-      planJson: unknown;
-    }) => plansApi.upsert(weekStartISO, planJson),
-    onSuccess: (_data, { weekStartISO }) =>
-      qc.invalidateQueries({ queryKey: plansKeys.forWeek(weekStartISO) }),
-  });
-}
-
 /** Saves a student-authored edit to an existing plan. The returned row is
  * written straight into the shared cache so the plan and dashboard repaint
  * together without waiting for a follow-up request. */

@@ -117,27 +117,6 @@ export const materialsApi = {
     if (error) throw new Error(error.message);
   },
 
-  async getSignedUrl(storagePath: string): Promise<string> {
-    const { data, error } = await supabase.storage
-      .from("materials")
-      .createSignedUrl(storagePath, 3600);
-    if (error) throw new Error(error.message);
-    return data.signedUrl;
-  },
-
-  async fetchMostRecent(): Promise<Material | null> {
-    const userId = await requireUserId();
-    const { data, error } = await supabase
-      .from("materials")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    return data;
-  },
-
   async fetchById(id: string): Promise<Material | null> {
     const userId = await requireUserId();
     const { data, error } = await supabase

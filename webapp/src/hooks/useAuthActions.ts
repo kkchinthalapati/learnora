@@ -36,12 +36,6 @@ export function useResetPasswordRequest() {
   });
 }
 
-export function useUpdatePassword() {
-  return useMutation({
-    mutationFn: (newPassword: string) => authApi.updatePassword(newPassword),
-  });
-}
-
 export function useUpdateEmail() {
   return useMutation({
     mutationFn: (newEmail: string) => authApi.updateEmail(newEmail),

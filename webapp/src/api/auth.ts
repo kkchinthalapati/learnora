@@ -185,11 +185,6 @@ export const authApi = {
     if (error) throw new Error(friendlyAuthError(error));
   },
 
-  async updatePassword(newPassword: string): Promise<void> {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) throw new Error(friendlyAuthError(error));
-  },
-
   async updateEmail(newEmail: string): Promise<void> {
     const { error } = await supabase.auth.updateUser({ email: newEmail });
     if (error) throw new Error(friendlyAuthError(error));

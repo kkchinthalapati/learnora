@@ -18,6 +18,7 @@ import {
 } from "./studyPackage";
 
 const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
+const WEB_RESEARCH_URL = `${SUPABASE_URL}/functions/v1/web-research`;
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 const STORAGE_URL = `${SUPABASE_URL}/storage/v1/object/materials/*`;
 
@@ -411,6 +412,32 @@ describe("createStudyPackage", () => {
       expect(inserted.materials[0].type).toBe("youtube");
       expect(promptFor("notes")).toContain("You cannot watch the video");
       expect(result.notes).toBe(NOTES_MARKDOWN);
+    });
+
+    it("extracts an ordinary web page before generating notes", async () => {
+      serveEdge({ notes: text(NOTES_MARKDOWN) });
+      server.use(
+        http.post(WEB_RESEARCH_URL, () =>
+          HttpResponse.json({
+            title: "Cell division",
+            url: "https://example.edu/biology/mitosis",
+            domain: "example.edu",
+            markdown:
+              "# Mitosis\n\nChromosomes are separated into two daughter nuclei.",
+          }),
+        ),
+      );
+
+      await request({
+        source: { kind: "link", url: "https://example.edu/biology/mitosis" },
+        outputs: {},
+      });
+
+      expect(inserted.materials[0].title).toBe("Cell division");
+      expect(promptFor("notes")).toContain("Chromosomes are separated");
+      expect(promptFor("notes")).toContain(
+        "https://example.edu/biology/mitosis",
+      );
     });
 
     it("refuses an empty one before creating anything", async () => {

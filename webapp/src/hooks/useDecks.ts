@@ -13,32 +13,6 @@ export function useAllDecks() {
 
 export const useDecks = useAllDecks;
 
-export function useDecksByFolder(folderId: string) {
-  return useQuery({
-    queryKey: decksKeys.byFolder(folderId),
-    queryFn: () => decksApi.fetch(folderId),
-    enabled: !!folderId,
-  });
-}
-
-export function useAddDeck() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      folderId,
-      title,
-    }: {
-      folderId: string | null;
-      title: string;
-    }) => decksApi.add(folderId, title),
-    onSuccess: (_data, { folderId }) => {
-      qc.invalidateQueries({ queryKey: decksKeys.all });
-      if (folderId)
-        qc.invalidateQueries({ queryKey: decksKeys.byFolder(folderId) });
-    },
-  });
-}
-
 /* `flashcards.deck_id` is ON DELETE CASCADE, so deleting a deck also changes
  * the due count the Library's Flashcards banner (and, later, the dashboard
  * badge) reads. */

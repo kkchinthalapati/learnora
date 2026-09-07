@@ -40,36 +40,14 @@ export function useAllDueFlashcards(limit = 50) {
   });
 }
 
-export function useAddFlashcardBatch() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      deckId,
-      cards,
-    }: {
-      deckId: string;
-      cards: { front: string; back: string }[];
-    }) => flashcardsApi.addBatch(deckId, cards),
-    onSuccess: (_data, { deckId }) => {
-      qc.invalidateQueries({ queryKey: flashcardsKeys.byDeck(deckId) });
-      qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
-    },
-  });
-}
-
 /* Card-level mutations. Each invalidates the owning deck's list plus the two
  * due-derived queries, since adding or removing a card changes what the
  * Library banner and the daily drill count. */
 export function useAddFlashcard() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      deckId,
-      card,
-    }: {
-      deckId: string;
-      card: CardFields;
-    }) => flashcardsApi.add(deckId, card),
+    mutationFn: ({ deckId, card }: { deckId: string; card: CardFields }) =>
+      flashcardsApi.add(deckId, card),
     onSuccess: (_data, { deckId }) => {
       qc.invalidateQueries({ queryKey: flashcardsKeys.byDeck(deckId) });
       qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });

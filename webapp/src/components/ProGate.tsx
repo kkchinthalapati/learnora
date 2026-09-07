@@ -78,14 +78,6 @@ export function ProGate({
 
 /** The small "Pro" pill, for menu items and card headers. Purely decorative —
  *  it labels a gate, it is never the gate itself. */
-export function ProBadge({ quiet = false }: { quiet?: boolean }) {
-  return (
-    <span className={`${styles.badge} ${quiet ? styles.badgeQuiet : ""}`}>
-      Pro
-    </span>
-  );
-}
-
 /** Imperative gate for handlers: returns true when the action may proceed, and
  *  otherwise opens the paywall. For buttons that do something rather than
  *  regions that show something. */

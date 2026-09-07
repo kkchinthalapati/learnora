@@ -64,6 +64,12 @@ export interface AttachedFile {
   data: string;
 }
 
+export type ChatSourceMode = "web" | "notebook" | "hybrid";
+
+export interface ChatSendOptions {
+  sourceMode?: ChatSourceMode;
+}
+
 export interface ChatApi {
   messages: ChatMessage[];
   isOpen: boolean;
@@ -81,7 +87,7 @@ export interface ChatApi {
   draft: string;
   clearDraft: () => void;
 
-  send: (query: string) => Promise<void>;
+  send: (query: string, options?: ChatSendOptions) => Promise<void>;
   attachFile: (file: File) => void;
   clearFile: () => void;
 

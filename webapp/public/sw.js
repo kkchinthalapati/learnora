@@ -23,7 +23,8 @@ const PRECACHE_ASSETS = [
   "/app/manifest.webmanifest",
 ];
 
-const STATIC_EXTENSIONS = /\.(?:js|css|woff2?|ttf|png|jpe?g|gif|svg|ico|webp)$/i;
+const STATIC_EXTENSIONS =
+  /\.(?:js|css|woff2?|ttf|png|jpe?g|gif|svg|ico|webp)$/i;
 
 /* Deliberately no `skipWaiting()` here.
  *
@@ -40,21 +41,19 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches
-      .open(SHELL_CACHE)
-      .then((cache) => {
-        return Promise.allSettled(
-          PRECACHE_ASSETS.map((url) =>
-            fetch(url)
-              .then((res) => {
-                if (res.ok) return cache.put(url, res);
-              })
-              .catch(() => {
-                /* Offline during install - will cache on first navigation */
-              }),
-          ),
-        );
-      }),
+    caches.open(SHELL_CACHE).then((cache) => {
+      return Promise.allSettled(
+        PRECACHE_ASSETS.map((url) =>
+          fetch(url)
+            .then((res) => {
+              if (res.ok) return cache.put(url, res);
+            })
+            .catch(() => {
+              /* Offline during install - will cache on first navigation */
+            }),
+        ),
+      );
+    }),
   );
 });
 
@@ -152,8 +151,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: "/learnora.jpg",
-      badge: "/learnora.jpg",
+      icon: "/app/learnora.jpg",
+      badge: "/app/learnora.jpg",
       data: { url },
     }),
   );

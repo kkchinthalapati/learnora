@@ -28,6 +28,7 @@
  */
 
 import { AiError, callEdge, type FilePayload } from "./ai";
+import { extractWebContent } from "./aiWebSearch";
 import {
   generateQuizFrom,
   QUIZ_DEFAULTS,
@@ -462,6 +463,14 @@ export async function createStudyPackage(
             : "Please paste some text first.",
         );
       }
+      let sourceContent = raw;
+      if (source.kind === "link" && !YOUTUBE_LINK.test(raw)) {
+        step("Reading the linked page…");
+        const extracted = await extractWebContent(raw);
+        sourceContent = `Source: ${extracted.url}\n\n${extracted.markdown}`;
+        if (!baseTitle) baseTitle = extracted.title;
+      }
+
       result.material = await materialsApi.addLink(
         raw,
         folderId,
@@ -476,7 +485,7 @@ export async function createStudyPackage(
          `text/plain` payload here and decoded it again inside `_generateNotes`
          (js/ai.js:723-727, :529-537) — a round trip with no observable effect,
          since a text/plain payload is never sent as an attachment anyway. */
-      notesSource = { inlineText: raw };
+      notesSource = { inlineText: sourceContent };
     }
 
     baseTitle = result.material.title;

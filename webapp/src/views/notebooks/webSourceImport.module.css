@@ -43,7 +43,8 @@
   font-family: var(--font);
   font-size: var(--fs-base);
   outline: none;
-  transition: border-color var(--t-fast) var(--ease),
+  transition:
+    border-color var(--t-fast) var(--ease),
     background var(--t-fast) var(--ease);
 }
 
@@ -88,6 +89,24 @@
   background: var(--accent-hover);
 }
 
+.searchBtn:disabled,
+.topicChip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.errorState {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-lg);
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  font-size: var(--fs-sm);
+}
+
 .quickPills {
   display: flex;
   align-items: center;
@@ -114,7 +133,8 @@
   font-family: var(--font);
   font-size: var(--fs-xs);
   cursor: pointer;
-  transition: background var(--t-fast) var(--ease),
+  transition:
+    background var(--t-fast) var(--ease),
     color var(--t-fast) var(--ease);
 }
 
@@ -144,7 +164,8 @@
   border: var(--border);
   border-radius: var(--r-lg);
   background: var(--surface);
-  transition: border-color var(--t-fast) var(--ease),
+  transition:
+    border-color var(--t-fast) var(--ease),
     box-shadow var(--t-fast) var(--ease);
 }
 
@@ -242,7 +263,8 @@
   font-size: var(--fs-xs);
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--t-fast) var(--ease),
+  transition:
+    background var(--t-fast) var(--ease),
     border-color var(--t-fast) var(--ease),
     color var(--t-fast) var(--ease);
 }

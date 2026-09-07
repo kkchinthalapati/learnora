@@ -219,25 +219,3 @@
   font-size: var(--fs-sm);
   line-height: 1.5;
 }
-
-/* --- Pro badge -------------------------------------------------------- */
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-on);
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  vertical-align: middle;
-}
-
-.badgeQuiet {
-  background: var(--accent-soft);
-  color: var(--accent-text);
-}

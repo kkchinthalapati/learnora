@@ -34,7 +34,9 @@ export interface OfflineActionPayloadMap {
 
 export type OfflineActionType = keyof OfflineActionPayloadMap;
 
-export interface OfflineAction<T extends OfflineActionType = OfflineActionType> {
+export interface OfflineAction<
+  T extends OfflineActionType = OfflineActionType,
+> {
   id: string;
   type: T;
   payload: OfflineActionPayloadMap[T];
@@ -102,7 +104,9 @@ function setSyncingState(syncing: boolean): void {
   syncingState = syncing;
   if (typeof window !== "undefined") {
     window.dispatchEvent(
-      new CustomEvent(OFFLINE_SYNC_STATE_EVENT, { detail: { isSyncing: syncing } }),
+      new CustomEvent(OFFLINE_SYNC_STATE_EVENT, {
+        detail: { isSyncing: syncing },
+      }),
     );
   }
 }
@@ -122,7 +126,10 @@ function saveOfflineQueue(queue: OfflineAction[]): void {
     cachedRaw = serialized;
     cachedQueue = queue;
   } catch (err) {
-    console.error("[offlineSync] Failed to persist queue to localStorage:", err);
+    console.error(
+      "[offlineSync] Failed to persist queue to localStorage:",
+      err,
+    );
   }
   notifyQueueChanged();
 }
@@ -256,7 +263,10 @@ export async function flushOfflineQueue(): Promise<FlushResult> {
           failed++;
           const nextRetry = (action.retryCount || 0) + 1;
           const errorMessage = err?.message || String(err);
-          console.error(`[offlineSync] Error executing action ${action.id} (${action.type}):`, err);
+          console.error(
+            `[offlineSync] Error executing action ${action.id} (${action.type}):`,
+            err,
+          );
 
           if (nextRetry >= MAX_RETRIES) {
             console.warn(
@@ -279,7 +289,10 @@ export async function flushOfflineQueue(): Promise<FlushResult> {
             }
 
             // Exponential backoff: 1s, 2s, 4s, 8s, 16s, max 30s
-            const backoffMs = Math.min(1000 * Math.pow(2, nextRetry - 1), 30000);
+            const backoffMs = Math.min(
+              1000 * Math.pow(2, nextRetry - 1),
+              30000,
+            );
             retryTimeoutId = setTimeout(() => {
               if (typeof navigator === "undefined" || navigator.onLine) {
                 flushOfflineQueue();
@@ -327,7 +340,9 @@ function isConnectivityFailure(error: unknown): boolean {
  * Helper to submit SRS review: attempts online execution first;
  * if offline or on network error, enqueues to offline queue.
  */
-export async function submitSrsReview(payload: SrsReviewPayload): Promise<{ queued: boolean }> {
+export async function submitSrsReview(
+  payload: SrsReviewPayload,
+): Promise<{ queued: boolean }> {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
     enqueueOfflineAction("submitSrsReview", payload);
     return { queued: true };
@@ -344,7 +359,10 @@ export async function submitSrsReview(payload: SrsReviewPayload): Promise<{ queu
     return { queued: false };
   } catch (error) {
     if (!isConnectivityFailure(error)) throw error;
-    console.warn("[offlineSync] submitSrsReview failed, queuing offline:", error);
+    console.warn(
+      "[offlineSync] submitSrsReview failed, queuing offline:",
+      error,
+    );
     enqueueOfflineAction("submitSrsReview", payload);
     return { queued: true };
   }
@@ -354,7 +372,9 @@ export async function submitSrsReview(payload: SrsReviewPayload): Promise<{ queu
  * Helper to log focus timer session: attempts online execution first;
  * if offline or on network error, enqueues to offline queue.
  */
-export async function logSession(payload: LogSessionPayload): Promise<{ queued: boolean }> {
+export async function logSession(
+  payload: LogSessionPayload,
+): Promise<{ queued: boolean }> {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
     enqueueOfflineAction("logSession", payload);
     return { queued: true };
@@ -375,7 +395,9 @@ export async function logSession(payload: LogSessionPayload): Promise<{ queued: 
  * Helper to toggle task completion: attempts online execution first;
  * if offline or on network error, enqueues to offline queue.
  */
-export async function toggleTask(payload: ToggleTaskPayload): Promise<{ queued: boolean }> {
+export async function toggleTask(
+  payload: ToggleTaskPayload,
+): Promise<{ queued: boolean }> {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
     enqueueOfflineAction("toggleTask", payload);
     return { queued: true };
@@ -448,7 +470,9 @@ export function useOnlineStatus() {
     typeof navigator !== "undefined" ? navigator.onLine : true,
   );
   const queueSize = useOfflineQueueSize();
-  const [isSyncing, setIsSyncing] = useState<boolean>(() => isCurrentlySyncing());
+  const [isSyncing, setIsSyncing] = useState<boolean>(() =>
+    isCurrentlySyncing(),
+  );
 
   useEffect(() => {
     const handleOnline = () => {
@@ -490,52 +514,6 @@ export function useOnlineStatus() {
 /**
  * Hook returning comprehensive offline queue state and management actions.
  */
-export function useOfflineQueue() {
-  const queue = useOfflineQueueData();
-  const queueSize = queue.length;
-  const [isSyncing, setIsSyncing] = useState<boolean>(() => isCurrentlySyncing());
-  const [isOnline, setIsOnline] = useState<boolean>(() =>
-    typeof navigator !== "undefined" ? navigator.onLine : true,
-  );
-
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      flushOfflineQueue();
-    };
-    const handleOffline = () => {
-      setIsOnline(false);
-    };
-    const handleSyncChange = (e: Event) => {
-      const detail = (e as CustomEvent<{ isSyncing: boolean }>).detail;
-      setIsSyncing(detail?.isSyncing ?? isCurrentlySyncing());
-    };
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    window.addEventListener(OFFLINE_SYNC_STATE_EVENT, handleSyncChange);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-      window.removeEventListener(OFFLINE_SYNC_STATE_EVENT, handleSyncChange);
-    };
-  }, []);
-
-  const flushQueue = useCallback(async () => {
-    return flushOfflineQueue();
-  }, []);
-
-  return {
-    queue,
-    queueSize,
-    isSyncing,
-    isOnline,
-    flushQueue,
-    enqueueAction: enqueueOfflineAction,
-  };
-}
-
 // Auto-register online listeners if running in a browser environment
 if (typeof window !== "undefined") {
   window.addEventListener("online", () => {

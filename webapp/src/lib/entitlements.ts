@@ -429,6 +429,3 @@ export function formatPrice(pence: number, currency = "GBP"): string {
 
 /** What the student is told when a gate stops them. Kept here rather than in
  *  the modal so the same sentence is used wherever the gate appears. */
-export function gateMessage(feature: FeatureId): string {
-  return FEATURES[feature].pitch;
-}

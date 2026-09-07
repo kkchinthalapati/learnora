@@ -1,5 +1,5 @@
 import { test as base, expect, type Page } from "@playwright/test";
-import { MockBackend, captureStripeRedirects, type SeedUser } from "./mockBackend";
+import { MockBackend, captureStripeRedirects } from "./mockBackend";
 
 /* The shared world every critical-path test runs in: a mocked backend wired
  * into the page before the app loads, plus the handful of journeys that show
@@ -16,16 +16,16 @@ export interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
-  backend: async ({ page }, use) => {
+  backend: async ({ page }, provideFixture) => {
     const backend = new MockBackend();
     await backend.install(page);
-    await use(backend);
+    await provideFixture(backend);
   },
 
-  stripeRedirects: async ({ page }, use) => {
+  stripeRedirects: async ({ page }, provideFixture) => {
     const seen: string[] = [];
     await captureStripeRedirects(page, seen);
-    await use(seen);
+    await provideFixture(seen);
   },
 });
 
@@ -50,7 +50,9 @@ export async function loginAs(
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: /Log In|Sign In/i }).click();
-  await expect(page.getByRole("navigation").first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("navigation").first()).toBeVisible({
+    timeout: 20_000,
+  });
 }
 
 /** Ask the assistant for something and wait for the round trip to finish.
@@ -75,7 +77,11 @@ export async function undersizedTapTargets(
     );
     for (const element of candidates) {
       const style = window.getComputedStyle(element);
-      if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") {
+      if (
+        style.display === "none" ||
+        style.visibility === "hidden" ||
+        style.opacity === "0"
+      ) {
         continue;
       }
       const box = element.getBoundingClientRect();
@@ -89,7 +95,8 @@ export async function undersizedTapTargets(
          break the text they belong to. */
       const parentTag = element.parentElement?.tagName ?? "";
       const isInlineLink =
-        element.tagName === "A" && ["P", "LI", "SPAN", "LABEL"].includes(parentTag);
+        element.tagName === "A" &&
+        ["P", "LI", "SPAN", "LABEL"].includes(parentTag);
       if (isInlineLink) continue;
 
       if (box.width < min || box.height < min) {

@@ -6,6 +6,8 @@ import { useToast } from "../../context/toast";
 import { notebooksApi } from "../../api/notebooks";
 import { PersonaOffsetToolbar } from "../ai/PersonaOffsetToolbar";
 import { ChatMessageBubble } from "./ChatMessage";
+import { useSettings } from "../../context/settings";
+import type { SourceMode } from "../ai/PersonaOffsetToolbar";
 import styles from "./chat.module.css";
 
 /* The workspace chat panel — ports index.html:2314-2455 and its wiring in
@@ -72,6 +74,10 @@ export function TurboChat() {
     saveCards,
   } = useChat();
   const { showToast } = useToast();
+  const { settings, updateAndSave } = useSettings();
+  const [sourceMode, setSourceMode] = useState<SourceMode>(
+    settings.webAccess ? "hybrid" : "notebook",
+  );
 
   const handleAddToNotebook = useCallback(
     async (citation: { title: string; url?: string; snippet?: string }) => {
@@ -93,10 +99,12 @@ export function TurboChat() {
           content: citation.snippet || citation.url || citation.title,
           selected: true,
         });
-        showToast(`Added "${citation.title}" to Notebook!`);
+        showToast(`Added "${citation.title}" to notebook.`);
       } catch (err) {
         console.error("Failed to add citation to notebook:", err);
-        showToast(`Added "${citation.title}" to Notebook!`);
+        showToast("That source could not be saved. Please try again.", {
+          error: true,
+        });
       }
     },
     [showToast],
@@ -186,7 +194,7 @@ export function TurboChat() {
     const value = text.trim();
     if (!value && !file) return;
     setInput("");
-    void send(value || "Analyse this.");
+    void send(value || "Analyse this.", { sourceMode });
   };
 
   const chipClicked = (suggestion: (typeof SUGGESTIONS)[number]) => {
@@ -318,7 +326,17 @@ export function TurboChat() {
       ) : null}
 
       <div className={styles.toolbarWrapper}>
-        <PersonaOffsetToolbar />
+        <PersonaOffsetToolbar
+          depth={settings.aiDepth}
+          style={settings.aiStyle}
+          sourceMode={sourceMode}
+          onDepthChange={(aiDepth) => updateAndSave({ aiDepth })}
+          onStyleChange={(aiStyle) => updateAndSave({ aiStyle })}
+          onSourceModeChange={(nextMode) => {
+            setSourceMode(nextMode);
+            updateAndSave({ webAccess: nextMode !== "notebook" });
+          }}
+        />
       </div>
 
       <form

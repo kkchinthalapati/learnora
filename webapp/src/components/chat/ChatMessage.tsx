@@ -7,7 +7,11 @@ import {
   renderMathText,
   type MarkdownSegment,
 } from "../../lib/markdownToReact";
-import type { ActionWidget, ChatMessage as Message, WebCitation } from "../../context/chat";
+import type {
+  ActionWidget,
+  ChatMessage as Message,
+  WebCitation,
+} from "../../context/chat";
 import styles from "./chat.module.css";
 
 /* One chat bubble — ports `_appendBubble` (js/ai.js:1276-1298) and the action
@@ -61,26 +65,6 @@ function extractDomain(url?: string): string {
   }
 }
 
-function extractInlineWebCitations(text: string): WebCitation[] {
-  if (!text) return [];
-  const regex = /<WEB_CITATION>([\s\S]*?)<\/WEB_CITATION>/gi;
-  const list: WebCitation[] = [];
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    const parts = match[1].split("||");
-    const title = parts[0]?.trim() || "Web Source";
-    const url = parts[1]?.trim() || "";
-    const snippet = parts[2]?.trim() || "";
-    list.push({
-      title,
-      url,
-      snippet,
-      domain: extractDomain(url),
-    });
-  }
-  return list;
-}
-
 export function ChatMessageBubble({
   message,
   onSaveCards,
@@ -122,16 +106,16 @@ export function ChatMessageBubble({
     .filter(Boolean)
     .join(" ");
 
-  // Extract or resolve web citations
-  const inlineCitations = extractInlineWebCitations(message.text);
-  const webSources: WebCitation[] =
-    message.webSources && message.webSources.length > 0
-      ? message.webSources
-      : inlineCitations;
+  /* Only metadata returned by the research endpoint becomes a source card.
+     Model-authored tags are not provenance and must never be promoted into
+     clickable citations. */
+  const webSources: WebCitation[] = message.webSources ?? [];
 
   // Clean raw tags from message text for display
   const cleanDisplayContent = message.text
-    ? message.text.replace(/<WEB_CITATION>[\s\S]*?<\/WEB_CITATION>/gi, "").trim()
+    ? message.text
+        .replace(/<WEB_CITATION>[\s\S]*?<\/WEB_CITATION>/gi, "")
+        .trim()
     : "";
 
   let body;
@@ -208,7 +192,10 @@ export function ChatMessageBubble({
 
       {/* Web Citation Cards */}
       {webSources.length > 0 && !message.pending && (
-        <div className={styles.citationsWrapper} data-testid="web-citations-container">
+        <div
+          className={styles.citationsWrapper}
+          data-testid="web-citations-container"
+        >
           <div className={styles.citationsHeader}>
             <Icon name="globe" size={12} />
             <span>Web Sources ({webSources.length})</span>

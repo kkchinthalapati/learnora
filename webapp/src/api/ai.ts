@@ -233,7 +233,3 @@ export function trimHistory(history: ChatMessage[]): ChatMessage[] {
 /** A user-facing message for any error out of this layer. A refusal and a
  *  timeout both carry their own wording; anything else gets the fallback the
  *  caller supplies. */
-export function aiErrorMessage(err: unknown, fallback: string): string {
-  if (err instanceof AiError) return err.message;
-  return fallback;
-}

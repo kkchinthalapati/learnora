@@ -706,6 +706,19 @@ Deno.serve(async (req) => {
             // actually change the voice.
             professor: 'a formal, precise, academic professor who explains things in textbook style'
         };
+        const depthMap: Record<number, string> = {
+            1: 'Give a quick intuitive explanation with one simple example.',
+            2: 'Explain the conceptual foundations before applying them.',
+            3: 'Use standard course-level depth with enough working to follow.',
+            4: 'Include advanced analysis, assumptions, and important edge cases.',
+            5: 'Use deep academic treatment with formal reasoning or derivations where relevant.',
+        };
+        const studyStyleMap: Record<string, string> = {
+            visual: 'Prefer spatial descriptions, mental models, and concrete analogies.',
+            rigorous: 'Prefer explicit steps, definitions, and mathematically precise reasoning.',
+            exam_trap: 'Highlight common mistakes, marking points, and misleading exam wording.',
+            concise: 'Prioritise dense key points and omit non-essential framing.',
+        };
 
         const modeInstructions = mode === "plan"
             ? `\nYou are generating a weekly study schedule. Output ONLY raw JSON (no prose, no code fences) matching this shape: {"days":[{"date":"YYYY-MM-DD","blocks":[{"startHint":"morning|afternoon|evening","durationMins":45,"subject":"string","reason":"string","examId":null,"taskId":null}]}],"summary":"one-sentence summary of the week's priorities"}.`
@@ -737,6 +750,8 @@ Deno.serve(async (req) => {
 
         const systemInstruction = `You are Learnora AI. Act as ${personaMap[s.aiPersona] || personaMap.tutor}.
     Use ${s.aiLanguage || 'English'}.
+    DEPTH: ${depthMap[Number(s.aiDepth)] || depthMap[3]}
+    STUDY STYLE: ${studyStyleMap[s.aiStyle] || studyStyleMap.concise}
 
     VOICE — refer to yourself in the first person, always. Say "I can help you with that", never "Learnora can help you with that" or "Learnora AI thinks". Use the name "Learnora" only for the product itself (its tabs, features and screens), never as a stand-in for "I", and never describe yourself in the third person. Stay in this voice for the whole conversation, including the first message.
 

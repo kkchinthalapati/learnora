@@ -63,14 +63,6 @@ export function useToggleTask() {
   });
 }
 
-export function useDeleteTask() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => tasksApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: tasksKeys.all }),
-  });
-}
-
 export function useUpdateTaskText() {
   const qc = useQueryClient();
   return useMutation({
