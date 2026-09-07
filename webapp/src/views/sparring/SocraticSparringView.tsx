@@ -16,8 +16,14 @@ import {
   type SparringPersona,
   type GroundedCitation,
 } from "../../api/aiSparring";
-import { useRecordMisconceptions } from "../../hooks/useMisconceptions";
-import { candidatesFromSparring } from "../../lib/misconceptions";
+import {
+  useMisconceptions,
+  useRecordMisconceptions,
+} from "../../hooks/useMisconceptions";
+import {
+  candidatesFromSparring,
+  formatMisconceptionsForPrompt,
+} from "../../lib/misconceptions";
 import { SparringStage } from "./SparringStage";
 import styles from "./sparring.module.css";
 
@@ -48,6 +54,9 @@ export function SocraticSparringView() {
   const evidenceBlock = isEvidencePending
     ? undefined
     : formatEvidenceForPrompt(studentEvidence);
+  const { all: ledger } = useMisconceptions();
+  const ledgerBlock =
+    ledger.length > 0 ? formatMisconceptionsForPrompt(ledger) : undefined;
 
   // Session State
   const [topicInput, setTopicInput] = useState(queryTopic || "");
@@ -140,6 +149,7 @@ export function SocraticSparringView() {
         notesContext,
         notebook?.id,
         evidenceBlock,
+        ledgerBlock,
       );
 
       setSession(newSession);

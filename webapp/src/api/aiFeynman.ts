@@ -5,6 +5,13 @@
  */
 
 import { callEdge } from "./ai";
+import { fenceUntrusted } from "../lib/actionTags";
+/* Aliased: `Misconception` is already this module's own type for a planted
+   draft flaw, which is a different thing from a ledger row. */
+import {
+  rankMisconceptions,
+  type Misconception as LedgerMisconception,
+} from "../lib/misconceptions";
 
 export type ApprenticePersona =
   | "curious_beginner"
@@ -876,10 +883,41 @@ export async function generateApprenticeDraft(
   subject: string,
   topic: string,
   persona: ApprenticePersona,
-  difficulty: FeynmanDifficulty = "intermediate"
+  difficulty: FeynmanDifficulty = "intermediate",
+  /** The student's own diagnosed misconceptions for this subject. */
+  studentMisconceptions: LedgerMisconception[] = [],
 ): Promise<ApprenticeDraft> {
   const safeSubject = subject.trim() || "Science";
   const safeTopic = topic.trim() || "Core Concepts";
+
+  /* The sharpest use the ledger gets anywhere in this app.
+   *
+   * Feynman already plants misconceptions for the student to find — generic
+   * ones, "typical of this persona". Planting the student's *own* recorded
+   * wrong beliefs instead turns the exercise inside out: they have to spot
+   * their own error in someone else's writing, where they have no ego invested
+   * and no memory of having written it. Recognising a belief as wrong when it
+   * is worn by an apprentice is a far stronger test than being told you hold
+   * it, and it is the one thing here no generic tutor can do.
+   *
+   * Note this does not change what gets recorded: `candidatesFromTeachingTurn`
+   * still reads only the turn's confusion/solved points and deliberately
+   * ignores planted misconceptions, so a belief seeded here cannot be
+   * re-recorded as fresh evidence against the student. */
+  const seeded = rankMisconceptions(
+    studentMisconceptions.filter((m) => m.subject.trim().length === 0
+      ? false
+      : m.subject.trim().toLowerCase() === safeSubject.trim().toLowerCase()),
+  ).slice(0, 2);
+
+  const seededBlock =
+    seeded.length > 0
+      ? `\nTHIS STUDENT'S OWN RECORDED MISCONCEPTIONS (diagnosed by this app from their real work):
+${seeded.map((m) => `- ${fenceUntrusted(m.concept)}: ${fenceUntrusted(m.summary)}`).join("\n")}
+- Where one of these genuinely fits ${safeTopic}, write it into the draft as one of the apprentice's flaws, in the apprentice's own words. The student must be able to find it by reading, so make it plausible rather than obviously wrong.
+- Never say, hint, or imply that a flaw came from the student's own record. The apprentice believes it; that is all the student should be able to tell.
+- If none of them fit this topic, ignore this list and invent typical misconceptions as usual. Do not force one in.\n`
+      : "";
 
   // Check if live edge call is available
   try {
@@ -888,7 +926,7 @@ Subject: ${safeSubject}
 Topic: ${safeTopic}
 Persona: ${persona} (${PERSONA_PROFILES[persona].name})
 Difficulty: ${difficulty}
-
+${seededBlock}
 Rules:
 1. Write a 3-5 sentence draft representing the apprentice's flawed understanding of ${safeTopic}.
 2. Include 2-3 subtle, plausible conceptual misconceptions typical of this persona.

@@ -659,3 +659,50 @@
     animation: none;
   }
 }
+
+/* Per-subject misconception strip. Token-only: this file carries a drift
+   baseline (src/styles/drift.test.ts) that only ever ratchets down. */
+.subjectLedger {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  margin-bottom: var(--s-4);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.subjectLedgerLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  color: var(--warning-text);
+}
+
+.subjectLedgerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.subjectLedgerItem {
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.subjectLedgerItem strong {
+  color: var(--text);
+}
+
+.subjectLedgerCount {
+  color: var(--warning-text);
+  font-weight: 600;
+}

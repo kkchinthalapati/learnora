@@ -7,6 +7,7 @@ import type {
   QuizAttempt,
   StudySession,
 } from "../api/types";
+import type { Misconception } from "./misconceptions";
 import {
   computeExamReadiness,
   generatePrepRoadmap,
@@ -16,6 +17,7 @@ import {
   calculateExamReadiness,
   generateExamStudyMilestones,
   recommendRevisionSchedule,
+  MAX_MISCONCEPTION_PENALTY,
 } from "./examReadiness";
 
 describe("examReadiness", () => {
@@ -296,6 +298,110 @@ describe("examReadiness", () => {
     });
   });
 
+  describe("computeExamReadiness — misconception ledger", () => {
+    const now = new Date("2026-09-01T00:00:00");
+
+    function ledgerRow(over: Partial<Misconception> = {}): Misconception {
+      return {
+        id: "m1",
+        subject: "Biochemistry",
+        concept: "Hydrolysis",
+        conceptKey: "hydrolysis",
+        summary: "Believes water is consumed rather than added.",
+        status: "open",
+        severity: "moderate",
+        originTool: "debugger",
+        timesObserved: 1,
+        timesCorrected: 0,
+        firstSeenAt: "2026-08-20T00:00:00Z",
+        lastSeenAt: "2026-08-28T00:00:00Z",
+        resolvedAt: null,
+        ...over,
+      };
+    }
+
+    /* A strong attempt history, so mastery is high enough for a deduction to
+       be visible rather than clipped at zero. */
+    const strongAttempts: QuizAttempt[] = [
+      {
+        id: "qa-1",
+        user_id: "user-123",
+        quiz_id: "q-1",
+        score: 10,
+        total: 10,
+        answers_json: null,
+        weak_topics: [],
+        created_at: "2026-08-30T00:00:00Z",
+      } as QuizAttempt,
+    ];
+
+    function readinessWith(ledger: Misconception[]) {
+      return computeExamReadiness(
+        baseExam,
+        folder,
+        [],
+        [],
+        strongAttempts,
+        [],
+        now,
+        ledger,
+      );
+    }
+
+    it("leaves the score untouched when the ledger is empty", () => {
+      const before = readinessWith([]);
+      expect(before.misconceptionPenalty).toBe(0);
+      expect(before.openMisconceptions).toBe(0);
+      expect(before.breakdown.mastery).toBe(100);
+    });
+
+    it("deducts from mastery only, never from coverage or study time", () => {
+      /* Coverage and study time measure effort — how much material exists and
+         how many hours went in. A wrong belief does not make either untrue. */
+      const after = readinessWith([ledgerRow({ severity: "critical" })]);
+      expect(after.breakdown.mastery).toBe(94);
+      expect(after.misconceptionPenalty).toBe(6);
+      expect(after.breakdown.coverage).toBe(readinessWith([]).breakdown.coverage);
+      expect(after.breakdown.studyTime).toBe(readinessWith([]).breakdown.studyTime);
+    });
+
+    it("weights severity, so a debugger trace outranks a sparring omission", () => {
+      expect(readinessWith([ledgerRow({ severity: "critical" })]).misconceptionPenalty).toBe(6);
+      expect(readinessWith([ledgerRow({ severity: "moderate" })]).misconceptionPenalty).toBe(4);
+      expect(readinessWith([ledgerRow({ severity: "minor" })]).misconceptionPenalty).toBe(2);
+    });
+
+    it("caps the deduction so readiness stays a composite", () => {
+      const many = Array.from({ length: 20 }, (_, i) =>
+        ledgerRow({ id: `m${i}`, concept: `Concept ${i}`, severity: "critical" }),
+      );
+      expect(readinessWith(many).misconceptionPenalty).toBe(MAX_MISCONCEPTION_PENALTY);
+    });
+
+    it("ignores resolved rows but still counts them as closed", () => {
+      const out = readinessWith([
+        ledgerRow({ id: "open-1" }),
+        ledgerRow({ id: "done-1", concept: "Moles", status: "resolved" }),
+      ]);
+      expect(out.openMisconceptions).toBe(1);
+      expect(out.closedMisconceptions).toBe(1);
+      expect(out.misconceptionPenalty).toBe(4);
+    });
+
+    it("ignores misconceptions from a different subject", () => {
+      /* Under-counting is the right error: penalising a Biochemistry exam for
+         a Physics belief would be worse than missing one. */
+      const out = readinessWith([ledgerRow({ subject: "Physics" })]);
+      expect(out.openMisconceptions).toBe(0);
+      expect(out.misconceptionPenalty).toBe(0);
+    });
+
+    it("leads the weak-topic list with open misconceptions", () => {
+      const out = readinessWith([ledgerRow()]);
+      expect(out.weakTopics[0]).toBe("Hydrolysis");
+    });
+  });
+
   describe("generatePrepRoadmap", () => {
     it("generates 4 distinct milestone phases with tasks and due dates", () => {
       const now = new Date("2026-08-25T00:00:00");
@@ -367,6 +473,9 @@ describe("examReadiness", () => {
         tier: "Getting there" as const,
         breakdown: { coverage: 40, mastery: 90, studyTime: 60 },
         weakTopics: [],
+        openMisconceptions: 0,
+        closedMisconceptions: 0,
+        misconceptionPenalty: 0,
         daysRemaining: 9,
         targetHoursRemaining: 8,
         totalStudyMinutes: 720,

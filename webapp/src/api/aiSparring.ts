@@ -354,6 +354,12 @@ export async function startSparringSession(
   notesContext?: string,
   notebookId?: string,
   performanceEvidence?: string,
+  /** Rendered by `lib/misconceptions.ts`. Where `performanceEvidence` says
+   *  which topics score badly, this says what the student actually believes
+   *  wrongly — which is a far better thing to open a debate on, because the
+   *  student can defend a topic they score badly on but cannot defend a
+   *  position that is wrong. */
+  misconceptionLedger?: string,
 ): Promise<SparringSession> {
   const sessionId = `sparring-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const cleanTopic = topic.trim() || "General Study Topic";
@@ -368,6 +374,7 @@ You have two personas:
 
 ${notesContext ? `STUDENT REVISION NOTES:\n${notesContext.slice(0, 1500)}\n` : ""}
 ${performanceEvidence ? `${performanceEvidence}\n\nAim the opening challenge at a topic the evidence shows is genuinely weak, when one of them is relevant to "${cleanTopic}". Do not tell the student their scores and do not quote a percentage back at them — this is a sparring partner, not a report card. Use the evidence only to choose where to push. Never imply you have measured a topic listed as NEVER TESTED.\n` : ""}
+${misconceptionLedger ? `${misconceptionLedger}\n\nWhen a listed misconception is relevant to "${cleanTopic}", open on it — but attack the position, never the student. Jordan should assert the wrong belief confidently as his own view and make the student argue against it; that forces them to articulate the correction rather than merely recognise it. Do not say it came from a record of their mistakes, do not mention how many times it has been seen, and never open by telling them they are wrong about something.\n` : ""}
 Respond ONLY with valid JSON in this exact schema:
 {
   "speaker": "alex" | "jordan",

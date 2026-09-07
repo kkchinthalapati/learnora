@@ -15,6 +15,7 @@ import { useToast } from "../../context/toast";
 import { useAllDecks } from "../../hooks/useDecks";
 import { useWeakTopics } from "../../hooks/useQuizzes";
 import { useContinuity } from "../../hooks/useContinuity";
+import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { useAddTask } from "../../hooks/useTasks";
 import {
   useFlashcardsByDeck,
@@ -40,7 +41,11 @@ import {
   type ReviewOrder,
   type ReviewResult,
 } from "./session";
-import { dueCardsFrom, nextReviewState } from "./srs";
+import {
+  dueCardsFrom,
+  nextReviewState,
+  prioritiseByMisconceptions,
+} from "./srs";
 import { recordCardReviewedToday } from "../../lib/achievements";
 import styles from "./review.module.css";
 
@@ -73,6 +78,9 @@ export function ReviewView() {
   const decks = useAllDecks();
   const deckCardsQuery = useFlashcardsByDeck(deckId);
   const allDueCardsQuery = useAllDueFlashcards(20);
+  /* Not in the pending gate: a slow ledger read must not hold up a review
+     session, and an empty one just leaves the queue in its normal order. */
+  const { all: ledger } = useMisconceptions();
 
   const cardsQuery = isDailyDrill ? allDueCardsQuery : deckCardsQuery;
 
@@ -130,9 +138,14 @@ export function ReviewView() {
     );
   }
 
-  const due = isDailyDrill
-    ? cardsQuery.data || []
-    : dueCardsFrom(cardsQuery.data);
+  /* Same cards, better order. `prioritiseByMisconceptions` deliberately does
+     not touch FSRS intervals — it moves cards about a still-open diagnosed gap
+     to the front of the session, so the student meets them while fresh rather
+     than forty cards in. An empty ledger returns the queue untouched. */
+  const due = prioritiseByMisconceptions(
+    isDailyDrill ? cardsQuery.data || [] : dueCardsFrom(cardsQuery.data),
+    ledger,
+  );
 
   if (due.length === 0 && !sessionActiveRef.current) {
     return (

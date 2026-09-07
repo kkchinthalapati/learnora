@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { Flashcard } from "../../api/types";
+import type { Misconception } from "../../lib/misconceptions";
 import {
   calculateOptimalInterval,
   calculateRetrievability,
@@ -13,6 +15,7 @@ import {
   nextRecallStability,
   nextReviewState,
   MAX_REVIEW_INTERVAL_DAYS,
+  prioritiseByMisconceptions,
 } from "./srs";
 
 const NOW = new Date("2026-07-31T12:00:00.000Z");
@@ -498,5 +501,90 @@ describe("dueCardsFrom", () => {
     expect(dueCardsFrom([flashcard("2026-08-15T00:00:00.000Z")], NOW)).toEqual(
       [],
     );
+  });
+});
+
+describe("prioritiseByMisconceptions", () => {
+  function card(id: string, front: string, back = ""): Flashcard {
+    return {
+      id,
+      user_id: "u1",
+      deck_id: "d1",
+      front,
+      back,
+      next_review_date: null,
+      srs_interval: 1,
+      ease_factor: 2.5,
+    } as Flashcard;
+  }
+
+  function ledgerRow(concept: string, over: Partial<Misconception> = {}): Misconception {
+    return {
+      id: `m-${concept}`,
+      subject: "Chemistry",
+      concept,
+      conceptKey: concept.toLowerCase(),
+      summary: "",
+      status: "open",
+      severity: "moderate",
+      originTool: "debugger",
+      timesObserved: 1,
+      timesCorrected: 0,
+      firstSeenAt: "2026-09-01T00:00:00Z",
+      lastSeenAt: "2026-09-06T00:00:00Z",
+      resolvedAt: null,
+      ...over,
+    };
+  }
+
+  const cards = [
+    card("a", "What is Le Chatelier's principle?"),
+    card("b", "Define enthalpy change"),
+    card("c", "How does hydrolysis work?", "Water is added across a bond"),
+  ];
+
+  it("returns the queue untouched when the ledger is empty", () => {
+    expect(prioritiseByMisconceptions(cards, [])).toEqual(cards);
+  });
+
+  it("ignores resolved rows", () => {
+    const out = prioritiseByMisconceptions(cards, [
+      ledgerRow("hydrolysis water", { status: "resolved" }),
+    ]);
+    expect(out.map((c) => c.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("moves cards about an open misconception to the front", () => {
+    const out = prioritiseByMisconceptions(cards, [
+      ledgerRow("hydrolysis water"),
+    ]);
+    expect(out[0].id).toBe("c");
+    /* Everything else keeps its original relative order — this reorders a
+       queue, it does not reshuffle one. */
+    expect(out.slice(1).map((c) => c.id)).toEqual(["a", "b"]);
+  });
+
+  it("ranks the most urgent misconception first when several match", () => {
+    const out = prioritiseByMisconceptions(cards, [
+      ledgerRow("hydrolysis water", { timesObserved: 1 }),
+      ledgerRow("enthalpy change", { timesObserved: 5, severity: "critical" }),
+    ]);
+    expect(out[0].id).toBe("b");
+  });
+
+  it("does not reorder on a single coincidental word", () => {
+    /* "water" alone appears in card c, but a one-word overlap at deck scale is
+       a coincidence, and a queue reordered on coincidences is worse than one
+       left alone. */
+    const out = prioritiseByMisconceptions(cards, [
+      ledgerRow("water potential osmosis"),
+    ]);
+    expect(out.map((c) => c.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("never adds or drops a card", () => {
+    const out = prioritiseByMisconceptions(cards, [ledgerRow("hydrolysis water")]);
+    expect(out).toHaveLength(cards.length);
+    expect([...out].map((c) => c.id).sort()).toEqual(["a", "b", "c"]);
   });
 });

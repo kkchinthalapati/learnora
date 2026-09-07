@@ -15,6 +15,7 @@ import {
   getActiveFeynmanSessionId,
 } from "../../api/aiFeynman";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
+import { useMisconceptions } from "../../hooks/useMisconceptions";
 import styles from "./FeynmanHubView.module.css";
 import { EmptyState } from "../../components/EmptyState";
 
@@ -69,6 +70,10 @@ export function FeynmanHubView() {
     }
   }, [refreshSessions]);
 
+  /* Seeds the apprentice draft with this student's own recorded wrong beliefs
+     where they fit the topic — see generateApprenticeDraft. */
+  const { all: ledger } = useMisconceptions();
+
   const handleStartSession = async () => {
     if (!topic.trim()) return;
     setIsGenerating(true);
@@ -77,7 +82,8 @@ export function FeynmanHubView() {
         subject.trim() || "General knowledge",
         topic.trim(),
         selectedPersona,
-        selectedDifficulty
+        selectedDifficulty,
+        ledger,
       );
 
       const newSession: FeynmanSessionState = {

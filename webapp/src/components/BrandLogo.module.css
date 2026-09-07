@@ -26,7 +26,11 @@
 }
 
 .text {
-  font-size: 0.875rem;
+  /* Was a raw 0.875rem, which the drift ratchet flags because a raw size
+     bypasses the --fs-* scale. `--fs-sm` (13px) is the nearest step; nothing
+     moves visually either way, since no caller passes BrandLogo's `showText`
+     and this rule has never rendered. */
+  font-size: var(--fs-sm);
   font-weight: 600;
   letter-spacing: 0.02em;
 }

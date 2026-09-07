@@ -1,4 +1,9 @@
 import type { Flashcard } from "../../api/types";
+import {
+  conceptKey,
+  rankMisconceptions,
+  type Misconception,
+} from "../../lib/misconceptions";
 
 /**
  * FSRS (Free Spaced Repetition Scheduler) v4.5 Algorithm & Spaced Repetition 2.0 Engine.
@@ -393,4 +398,86 @@ export function dueCardsFrom(
   return cards.filter(
     (c) => !c.next_review_date || new Date(c.next_review_date) <= now,
   );
+}
+
+/** Tokens too generic to identify a card by. A concept whose only distinctive
+ *  word is one of these would match half a deck. */
+const GENERIC_MATCH_TOKENS = new Set([
+  "define",
+  "definition",
+  "example",
+  "explain",
+  "formula",
+  "law",
+  "theory",
+  "value",
+  "process",
+  "type",
+  "types",
+  "name",
+]);
+
+/** How many distinct concept tokens a card must contain before it counts as
+ *  being about that misconception. Two rather than one because a single shared
+ *  word ("energy", "acid") is a coincidence at deck scale, and a queue
+ *  reordered on coincidences is worse than one left alone. Concepts with only
+ *  one usable token are matched on that token alone — there is nothing else to
+ *  ask of them — provided it is not generic. */
+const MIN_CONCEPT_TOKEN_MATCHES = 2;
+
+function cardMatchesConcept(card: Flashcard, tokens: string[]): boolean {
+  if (tokens.length === 0) return false;
+  const haystack = `${card.front} ${card.back}`.toLowerCase();
+  const hits = tokens.filter((t) => haystack.includes(t)).length;
+  const required = Math.min(MIN_CONCEPT_TOKEN_MATCHES, tokens.length);
+  return hits >= required;
+}
+
+/**
+ * Reorder a due queue so cards about an open misconception come first.
+ *
+ * Deliberately ordering, not scheduling. Changing FSRS intervals to chase the
+ * ledger would corrupt the memory model the whole algorithm depends on — a
+ * card's stability describes how that card decays, not how important it
+ * currently is — and the damage would outlast the misconception. Order is the
+ * honest lever: the same cards are due, the student simply meets the ones
+ * tied to a known-broken concept while they are still fresh, which is exactly
+ * when a repair has a chance of sticking.
+ *
+ * Cards carry no topic field, so the match is textual against the card's front
+ * and back. It is kept deliberately strict (see `MIN_CONCEPT_TOKEN_MATCHES`):
+ * a missed match costs nothing more than the previous behaviour, while a false
+ * one shuffles a student's session for no reason.
+ *
+ * Stable within each group — cards that match keep their relative order, as do
+ * cards that don't — so this never reshuffles a queue it has nothing to say
+ * about, and an empty ledger returns the input order exactly.
+ */
+export function prioritiseByMisconceptions(
+  cards: Flashcard[],
+  misconceptions: Misconception[],
+): Flashcard[] {
+  const open = misconceptions.filter((m) => m.status !== "resolved");
+  if (open.length === 0 || cards.length === 0) return cards;
+
+  /* Ranked once so the highest-priority misconception wins when a card matches
+     several — the card leads the queue on the most urgent thing it addresses,
+     not on whichever row happened to be checked first. */
+  const ranked = rankMisconceptions(open);
+  const tokenSets = ranked.map((m) =>
+    conceptKey(m.concept)
+      .split(" ")
+      .filter((t) => t.length > 2 && !GENERIC_MATCH_TOKENS.has(t)),
+  );
+
+  const scored = cards.map((card, index) => {
+    const rank = tokenSets.findIndex((tokens) =>
+      cardMatchesConcept(card, tokens),
+    );
+    return { card, index, rank: rank === -1 ? Number.MAX_SAFE_INTEGER : rank };
+  });
+
+  return scored
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map((entry) => entry.card);
 }

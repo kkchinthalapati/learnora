@@ -25,6 +25,15 @@ const dayOffset = (i: number) => {
   return localDateStr(d);
 };
 const TODAY = localDateStr();
+/** Days relative to *today* rather than to the week's Monday. Needed by any
+ *  test whose assertion depends on a day being in the past, since `dayOffset`
+ *  anchors to Monday and so yields no past days at all when the suite happens
+ *  to run on one. */
+const todayOffset = (i: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + i);
+  return localDateStr(d);
+};
 
 function planRow(planJson: unknown, createdAt = new Date().toISOString()) {
   return {
@@ -665,38 +674,34 @@ describe("PlanView", () => {
     });
 
     it("displays the catch-up banner and redistributes blocks on click when the user is behind", async () => {
-      // Build a 7-day plan where past days (e.g. dayOffset(0)) have blocks
+      /* Dated relative to TODAY, not to the week's Monday.
+         `detectPlanDeficit` partitions the plan's own days by today — a day
+         counts as missed only when `date < today` — so a plan whose loaded
+         days start at dayOffset(0) has no past days at all when the suite runs
+         on a Monday, no deficit is possible, and the banner correctly never
+         renders. This test used to do exactly that, and so failed every
+         Monday for reasons that had nothing to do with the code under test.
+         Anchoring the missed days at today-3..today-1 and the free days at
+         today..today+3 makes it hold on any weekday. */
       const planWithPastDeficit = {
         summary: "Original full schedule",
         days: [
           {
-            date: dayOffset(0), // Monday
+            date: todayOffset(-3),
             blocks: [{ subject: "Biology", durationMins: 60 }],
           },
           {
-            date: dayOffset(1), // Tuesday
+            date: todayOffset(-2),
             blocks: [{ subject: "Math", durationMins: 45 }],
           },
           {
-            date: dayOffset(2), // Wednesday
+            date: todayOffset(-1),
             blocks: [{ subject: "Chemistry", durationMins: 30 }],
           },
-          {
-            date: dayOffset(3), // Thursday
-            blocks: [],
-          },
-          {
-            date: dayOffset(4), // Friday
-            blocks: [],
-          },
-          {
-            date: dayOffset(5), // Saturday
-            blocks: [],
-          },
-          {
-            date: dayOffset(6), // Sunday
-            blocks: [],
-          },
+          { date: todayOffset(0), blocks: [] },
+          { date: todayOffset(1), blocks: [] },
+          { date: todayOffset(2), blocks: [] },
+          { date: todayOffset(3), blocks: [] },
         ],
       };
 

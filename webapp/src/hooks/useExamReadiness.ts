@@ -6,6 +6,7 @@ import { useFlashcards } from "./useFlashcards";
 import { useAllDecks } from "./useDecks";
 import { useQuizAttempts, useQuizzes } from "./useQuizzes";
 import { useSessionsSince } from "./useSessions";
+import { useMisconceptions } from "./useMisconceptions";
 import {
   computeExamReadiness,
   generatePrepRoadmap,
@@ -32,6 +33,11 @@ export function useExamReadiness(
   const { data: quizAttempts, isPending: quizAttemptsPending } =
     useQuizAttempts();
   const { data: sessions, isPending: sessionsPending } = useSessionsSince(90);
+  /* Not added to the pending gate below: readiness is a composite that already
+     renders from whichever inputs have arrived, and blocking the whole score
+     on the ledger would make a slow read look like a broken screen. An empty
+     ledger simply applies no penalty, which is the pre-ledger behaviour. */
+  const { all: ledger } = useMisconceptions();
 
   const isPending =
     materialsPending ||
@@ -115,8 +121,9 @@ export function useExamReadiness(
       scopedData.quizAttempts,
       scopedData.sessions,
       now,
+      ledger,
     );
-  }, [exam, matchingFolder, scopedData, now]);
+  }, [exam, matchingFolder, scopedData, now, ledger]);
 
   const roadmap = useMemo(() => {
     if (!exam || !readiness) return [];

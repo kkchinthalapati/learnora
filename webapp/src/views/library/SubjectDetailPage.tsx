@@ -21,6 +21,7 @@ import {
 } from "../../lib/materialProcessing";
 import type { MaterialType } from "../../api/types";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
+import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { useLibraryActions } from "./useLibraryActions";
 import styles from "./library.module.css";
 import { Badge } from "../../components/Badge";
@@ -93,6 +94,12 @@ export function SubjectDetailPage() {
   const processingRecords = useAllMaterialProcessing();
 
   const folder = folders.data?.find((f) => f.id === folderId);
+  /* Scoped by folder name, which is what every writer files a subject under. */
+  const { forSubject } = useMisconceptions();
+  const subjectMisconceptions = useMemo(
+    () => (folder ? forSubject(folder.name) : []),
+    [folder, forSubject],
+  );
   const folderDecks = useMemo(
     () => (decks.data ?? []).filter((d) => d.folder_id === folderId),
     [decks.data, folderId],
@@ -263,6 +270,41 @@ export function SubjectDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* What the three tools above have actually found in this subject.
+          Without it they are three buttons that each forget what the last one
+          learned; with it, the subject page is where a student sees the
+          accumulated answer. Rendered only when there is something to say —
+          an empty strip on every subject would be noise, and the dashboard
+          card already handles the "nothing yet" explanation. */}
+      {subjectMisconceptions.length > 0 && (
+        <div
+          className={styles.subjectLedger}
+          role="region"
+          aria-label={`Open misconceptions in ${folder.name}`}
+        >
+          <span className={styles.subjectLedgerLabel}>
+            <Icon name="alert-triangle" size={16} />
+            <span>
+              Still unresolved in {folder.name} ({subjectMisconceptions.length})
+            </span>
+          </span>
+          <ul className={styles.subjectLedgerList}>
+            {subjectMisconceptions.slice(0, 4).map((m) => (
+              <li key={m.id} className={styles.subjectLedgerItem}>
+                <strong>{m.concept}</strong>
+                {m.summary ? ` — ${m.summary}` : ""}
+                {m.timesObserved > 1 && (
+                  <span className={styles.subjectLedgerCount}>
+                    {" "}
+                    seen {m.timesObserved}×
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className={styles.workspaceGrid}>
         <Section

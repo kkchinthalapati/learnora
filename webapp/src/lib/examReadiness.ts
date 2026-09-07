@@ -10,12 +10,59 @@ import type {
 } from "../api/types";
 import { daysUntil } from "../views/dashboard/analytics";
 import { formatDateStr } from "./date";
+import type {
+  Misconception,
+  MisconceptionSeverity,
+} from "./misconceptions";
 
 /* =========================================================================
  * 1. Exam Readiness & Milestone Roadmap Architecture (Prompt Specification)
  * ========================================================================= */
 
 export type ReadinessTier = "Needs work" | "Getting there" | "Exam ready";
+
+/** Mastery points deducted per open misconception, by severity. A severed
+ *  prerequisite the Debugger found costs three times what a point Sparring
+ *  noticed the student omitted does, because that is the difference in how
+ *  much evidence sits behind each. */
+const MISCONCEPTION_PENALTY_WEIGHT: Record<MisconceptionSeverity, number> = {
+  critical: 6,
+  moderate: 4,
+  minor: 2,
+};
+
+/** Ceiling on the total deduction. Readiness must stay a composite, not a
+ *  misconception counter with extra steps: a student who has genuinely covered
+ *  the material and put the hours in should not be driven to zero by a long
+ *  ledger, and an uncapped penalty would make the score useless precisely for
+ *  the diligent students who use the diagnostic tools most. */
+export const MAX_MISCONCEPTION_PENALTY = 30;
+
+/** The ledger rows that belong to an exam.
+ *
+ * Subjects are free text across this schema, so this matches on the folder
+ * name — what the Library calls a subject, and what quizzes and the Debugger
+ * file misconceptions under — falling back to `exam_name` for an exam with no
+ * matched folder. The match is exact once lowercased, so an `exam_name` like
+ * "Chemistry Paper 2" simply matches nothing rather than guessing; and a row
+ * with an empty subject matches nothing at all. Under-counting is the right
+ * error here — penalising a Physics exam for a Chemistry belief would be
+ * worse than missing one. */
+export function examMisconceptions(
+  exam: Exam,
+  folder: Folder | null | undefined,
+  misconceptions: Misconception[],
+): Misconception[] {
+  const names = [folder?.name, exam.exam_name]
+    .map((v) => (v ?? "").trim().toLowerCase())
+    .filter((v) => v.length > 0);
+  if (names.length === 0) return [];
+
+  return misconceptions.filter((m) => {
+    const subject = m.subject.trim().toLowerCase();
+    return subject.length > 0 && names.includes(subject);
+  });
+}
 
 export interface ExamReadinessBreakdown {
   coverage: number; // 0-100 (30% weight)
@@ -28,6 +75,20 @@ export interface ExamReadiness {
   tier: ReadinessTier;
   breakdown: ExamReadinessBreakdown;
   weakTopics: string[];
+  /** Diagnosed misconceptions for this exam's subject that are still open.
+   *  Distinct from `weakTopics`, which only names topics a quiz flagged: this
+   *  counts specific wrong beliefs the app's diagnostic tools have recorded
+   *  and the student has not yet corrected. */
+  openMisconceptions: number;
+  /** How many have been closed. `openMisconceptions + closedMisconceptions`
+   *  is the whole ledger for this subject, so a view can show progress as a
+   *  share rather than an unanchored count — "4 of 11 cleared" reads as
+   *  movement, "4 open" reads as a verdict. */
+  closedMisconceptions: number;
+  /** Mastery points deducted for the open ones, 0-`MAX_MISCONCEPTION_PENALTY`.
+   *  Surfaced rather than folded in silently: a student whose score dropped is
+   *  owed the reason, and the readiness UI can name it. */
+  misconceptionPenalty: number;
   daysRemaining: number;
   targetHoursRemaining: number;
   totalStudyMinutes: number;
@@ -119,6 +180,10 @@ export function computeExamReadiness(
   quizAttempts?: QuizAttempt[],
   sessions?: StudySession[],
   now: Date = new Date(),
+  /** The whole ledger; scoped to this exam's subject inside. Optional and
+   *  defaulting to empty so every existing caller and test keeps the exact
+   *  score it had before the ledger existed. */
+  misconceptions: Misconception[] = [],
 ): ExamReadiness {
   const daysRemaining = getDaysRemaining(exam.exam_date, now);
 
@@ -173,6 +238,27 @@ export function computeExamReadiness(
   }
   mastery = Math.min(100, Math.max(0, mastery));
 
+  /* Open misconceptions are subtracted from mastery specifically, not from the
+     final score. Coverage and study time are measures of *effort* — how much
+     material exists and how many hours went in — and a wrong belief does not
+     make either untrue. Mastery is the only component claiming the student
+     understands the subject, so it is the only one a diagnosed, uncorrected
+     misconception should be allowed to contradict.
+
+     Without this, readiness could read "Exam ready" while the ledger held four
+     critical unresolved gaps in that very subject — which is exactly the
+     false confidence the Pre-Mortem radar exists to puncture. */
+  const subjectLedger = examMisconceptions(exam, folder, misconceptions);
+  const openLedger = subjectLedger.filter((m) => m.status !== "resolved");
+  const misconceptionPenalty = Math.min(
+    MAX_MISCONCEPTION_PENALTY,
+    openLedger.reduce(
+      (acc, m) => acc + MISCONCEPTION_PENALTY_WEIGHT[m.severity],
+      0,
+    ),
+  );
+  mastery = Math.max(0, mastery - misconceptionPenalty);
+
   // 3. Study Time Investment (30% weight)
   const targetStudyMinutes = getTargetStudyMinutes(exam.difficulty);
   const relevantSessions = folder
@@ -225,10 +311,16 @@ export function computeExamReadiness(
       });
   }
 
-  const weakTopics = Object.entries(topicCounts)
+  /* Open misconceptions lead the weak-topic list. A quiz flag says a topic was
+     missed; a ledger row says what the student believes wrongly and how many
+     times it has been seen — so it is the more actionable of the two and is
+     shown first rather than being appended after five quiz topics. */
+  const ledgerTopics = openLedger.map((m) => m.concept);
+  const quizTopics = Object.entries(topicCounts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
     .map(([topic]) => topic);
+
+  const weakTopics = [...new Set([...ledgerTopics, ...quizTopics])].slice(0, 5);
 
   return {
     score,
@@ -238,6 +330,9 @@ export function computeExamReadiness(
       mastery,
       studyTime,
     },
+    openMisconceptions: openLedger.length,
+    closedMisconceptions: subjectLedger.length - openLedger.length,
+    misconceptionPenalty,
     weakTopics,
     daysRemaining,
     targetHoursRemaining,

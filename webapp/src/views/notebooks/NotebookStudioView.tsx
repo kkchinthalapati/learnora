@@ -19,7 +19,9 @@ import {
 } from "../../hooks/useStudyBuddyChecks";
 import { StudyBuddyGutter } from "../notes/StudyBuddyGutter";
 import { useStudentEvidence } from "../../hooks/useStudentEvidence";
+import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { formatEvidenceForPrompt } from "../../lib/studentEvidence";
+import { formatMisconceptionsForPrompt } from "../../lib/misconceptions";
 import { useSettings } from "../../context/settings";
 import { fenceUntrusted } from "../../lib/actionTags";
 
@@ -88,6 +90,7 @@ export function NotebookStudioView() {
      from the sources alone — which is to say, it guessed. */
   const { evidence: studentEvidence, isPending: isEvidencePending } =
     useStudentEvidence();
+  const { all: ledger, isPending: isLedgerPending } = useMisconceptions();
 
   const {
     checks: studyBuddyChecks,
@@ -248,11 +251,20 @@ Keep explanations friendly, encouraging, and structured for student success.`;
         ? "PERFORMANCE EVIDENCE: still loading. You do not know this student's quiz results right now, so make no claims about how they are performing and give no grade estimate."
         : formatEvidenceForPrompt(studentEvidence);
 
+      /* The grounded tutor answers from the student's own sources; the ledger
+         tells it which of those the student has already got wrong, so an
+         explanation can pre-empt the specific error rather than restating the
+         source neutrally. Same loading treatment as the evidence block above:
+         while the cache fills, say so rather than implying a clean record. */
+      const ledgerBlock = isLedgerPending
+        ? "MISCONCEPTION LEDGER: still loading. You do not know this student's diagnosed misconceptions right now, so do not claim they have any or that they have none."
+        : formatMisconceptionsForPrompt(ledger);
+
       const response = await callEdge({
         history: [
           {
             role: "user",
-            content: `${systemPrompt}\n\n${evidenceBlock}\n\nSTUDY SOURCES:\n${sourcesContext}\n\nSTUDENT QUESTION:\n${promptToSend}`,
+            content: `${systemPrompt}\n\n${evidenceBlock}\n\n${ledgerBlock}\n\nSTUDY SOURCES:\n${sourcesContext}\n\nSTUDENT QUESTION:\n${promptToSend}`,
           },
         ],
         tool: "notebookStudio",

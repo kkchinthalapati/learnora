@@ -20,6 +20,20 @@ vi.mock("./useQuizzes", () => ({
   useQuizAttempts: vi.fn(),
 }));
 vi.mock("./useSessions", () => ({ useSessionsSince: vi.fn() }));
+/* Mocked like every other data hook here: these cases render without a
+   QueryClientProvider, and the ledger is not what they are about — an empty
+   one applies no penalty, so readiness scores stay exactly as they were before
+   the ledger existed. `lib/examReadiness.test.ts` covers the penalty itself. */
+vi.mock("./useMisconceptions", () => ({
+  useMisconceptions: () => ({
+    all: [],
+    ranked: [],
+    recurring: [],
+    forSubject: () => [],
+    isPending: false,
+    isError: false,
+  }),
+}));
 
 import * as decksHook from "./useDecks";
 import * as flashcardsHook from "./useFlashcards";
