@@ -13,9 +13,13 @@ import { useSettings } from "../../context/settings";
 import { useOptionalTimer } from "../../context/timer";
 import { useToast } from "../../context/toast";
 import { useAllDecks } from "../../hooks/useDecks";
+import { useFolders } from "../../hooks/useFolders";
 import { useWeakTopics } from "../../hooks/useQuizzes";
 import { useContinuity } from "../../hooks/useContinuity";
-import { useMisconceptions } from "../../hooks/useMisconceptions";
+import {
+  useMisconceptions,
+  useRecordMisconceptions,
+} from "../../hooks/useMisconceptions";
 import { useAddTask } from "../../hooks/useTasks";
 import {
   useFlashcardsByDeck,
@@ -27,11 +31,9 @@ import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useOverlayBehavior } from "../../context/overlayStack";
 import { dateInDays } from "../../lib/date";
 import { fenceUntrusted } from "../../lib/actionTags";
+import { candidatesFromReviewLapses } from "../../lib/misconceptions";
 import { executeActions, type ActionHandlers } from "../../lib/chatActions";
-import {
-  renderMarkdownNodes,
-  renderMathText,
-} from "../../lib/markdownToReact";
+import { renderMarkdownNodes, renderMathText } from "../../lib/markdownToReact";
 import {
   availableReviewLengths,
   createReviewSnapshot,
@@ -402,7 +404,9 @@ export function extractSourceNoteContext(
   }
 
   // 4. Markdown links [Source Note](/notes/:id)
-  const linkMatch = combined.match(/\[([^\]]*)\]\(\/notes\/([a-zA-Z0-9_-]+)\)/i);
+  const linkMatch = combined.match(
+    /\[([^\]]*)\]\(\/notes\/([a-zA-Z0-9_-]+)\)/i,
+  );
   if (linkMatch) {
     const rawTitle = linkMatch[1].trim();
     return {
@@ -475,10 +479,7 @@ Also provide a short 1-sentence feedback.`;
  *  fresh object per call is cheap and avoids memoising a dependency on
  *  `scoreCard`, which itself changes identity every card. */
 export type SocraticMode =
-  | "mnemonic"
-  | "concept"
-  | "socratic_question"
-  | "why_missed";
+  "mnemonic" | "concept" | "socratic_question" | "why_missed";
 
 /* Every coach reply is read inside a narrow drawer, mid-review, by a student
  * who is already frustrated at missing a card. So the model is held to one
@@ -687,7 +688,9 @@ export function SocraticCoachDrawer({
         <div className={styles.socraticHeader}>
           <div className={styles.socraticHeaderLeft}>
             <Icon name="brain" size={20} />
-            <h2 className={styles.socraticTitle}>Socratic Coach &amp; Interceptor</h2>
+            <h2 className={styles.socraticTitle}>
+              Socratic Coach &amp; Interceptor
+            </h2>
           </div>
           <button
             type="button"
@@ -711,7 +714,11 @@ export function SocraticCoachDrawer({
             </div>
           </div>
 
-          <div className={styles.socraticModeTabs} role="tablist" aria-label="Coaching modes">
+          <div
+            className={styles.socraticModeTabs}
+            role="tablist"
+            aria-label="Coaching modes"
+          >
             <button
               type="button"
               role="tab"
@@ -916,6 +923,8 @@ function ReviewSession({
   const { settings } = useSettings();
   const { showToast } = useToast();
   const { recordDeck } = useContinuity();
+  const recordMisconceptions = useRecordMisconceptions();
+  const folders = useFolders();
 
   const finished = index >= cards.length;
 
@@ -1010,6 +1019,52 @@ function ReviewSession({
       aiGradeInFlight.current = false;
     };
   }, []);
+
+  /* Spaced repetition, filed as diagnosis.
+   *
+   * Grading a card already tells the scheduler everything; until now it told
+   * nothing else. A card the student fails for the fourth time is the app's
+   * own strongest evidence that a belief is wrong, and it was reaching neither
+   * the plan, nor the quiz generator, nor the tutor sitting in the sidebar —
+   * all three of which read the ledger. This is the write that closes that
+   * loop, and it is the highest-volume signal Learnora has: hundreds of grades
+   * a week against a handful of quiz answers.
+   *
+   * Once per session, at the end, rather than per grade: the extractor's cap
+   * has to see the whole session to know which five lapses were the worst
+   * ones, and a mid-session write would spend the slots on whichever cards
+   * happened to come up first.
+   *
+   * Practice rounds are excluded. The recap tells the student those grades
+   * will not change their schedule, and quietly filing them as fresh evidence
+   * would both break that promise and double-count cards this session has
+   * already reported. */
+  const ledgerWrittenRef = useRef(false);
+  useEffect(() => {
+    if (!finished || practiceRound || results.length === 0) return;
+    if (ledgerWrittenRef.current) return;
+    ledgerWrittenRef.current = true;
+
+    /* The folder is the subject everywhere else in the ledger, so a lapse in
+       Chemistry revision merges with a Chemistry misconception the Debugger
+       found rather than opening a second row beside it. The deck title is the
+       fallback for a deck that was never filed. */
+    const subject =
+      folders.data?.find((f) => f.id === folderId)?.name ?? deckTitle;
+
+    recordMisconceptions(
+      candidatesFromReviewLapses(results, { subject, sessionId: deckId }),
+    );
+  }, [
+    finished,
+    practiceRound,
+    results,
+    folders.data,
+    folderId,
+    deckTitle,
+    deckId,
+    recordMisconceptions,
+  ]);
 
   if (finished) {
     const difficultCards = results
@@ -1345,7 +1400,10 @@ function ReviewRecap({
   const startFocusSession = () => {
     const focusTask =
       recap.weakTopics.length > 0
-        ? `Focus: ${recap.weakTopics.slice(0, 2).map((t) => t.topic).join(", ")} (${deckTitle})`
+        ? `Focus: ${recap.weakTopics
+            .slice(0, 2)
+            .map((t) => t.topic)
+            .join(", ")} (${deckTitle})`
         : `Focus: ${deckTitle}`;
     timer?.prepareFocus(25, focusTask, folderId);
     showToast(`25m Focus session staged for ${deckTitle}!`);
@@ -1409,7 +1467,9 @@ function ReviewRecap({
         {/* How much you’ll remember */}
         <div className={styles.retentionCard}>
           <div className={styles.retentionHeader}>
-            <h3 className={styles.retentionTitle}>How much you’ll still remember in a week</h3>
+            <h3 className={styles.retentionTitle}>
+              How much you’ll still remember in a week
+            </h3>
             <span
               className={`${styles.retentionBadge} ${getRetentionBadgeClass(
                 recap.retentionLabel,
@@ -1657,7 +1717,11 @@ function ReviewRecap({
                 className={styles.recapActionBtn}
               >
                 <Icon name="list-checks" size={16} />
-                <span>{taskAdded ? "Added to tomorrow ✓" : "Revise this again tomorrow"}</span>
+                <span>
+                  {taskAdded
+                    ? "Added to tomorrow ✓"
+                    : "Revise this again tomorrow"}
+                </span>
               </Button>
             )}
             {onRepeatDifficult ? (
@@ -1672,16 +1736,23 @@ function ReviewRecap({
             ) : null}
             <Button
               variant="secondary"
-              onClick={() => void navigate(folderId ? `/folders/${folderId}` : "/library/flashcards")}
+              onClick={() =>
+                void navigate(
+                  folderId ? `/folders/${folderId}` : "/library/flashcards",
+                )
+              }
               className={styles.recapActionBtn}
             >
               <Icon name={folderId ? "folder" : "layers"} size={16} />
-              <span>{folderId ? "Back to Subject Hub" : "Back to Flashcards"}</span>
+              <span>
+                {folderId ? "Back to Subject Hub" : "Back to Flashcards"}
+              </span>
             </Button>
           </div>
           {onRepeatDifficult && (
             <p className={styles.practiceNoticeSmall}>
-              Practicing difficult cards is a repeat pass that preserves your scheduled SRS intervals.
+              Practicing difficult cards is a repeat pass that preserves your
+              scheduled SRS intervals.
             </p>
           )}
           {!onRepeatDifficult && (

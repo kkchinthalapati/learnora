@@ -15,6 +15,7 @@ import {
 } from "./DashboardCustomizeModal";
 import { FocusCard } from "./FocusCard";
 import { NextExamCard } from "./NextExamCard";
+import { NextHourCard } from "./NextHourCard";
 import { OnboardingBanner } from "./OnboardingBanner";
 import { RecentNotebooksShelf } from "./RecentNotebooksShelf";
 import { ResumeLearningCard } from "./ResumeLearningCard";
@@ -73,6 +74,13 @@ export function DashboardView() {
       <OnboardingBanner
         onFocusTaskInput={() => taskInputRef.current?.focus()}
       />
+
+      {/* Above "Study next" on purpose. That section offers a student three
+          reasonable things to do and leaves them to choose; this one has an
+          arithmetic answer to the same question, so it goes first or it is
+          decoration. It renders nothing when it has no forecast to stand on,
+          in which case the cards below simply move up. */}
+      {sections.nextHour && <NextHourCard />}
 
       {sections.priorities && (
         <section

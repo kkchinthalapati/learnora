@@ -8,6 +8,7 @@ import {
   buildTopicStates,
   decayOneDay,
   forecast,
+  formatTrajectoryForPrompt,
   learningGain,
   scoreOf,
   type TopicState,
@@ -494,5 +495,61 @@ describe("forecast", () => {
 
   it("gives the same forecast for the same inputs", () => {
     expect(forecast(base)).toEqual(forecast(base));
+  });
+});
+
+describe("formatTrajectoryForPrompt", () => {
+  const topics = evenly([
+    topic({ id: "Titration", mastery: 0.2, stabilityDays: 4 }),
+    topic({ id: "Bonding", mastery: 0.9, stabilityDays: 30 }),
+  ]);
+
+  const base = {
+    topics,
+    examName: "Chemistry Paper 1",
+    examDate: EXAM,
+    today: TODAY,
+    plannedMinutes: plan(90),
+  };
+
+  it("renders nothing at all when there is no forecast", () => {
+    expect(formatTrajectoryForPrompt(null)).toBe("");
+  });
+
+  it("ranks topics by marks per hour and names the gap between them", () => {
+    const out = formatTrajectoryForPrompt(forecast(base));
+
+    expect(out).toContain("WHAT THE NEXT HOUR IS WORTH");
+    expect(out).toContain("Chemistry Paper 1");
+    /* The weak topic must be listed above the solid one: the ordering is the
+       instruction, not the numbers beside it. */
+    expect(out.indexOf("Titration")).toBeLessThan(out.indexOf("Bonding"));
+    expect(out).toMatch(/marks per hour/);
+    expect(out).toContain("equal time across topics is the wrong plan");
+  });
+
+  it("tells the planner to stop pretending when the target is unreachable", () => {
+    const out = formatTrajectoryForPrompt(
+      forecast({ ...base, plannedMinutes: plan(0), targetScore: 95 }),
+    );
+
+    expect(out).toContain("Do not pretend otherwise");
+  });
+
+  it("refuses to hand over point values it cannot support", () => {
+    /* Nothing left to gain anywhere: the block must say so rather than list a
+       set of 0.0s the model would happily quote back at the student as if
+       they meant something. */
+    const out = formatTrajectoryForPrompt(
+      forecast({
+        ...base,
+        topics: evenly([
+          topic({ id: "Titration", mastery: 1, stabilityDays: 100_000 }),
+          topic({ id: "Bonding", mastery: 1, stabilityDays: 100_000 }),
+        ]),
+      }),
+    );
+
+    expect(out).toContain("Do not invent point values");
   });
 });

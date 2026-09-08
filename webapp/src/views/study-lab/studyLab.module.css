@@ -176,3 +176,39 @@
     transform: none;
   }
 }
+
+/* Mirrors .examChoice's shape on purpose: this is the same kind of thing —
+   a single considered recommendation set apart from the four-door menu — and
+   giving it its own visual language would read as an advert rather than as
+   the app knowing something. */
+.suggestion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-5) var(--s-6);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--r-xl);
+  background: var(--accent-soft);
+}
+
+.suggestion h2 {
+  margin: var(--s-1) 0 var(--s-2);
+}
+
+.suggestion p {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* The suggestion's action is a button rather than a link — it writes the
+   handoff payload before navigating — so it needs the resets a browser does
+   not apply to <a>. */
+button.secondaryLink {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+}

@@ -9,6 +9,7 @@ export const DASHBOARD_LAYOUT_KEY = "learnora_dashboard_layout_v2";
 
 export interface DashboardLayoutPreferences {
   visibleSections: {
+    nextHour: boolean;
     todayTimeline: boolean;
     activityRings: boolean;
     recentNotebooks: boolean;
@@ -21,6 +22,7 @@ export interface DashboardLayoutPreferences {
 
 export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayoutPreferences = {
   visibleSections: {
+    nextHour: true,
     todayTimeline: true,
     activityRings: true,
     recentNotebooks: true,
@@ -66,6 +68,11 @@ const SECTION_DESCRIPTIONS: Record<
   keyof DashboardLayoutPreferences["visibleSections"],
   { title: string; desc: string; icon: IconName }
 > = {
+  nextHour: {
+    title: "What your next hour is worth",
+    desc: "The topic worth the most marks per hour before your next exam, and a timer for it",
+    icon: "zap",
+  },
   todayTimeline: {
     title: "Today's Timeline",
     desc: "Your study blocks placed around your real lectures, shifts and commitments",

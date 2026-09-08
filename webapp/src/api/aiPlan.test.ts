@@ -238,6 +238,33 @@ describe("buildPlanPrompt — performance evidence", () => {
     expect(prompt).not.toContain("LEDGER RULE");
   });
 
+  /* The one block that ranks rather than describes. Weak topics, evidence and
+     the ledger all say what is wrong; only this says which wrong thing is
+     worth the student's Saturday. */
+  it("carries the hour-value forecast and the rule that spends the week by it", () => {
+    const prompt = buildPlanPrompt({
+      ...base,
+      hourValue:
+        "WHAT THE NEXT HOUR IS WORTH (this app's own forecast for Chemistry Paper 1 on 2026-09-15, 14 days away):\n- Titration: 4.2 marks per hour (at 20% mastery)",
+    });
+
+    expect(prompt).toContain("WHAT THE NEXT HOUR IS WORTH");
+    expect(prompt).toContain("4.2 marks per hour");
+    expect(prompt).toContain("VALUE RULE");
+    /* Quoting the figure back to the student is what makes the plan
+       defensible rather than another list of topics. */
+    expect(prompt).toContain("worth ~4.2 marks");
+    expect(prompt).toContain(
+      "never quote a figure for a topic the block does not list",
+    );
+  });
+
+  it("omits the hour-value block and its rule entirely when there is no forecast", () => {
+    const prompt = buildPlanPrompt(base);
+    expect(prompt).not.toContain("WHAT THE NEXT HOUR IS WORTH");
+    expect(prompt).not.toContain("VALUE RULE");
+  });
+
   it("carries studentContext into the prompt when set", () => {
     const prompt = buildPlanPrompt({
       ...base,

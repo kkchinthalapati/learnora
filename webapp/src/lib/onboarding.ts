@@ -481,6 +481,12 @@ type SectionId = keyof DashboardLayoutPreferences["visibleSections"];
    purpose — it is the dashboard's spine (what's due, what's next) and is
    always shown. */
 const SECTION_INTERESTS: Record<SectionId, FocusAreaId[]> = {
+  /* Earned by every answer except the purely social one. Whatever a student
+     came here for, "this hour is worth more than that hour" is the answer to
+     it — and the card renders nothing until there is an exam and enough
+     memory data to rank topics, so it cannot contribute to the empty-dashboard
+     problem this mapping exists to fix. */
+  nextHour: ["planning", "deadlines", "exams", "recall", "understanding"],
   todayTimeline: ["planning", "deadlines"],
   activityRings: ["recall", "planning"],
   recentNotebooks: ["understanding", "recall"],

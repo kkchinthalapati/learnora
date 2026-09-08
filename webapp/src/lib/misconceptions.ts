@@ -28,7 +28,8 @@ export type MisconceptionTool =
   | "sparring"
   | "quiz"
   | "notes"
-  | "review";
+  | "review"
+  | "exam-detective";
 export type ObservationKind = "evidence" | "correction";
 
 /** A row of `public.misconceptions`. */
@@ -160,7 +161,11 @@ export function conceptKey(raw: string): string {
      flattened original so the row still gets a stable key rather than an
      empty one that would collide with every other such case. */
   if (words.length === 0) {
-    return raw.toLowerCase().replace(/\s+/g, " ").trim().slice(0, MAX_KEY_LENGTH);
+    return raw
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, MAX_KEY_LENGTH);
   }
 
   return [...new Set(words)].sort().join(" ").slice(0, MAX_KEY_LENGTH);
@@ -179,7 +184,8 @@ function tidy(raw: string): string {
 export function isUsableCandidate(c: MisconceptionCandidate): boolean {
   const concept = tidy(c.concept);
   if (concept.length < MIN_CONCEPT_LENGTH) return false;
-  if (/^(n\/?a|none|unknown|null|undefined|tbd|-+)$/i.test(concept)) return false;
+  if (/^(n\/?a|none|unknown|null|undefined|tbd|-+)$/i.test(concept))
+    return false;
   return conceptKey(concept).length > 0;
 }
 
@@ -332,10 +338,7 @@ export function formatMisconceptionsForPrompt(
 
   const shown = scoped.slice(0, MAX_PROMPT_MISCONCEPTIONS);
   for (const m of shown) {
-    const seen =
-      m.timesObserved > 1
-        ? `seen ${m.timesObserved}x`
-        : "seen once";
+    const seen = m.timesObserved > 1 ? `seen ${m.timesObserved}x` : "seen once";
     const fixed =
       m.timesCorrected > 0 ? `, corrected ${m.timesCorrected}x` : "";
     const state = m.status === "improving" ? ", improving" : "";
@@ -481,9 +484,7 @@ export function candidatesFromTeachingTurn(
     (point) => ({
       subject,
       concept: point,
-      summary: topic
-        ? `Unresolved while teaching ${topic}: ${point}`
-        : point,
+      summary: topic ? `Unresolved while teaching ${topic}: ${point}` : point,
       severity: "moderate",
       tool: "feynman",
       sourceId: turn.id ?? draft.id,
@@ -657,6 +658,263 @@ export function candidatesFromQuizAnswers(
             : `Answered incorrectly on ${topic}.`,
       },
     ];
+  });
+
+  return prepareCandidates(out);
+}
+
+/* ── Review ──────────────────────────────────────────────────────────────── */
+
+/** FSRS difficulty (1..10) at or above which a card is already known to be a
+ *  problem for this student, not a fresh slip. */
+export const HARD_DIFFICULTY = 7;
+
+/** SM-2 ease at or below which the same is true. Cards start at 2.5 and only
+ *  fall by lapsing, so 2.0 means the student has already failed this card
+ *  roughly three times. Read as a fallback for pre-FSRS cards, which carry no
+ *  `difficulty`. */
+export const HARD_EASE = 2.0;
+
+/** An interval this long means the card had genuinely bedded in. Failing one
+ *  is the most informative single event in the whole review loop: it is not a
+ *  card they never learned, it is a belief that has decayed or was wrong all
+ *  along. */
+export const ESTABLISHED_INTERVAL_DAYS = 21;
+
+/** How many rows one review session may add. A forty-card session with
+ *  fifteen lapses would otherwise bury the ledger's conceptual diagnoses under
+ *  a list of individual card fronts, and a ledger nobody can read is a ledger
+ *  nobody trusts. The hardest lapses win the slots. */
+export const MAX_REVIEW_CANDIDATES = 5;
+
+/** Card fields the extractor reads. Structurally a subset of `Flashcard`, so
+ *  callers pass their cards straight through — but declared here rather than
+ *  imported, to keep this module free of the API layer like the rest of it. */
+export interface ReviewedCard {
+  front: string;
+  /** FSRS difficulty, 1..10. Absent on cards last reviewed before the column. */
+  difficulty?: number | null;
+  /** SM-2 ease factor. The pre-FSRS stand-in for `difficulty`. */
+  ease_factor?: number | null;
+  /** Days until the card was next due, as of before this grade. */
+  srs_interval?: number | null;
+}
+
+/**
+ * Whether the student was already failing this card before today.
+ *
+ * This is the whole reason the review extractor is worth having. One "Again"
+ * is a slip and the ledger should not care; the *same* card failing again
+ * after the scheduler has already shortened its interval three times is the
+ * app watching a wrong belief survive repeated correction, which is exactly
+ * what the ledger exists to record.
+ */
+export function wasAlreadyHard(card: ReviewedCard): boolean {
+  if (typeof card.difficulty === "number")
+    return card.difficulty >= HARD_DIFFICULTY;
+  if (typeof card.ease_factor === "number")
+    return card.ease_factor <= HARD_EASE;
+  return false;
+}
+
+/** A card that had bedded in and then broke. Treated as strongly as a
+ *  chronically hard card, for the opposite reason: not "never learned" but
+ *  "learned and lost", and both deserve a block of someone's afternoon. */
+function wasEstablished(card: ReviewedCard): boolean {
+  return (card.srs_interval ?? 0) >= ESTABLISHED_INTERVAL_DAYS;
+}
+
+/**
+ * Spaced repetition, read as diagnosis rather than as scheduling.
+ *
+ * Every other extractor in this file recovers a diagnosis a model already
+ * made. This one recovers a fact the app measured itself, and it is the
+ * highest-frequency evidence Learnora holds: a student answers a handful of
+ * quiz questions a week and grades hundreds of cards. Until now all of it went
+ * into `next_review_date` and nowhere else — the scheduler knew a card kept
+ * failing, and no other surface in the app could find out.
+ *
+ * Only "Again" (quality <= 1) is a lapse; "Hard" is a successful recall that
+ * hurt, which `views/review/srs.ts` is careful about for the same reason.
+ * Confident recall of a card that *used* to be hard is emitted as a
+ * correction, so ordinary revision is what closes a ledger row — a student
+ * should never have to perform a ritual to prove they have fixed something.
+ */
+export function candidatesFromReviewLapses(
+  results: Array<{ card: ReviewedCard; quality: number }>,
+  context: { subject?: string; sessionId?: string },
+): MisconceptionCandidate[] {
+  const subject = context.subject ?? "";
+
+  const scored = results.flatMap<{
+    weight: number;
+    candidate: MisconceptionCandidate;
+  }>(({ card, quality }) => {
+    const concept = tidy(card.front ?? "");
+    if (!concept) return [];
+
+    const hard = wasAlreadyHard(card);
+    const established = wasEstablished(card);
+
+    if (quality <= 1) {
+      const why = hard
+        ? "a card they have failed repeatedly before"
+        : established
+          ? `a card that had been holding for ${card.srs_interval} days`
+          : "";
+      return [
+        {
+          /* Chronic failures and broken-in cards outrank one-off slips for
+               the session's five slots. */
+          weight: hard ? 3 : established ? 2 : 1,
+          candidate: {
+            subject,
+            concept,
+            summary: `Could not recall: ${concept}`,
+            severity: hard || established ? "critical" : "moderate",
+            tool: "review",
+            sourceId: context.sessionId,
+            kind: "evidence",
+            detail: why
+              ? `Graded "Again" in review — ${why}.`
+              : `Graded "Again" in review.`,
+          },
+        },
+      ];
+    }
+
+    /* A correction is only news about a card that was in trouble. Recalling
+         an easy card confidently is the overwhelming majority of every review
+         session and says nothing the ledger did not already assume. */
+    if (quality >= 3 && (hard || established)) {
+      return [
+        {
+          weight: 1,
+          candidate: {
+            subject,
+            concept,
+            summary: "",
+            severity: "moderate",
+            tool: "review",
+            sourceId: context.sessionId,
+            kind: "correction",
+            detail: `Recalled confidently in review after previously failing it.`,
+          },
+        },
+      ];
+    }
+
+    return [];
+  });
+
+  /* Stable sort by weight: within a weight the student's own review order is
+     kept, so the slots that survive are the ones they met first. */
+  const ordered = scored
+    .map((entry, i) => ({ ...entry, i }))
+    .sort((a, b) => b.weight - a.weight || a.i - b.i)
+    .map((entry) => entry.candidate);
+
+  /* Deduped first, capped second. The other order would spend slots on
+     repeats of one card and silently drop four distinct problems. */
+  return prepareCandidates(ordered).slice(0, MAX_REVIEW_CANDIDATES);
+}
+
+/* ── Exam Detective ──────────────────────────────────────────────────────── */
+
+/**
+ * The Challenge Sprint, read as diagnosis.
+ *
+ * Every other extractor here works from a model's opinion or from a plain
+ * wrong answer. This one has something none of them do: the question was
+ * *built* around a named trap, and the distractor the student picked came with
+ * a written explanation of the belief that makes it look right. Falling for it
+ * is not a slip, and the ledger does not have to guess what the student
+ * thinks — the sprint already wrote it down.
+ *
+ * So bait answers are filed `critical` on first sight, which no other single
+ * observation in this file earns. A wrong answer that is *not* the bait is a
+ * different event — they missed it without the trap catching them — and is
+ * filed as ordinary moderate evidence against the topic instead.
+ *
+ * The concept is the trap, not the topic. "Sign error when the limit is
+ * approached from below" is a belief a student can fix; "Calculus" is not.
+ */
+export function candidatesFromTrapSprint(
+  questions: Array<{
+    trapName?: string;
+    trapExplanation?: string;
+    baitExplanation?: string;
+    topic?: string;
+    correctAnswerIndex: number;
+    baitOptionIndex: number;
+  }>,
+  answers: Array<number | null>,
+  context: { subject?: string; sprintId?: string },
+): MisconceptionCandidate[] {
+  const subject = context.subject ?? "";
+
+  const out = questions.flatMap<MisconceptionCandidate>((q, i) => {
+    const chosen = answers[i];
+    /* Unanswered is not evidence of anything. A sprint the student abandoned
+       halfway would otherwise file every remaining trap against them. */
+    if (chosen == null) return [];
+
+    const concept = q.trapName ?? q.topic ?? "";
+    if (!concept) return [];
+
+    if (chosen === q.baitOptionIndex) {
+      return [
+        {
+          subject,
+          concept,
+          summary:
+            q.baitExplanation ||
+            q.trapExplanation ||
+            `Fell for the ${concept} trap`,
+          severity: "critical",
+          tool: "exam-detective",
+          sourceId: context.sprintId,
+          kind: "evidence",
+          detail: `Chose the bait answer on a question written to detect this trap.`,
+        },
+      ];
+    }
+
+    if (chosen === q.correctAnswerIndex) {
+      return [
+        {
+          subject,
+          concept,
+          summary: "",
+          severity: "moderate",
+          tool: "exam-detective",
+          sourceId: context.sprintId,
+          kind: "correction",
+          /* Worth distinguishing from a plain correct answer: they were shown
+             the bait and did not take it, which is the whole definition of
+             immunity to this trap. */
+          detail: `Answered correctly with the ${concept} bait on the page.`,
+        },
+      ];
+    }
+
+    /* Wrong, but not caught by the trap. Real evidence about the topic, and
+       weaker evidence than the bait case, so it is filed as such rather than
+       inflating the trap's recurrence count with an unrelated error. */
+    return q.topic
+      ? [
+          {
+            subject,
+            concept: q.topic,
+            summary: `Missed a question on ${q.topic}`,
+            severity: "moderate",
+            tool: "exam-detective",
+            sourceId: context.sprintId,
+            kind: "evidence",
+            detail: `Answered incorrectly, though not by falling for the ${concept} trap.`,
+          },
+        ]
+      : [];
   });
 
   return prepareCandidates(out);

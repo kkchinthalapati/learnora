@@ -40,6 +40,7 @@ const TOOL_LABEL: Record<Misconception["originTool"], string> = {
   quiz: "your quizzes",
   notes: "your notes",
   review: "review",
+  "exam-detective": "the Exam Detective",
 };
 
 /** How many rows the card shows before deferring to the full list. Enough to
@@ -158,10 +159,7 @@ export function MisconceptionLedgerCard() {
                 </div>
 
                 <div className={styles.rowActions}>
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleWorkOnIt(m)}
-                  >
+                  <Button variant="secondary" onClick={() => handleWorkOnIt(m)}>
                     Work on it
                   </Button>
                   <button

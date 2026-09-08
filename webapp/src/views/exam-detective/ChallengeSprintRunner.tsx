@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SprintQuestion } from "../../api/aiExamDeconstructor";
 import { markTrapDisarmed } from "../../api/aiExamDeconstructor";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { AhaWalkthroughModal } from "./AhaWalkthroughModal";
 import styles from "./examDetective.module.css";
+import { useRecordMisconceptions } from "../../hooks/useMisconceptions";
+import { candidatesFromTrapSprint } from "../../lib/misconceptions";
 
 interface ChallengeSprintRunnerProps {
   questions: SprintQuestion[];
@@ -47,6 +49,30 @@ export function ChallengeSprintRunner({
   >([]);
 
   const [isFinished, setIsFinished] = useState(false);
+
+  /* The sprint's evidence is the most precise this app produces, and until now
+     it lived in localStorage and a radar chart nothing else could read.
+     A bait answer is not a wrong answer: the distractor was written around a
+     named trap, with an explanation of the belief that makes it look right, so
+     the ledger does not have to infer what the student thinks — the question
+     already knows. Filed once, at the debrief, so an abandoned sprint files
+     nothing. */
+  const recordMisconceptions = useRecordMisconceptions();
+  const ledgerWrittenRef = useRef(false);
+
+  useEffect(() => {
+    if (!isFinished || ledgerWrittenRef.current) return;
+    if (questionResults.length === 0) return;
+    ledgerWrittenRef.current = true;
+
+    recordMisconceptions(
+      candidatesFromTrapSprint(
+        questionResults.map((r) => r.question),
+        questionResults.map((r) => r.selectedOption),
+        { subject },
+      ),
+    );
+  }, [isFinished, questionResults, subject, recordMisconceptions]);
 
   if (questions.length === 0) {
     return (

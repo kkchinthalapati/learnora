@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Combobox } from "../../components/Combobox";
+import { TopicValueHint } from "./TopicValueHint";
 import { Icon } from "../../components/Icon";
 import { Modal } from "../../components/Modal";
 import { useOptionalChat } from "../../context/chat";
@@ -396,6 +397,13 @@ export function TimerView() {
                   .filter((task) => !task.is_done)
                   .map((task) => ({ value: task.text, label: task.text })),
               ]}
+            />
+            {/* Under the binder rather than above it: the student's own list
+                is still the default answer, and this is the app's opinion
+                about it, offered once. */}
+            <TopicValueHint
+              activeTask={activeTask}
+              onUseTopic={setActiveTask}
             />
           </div>
 
