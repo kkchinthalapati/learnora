@@ -28,7 +28,8 @@ export type MisconceptionTool =
   | "sparring"
   | "quiz"
   | "notes"
-  | "review";
+  | "review"
+  | "exam-detective";
 export type ObservationKind = "evidence" | "correction";
 
 /** A row of `public.misconceptions`. */
@@ -813,4 +814,105 @@ export function candidatesFromReviewLapses(
   /* Deduped first, capped second. The other order would spend slots on
      repeats of one card and silently drop four distinct problems. */
   return prepareCandidates(ordered).slice(0, MAX_REVIEW_CANDIDATES);
+}
+
+/* ── Exam Detective ──────────────────────────────────────────────────────── */
+
+/**
+ * The Challenge Sprint, read as diagnosis.
+ *
+ * Every other extractor here works from a model's opinion or from a plain
+ * wrong answer. This one has something none of them do: the question was
+ * *built* around a named trap, and the distractor the student picked came with
+ * a written explanation of the belief that makes it look right. Falling for it
+ * is not a slip, and the ledger does not have to guess what the student
+ * thinks — the sprint already wrote it down.
+ *
+ * So bait answers are filed `critical` on first sight, which no other single
+ * observation in this file earns. A wrong answer that is *not* the bait is a
+ * different event — they missed it without the trap catching them — and is
+ * filed as ordinary moderate evidence against the topic instead.
+ *
+ * The concept is the trap, not the topic. "Sign error when the limit is
+ * approached from below" is a belief a student can fix; "Calculus" is not.
+ */
+export function candidatesFromTrapSprint(
+  questions: Array<{
+    trapName?: string;
+    trapExplanation?: string;
+    baitExplanation?: string;
+    topic?: string;
+    correctAnswerIndex: number;
+    baitOptionIndex: number;
+  }>,
+  answers: Array<number | null>,
+  context: { subject?: string; sprintId?: string },
+): MisconceptionCandidate[] {
+  const subject = context.subject ?? "";
+
+  const out = questions.flatMap<MisconceptionCandidate>((q, i) => {
+    const chosen = answers[i];
+    /* Unanswered is not evidence of anything. A sprint the student abandoned
+       halfway would otherwise file every remaining trap against them. */
+    if (chosen == null) return [];
+
+    const concept = q.trapName ?? q.topic ?? "";
+    if (!concept) return [];
+
+    if (chosen === q.baitOptionIndex) {
+      return [
+        {
+          subject,
+          concept,
+          summary:
+            q.baitExplanation ||
+            q.trapExplanation ||
+            `Fell for the ${concept} trap`,
+          severity: "critical",
+          tool: "exam-detective",
+          sourceId: context.sprintId,
+          kind: "evidence",
+          detail: `Chose the bait answer on a question written to detect this trap.`,
+        },
+      ];
+    }
+
+    if (chosen === q.correctAnswerIndex) {
+      return [
+        {
+          subject,
+          concept,
+          summary: "",
+          severity: "moderate",
+          tool: "exam-detective",
+          sourceId: context.sprintId,
+          kind: "correction",
+          /* Worth distinguishing from a plain correct answer: they were shown
+             the bait and did not take it, which is the whole definition of
+             immunity to this trap. */
+          detail: `Answered correctly with the ${concept} bait on the page.`,
+        },
+      ];
+    }
+
+    /* Wrong, but not caught by the trap. Real evidence about the topic, and
+       weaker evidence than the bait case, so it is filed as such rather than
+       inflating the trap's recurrence count with an unrelated error. */
+    return q.topic
+      ? [
+          {
+            subject,
+            concept: q.topic,
+            summary: `Missed a question on ${q.topic}`,
+            severity: "moderate",
+            tool: "exam-detective",
+            sourceId: context.sprintId,
+            kind: "evidence",
+            detail: `Answered incorrectly, though not by falling for the ${concept} trap.`,
+          },
+        ]
+      : [];
+  });
+
+  return prepareCandidates(out);
 }

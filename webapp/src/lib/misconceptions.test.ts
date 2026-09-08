@@ -6,6 +6,7 @@ import {
   candidatesFromReviewLapses,
   candidatesFromSparring,
   candidatesFromStackTrace,
+  candidatesFromTrapSprint,
   candidatesFromTeachingTurn,
   conceptKey,
   formatMisconceptionsForPrompt,
@@ -384,5 +385,48 @@ describe("extractors", () => {
     expect(out).toHaveLength(5);
     /* The chronic one was graded last but must still survive the cap. */
     expect(out[0].concept).toBe("Chronic failure");
+  });
+});
+
+describe("candidatesFromTrapSprint", () => {
+  const q = {
+    trapName: "Sign flip below the limit",
+    trapExplanation: "The inequality reverses when you divide by a negative.",
+    baitExplanation: "Believes the inequality direction survives division.",
+    topic: "Inequalities",
+    correctAnswerIndex: 0,
+    baitOptionIndex: 1,
+  };
+
+  /* The strongest single observation the ledger can take. Every other
+     extractor infers a belief; this question was built to prove one. */
+  it("files a bait answer as critical, with the trap as the concept", () => {
+    const [out] = candidatesFromTrapSprint([q], [1], { subject: "Maths" });
+
+    expect(out.concept).toBe("Sign flip below the limit");
+    expect(out.severity).toBe("critical");
+    expect(out.kind).toBe("evidence");
+    expect(out.summary).toContain("inequality direction survives division");
+  });
+
+  it("files a correct answer as a correction — they saw the bait and left it", () => {
+    const [out] = candidatesFromTrapSprint([q], [0], { subject: "Maths" });
+
+    expect(out.kind).toBe("correction");
+    expect(out.concept).toBe("Sign flip below the limit");
+  });
+
+  /* Wrong without being trapped is a different fact. Filing it against the
+     trap would inflate the one count the whole ledger ranks by. */
+  it("files a wrong-but-not-baited answer against the topic instead", () => {
+    const [out] = candidatesFromTrapSprint([q], [2], { subject: "Maths" });
+
+    expect(out.concept).toBe("Inequalities");
+    expect(out.severity).toBe("moderate");
+    expect(out.kind).toBe("evidence");
+  });
+
+  it("ignores unanswered questions rather than blaming an abandoned sprint", () => {
+    expect(candidatesFromTrapSprint([q, q], [null, null], {})).toEqual([]);
   });
 });
