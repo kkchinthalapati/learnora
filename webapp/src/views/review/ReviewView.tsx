@@ -13,9 +13,13 @@ import { useSettings } from "../../context/settings";
 import { useOptionalTimer } from "../../context/timer";
 import { useToast } from "../../context/toast";
 import { useAllDecks } from "../../hooks/useDecks";
+import { useFolders } from "../../hooks/useFolders";
 import { useWeakTopics } from "../../hooks/useQuizzes";
 import { useContinuity } from "../../hooks/useContinuity";
-import { useMisconceptions } from "../../hooks/useMisconceptions";
+import {
+  useMisconceptions,
+  useRecordMisconceptions,
+} from "../../hooks/useMisconceptions";
 import { useAddTask } from "../../hooks/useTasks";
 import {
   useFlashcardsByDeck,
@@ -27,6 +31,7 @@ import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useOverlayBehavior } from "../../context/overlayStack";
 import { dateInDays } from "../../lib/date";
 import { fenceUntrusted } from "../../lib/actionTags";
+import { candidatesFromReviewLapses } from "../../lib/misconceptions";
 import { executeActions, type ActionHandlers } from "../../lib/chatActions";
 import {
   renderMarkdownNodes,
@@ -916,6 +921,8 @@ function ReviewSession({
   const { settings } = useSettings();
   const { showToast } = useToast();
   const { recordDeck } = useContinuity();
+  const recordMisconceptions = useRecordMisconceptions();
+  const folders = useFolders();
 
   const finished = index >= cards.length;
 
@@ -1010,6 +1017,52 @@ function ReviewSession({
       aiGradeInFlight.current = false;
     };
   }, []);
+
+  /* Spaced repetition, filed as diagnosis.
+   *
+   * Grading a card already tells the scheduler everything; until now it told
+   * nothing else. A card the student fails for the fourth time is the app's
+   * own strongest evidence that a belief is wrong, and it was reaching neither
+   * the plan, nor the quiz generator, nor the tutor sitting in the sidebar —
+   * all three of which read the ledger. This is the write that closes that
+   * loop, and it is the highest-volume signal Learnora has: hundreds of grades
+   * a week against a handful of quiz answers.
+   *
+   * Once per session, at the end, rather than per grade: the extractor's cap
+   * has to see the whole session to know which five lapses were the worst
+   * ones, and a mid-session write would spend the slots on whichever cards
+   * happened to come up first.
+   *
+   * Practice rounds are excluded. The recap tells the student those grades
+   * will not change their schedule, and quietly filing them as fresh evidence
+   * would both break that promise and double-count cards this session has
+   * already reported. */
+  const ledgerWrittenRef = useRef(false);
+  useEffect(() => {
+    if (!finished || practiceRound || results.length === 0) return;
+    if (ledgerWrittenRef.current) return;
+    ledgerWrittenRef.current = true;
+
+    /* The folder is the subject everywhere else in the ledger, so a lapse in
+       Chemistry revision merges with a Chemistry misconception the Debugger
+       found rather than opening a second row beside it. The deck title is the
+       fallback for a deck that was never filed. */
+    const subject =
+      folders.data?.find((f) => f.id === folderId)?.name ?? deckTitle;
+
+    recordMisconceptions(
+      candidatesFromReviewLapses(results, { subject, sessionId: deckId }),
+    );
+  }, [
+    finished,
+    practiceRound,
+    results,
+    folders.data,
+    folderId,
+    deckTitle,
+    deckId,
+    recordMisconceptions,
+  ]);
 
   if (finished) {
     const difficultCards = results

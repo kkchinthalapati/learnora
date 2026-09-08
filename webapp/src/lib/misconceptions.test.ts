@@ -3,6 +3,7 @@ import {
   MAX_PROMPT_MISCONCEPTIONS,
   candidatesFromPreMortem,
   candidatesFromQuizAnswers,
+  candidatesFromReviewLapses,
   candidatesFromSparring,
   candidatesFromStackTrace,
   candidatesFromTeachingTurn,
@@ -318,5 +319,70 @@ describe("extractors", () => {
     expect(out.find((c) => c.concept === "Hydrolysis")?.kind).toBe("evidence");
     expect(out.find((c) => c.concept === "Hydrolysis")?.detail).toContain("Nothing");
     expect(out.find((c) => c.concept === "Moles")?.kind).toBe("correction");
+  });
+  it("ignores a one-off lapse's severity but escalates a chronically failed card", () => {
+    const out = candidatesFromReviewLapses(
+      [
+        { card: { front: "Define enthalpy of formation", difficulty: 8 }, quality: 0 },
+        { card: { front: "Symbol for sodium", difficulty: 3 }, quality: 1 },
+      ],
+      { subject: "Chemistry", sessionId: "r1" },
+    );
+
+    expect(out).toHaveLength(2);
+    const chronic = out.find((c) => c.concept === "Define enthalpy of formation");
+    expect(chronic?.severity).toBe("critical");
+    expect(chronic?.detail).toContain("failed repeatedly");
+    expect(out.find((c) => c.concept === "Symbol for sodium")?.severity).toBe("moderate");
+  });
+
+  it("treats a long-established card breaking as critical", () => {
+    const [out] = candidatesFromReviewLapses(
+      [{ card: { front: "Ohm's law", difficulty: 4, srs_interval: 40 }, quality: 0 }],
+      { subject: "Physics" },
+    );
+
+    expect(out.severity).toBe("critical");
+    expect(out.detail).toContain("40 days");
+  });
+
+  it("falls back to ease factor on cards with no FSRS difficulty", () => {
+    const [out] = candidatesFromReviewLapses(
+      [{ card: { front: "Mitosis stages", ease_factor: 1.8 }, quality: 0 }],
+      { subject: "Biology" },
+    );
+
+    expect(out.severity).toBe("critical");
+  });
+
+  it("records confident recall of a hard card as a correction, and ignores easy cards", () => {
+    const out = candidatesFromReviewLapses(
+      [
+        { card: { front: "Krebs cycle", difficulty: 9 }, quality: 4 },
+        { card: { front: "Capital of France", difficulty: 2 }, quality: 4 },
+        /* "Hard" is a successful recall, not a lapse — neither signal. */
+        { card: { front: "Photosynthesis equation", difficulty: 8 }, quality: 2 },
+      ],
+      { subject: "Biology" },
+    );
+
+    expect(out).toHaveLength(1);
+    expect(out[0].concept).toBe("Krebs cycle");
+    expect(out[0].kind).toBe("correction");
+  });
+
+  it("caps a long session at the hardest lapses rather than flooding the ledger", () => {
+    const results = [
+      ...["Alkanes", "Alkenes", "Esters", "Amines", "Ketones", "Nitriles"].map(
+        (front) => ({ card: { front, difficulty: 2 }, quality: 0 }),
+      ),
+      { card: { front: "Chronic failure", difficulty: 9 }, quality: 0 },
+    ];
+
+    const out = candidatesFromReviewLapses(results, { subject: "Chemistry" });
+
+    expect(out).toHaveLength(5);
+    /* The chronic one was graded last but must still survive the cap. */
+    expect(out[0].concept).toBe("Chronic failure");
   });
 });

@@ -661,3 +661,156 @@ export function candidatesFromQuizAnswers(
 
   return prepareCandidates(out);
 }
+
+/* ── Review ──────────────────────────────────────────────────────────────── */
+
+/** FSRS difficulty (1..10) at or above which a card is already known to be a
+ *  problem for this student, not a fresh slip. */
+export const HARD_DIFFICULTY = 7;
+
+/** SM-2 ease at or below which the same is true. Cards start at 2.5 and only
+ *  fall by lapsing, so 2.0 means the student has already failed this card
+ *  roughly three times. Read as a fallback for pre-FSRS cards, which carry no
+ *  `difficulty`. */
+export const HARD_EASE = 2.0;
+
+/** An interval this long means the card had genuinely bedded in. Failing one
+ *  is the most informative single event in the whole review loop: it is not a
+ *  card they never learned, it is a belief that has decayed or was wrong all
+ *  along. */
+export const ESTABLISHED_INTERVAL_DAYS = 21;
+
+/** How many rows one review session may add. A forty-card session with
+ *  fifteen lapses would otherwise bury the ledger's conceptual diagnoses under
+ *  a list of individual card fronts, and a ledger nobody can read is a ledger
+ *  nobody trusts. The hardest lapses win the slots. */
+export const MAX_REVIEW_CANDIDATES = 5;
+
+/** Card fields the extractor reads. Structurally a subset of `Flashcard`, so
+ *  callers pass their cards straight through — but declared here rather than
+ *  imported, to keep this module free of the API layer like the rest of it. */
+export interface ReviewedCard {
+  front: string;
+  /** FSRS difficulty, 1..10. Absent on cards last reviewed before the column. */
+  difficulty?: number | null;
+  /** SM-2 ease factor. The pre-FSRS stand-in for `difficulty`. */
+  ease_factor?: number | null;
+  /** Days until the card was next due, as of before this grade. */
+  srs_interval?: number | null;
+}
+
+/**
+ * Whether the student was already failing this card before today.
+ *
+ * This is the whole reason the review extractor is worth having. One "Again"
+ * is a slip and the ledger should not care; the *same* card failing again
+ * after the scheduler has already shortened its interval three times is the
+ * app watching a wrong belief survive repeated correction, which is exactly
+ * what the ledger exists to record.
+ */
+export function wasAlreadyHard(card: ReviewedCard): boolean {
+  if (typeof card.difficulty === "number") return card.difficulty >= HARD_DIFFICULTY;
+  if (typeof card.ease_factor === "number") return card.ease_factor <= HARD_EASE;
+  return false;
+}
+
+/** A card that had bedded in and then broke. Treated as strongly as a
+ *  chronically hard card, for the opposite reason: not "never learned" but
+ *  "learned and lost", and both deserve a block of someone's afternoon. */
+function wasEstablished(card: ReviewedCard): boolean {
+  return (card.srs_interval ?? 0) >= ESTABLISHED_INTERVAL_DAYS;
+}
+
+/**
+ * Spaced repetition, read as diagnosis rather than as scheduling.
+ *
+ * Every other extractor in this file recovers a diagnosis a model already
+ * made. This one recovers a fact the app measured itself, and it is the
+ * highest-frequency evidence Learnora holds: a student answers a handful of
+ * quiz questions a week and grades hundreds of cards. Until now all of it went
+ * into `next_review_date` and nowhere else — the scheduler knew a card kept
+ * failing, and no other surface in the app could find out.
+ *
+ * Only "Again" (quality <= 1) is a lapse; "Hard" is a successful recall that
+ * hurt, which `views/review/srs.ts` is careful about for the same reason.
+ * Confident recall of a card that *used* to be hard is emitted as a
+ * correction, so ordinary revision is what closes a ledger row — a student
+ * should never have to perform a ritual to prove they have fixed something.
+ */
+export function candidatesFromReviewLapses(
+  results: Array<{ card: ReviewedCard; quality: number }>,
+  context: { subject?: string; sessionId?: string },
+): MisconceptionCandidate[] {
+  const subject = context.subject ?? "";
+
+  const scored = results.flatMap<{ weight: number; candidate: MisconceptionCandidate }>(
+    ({ card, quality }) => {
+      const concept = tidy(card.front ?? "");
+      if (!concept) return [];
+
+      const hard = wasAlreadyHard(card);
+      const established = wasEstablished(card);
+
+      if (quality <= 1) {
+        const why = hard
+          ? "a card they have failed repeatedly before"
+          : established
+            ? `a card that had been holding for ${card.srs_interval} days`
+            : "";
+        return [
+          {
+            /* Chronic failures and broken-in cards outrank one-off slips for
+               the session's five slots. */
+            weight: hard ? 3 : established ? 2 : 1,
+            candidate: {
+              subject,
+              concept,
+              summary: `Could not recall: ${concept}`,
+              severity: hard || established ? "critical" : "moderate",
+              tool: "review",
+              sourceId: context.sessionId,
+              kind: "evidence",
+              detail: why
+                ? `Graded "Again" in review — ${why}.`
+                : `Graded "Again" in review.`,
+            },
+          },
+        ];
+      }
+
+      /* A correction is only news about a card that was in trouble. Recalling
+         an easy card confidently is the overwhelming majority of every review
+         session and says nothing the ledger did not already assume. */
+      if (quality >= 3 && (hard || established)) {
+        return [
+          {
+            weight: 1,
+            candidate: {
+              subject,
+              concept,
+              summary: "",
+              severity: "moderate",
+              tool: "review",
+              sourceId: context.sessionId,
+              kind: "correction",
+              detail: `Recalled confidently in review after previously failing it.`,
+            },
+          },
+        ];
+      }
+
+      return [];
+    },
+  );
+
+  /* Stable sort by weight: within a weight the student's own review order is
+     kept, so the slots that survive are the ones they met first. */
+  const ordered = scored
+    .map((entry, i) => ({ ...entry, i }))
+    .sort((a, b) => b.weight - a.weight || a.i - b.i)
+    .map((entry) => entry.candidate);
+
+  /* Deduped first, capped second. The other order would spend slots on
+     repeats of one card and silently drop four distinct problems. */
+  return prepareCandidates(ordered).slice(0, MAX_REVIEW_CANDIDATES);
+}
