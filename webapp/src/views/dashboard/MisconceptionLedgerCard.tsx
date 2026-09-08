@@ -159,10 +159,7 @@ export function MisconceptionLedgerCard() {
                 </div>
 
                 <div className={styles.rowActions}>
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleWorkOnIt(m)}
-                  >
+                  <Button variant="secondary" onClick={() => handleWorkOnIt(m)}>
                     Work on it
                   </Button>
                   <button

@@ -69,7 +69,9 @@ describe("StudyLabView", () => {
     const user = userEvent.setup();
     renderLab();
 
-    expect(screen.getByText("Based on your work in Chemistry")).toBeInTheDocument();
+    expect(
+      screen.getByText("Based on your work in Chemistry"),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Start on this/ }));
 
     expect(await screen.findByText("Debugger Page")).toBeInTheDocument();
@@ -84,7 +86,9 @@ describe("StudyLabView", () => {
      explanation the student believes and cannot defend, which is what
      teaching it exposes and tracing it does not. */
   it("sends a recurring one to Feynman instead, and says how often it has been seen", async () => {
-    ledger.mockReturnValue({ ranked: [row({ timesObserved: 4, timesCorrected: 1 })] });
+    ledger.mockReturnValue({
+      ranked: [row({ timesObserved: 4, timesCorrected: 1 })],
+    });
     const user = userEvent.setup();
     renderLab();
 

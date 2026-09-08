@@ -55,7 +55,9 @@ describe("conceptKey", () => {
     expect(conceptKey("Conservation of mass")).toBe(
       conceptKey("the mass conservation"),
     );
-    expect(conceptKey("Hydrolysis rule")).toBe(conceptKey("The rule of hydrolysis"));
+    expect(conceptKey("Hydrolysis rule")).toBe(
+      conceptKey("The rule of hydrolysis"),
+    );
   });
 
   it("is word-order independent", () => {
@@ -84,7 +86,9 @@ describe("conceptKey", () => {
 });
 
 describe("prepareCandidates", () => {
-  function candidate(over: Partial<MisconceptionCandidate> = {}): MisconceptionCandidate {
+  function candidate(
+    over: Partial<MisconceptionCandidate> = {},
+  ): MisconceptionCandidate {
     return {
       subject: "Chemistry",
       concept: "Hydrolysis",
@@ -145,8 +149,14 @@ describe("misconceptionPriority", () => {
   });
 
   it("decays with staleness without reaching zero", () => {
-    const fresh = misconceptionPriority(row({ lastSeenAt: daysBefore(1) }), NOW);
-    const stale = misconceptionPriority(row({ lastSeenAt: daysBefore(90) }), NOW);
+    const fresh = misconceptionPriority(
+      row({ lastSeenAt: daysBefore(1) }),
+      NOW,
+    );
+    const stale = misconceptionPriority(
+      row({ lastSeenAt: daysBefore(90) }),
+      NOW,
+    );
     expect(stale).toBeLessThan(fresh);
     expect(stale).toBeGreaterThan(0);
   });
@@ -173,13 +183,26 @@ describe("misconceptionPriority", () => {
 
 describe("selectors", () => {
   const ledger = [
-    row({ id: "a", subject: "Chemistry", severity: "critical", timesObserved: 3 }),
+    row({
+      id: "a",
+      subject: "Chemistry",
+      severity: "critical",
+      timesObserved: 3,
+    }),
     row({ id: "b", subject: "Physics", concept: "Momentum", timesObserved: 1 }),
-    row({ id: "c", subject: "Chemistry", concept: "Moles", status: "resolved" }),
+    row({
+      id: "c",
+      subject: "Chemistry",
+      concept: "Moles",
+      status: "resolved",
+    }),
   ];
 
   it("excludes resolved rows from the ranking", () => {
-    expect(rankMisconceptions(ledger, NOW).map((m) => m.id)).toEqual(["a", "b"]);
+    expect(rankMisconceptions(ledger, NOW).map((m) => m.id)).toEqual([
+      "a",
+      "b",
+    ]);
   });
 
   it("filters by subject case-insensitively", () => {
@@ -189,7 +212,9 @@ describe("selectors", () => {
   });
 
   it("reports only rows seen more than once as recurring", () => {
-    expect(recurringMisconceptions(ledger, NOW).map((m) => m.id)).toEqual(["a"]);
+    expect(recurringMisconceptions(ledger, NOW).map((m) => m.id)).toEqual([
+      "a",
+    ]);
   });
 });
 
@@ -240,7 +265,11 @@ describe("extractors", () => {
       failedQuestionOrTopic: "Why does the mass change?",
       rootCauseSummary: "Mass conservation is not held.",
       layers: [
-        { concept: "Conservation of mass", status: "severed", explanation: "Broken." },
+        {
+          concept: "Conservation of mass",
+          status: "severed",
+          explanation: "Broken.",
+        },
         { concept: "Stoichiometry", status: "shaky", explanation: "Unsteady." },
         { concept: "Atomic theory", status: "healthy", explanation: "Fine." },
       ],
@@ -251,10 +280,14 @@ describe("extractors", () => {
     expect(severed?.kind).toBe("evidence");
     expect(severed?.detail).toContain("Why does the mass change?");
 
-    expect(out.find((c) => c.concept === "Stoichiometry")?.severity).toBe("moderate");
+    expect(out.find((c) => c.concept === "Stoichiometry")?.severity).toBe(
+      "moderate",
+    );
     /* A healthy layer is a positive assertion, not silence: it is the trace
        saying the student does hold this prerequisite. */
-    expect(out.find((c) => c.concept === "Atomic theory")?.kind).toBe("correction");
+    expect(out.find((c) => c.concept === "Atomic theory")?.kind).toBe(
+      "correction",
+    );
   });
 
   it("never records the misconceptions Feynman planted", () => {
@@ -262,7 +295,11 @@ describe("extractors", () => {
        student to find. Recording them would fill the ledger with beliefs the
        student never held — the single worst failure mode for this table. */
     const out = candidatesFromTeachingTurn(
-      { id: "turn1", confusionPoints: ["Enthalpy sign"], solvedPoints: ["Bond energy"] },
+      {
+        id: "turn1",
+        confusionPoints: ["Enthalpy sign"],
+        solvedPoints: ["Bond energy"],
+      },
       {
         id: "d1",
         subject: "Chemistry",
@@ -274,8 +311,12 @@ describe("extractors", () => {
     );
 
     expect(out.map((c) => c.concept)).toEqual(["Enthalpy sign", "Bond energy"]);
-    expect(out.find((c) => c.concept === "Enthalpy sign")?.kind).toBe("evidence");
-    expect(out.find((c) => c.concept === "Bond energy")?.kind).toBe("correction");
+    expect(out.find((c) => c.concept === "Enthalpy sign")?.kind).toBe(
+      "evidence",
+    );
+    expect(out.find((c) => c.concept === "Bond energy")?.kind).toBe(
+      "correction",
+    );
   });
 
   it("maps pre-mortem failure probability onto severity", () => {
@@ -284,32 +325,57 @@ describe("extractors", () => {
       subject: "Physics",
       examName: "Mocks",
       predictedFailures: [
-        { topic: "Circular motion", coreTrap: "Confuses centripetal force", failureProbability: 82, predictedLostMarks: 6 },
-        { topic: "Optics", coreTrap: "Sign conventions", failureProbability: 50 },
+        {
+          topic: "Circular motion",
+          coreTrap: "Confuses centripetal force",
+          failureProbability: 82,
+          predictedLostMarks: 6,
+        },
+        {
+          topic: "Optics",
+          coreTrap: "Sign conventions",
+          failureProbability: 50,
+        },
         { topic: "Waves", coreTrap: "Phase", failureProbability: 12 },
       ],
     });
 
-    expect(out.map((c) => c.severity)).toEqual(["critical", "moderate", "minor"]);
+    expect(out.map((c) => c.severity)).toEqual([
+      "critical",
+      "moderate",
+      "minor",
+    ]);
     expect(out[0].detail).toContain("82%");
     expect(out[0].detail).toContain("6 marks");
   });
 
   it("records sparring omissions weakly and mastery as correction", () => {
     const out = candidatesFromSparring(
-      { missingPoints: ["Opportunity cost"], keyConceptsMastered: ["Marginal utility"] },
+      {
+        missingPoints: ["Opportunity cost"],
+        keyConceptsMastered: ["Marginal utility"],
+      },
       { subject: "Economics", topic: "Scarcity", sessionId: "s1" },
     );
     /* An omission under debate pressure is not proof of a wrong belief, so it
        must not outrank a Debugger trace on its first appearance. */
-    expect(out.find((c) => c.concept === "Opportunity cost")?.severity).toBe("minor");
-    expect(out.find((c) => c.concept === "Marginal utility")?.kind).toBe("correction");
+    expect(out.find((c) => c.concept === "Opportunity cost")?.severity).toBe(
+      "minor",
+    );
+    expect(out.find((c) => c.concept === "Marginal utility")?.kind).toBe(
+      "correction",
+    );
   });
 
   it("turns quiz answers into evidence and corrections, skipping untopiced ones", () => {
     const out = candidatesFromQuizAnswers(
       [
-        { topic: "Hydrolysis", correct: false, question: "What is added?", chosen: "Nothing" },
+        {
+          topic: "Hydrolysis",
+          correct: false,
+          question: "What is added?",
+          chosen: "Nothing",
+        },
         { topic: "Moles", correct: true },
         { topic: "", correct: false },
       ],
@@ -318,28 +384,42 @@ describe("extractors", () => {
 
     expect(out).toHaveLength(2);
     expect(out.find((c) => c.concept === "Hydrolysis")?.kind).toBe("evidence");
-    expect(out.find((c) => c.concept === "Hydrolysis")?.detail).toContain("Nothing");
+    expect(out.find((c) => c.concept === "Hydrolysis")?.detail).toContain(
+      "Nothing",
+    );
     expect(out.find((c) => c.concept === "Moles")?.kind).toBe("correction");
   });
   it("ignores a one-off lapse's severity but escalates a chronically failed card", () => {
     const out = candidatesFromReviewLapses(
       [
-        { card: { front: "Define enthalpy of formation", difficulty: 8 }, quality: 0 },
+        {
+          card: { front: "Define enthalpy of formation", difficulty: 8 },
+          quality: 0,
+        },
         { card: { front: "Symbol for sodium", difficulty: 3 }, quality: 1 },
       ],
       { subject: "Chemistry", sessionId: "r1" },
     );
 
     expect(out).toHaveLength(2);
-    const chronic = out.find((c) => c.concept === "Define enthalpy of formation");
+    const chronic = out.find(
+      (c) => c.concept === "Define enthalpy of formation",
+    );
     expect(chronic?.severity).toBe("critical");
     expect(chronic?.detail).toContain("failed repeatedly");
-    expect(out.find((c) => c.concept === "Symbol for sodium")?.severity).toBe("moderate");
+    expect(out.find((c) => c.concept === "Symbol for sodium")?.severity).toBe(
+      "moderate",
+    );
   });
 
   it("treats a long-established card breaking as critical", () => {
     const [out] = candidatesFromReviewLapses(
-      [{ card: { front: "Ohm's law", difficulty: 4, srs_interval: 40 }, quality: 0 }],
+      [
+        {
+          card: { front: "Ohm's law", difficulty: 4, srs_interval: 40 },
+          quality: 0,
+        },
+      ],
       { subject: "Physics" },
     );
 
@@ -362,7 +442,10 @@ describe("extractors", () => {
         { card: { front: "Krebs cycle", difficulty: 9 }, quality: 4 },
         { card: { front: "Capital of France", difficulty: 2 }, quality: 4 },
         /* "Hard" is a successful recall, not a lapse — neither signal. */
-        { card: { front: "Photosynthesis equation", difficulty: 8 }, quality: 2 },
+        {
+          card: { front: "Photosynthesis equation", difficulty: 8 },
+          quality: 2,
+        },
       ],
       { subject: "Biology" },
     );

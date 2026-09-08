@@ -17,7 +17,9 @@ vi.mock("../../hooks/useTrajectory", () => ({
   useTrajectory: () => trajectory(),
 }));
 
-function intervention(patch: Partial<Intervention> & { label: string }): Intervention {
+function intervention(
+  patch: Partial<Intervention> & { label: string },
+): Intervention {
   return {
     topicId: patch.label,
     points: 3,
@@ -52,7 +54,11 @@ function forecast(patch: Partial<TrajectoryForecast> = {}): TrajectoryForecast {
   };
 }
 
-const exam = { id: 1, exam_name: "Chemistry Paper 1", exam_date: "2026-09-15" } as Exam;
+const exam = {
+  id: 1,
+  exam_name: "Chemistry Paper 1",
+  exam_date: "2026-09-15",
+} as Exam;
 
 function renderCard() {
   return render(
@@ -80,7 +86,9 @@ describe("NextHourCard", () => {
   it("leads with the marks the next hour buys, and on what", () => {
     renderCard();
     expect(screen.getByText(/\+4\.2/)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /on Titration/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /on Titration/ }),
+    ).toBeInTheDocument();
   });
 
   /* The ratio is the argument. "Revise titration" is advice anyone can give;
@@ -89,7 +97,9 @@ describe("NextHourCard", () => {
      app instead of a chatbot. */
   it("states how much better the top topic is than the worst", () => {
     renderCard();
-    expect(screen.getByText(/6\.0× what the same hour buys you on Bonding/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/6\.0× what the same hour buys you on Bonding/),
+    ).toBeInTheDocument();
   });
 
   it("drops the comparison when the gap is too small to change a decision", () => {
@@ -106,13 +116,17 @@ describe("NextHourCard", () => {
       isPending: false,
     });
     renderCard();
-    expect(screen.queryByText(/what the same hour buys you/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/what the same hour buys you/),
+    ).not.toBeInTheDocument();
   });
 
   it("starts a block on the top topic and sends the student to the timer", async () => {
     const user = userEvent.setup();
     renderCard();
-    await user.click(screen.getByRole("button", { name: /Start 45 min on Titration/ }));
+    await user.click(
+      screen.getByRole("button", { name: /Start 45 min on Titration/ }),
+    );
     expect(prepareFocus).toHaveBeenCalledWith(45, "Titration");
     expect(await screen.findByText("Timer Page")).toBeInTheDocument();
   });
@@ -126,7 +140,9 @@ describe("NextHourCard", () => {
       isPending: false,
     });
     renderCard();
-    expect(screen.getByText(/out of reach in the time left/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/out of reach in the time left/),
+    ).toBeInTheDocument();
   });
 
   /* Silence is the correct output when the forecast would have to guess: the

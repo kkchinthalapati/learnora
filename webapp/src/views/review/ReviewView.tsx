@@ -33,10 +33,7 @@ import { dateInDays } from "../../lib/date";
 import { fenceUntrusted } from "../../lib/actionTags";
 import { candidatesFromReviewLapses } from "../../lib/misconceptions";
 import { executeActions, type ActionHandlers } from "../../lib/chatActions";
-import {
-  renderMarkdownNodes,
-  renderMathText,
-} from "../../lib/markdownToReact";
+import { renderMarkdownNodes, renderMathText } from "../../lib/markdownToReact";
 import {
   availableReviewLengths,
   createReviewSnapshot,
@@ -407,7 +404,9 @@ export function extractSourceNoteContext(
   }
 
   // 4. Markdown links [Source Note](/notes/:id)
-  const linkMatch = combined.match(/\[([^\]]*)\]\(\/notes\/([a-zA-Z0-9_-]+)\)/i);
+  const linkMatch = combined.match(
+    /\[([^\]]*)\]\(\/notes\/([a-zA-Z0-9_-]+)\)/i,
+  );
   if (linkMatch) {
     const rawTitle = linkMatch[1].trim();
     return {
@@ -480,10 +479,7 @@ Also provide a short 1-sentence feedback.`;
  *  fresh object per call is cheap and avoids memoising a dependency on
  *  `scoreCard`, which itself changes identity every card. */
 export type SocraticMode =
-  | "mnemonic"
-  | "concept"
-  | "socratic_question"
-  | "why_missed";
+  "mnemonic" | "concept" | "socratic_question" | "why_missed";
 
 /* Every coach reply is read inside a narrow drawer, mid-review, by a student
  * who is already frustrated at missing a card. So the model is held to one
@@ -692,7 +688,9 @@ export function SocraticCoachDrawer({
         <div className={styles.socraticHeader}>
           <div className={styles.socraticHeaderLeft}>
             <Icon name="brain" size={20} />
-            <h2 className={styles.socraticTitle}>Socratic Coach &amp; Interceptor</h2>
+            <h2 className={styles.socraticTitle}>
+              Socratic Coach &amp; Interceptor
+            </h2>
           </div>
           <button
             type="button"
@@ -716,7 +714,11 @@ export function SocraticCoachDrawer({
             </div>
           </div>
 
-          <div className={styles.socraticModeTabs} role="tablist" aria-label="Coaching modes">
+          <div
+            className={styles.socraticModeTabs}
+            role="tablist"
+            aria-label="Coaching modes"
+          >
             <button
               type="button"
               role="tab"
@@ -1398,7 +1400,10 @@ function ReviewRecap({
   const startFocusSession = () => {
     const focusTask =
       recap.weakTopics.length > 0
-        ? `Focus: ${recap.weakTopics.slice(0, 2).map((t) => t.topic).join(", ")} (${deckTitle})`
+        ? `Focus: ${recap.weakTopics
+            .slice(0, 2)
+            .map((t) => t.topic)
+            .join(", ")} (${deckTitle})`
         : `Focus: ${deckTitle}`;
     timer?.prepareFocus(25, focusTask, folderId);
     showToast(`25m Focus session staged for ${deckTitle}!`);
@@ -1462,7 +1467,9 @@ function ReviewRecap({
         {/* How much you’ll remember */}
         <div className={styles.retentionCard}>
           <div className={styles.retentionHeader}>
-            <h3 className={styles.retentionTitle}>How much you’ll still remember in a week</h3>
+            <h3 className={styles.retentionTitle}>
+              How much you’ll still remember in a week
+            </h3>
             <span
               className={`${styles.retentionBadge} ${getRetentionBadgeClass(
                 recap.retentionLabel,
@@ -1710,7 +1717,11 @@ function ReviewRecap({
                 className={styles.recapActionBtn}
               >
                 <Icon name="list-checks" size={16} />
-                <span>{taskAdded ? "Added to tomorrow ✓" : "Revise this again tomorrow"}</span>
+                <span>
+                  {taskAdded
+                    ? "Added to tomorrow ✓"
+                    : "Revise this again tomorrow"}
+                </span>
               </Button>
             )}
             {onRepeatDifficult ? (
@@ -1725,16 +1736,23 @@ function ReviewRecap({
             ) : null}
             <Button
               variant="secondary"
-              onClick={() => void navigate(folderId ? `/folders/${folderId}` : "/library/flashcards")}
+              onClick={() =>
+                void navigate(
+                  folderId ? `/folders/${folderId}` : "/library/flashcards",
+                )
+              }
               className={styles.recapActionBtn}
             >
               <Icon name={folderId ? "folder" : "layers"} size={16} />
-              <span>{folderId ? "Back to Subject Hub" : "Back to Flashcards"}</span>
+              <span>
+                {folderId ? "Back to Subject Hub" : "Back to Flashcards"}
+              </span>
             </Button>
           </div>
           {onRepeatDifficult && (
             <p className={styles.practiceNoticeSmall}>
-              Practicing difficult cards is a repeat pass that preserves your scheduled SRS intervals.
+              Practicing difficult cards is a repeat pass that preserves your
+              scheduled SRS intervals.
             </p>
           )}
           {!onRepeatDifficult && (

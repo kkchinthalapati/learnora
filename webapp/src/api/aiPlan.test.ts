@@ -254,7 +254,9 @@ describe("buildPlanPrompt — performance evidence", () => {
     /* Quoting the figure back to the student is what makes the plan
        defensible rather than another list of topics. */
     expect(prompt).toContain("worth ~4.2 marks");
-    expect(prompt).toContain("never quote a figure for a topic the block does not list");
+    expect(prompt).toContain(
+      "never quote a figure for a topic the block does not list",
+    );
   });
 
   it("omits the hour-value block and its rule entirely when there is no forecast", () => {

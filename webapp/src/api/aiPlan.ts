@@ -63,9 +63,12 @@ const EXAM_TYPE_LABELS: Record<string, string> = {
 };
 
 const STUDY_PACE_HINTS: Record<string, string> = {
-  light: "prefers a light load — keep blocks short and infrequent rather than filling every day.",
-  balanced: "wants a balanced weekly load — the default 30-90 minute blocks are right for them.",
-  intensive: "is comfortable with an intensive load — longer and more frequent blocks are welcome, not just the minimum.",
+  light:
+    "prefers a light load — keep blocks short and infrequent rather than filling every day.",
+  balanced:
+    "wants a balanced weekly load — the default 30-90 minute blocks are right for them.",
+  intensive:
+    "is comfortable with an intensive load — longer and more frequent blocks are welcome, not just the minimum.",
 };
 
 /** Self-reported study context from Settings > Preferences, distinct from
@@ -90,7 +93,9 @@ export function formatStudentContext(profile: {
   }
   if (profile.targetGrade) parts.push(`is aiming for ${profile.targetGrade}`);
 
-  const paceHint = profile.studyPace ? STUDY_PACE_HINTS[profile.studyPace] : null;
+  const paceHint = profile.studyPace
+    ? STUDY_PACE_HINTS[profile.studyPace]
+    : null;
 
   if (parts.length === 0 && !paceHint) return "";
 
@@ -210,21 +215,21 @@ ${
     : `${AVAILABILITY_RULE}
 `
 }${
-  performanceEvidence
-    ? `EVIDENCE RULE: the performance block above is measured, not inferred. Give the most time to the topics it names as WEAK, quoting their measured accuracy in the block's description so the student can see why it was chosen. Do not schedule revision for topics it lists as SOLID unless an exam is imminent — telling a student to stop revising something is how a plan buys back hours. Never schedule against a percentage for a topic listed as NEVER TESTED or marked PROVISIONAL; suggest a quiz on it instead.
+    performanceEvidence
+      ? `EVIDENCE RULE: the performance block above is measured, not inferred. Give the most time to the topics it names as WEAK, quoting their measured accuracy in the block's description so the student can see why it was chosen. Do not schedule revision for topics it lists as SOLID unless an exam is imminent — telling a student to stop revising something is how a plan buys back hours. Never schedule against a percentage for a topic listed as NEVER TESTED or marked PROVISIONAL; suggest a quiz on it instead.
 `
-    : ""
-}${
-  misconceptionLedger
-    ? `LEDGER RULE: the misconception block above is this app's own diagnosis of what the student actually believes wrongly, gathered from their real work. Where a block covers a topic it names, say in that block's description what specifically to fix — the misconception itself, not just the topic. Give a misconception observed more than once a block of its own; repeated evidence is the strongest signal in this prompt and outranks a merely low quiz score. Do not schedule anything for a misconception the block marks resolved.
+      : ""
+  }${
+    misconceptionLedger
+      ? `LEDGER RULE: the misconception block above is this app's own diagnosis of what the student actually believes wrongly, gathered from their real work. Where a block covers a topic it names, say in that block's description what specifically to fix — the misconception itself, not just the topic. Give a misconception observed more than once a block of its own; repeated evidence is the strongest signal in this prompt and outranks a merely low quiz score. Do not schedule anything for a misconception the block marks resolved.
 `
-    : ""
-}${
-  hourValue
-    ? `VALUE RULE: the hour-value block above is this app's own forecast, computed from the student's real memory state and the hours they actually have left. Order the week by it: the top-ranked topic gets the first and the longest blocks. State the figure in the block's description ("45 min on Titration — worth ~4.2 marks") so the student can see what the hour buys, and never quote a figure for a topic the block does not list. Where it says a topic is fading, the block is a revisit, not a re-teach. If the block says the target is out of reach, plan for the best achievable score and say so in the summary rather than scheduling an impossible week.
+      : ""
+  }${
+    hourValue
+      ? `VALUE RULE: the hour-value block above is this app's own forecast, computed from the student's real memory state and the hours they actually have left. Order the week by it: the top-ranked topic gets the first and the longest blocks. State the figure in the block's description ("45 min on Titration — worth ~4.2 marks") so the student can see what the hour buys, and never quote a figure for a topic the block does not list. Where it says a topic is fading, the block is a revisit, not a re-teach. If the block says the target is out of reach, plan for the best achievable score and say so in the summary rather than scheduling an impossible week.
 `
-    : ""
-}Prioritize subjects with closer/harder exams, tasks with closer due dates, and topics the student is weak on. If last week shows a subject was under-studied, ease it back in with shorter blocks rather than repeating the exact same plan. Keep daily blocks realistic (30-90 minutes each, a couple of blocks per day at most). If there is no exam/task data, suggest light general review blocks.`;
+      : ""
+  }Prioritize subjects with closer/harder exams, tasks with closer due dates, and topics the student is weak on. If last week shows a subject was under-studied, ease it back in with shorter blocks rather than repeating the exact same plan. Keep daily blocks realistic (30-90 minutes each, a couple of blocks per day at most). If there is no exam/task data, suggest light general review blocks.`;
 }
 
 /** The workspace summary both the planner and the chat feed to the model.

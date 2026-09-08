@@ -798,9 +798,7 @@ describe("PlanView", () => {
       renderPlan();
 
       expect(await screen.findByText("0%")).toBeInTheDocument();
-      expect(
-        screen.getByText("of last week's plan done"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("of last week's plan done")).toBeInTheDocument();
       expect(screen.getByText("Chemistry")).toBeInTheDocument();
       expect(
         screen.getByText(/your next plan will make room for them/),

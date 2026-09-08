@@ -30,7 +30,10 @@ import styles from "./NextHourCard.module.css";
  *  decision. Below this, "1.3× as much" is noise dressed as insight. */
 const MEANINGFUL_RATIO = 1.5;
 
-const VERDICT: Record<Verdict, { tone: string; line: (target: number) => string }> = {
+const VERDICT: Record<
+  Verdict,
+  { tone: string; line: (target: number) => string }
+> = {
   "on-track": {
     tone: "good",
     line: (t) => `On track for ${t}% if you keep the hours you have.`,
@@ -48,7 +51,8 @@ const VERDICT: Record<Verdict, { tone: string; line: (target: number) => string 
      told the truth, and the alternative target is the useful half. */
   "not-enough-time": {
     tone: "bad",
-    line: (t) => `${t}% is out of reach in the time left — aim for the best score you can.`,
+    line: (t) =>
+      `${t}% is out of reach in the time left — aim for the best score you can.`,
   },
 };
 
@@ -60,7 +64,10 @@ export function NextHourCard() {
   if (isPending) {
     return (
       <section className={styles.card} aria-busy="true">
-        <Skeleton label="Working out what your next hour is worth" height={120} />
+        <Skeleton
+          label="Working out what your next hour is worth"
+          height={120}
+        />
       </section>
     );
   }
@@ -72,7 +79,9 @@ export function NextHourCard() {
 
   const worst = rest.length > 0 ? rest[rest.length - 1] : null;
   const ratio =
-    worst && worst.pointsPerHour > 0 ? top.pointsPerHour / worst.pointsPerHour : 0;
+    worst && worst.pointsPerHour > 0
+      ? top.pointsPerHour / worst.pointsPerHour
+      : 0;
 
   const verdict = VERDICT[forecast.verdict];
 
@@ -114,7 +123,8 @@ export function NextHourCard() {
       <p className={styles.reason}>
         {ratio >= MEANINGFUL_RATIO && worst ? (
           <>
-            {ratio.toFixed(1)}× what the same hour buys you on {worst.label}.{" "}
+            {ratio.toFixed(1)}× what the same hour buys you on {worst.label}
+            .{" "}
           </>
         ) : null}
         {top.atRisk

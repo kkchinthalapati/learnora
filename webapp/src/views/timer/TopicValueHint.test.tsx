@@ -10,7 +10,9 @@ vi.mock("../../hooks/useTrajectory", () => ({
   useTrajectory: () => trajectory(),
 }));
 
-function intervention(patch: Partial<Intervention> & { label: string }): Intervention {
+function intervention(
+  patch: Partial<Intervention> & { label: string },
+): Intervention {
   return {
     topicId: patch.label,
     points: 3,
@@ -49,12 +51,16 @@ describe("TopicValueHint", () => {
   it("offers the highest-value topic against whatever the student picked", async () => {
     const onUseTopic = vi.fn();
     const user = userEvent.setup();
-    render(<TopicValueHint activeTask="Finish lab report" onUseTopic={onUseTopic} />);
+    render(
+      <TopicValueHint activeTask="Finish lab report" onUseTopic={onUseTopic} />,
+    );
 
     expect(screen.getByText("Titration")).toBeInTheDocument();
     expect(screen.getByText(/6\.0× an hour on Bonding/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Study that instead" }));
+    await user.click(
+      screen.getByRole("button", { name: "Study that instead" }),
+    );
     expect(onUseTopic).toHaveBeenCalledWith("Titration");
   });
 
@@ -75,7 +81,9 @@ describe("TopicValueHint", () => {
   });
 
   it("says nothing when no topic is worth an hour", () => {
-    trajectory.mockReturnValue(result([intervention({ label: "Bonding", pointsPerHour: 0 })]));
+    trajectory.mockReturnValue(
+      result([intervention({ label: "Bonding", pointsPerHour: 0 })]),
+    );
     const { container } = render(
       <TopicValueHint activeTask="None" onUseTopic={vi.fn()} />,
     );

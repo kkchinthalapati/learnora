@@ -15,13 +15,23 @@
  * fetches — and get the same answer.
  */
 
-import type { Exam, Flashcard, FlashcardDeck, Folder, QuizAttempt } from "../api/types";
+import type {
+  Exam,
+  Flashcard,
+  FlashcardDeck,
+  Folder,
+  QuizAttempt,
+} from "../api/types";
 import { availabilityRange } from "./availability";
 import { localDateStr, parseLocalDate } from "./date";
 import { matchExamFolder } from "./examReadiness";
 import { importIcsForRange } from "./icsImport";
 import type { LifeContext } from "./lifeContext";
-import { buildTopicStates, forecast, type TrajectoryForecast } from "./trajectory";
+import {
+  buildTopicStates,
+  forecast,
+  type TrajectoryForecast,
+} from "./trajectory";
 
 /** Beyond this the forecast stops meaning anything: a projection ninety days
  *  out is dominated by decisions the student has not made yet, and rendering

@@ -40,9 +40,12 @@ export function TopicValueHint({
 
   const worst = rest.length > 0 ? rest[rest.length - 1] : null;
   const ratio =
-    worst && worst.pointsPerHour > 0 ? top.pointsPerHour / worst.pointsPerHour : 0;
+    worst && worst.pointsPerHour > 0
+      ? top.pointsPerHour / worst.pointsPerHour
+      : 0;
 
-  const alreadyChosen = activeTask.trim().toLowerCase() === top.label.trim().toLowerCase();
+  const alreadyChosen =
+    activeTask.trim().toLowerCase() === top.label.trim().toLowerCase();
 
   return (
     <p className={styles.hint}>
@@ -50,8 +53,8 @@ export function TopicValueHint({
       <span>
         {alreadyChosen ? (
           <>
-            Good pick — <strong>{top.label}</strong> is the highest-value hour you
-            have before {forecast.examName}, at about{" "}
+            Good pick — <strong>{top.label}</strong> is the highest-value hour
+            you have before {forecast.examName}, at about{" "}
             {top.pointsPerHour.toFixed(1)} marks.
           </>
         ) : (

@@ -161,7 +161,11 @@ export function conceptKey(raw: string): string {
      flattened original so the row still gets a stable key rather than an
      empty one that would collide with every other such case. */
   if (words.length === 0) {
-    return raw.toLowerCase().replace(/\s+/g, " ").trim().slice(0, MAX_KEY_LENGTH);
+    return raw
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, MAX_KEY_LENGTH);
   }
 
   return [...new Set(words)].sort().join(" ").slice(0, MAX_KEY_LENGTH);
@@ -180,7 +184,8 @@ function tidy(raw: string): string {
 export function isUsableCandidate(c: MisconceptionCandidate): boolean {
   const concept = tidy(c.concept);
   if (concept.length < MIN_CONCEPT_LENGTH) return false;
-  if (/^(n\/?a|none|unknown|null|undefined|tbd|-+)$/i.test(concept)) return false;
+  if (/^(n\/?a|none|unknown|null|undefined|tbd|-+)$/i.test(concept))
+    return false;
   return conceptKey(concept).length > 0;
 }
 
@@ -333,10 +338,7 @@ export function formatMisconceptionsForPrompt(
 
   const shown = scoped.slice(0, MAX_PROMPT_MISCONCEPTIONS);
   for (const m of shown) {
-    const seen =
-      m.timesObserved > 1
-        ? `seen ${m.timesObserved}x`
-        : "seen once";
+    const seen = m.timesObserved > 1 ? `seen ${m.timesObserved}x` : "seen once";
     const fixed =
       m.timesCorrected > 0 ? `, corrected ${m.timesCorrected}x` : "";
     const state = m.status === "improving" ? ", improving" : "";
@@ -482,9 +484,7 @@ export function candidatesFromTeachingTurn(
     (point) => ({
       subject,
       concept: point,
-      summary: topic
-        ? `Unresolved while teaching ${topic}: ${point}`
-        : point,
+      summary: topic ? `Unresolved while teaching ${topic}: ${point}` : point,
       severity: "moderate",
       tool: "feynman",
       sourceId: turn.id ?? draft.id,
@@ -710,8 +710,10 @@ export interface ReviewedCard {
  * what the ledger exists to record.
  */
 export function wasAlreadyHard(card: ReviewedCard): boolean {
-  if (typeof card.difficulty === "number") return card.difficulty >= HARD_DIFFICULTY;
-  if (typeof card.ease_factor === "number") return card.ease_factor <= HARD_EASE;
+  if (typeof card.difficulty === "number")
+    return card.difficulty >= HARD_DIFFICULTY;
+  if (typeof card.ease_factor === "number")
+    return card.ease_factor <= HARD_EASE;
   return false;
 }
 
@@ -744,65 +746,66 @@ export function candidatesFromReviewLapses(
 ): MisconceptionCandidate[] {
   const subject = context.subject ?? "";
 
-  const scored = results.flatMap<{ weight: number; candidate: MisconceptionCandidate }>(
-    ({ card, quality }) => {
-      const concept = tidy(card.front ?? "");
-      if (!concept) return [];
+  const scored = results.flatMap<{
+    weight: number;
+    candidate: MisconceptionCandidate;
+  }>(({ card, quality }) => {
+    const concept = tidy(card.front ?? "");
+    if (!concept) return [];
 
-      const hard = wasAlreadyHard(card);
-      const established = wasEstablished(card);
+    const hard = wasAlreadyHard(card);
+    const established = wasEstablished(card);
 
-      if (quality <= 1) {
-        const why = hard
-          ? "a card they have failed repeatedly before"
-          : established
-            ? `a card that had been holding for ${card.srs_interval} days`
-            : "";
-        return [
-          {
-            /* Chronic failures and broken-in cards outrank one-off slips for
+    if (quality <= 1) {
+      const why = hard
+        ? "a card they have failed repeatedly before"
+        : established
+          ? `a card that had been holding for ${card.srs_interval} days`
+          : "";
+      return [
+        {
+          /* Chronic failures and broken-in cards outrank one-off slips for
                the session's five slots. */
-            weight: hard ? 3 : established ? 2 : 1,
-            candidate: {
-              subject,
-              concept,
-              summary: `Could not recall: ${concept}`,
-              severity: hard || established ? "critical" : "moderate",
-              tool: "review",
-              sourceId: context.sessionId,
-              kind: "evidence",
-              detail: why
-                ? `Graded "Again" in review — ${why}.`
-                : `Graded "Again" in review.`,
-            },
+          weight: hard ? 3 : established ? 2 : 1,
+          candidate: {
+            subject,
+            concept,
+            summary: `Could not recall: ${concept}`,
+            severity: hard || established ? "critical" : "moderate",
+            tool: "review",
+            sourceId: context.sessionId,
+            kind: "evidence",
+            detail: why
+              ? `Graded "Again" in review — ${why}.`
+              : `Graded "Again" in review.`,
           },
-        ];
-      }
+        },
+      ];
+    }
 
-      /* A correction is only news about a card that was in trouble. Recalling
+    /* A correction is only news about a card that was in trouble. Recalling
          an easy card confidently is the overwhelming majority of every review
          session and says nothing the ledger did not already assume. */
-      if (quality >= 3 && (hard || established)) {
-        return [
-          {
-            weight: 1,
-            candidate: {
-              subject,
-              concept,
-              summary: "",
-              severity: "moderate",
-              tool: "review",
-              sourceId: context.sessionId,
-              kind: "correction",
-              detail: `Recalled confidently in review after previously failing it.`,
-            },
+    if (quality >= 3 && (hard || established)) {
+      return [
+        {
+          weight: 1,
+          candidate: {
+            subject,
+            concept,
+            summary: "",
+            severity: "moderate",
+            tool: "review",
+            sourceId: context.sessionId,
+            kind: "correction",
+            detail: `Recalled confidently in review after previously failing it.`,
           },
-        ];
-      }
+        },
+      ];
+    }
 
-      return [];
-    },
-  );
+    return [];
+  });
 
   /* Stable sort by weight: within a weight the student's own review order is
      kept, so the slots that survive are the ones they met first. */

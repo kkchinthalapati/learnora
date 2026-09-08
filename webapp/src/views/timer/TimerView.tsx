@@ -401,7 +401,10 @@ export function TimerView() {
             {/* Under the binder rather than above it: the student's own list
                 is still the default answer, and this is the app's opinion
                 about it, offered once. */}
-            <TopicValueHint activeTask={activeTask} onUseTopic={setActiveTask} />
+            <TopicValueHint
+              activeTask={activeTask}
+              onUseTopic={setActiveTask}
+            />
           </div>
 
           <div className={styles.taskBinder}>
