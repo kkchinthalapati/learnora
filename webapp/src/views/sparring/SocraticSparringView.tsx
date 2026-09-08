@@ -12,6 +12,8 @@ import {
   startSparringSession,
   submitStudentAnswer,
   generateNextSparringRound,
+  VIVA_ROLES,
+  VIVA_FOCUS_GOALS,
   type SparringSession,
   type SparringPersona,
   type GroundedCitation,
@@ -46,9 +48,6 @@ export function SocraticSparringView() {
   const { notebooks } = useNotebooks();
   const linkedNotebook = useNotebook(queryNotebookId).notebook;
 
-  /* Sparring without this picks its opening challenge from the topic string
-     alone, so it probes wherever the model feels like — which is as often a
-     topic the student has already nailed as the one they keep failing. */
   const { evidence: studentEvidence, isPending: isEvidencePending } =
     useStudentEvidence();
   const evidenceBlock = isEvidencePending
@@ -58,20 +57,35 @@ export function SocraticSparringView() {
   const ledgerBlock =
     ledger.length > 0 ? formatMisconceptionsForPrompt(ledger) : undefined;
 
-  // Session State
+  // Setup / Configuration State
   const [topicInput, setTopicInput] = useState(queryTopic || "");
   const [selectedNotebookId, setSelectedNotebookId] = useState(
     queryNotebookId || "",
   );
+  const [pastedNotes, setPastedNotes] = useState("");
+  const [showNotesInput, setShowNotesInput] = useState(false);
+
+  // Vibe / Role & Goals selection
+  const [selectedVibeId, setSelectedVibeId] = useState<string>("examiner");
+  const [customVibeText, setCustomVibeText] = useState("");
+  const [selectedGoalId, setSelectedGoalId] = useState<string>("intuition");
+  const [customGoalText, setCustomGoalText] = useState("");
+
+  // In-Call Session State
   const [session, setSession] = useState<SparringSession | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCallPaused, setIsCallPaused] = useState(false);
+  const [callDurationSeconds, setCallDurationSeconds] = useState(0);
+  const [showEndCallModal, setShowEndCallModal] = useState(false);
 
   // Interaction State
   const [keyboardInput, setKeyboardInput] = useState("");
+  const [showTextInput, setShowTextInput] = useState(false);
   const [autoPlayAudio, setAutoPlayAudio] = useState(true);
 
   const dialogueEndRef = useRef<HTMLDivElement | null>(null);
+  const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Speech Synthesis Hook
   const {
@@ -79,29 +93,23 @@ export function SocraticSparringView() {
     cancel: cancelSpeech,
     isSpeaking,
     currentSpeaker: activeAiSpeaker,
+    audioRate,
+    setAudioRate,
   } = useSpeechSynthesis();
-
-  // Handle auto-play speech on round changes
-  const playAiRound = useCallback(
-    (speechText: string, speaker: SparringPersona) => {
-      if (!autoPlayAudio) return;
-      speak(speechText, { persona: speaker });
-    },
-    [autoPlayAudio, speak],
-  );
 
   // Speech Recognition Hook
   const {
     isListening,
     transcript,
     interimTranscript,
+    fullTranscript,
     isSupported: isSttSupported,
     startListening,
     stopListening,
     resetTranscript,
+    flushTranscript,
   } = useSpeechRecognition({
-    lang: "en-GB",
-    silenceTimeoutMs: 3500,
+    silenceTimeoutMs: 4000,
     onFinalTranscript: (text) => {
       if (text.trim()) {
         setKeyboardInput(text);
@@ -109,18 +117,75 @@ export function SocraticSparringView() {
     },
   });
 
+  // Call timer tick
+  useEffect(() => {
+    if (session && !isCallPaused) {
+      callTimerRef.current = setInterval(() => {
+        setCallDurationSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (callTimerRef.current) {
+        clearInterval(callTimerRef.current);
+        callTimerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (callTimerRef.current) {
+        clearInterval(callTimerRef.current);
+        callTimerRef.current = null;
+      }
+    };
+  }, [session, isCallPaused]);
+
+  // Turn-taking helper: speak AI round, then auto-listen for student response
+  const playAiRound = useCallback(
+    (speechText: string, speaker: SparringPersona) => {
+      if (!autoPlayAudio) return;
+      speak(speechText, {
+        persona: speaker,
+        onEnd: () => {
+          // Seamlessly switch to listening when AI finishes speaking
+          if (autoPlayAudio && isSttSupported && !isCallPaused) {
+            resetTranscript();
+            startListening();
+          }
+        },
+      });
+    },
+    [autoPlayAudio, isCallPaused, isSttSupported, resetTranscript, speak, startListening],
+  );
+
   // Scroll to bottom on new dialogue entry
   useEffect(() => {
     dialogueEndRef.current?.scrollIntoView?.({ behavior: "smooth" });
   }, [session?.dialogue, interimTranscript]);
 
-  // If URL provides topic or notebook, initialize or prefill
+  // Initial prefill / start from query params
   useEffect(() => {
     if (queryTopic && !session && !isLoadingSession) {
       void handleStartSession(queryTopic, queryNotebookId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryTopic, queryNotebookId]);
+
+  // Determine active vibe title & prompt instruction
+  const activeRolePreset = VIVA_ROLES.find((r) => r.id === selectedVibeId);
+  const activeVibe =
+    selectedVibeId === "custom"
+      ? customVibeText.trim() || "Custom Sparring Partner"
+      : activeRolePreset?.promptInstruction || "Tough viva examiner";
+  const activeVibeTitle =
+    selectedVibeId === "custom"
+      ? customVibeText.trim() || "Custom Role"
+      : activeRolePreset?.title || "Tough CBSE Board Examiner";
+
+  // Determine active goal text
+  const activeGoalPreset = VIVA_FOCUS_GOALS.find((g) => g.id === selectedGoalId);
+  const activeFocusGoal =
+    selectedGoalId === "custom"
+      ? customGoalText.trim() || "General Conceptual Viva"
+      : activeGoalPreset?.title || "Conceptual Intuition";
 
   const handleStartSession = async (topicToUse?: string, nbId?: string) => {
     const activeTopic = (topicToUse ?? topicInput).trim();
@@ -135,6 +200,9 @@ export function SocraticSparringView() {
     stopListening();
     resetTranscript();
     setIsLoadingSession(true);
+    setIsCallPaused(false);
+    setCallDurationSeconds(0);
+    setShowEndCallModal(false);
 
     try {
       const notebook = nbId
@@ -143,13 +211,20 @@ export function SocraticSparringView() {
           ? notebooks.find((n) => n.id === selectedNotebookId)
           : undefined;
 
-      const notesContext = notebook?.notes || undefined;
+      const combinedNotes = [notebook?.notes || "", pastedNotes.trim()]
+        .filter(Boolean)
+        .join("\n\n---\n\n");
+
       const newSession = await startSparringSession(
         activeTopic,
-        notesContext,
+        combinedNotes || undefined,
         notebook?.id,
         evidenceBlock,
         ledgerBlock,
+        {
+          vibe: activeVibe,
+          focusGoal: activeFocusGoal,
+        },
       );
 
       setSession(newSession);
@@ -169,15 +244,16 @@ export function SocraticSparringView() {
   const handleToggleMic = () => {
     if (isListening) {
       stopListening();
-      // If we recorded speech, ready to submit
-      if (transcript.trim()) {
-        void handleSendAnswer(transcript);
+      const speech = flushTranscript();
+      if (speech.trim()) {
+        void handleSendAnswer(speech);
       }
     } else {
       if (!isSttSupported) {
         showToast(
           "Speech recognition is not supported in this browser. You can type your answer below.",
         );
+        setShowTextInput(true);
         return;
       }
       cancelSpeech();
@@ -189,7 +265,7 @@ export function SocraticSparringView() {
 
   const handleSendAnswer = async (speechOrText?: string) => {
     if (!session) return;
-    const answer = (speechOrText ?? keyboardInput).trim();
+    const answer = (speechOrText ?? keyboardInput ?? fullTranscript).trim();
     if (!answer) return;
 
     if (isListening) {
@@ -205,16 +281,13 @@ export function SocraticSparringView() {
         linkedNotebook?.notes ||
         (selectedNotebookId
           ? notebooks.find((n) => n.id === selectedNotebookId)?.notes
-          : undefined);
+          : undefined) ||
+        pastedNotes.trim() ||
+        undefined;
 
       const result = await submitStudentAnswer(session, answer, notesContext);
       setSession(result.session);
 
-      /* Sparring is the weakest of the four signals — a point left out under
-         debate pressure is not proof the student lacks it — so the extractor
-         files omissions as `minor`. They only become prominent by recurring,
-         which is the right bar for an omission. Concepts defended well are
-         written as corrections, so debating is a way to close a ledger row. */
       recordMisconceptions(
         candidatesFromSparring(result.feedback, {
           subject: result.session.topic,
@@ -223,8 +296,9 @@ export function SocraticSparringView() {
         }),
       );
 
-      // Speak next round from AI
-      playAiRound(result.nextRound.speechText, result.nextRound.speaker);
+      // AI articulates critique and probes with next challenge
+      const spokenResponse = `${result.feedback.shortCritique} ${result.nextRound.speechText}`;
+      playAiRound(spokenResponse, result.nextRound.speaker);
     } catch {
       showToast("Error evaluating answer. Check your connection.", {
         error: true,
@@ -234,9 +308,42 @@ export function SocraticSparringView() {
     }
   };
 
+  const handleDoneSpeaking = () => {
+    const speech = flushTranscript();
+    stopListening();
+    if (speech.trim()) {
+      void handleSendAnswer(speech);
+    }
+  };
+
+  const handlePauseCall = () => {
+    cancelSpeech();
+    stopListening();
+    setIsCallPaused(true);
+    showToast("Viva call paused.");
+  };
+
+  const handleResumeCall = () => {
+    setIsCallPaused(false);
+    showToast("Viva call resumed.");
+    if (session && autoPlayAudio) {
+      speak(session.currentChallenge.speechText, {
+        persona: session.currentChallenge.speaker,
+      });
+    }
+  };
+
+  const handleEndCall = () => {
+    cancelSpeech();
+    stopListening();
+    setIsCallPaused(true);
+    setShowEndCallModal(true);
+  };
+
   const handleSkipOrNewAngle = async () => {
     if (!session || isSubmitting) return;
     cancelSpeech();
+    stopListening();
     setIsSubmitting(true);
 
     try {
@@ -244,7 +351,9 @@ export function SocraticSparringView() {
         linkedNotebook?.notes ||
         (selectedNotebookId
           ? notebooks.find((n) => n.id === selectedNotebookId)?.notes
-          : undefined);
+          : undefined) ||
+        pastedNotes.trim() ||
+        undefined;
 
       const nextRound = await generateNextSparringRound(session, notesContext);
 
@@ -286,6 +395,12 @@ export function SocraticSparringView() {
     speak(current.speechText, { persona: current.speaker });
   };
 
+  const handleToggleSpeed = () => {
+    const nextRate = audioRate === 1.0 ? 1.25 : 1.0;
+    setAudioRate(nextRate);
+    showToast(`Voice speed set to ${nextRate}x`);
+  };
+
   return (
     <div className={styles.container}>
       {/* Header */}
@@ -321,30 +436,43 @@ export function SocraticSparringView() {
                   : "Unmute speech output"
               }
             >
-              <Icon name={autoPlayAudio ? "activity" : "clock"} size={16} />
+              <Icon name={autoPlayAudio ? "volume-2" : "volume-x"} size={16} />
               <span>{autoPlayAudio ? "Voice: On" : "Voice: Muted"}</span>
             </button>
 
             {session && (
-              <button
-                type="button"
-                className={styles.audioToggleBtn}
-                onClick={handleReplayCurrentPrompt}
-                title="Replay the current challenge audio"
-              >
-                <Icon name="refresh-cw" size={16} />
-                <span>Replay Question</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  className={styles.audioToggleBtn}
+                  onClick={handleToggleSpeed}
+                  title="Toggle voice playback speed (1x / 1.25x)"
+                >
+                  <Icon name="clock" size={16} />
+                  <span>Speed: {audioRate}x</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={styles.audioToggleBtn}
+                  onClick={handleReplayCurrentPrompt}
+                  title="Replay the current challenge audio"
+                >
+                  <Icon name="refresh-cw" size={16} />
+                  <span>Replay Question</span>
+                </button>
+              </>
             )}
           </div>
         </div>
       </header>
 
-      {/* Topic Chooser / Notebook Selector */}
+      {/* Setup View (When Call is Not Active) */}
       {!session ? (
         <section className={styles.topicCard} aria-label="Topic Selection">
           <div className={styles.topicCardTitle}>What should we challenge?</div>
 
+          {/* Topic input & notebook dropdown */}
           <div className={styles.topicInputRow}>
             <input
               type="text"
@@ -387,6 +515,7 @@ export function SocraticSparringView() {
             </Button>
           </div>
 
+          {/* Suggested Starter Topics */}
           <div className={styles.starterChips}>
             <span className={styles.chipsLabel}>Suggested:</span>
             {QUICK_STARTER_TOPICS.map((topic) => (
@@ -403,10 +532,147 @@ export function SocraticSparringView() {
               </button>
             ))}
           </div>
+
+          {/* How you want the AI to act (Vibe / Role) */}
+          <div className={styles.setupSection}>
+            <div className={styles.setupHeadingRow}>
+              <span className={styles.setupSectionTitle}>
+                How you want it to act (Vibe / Role)
+              </span>
+            </div>
+
+            <div className={styles.vibeGrid}>
+              {VIVA_ROLES.map((role) => {
+                const isSelected = selectedVibeId === role.id;
+                return (
+                  <button
+                    key={role.id}
+                    type="button"
+                    className={`${styles.vibeCard} ${
+                      isSelected ? styles.vibeCardSelected : ""
+                    }`}
+                    onClick={() => setSelectedVibeId(role.id)}
+                    aria-pressed={isSelected}
+                  >
+                    <span className={styles.vibeCardIcon}>{role.icon}</span>
+                    <span className={styles.vibeCardTitle}>{role.title}</span>
+                    <p className={styles.vibeCardDesc}>{role.description}</p>
+                  </button>
+                );
+              })}
+
+              {/* Custom Vibe Card */}
+              <button
+                type="button"
+                className={`${styles.vibeCard} ${
+                  selectedVibeId === "custom" ? styles.vibeCardSelected : ""
+                }`}
+                onClick={() => setSelectedVibeId("custom")}
+                aria-pressed={selectedVibeId === "custom"}
+              >
+                <span className={styles.vibeCardIcon}>✨</span>
+                <span className={styles.vibeCardTitle}>Custom Persona</span>
+                <p className={styles.vibeCardDesc}>
+                  Enter any custom role (e.g. Oxford Professor, Tech Interviewer).
+                </p>
+              </button>
+            </div>
+
+            {selectedVibeId === "custom" && (
+              <input
+                type="text"
+                className={styles.customVibeInput}
+                placeholder="Describe your AI partner (e.g., 'Strict Medical Viva Attending', 'Encouraging Senior Mentor')"
+                value={customVibeText}
+                onChange={(e) => setCustomVibeText(e.target.value)}
+                aria-label="Custom AI persona"
+              />
+            )}
+          </div>
+
+          {/* What you want to focus on (Goals) */}
+          <div className={styles.setupSection}>
+            <div className={styles.setupHeadingRow}>
+              <span className={styles.setupSectionTitle}>
+                What you want to focus on (Goals)
+              </span>
+            </div>
+
+            <div className={styles.goalsRow}>
+              {VIVA_FOCUS_GOALS.map((goal) => {
+                const isSelected = selectedGoalId === goal.id;
+                return (
+                  <button
+                    key={goal.id}
+                    type="button"
+                    className={`${styles.goalPill} ${
+                      isSelected ? styles.goalPillSelected : ""
+                    }`}
+                    onClick={() => setSelectedGoalId(goal.id)}
+                    aria-pressed={isSelected}
+                  >
+                    <span>{goal.icon}</span>
+                    <span>{goal.title}</span>
+                  </button>
+                );
+              })}
+
+              <button
+                type="button"
+                className={`${styles.goalPill} ${
+                  selectedGoalId === "custom" ? styles.goalPillSelected : ""
+                }`}
+                onClick={() => setSelectedGoalId("custom")}
+                aria-pressed={selectedGoalId === "custom"}
+              >
+                <span>✏️</span>
+                <span>Custom focus…</span>
+              </button>
+            </div>
+
+            {selectedGoalId === "custom" && (
+              <input
+                type="text"
+                className={styles.customVibeInput}
+                placeholder="Specific formulas, chapters, or edge cases to drill into…"
+                value={customGoalText}
+                onChange={(e) => setCustomGoalText(e.target.value)}
+                aria-label="Custom focus goal"
+              />
+            )}
+          </div>
+
+          {/* Optional Paste Revision Notes Area */}
+          <div className={styles.setupSection}>
+            <button
+              type="button"
+              className={styles.notesToggleBtn}
+              onClick={() => setShowNotesInput((prev) => !prev)}
+            >
+              <Icon name={showNotesInput ? "chevron-up" : "chevron-down"} size={14} />
+              <span>
+                {showNotesInput
+                  ? "Hide pasted notes context"
+                  : "+ Paste syllabus notes or textbook excerpts"}
+              </span>
+            </button>
+
+            {showNotesInput && (
+              <div className={styles.notesAreaWrapper}>
+                <textarea
+                  className={styles.notesTextarea}
+                  placeholder="Paste revision notes, formulas, or key concepts here to ground the oral viva questions…"
+                  value={pastedNotes}
+                  onChange={(e) => setPastedNotes(e.target.value)}
+                  aria-label="Paste revision notes context"
+                />
+              </div>
+            )}
+          </div>
         </section>
       ) : (
         <>
-          {/* Sparring Stage Arena */}
+          {/* Sparring Stage Arena (Call AI Live In-Progress Experience) */}
           <SparringStage
             currentSpeaker={isListening ? "student" : activeAiSpeaker}
             activeAiSpeaker={activeAiSpeaker}
@@ -415,9 +681,27 @@ export function SocraticSparringView() {
             conceptAnchor={session.currentChallenge.conceptAnchor}
             onToggleMic={handleToggleMic}
             micDisabled={isSubmitting}
+            vibeTitle={activeVibeTitle}
+            focusGoal={activeFocusGoal}
+            interimTranscript={interimTranscript}
+            confirmedTranscript={transcript}
+            onDoneSpeaking={handleDoneSpeaking}
+            onPauseCall={handlePauseCall}
+            onResumeCall={handleResumeCall}
+            isCallPaused={isCallPaused}
+            onEndCall={handleEndCall}
+            audioRate={audioRate}
+            onToggleAudioRate={handleToggleSpeed}
+            isAudioMuted={!autoPlayAudio}
+            onToggleAudioMuted={() => {
+              const next = !autoPlayAudio;
+              setAutoPlayAudio(next);
+              if (!next) cancelSpeech();
+            }}
+            callDurationSeconds={callDurationSeconds}
           />
 
-          {/* Cumulative Score Celebration Banner */}
+          {/* Performance Metrics Grid */}
           {session.cumulativeScores.roundsCount > 0 && (
             <section
               className={styles.metricsGrid}
@@ -449,9 +733,7 @@ export function SocraticSparringView() {
                 <span className={styles.metricValue}>
                   {session.cumulativeScores.roundsCount}
                 </span>
-                <span className={styles.metricSub}>
-                  Alex & Jordan exchanges
-                </span>
+                <span className={styles.metricSub}>Viva exchanges</span>
               </div>
             </section>
           )}
@@ -465,14 +747,25 @@ export function SocraticSparringView() {
               <h2 className={styles.dialogueSectionTitle}>
                 Live Socratic Exchange
               </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSkipOrNewAngle}
-                disabled={isSubmitting}
-              >
-                Next Socratic Angle
-              </Button>
+              <div className={styles.headerControls}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowTextInput((prev) => !prev)}
+                >
+                  <Icon name="message-square" size={14} />
+                  <span>{showTextInput ? "Hide text input" : "Type response"}</span>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSkipOrNewAngle}
+                  disabled={isSubmitting}
+                >
+                  Next Socratic Angle
+                </Button>
+              </div>
             </div>
 
             <div
@@ -525,37 +818,81 @@ export function SocraticSparringView() {
                         </div>
                       )}
 
-                      {/* Student Feedback Scorecard */}
+                      {/* Student Feedback & Oral Parsing Scorecard */}
                       {entry.feedback && (
-                        <div className={styles.feedbackBox}>
-                          <div className={styles.feedbackHeader}>
-                            <div className={styles.feedbackScoreGroup}>
-                              <span className={styles.scoreItem}>
+                        <div className={styles.parsingCard}>
+                          <div className={styles.parsingHeader}>
+                            <span className={styles.parsingTitle}>
+                              <Icon name="check-circle" size={14} />
+                              <span>Viva Assessment</span>
+                            </span>
+
+                            <div className={styles.scoresRow}>
+                              <span className={styles.scorePill}>
                                 Clarity:{" "}
-                                <strong className={styles.scoreVal}>
-                                  {entry.feedback.clarityScore}%
-                                </strong>
+                                <strong>{entry.feedback.clarityScore}%</strong>
                               </span>
-                              <span className={styles.scoreItem}>
+                              <span className={styles.scorePill}>
                                 Rigour:{" "}
-                                <strong className={styles.scoreVal}>
-                                  {entry.feedback.rigourScore}%
-                                </strong>
+                                <strong>{entry.feedback.rigourScore}%</strong>
+                              </span>
+                              <span className={styles.scorePill}>
+                                Accuracy:{" "}
+                                <strong>{entry.feedback.accuracyScore}%</strong>
                               </span>
                             </div>
-                            <span
-                              className={`${styles.podBadge} ${
-                                entry.feedback.overallScore >= 80
-                                  ? styles.badgeAlex
-                                  : styles.badgeJordan
-                              }`}
-                            >
-                              {entry.feedback.reactionTone}
-                            </span>
                           </div>
+
                           <p className={styles.critiqueText}>
                             {entry.feedback.shortCritique}
                           </p>
+
+                          {/* Strengths and Misconceptions breakdown */}
+                          <div className={styles.parsingGrid}>
+                            {entry.feedback.keyConceptsMastered &&
+                              entry.feedback.keyConceptsMastered.length > 0 && (
+                                <div className={styles.strengthsBox}>
+                                  <span className={styles.strengthsTitle}>
+                                    <Icon name="check" size={12} />
+                                    <span>Key Strengths</span>
+                                  </span>
+                                  <ul className={styles.critiqueList}>
+                                    {entry.feedback.keyConceptsMastered.map(
+                                      (m, idx) => (
+                                        <li
+                                          key={idx}
+                                          className={styles.critiqueListItem}
+                                        >
+                                          ✓ {m}
+                                        </li>
+                                      ),
+                                    )}
+                                  </ul>
+                                </div>
+                              )}
+
+                            {entry.feedback.missingPoints &&
+                              entry.feedback.missingPoints.length > 0 && (
+                                <div className={styles.misconceptionsBox}>
+                                  <span className={styles.misconceptionsTitle}>
+                                    <Icon name="alert-triangle" size={12} />
+                                    <span>Gaps & Misconceptions</span>
+                                  </span>
+                                  <ul className={styles.critiqueList}>
+                                    {entry.feedback.missingPoints.map(
+                                      (mp, idx) => (
+                                        <li
+                                          key={idx}
+                                          className={styles.critiqueListItem}
+                                        >
+                                          • {mp}
+                                        </li>
+                                      ),
+                                    )}
+                                  </ul>
+                                </div>
+                              )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -579,7 +916,7 @@ export function SocraticSparringView() {
             </div>
           </section>
 
-          {/* Keyboard fallback input and hints */}
+          {/* Keyboard input row & hints */}
           <section
             className={styles.inputSection}
             aria-label="Answer Submission"
@@ -624,6 +961,75 @@ export function SocraticSparringView() {
               </Button>
             </div>
           </section>
+
+          {/* End Call Summary Modal */}
+          {showEndCallModal && (
+            <div
+              className={styles.summaryModalOverlay}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Viva Performance Summary"
+            >
+              <div className={styles.summaryModalCard}>
+                <div className={styles.summaryModalHeader}>
+                  <h3 className={styles.summaryModalTitle}>
+                    Viva Call Complete! 🎓
+                  </h3>
+                  <p className={styles.summaryModalSub}>
+                    Session review for topic: <strong>{session.topic}</strong>
+                  </p>
+                </div>
+
+                <div className={styles.summaryStatsGrid}>
+                  <div className={styles.summaryStatCard}>
+                    <span className={styles.summaryStatVal}>
+                      {session.cumulativeScores.roundsCount}
+                    </span>
+                    <span className={styles.summaryStatLabel}>
+                      Rounds Sparred
+                    </span>
+                  </div>
+                  <div className={styles.summaryStatCard}>
+                    <span className={styles.summaryStatVal}>
+                      {session.cumulativeScores.clarity}%
+                    </span>
+                    <span className={styles.summaryStatLabel}>Clarity</span>
+                  </div>
+                  <div className={styles.summaryStatCard}>
+                    <span className={styles.summaryStatVal}>
+                      {session.cumulativeScores.rigour}%
+                    </span>
+                    <span className={styles.summaryStatLabel}>Rigour</span>
+                  </div>
+                  <div className={styles.summaryStatCard}>
+                    <span className={styles.summaryStatVal}>
+                      {session.cumulativeScores.accuracy}%
+                    </span>
+                    <span className={styles.summaryStatLabel}>Accuracy</span>
+                  </div>
+                </div>
+
+                <div className={styles.summaryActionsRow}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowEndCallModal(false)}
+                  >
+                    Review Dialogue Log
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      setSession(null);
+                      setShowEndCallModal(false);
+                      setTopicInput("");
+                    }}
+                  >
+                    Start New Viva
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

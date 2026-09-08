@@ -50,10 +50,10 @@ describe("CognitiveCrossLinkBar", () => {
       "1 thing to sort out",
     );
 
-    // 3 tool buttons
+    // 2 tool buttons (Solver and Feynman)
     expect(screen.getByTestId("cross-link-debugger-btn")).toBeInTheDocument();
     expect(screen.getByTestId("cross-link-feynman-btn")).toBeInTheDocument();
-    expect(screen.getByTestId("cross-link-premortem-btn")).toBeInTheDocument();
+    expect(screen.queryByTestId("cross-link-premortem-btn")).not.toBeInTheDocument();
   });
 
   it("reads from persisted CognitiveBridge storage when props are omitted", () => {
@@ -105,23 +105,24 @@ describe("CognitiveCrossLinkBar", () => {
     expect(bridgePayload?.suggestedAction).toBe("teach_apprentice");
   });
 
-  it("cross-launches into Pre-Mortem and updates bridge action", () => {
+  it("cross-launches into Step-by-step solver and updates bridge action", () => {
     const handleNavigate = vi.fn();
 
     renderWithAuth(
       <CognitiveCrossLinkBar
         payload={testPayload}
+        currentTool="feynman"
         onNavigate={handleNavigate}
       />,
       { session: fakeSession() },
       { withRouter: true },
     );
 
-    const premortemBtn = screen.getByTestId("cross-link-premortem-btn");
-    fireEvent.click(premortemBtn);
+    const solverBtn = screen.getByTestId("cross-link-debugger-btn");
+    fireEvent.click(solverBtn);
 
-    expect(handleNavigate).toHaveBeenCalledWith("/exam-traps", "premortem");
-    expect(CognitiveBridge.getPayload()?.suggestedAction).toBe("run_premortem");
+    expect(handleNavigate).toHaveBeenCalledWith("/solver", "debugger");
+    expect(CognitiveBridge.getPayload()?.suggestedAction).toBe("debug_stack");
   });
 
   it("highlights the current tool with a you-are-here badge", () => {

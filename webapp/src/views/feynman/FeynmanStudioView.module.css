@@ -64,6 +64,32 @@
   color: var(--text);
 }
 
+.analogyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--r-pill);
+  padding: 4px 10px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.depthBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-pill);
+  padding: 4px 10px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 .headerActions {
   display: flex;
   align-items: center;
@@ -537,3 +563,88 @@
   50% { opacity: 1; }
   100% { opacity: 0.6; }
 }
+
+/* Apprentice Feedback Breakdown Cards */
+.feedbackBreakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+  width: 100%;
+}
+
+.feedbackSense {
+  background: var(--success-soft);
+  border-left: 3px solid var(--success);
+  border-radius: var(--r-sm);
+  padding: var(--s-2) var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.feedbackSenseTitle {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--success-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.feedbackQuestion {
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-sm);
+  padding: var(--s-2) var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.feedbackQuestionTitle {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--accent-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.feedbackQuestionText {
+  font-size: var(--fs-xs);
+  color: var(--text);
+  font-style: italic;
+  line-height: var(--lh);
+}
+
+.feedbackGaps {
+  background: var(--warning-soft);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--r-sm);
+  padding: var(--s-2) var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.feedbackGapsTitle {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--warning-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.feedbackList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--fs-xs);
+  color: var(--text);
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+

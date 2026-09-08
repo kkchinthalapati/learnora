@@ -49,12 +49,12 @@ describe("StudyLabView", () => {
     ledger.mockReturnValue({ ranked: [] });
   });
 
-  it("offers the four routes", () => {
+  it("offers the three core routes", () => {
     renderLab();
     expect(screen.getByText("Step-by-Step Solver")).toBeInTheDocument();
     expect(screen.getByText("Prove it by teaching")).toBeInTheDocument();
     expect(screen.getByText("Viva / Test Practice")).toBeInTheDocument();
-    expect(screen.getByText("Common Exam Traps")).toBeInTheDocument();
+    expect(screen.queryByText("Common Exam Traps")).not.toBeInTheDocument();
   });
 
   /* A new account has no diagnosis, and inventing one would be worse than the

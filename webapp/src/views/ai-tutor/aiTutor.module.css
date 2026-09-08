@@ -49,7 +49,7 @@
   flex-wrap: wrap;
   gap: var(--s-3);
   padding: var(--s-3) var(--s-4);
-  background: var(--surface-1);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
 }
@@ -74,9 +74,9 @@
   align-items: center;
   gap: var(--s-2);
   padding: 4px 12px;
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  border-radius: var(--r-full);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--r-pill);
   color: var(--primary);
   font-size: var(--fs-sm);
   font-weight: 600;
@@ -103,10 +103,10 @@
   outline-offset: 1px;
 }
 
-/* Mode Navigation */
+/* Mode Navigation: Balanced 3-Tool Layout */
 .modeTabs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--s-3);
   margin-top: var(--s-2);
 }
@@ -116,21 +116,21 @@
   align-items: flex-start;
   gap: var(--s-3);
   padding: var(--s-4);
-  background: var(--surface-1);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   cursor: pointer;
   text-align: left;
-  transition: all 0.15s ease;
+  transition: all var(--t-fast) ease;
 }
 
 .modeTab:hover {
   background: var(--surface-2);
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: var(--accent-ring);
 }
 
 .modeTabActive {
-  background: var(--surface-1);
+  background: var(--surface);
   border-color: var(--primary);
   box-shadow: 0 0 0 1px var(--primary), var(--shadow-sm);
 }
@@ -145,7 +145,7 @@
   background: var(--surface-2);
   color: var(--text-muted);
   flex-shrink: 0;
-  transition: all 0.15s ease;
+  transition: all var(--t-fast) ease;
 }
 
 .modeTabActive .modeTabIcon {
@@ -169,7 +169,7 @@
 .modeTabDesc {
   font-size: var(--fs-xs);
   color: var(--text-muted);
-  line-height: 1.35;
+  line-height: var(--lh-snug);
 }
 
 /* Content Container */
@@ -178,7 +178,7 @@
   margin-top: var(--s-2);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .modeTabs {
     grid-template-columns: 1fr;
   }

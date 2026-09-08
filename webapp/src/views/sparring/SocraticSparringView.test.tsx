@@ -12,6 +12,8 @@ import * as aiSparringModule from "../../api/aiSparring";
 // Mock Speech Synthesis
 const mockSpeak = vi.fn();
 const mockCancel = vi.fn();
+const mockSetAudioRate = vi.fn();
+
 vi.mock("../../hooks/useSpeechSynthesis", () => ({
   useSpeechSynthesis: () => ({
     speak: mockSpeak,
@@ -23,6 +25,9 @@ vi.mock("../../hooks/useSpeechSynthesis", () => ({
     isSupported: true,
     currentSpeaker: null,
     voices: [],
+    audioRate: 1.0,
+    setAudioRate: mockSetAudioRate,
+    selectedVoice: null,
   }),
 }));
 
@@ -48,8 +53,10 @@ vi.mock("../../hooks/useSpeechRecognition", () => ({
     isListening: mockIsListening,
     transcript: mockTranscript,
     interimTranscript: mockInterimTranscript,
+    fullTranscript: mockTranscript,
     isSupported: true,
     error: null,
+    detectedLang: "en-US",
     startListening: () => {
       mockStartListening();
       if (options?.onFinalTranscript && mockTranscript) {
@@ -59,6 +66,7 @@ vi.mock("../../hooks/useSpeechRecognition", () => ({
     stopListening: mockStopListening,
     resetTranscript: mockResetTranscript,
     setTranscript: vi.fn(),
+    flushTranscript: () => mockTranscript,
   }),
 }));
 
@@ -358,5 +366,157 @@ describe("SocraticSparringView", () => {
         "Oh! So what happens to the pyruvate if there is no oxygen?",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("configures persona vibe and focus goals before starting session", async () => {
+    const user = userEvent.setup();
+
+    const spyStart = vi
+      .spyOn(aiSparringModule, "startSparringSession")
+      .mockResolvedValueOnce({
+        id: "sess-vibe-1",
+        topic: "Special Relativity",
+        status: "active",
+        currentRound: 1,
+        dialogue: [],
+        currentChallenge: {
+          id: "c-rel",
+          roundNumber: 1,
+          speaker: "alex",
+          personaName: "Alex",
+          personaAvatar: "🌱",
+          speechText: "Does time slow down for everyone equally?",
+          conceptAnchor: "Time Dilation",
+        },
+        cumulativeScores: {
+          clarity: 0,
+          rigour: 0,
+          accuracy: 0,
+          roundsCount: 0,
+        },
+        createdAt: new Date().toISOString(),
+      });
+
+    renderWithAuth(
+      <SocraticSparringView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
+
+    // Verify vibe options are present
+    expect(screen.getByText("Chill Study Buddy")).toBeInTheDocument();
+    expect(screen.getByText("Tough CBSE Board Examiner")).toBeInTheDocument();
+    expect(screen.getByText("Socratic Challenger")).toBeInTheDocument();
+    expect(screen.getByText("Rapid-Fire Viva Quizzer")).toBeInTheDocument();
+
+    // Select Chill Study Buddy
+    await user.click(screen.getByText("Chill Study Buddy"));
+
+    // Select Focus Goal "Test my derivations & formulas"
+    await user.click(screen.getByText("Test my derivations & formulas"));
+
+    const topicInput = screen.getByPlaceholderText(/e\.g\. Newton's Third Law/i);
+    await user.type(topicInput, "Special Relativity");
+    await user.click(screen.getByRole("button", { name: "Start challenge" }));
+
+    await waitFor(() => {
+      expect(spyStart).toHaveBeenCalled();
+    });
+
+    const callArgs = spyStart.mock.calls[0];
+    expect(callArgs[0]).toBe("Special Relativity");
+    expect(callArgs[5]).toEqual(
+      expect.objectContaining({
+        focusGoal: "Test my derivations & formulas",
+        vibe: expect.stringContaining("study buddy"),
+      }),
+    );
+  });
+
+  it("supports in-call controls: pause/resume, speed toggle, voice toggle, and end call modal", async () => {
+    const user = userEvent.setup();
+
+    vi.spyOn(aiSparringModule, "startSparringSession").mockResolvedValueOnce({
+      id: "sess-controls-1",
+      topic: "Thermodynamics",
+      status: "active",
+      currentRound: 1,
+      dialogue: [
+        {
+          id: "d-1",
+          speaker: "jordan",
+          name: "Jordan",
+          avatar: "⚡",
+          content: "Why can't entropy ever decrease in an isolated system?",
+          timestamp: "14:00",
+        },
+      ],
+      currentChallenge: {
+        id: "c-therm",
+        roundNumber: 1,
+        speaker: "jordan",
+        personaName: "Jordan",
+        personaAvatar: "⚡",
+        speechText: "Why can't entropy ever decrease in an isolated system?",
+        conceptAnchor: "Second Law of Thermodynamics",
+      },
+      cumulativeScores: {
+        clarity: 80,
+        rigour: 85,
+        accuracy: 88,
+        roundsCount: 1,
+      },
+      createdAt: new Date().toISOString(),
+    });
+
+    renderWithAuth(
+      <SocraticSparringView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
+
+    const input = screen.getByPlaceholderText(/e\.g\. Newton's Third Law/i);
+    await user.type(input, "Thermodynamics");
+    await user.click(screen.getByRole("button", { name: "Start challenge" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Pause" }),
+      ).toBeInTheDocument();
+    });
+
+    // Test Pause Call
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    expect(
+      screen.getByRole("button", { name: "Resume Call" }),
+    ).toBeInTheDocument();
+
+    // Test Resume Call
+    await user.click(screen.getByRole("button", { name: "Resume Call" }));
+    expect(
+      screen.getByRole("button", { name: "Pause" }),
+    ).toBeInTheDocument();
+
+    // Test Audio Speed Toggle
+    const speedBtn = screen.getByRole("button", { name: /Speed: 1x/i });
+    await user.click(speedBtn);
+    expect(mockSetAudioRate).toHaveBeenCalledWith(1.25);
+
+    // Test End Call
+    const endCallBtn = screen.getByRole("button", {
+      name: "End Call",
+    });
+    await user.click(endCallBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("Viva Call Complete! 🎓")).toBeInTheDocument();
+    });
+
+    // Click Start New Viva from modal to reset
+    await user.click(screen.getByRole("button", { name: "Start New Viva" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("What should we challenge?")).toBeInTheDocument();
+    });
   });
 });

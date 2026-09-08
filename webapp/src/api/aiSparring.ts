@@ -51,6 +51,88 @@ export const SPARRING_PERSONAS: Record<
   },
 };
 
+export interface VivaRolePreset {
+  id: string;
+  title: string;
+  icon: string;
+  description: string;
+  promptInstruction: string;
+  defaultSpeaker: SparringPersona;
+}
+
+export const VIVA_ROLES: VivaRolePreset[] = [
+  {
+    id: "examiner",
+    title: "Tough CBSE Board Examiner",
+    icon: "📋",
+    description: "Strict & formal. Demands exact NCERT terms, formulas, and rigorous step-by-step logic.",
+    promptInstruction:
+      "Act as a tough CBSE Board viva examiner. Demand exact terminology, definitions, formulas, and precise scientific boundaries. Do not accept hand-waving or casual approximations.",
+    defaultSpeaker: "jordan",
+  },
+  {
+    id: "buddy",
+    title: "Chill Study Buddy",
+    icon: "☕",
+    description: "Relaxed & supportive. Explains with intuitive real-world analogies and friendly banter.",
+    promptInstruction:
+      "Act as a relaxed, friendly peer study buddy. Use simple analogies, encouraging words, and conversational casual English to help test understanding without intimidation.",
+    defaultSpeaker: "alex",
+  },
+  {
+    id: "socratic",
+    title: "Socratic Challenger",
+    icon: "🏛️",
+    description: "Questions every premise. Probes deeper into first principles and foundational causes.",
+    promptInstruction:
+      "Act as a deep Socratic challenger. Question basic assumptions, ask 'why does that hold?', and push the student to derive truths from first principles.",
+    defaultSpeaker: "jordan",
+  },
+  {
+    id: "quizzer",
+    title: "Rapid-Fire Viva Quizzer",
+    icon: "⚡",
+    description: "Punchy, fast-paced questions testing instant recall, unit formulas, and speed.",
+    promptInstruction:
+      "Act as a rapid-fire viva quizzer. Ask concise, rapid-fire questions testing immediate recall, key formulas, units, and quick deductions.",
+    defaultSpeaker: "alex",
+  },
+];
+
+export interface VivaFocusGoalPreset {
+  id: string;
+  title: string;
+  icon: string;
+  description: string;
+}
+
+export const VIVA_FOCUS_GOALS: VivaFocusGoalPreset[] = [
+  {
+    id: "intuition",
+    title: "Check my conceptual intuition",
+    icon: "💡",
+    description: "Core mechanisms, 'why' it works, and real-world analogies",
+  },
+  {
+    id: "derivations",
+    title: "Test my derivations & formulas",
+    icon: "📐",
+    description: "Mathematical proofs, equations, conditions, and variables",
+  },
+  {
+    id: "edge-cases",
+    title: "Grill me on edge cases & exceptions",
+    icon: "🔍",
+    description: "Boundary conditions, counter-examples, and tricky scenarios",
+  },
+  {
+    id: "comprehensive",
+    title: "Comprehensive viva practice",
+    icon: "🎯",
+    description: "Balanced mix of fundamentals, formulas, and critical thinking",
+  },
+];
+
 export interface StudentFeedback {
   clarityScore: number; // 0 - 100
   rigourScore: number; // 0 - 100
@@ -90,6 +172,8 @@ export interface SparringSession {
   topic: string;
   notebookId?: string;
   notesContext?: string;
+  vibe?: string;
+  focusGoal?: string;
   /** The student's measured quiz performance, pre-rendered by
    *  `lib/studentEvidence.ts`. Carried on the session so every round after the
    *  first is aimed with the same evidence the opening was, without the view
@@ -158,9 +242,12 @@ function extractCitationsFromNotes(
 function generateOfflineOpening(
   topic: string,
   notesContext?: string,
+  vibe?: string,
+  focusGoal?: string,
 ): SparringRound {
   const t = topic.toLowerCase();
-  let speaker: SparringPersona = "alex";
+  const v = (vibe || "").toLowerCase();
+  let speaker: SparringPersona = v.includes("examiner") || v.includes("socratic") ? "jordan" : "alex";
   let speechText = "";
   let conceptAnchor = "";
   let suggestedHints = [
@@ -168,6 +255,10 @@ function generateOfflineOpening(
     "Give an everyday real-world example",
     "Highlight the difference between cause and effect",
   ];
+
+  if (focusGoal) {
+    suggestedHints.unshift(`Align with goal: ${focusGoal}`);
+  }
 
   if (
     t.includes("newton") ||
@@ -214,6 +305,14 @@ function generateOfflineOpening(
       "Asset price bubbles and misallocation of capital",
       "Central bank credibility and expectations",
     ];
+  } else if (v.includes("examiner")) {
+    speaker = "jordan";
+    conceptAnchor = `Formal Examination: ${topic}`;
+    speechText = `Let us begin your oral viva on ${topic}. State the fundamental definitions, the key governing principles, and any core mathematical or physical conditions that apply.`;
+  } else if (v.includes("quizzer")) {
+    speaker = "alex";
+    conceptAnchor = `Rapid-Fire Viva: ${topic}`;
+    speechText = `Rapid-fire question 1 on ${topic}! What is the primary concept or formula at play here, and what is the single most common mistake students make with it?`;
   } else {
     speaker = "alex";
     conceptAnchor = `Core Foundations of ${topic}`;
@@ -354,23 +453,26 @@ export async function startSparringSession(
   notesContext?: string,
   notebookId?: string,
   performanceEvidence?: string,
-  /** Rendered by `lib/misconceptions.ts`. Where `performanceEvidence` says
-   *  which topics score badly, this says what the student actually believes
-   *  wrongly — which is a far better thing to open a debate on, because the
-   *  student can defend a topic they score badly on but cannot defend a
-   *  position that is wrong. */
   misconceptionLedger?: string,
+  options?: {
+    vibe?: string;
+    focusGoal?: string;
+  },
 ): Promise<SparringSession> {
   const sessionId = `sparring-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const cleanTopic = topic.trim() || "General Study Topic";
+  const vibe = options?.vibe?.trim();
+  const focusGoal = options?.focusGoal?.trim();
 
   let initialRound: SparringRound;
 
   try {
-    const prompt = `You are designing a Socratic Audio Sparring opening round for a student on "${cleanTopic}".
+    const prompt = `You are designing a Voice Viva / Socratic Audio Sparring opening round for a student on "${cleanTopic}".
 You have two personas:
 - Alex (🌱): Curious beginner, asks "why?", intuitive explanations.
 - Jordan (⚡): Overconfident peer, sharp, challenges assumptions, tests edge cases.
+${vibe ? `\nROLE / VIBE INSTRUCTION:\nAct in character: "${vibe}". Tailor speech style, questioning sharpness, and attitude accordingly.` : ""}
+${focusGoal ? `\nSTUDENT'S FOCUS GOAL:\nCenter the viva question specifically on: "${focusGoal}".` : ""}
 
 ${notesContext ? `STUDENT REVISION NOTES:\n${notesContext.slice(0, 1500)}\n` : ""}
 ${performanceEvidence ? `${performanceEvidence}\n\nAim the opening challenge at a topic the evidence shows is genuinely weak, when one of them is relevant to "${cleanTopic}". Do not tell the student their scores and do not quote a percentage back at them — this is a sparring partner, not a report card. Use the evidence only to choose where to push. Never imply you have measured a topic listed as NEVER TESTED.\n` : ""}
@@ -417,7 +519,7 @@ Respond ONLY with valid JSON in this exact schema:
     };
   } catch {
     // Graceful offline fallback
-    initialRound = generateOfflineOpening(cleanTopic, notesContext);
+    initialRound = generateOfflineOpening(cleanTopic, notesContext, vibe, focusGoal);
   }
 
   const initialEntry: SparringDialogueEntry = {
@@ -438,6 +540,8 @@ Respond ONLY with valid JSON in this exact schema:
     topic: cleanTopic,
     notebookId,
     notesContext,
+    vibe,
+    focusGoal,
     performanceEvidence,
     status: "active",
     currentRound: 1,
@@ -510,12 +614,14 @@ export async function submitStudentAnswer(
   let nextRound: SparringRound;
 
   try {
-    const prompt = `You are evaluating a student's answer in a Socratic Sparring dialogue on "${session.topic}".
+    const prompt = `You are evaluating a student's answer in a Voice Viva / Socratic dialogue on "${session.topic}".
 CURRENT SPARRING CHALLENGE (from ${currentRound.personaName}):
 "${currentRound.speechText}"
 
 STUDENT ANSWER:
 "${studentText}"
+${session.vibe ? `\nROLE / VIBE INSTRUCTION:\nMaintain character: "${session.vibe}". Align tone and standard with this persona.` : ""}
+${session.focusGoal ? `\nSTUDENT'S FOCUS GOAL:\nEvaluate understanding with emphasis on: "${session.focusGoal}".` : ""}
 
 ${notesContext ? `GROUNDING REVISION NOTES:\n${notesContext.slice(0, 1200)}\n` : ""}
 ${performanceEvidence ? `${performanceEvidence}\n\nScore this answer on its own merits — the evidence above is background for choosing what to probe next, never a reason to mark an answer up or down. Do not quote the student's past percentages back at them.\n` : ""}
@@ -686,6 +792,8 @@ export async function generateNextSparringRound(
 
   try {
     const prompt = `Generate the next sparring challenge on "${session.topic}" from ${SPARRING_PERSONAS[nextSpeaker].name} (${SPARRING_PERSONAS[nextSpeaker].title}).
+${session.vibe ? `\nMaintain character: "${session.vibe}".` : ""}
+${session.focusGoal ? `\nTarget focus: "${session.focusGoal}".` : ""}
 ${session.performanceEvidence ? `${session.performanceEvidence}\n\nUse this only to choose where to push — aim at a measured weakness relevant to the topic. Do not quote percentages back at the student, and never imply you have measured a topic listed as NEVER TESTED.\n` : ""}
 Respond ONLY with JSON:
 {

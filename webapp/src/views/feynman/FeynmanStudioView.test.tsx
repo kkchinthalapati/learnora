@@ -161,4 +161,83 @@ describe("FeynmanStudioView Component", () => {
 
     expect(screen.getByText(/We can’t find that session/i)).toBeInTheDocument();
   });
+
+  it("renders active creative parameter badges in studio header", () => {
+    const creativeSession: FeynmanSessionState = {
+      ...sampleSession,
+      persona: "skeptical_buddy",
+      analogyStyle: "sports_cricket",
+      depth: "deep_dive",
+    };
+    saveFeynmanSession(creativeSession);
+    setActiveFeynmanSessionId(creativeSession.id);
+
+    renderWithProviders(<FeynmanStudioView />, undefined, { withRouter: true });
+
+    expect(screen.getByTestId("active-persona-badge")).toHaveTextContent("Skeptical Study Buddy");
+    expect(screen.getByTestId("active-analogy-badge")).toHaveTextContent("Cricket & Sports");
+    expect(screen.getByTestId("active-depth-badge")).toHaveTextContent("10m");
+  });
+
+  it("renders apprentice creative feedback breakdown (what made sense, follow-up, and gaps)", () => {
+    const sessionWithFeedback: FeynmanSessionState = {
+      ...sampleSession,
+      persona: "eli10",
+      analogyStyle: "cooking_kitchen",
+      depth: "core_mechanism",
+      turns: [
+        {
+          id: "turn-1",
+          userExplanation: "Chlorophyll is like a chef who only cooks with red and blue ingredients.",
+          apprenticeReaction: "Wait, so green light is like the food he refuses to touch?!",
+          understandingScore: 45,
+          delta: 25,
+          emotion: "lightbulb",
+          solvedPoints: ["Light Absorption"],
+          confusionPoints: ["What happens at night?"],
+          timestamp: "2026-03-01T00:00:00Z",
+          quality: "substantive",
+          feedback: {
+            whatMadeSense: ["Loved the chef metaphor for absorbing specific light colors!"],
+            followUpQuestion: "Wait, if the leaf chef reflects green, what happens when it is pitch dark?",
+            remainingGaps: ["Need to explain if cellular respiration still happens at night."],
+          },
+        },
+      ],
+    };
+    saveFeynmanSession(sessionWithFeedback);
+    setActiveFeynmanSessionId(sessionWithFeedback.id);
+
+    renderWithProviders(<FeynmanStudioView />, undefined, { withRouter: true });
+
+    expect(screen.getByTestId("turn-feedback-breakdown")).toBeInTheDocument();
+    expect(screen.getByTestId("feedback-what-made-sense")).toHaveTextContent(
+      "Loved the chef metaphor"
+    );
+    expect(screen.getByTestId("feedback-follow-up-question")).toHaveTextContent(
+      "Wait, if the leaf chef reflects green"
+    );
+    expect(screen.getByTestId("feedback-remaining-gaps")).toHaveTextContent(
+      "Need to explain if cellular respiration still happens"
+    );
+  });
+
+  it("adapts analogy starter phrase shortcut based on session analogyStyle", async () => {
+    const cricketSession: FeynmanSessionState = {
+      ...sampleSession,
+      analogyStyle: "sports_cricket",
+    };
+    saveFeynmanSession(cricketSession);
+    setActiveFeynmanSessionId(cricketSession.id);
+
+    const user = userEvent.setup();
+    renderWithProviders(<FeynmanStudioView />, undefined, { withRouter: true });
+
+    const cricketBtn = screen.getByText(/Cricket comparison/i);
+    expect(cricketBtn).toBeInTheDocument();
+    await user.click(cricketBtn);
+
+    const textarea = screen.getByTestId("teaching-textarea") as HTMLTextAreaElement;
+    expect(textarea.value).toContain("cricket pitch");
+  });
 });

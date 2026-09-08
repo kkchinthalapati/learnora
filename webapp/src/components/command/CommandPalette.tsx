@@ -324,30 +324,6 @@ export function CommandPalette(props: CommandPaletteProps) {
     });
 
     items.push({
-      id: "nav-ai-premortem",
-      category: "Study Lab",
-      title: "Common Exam Traps",
-      subtitle: "Practise tricky questions and subtle wording traps before exams",
-      icon: "shield",
-      badge: "AI Tool",
-      keywords: [
-        "ai",
-        "traps",
-        "exam traps",
-        "premortem",
-        "pre-mortem",
-        "radar",
-        "exam",
-        "failure",
-        "stress",
-      ],
-      onSelect: () => {
-        navigate("/exam-traps");
-        handleClose();
-      },
-    });
-
-    items.push({
       id: "nav-ai-sparring",
       category: "Study Lab",
       title: "Viva / Test Practice",

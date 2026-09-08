@@ -12,25 +12,27 @@ export type CognitiveSourceTool =
   | "feynman"
   | "premortem"
   | "quiz"
-  | "notes";
+  | "notes"
+  | "sparring";
 
 export type CognitiveSeverity = "critical" | "moderate" | "minor";
 
 export type CognitiveSuggestedAction =
   | "debug_stack"
   | "teach_apprentice"
-  | "run_premortem";
+  | "run_premortem"
+  | "spar_orally";
 
 export interface CognitiveContextPayload {
   subject: string;
   topic: string;
   concept?: string;
-  sourceTool: "debugger" | "feynman" | "premortem" | "quiz" | "notes";
+  sourceTool: CognitiveSourceTool;
   sourceId?: string;
   evidencePrompt?: string;
   misconceptions?: string[];
   severity?: "critical" | "moderate" | "minor";
-  suggestedAction?: "debug_stack" | "teach_apprentice" | "run_premortem";
+  suggestedAction?: CognitiveSuggestedAction;
 }
 
 export const COGNITIVE_BRIDGE_STORAGE_KEY = "learnora:cognitive_bridge_payload";
@@ -145,7 +147,7 @@ export const CognitiveBridge = {
     };
   },
 
-  getTargetRoute(tool: "debugger" | "feynman" | "premortem"): string {
+  getTargetRoute(tool: "debugger" | "feynman" | "premortem" | "sparring"): string {
     switch (tool) {
       case "debugger":
         return "/debugger";
@@ -153,6 +155,8 @@ export const CognitiveBridge = {
         return "/feynman";
       case "premortem":
         return "/premortem";
+      case "sparring":
+        return "/sparring";
       default:
         return "/";
     }
