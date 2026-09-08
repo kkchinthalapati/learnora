@@ -863,7 +863,12 @@ describe("PlanView", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "permission denied",
     );
-    expect(screen.getByRole("link", { name: "Week" })).toHaveAttribute(
+    /* The section nav must survive a failed load — the point of the assertion
+       is that a 403 costs the student the plan, not their way out of the page.
+       The tab was renamed "Week" → "Study plan" when PlanSectionNav landed and
+       this assertion was not moved with it, so it had been failing on main
+       against a link that no longer exists. */
+    expect(screen.getByRole("link", { name: "Study plan" })).toHaveAttribute(
       "aria-current",
       "page",
     );

@@ -1,0 +1,121 @@
+/* Token-only by construction, like MisconceptionLedgerCard.module.css: this
+   file is new, so the drift ratchet in src/styles/drift.test.ts allows it zero
+   raw hex, font-sizes, shadows and blurs. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-md), var(--glass-inner);
+  border-radius: var(--r-xl);
+  padding: var(--s-6);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+/* The number leads. A student scanning the dashboard should be able to read
+   the value of their next hour without reading a sentence. */
+.headline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2) var(--s-3);
+  margin: 0;
+}
+
+.value {
+  color: var(--text);
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.unit {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.topic {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.fading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  color: var(--warning-text);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  text-transform: none;
+}
+
+.reason {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.verdict {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+}
+
+.good {
+  color: var(--success-text);
+}
+
+.warn {
+  color: var(--warning-text);
+}
+
+.bad {
+  color: var(--danger-text);
+}
