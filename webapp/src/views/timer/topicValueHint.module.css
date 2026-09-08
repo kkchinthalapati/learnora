@@ -1,0 +1,23 @@
+/* Token-only by construction: this file is new, so the drift ratchet in
+   src/styles/drift.test.ts allows it zero raw hex, font-sizes, shadows and
+   blurs. */
+
+.hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  margin: var(--s-3) 0 0;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.hint strong {
+  color: var(--text);
+  font-weight: 600;
+}
