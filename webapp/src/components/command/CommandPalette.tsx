@@ -281,12 +281,14 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-ai-debugger",
       category: "Study Lab",
-      title: "Find My Mistake",
-      subtitle: "Work backwards from a mistake to what you never quite learned",
+      title: "Step-by-Step Solver",
+      subtitle: "Work backwards from a mistake to find where you got stuck and repair the gap",
       icon: "brain",
       badge: "AI Tool",
       keywords: [
         "ai",
+        "solver",
+        "step-by-step",
         "debugger",
         "debug",
         "mistake",
@@ -295,7 +297,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         "trace",
       ],
       onSelect: () => {
-        navigate("/debugger");
+        navigate("/solver");
         handleClose();
       },
     });
@@ -324,12 +326,14 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-ai-premortem",
       category: "Study Lab",
-      title: "Personal exam stress test",
-      subtitle: "Practise trap questions for a saved exam or subject",
+      title: "Common Exam Traps",
+      subtitle: "Practise tricky questions and subtle wording traps before exams",
       icon: "shield",
       badge: "AI Tool",
       keywords: [
         "ai",
+        "traps",
+        "exam traps",
         "premortem",
         "pre-mortem",
         "radar",
@@ -338,7 +342,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         "stress",
       ],
       onSelect: () => {
-        navigate("/premortem");
+        navigate("/exam-traps");
         handleClose();
       },
     });
@@ -346,13 +350,13 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-ai-sparring",
       category: "Study Lab",
-      title: "Challenge me out loud",
-      subtitle: "Defend an idea against questions and counterexamples",
+      title: "Viva / Test Practice",
+      subtitle: "Defend an idea against questions and viva counterexamples",
       icon: "mic",
-      badge: "Socratic coach",
-      keywords: ["socratic", "sparring", "voice", "debate", "challenge"],
+      badge: "Viva Coach",
+      keywords: ["viva", "oral", "test", "socratic", "sparring", "voice", "debate", "challenge"],
       onSelect: () => {
-        navigate("/sparring");
+        navigate("/viva");
         handleClose();
       },
     });

@@ -32,7 +32,13 @@ export function isNotebooksSection(pathname: string): boolean {
 }
 
 export type PrimaryDestination =
-  "dashboard" | "library" | "plan" | "focus" | "progress" | "study_lab";
+  | "dashboard"
+  | "library"
+  | "plan"
+  | "focus"
+  | "progress"
+  | "study_lab"
+  | "ai_tutor";
 
 export function primaryDestinationForPath(
   pathname: string,
@@ -51,6 +57,7 @@ export function primaryDestinationForPath(
   if (pathname.startsWith("/timer")) return "focus";
   if (pathname.startsWith("/analytics") || pathname.startsWith("/trajectory"))
     return "progress";
+  if (pathname.startsWith("/ai-tutor")) return "ai_tutor";
   if (isStudyLabSection(pathname)) return "study_lab";
   return null;
 }
@@ -58,10 +65,14 @@ export function primaryDestinationForPath(
 export function isStudyLabSection(pathname: string): boolean {
   return [
     "/study-lab",
+    "/ai-tutor",
     "/sparring",
+    "/viva",
     "/debugger",
+    "/solver",
     "/feynman",
     "/premortem",
+    "/exam-traps",
     "/exam-detective",
   ].some((routePrefix) => pathname.startsWith(routePrefix));
 }
@@ -85,10 +96,15 @@ export function sectionLabel(
   if (pathname.startsWith("/analytics")) return "Progress";
   if (pathname.startsWith("/trajectory")) return "Trajectory";
   if (pathname.startsWith("/study-lab")) return "Study Lab";
+  if (pathname.startsWith("/ai-tutor")) return "AI Tutor";
   if (pathname.startsWith("/feynman")) return "Explain It Simply";
-  if (pathname.startsWith("/debugger")) return "Find My Mistake";
+  if (pathname.startsWith("/debugger") || pathname.startsWith("/solver"))
+    return "Step-by-Step Solver";
   if (pathname.startsWith("/exam-detective")) return "Exam trap practice";
-  if (pathname.startsWith("/premortem")) return "What Could Go Wrong";
+  if (pathname.startsWith("/premortem") || pathname.startsWith("/exam-traps"))
+    return "Common Exam Traps";
+  if (pathname.startsWith("/sparring") || pathname.startsWith("/viva"))
+    return "Viva / Test Practice";
   if (pathname.startsWith("/my-week")) return "My week";
   if (pathname.startsWith("/plan")) return "This week's plan";
   if (pathname.startsWith("/exams")) return "Exams";
@@ -117,10 +133,14 @@ export function sectionLabel(
 const HERO_ROUTES = [
   "/notebooks",
   "/study-lab",
+  "/ai-tutor",
   "/sparring",
+  "/viva",
   "/feynman",
   "/premortem",
+  "/exam-traps",
   "/debugger",
+  "/solver",
   "/room",
   "/exam-detective",
 ];

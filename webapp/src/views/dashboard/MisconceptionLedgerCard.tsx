@@ -33,10 +33,10 @@ const SEVERITY_LABEL: Record<Misconception["severity"], string> = {
 };
 
 const TOOL_LABEL: Record<Misconception["originTool"], string> = {
-  debugger: "the Debugger",
+  debugger: "the Step-by-Step Solver",
   feynman: "Feynman",
-  premortem: "the Pre-Mortem radar",
-  sparring: "Sparring",
+  premortem: "Common Exam Traps",
+  sparring: "Viva / Test Practice",
   quiz: "your quizzes",
   notes: "your notes",
   review: "review",
@@ -72,13 +72,13 @@ export function MisconceptionLedgerCard() {
       severity: m.severity,
       suggestedAction: "debug_stack",
     });
-    navigate("/debugger");
+    navigate("/solver");
   };
 
   return (
     <Card
       as="section"
-      aria-label="What you currently misunderstand"
+      aria-label="Mistakes to Review"
       variant="elevated"
       className={styles.widget}
       aria-busy={isPending || undefined}
@@ -89,20 +89,20 @@ export function MisconceptionLedgerCard() {
             <Icon name="alert-triangle" size={20} />
           </div>
           <div>
-            <span className={styles.eyebrow}>Your understanding</span>
-            <h2 className={styles.title}>What you’re still getting wrong</h2>
+            <span className={styles.eyebrow}>Review & Practice</span>
+            <h2 className={styles.title}>Mistakes to Review</h2>
           </div>
         </div>
       </div>
 
       {isPending ? (
         <div className={styles.loadingStack}>
-          <Skeleton label="Loading what you're getting wrong" height={56} />
+          <Skeleton label="Loading mistakes to review" height={56} />
           <Skeleton height={56} />
         </div>
       ) : isError ? (
         <p role="alert" className={styles.empty}>
-          We couldn’t load your misconception ledger just now.
+          We couldn’t load your mistakes to review just now.
         </p>
       ) : ranked.length === 0 ? (
         /* Deliberately not framed as an achievement. An empty ledger on a new
@@ -112,11 +112,10 @@ export function MisconceptionLedgerCard() {
         <div className={styles.empty}>
           <p className={styles.emptyLead}>Nothing on record yet.</p>
           <p className={styles.emptyBody}>
-            When the Debugger, Feynman, the Pre-Mortem radar or a quiz finds a
-            gap, it gets written down here — and every tool remembers it
-            afterwards.
+            When the Step-by-Step Solver, Feynman, Common Exam Traps, or a quiz finds a
+            mistake, it gets written down here — so you can easily review and conquer it.
           </p>
-          <Button variant="secondary" onClick={() => navigate("/debugger")}>
+          <Button variant="secondary" onClick={() => navigate("/solver")}>
             Diagnose a mistake
           </Button>
         </div>

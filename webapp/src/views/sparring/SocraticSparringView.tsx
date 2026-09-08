@@ -294,11 +294,11 @@ export function SocraticSparringView() {
           <div className={styles.titleArea}>
             <span className={styles.eyebrow}>
               <Icon name="mic" size={14} />
-              <span>Socratic coach</span>
+              <span>Viva / Test Practice</span>
             </span>
-            <h1 className={styles.pageTitle}>Challenge me out loud</h1>
+            <h1 className={styles.pageTitle}>Oral Exam & Viva Practice</h1>
             <p className={styles.pageSubtitle}>
-              Defend a topic against follow-up questions and counterexamples.
+              Defend a topic against oral exam questions and viva counterexamples.
               Speak or type; voice is optional.
             </p>
           </div>

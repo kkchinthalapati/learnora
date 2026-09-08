@@ -38,8 +38,8 @@ const TOOL_CONFIGS: {
 }[] = [
   {
     id: "debugger",
-    label: "Find my mistake",
-    route: "/debugger",
+    label: "Step-by-step solver",
+    route: "/solver",
     icon: "zap",
     action: "debug_stack",
   },
@@ -52,17 +52,17 @@ const TOOL_CONFIGS: {
   },
   {
     id: "premortem",
-    label: "What could go wrong",
-    route: "/premortem",
+    label: "Common exam traps",
+    route: "/exam-traps",
     icon: "shield",
     action: "run_premortem",
   },
 ];
 
 const SOURCE_TOOL_LABELS: Record<CognitiveSourceTool, string> = {
-  debugger: "Find My Mistake",
+  debugger: "Step-by-Step Solver",
   feynman: "Explain It Simply",
-  premortem: "What Could Go Wrong",
+  premortem: "Common Exam Traps",
   quiz: "a quiz",
   notes: "your notes",
 };

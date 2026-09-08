@@ -49,6 +49,7 @@ import {
   prioritiseByMisconceptions,
 } from "./srs";
 import { recordCardReviewedToday } from "../../lib/achievements";
+import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import styles from "./review.module.css";
 
 /* Flashcard Review — ports `startReview` (js/router.js:640-792) and the
@@ -575,6 +576,7 @@ export function SocraticCoachDrawer({
   onClose: () => void;
   initialMode?: SocraticMode;
 }) {
+  const navigate = useNavigate();
   const { settings } = useSettings();
   const { showToast } = useToast();
   const [mode, setMode] = useState<SocraticMode>(initialMode);
@@ -839,6 +841,17 @@ export function SocraticCoachDrawer({
         </div>
 
         <div className={styles.socraticFooter}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              const topic = card?.front ? card.front.slice(0, 80) : "";
+              CognitiveBridge.saveActiveTopic(topic);
+              navigate(`/ai-tutor?topic=${encodeURIComponent(topic)}`);
+            }}
+          >
+            <Icon name="sparkles" size={14} />
+            <span>Open in AI Tutor</span>
+          </Button>
           <Button variant="secondary" onClick={onClose}>
             Resume Review
           </Button>
@@ -918,6 +931,7 @@ function ReviewSession({
      path if the reply never contained a usable tag. */
   const aiGradeInFlight = useRef(false);
 
+  const navigate = useNavigate();
   const updateReview = useUpdateFlashcardReview();
   const { registerFlashcardGrader } = useChat();
   const { settings } = useSettings();
@@ -1290,6 +1304,18 @@ function ReviewSession({
             >
               <Icon name="brain" size={16} />
               <span>Why did I miss this? (Socratic Coach)</span>
+            </Button>
+            <Button
+              variant="secondary"
+              className={styles.socraticBtn}
+              onClick={() => {
+                const topic = card?.front ? card.front.slice(0, 80) : "";
+                CognitiveBridge.saveActiveTopic(topic);
+                navigate(`/ai-tutor?topic=${encodeURIComponent(topic)}`);
+              }}
+            >
+              <Icon name="sparkles" size={16} />
+              <span>Open in AI Tutor</span>
             </Button>
           </div>
           <div className={styles.controls}>

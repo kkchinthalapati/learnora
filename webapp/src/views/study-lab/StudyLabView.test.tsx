@@ -51,10 +51,10 @@ describe("StudyLabView", () => {
 
   it("offers the four routes", () => {
     renderLab();
-    expect(screen.getByText("Find the gap")).toBeInTheDocument();
+    expect(screen.getByText("Step-by-Step Solver")).toBeInTheDocument();
     expect(screen.getByText("Prove it by teaching")).toBeInTheDocument();
-    expect(screen.getByText("Challenge me out loud")).toBeInTheDocument();
-    expect(screen.getByText("Practise the traps")).toBeInTheDocument();
+    expect(screen.getByText("Viva / Test Practice")).toBeInTheDocument();
+    expect(screen.getByText("Common Exam Traps")).toBeInTheDocument();
   });
 
   /* A new account has no diagnosis, and inventing one would be worse than the

@@ -227,13 +227,13 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
   },
   debugger: {
     id: "debugger",
-    name: "Cognitive Debugger",
-    description: "Root-cause tracing for a concept you got wrong.",
+    name: "Step-by-Step Solver",
+    description: "Root-cause tracing and gap solver for a concept you got wrong.",
   },
   preMortem: {
     id: "preMortem",
-    name: "Pre-Mortem",
-    description: "Predicting where an exam is likely to catch you out.",
+    name: "Common Exam Traps",
+    description: "Spot tricky questions, wording traps, and edge cases before the exam.",
   },
   feynman: {
     id: "feynman",
@@ -247,8 +247,8 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
   },
   sparring: {
     id: "sparring",
-    name: "Socratic Sparring",
-    description: "Live back-and-forth debate with an AI study partner.",
+    name: "Viva / Test Practice",
+    description: "Live viva and oral test practice with an AI study partner.",
   },
   notebookStudio: {
     id: "notebookStudio",
@@ -418,6 +418,60 @@ export const PLAN_PRICING: Record<"plus" | "pro", PlanPricing> = {
     ],
   },
 };
+
+export function isIndianLocale(): boolean {
+  if (typeof Intl !== "undefined") {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      if (tz.includes("Calcutta") || tz.includes("Kolkata") || tz.includes("India")) return true;
+    } catch {}
+  }
+  if (typeof navigator !== "undefined") {
+    const langs = navigator.languages || [navigator.language || ""];
+    if (langs.some((l) => l.toLowerCase().includes("-in") || l.toLowerCase() === "hi")) return true;
+  }
+  return false;
+}
+
+export const PLAN_PRICING_INR: Record<"plus" | "pro", PlanPricing> = {
+  plus: {
+    plan: "plus",
+    name: "Learnora Plus",
+    tagline: "More headroom on every AI tool — less than chai and samosas a week.",
+    prices: [
+      { id: "monthly", label: "Monthly", amountPence: 19900, interval: "month", note: "UPI, Google Pay, Cards accepted" },
+      {
+        id: "annual",
+        label: "Yearly",
+        amountPence: 199900,
+        interval: "year",
+        note: "₹166 a month, billed once a year (UPI / GPay / Cards)",
+        savingPercent: 16,
+      },
+    ],
+  },
+  pro: {
+    plan: "pro",
+    name: "Learnora Pro",
+    tagline:
+      "The full system: exam marks forecast, past-paper traps, calendar sync, and highest AI ceiling.",
+    prices: [
+      { id: "monthly", label: "Monthly", amountPence: 39900, interval: "month", note: "UPI, Google Pay, Cards accepted" },
+      {
+        id: "annual",
+        label: "Yearly",
+        amountPence: 399900,
+        interval: "year",
+        note: "₹333 a month, billed once a year (UPI / GPay / Cards)",
+        savingPercent: 16,
+      },
+    ],
+  },
+};
+
+export function getLocalizedPlanPricing(): Record<"plus" | "pro", PlanPricing> {
+  return isIndianLocale() ? PLAN_PRICING_INR : PLAN_PRICING;
+}
 
 export function formatPrice(pence: number, currency = "GBP"): string {
   return new Intl.NumberFormat(undefined, {

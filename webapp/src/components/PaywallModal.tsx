@@ -9,6 +9,8 @@ import {
   PLAN_PRICING,
   PRO_FEATURES,
   formatPrice,
+  getLocalizedPlanPricing,
+  isIndianLocale,
   type FeatureId,
 } from "../lib/entitlements";
 import styles from "./PaywallModal.module.css";
@@ -61,7 +63,9 @@ export function PaywallModal({
 
   const lead = feature ? FEATURES[feature] : null;
   const rest = PRO_FEATURES.filter((f) => f.id !== feature);
-  const pricing = PLAN_PRICING[selectedPlan];
+  const isIndian = isIndianLocale();
+  const localizedPricing = getLocalizedPlanPricing();
+  const pricing = localizedPricing[selectedPlan];
   const planLabel = pricing.name.replace("Learnora ", "");
 
   const upgrade = () => {
@@ -164,7 +168,7 @@ export function PaywallModal({
                     ) : null}
                   </span>
                   <span className={styles.priceAmount}>
-                    {formatPrice(price.amountPence)}
+                    {formatPrice(price.amountPence, isIndian ? "INR" : "GBP")}
                     <span className={styles.priceInterval}>
                       {" "}
                       / {price.interval}
@@ -178,6 +182,12 @@ export function PaywallModal({
             );
           })}
         </ul>
+
+        {isIndian && (
+          <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: "var(--s-2)", textAlign: "center" }}>
+            ⚡ Supports UPI (Google Pay, PhonePe, Paytm), Net Banking & Cards
+          </p>
+        )}
 
         {selectedPlan === "pro" ? (
           <ul className={styles.features}>

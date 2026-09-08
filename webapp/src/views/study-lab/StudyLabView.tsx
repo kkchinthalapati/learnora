@@ -18,11 +18,11 @@ interface StudyRoute {
 const STUDY_ROUTES: StudyRoute[] = [
   {
     prompt: "I got something wrong",
-    title: "Find the gap",
+    title: "Step-by-Step Solver",
     description:
-      "Bring one wrong answer or a topic that keeps going wrong. Learnora works backwards to the missing idea.",
-    outcome: "Leave with a short repair exercise",
-    to: "/debugger",
+      "Bring one wrong answer or a tricky topic. Learnora works backwards to solve where you got stuck.",
+    outcome: "Leave with the exact missing step fixed",
+    to: "/solver",
     icon: "bug",
   },
   {
@@ -35,21 +35,21 @@ const STUDY_ROUTES: StudyRoute[] = [
     icon: "award",
   },
   {
-    prompt: "I want a live challenge",
-    title: "Challenge me out loud",
+    prompt: "I want oral test practice",
+    title: "Viva / Test Practice",
     description:
-      "Defend an idea against follow-up questions and counterexamples. Voice is optional; typing works too.",
-    outcome: "Leave knowing whether your reasoning holds up",
-    to: "/sparring",
+      "Practise viva questions and defend your answers out loud or by typing.",
+    outcome: "Leave confident for your oral exam or viva",
+    to: "/viva",
     icon: "mic",
   },
   {
     prompt: "I am preparing for an exam",
-    title: "Practise the traps",
+    title: "Common Exam Traps",
     description:
-      "Analyse a past paper or practise the edge cases, hidden assumptions and wording traps that cost marks.",
-    outcome: "Leave with the trap types to watch for",
-    to: "/exam-detective",
+      "Practise questions with tricky wording, edge cases and subtle traps that cost marks.",
+    outcome: "Leave knowing the common traps to avoid",
+    to: "/exam-traps",
     icon: "target",
   },
 ];

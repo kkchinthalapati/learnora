@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useSettings } from "../context/settings";
+import { useOptionalAuth } from "../context/auth";
 import { useStudySchedule } from "./useStudySchedule";
 import {
   BLOCK_LEAD_MINS,
@@ -31,19 +32,17 @@ import {
 const CHECK_INTERVAL_MS = 60_000;
 
 export function useBlockReminders(): void {
+  const auth = useOptionalAuth();
+  const session = auth?.session;
   const { settings } = useSettings();
   const { today } = useStudySchedule();
 
-  /* A "latest ref" so the interval is installed once and never restarts. The
-     schedule object is rebuilt whenever any of its queries settle; an effect
-     that depended on it directly would tear down and re-create the timer, and
-     a reminder due at 18:55 would be pushed past its own window by a refetch
-     at 18:54 — the same class of self-cancelling-timer bug useExamProctor was
-     fixed for. */
-  const latest = useRef({ today, enabled: settings.notifyStudyReminders });
-  latest.current = { today, enabled: settings.notifyStudyReminders };
+  const enabled = Boolean(session && settings.notifyStudyReminders);
+  const latest = useRef({ today, enabled });
+  latest.current = { today, enabled };
 
   useEffect(() => {
+    if (!session) return;
     const check = () => {
       const now = new Date();
       const nowMin = now.getHours() * 60 + now.getMinutes();
@@ -62,7 +61,7 @@ export function useBlockReminders(): void {
     check();
     const id = setInterval(check, CHECK_INTERVAL_MS);
     return () => clearInterval(id);
-  }, []);
+  }, [session]);
 }
 
 export { BLOCK_LEAD_MINS };

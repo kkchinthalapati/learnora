@@ -6,9 +6,14 @@ import { recordTaskCompletedToday } from "../lib/achievements";
 
 export const tasksKeys = { all: ["tasks"] as const };
 
-export function useTasks() {
-  return useQuery({ queryKey: tasksKeys.all, queryFn: tasksApi.fetch });
+export function useTasks(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: tasksKeys.all,
+    queryFn: tasksApi.fetch,
+    ...options,
+  });
 }
+
 
 export function useAddTask() {
   const qc = useQueryClient();

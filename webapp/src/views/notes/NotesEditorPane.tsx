@@ -852,6 +852,7 @@ ${fenceUntrusted(currentHtml)}
         <NotesAiSidebar
           materialId={materialId}
           folderId={folderId}
+          materialTitle={materialTitle}
           getDocumentText={() => editorRef.current?.getPlainText() ?? ""}
           onInsertText={
             note ? (text) => editorRef.current?.appendText(text) : undefined

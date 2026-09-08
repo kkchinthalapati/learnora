@@ -8,6 +8,8 @@ import { Icon } from "../../components/Icon";
 import { Modal } from "../../components/Modal";
 import { useOptionalChat } from "../../context/chat";
 import { useDialog } from "../../context/dialog";
+import { useOptionalAuth } from "../../context/auth";
+import { useToast } from "../../context/toast";
 import { useTimer } from "../../context/timer";
 import { useFolders } from "../../hooks/useFolders";
 import { useTasks } from "../../hooks/useTasks";
@@ -108,9 +110,12 @@ export function TimerView() {
     applyFav,
     quote,
   } = useTimer();
+  const auth = useOptionalAuth();
+  const session = auth?.session;
+  const { showToast } = useToast();
   const { confirm, promptText } = useDialog();
-  const { data: tasks } = useTasks();
-  const { data: folders } = useFolders();
+  const { data: tasks } = useTasks({ enabled: Boolean(session) });
+  const { data: folders } = useFolders({ enabled: Boolean(session) });
   const { focusParticipants, activeCount } = useStudyRoom();
   const t = useTranslation();
   const chat = useOptionalChat();
@@ -176,6 +181,18 @@ export function TimerView() {
   };
 
   const startSessionCheck = async () => {
+    if (!session) {
+      showToast(
+        "Create a free account to unlock AI session checks and quizzes!",
+        {
+          actionLabel: "Sign Up",
+          onAction: () => {
+            window.location.href = "/signup";
+          },
+        },
+      );
+      return;
+    }
     if (!chat) return;
     const topic = completedSession?.task || activeTask || "what I just studied";
     setCompletedSession(null);
@@ -244,6 +261,19 @@ export function TimerView() {
 
   return (
     <div className={styles.view}>
+      {!session && (
+        <div className={styles.guestBanner}>
+          <div className={styles.guestBannerInfo}>
+            <span className={styles.guestBannerBadge}>Guest Mode</span>
+            <span className={styles.guestBannerText}>
+              Focusing without an account. Your timer sessions are safely saved locally on this browser.
+            </span>
+          </div>
+          <Link to="/signup" className={styles.guestBannerCta}>
+            Create free account to sync →
+          </Link>
+        </div>
+      )}
       <div className={styles.layout}>
         <Card variant="panel" padding="lg" className={styles.panel}>
           <div

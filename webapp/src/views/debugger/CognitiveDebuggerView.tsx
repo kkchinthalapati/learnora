@@ -237,10 +237,10 @@ export function CognitiveDebuggerView() {
         <div className={styles.headerTitleGroup}>
           <h1 className={styles.title}>
             <Icon name="brain" size={28} />
-            <span>Find My Mistake</span>
+            <span>Step-by-Step Solver</span>
           </h1>
           <p className={styles.subtitle}>
-            Work backwards from the mistake you made to the thing you never quite learned underneath it.
+            Work backwards from the mistake you made to find where you got stuck and repair the gap.
           </p>
         </div>
 

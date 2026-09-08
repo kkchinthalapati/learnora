@@ -111,6 +111,16 @@ export const CognitiveBridge = {
     notifyListeners();
   },
 
+  saveActiveTopic(topic: string, subject = "General"): void {
+    const existing = CognitiveBridge.getPayload();
+    CognitiveBridge.setPayload({
+      subject: existing?.subject || subject,
+      sourceTool: existing?.sourceTool || "notes",
+      ...existing,
+      topic,
+    });
+  },
+
   hasPayload(): boolean {
     return CognitiveBridge.getPayload() !== null;
   },

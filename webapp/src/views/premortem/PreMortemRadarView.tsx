@@ -61,7 +61,7 @@ export function PreMortemRadarView({
     return (
       <div className={styles.container}>
         <PageHeader
-          title="What Could Go Wrong"
+          title="Common Exam Traps"
           eyebrow="Study Lab"
           sub="You haven't tried a set of trap questions yet. Have a go and we'll show you what caught you out."
         />
@@ -112,7 +112,7 @@ export function PreMortemRadarView({
   return (
     <div className={styles.container}>
       <PageHeader
-        title="What Could Go Wrong"
+        title="Common Exam Traps"
         eyebrow={`Study Lab • ${report.subject || "All subjects"}`}
         sub={`Practice set completed on ${new Date(
           report.timestamp,

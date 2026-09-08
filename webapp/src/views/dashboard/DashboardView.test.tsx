@@ -659,4 +659,43 @@ describe("DashboardView", () => {
       );
     });
   });
+
+  describe("Progressive disclosure tabs", () => {
+    it("switches views between Focus, Insights, and Activity tabs", async () => {
+      const user = userEvent.setup();
+      serveDashboard();
+      renderWithAuth(
+        <ChatProvider>
+          <Routes>
+            <Route
+              path="/"
+              element={<DashboardView initialTab="focus" />}
+            />
+          </Routes>
+        </ChatProvider>,
+        { session: fakeSession() },
+        { withTimer: true, initialEntries: ["/"] },
+      );
+
+      // Verify Focus tab contents
+      expect(
+        screen.getByRole("tab", { name: /Focus & Tasks/i }),
+      ).toHaveAttribute("aria-selected", "true");
+      expect(
+        screen.getByRole("heading", { name: "Focus & Next Exam" }),
+      ).toBeInTheDocument();
+
+      // Switch to Insights
+      await user.click(screen.getByRole("tab", { name: /Insights & Trajectory/i }));
+      expect(
+        screen.getByRole("heading", { name: "Mistakes & Retention" }),
+      ).toBeInTheDocument();
+
+      // Switch to Activity
+      await user.click(screen.getByRole("tab", { name: /Activity & Peers/i }));
+      expect(
+        screen.getByRole("heading", { name: "Daily Goals & Study Peers" }),
+      ).toBeInTheDocument();
+    });
+  });
 });

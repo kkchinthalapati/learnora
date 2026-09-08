@@ -1,4 +1,4 @@
-import { useLocation } from "react-router";
+import { Link, useLocation } from "react-router";
 import { Icon } from "./Icon";
 import { IconButton } from "./IconButton";
 import { useAuth } from "../context/auth";
@@ -73,13 +73,25 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
           <kbd className={styles.searchKbd}>⌘K</kbd>
         </button>
         {showClock ? <span className={styles.clock}>{time}</span> : null}
-        <IconButton
-          aria-label="Log Out"
-          title="Log Out"
-          onClick={() => void signOut()}
-        >
-          <Icon name="log-out" size={20} />
-        </IconButton>
+        {user ? (
+          <IconButton
+            aria-label="Log Out"
+            title="Log Out"
+            onClick={() => void signOut()}
+          >
+            <Icon name="log-out" size={20} />
+          </IconButton>
+        ) : (
+          <div className={styles.guestAuthGroup}>
+            <span className={styles.guestBadge}>Guest Mode</span>
+            <Link to="/login" className={styles.signInLink}>
+              Sign In
+            </Link>
+            <Link to="/signup" className={styles.signUpBtn}>
+              Sign Up
+            </Link>
+          </div>
+        )}
         <IconButton
           aria-label="Toggle Theme"
           title="Toggle Theme"

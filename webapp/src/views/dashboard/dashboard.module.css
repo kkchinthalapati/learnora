@@ -64,6 +64,78 @@
   outline-offset: 2px;
 }
 
+/* Progressive Disclosure Tabs */
+.tabNav {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--s-2);
+  margin-top: calc(-1 * var(--s-2));
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabNav::-webkit-scrollbar {
+  display: none;
+}
+
+.tabBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-4);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-full);
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.tabBtn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.tabBtnActive {
+  color: var(--primary);
+  background: var(--surface-1);
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
+}
+
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--s-6), 3vw, var(--s-7));
+}
+
+.heroFocusGrid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: clamp(16px, 2.5vw, 24px);
+  align-items: stretch;
+}
+
+.focusSecondaryGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: clamp(16px, 2.5vw, 24px);
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .heroFocusGrid,
+  .focusSecondaryGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .dashboardRegion {
   min-width: 0;
 }

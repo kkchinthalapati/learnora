@@ -122,16 +122,28 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         Storage.set(LOCAL_SESSIONS_KEY, sessions.slice(0, MAX_LOCAL_SESSIONS));
         window.dispatchEvent(new Event(SESSION_LOGGED_EVENT));
 
-        logSession.mutate(
-          { minutes, task, folderId, timerType: state.type },
-          {
-            onError: (err) =>
-              console.warn(
-                "[Timer] Supabase session log failed (local copy preserved):",
-                err,
-              ),
-          },
-        );
+        if (session) {
+          logSession.mutate(
+            { minutes, task, folderId, timerType: state.type },
+            {
+              onError: (err) =>
+                console.warn(
+                  "[Timer] Supabase session log failed (local copy preserved):",
+                  err,
+                ),
+            },
+          );
+        } else {
+          showToast(
+            "Guest session saved locally! Sign up to sync across devices.",
+            {
+              actionLabel: "Sign Up",
+              onAction: () => {
+                window.location.href = "/signup";
+              },
+            },
+          );
+        }
 
         /* Every logged phase is a finished focus phase (breaks never emit
          * logMinutes) — there's nothing left on the clock to resume, so drop
@@ -161,6 +173,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       activeTask,
       activeFolderId,
       logSession,
+      session,
       settings.notifyTimerAlerts,
       showToast,
       state.type,
