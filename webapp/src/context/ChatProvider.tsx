@@ -92,6 +92,12 @@ function shouldSearchWeb(query: string, force = false): boolean {
   );
 }
 
+function requestsLearningVideo(query: string): boolean {
+  return /\b(video|youtube|watch|visual lesson|lecture recording)\b/i.test(
+    query,
+  );
+}
+
 function formatWebEvidence(results: WebSearchResult[]): string {
   return results
     .slice(0, 5)
@@ -414,27 +420,31 @@ export function ChatProvider({ children }: { children: ReactNode }) {
            the same way: a failure resolves to an empty ledger, which renders
            as an explicit "no diagnoses on record — do not invent any" rather
            than as silence the model would fill in. */
-        const ledgerPromise = misconceptionsApi
-          .fetchAll()
-          .catch((err) => {
-            console.warn("[chat] Failed to read misconception ledger:", err);
-            return [];
-          });
+        const ledgerPromise = misconceptionsApi.fetchAll().catch((err) => {
+          console.warn("[chat] Failed to read misconception ledger:", err);
+          return [];
+        });
         const sourceMode =
           options?.sourceMode ?? (settings.webAccess ? "hybrid" : "notebook");
         const wantsWeb =
           sourceMode !== "notebook" &&
           shouldSearchWeb(query, sourceMode === "web");
-        const webPromise = wantsWeb
-          ? searchWebSources(query).catch((cause) => {
-              if (sourceMode === "web") throw cause;
-              console.warn(
-                "[chat] Web research failed; continuing without it:",
-                cause,
-              );
-              return null;
-            })
-          : Promise.resolve(null);
+        const wantsVideo =
+          sourceMode !== "notebook" && requestsLearningVideo(query);
+        const webPromise =
+          wantsWeb || wantsVideo
+            ? searchWebSources(
+                wantsVideo ? `${query} educational video` : query,
+                wantsVideo ? { domain: "youtube.com", depth: 4 } : undefined,
+              ).catch((cause) => {
+                if (sourceMode === "web") throw cause;
+                console.warn(
+                  "[chat] Web research failed; continuing without it:",
+                  cause,
+                );
+                return null;
+              })
+            : Promise.resolve(null);
         try {
           const ctx = await loadWorkspaceContext();
           pendingTasks = ctx.pendingTasks;

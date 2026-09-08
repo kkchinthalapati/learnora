@@ -285,8 +285,8 @@ export function MyWeekView() {
           than repeating the route's name, the same as FriendsView. */}
       <PageHeader
         eyebrow="Life sync"
-        title="The week you actually have"
-        sub="Tell Learnora when your life happens and it will schedule your studying around it — in the hours your head actually works."
+        title="Your availability"
+        sub="Set your free hours once. Learnora uses them to build a realistic study plan."
       />
 
       {/* --- 1. The shape of a day ------------------------------------ */}
@@ -318,8 +318,7 @@ export function MyWeekView() {
 
         <h3 className={styles.subTitle}>When your head works</h3>
         <p className={styles.sectionCopy}>
-          The hardest work gets your best hours. Everything mechanical gets the
-          rest, which is what keeps the good hours free.
+          Harder work will be placed in the hours you focus best.
         </p>
         <div
           className={styles.choiceGrid}
@@ -349,8 +348,7 @@ export function MyWeekView() {
       <Card as="section" variant="panel" className={styles.section}>
         <h2 className={styles.sectionTitle}>How much you&rsquo;ll really do</h2>
         <p className={styles.sectionCopy}>
-          Be honest rather than ambitious. A day you finish is worth three you
-          abandon, and this is the number that decides which one you get.
+          Choose a daily target you can sustain.
         </p>
         <div className={styles.fieldRow}>
           <CapacityStepper
@@ -369,8 +367,7 @@ export function MyWeekView() {
 
         <h3 className={styles.subTitle}>Days that are yours</h3>
         <p className={styles.sectionCopy}>
-          Nothing gets scheduled on these. Taking a day off on purpose is how a
-          streak survives a bad week.
+          Learnora will not schedule study on these days.
         </p>
         <div className={styles.dayToggles} role="group" aria-label="Days off">
           {WEEK_ORDER.map((day) => {
@@ -398,9 +395,8 @@ export function MyWeekView() {
               What&rsquo;s already in your week
             </h2>
             <p className={styles.sectionCopy}>
-              Lectures, shifts, training, the things you show up to. Study gets
-              placed around them, with a {formatDuration(context.bufferMins)}{" "}
-              gap either side.
+              Add fixed events. Study is placed around them with a{" "}
+              {formatDuration(context.bufferMins)} buffer.
             </p>
           </div>
           <Button variant="primary" size="sm" onClick={addCommitment}>

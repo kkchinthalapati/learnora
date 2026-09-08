@@ -10,6 +10,7 @@ import { Badge } from "../../components/Badge";
 import { EmptyState } from "../../components/EmptyState";
 import { Skeleton } from "../../components/Skeleton";
 import { useToast } from "../../context/toast";
+import { LibraryWorkspaceNav } from "../library/LibraryWorkspaceNav";
 
 const SUBJECT_COLORS = [
   "#4A90E2", // Blue (Maths)
@@ -93,6 +94,7 @@ export function NotebooksHubView() {
 
   return (
     <div className={styles.hubView}>
+      <LibraryWorkspaceNav />
       <header className={styles.hubHeader}>
         <div className={styles.hubTitleGroup}>
           <span className={styles.hubEyebrow}>

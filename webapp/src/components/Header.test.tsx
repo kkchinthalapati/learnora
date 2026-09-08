@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Header } from "./Header";
-import { CommandPaletteContext, type CommandPaletteApi } from "../context/commandPalette";
+import {
+  CommandPaletteContext,
+  type CommandPaletteApi,
+} from "../context/commandPalette";
 import { fakeSession, renderWithAuth } from "../test/auth";
 import { mockAuthSession } from "../test/mockSession";
 import { Storage } from "../lib/storage";
@@ -56,14 +59,20 @@ describe("Header", () => {
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
     expect(screen.getByText(/Marie/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /search/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /toggle theme/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /log out/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /toggle theme/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /log out/i }),
+    ).toBeInTheDocument();
   });
 
   it("renders the Cmd+K search trigger button and opens Command Palette on click", async () => {
     renderHeader();
 
-    const searchButton = screen.getByRole("button", { name: /search and command palette/i });
+    const searchButton = screen.getByRole("button", {
+      name: /search and command palette/i,
+    });
     expect(searchButton).toBeInTheDocument();
     expect(screen.getByText("⌘K")).toBeInTheDocument();
 
@@ -73,10 +82,29 @@ describe("Header", () => {
     expect(mockOpenCommandPalette).toHaveBeenCalledTimes(1);
   });
 
+  it("opens contextual help with mobile install and feedback guidance", async () => {
+    renderHeader({ path: "/library" });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Help and support" }),
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Library workspace" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Add to Home Screen/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Send feedback" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("mailto:support@learnora.app"),
+    );
+  });
+
   it("toggles sidebar menu when hamburger button is clicked", async () => {
     renderHeader();
 
-    const menuToggle = screen.getByRole("button", { name: /toggle sidebar menu/i });
+    const menuToggle = screen.getByRole("button", {
+      name: /toggle sidebar menu/i,
+    });
     const user = userEvent.setup();
     await user.click(menuToggle);
 

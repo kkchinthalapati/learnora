@@ -8,6 +8,7 @@ import { MaterialsPanel } from "./MaterialsPanel";
 import { FlashcardsPanel } from "./FlashcardsPanel";
 import { QuizzesPanel } from "./QuizzesPanel";
 import { LibrarySearch } from "./LibrarySearch";
+import { LibraryWorkspaceNav } from "./LibraryWorkspaceNav";
 import {
   LIBRARY_TABS,
   isLibraryTab,
@@ -55,6 +56,7 @@ export function LibraryView() {
 
   return (
     <div className={styles.view}>
+      <LibraryWorkspaceNav />
       <LibrarySearch
         onActiveChange={setIsSearching}
         action={

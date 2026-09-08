@@ -8,8 +8,8 @@ const PLAN_SECTIONS: ReadonlyArray<{
   path: string;
   icon: IconName;
 }> = [
-  { label: "Week", path: "/plan", icon: "calendar-week" },
-  { label: "My week", path: "/my-week", icon: "calendar" },
+  { label: "Study plan", path: "/plan", icon: "calendar-week" },
+  { label: "Availability", path: "/my-week", icon: "calendar" },
   { label: "Tasks", path: "/tasks", icon: "list-checks" },
   { label: "Exams", path: "/exams", icon: "calendar" },
 ];

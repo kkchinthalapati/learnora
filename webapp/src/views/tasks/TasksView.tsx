@@ -163,7 +163,8 @@ export function TasksView() {
                 {t("btn_add")}
               </Button>
             </div>
-
+          </Card>
+          <div className={styles.quickDueOutside}>
             <div
               className={styles.pillRow}
               aria-label="Quick due date and recurrence options"
@@ -199,7 +200,7 @@ export function TasksView() {
                 🔁 Repeat weekly
               </button>
             </div>
-          </Card>
+          </div>
         </form>
       </section>
 

@@ -6,19 +6,32 @@ import { Skeleton } from "../../components/Skeleton";
 import { useExams } from "../../hooks/useExams";
 import { useExamReadiness } from "../../hooks/useExamReadiness";
 import { localDateStr } from "../../lib/date";
+import { Storage } from "../../lib/storage";
 import { ExamPrepModal } from "../exams/ExamPrepModal";
 import { DashboardCardHeader } from "./DashboardCardHeader";
 import { daysUntil, nextUpcomingExam } from "./analytics";
 import styles from "./dashboard.module.css";
 
 /* "Next exam" spotlight. */
+const COUNTDOWN_EXAM_KEY = "learnora_countdown_exam_id";
+
 export function NextExamCard() {
   const { data: exams = [], isPending, isError, error } = useExams();
   const [prepModalOpen, setPrepModalOpen] = useState(false);
+  const [choosingCountdown, setChoosingCountdown] = useState(false);
+  const [selectedExamId, setSelectedExamId] = useState(() =>
+    Storage.get<number | null>(COUNTDOWN_EXAM_KEY, null),
+  );
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const next = nextUpcomingExam(exams, localDateStr());
+  const todayKey = localDateStr();
+  const upcoming = exams.filter(
+    (exam) => exam.status !== "Completed" && exam.exam_date >= todayKey,
+  );
+  const automaticNext = nextUpcomingExam(exams, todayKey);
+  const selected = upcoming.find((exam) => exam.id === selectedExamId);
+  const next = selected ?? automaticNext;
 
   const { readiness } = useExamReadiness(next);
 
@@ -85,6 +98,35 @@ export function NextExamCard() {
           eyebrow="Next exam"
           action={{ to: "/exams", label: "Open calendar" }}
         />
+        {upcoming.length > 1 && !choosingCountdown ? (
+          <button
+            type="button"
+            className={styles.countdownChange}
+            onClick={() => setChoosingCountdown(true)}
+          >
+            <Icon name="settings" size={13} /> Choose countdown
+          </button>
+        ) : null}
+        {upcoming.length > 1 && choosingCountdown ? (
+          <label className={styles.countdownPicker}>
+            <span>Countdown to</span>
+            <select
+              value={next.id}
+              onChange={(event) => {
+                const id = Number(event.target.value);
+                setSelectedExamId(id);
+                Storage.set(COUNTDOWN_EXAM_KEY, id);
+                setChoosingCountdown(false);
+              }}
+            >
+              {upcoming.map((exam) => (
+                <option key={exam.id} value={exam.id}>
+                  {exam.exam_name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <div className={styles.countdown}>
           {big}
           <span className={styles.countdownUnit}>{unit}</span>

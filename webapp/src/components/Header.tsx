@@ -11,6 +11,7 @@ import { sectionLabel, viewOwnsPageTitle } from "../lib/sectionLabel";
 import { resolveDark, THEME_KEY } from "../lib/appearance";
 import { Storage } from "../lib/storage";
 import styles from "./Header.module.css";
+import { HelpCenter } from "./HelpCenter";
 
 export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
   const { pathname } = useLocation();
@@ -59,6 +60,7 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
       </div>
 
       <div className={styles.headerRight}>
+        <HelpCenter />
         <button
           type="button"
           className={styles.searchTrigger}

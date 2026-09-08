@@ -1,9 +1,11 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Combobox } from "../../components/Combobox";
 import { Icon } from "../../components/Icon";
+import { Modal } from "../../components/Modal";
+import { useOptionalChat } from "../../context/chat";
 import { useDialog } from "../../context/dialog";
 import { useTimer } from "../../context/timer";
 import { useFolders } from "../../hooks/useFolders";
@@ -13,6 +15,8 @@ import { useTranslation } from "../../hooks/useTranslation";
 import type { TranslationKey } from "../../lib/i18n";
 import { Storage } from "../../lib/storage";
 import { SESSION_LOGGED_EVENT } from "../../context/TimerProvider";
+import { ambianceEngine } from "../room/audioAmbiance";
+import type { AmbiancePreset } from "../room/types";
 import {
   WORKFLOW_PRESETS,
   format,
@@ -58,6 +62,13 @@ const TYPE_NOTES: Partial<
 const RING_RADIUS = 90;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 const RECENT_SESSION_LIMIT = 5;
+const FOCUS_SOUNDS: ReadonlyArray<{ id: AmbiancePreset; label: string }> = [
+  { id: "rain", label: "Rain" },
+  { id: "white_noise", label: "Brown noise" },
+  { id: "cafe", label: "Café" },
+  { id: "waves", label: "Waves" },
+  { id: "binaural", label: "Alpha waves" },
+];
 
 interface RecentFocusSession {
   id: number;
@@ -101,6 +112,7 @@ export function TimerView() {
   const { data: folders } = useFolders();
   const { focusParticipants, activeCount } = useStudyRoom();
   const t = useTranslation();
+  const chat = useOptionalChat();
 
   const focusId = useId();
   const shortId = useId();
@@ -110,19 +122,67 @@ export function TimerView() {
   const taskId = useId();
   const folderId = useId();
   const recentSessionsTitleId = useId();
+  const displayRef = useRef<HTMLDivElement>(null);
   const [recentSessions, setRecentSessions] = useState(readRecentFocusSessions);
+  const [completedSession, setCompletedSession] =
+    useState<RecentFocusSession | null>(null);
+  const [focusSound, setFocusSound] = useState<AmbiancePreset>("none");
 
   useEffect(() => {
     const refreshRecentSessions = () => {
-      setRecentSessions(readRecentFocusSessions());
+      const latest = readRecentFocusSessions();
+      setRecentSessions(latest);
     };
-    window.addEventListener(SESSION_LOGGED_EVENT, refreshRecentSessions);
+    const offerSessionCheck = () => {
+      const latest = readRecentFocusSessions();
+      setRecentSessions(latest);
+      setCompletedSession(latest[0] ?? null);
+    };
+    window.addEventListener(SESSION_LOGGED_EVENT, offerSessionCheck);
     window.addEventListener("storage", refreshRecentSessions);
     return () => {
-      window.removeEventListener(SESSION_LOGGED_EVENT, refreshRecentSessions);
+      window.removeEventListener(SESSION_LOGGED_EVENT, offerSessionCheck);
       window.removeEventListener("storage", refreshRecentSessions);
     };
   }, []);
+
+  useEffect(() => () => ambianceEngine.stop(), []);
+
+  const toggleFocusSound = (preset: AmbiancePreset) => {
+    if (focusSound === preset) {
+      ambianceEngine.stop();
+      setFocusSound("none");
+      return;
+    }
+    ambianceEngine.play(preset, 0.45);
+    setFocusSound(preset);
+  };
+
+  const openFocusScreen = async () => {
+    if (
+      !displayRef.current ||
+      document.fullscreenElement ||
+      typeof displayRef.current.requestFullscreen !== "function"
+    ) {
+      return;
+    }
+    try {
+      await displayRef.current.requestFullscreen();
+    } catch {
+      /* The browser can decline fullscreen because of a device policy. The
+         timer remains fully usable in-page, so this is a soft failure. */
+    }
+  };
+
+  const startSessionCheck = async () => {
+    if (!chat) return;
+    const topic = completedSession?.task || activeTask || "what I just studied";
+    setCompletedSession(null);
+    chat.open();
+    await chat.send(
+      `Give me a fast 3-question multiple-choice check on ${topic}. Ask one question at a time, wait for my answer, then explain it briefly. Do not reveal later answers early.`,
+    );
+  };
 
   /* A bound task that isn't one of the fetched rows — see the note on the
      select below. Also covers a task renamed or completed since it was bound. */
@@ -329,7 +389,9 @@ export function TimerView() {
               onChange={setActiveTask}
               options={[
                 { value: "None", label: "None" },
-                ...(unlistedTask ? [{ value: unlistedTask, label: unlistedTask }] : []),
+                ...(unlistedTask
+                  ? [{ value: unlistedTask, label: unlistedTask }]
+                  : []),
                 ...(tasks ?? [])
                   .filter((task) => !task.is_done)
                   .map((task) => ({ value: task.text, label: task.text })),
@@ -392,7 +454,7 @@ export function TimerView() {
         </Card>
 
         <div className={styles.focusColumn}>
-          <div className={styles.display}>
+          <div className={styles.display} ref={displayRef}>
             <p className={styles.quote}>&ldquo;{quote}&rdquo;</p>
 
             <div className={styles.ringWrapper}>
@@ -466,6 +528,31 @@ export function TimerView() {
                 onClick={() => void onReset()}
               >
                 {stopAndLog ? "Stop & log" : t("btn_reset")}
+              </Button>
+            </div>
+            <div className={styles.focusTools}>
+              <div
+                className={styles.soundChoices}
+                aria-label="Focus soundscape"
+              >
+                {FOCUS_SOUNDS.map((sound) => (
+                  <button
+                    type="button"
+                    key={sound.id}
+                    className={`${styles.soundButton}${focusSound === sound.id ? ` ${styles.soundButtonActive}` : ""}`}
+                    aria-pressed={focusSound === sound.id}
+                    onClick={() => toggleFocusSound(sound.id)}
+                  >
+                    {sound.label}
+                  </button>
+                ))}
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => void openFocusScreen()}
+              >
+                <Icon name="maximize" size={15} /> Focus screen
               </Button>
             </div>
           </div>
@@ -542,6 +629,31 @@ export function TimerView() {
           </Card>
         </div>
       </div>
+
+      <Modal
+        open={Boolean(completedSession)}
+        onClose={() => setCompletedSession(null)}
+        title="Lock in what you learned"
+        subtitle={`Session complete: ${completedSession?.task ?? "General Study"}. A three-question check takes about a minute.`}
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setCompletedSession(null)}
+            >
+              Not now
+            </Button>
+            <Button variant="primary" onClick={() => void startSessionCheck()}>
+              Start quick check
+            </Button>
+          </>
+        }
+      >
+        <p className={styles.quizPrompt}>
+          Retrieval straight after learning reveals what stuck while the
+          material is still fresh.
+        </p>
+      </Modal>
     </div>
   );
 }

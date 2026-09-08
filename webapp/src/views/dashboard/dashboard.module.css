@@ -276,12 +276,12 @@
 }
 
 .countdown {
-  font-family: var(--font-head);
+  font-family: var(--font-body);
   font-size: clamp(38px, 6vw, 56px);
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.03em;
-  color: var(--accent-text);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
   margin: var(--s-1) 0;
 }
@@ -293,6 +293,43 @@
   color: var(--text-muted);
   letter-spacing: 0;
   margin-top: var(--s-2);
+}
+
+.countdownChange {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.countdownChange:hover {
+  color: var(--text);
+}
+
+.countdownPicker {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+.countdownPicker select {
+  min-width: 0;
+  max-width: 210px;
+  padding: 6px 28px 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
 }
 
 .examName {

@@ -364,6 +364,56 @@
   box-shadow: 0 8px 20px var(--accent-soft);
 }
 
+.focusTools {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  margin-top: var(--s-4);
+}
+
+.soundChoices {
+  display: flex;
+  gap: var(--s-1);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.soundButton {
+  min-height: 34px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.soundButton:hover,
+.soundButtonActive {
+  border-color: var(--accent-ring);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.display:fullscreen {
+  display: grid;
+  place-content: center;
+  min-height: 100vh;
+  padding: clamp(24px, 6vw, 80px);
+  background: var(--bg);
+}
+
+.quizPrompt {
+  margin: 0;
+  padding: 0 var(--s-5) var(--s-4);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
 .ghostDanger {
   background: transparent;
   color: var(--danger-text);

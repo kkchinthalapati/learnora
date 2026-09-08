@@ -9,7 +9,6 @@ import { useFlashcardsDueCount } from "../hooks/useFlashcards";
 import { useIncomingFriendRequestCount } from "../hooks/useFriends";
 import { useTranslation } from "../hooks/useTranslation";
 import {
-  isCommunitySection,
   primaryDestinationForPath,
   type PrimaryDestination,
 } from "../lib/sectionLabel";
@@ -51,12 +50,6 @@ const SECTIONS: NavSection[] = [
         label: "Dashboard",
         translationKey: "nav_dashboard",
         destination: "dashboard",
-      },
-      {
-        to: "/notebooks",
-        icon: "book-open",
-        label: "Notebooks",
-        destination: "notebooks",
       },
       {
         to: "/library",
@@ -176,12 +169,6 @@ function routeMatchesItem(pathname: string, item: NavItemConfig): boolean {
   return primaryDestinationForPath(pathname) === item.destination;
 }
 
-function activeSecondarySection(pathname: string): SectionId | null {
-  if (isCommunitySection(pathname)) return "community";
-  if (pathname.startsWith("/settings")) return "account";
-  return null;
-}
-
 export function Sidebar({
   railCollapsed,
   drawerOpen,
@@ -208,17 +195,8 @@ export function Sidebar({
       ),
     ),
   );
-  const activeSection = activeSecondarySection(pathname);
-
   const toggleSection = (sectionId: SectionId) => {
     setCollapsedSections((currentSections) => {
-      if (sectionId === activeSection) {
-        const nextSections = currentSections.filter(
-          (currentId) => currentId !== sectionId,
-        );
-        Storage.set(SIDEBAR_SECTIONS_STORAGE_KEY, nextSections);
-        return nextSections;
-      }
       const nextSections = currentSections.includes(sectionId)
         ? currentSections.filter((currentId) => currentId !== sectionId)
         : [...currentSections, sectionId];
@@ -277,9 +255,7 @@ export function Sidebar({
 
       <div className={styles.sectionsContainer}>
         {SECTIONS.map((section) => {
-          const isCollapsed =
-            collapsedSections.includes(section.id) &&
-            section.id !== activeSection;
+          const isCollapsed = collapsedSections.includes(section.id);
           return (
             <div
               key={section.id}

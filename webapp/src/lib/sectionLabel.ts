@@ -32,19 +32,13 @@ export function isNotebooksSection(pathname: string): boolean {
 }
 
 export type PrimaryDestination =
-  | "dashboard"
-  | "notebooks"
-  | "library"
-  | "plan"
-  | "focus"
-  | "progress"
-  | "study_lab";
+  "dashboard" | "library" | "plan" | "focus" | "progress" | "study_lab";
 
 export function primaryDestinationForPath(
   pathname: string,
 ): PrimaryDestination | null {
   if (pathname === "/") return "dashboard";
-  if (isNotebooksSection(pathname)) return "notebooks";
+  if (isNotebooksSection(pathname)) return "library";
   if (isLibrarySection(pathname)) return "library";
   if (
     pathname.startsWith("/plan") ||

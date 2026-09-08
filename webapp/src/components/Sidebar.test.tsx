@@ -179,4 +179,21 @@ describe("Sidebar", () => {
       "/settings",
     );
   });
+
+  it("can collapse Community while a Community page is active", async () => {
+    localStorage.setItem(
+      "learnora_sidebar_collapsed_sections",
+      JSON.stringify(["account"]),
+    );
+    renderSidebar({ initialPath: "/room" });
+
+    const toggle = screen.getByRole("button", { name: "Collapse Community" });
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("link", { name: "Study Room" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
 });
