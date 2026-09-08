@@ -38,7 +38,6 @@ import { FriendInviteLanding } from "./views/friends/FriendInviteLanding";
 import { StudyAnalyticsView } from "./views/analytics/StudyAnalyticsView";
 import { CognitiveDebuggerView } from "./views/debugger/CognitiveDebuggerView";
 import { FeynmanHubView } from "./views/feynman/FeynmanHubView";
-import { NotebooksHubView } from "./views/notebooks/NotebooksHubView";
 import { NotFoundView } from "./views/not-found/NotFoundView";
 import { StudyLabView } from "./views/study-lab/StudyLabView";
 import { AiTutorView } from "./views/ai-tutor/AiTutorView";
@@ -181,7 +180,10 @@ export function AppRoutes() {
             this sits here rather than inside ProtectedRoute itself. */}
           <Route element={<AppShell />}>
             <Route path="/" element={<DashboardView />} />
-            <Route path="/notebooks" element={<NotebooksHubView />} />
+            <Route
+              path="/notebooks"
+              element={<Navigate to="/library" replace />}
+            />
             <Route
               path="/notebooks/:notebookId"
               element={

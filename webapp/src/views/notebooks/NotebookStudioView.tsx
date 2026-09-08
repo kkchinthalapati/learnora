@@ -186,7 +186,7 @@ export function NotebookStudioView() {
         title="Notebook not found"
         message="This notebook may have been deleted or does not exist."
       >
-        <Button variant="primary" onClick={() => void navigate("/notebooks")}>
+        <Button variant="primary" onClick={() => void navigate("/library")}>
           Back to Notebooks
         </Button>
       </EmptyState>
@@ -422,7 +422,7 @@ Use British English throughout.`;
       {/* Studio Top Bar */}
       <header className={styles.studioTopBar}>
         <div className={styles.topBarLeft}>
-          <Link to="/notebooks" className={styles.backBtn}>
+          <Link to="/library" className={styles.backBtn}>
             <Icon
               name="chevron-down"
               size={16}

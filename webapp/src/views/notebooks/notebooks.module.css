@@ -9,6 +9,15 @@
   gap: var(--s-7);
 }
 
+.embedded {
+  max-width: none;
+  padding-bottom: 0;
+}
+
+.embedded .hubHeader {
+  padding-top: 0;
+}
+
 .hubHeader {
   display: flex;
   justify-content: space-between;

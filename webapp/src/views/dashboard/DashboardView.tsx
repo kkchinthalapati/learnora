@@ -160,7 +160,7 @@ export function DashboardView({
           aria-labelledby="tab-focus"
           className={styles.tabContent}
         >
-          {sections.nextHour && <NextHourCard />}
+          {sections.recentNotebooks && <RecentNotebooksShelf />}
           <section
             className={styles.dashboardRegion}
             aria-labelledby="focus-priorities"
@@ -198,9 +198,7 @@ export function DashboardView({
               </p>
             </div>
             <div className={styles.focusSecondaryGrid}>
-              {sections.priorities && (
-                <TasksCard taskInputRef={taskInputRef} />
-              )}
+              {sections.priorities && <TasksCard taskInputRef={taskInputRef} />}
               {sections.continueStudying && <ResumeLearningCard />}
             </div>
           </section>
@@ -215,6 +213,7 @@ export function DashboardView({
           aria-labelledby="tab-insights"
           className={styles.tabContent}
         >
+          {sections.nextHour && <NextHourCard />}
           {sections.todayTimeline && <TodayTimelineCard />}
           <section
             className={styles.dashboardRegion}
@@ -222,13 +221,16 @@ export function DashboardView({
           >
             <div className={styles.regionHeader}>
               <div>
-                <span className={styles.regionLabel}>Memory &amp; Momentum</span>
+                <span className={styles.regionLabel}>
+                  Memory &amp; Momentum
+                </span>
                 <h2 id="insights-overview" className={styles.regionTitle}>
                   Mistakes &amp; Retention
                 </h2>
               </div>
               <p className={styles.regionDescription}>
-                Review tricky concepts, track memory decay, and keep your streak alive.
+                Review tricky concepts, track memory decay, and keep your streak
+                alive.
               </p>
             </div>
             <div className={styles.progressGrid}>
@@ -248,7 +250,6 @@ export function DashboardView({
           aria-labelledby="tab-activity"
           className={styles.tabContent}
         >
-          {sections.recentNotebooks && <RecentNotebooksShelf />}
           <section
             className={styles.dashboardRegion}
             aria-labelledby="activity-overview"
@@ -298,7 +299,8 @@ export function DashboardView({
                   </h2>
                 </div>
                 <p className={styles.regionDescription}>
-                  Choose one useful action, then start. Everything else can wait.
+                  Choose one useful action, then start. Everything else can
+                  wait.
                 </p>
               </div>
               <div className={styles.priorityGrid}>
@@ -351,7 +353,8 @@ export function DashboardView({
                   </h2>
                 </div>
                 <p className={styles.regionDescription}>
-                  Track focus goals, streak momentum, and memory retention health.
+                  Track focus goals, streak momentum, and memory retention
+                  health.
                 </p>
               </div>
               <div className={styles.progressGrid}>
@@ -369,13 +372,16 @@ export function DashboardView({
             >
               <div className={styles.regionHeader}>
                 <div>
-                  <span className={styles.regionLabel}>Activity &amp; Support</span>
+                  <span className={styles.regionLabel}>
+                    Activity &amp; Support
+                  </span>
                   <h2 id="recent-activity" className={styles.regionTitle}>
                     Sessions and community
                   </h2>
                 </div>
                 <p className={styles.regionDescription}>
-                  Ask Learnora AI, see live study peers, and review recent sessions.
+                  Ask Learnora AI, see live study peers, and review recent
+                  sessions.
                 </p>
               </div>
               <div className={styles.communityGrid}>

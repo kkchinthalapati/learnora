@@ -15,21 +15,38 @@ export function RecentNotebooksShelf() {
   return (
     <div className={styles.notebooksShelf}>
       <div className={styles.notebooksShelfHead}>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+        <div
+          style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}
+        >
           <Icon name="book-open" size={17} style={{ color: "var(--accent)" }} />
-          <span style={{ fontFamily: "var(--font-head)", fontSize: "var(--fs-base)", fontWeight: 700, color: "var(--text)" }}>
+          <span
+            style={{
+              fontFamily: "var(--font-head)",
+              fontSize: "var(--fs-base)",
+              fontWeight: 700,
+              color: "var(--text)",
+            }}
+          >
             Your Study Notebooks
           </span>
         </div>
-        <Link to="/notebooks" className={styles.link} style={{ fontSize: "var(--fs-xs)" }}>
+        <Link
+          to="/library"
+          className={styles.link}
+          style={{ fontSize: "var(--fs-xs)" }}
+        >
           View all notebooks ({notebooks.length}) →
         </Link>
       </div>
 
       <div className={styles.notebooksShelfGrid}>
         {topNotebooks.map((nb) => {
-          const cheatSheetCount = nb.artifacts.filter((a) => a.type === "cheat_sheet").length;
-          const feynmanCount = nb.artifacts.filter((a) => a.type === "feynman").length;
+          const cheatSheetCount = nb.artifacts.filter(
+            (a) => a.type === "cheat_sheet",
+          ).length;
+          const feynmanCount = nb.artifacts.filter(
+            (a) => a.type === "feynman",
+          ).length;
 
           return (
             <div
@@ -65,13 +82,19 @@ export function RecentNotebooksShelf() {
               <div className={styles.shelfFooter}>
                 <div style={{ display: "flex", gap: "var(--s-2)" }}>
                   {cheatSheetCount > 0 && (
-                    <span className={styles.shelfBadge} title="Cheat sheet available">
+                    <span
+                      className={styles.shelfBadge}
+                      title="Cheat sheet available"
+                    >
                       <Icon name="file-text" size={11} />
                       Cheat Sheet
                     </span>
                   )}
                   {feynmanCount > 0 && (
-                    <span className={styles.shelfBadge} title="Has a plain-English breakdown">
+                    <span
+                      className={styles.shelfBadge}
+                      title="Has a plain-English breakdown"
+                    >
                       <Icon name="brain" size={11} />
                       Explainer
                     </span>

@@ -1,6 +1,7 @@
 export const LIBRARY_TABS = [
-  { id: "folders", label: "Folders" },
-  { id: "materials", label: "Materials" },
+  { id: "notebooks", label: "Notebooks" },
+  { id: "folders", label: "Subjects" },
+  { id: "materials", label: "Files & notes" },
   { id: "flashcards", label: "Flashcards" },
   { id: "quizzes", label: "Quizzes" },
 ] as const;
@@ -12,7 +13,7 @@ export function isLibraryTab(value: string | undefined): value is LibraryTabId {
 }
 
 export function pathForTab(tab: LibraryTabId): string {
-  return tab === "folders" ? "/library" : `/library/${tab}`;
+  return tab === "notebooks" ? "/library" : `/library/${tab}`;
 }
 
 // Folder colors come from a free-text database column, so inline styles accept

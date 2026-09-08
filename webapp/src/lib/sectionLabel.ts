@@ -131,6 +131,7 @@ export function sectionLabel(
  * shell supplies it (the common case, for views that are just content) or
  * the view does (these routes, whose heroes carry more than a name). */
 const HERO_ROUTES = [
+  "/library",
   "/notebooks",
   "/study-lab",
   "/ai-tutor",
