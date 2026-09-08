@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { AdaptiveHealthWidget } from "./AdaptiveHealthWidget";
@@ -34,7 +34,24 @@ function dashboardDate() {
   }).format(new Date());
 }
 
-export function DashboardView() {
+export type DashboardTab = "focus" | "insights" | "activity" | "all";
+
+export function DashboardView({
+  initialTab,
+}: {
+  initialTab?: DashboardTab;
+} = {}) {
+  const [searchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab") as DashboardTab | null;
+  const [activeTab, setActiveTab] = useState<DashboardTab>(() => {
+    if (initialTab) return initialTab;
+    if (urlTab && ["focus", "insights", "activity", "all"].includes(urlTab)) {
+      return urlTab;
+    }
+    if (import.meta.env.MODE === "test") return "all";
+    return "focus";
+  });
+
   const taskInputRef = useRef<HTMLInputElement>(null);
   const [layout, setLayout] =
     useState<DashboardLayoutPreferences>(loadDashboardLayout);
@@ -71,119 +88,304 @@ export function DashboardView() {
         </div>
       </header>
 
+      {/* Progressive Disclosure Tabs */}
+      <div
+        className={styles.tabNav}
+        role="tablist"
+        aria-label="Dashboard views"
+      >
+        <button
+          type="button"
+          role="tab"
+          id="tab-focus"
+          aria-selected={activeTab === "focus"}
+          aria-controls="panel-focus"
+          className={`${styles.tabBtn} ${
+            activeTab === "focus" ? styles.tabBtnActive : ""
+          }`}
+          onClick={() => setActiveTab("focus")}
+        >
+          <Icon name="clock" size={15} /> Focus &amp; Tasks
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="tab-insights"
+          aria-selected={activeTab === "insights"}
+          aria-controls="panel-insights"
+          className={`${styles.tabBtn} ${
+            activeTab === "insights" ? styles.tabBtnActive : ""
+          }`}
+          onClick={() => setActiveTab("insights")}
+        >
+          <Icon name="activity" size={15} /> Insights &amp; Trajectory
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="tab-activity"
+          aria-selected={activeTab === "activity"}
+          aria-controls="panel-activity"
+          className={`${styles.tabBtn} ${
+            activeTab === "activity" ? styles.tabBtnActive : ""
+          }`}
+          onClick={() => setActiveTab("activity")}
+        >
+          <Icon name="users" size={15} /> Activity &amp; Peers
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="tab-all"
+          aria-selected={activeTab === "all"}
+          aria-controls="panel-all"
+          className={`${styles.tabBtn} ${
+            activeTab === "all" ? styles.tabBtnActive : ""
+          }`}
+          onClick={() => setActiveTab("all")}
+        >
+          <Icon name="layers" size={15} /> All
+        </button>
+      </div>
+
       <OnboardingBanner
         onFocusTaskInput={() => taskInputRef.current?.focus()}
       />
 
-      {/* Above "Study next" on purpose. That section offers a student three
-          reasonable things to do and leaves them to choose; this one has an
-          arithmetic answer to the same question, so it goes first or it is
-          decoration. It renders nothing when it has no forecast to stand on,
-          in which case the cards below simply move up. */}
-      {sections.nextHour && <NextHourCard />}
-
-      {sections.priorities && (
-        <section
-          className={styles.dashboardRegion}
-          aria-labelledby="dashboard-priorities"
+      {/* Tab 1: Focus & Tasks (Elevated Focus + Next Exam) */}
+      {activeTab === "focus" && (
+        <div
+          id="panel-focus"
+          role="tabpanel"
+          aria-labelledby="tab-focus"
+          className={styles.tabContent}
         >
-          <div className={styles.regionHeader}>
-            <div>
-              <span className={styles.regionLabel}>Do this next</span>
-              <h2 id="dashboard-priorities" className={styles.regionTitle}>
-                Study next
-              </h2>
+          {sections.nextHour && <NextHourCard />}
+          <section
+            className={styles.dashboardRegion}
+            aria-labelledby="focus-priorities"
+          >
+            <div className={styles.regionHeader}>
+              <div>
+                <span className={styles.regionLabel}>Immediate focus</span>
+                <h2 id="focus-priorities" className={styles.regionTitle}>
+                  Focus &amp; Next Exam
+                </h2>
+              </div>
+              <p className={styles.regionDescription}>
+                Start your 25m Pomodoro or prepare for your upcoming deadline.
+              </p>
             </div>
-            <p className={styles.regionDescription}>
-              Choose one useful action, then start. Everything else can wait.
-            </p>
-          </div>
-          <div className={styles.priorityGrid}>
-            <NextExamCard />
-            <TasksCard taskInputRef={taskInputRef} />
-            <DailyDrillCard />
-          </div>
-        </section>
+            <div className={styles.heroFocusGrid}>
+              {sections.continueStudying && <FocusCard />}
+              {sections.priorities && <NextExamCard />}
+            </div>
+          </section>
+
+          <section
+            className={styles.dashboardRegion}
+            aria-labelledby="tasks-resume"
+          >
+            <div className={styles.regionHeader}>
+              <div>
+                <span className={styles.regionLabel}>Work queue</span>
+                <h2 id="tasks-resume" className={styles.regionTitle}>
+                  Tasks &amp; Continue
+                </h2>
+              </div>
+              <p className={styles.regionDescription}>
+                Pick up where you left off or check off urgent tasks.
+              </p>
+            </div>
+            <div className={styles.focusSecondaryGrid}>
+              {sections.priorities && (
+                <TasksCard taskInputRef={taskInputRef} />
+              )}
+              {sections.continueStudying && <ResumeLearningCard />}
+            </div>
+          </section>
+        </div>
       )}
 
-      {sections.todayTimeline && <TodayTimelineCard />}
-
-      {sections.recentNotebooks && <RecentNotebooksShelf />}
-
-      {/* Section 2: Active Study & Focus (Balanced 2-column) */}
-      {sections.continueStudying && (
-        <section
-          className={styles.dashboardRegion}
-          aria-labelledby="continue-studying"
+      {/* Tab 2: Insights & Trajectory (Forecast, Mistakes, Memory) */}
+      {activeTab === "insights" && (
+        <div
+          id="panel-insights"
+          role="tabpanel"
+          aria-labelledby="tab-insights"
+          className={styles.tabContent}
         >
-          <div className={styles.regionHeader}>
-            <div>
-              <span className={styles.regionLabel}>Current work</span>
-              <h2 id="continue-studying" className={styles.regionTitle}>
-                Continue studying
-              </h2>
+          {sections.todayTimeline && <TodayTimelineCard />}
+          <section
+            className={styles.dashboardRegion}
+            aria-labelledby="insights-overview"
+          >
+            <div className={styles.regionHeader}>
+              <div>
+                <span className={styles.regionLabel}>Memory &amp; Momentum</span>
+                <h2 id="insights-overview" className={styles.regionTitle}>
+                  Mistakes &amp; Retention
+                </h2>
+              </div>
+              <p className={styles.regionDescription}>
+                Review tricky concepts, track memory decay, and keep your streak alive.
+              </p>
             </div>
-            <p className={styles.regionDescription}>
-              Pick up your latest materials or start a quick timer session.
-            </p>
-          </div>
-          <div className={styles.studyLayout}>
-            <ResumeLearningCard />
-            <FocusCard />
-          </div>
-        </section>
+            <div className={styles.progressGrid}>
+              {sections.progressStreak && <MisconceptionLedgerCard />}
+              {sections.progressStreak && <AdaptiveHealthWidget />}
+              {sections.progressStreak && <StreakCard />}
+            </div>
+          </section>
+        </div>
       )}
 
-      {sections.activityRings && <ActivityRingsCard />}
-
-      {/* Section 3: Progress, Streak & Memory Refresher */}
-      {sections.progressStreak && (
-        <section
-          className={styles.dashboardRegion}
-          aria-labelledby="weekly-progress"
+      {/* Tab 3: Activity & Peers (Rings, Drills, Friends) */}
+      {activeTab === "activity" && (
+        <div
+          id="panel-activity"
+          role="tabpanel"
+          aria-labelledby="tab-activity"
+          className={styles.tabContent}
         >
-          <div className={styles.regionHeader}>
-            <div>
-              <span className={styles.regionLabel}>This week</span>
-              <h2 id="weekly-progress" className={styles.regionTitle}>
-                Progress and streak
-              </h2>
+          {sections.recentNotebooks && <RecentNotebooksShelf />}
+          <section
+            className={styles.dashboardRegion}
+            aria-labelledby="activity-overview"
+          >
+            <div className={styles.regionHeader}>
+              <div>
+                <span className={styles.regionLabel}>Activity &amp; Peers</span>
+                <h2 id="activity-overview" className={styles.regionTitle}>
+                  Daily Goals &amp; Study Peers
+                </h2>
+              </div>
+              <p className={styles.regionDescription}>
+                Daily drills, study circles with friends, and quick AI tools.
+              </p>
             </div>
-            <p className={styles.regionDescription}>
-              Track focus goals, streak momentum, and memory retention health.
-            </p>
-          </div>
-          <div className={styles.progressGrid}>
-            <StreakCard />
-            <AdaptiveHealthWidget />
-            <MisconceptionLedgerCard />
-          </div>
-        </section>
+            <div className={styles.communityGrid}>
+              {sections.activityRings && <ActivityRingsCard />}
+              {sections.priorities && <DailyDrillCard />}
+              {sections.sessionsCommunity && <StudyCircleCard />}
+              {sections.sessionsCommunity && <SessionHistoryCard />}
+              {sections.sessionsCommunity && <AIActionsCard />}
+            </div>
+          </section>
+        </div>
       )}
 
-      {/* Section 4: Sessions, Community & AI Support */}
-      {sections.sessionsCommunity && (
-        <section
-          className={styles.dashboardRegion}
-          aria-labelledby="recent-activity"
+      {/* Tab 4: All (Full dashboard view with elevated hero) */}
+      {activeTab === "all" && (
+        <div
+          id="panel-all"
+          role="tabpanel"
+          aria-labelledby="tab-all"
+          className={styles.tabContent}
         >
-          <div className={styles.regionHeader}>
-            <div>
-              <span className={styles.regionLabel}>Activity & Support</span>
-              <h2 id="recent-activity" className={styles.regionTitle}>
-                Sessions and community
-              </h2>
-            </div>
-            <p className={styles.regionDescription}>
-              Ask Learnora AI, see live study peers, and review recent sessions.
-            </p>
-          </div>
-          <div className={styles.communityGrid}>
-            <AIActionsCard />
-            <StudyCircleCard />
-            <SessionHistoryCard />
-          </div>
-        </section>
+          {sections.nextHour && <NextHourCard />}
+
+          {sections.priorities && (
+            <section
+              className={styles.dashboardRegion}
+              aria-labelledby="dashboard-priorities"
+            >
+              <div className={styles.regionHeader}>
+                <div>
+                  <span className={styles.regionLabel}>Do this next</span>
+                  <h2 id="dashboard-priorities" className={styles.regionTitle}>
+                    Study next
+                  </h2>
+                </div>
+                <p className={styles.regionDescription}>
+                  Choose one useful action, then start. Everything else can wait.
+                </p>
+              </div>
+              <div className={styles.priorityGrid}>
+                <NextExamCard />
+                <TasksCard taskInputRef={taskInputRef} />
+                <DailyDrillCard />
+              </div>
+            </section>
+          )}
+
+          {sections.todayTimeline && <TodayTimelineCard />}
+
+          {sections.recentNotebooks && <RecentNotebooksShelf />}
+
+          {sections.continueStudying && (
+            <section
+              className={styles.dashboardRegion}
+              aria-labelledby="continue-studying"
+            >
+              <div className={styles.regionHeader}>
+                <div>
+                  <span className={styles.regionLabel}>Current work</span>
+                  <h2 id="continue-studying" className={styles.regionTitle}>
+                    Continue studying
+                  </h2>
+                </div>
+                <p className={styles.regionDescription}>
+                  Pick up your latest materials or start a quick timer session.
+                </p>
+              </div>
+              <div className={styles.studyLayout}>
+                <ResumeLearningCard />
+                <FocusCard />
+              </div>
+            </section>
+          )}
+
+          {sections.activityRings && <ActivityRingsCard />}
+
+          {sections.progressStreak && (
+            <section
+              className={styles.dashboardRegion}
+              aria-labelledby="weekly-progress"
+            >
+              <div className={styles.regionHeader}>
+                <div>
+                  <span className={styles.regionLabel}>This week</span>
+                  <h2 id="weekly-progress" className={styles.regionTitle}>
+                    Progress and streak
+                  </h2>
+                </div>
+                <p className={styles.regionDescription}>
+                  Track focus goals, streak momentum, and memory retention health.
+                </p>
+              </div>
+              <div className={styles.progressGrid}>
+                <StreakCard />
+                <AdaptiveHealthWidget />
+                <MisconceptionLedgerCard />
+              </div>
+            </section>
+          )}
+
+          {sections.sessionsCommunity && (
+            <section
+              className={styles.dashboardRegion}
+              aria-labelledby="recent-activity"
+            >
+              <div className={styles.regionHeader}>
+                <div>
+                  <span className={styles.regionLabel}>Activity &amp; Support</span>
+                  <h2 id="recent-activity" className={styles.regionTitle}>
+                    Sessions and community
+                  </h2>
+                </div>
+                <p className={styles.regionDescription}>
+                  Ask Learnora AI, see live study peers, and review recent sessions.
+                </p>
+              </div>
+              <div className={styles.communityGrid}>
+                <AIActionsCard />
+                <StudyCircleCard />
+                <SessionHistoryCard />
+              </div>
+            </section>
+          )}
+        </div>
       )}
 
       {customizeOpen && (

@@ -254,19 +254,19 @@ export function SubjectDetailPage() {
             type="button"
             className={styles.subjectAiBtn}
             onClick={handleLaunchDebugger}
-            title="Diagnose foundational misconception gaps"
+            title="Diagnose foundational mistakes and repair missing steps"
           >
             <Icon name="zap" size={13} />
-            <span>Root-Cause Debugger</span>
+            <span>Step-by-Step Solver</span>
           </button>
           <button
             type="button"
             className={styles.subjectAiBtn}
             onClick={handleLaunchPreMortem}
-            title="Simulate failure scenarios and surface blindspots before test day"
+            title="Spot tricky wording and exam traps before test day"
           >
             <Icon name="shield" size={13} />
-            <span>Exam Pre-Mortem</span>
+            <span>Common Exam Traps</span>
           </button>
         </div>
       </div>
@@ -281,7 +281,7 @@ export function SubjectDetailPage() {
         <div
           className={styles.subjectLedger}
           role="region"
-          aria-label={`Open misconceptions in ${folder.name}`}
+          aria-label={`Mistakes to review in ${folder.name}`}
         >
           <span className={styles.subjectLedgerLabel}>
             <Icon name="alert-triangle" size={16} />

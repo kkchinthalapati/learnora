@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import { Icon } from "../../components/Icon";
 import { ChatMessageBubble } from "../../components/chat/ChatMessage";
 import { useCreateModal } from "../../context/createModal";
@@ -19,6 +20,7 @@ import {
 } from "../../lib/notesChatPrompt";
 import type { ChatMessage } from "../../context/chat";
 import type { IconName } from "../../components/icons";
+import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import chatStyles from "../../components/chat/chat.module.css";
 import styles from "./notesSidebar.module.css";
 
@@ -106,6 +108,8 @@ interface NotesAiSidebarProps {
   /** The open material's folder, carried into the Create dialog the quick
    *  actions open so a generated deck/quiz files itself alongside its source. */
   folderId: string | null;
+  /** Title of the current document / subject, used for topic bridging to AI Tutor */
+  materialTitle?: string;
   /** Reads the editor's current plain text at send time — not a snapshot, so
    *  the model sees what the student is looking at now, including unsaved
    *  edits (the vanilla read `Editor.getPlainText()` the same way). */
@@ -125,9 +129,11 @@ const INSERT_INTO_NOTE_RE = /<INSERT_INTO_NOTE>([\s\S]*?)<\/INSERT_INTO_NOTE>/;
 export function NotesAiSidebar({
   materialId,
   folderId,
+  materialTitle,
   getDocumentText,
   onInsertText,
 }: NotesAiSidebarProps) {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [file, setFile] = useState<FilePayload | null>(null);
@@ -343,6 +349,16 @@ export function NotesAiSidebar({
               "Flashcards from this document",
             )
           }
+        />
+        <QuickActionCard
+          icon="sparkles"
+          title="AI Tutor"
+          description="Solve, viva, & traps"
+          onActivate={() => {
+            const topic = materialTitle || "Study Notes";
+            CognitiveBridge.saveActiveTopic(topic);
+            navigate(`/ai-tutor?topic=${encodeURIComponent(topic)}`);
+          }}
         />
         <QuickActionCard
           icon="mic"

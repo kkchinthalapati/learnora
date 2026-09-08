@@ -60,7 +60,7 @@ describe("PreMortemRadarView", () => {
       { withRouter: true },
     );
 
-    expect(screen.getByText("What Could Go Wrong")).toBeInTheDocument();
+    expect(screen.getByText("Common Exam Traps")).toBeInTheDocument();
     expect(screen.getByText("72%")).toBeInTheDocument();
     expect(screen.getByText("Some traps still caught you")).toBeInTheDocument();
     expect(

@@ -70,6 +70,7 @@ export const DEFAULT_CONFIG: TimerConfig = Object.freeze({
 });
 
 export const WORKFLOW_PRESETS: Record<string, Partial<TimerConfig>> = {
+  pomodoro: { focus: 25, short: 5, long: 15, maxCycles: 4 },
   deep: { focus: 90, short: 15, long: 30, maxCycles: 4 },
   cram: { focus: 45, short: 10, long: 20, maxCycles: 4 },
   light: { focus: 20, short: 5, long: 15, maxCycles: 4 },

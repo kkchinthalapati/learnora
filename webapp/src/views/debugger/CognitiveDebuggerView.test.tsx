@@ -31,7 +31,7 @@ describe("CognitiveDebuggerView", () => {
   it("renders page header, input form, and empty state initially", async () => {
     renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
 
-    expect(screen.getByText("Find My Mistake")).toBeInTheDocument();
+    expect(screen.getByText("Step-by-Step Solver")).toBeInTheDocument();
     expect(screen.getByText("What went wrong?")).toBeInTheDocument();
     expect(screen.getByTestId("mistake-input")).toBeInTheDocument();
     expect(screen.getByText("Nothing to look at yet")).toBeInTheDocument();

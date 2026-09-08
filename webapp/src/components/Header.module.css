@@ -141,3 +141,58 @@
     transition: none;
   }
 }
+
+.guestAuthGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.guestBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--warning-text);
+  background: var(--warning-soft);
+  border: 1px solid var(--warning);
+  border-radius: var(--r-full);
+}
+
+.signInLink {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text);
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-md);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.signInLink:hover {
+  background: var(--surface-hover);
+}
+
+.signUpBtn {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-on-accent) !important;
+  background: var(--primary);
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-md);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.signUpBtn:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 640px) {
+  .guestBadge {
+    display: none;
+  }
+}
+

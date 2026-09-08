@@ -54,10 +54,11 @@ export function useFriendRequests() {
  * page share one cached fetch instead of issuing two — `select` runs once
  * per subscriber against that shared result. Outgoing requests don't count:
  * those are yours, not something to be notified about. */
-export function useIncomingFriendRequestCount() {
+export function useIncomingFriendRequestCount(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: friendsKeys.requests,
     queryFn: friendsApi.fetchRequests,
+    ...options,
     select: (requests) =>
       requests.filter((r) => r.direction === "incoming").length,
   });

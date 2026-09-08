@@ -5,7 +5,7 @@ import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
 import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
-import { mockAuthSession } from "../../test/mockSession";
+import { mockAuthSession, mockNoAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { Storage } from "../../lib/storage";
 import {
@@ -484,5 +484,28 @@ describe("TimerView", () => {
     await user.selectOptions(folderSelect, "Biology");
 
     expect(folderSelect).toHaveValue("f-1");
+  });
+
+  it("renders guest mode banner when unauthenticated and operates without errors", async () => {
+    mockNoAuthSession();
+    renderWithAuth(
+      <MemoryRouter initialEntries={["/timer"]}>
+        <TimerView />
+      </MemoryRouter>,
+      { session: null },
+      { withTimer: true },
+    );
+
+    expect(screen.getByText("Guest Mode")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Your timer sessions are safely saved locally/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Create free account to sync/i }),
+    ).toBeInTheDocument();
+
+    const startButton = screen.getByRole("button", { name: "Start" });
+    await userEvent.click(startButton);
+    expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
   });
 });

@@ -52,7 +52,7 @@ describe("route skeleton", () => {
     ["/analytics", "Progress"],
     ["/study-lab", "What do you need help with?"],
     ["/feynman", "Explain It Simply"],
-    ["/debugger", "Find My Mistake"],
+    ["/debugger", "Step-by-Step Solver"],
     ["/premortem", "Practise on the questions designed to catch you out"],
     ["/settings", "Settings"],
   ])("%s renders the %s view for a signed-in user", (path, heading) => {

@@ -8,8 +8,12 @@ import { quizzesKeys } from "./useQuizzes";
 
 export const foldersKeys = { all: ["folders"] as const };
 
-export function useFolders() {
-  return useQuery({ queryKey: foldersKeys.all, queryFn: foldersApi.fetch });
+export function useFolders(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: foldersKeys.all,
+    queryFn: foldersApi.fetch,
+    ...options,
+  });
 }
 
 export function useAddFolder() {

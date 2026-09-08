@@ -44,7 +44,7 @@ describe("CognitiveCrossLinkBar", () => {
       "Inner Derivative Multiplier",
     );
     expect(screen.getByTestId("cross-link-subject-badge")).toHaveTextContent("Calculus");
-    expect(screen.getByTestId("cross-link-source-badge")).toHaveTextContent("From: Find My Mistake");
+    expect(screen.getByTestId("cross-link-source-badge")).toHaveTextContent("From: Step-by-Step Solver");
     expect(screen.getByTestId("cross-link-severity-badge")).toHaveTextContent("Needs work");
     expect(screen.getByTestId("cross-link-misconceptions-count")).toHaveTextContent(
       "1 thing to sort out",
@@ -120,7 +120,7 @@ describe("CognitiveCrossLinkBar", () => {
     const premortemBtn = screen.getByTestId("cross-link-premortem-btn");
     fireEvent.click(premortemBtn);
 
-    expect(handleNavigate).toHaveBeenCalledWith("/premortem", "premortem");
+    expect(handleNavigate).toHaveBeenCalledWith("/exam-traps", "premortem");
     expect(CognitiveBridge.getPayload()?.suggestedAction).toBe("run_premortem");
   });
 

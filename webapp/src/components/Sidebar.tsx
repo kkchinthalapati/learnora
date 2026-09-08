@@ -5,6 +5,7 @@ import { IconButton } from "./IconButton";
 import { BrandLogo } from "./BrandLogo";
 import type { IconName } from "./icons";
 import { useCreateModal } from "../context/createModal";
+import { useOptionalAuth } from "../context/auth";
 import { useFlashcardsDueCount } from "../hooks/useFlashcards";
 import { useIncomingFriendRequestCount } from "../hooks/useFriends";
 import { useTranslation } from "../hooks/useTranslation";
@@ -82,6 +83,12 @@ const SECTIONS: NavSection[] = [
         icon: "target",
         label: "Study Lab",
         destination: "study_lab",
+      },
+      {
+        to: "/ai-tutor",
+        icon: "sparkles",
+        label: "AI Tutor",
+        destination: "ai_tutor",
       },
     ],
   },
@@ -181,10 +188,16 @@ export function Sidebar({
   onToggleRail: () => void;
 }) {
   const { pathname } = useLocation();
+  const auth = useOptionalAuth();
+  const session = auth?.session;
   const { openCreateModal } = useCreateModal();
-  const { data: dueCount = 0, isPending: duePending } = useFlashcardsDueCount();
+  const { data: dueCount = 0, isPending: duePending } = useFlashcardsDueCount({
+    enabled: Boolean(session),
+  });
   const { data: incomingRequestCount = 0, isPending: requestsPending } =
-    useIncomingFriendRequestCount();
+    useIncomingFriendRequestCount({
+      enabled: Boolean(session),
+    });
   const t = useTranslation();
 
   const [collapsedSections, setCollapsedSections] = useState<SectionId[]>(() =>
@@ -245,6 +258,11 @@ export function Sidebar({
         aria-label={t("nav_create")}
         title={t("nav_create")}
         onClick={() => {
+          if (!session) {
+            onNavigate();
+            window.location.href = "/signup";
+            return;
+          }
           openCreateModal();
           onNavigate();
         }}

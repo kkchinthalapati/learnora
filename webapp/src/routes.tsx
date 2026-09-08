@@ -20,6 +20,12 @@ import {
 } from "./views/auth/authPaths";
 import { TermsView } from "./views/terms/TermsView";
 import { PrivacyView } from "./views/privacy/PrivacyView";
+import { LandingView } from "./views/marketing/LandingView";
+import {
+  AboutView,
+  ContactView,
+  DevelopersView,
+} from "./views/marketing/MarketingPages";
 import { SettingsView } from "./views/settings/SettingsView";
 import { TasksView } from "./views/tasks/TasksView";
 import { ExamsView } from "./views/exams/ExamsView";
@@ -98,6 +104,9 @@ const LazyWelcomeToProView = lazy(async () => ({
   default: (await import("./views/pro-welcome/WelcomeToProView"))
     .WelcomeToProView,
 }));
+const LazyAiTutorView = lazy(async () => ({
+  default: (await import("./views/ai-tutor/AiTutorView")).AiTutorView,
+}));
 /* The first-run wizard. Deferred like the rest: it is a screen each account
    sees once, and it pulls in the folder/exam mutations to create a first
    subject, so it has no business in the bundle everyone else downloads. */
@@ -152,6 +161,10 @@ export function AppRoutes() {
       <Route path={VERIFY_PATH} element={<VerifyView />} />
       <Route path="/terms" element={<TermsView />} />
       <Route path="/privacy" element={<PrivacyView />} />
+      <Route path="/landing" element={<LandingView />} />
+      <Route path="/about" element={<AboutView />} />
+      <Route path="/contact" element={<ContactView />} />
+      <Route path="/developers" element={<DevelopersView />} />
       <Route element={<ProtectedRoute />}>
         {/* Deliberately outside both OnboardingGate and AppShell: a guard
             can't redirect into the screen that satisfies it, and the sidebar
@@ -278,7 +291,33 @@ export function AppRoutes() {
                 </DeferredView>
               }
             />
+            <Route
+              path="/ai-tutor"
+              element={
+                <DeferredView>
+                  <LazyAiTutorView />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/ai-tutor/:mode"
+              element={
+                <DeferredView>
+                  <LazyAiTutorView />
+                </DeferredView>
+              }
+            />
+            <Route path="/solver" element={<CognitiveDebuggerView />} />
             <Route path="/debugger" element={<CognitiveDebuggerView />} />
+            <Route
+              path="/exam-traps"
+              element={
+                <DeferredView>
+                  <LazyExamDetectiveHubView />
+                </DeferredView>
+              }
+            />
+            <Route path="/exam-traps/radar" element={<PreMortemRadarView />} />
             <Route
               path="/exam-detective"
               element={
@@ -311,6 +350,22 @@ export function AppRoutes() {
               element={
                 <DeferredView>
                   <LazyFeynmanDebriefView />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/viva"
+              element={
+                <DeferredView>
+                  <LazySocraticSparringView />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/viva/:sessionId"
+              element={
+                <DeferredView>
+                  <LazySocraticSparringView />
                 </DeferredView>
               }
             />

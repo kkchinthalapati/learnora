@@ -84,7 +84,7 @@ describe("SocraticSparringView", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "Challenge me out loud" }),
+      screen.getByRole("heading", { name: "Oral Exam & Viva Practice" }),
     ).toBeInTheDocument();
     expect(screen.getByText("What should we challenge?")).toBeInTheDocument();
     expect(

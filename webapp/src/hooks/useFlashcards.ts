@@ -26,10 +26,11 @@ export function useFlashcardsByDeck(deckId: string) {
   });
 }
 
-export function useFlashcardsDueCount() {
+export function useFlashcardsDueCount(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: flashcardsKeys.dueCount,
     queryFn: flashcardsApi.fetchDueCount,
+    ...options,
   });
 }
 
