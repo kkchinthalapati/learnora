@@ -85,6 +85,10 @@ function serveDashboard({
     http.get(rest("tasks"), () => HttpResponse.json(tasks)),
     http.get(rest("quizzes"), () => HttpResponse.json([])),
     http.get(rest("quiz_attempts"), () => HttpResponse.json([])),
+    http.get(rest("notebooks"), () => HttpResponse.json([])),
+    http.post(`${SUPABASE_URL}/functions/v1/web-research`, () =>
+      HttpResponse.json({ query: "", results: [] }),
+    ),
     http.head(
       rest("flashcards"),
       () =>
@@ -134,7 +138,7 @@ describe("DashboardView", () => {
     renderDashboard();
 
     expect(
-      screen.getByRole("heading", { name: "Priorities" }),
+      screen.getByRole("heading", { name: "Study next" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Continue studying" }),
@@ -595,7 +599,7 @@ describe("DashboardView", () => {
       renderDashboard();
 
       expect(
-        await screen.findByRole("heading", { name: "Priorities" }),
+        await screen.findByRole("heading", { name: "Study next" }),
       ).toBeInTheDocument();
 
       await user.click(
@@ -605,7 +609,7 @@ describe("DashboardView", () => {
         name: "Customize Dashboard",
       });
       const prioritiesRow = within(dialog)
-        .getByText("Priorities Region")
+        .getByText("Next action")
         .closest("div")!.parentElement!.parentElement!;
       await user.click(
         within(prioritiesRow).getByRole("button", { name: "Visible" }),
@@ -615,13 +619,13 @@ describe("DashboardView", () => {
       );
 
       expect(
-        screen.queryByRole("heading", { name: "Priorities" }),
+        screen.queryByRole("heading", { name: "Study next" }),
       ).not.toBeInTheDocument();
 
       // Reload: preference persisted through DashboardCustomizeModal's storage.
       const { unmount } = renderDashboard();
       expect(
-        screen.queryAllByRole("heading", { name: "Priorities" }),
+        screen.queryAllByRole("heading", { name: "Study next" }),
       ).toHaveLength(0);
       unmount();
     });
@@ -644,12 +648,15 @@ describe("DashboardView", () => {
       renderDashboard();
 
       expect(
-        await screen.findByRole("region", { name: "How well your revision is sticking" }),
+        await screen.findByRole("region", {
+          name: "How well your revision is sticking",
+        }),
       ).toBeInTheDocument();
       expect(screen.getByText("Your revision")).toBeInTheDocument();
-      expect(
-        screen.getByRole("link", { name: /See more/i }),
-      ).toHaveAttribute("href", "/analytics");
+      expect(screen.getByRole("link", { name: /See more/i })).toHaveAttribute(
+        "href",
+        "/analytics",
+      );
     });
   });
 });

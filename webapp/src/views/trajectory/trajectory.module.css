@@ -433,7 +433,7 @@
 .mathDetails {
   margin-top: var(--s-4);
   padding: var(--s-3);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-md);
   background: var(--surface-2);
 }

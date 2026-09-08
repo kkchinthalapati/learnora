@@ -16,7 +16,6 @@ export interface TrapArchetype {
   examplePattern: string;
   frequency: "Pervasive" | "High" | "Frequent" | "Common";
   disarmRule: string;
-  defaultImmunity?: number;
 }
 
 export interface SprintQuestion {
@@ -88,7 +87,6 @@ export const CANONICAL_TRAP_ARCHETYPES: TrapArchetype[] = [
     frequency: "Pervasive",
     disarmRule:
       "Always test boundary triggers: 0, 1, negatives, empty cases, and limits before committing to an answer.",
-    defaultImmunity: 70,
   },
   {
     id: "negative-wording-maze",
@@ -101,7 +99,6 @@ export const CANONICAL_TRAP_ARCHETYPES: TrapArchetype[] = [
     frequency: "High",
     disarmRule:
       "Circle the negative operator immediately. Rephrase the question as: 'Find the one false claim among the true ones.'",
-    defaultImmunity: 80,
   },
   {
     id: "hidden-assumptions",
@@ -114,7 +111,6 @@ export const CANONICAL_TRAP_ARCHETYPES: TrapArchetype[] = [
     frequency: "Frequent",
     disarmRule:
       "Audit prerequisites: Does the theorem require continuity? Independence? Conservation? Verify each prerequisite is stated, not assumed.",
-    defaultImmunity: 65,
   },
   {
     id: "lookalike-terms",
@@ -127,7 +123,6 @@ export const CANONICAL_TRAP_ARCHETYPES: TrapArchetype[] = [
     frequency: "Common",
     disarmRule:
       "Ask: Does order matter? Does repetition apply? Pinpoint the single defining criterion distinguishing the twin terms.",
-    defaultImmunity: 75,
   },
   {
     id: "units-and-scale-drift",
@@ -140,7 +135,6 @@ export const CANONICAL_TRAP_ARCHETYPES: TrapArchetype[] = [
     frequency: "High",
     disarmRule:
       "Standardize all numbers into base SI units right in the margin before writing down the primary formula.",
-    defaultImmunity: 72,
   },
   {
     id: "premature-shortcut-traps",
@@ -153,7 +147,6 @@ export const CANONICAL_TRAP_ARCHETYPES: TrapArchetype[] = [
     frequency: "Frequent",
     disarmRule:
       "Treat fast 'too-easy' answers as warning signals. Perform a 10-second sanity check against counterexamples.",
-    defaultImmunity: 68,
   },
 ];
 
@@ -537,7 +530,7 @@ const STORAGE_KEY_DISARMED_TRAPS = "learnora_disarmed_traps_v1";
 export async function deconstructExamPaper(
   textPayload?: string,
   subject?: string,
-  settings?: Settings
+  settings?: Settings,
 ): Promise<TrapArchetype[]> {
   const safeSubject = subject?.trim() || "General Science & Engineering";
   const cleanPayload = textPayload?.trim() || "";
@@ -576,22 +569,30 @@ Return a valid JSON array of objects with:
               category: String(item.category || "edge_cases"),
               description: String(item.description || ""),
               examplePattern: String(item.examplePattern || ""),
-              frequency: (item.frequency || "High") as TrapArchetype["frequency"],
-              disarmRule: String(item.disarmRule || "Check boundary conditions carefully."),
-              defaultImmunity: 60 + ((idx * 7) % 35),
+              frequency: (item.frequency ||
+                "High") as TrapArchetype["frequency"],
+              disarmRule: String(
+                item.disarmRule || "Check boundary conditions carefully.",
+              ),
             }));
           }
         }
       }
     } catch (err) {
-      console.warn("[aiExamDeconstructor] Edge call failed, using offline heuristics", err);
+      console.warn(
+        "[aiExamDeconstructor] Edge call failed, using offline heuristics",
+        err,
+      );
     }
   }
 
   // Offline heuristic customization
   return CANONICAL_TRAP_ARCHETYPES.map((arch) => ({
     ...arch,
-    description: arch.description.replace(/principles/g, `${safeSubject} principles`),
+    description: arch.description.replace(
+      /principles/g,
+      `${safeSubject} principles`,
+    ),
   }));
 }
 
@@ -602,7 +603,7 @@ export async function generateChallengeSprint(
   subject?: string,
   _trapArchetypes?: TrapArchetype[],
   count = 4,
-  settings?: Settings
+  settings?: Settings,
 ): Promise<SprintQuestion[]> {
   const normSubject = (subject || "").toLowerCase();
   let pool: SprintQuestion[] = [];
@@ -624,7 +625,11 @@ export async function generateChallengeSprint(
   ) {
     pool = [...QUESTION_BANK.science, ...QUESTION_BANK.math];
   } else {
-    pool = [...QUESTION_BANK.math, ...QUESTION_BANK.cs, ...QUESTION_BANK.science];
+    pool = [
+      ...QUESTION_BANK.math,
+      ...QUESTION_BANK.cs,
+      ...QUESTION_BANK.science,
+    ];
   }
 
   // If settings provided and online, could enhance with AI
@@ -684,7 +689,7 @@ Return JSON array only.`;
 export async function getAhaDisarmWalkthrough(
   trapId: string,
   _subject?: string,
-  _settings?: Settings
+  _settings?: Settings,
 ): Promise<AhaDisarmWalkthrough> {
   const existing = AHA_WALKTHROUGHS[trapId];
   if (existing) {
@@ -698,7 +703,9 @@ export async function getAhaDisarmWalkthrough(
   return {
     ...template,
     trapId,
-    trapName: trapId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    trapName: trapId
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase()),
   };
 }
 
@@ -738,7 +745,10 @@ export function getStoredRadarHistory(): ImmunityRadarRecord[] {
 export function saveRadarRecord(record: ImmunityRadarRecord): void {
   try {
     const history = getStoredRadarHistory();
-    const updated = [record, ...history.filter((r) => r.id !== record.id)].slice(0, 20);
+    const updated = [
+      record,
+      ...history.filter((r) => r.id !== record.id),
+    ].slice(0, 20);
     localStorage.setItem(STORAGE_KEY_RADAR_HISTORY, JSON.stringify(updated));
   } catch (err) {
     console.warn("[aiExamDeconstructor] Failed to save radar record", err);

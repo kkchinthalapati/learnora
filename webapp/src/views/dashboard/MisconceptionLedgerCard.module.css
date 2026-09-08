@@ -104,7 +104,7 @@
   justify-content: space-between;
   gap: var(--s-4);
   padding: var(--s-4);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-lg);
   background: var(--surface);
 }
@@ -203,12 +203,14 @@
   place-items: center;
   width: var(--s-8);
   height: var(--s-8);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-sm);
   background: transparent;
   color: var(--text-faint);
   cursor: pointer;
-  transition: color var(--t) var(--ease), border-color var(--t) var(--ease);
+  transition:
+    color var(--t) var(--ease),
+    border-color var(--t) var(--ease);
 }
 
 .dismiss:hover {

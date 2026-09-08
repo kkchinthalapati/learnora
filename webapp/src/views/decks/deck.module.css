@@ -37,7 +37,7 @@
 
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-lg);
   padding: var(--s-4);
 }
@@ -94,7 +94,7 @@
 }
 
 .iconBtn:hover {
-  border-color: var(--border);
+  border-color: var(--line);
   background: var(--surface-hover);
   color: var(--text);
 }
@@ -126,7 +126,7 @@
 .input {
   width: 100%;
   padding: var(--s-2) var(--s-3);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-sm);
   background: var(--surface-2);
   color: var(--text);
@@ -142,7 +142,7 @@
 .addPanel {
   margin-top: var(--s-5);
   padding: var(--s-4);
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--line);
   border-radius: var(--r-lg);
 }
 
@@ -170,7 +170,7 @@
   max-width: 220px;
   max-height: 140px;
   margin-top: var(--s-2);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-sm);
   object-fit: contain;
 }
@@ -193,7 +193,7 @@
   display: block;
   max-width: 160px;
   max-height: 100px;
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-sm);
   object-fit: contain;
 }
@@ -203,7 +203,7 @@
   align-items: center;
   min-height: var(--touch-target-min);
   padding: var(--s-2) var(--s-3);
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--line);
   border-radius: var(--r-sm);
   color: var(--text-muted);
   cursor: pointer;

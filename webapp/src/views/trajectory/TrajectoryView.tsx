@@ -12,6 +12,7 @@ import { formatDuration } from "../../lib/lifeContext";
 import { INTERVENTION_BLOCK_MINS, type Verdict } from "../../lib/trajectory";
 import { TrajectoryChart } from "./TrajectoryChart";
 import { QuizOnlyForecast } from "./QuizOnlyForecast";
+import { ProgressSectionNav } from "../analytics/ProgressSectionNav";
 import styles from "./trajectory.module.css";
 
 /* The screen that answers "is what I'm doing going to be enough?"
@@ -274,6 +275,7 @@ function TrajectoryBody() {
 export function TrajectoryView() {
   return (
     <div className={styles.view}>
+      <ProgressSectionNav />
       <PageHeader
         eyebrow="Trajectory"
         title="The grade you are heading for"

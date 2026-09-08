@@ -24,6 +24,7 @@ import {
   type Weekday,
 } from "../../lib/lifeContext";
 import { localDateStr, parseLocalDate } from "../../lib/date";
+import { PlanSectionNav } from "../plan/PlanSectionNav";
 import styles from "./myWeek.module.css";
 
 /* "My week" — where a student tells Learnora about their life.
@@ -278,6 +279,7 @@ export function MyWeekView() {
 
   return (
     <div className={styles.view}>
+      <PlanSectionNav />
       {/* No <h1> here: the shell's Header renders the page's one heading from
           lib/sectionLabel.ts. PageHeader's title names what is below it rather
           than repeating the route's name, the same as FriendsView. */}

@@ -34,6 +34,36 @@
   font-size: var(--fs-sm);
 }
 
+.leadActions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.studyLabLink {
+  min-height: var(--touch-target-min);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.studyLabLink:hover {
+  background: var(--surface-2);
+}
+
+.studyLabLink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .dashboardRegion {
   min-width: 0;
 }
@@ -72,7 +102,10 @@
 /* 1. Priorities Grid: 3 distinct, spacious cards */
 .priorityGrid {
   display: grid;
-  grid-template-columns: minmax(280px, 0.95fr) minmax(360px, 1.4fr) minmax(280px, 1fr);
+  grid-template-columns: minmax(280px, 0.95fr) minmax(360px, 1.4fr) minmax(
+      280px,
+      1fr
+    );
   gap: var(--s-6);
   align-items: stretch;
 }
@@ -138,6 +171,15 @@
   .regionHeader {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .leadActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .studyLabLink {
+    justify-content: center;
   }
 
   .regionDescription {
@@ -683,7 +725,9 @@
   border-radius: var(--r-sm);
   background: var(--accent);
   opacity: 0.85;
-  transition: opacity var(--t-fast) ease, transform var(--t-fast) ease;
+  transition:
+    opacity var(--t-fast) ease,
+    transform var(--t-fast) ease;
 }
 
 .streakBar:hover {

@@ -1,11 +1,11 @@
 .nav {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--s-1);
-  width: min(100%, 440px);
+  width: min(100%, 360px);
   margin-bottom: var(--s-5);
   padding: var(--s-1);
-  border: 1px solid var(--glass-border-subtle);
+  border: var(--border);
   border-radius: var(--r-md);
   background: var(--surface-2);
 }
@@ -23,15 +23,11 @@
   font-size: var(--fs-sm);
   font-weight: 650;
   text-decoration: none;
-  transition:
-    color var(--t-fast) ease,
-    background var(--t-fast) ease,
-    border-color var(--t-fast) ease;
 }
 
 .link:hover {
-  color: var(--text);
   background: var(--surface);
+  color: var(--text);
 }
 
 .link:focus-visible {
@@ -40,26 +36,7 @@
 }
 
 .active {
-  color: var(--accent-text);
-  background: var(--surface);
   border-color: var(--accent-ring);
-  box-shadow: var(--shadow-sm);
-}
-
-@media (max-width: 480px) {
-  .nav {
-    width: 100%;
-  }
-
-  .link {
-    gap: var(--s-1);
-    padding-inline: var(--s-2);
-    font-size: var(--fs-xs);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .link {
-    transition: none;
-  }
+  background: var(--surface);
+  color: var(--accent-text);
 }

@@ -9,6 +9,7 @@ const PLAN_SECTIONS: ReadonlyArray<{
   icon: IconName;
 }> = [
   { label: "Week", path: "/plan", icon: "calendar-week" },
+  { label: "My week", path: "/my-week", icon: "calendar" },
   { label: "Tasks", path: "/tasks", icon: "list-checks" },
   { label: "Exams", path: "/exams", icon: "calendar" },
 ];
@@ -30,7 +31,7 @@ export function PlanSectionNav() {
           <NavLink
             key={section.path}
             to={section.path}
-            end
+            end={section.path === "/plan"}
             className={({ isActive }) =>
               `${styles.link}${isActive ? ` ${styles.active}` : ""}`
             }

@@ -1,7 +1,11 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
 import { fakeSession, renderWithAuth } from "../../test/auth";
+import { mockAuthSession } from "../../test/mockSession";
+import { server } from "../../test/mocks/server";
+import { SUPABASE_URL } from "../../lib/supabase";
 import { SocraticSparringView } from "./SocraticSparringView";
 import * as aiSparringModule from "../../api/aiSparring";
 
@@ -38,7 +42,9 @@ const mockResetTranscript = vi.fn(() => {
 });
 
 vi.mock("../../hooks/useSpeechRecognition", () => ({
-  useSpeechRecognition: (options?: { onFinalTranscript?: (t: string) => void }) => ({
+  useSpeechRecognition: (options?: {
+    onFinalTranscript?: (t: string) => void;
+  }) => ({
     isListening: mockIsListening,
     transcript: mockTranscript,
     interimTranscript: mockInterimTranscript,
@@ -58,6 +64,12 @@ vi.mock("../../hooks/useSpeechRecognition", () => ({
 
 describe("SocraticSparringView", () => {
   beforeEach(() => {
+    mockAuthSession("user-1");
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/notebooks`, () =>
+        HttpResponse.json([]),
+      ),
+    );
     vi.clearAllMocks();
     mockIsListening = false;
     mockTranscript = "";
@@ -65,13 +77,25 @@ describe("SocraticSparringView", () => {
   });
 
   it("renders topic selection screen with starter topics", () => {
-    renderWithAuth(<SocraticSparringView />, { session: fakeSession() }, { withRouter: true });
+    renderWithAuth(
+      <SocraticSparringView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
-    expect(screen.getByRole("heading", { name: "Socratic Audio Sparring" })).toBeInTheDocument();
-    expect(screen.getByText("Choose a sparring topic")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/e\.g\. Newton's Third Law/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Newton's Third Law & Momentum/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Enter Sparring Arena" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Challenge me out loud" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("What should we challenge?")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/e\.g\. Newton's Third Law/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Newton's Third Law & Momentum/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Start challenge" }),
+    ).toBeInTheDocument();
   });
 
   it("starts sparring session when selecting a starter topic and renders stage & dialogue stream", async () => {
@@ -106,13 +130,21 @@ describe("SocraticSparringView", () => {
       createdAt: new Date().toISOString(),
     });
 
-    renderWithAuth(<SocraticSparringView />, { session: fakeSession() }, { withRouter: true });
+    renderWithAuth(
+      <SocraticSparringView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     // Click starter topic
-    await user.click(screen.getByRole("button", { name: /Newton's Third Law & Momentum/i }));
+    await user.click(
+      screen.getByRole("button", { name: /Newton's Third Law & Momentum/i }),
+    );
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Socratic Sparring Stage")).toBeInTheDocument();
+      expect(
+        screen.getByLabelText("Socratic Sparring Stage"),
+      ).toBeInTheDocument();
     });
 
     // Check Alex and Jordan pods
@@ -121,7 +153,9 @@ describe("SocraticSparringView", () => {
 
     // Check opening dialogue stream
     expect(
-      screen.getByText("Why don't action-reaction pairs cancel each other out?"),
+      screen.getByText(
+        "Why don't action-reaction pairs cancel each other out?",
+      ),
     ).toBeInTheDocument();
 
     // Verify speech synthesis played Alex's prompt
@@ -162,18 +196,26 @@ describe("SocraticSparringView", () => {
       createdAt: new Date().toISOString(),
     });
 
-    renderWithAuth(<SocraticSparringView />, { session: fakeSession() }, { withRouter: true });
+    renderWithAuth(
+      <SocraticSparringView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     const input = screen.getByPlaceholderText(/e\.g\. Newton's Third Law/i);
     await user.type(input, "Kinematics");
-    await user.click(screen.getByRole("button", { name: "Enter Sparring Arena" }));
+    await user.click(screen.getByRole("button", { name: "Start challenge" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Start speaking response" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Start speaking response" }),
+      ).toBeInTheDocument();
     });
 
     // Click mic button to start listening
-    await user.click(screen.getByRole("button", { name: "Start speaking response" }));
+    await user.click(
+      screen.getByRole("button", { name: "Start speaking response" }),
+    );
     expect(mockStartListening).toHaveBeenCalledTimes(1);
   });
 
@@ -191,7 +233,8 @@ describe("SocraticSparringView", () => {
           speaker: "jordan",
           name: "Jordan",
           avatar: "⚡",
-          content: "Why is glycolysis anaerobic while the citric acid cycle requires oxygen?",
+          content:
+            "Why is glycolysis anaerobic while the citric acid cycle requires oxygen?",
           timestamp: "12:00",
         },
       ],
@@ -201,7 +244,8 @@ describe("SocraticSparringView", () => {
         speaker: "jordan",
         personaName: "Jordan",
         personaAvatar: "⚡",
-        speechText: "Why is glycolysis anaerobic while the citric acid cycle requires oxygen?",
+        speechText:
+          "Why is glycolysis anaerobic while the citric acid cycle requires oxygen?",
         conceptAnchor: "Cellular Respiration Pathways",
         suggestedHints: ["Mitochondrial electron transport chain"],
       },
@@ -209,7 +253,9 @@ describe("SocraticSparringView", () => {
       createdAt: new Date().toISOString(),
     };
 
-    vi.spyOn(aiSparringModule, "startSparringSession").mockResolvedValueOnce(initialSession);
+    vi.spyOn(aiSparringModule, "startSparringSession").mockResolvedValueOnce(
+      initialSession,
+    );
 
     const updatedSession: aiSparringModule.SparringSession = {
       ...initialSession,
@@ -221,7 +267,8 @@ describe("SocraticSparringView", () => {
           speaker: "student",
           name: "You",
           avatar: "🎓",
-          content: "Glycolysis happens in the cytoplasm and does not need the electron transport chain!",
+          content:
+            "Glycolysis happens in the cytoplasm and does not need the electron transport chain!",
           timestamp: "12:01",
           feedback: {
             clarityScore: 90,
@@ -243,7 +290,12 @@ describe("SocraticSparringView", () => {
           timestamp: "12:01",
         },
       ],
-      cumulativeScores: { clarity: 90, rigour: 85, accuracy: 92, roundsCount: 1 },
+      cumulativeScores: {
+        clarity: 90,
+        rigour: 85,
+        accuracy: 92,
+        roundsCount: 1,
+      },
     };
 
     vi.spyOn(aiSparringModule, "submitStudentAnswer").mockResolvedValueOnce({
@@ -264,16 +316,21 @@ describe("SocraticSparringView", () => {
         speaker: "alex",
         personaName: "Alex",
         personaAvatar: "🌱",
-        speechText: "Oh! So what happens to the pyruvate if there is no oxygen?",
+        speechText:
+          "Oh! So what happens to the pyruvate if there is no oxygen?",
         conceptAnchor: "Fermentation",
       },
     });
 
-    renderWithAuth(<SocraticSparringView />, { session: fakeSession() }, { withRouter: true });
+    renderWithAuth(
+      <SocraticSparringView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     const input = screen.getByPlaceholderText(/e\.g\. Newton's Third Law/i);
     await user.type(input, "Cellular Respiration");
-    await user.click(screen.getByRole("button", { name: "Enter Sparring Arena" }));
+    await user.click(screen.getByRole("button", { name: "Start challenge" }));
 
     await waitFor(() => {
       expect(screen.getByLabelText("Type response")).toBeInTheDocument();
@@ -287,13 +344,19 @@ describe("SocraticSparringView", () => {
     await user.click(screen.getByRole("button", { name: "Submit" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Spot-on location and ETC dependency!")).toBeInTheDocument();
+      expect(
+        screen.getByText("Spot-on location and ETC dependency!"),
+      ).toBeInTheDocument();
     });
 
     // Check celebration metrics grid
     expect(screen.getAllByText("90%").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("85%").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Argument Rigour")).toBeInTheDocument();
-    expect(screen.getByText("Oh! So what happens to the pyruvate if there is no oxygen?")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Oh! So what happens to the pyruvate if there is no oxygen?",
+      ),
+    ).toBeInTheDocument();
   });
 });

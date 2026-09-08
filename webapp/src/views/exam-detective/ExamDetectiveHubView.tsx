@@ -30,7 +30,7 @@ export function ExamDetectiveHubView() {
   const [rawTextPayload, setRawTextPayload] = useState("");
   const [isDeconstructing, setIsDeconstructing] = useState(false);
   const [archetypes, setArchetypes] = useState<TrapArchetype[]>(
-    CANONICAL_TRAP_ARCHETYPES
+    CANONICAL_TRAP_ARCHETYPES,
   );
 
   // Active Walkthrough Modal
@@ -57,15 +57,15 @@ export function ExamDetectiveHubView() {
       const results = await deconstructExamPaper(
         rawTextPayload,
         subject,
-        settings
+        settings,
       );
       setArchetypes(results);
-      showToast(
-        `Discovered ${results.length} Professor Trap Archetypes in your syllabus!`
-      );
+      showToast(`Found ${results.length} trap patterns in your material.`);
       setActiveTab("playbook");
     } catch {
-      showToast("Unable to analyze paper. Showing standard trap archetypes.");
+      showToast(
+        "Unable to analyse that material. Showing common trap patterns.",
+      );
     } finally {
       setIsDeconstructing(false);
     }
@@ -78,7 +78,7 @@ export function ExamDetectiveHubView() {
         subject,
         archetypes,
         sprintCount,
-        settings
+        settings,
       );
       setSprintQuestions(questions);
       setIsSprintRunning(true);
@@ -92,10 +92,33 @@ export function ExamDetectiveHubView() {
   const handleSprintComplete = (results: {
     disarmedCount: number;
     total: number;
-    questions: SprintQuestion[];
+    answers: Array<{
+      trapArchetypeId: string;
+      isCorrect: boolean;
+    }>;
   }) => {
     const freshDisarmed = getStoredDisarmedTraps();
     setDisarmedTraps(freshDisarmed);
+
+    const categoryTotals = results.answers.reduce<
+      Record<string, { correct: number; total: number }>
+    >((totals, answer) => {
+      const current = totals[answer.trapArchetypeId] ?? {
+        correct: 0,
+        total: 0,
+      };
+      totals[answer.trapArchetypeId] = {
+        correct: current.correct + (answer.isCorrect ? 1 : 0),
+        total: current.total + 1,
+      };
+      return totals;
+    }, {});
+    const categoryScores = Object.fromEntries(
+      Object.entries(categoryTotals).map(([trapId, totals]) => [
+        trapId,
+        Math.round((totals.correct / totals.total) * 100),
+      ]),
+    );
 
     const record: ImmunityRadarRecord = {
       id: `radar-${Date.now()}`,
@@ -105,7 +128,7 @@ export function ExamDetectiveHubView() {
       disarmedTrapIds: freshDisarmed,
       totalAttempted: results.total,
       correctCount: results.disarmedCount,
-      categoryScores: {},
+      categoryScores,
     };
 
     saveRadarRecord(record);
@@ -113,7 +136,7 @@ export function ExamDetectiveHubView() {
     setIsSprintRunning(false);
     setActiveTab("radar");
     showToast(
-      `Sprint completed! ${results.disarmedCount}/${results.total} traps disarmed.`
+      `Practice saved: ${results.disarmedCount}/${results.total} traps spotted.`,
     );
   };
 
@@ -134,13 +157,11 @@ export function ExamDetectiveHubView() {
     <div className={styles.container}>
       {/* Hero Header */}
       <div className={styles.hero}>
-        <span className={styles.heroEyebrow}>Exam Trap Radar</span>
-        <h1 className={styles.heroTitle}>
-          Exam Detective & Tricky Question Simulator
-        </h1>
+        <span className={styles.heroEyebrow}>Study Lab</span>
+        <h1 className={styles.heroTitle}>Exam trap practice</h1>
         <p className={styles.heroSubtitle}>
-          Deconstruct sneaky professor trap archetypes, master the bait, and
-          build ironclad exam immunity before exam day.
+          Learn the common patterns, analyse a past paper, then practise the
+          ones most likely to cost you marks.
         </p>
       </div>
 
@@ -154,7 +175,7 @@ export function ExamDetectiveHubView() {
           onClick={() => setActiveTab("playbook")}
         >
           <Icon name="book-open" size={16} />
-          Professor's Trick Playbook
+          Common traps
         </button>
         <button
           type="button"
@@ -164,7 +185,7 @@ export function ExamDetectiveHubView() {
           onClick={() => setActiveTab("deconstruct")}
         >
           <Icon name="search" size={16} />
-          Deconstruct Exam Paper
+          Analyse a past paper
         </button>
         <button
           type="button"
@@ -174,7 +195,7 @@ export function ExamDetectiveHubView() {
           onClick={() => setActiveTab("sprint")}
         >
           <Icon name="target" size={16} />
-          Challenge Sprint
+          Practice
         </button>
         <button
           type="button"
@@ -184,21 +205,21 @@ export function ExamDetectiveHubView() {
           onClick={() => setActiveTab("radar")}
         >
           <Icon name="shield" size={16} />
-          Trap Immunity Radar
+          Results
         </button>
       </nav>
 
       {/* Tab 1: Professor's Trick Playbook */}
       {activeTab === "playbook" && (
-        <section className={styles.section} aria-label="Professor's Trick Playbook">
+        <section className={styles.section} aria-label="Common exam traps">
           <div className={styles.sectionHeader}>
             <div>
               <h2 className={styles.sectionTitle}>
-                The Professor's Adversarial Playbook
+                Six traps worth recognising
               </h2>
               <p className={styles.sectionDesc}>
-                Recognize the 6 psychological and algebraic trick archetypes
-                professors use to engineer misleading options.
+                See how exam questions hide edge cases, reversed wording and
+                unchecked assumptions before you practise them.
               </p>
             </div>
             <Button
@@ -206,7 +227,7 @@ export function ExamDetectiveHubView() {
               size="sm"
               onClick={() => setActiveTab("sprint")}
             >
-              Practice Challenge Sprint →
+              Practise these traps →
             </Button>
           </div>
 
@@ -224,7 +245,7 @@ export function ExamDetectiveHubView() {
                           : styles.badgePillAccent
                       }`}
                     >
-                      {isDisarmed ? "✨ Disarmed" : trap.frequency}
+                      {isDisarmed ? "Reviewed" : trap.frequency}
                     </span>
                   </div>
 
@@ -236,7 +257,7 @@ export function ExamDetectiveHubView() {
                   </div>
 
                   <div className={styles.disarmRuleBox}>
-                    <strong>Disarm Rule:</strong> {trap.disarmRule}
+                    <strong>How to catch it:</strong> {trap.disarmRule}
                   </div>
 
                   <div className={styles.cardFooter}>
@@ -245,7 +266,7 @@ export function ExamDetectiveHubView() {
                       size="sm"
                       onClick={() => setActiveTrapId(trap.id)}
                     >
-                      Explore 4-Step Aha!
+                      See how to spot it
                     </Button>
                     {isDisarmed && (
                       <span
@@ -255,7 +276,7 @@ export function ExamDetectiveHubView() {
                           fontWeight: 600,
                         }}
                       >
-                        ✓ Trap Immune
+                        ✓ Encountered
                       </span>
                     )}
                   </div>
@@ -271,12 +292,10 @@ export function ExamDetectiveHubView() {
         <section className={styles.section} aria-label="Deconstruct Exam Paper">
           <div className={styles.sectionHeader}>
             <div>
-              <h2 className={styles.sectionTitle}>
-                Scan Exam Paper or Syllabus
-              </h2>
+              <h2 className={styles.sectionTitle}>Analyse your own material</h2>
               <p className={styles.sectionDesc}>
-                Paste course syllabus text, past exam questions, or review
-                materials to isolate tricky traps in your course.
+                Paste past-paper questions, a syllabus or revision material.
+                Learnora will look for the trap patterns used in that text.
               </p>
             </div>
           </div>
@@ -322,13 +341,13 @@ export function ExamDetectiveHubView() {
               >
                 {isDeconstructing
                   ? "Scanning for Traps…"
-                  : "Scan for Professor Traps"}
+                  : "Find trap patterns"}
               </Button>
               <Button
                 variant="ghost"
                 onClick={() =>
                   setRawTextPayload(
-                    "Sample Exam Question: Evaluate lim (x->0) (sin x)/x. Also solve for x where (x^2 - 4)/(x - 2) = 4."
+                    "Sample Exam Question: Evaluate lim (x->0) (sin x)/x. Also solve for x where (x^2 - 4)/(x - 2) = 4.",
                   )
                 }
               >
@@ -341,15 +360,16 @@ export function ExamDetectiveHubView() {
 
       {/* Tab 3: Launch Challenge Sprint */}
       {activeTab === "sprint" && (
-        <section className={styles.section} aria-label="Challenge Sprint Launcher">
+        <section
+          className={styles.section}
+          aria-label="Challenge Sprint Launcher"
+        >
           <div className={styles.sectionHeader}>
             <div>
-              <h2 className={styles.sectionTitle}>
-                Tricky Question Challenge Sprint
-              </h2>
+              <h2 className={styles.sectionTitle}>Practise under pressure</h2>
               <p className={styles.sectionDesc}>
-                Step into the arena. Test your ability to resist juicy bait
-                options and spot hidden assumptions in real time.
+                Answer a short set designed around the trap types above, then
+                review exactly what caught you.
               </p>
             </div>
           </div>
@@ -396,26 +416,30 @@ export function ExamDetectiveHubView() {
                 onClick={handleStartSprint}
                 disabled={isLoadingSprint}
               >
-                {isLoadingSprint ? "Preparing Traps…" : "Start Challenge Sprint ⚡"}
+                {isLoadingSprint ? "Preparing questions…" : "Start practice"}
               </Button>
             </div>
           </div>
         </section>
       )}
 
-      {/* Tab 4: Trap Immunity Radar */}
+      {/* Tab 4: observed practice results */}
       {activeTab === "radar" && (
-        <section className={styles.section} aria-label="Trap Immunity Radar">
+        <section className={styles.section} aria-label="Trap practice results">
           <TrapImmunityRadarView
-            subject={subject}
+            subject={radarHistory[0]?.subject ?? subject}
             disarmedTrapIds={disarmedTraps}
-            archetypes={archetypes}
+            score={radarHistory[0]?.overallScore}
+            categoryScores={radarHistory[0]?.categoryScores}
           />
 
           {radarHistory.length > 0 && (
             <div style={{ marginTop: "var(--s-4)" }}>
-              <h3 className={styles.sectionTitle}>Recent Sprint Radar Logs</h3>
-              <div className={styles.cardGrid} style={{ marginTop: "var(--s-3)" }}>
+              <h3 className={styles.sectionTitle}>Recent practice sets</h3>
+              <div
+                className={styles.cardGrid}
+                style={{ marginTop: "var(--s-3)" }}
+              >
                 {radarHistory.map((item) => (
                   <div key={item.id} className={styles.trapCard}>
                     <div className={styles.trapCardHeader}>
@@ -425,13 +449,18 @@ export function ExamDetectiveHubView() {
                       <span
                         className={`${styles.badgePill} ${styles.badgePillSuccess}`}
                       >
-                        {item.overallScore}% Immune
+                        {item.overallScore}% correct
                       </span>
                     </div>
                     <p className={styles.sectionDesc}>
-                      {item.correctCount} of {item.totalAttempted} traps disarmed
+                      {item.correctCount} of {item.totalAttempted} traps spotted
                     </p>
-                    <span style={{ fontSize: "var(--fs-xs)", color: "var(--text-faint)" }}>
+                    <span
+                      style={{
+                        fontSize: "var(--fs-xs)",
+                        color: "var(--text-faint)",
+                      }}
+                    >
                       {new Date(item.timestamp).toLocaleDateString()}
                     </span>
                   </div>
@@ -451,7 +480,7 @@ export function ExamDetectiveHubView() {
           onClose={() => setActiveTrapId(null)}
           onDisarmed={() => {
             setDisarmedTraps(getStoredDisarmedTraps());
-            showToast("Trap disarmed! Immunity updated.");
+            showToast("Marked as understood.");
           }}
         />
       )}

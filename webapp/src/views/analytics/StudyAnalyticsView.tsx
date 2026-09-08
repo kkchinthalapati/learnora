@@ -17,6 +17,7 @@ import {
 import { Skeleton } from "../../components/Skeleton";
 import { anyPending } from "../../lib/queryState";
 import { StudyHeatmap } from "./StudyHeatmap";
+import { ProgressSectionNav } from "./ProgressSectionNav";
 import styles from "./analytics.module.css";
 
 const RANGE_OPTIONS: ReadonlyArray<{
@@ -112,6 +113,7 @@ export function StudyAnalyticsView() {
   if (isPending) {
     return (
       <div className={styles.container} aria-busy="true">
+        <ProgressSectionNav />
         <Skeleton label="Working out your study progress" height={480} />
       </div>
     );
@@ -119,6 +121,7 @@ export function StudyAnalyticsView() {
 
   return (
     <div className={styles.container}>
+      <ProgressSectionNav />
       <div className={styles.progressToolbar}>
         <p>
           Progress from the past <strong>{activeRange} days</strong>

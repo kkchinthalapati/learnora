@@ -262,7 +262,7 @@
   font: inherit;
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-lg);
   cursor: pointer;
   transition:
@@ -349,7 +349,7 @@
   height: 20px;
   margin-top: 2px;
   border-radius: 50%;
-  border: 1px solid var(--border);
+  border: var(--border);
   color: var(--accent-on);
   transition:
     background var(--t-fast) var(--ease),
@@ -393,7 +393,7 @@
   text-align: left;
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-pill);
   cursor: pointer;
   transition:
@@ -483,7 +483,7 @@
   font-size: var(--fs-base);
   color: var(--text);
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-md);
   transition: border-color var(--t-fast) var(--ease);
 }

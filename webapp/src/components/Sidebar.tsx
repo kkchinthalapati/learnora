@@ -10,7 +10,6 @@ import { useIncomingFriendRequestCount } from "../hooks/useFriends";
 import { useTranslation } from "../hooks/useTranslation";
 import {
   isCommunitySection,
-  isStudyLabSection,
   primaryDestinationForPath,
   type PrimaryDestination,
 } from "../lib/sectionLabel";
@@ -21,7 +20,7 @@ import styles from "./Sidebar.module.css";
 export const SIDEBAR_SECTIONS_STORAGE_KEY =
   "learnora_sidebar_collapsed_sections";
 
-export type SectionId = "workspace" | "study_lab" | "community" | "account";
+export type SectionId = "workspace" | "community" | "account";
 
 interface NavItemConfig {
   to: string;
@@ -73,33 +72,6 @@ const SECTIONS: NavSection[] = [
         label: "Plan",
         destination: "plan",
       },
-      /* Tasks and Exams are ~4,000 LOC of backend-backed, daily-use product
-         that had no sidebar entry at all — reachable only through the command
-         palette, a sub-nav inside /plan, and two dashboard links — while four
-         AI experiments sat in the rail as top-level destinations. Both already
-         resolve to the "plan" destination in primaryDestinationForPath(), so
-         they highlight as part of Plan rather than competing with it. */
-      /* "My week" is the life side of the planner — the student's timetable,
-         not their study plan — so it sits next to Plan and resolves to the
-         same destination rather than competing with it in the rail. */
-      {
-        to: "/my-week",
-        icon: "calendar-week",
-        label: "My week",
-        destination: "plan",
-      },
-      {
-        to: "/tasks",
-        icon: "list-checks",
-        label: "Tasks",
-        destination: "plan",
-      },
-      {
-        to: "/exams",
-        icon: "calendar-week",
-        label: "Exams",
-        destination: "plan",
-      },
       {
         to: "/timer",
         icon: "clock",
@@ -112,47 +84,11 @@ const SECTIONS: NavSection[] = [
         label: "Progress",
         destination: "progress",
       },
-      /* Trajectory sits under Progress rather than beside it: they answer the
-         same question at two different tenses — what has happened, and what is
-         going to. Both resolve to the "progress" destination so the rail
-         highlights one section, not two. */
       {
-        to: "/trajectory",
+        to: "/study-lab",
         icon: "target",
-        label: "Trajectory",
-        destination: "progress",
-      },
-    ],
-  },
-  {
-    id: "study_lab",
-    title: "Study Lab",
-    collapsible: true,
-    items: [
-      {
-        to: "/sparring",
-        icon: "mic",
-        label: "Voice Study Partner",
-      },
-      {
-        to: "/exam-detective",
-        icon: "search",
-        label: "Exam Trap Radar",
-      },
-      {
-        to: "/debugger",
-        icon: "brain",
-        label: "Find My Mistake",
-      },
-      {
-        to: "/feynman",
-        icon: "award",
-        label: "Explain It Simply",
-      },
-      {
-        to: "/premortem",
-        icon: "shield",
-        label: "What Could Go Wrong",
+        label: "Study Lab",
+        destination: "study_lab",
       },
     ],
   },
@@ -191,18 +127,12 @@ const SECTIONS: NavSection[] = [
   },
 ];
 
-const DEFAULT_COLLAPSED_SECTIONS: SectionId[] = [
-  "study_lab",
-  "community",
-  "account",
-];
+const DEFAULT_COLLAPSED_SECTIONS: SectionId[] = ["community", "account"];
 
 function restoreCollapsedSections(storedValue: unknown): SectionId[] {
   if (!Array.isArray(storedValue)) return DEFAULT_COLLAPSED_SECTIONS;
 
-  const renamedSections: Record<string, SectionId> = {
-    ai_lab: "study_lab",
-    study_lab: "study_lab",
+  const renamedSections: Record<string, SectionId | undefined> = {
     community: "community",
     system: "account",
     account: "account",
@@ -247,7 +177,6 @@ function routeMatchesItem(pathname: string, item: NavItemConfig): boolean {
 }
 
 function activeSecondarySection(pathname: string): SectionId | null {
-  if (isStudyLabSection(pathname)) return "study_lab";
   if (isCommunitySection(pathname)) return "community";
   if (pathname.startsWith("/settings")) return "account";
   return null;

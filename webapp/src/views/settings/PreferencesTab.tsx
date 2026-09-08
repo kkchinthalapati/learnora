@@ -152,8 +152,10 @@ export function PreferencesTab() {
             <Icon name="brain" size={18} />
           </span>
           <div>
-            <h3 id="settings-ai-heading">{t("set_ai_brain")}</h3>
-            <p>Set the tone and length of AI responses.</p>
+            <h3 id="settings-ai-heading">Response voice</h3>
+            <p>
+              Choose how Learnora AI chat should sound and how much it says.
+            </p>
           </div>
         </div>
 
@@ -161,7 +163,7 @@ export function PreferencesTab() {
           <div className={styles.fieldLabel}>
             <label htmlFor={personaId}>{t("set_persona")}</label>
             <p className={styles.fieldDesc}>
-              Choose the teaching style for AI responses.
+              The tone used in Learnora AI chat and generated study material.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -220,11 +222,10 @@ export function PreferencesTab() {
           </span>
           <div>
             <h3 id="settings-persona-web-heading">
-              AI Study Persona & Web Access
+              Study behaviour and sources
             </h3>
             <p>
-              Customize response depth, pedagogical style, and web intelligence
-              defaults.
+              Set the depth of AI chat and whether it may search the live web.
             </p>
           </div>
         </div>
@@ -233,8 +234,7 @@ export function PreferencesTab() {
           <div className={styles.fieldLabel}>
             <label htmlFor={aiDepthId}>Depth Level</label>
             <p className={styles.fieldDesc}>
-              Controls cognitive depth of explanations (1: Quick Intuition, 3:
-              Standard, 5: Deep Academic)
+              From a quick intuition to a deeper academic explanation.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -258,7 +258,7 @@ export function PreferencesTab() {
           <div className={styles.fieldLabel}>
             <label htmlFor={aiStyleId}>Study Style</label>
             <p className={styles.fieldDesc}>
-              Primary pedagogical style for study interactions
+              The kind of help Learnora AI prioritises in chat.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -284,8 +284,8 @@ export function PreferencesTab() {
               Auto-Adapt Persona
             </span>
             <p className={styles.fieldDesc}>
-              Automatically adjust explanations based on follow-ups and
-              confusion patterns
+              Let Learnora AI chat adjust its next reply when your follow-up
+              shows confusion.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -304,7 +304,7 @@ export function PreferencesTab() {
               Live Web Intelligence
             </span>
             <p className={styles.fieldDesc}>
-              Enable live academic search and paper citations in study sessions
+              Allow live academic search when you choose web sources in chat.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -333,9 +333,9 @@ export function PreferencesTab() {
           <div>
             <h3 id="settings-study-focus-heading">Study Focus</h3>
             <p>
-              What you're studying for. The weekly planner reads this — it
-              never overrides measured quiz performance, only shapes how it
-              paces the plan around it.
+              What you're studying for. The weekly planner reads this — it never
+              overrides measured quiz performance, only shapes how it paces the
+              plan around it.
             </p>
           </div>
         </div>

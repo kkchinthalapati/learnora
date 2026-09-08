@@ -36,6 +36,7 @@ import { PreMortemRadarView } from "./views/premortem/PreMortemRadarView";
 import { FeynmanHubView } from "./views/feynman/FeynmanHubView";
 import { NotebooksHubView } from "./views/notebooks/NotebooksHubView";
 import { NotFoundView } from "./views/not-found/NotFoundView";
+import { StudyLabView } from "./views/study-lab/StudyLabView";
 import { Skeleton } from "./components/Skeleton";
 import styles from "./routes.module.css";
 
@@ -202,6 +203,7 @@ export function AppRoutes() {
               }
             />
             <Route path="/plan" element={<PlanView />} />
+            <Route path="/study-lab" element={<StudyLabView />} />
             <Route
               path="/my-week"
               element={

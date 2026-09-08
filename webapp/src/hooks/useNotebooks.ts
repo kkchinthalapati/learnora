@@ -29,7 +29,7 @@ export const notebooksKeys = {
 
 export function useNotebooks() {
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: notebooksKeys.all,
     queryFn: notebooksApi.fetch,
   });
@@ -47,14 +47,23 @@ export function useNotebooks() {
     onSuccess: invalidate,
   });
   const update = useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof notebooksApi.update>[1] }) =>
-      notebooksApi.update(id, patch),
+    mutationFn: ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: Parameters<typeof notebooksApi.update>[1];
+    }) => notebooksApi.update(id, patch),
     onSuccess: invalidate,
   });
 
   return {
     notebooks: data ?? [],
     isLoading,
+    isError,
+    error,
+    retryNotebooks: refetch,
+    isCreating: create.isPending,
     createNotebook: (input: {
       title: string;
       subject?: string;
@@ -62,8 +71,10 @@ export function useNotebooks() {
       description?: string;
     }) => create.mutateAsync(input),
     deleteNotebook: (id: string) => remove.mutate(id),
-    updateNotebook: (id: string, patch: Parameters<typeof notebooksApi.update>[1]) =>
-      update.mutate({ id, patch }),
+    updateNotebook: (
+      id: string,
+      patch: Parameters<typeof notebooksApi.update>[1],
+    ) => update.mutate({ id, patch }),
   };
 }
 
@@ -128,27 +139,30 @@ export function useNotebook(notebookId: string) {
     if (!notebook) return;
     setDraft((d) => {
       const next = { ...d };
-      if (next.title !== undefined && next.title === notebook.title) delete next.title;
-      if (next.notes !== undefined && next.notes === notebook.notes) delete next.notes;
+      if (next.title !== undefined && next.title === notebook.title)
+        delete next.title;
+      if (next.notes !== undefined && next.notes === notebook.notes)
+        delete next.notes;
       return Object.keys(next).length === Object.keys(d).length ? d : next;
     });
   }, [notebook]);
 
-  const merged: Notebook | null = notebook
-    ? { ...notebook, ...draft }
-    : null;
+  const merged: Notebook | null = notebook ? { ...notebook, ...draft } : null;
 
   /* --- Child collections -------------------------------------------------- */
-  const mutate = <A,>(fn: (arg: A) => Promise<unknown>) =>
-    (arg: A) => void fn(arg).then(invalidate);
+  const mutate =
+    <A>(fn: (arg: A) => Promise<unknown>) =>
+    (arg: A) =>
+      void fn(arg).then(invalidate);
 
   return {
     notebook: merged,
     isLoading,
     updateTitle: (title: string) => queueText({ title }),
     updateNotes: (notes: string) => queueText({ notes }),
-    addSource: mutate((source: Omit<NotebookSource, "id" | "uploadedAt" | "selected">) =>
-      notebooksApi.addSource(notebookId, { ...source, selected: true }),
+    addSource: mutate(
+      (source: Omit<NotebookSource, "id" | "uploadedAt" | "selected">) =>
+        notebooksApi.addSource(notebookId, { ...source, selected: true }),
     ),
     toggleSource: (sourceId: string) => {
       const current = merged?.sources.find((s) => s.id === sourceId);
@@ -157,16 +171,21 @@ export function useNotebook(notebookId: string) {
         .setSourceSelected(sourceId, !current.selected)
         .then(invalidate);
     },
-    removeSource: mutate((sourceId: string) => notebooksApi.deleteSource(sourceId)),
-    addArtifact: mutate((artifact: Omit<NotebookArtifact, "id" | "createdAt">) =>
-      notebooksApi.addArtifact(notebookId, artifact),
+    removeSource: mutate((sourceId: string) =>
+      notebooksApi.deleteSource(sourceId),
+    ),
+    addArtifact: mutate(
+      (artifact: Omit<NotebookArtifact, "id" | "createdAt">) =>
+        notebooksApi.addArtifact(notebookId, artifact),
     ),
     removeArtifact: mutate((artifactId: string) =>
       notebooksApi.deleteArtifact(artifactId),
     ),
-    addChatMessage: mutate((message: Omit<GroundedChatMessage, "id" | "timestamp">) =>
-      notebooksApi.addMessage(notebookId, message),
+    addChatMessage: mutate(
+      (message: Omit<GroundedChatMessage, "id" | "timestamp">) =>
+        notebooksApi.addMessage(notebookId, message),
     ),
-    clearChat: () => void notebooksApi.clearMessages(notebookId).then(invalidate),
+    clearChat: () =>
+      void notebooksApi.clearMessages(notebookId).then(invalidate),
   };
 }

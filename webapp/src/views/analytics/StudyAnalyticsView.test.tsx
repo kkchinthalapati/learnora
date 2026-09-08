@@ -88,7 +88,11 @@ describe("StudyAnalyticsView", () => {
       http.get(rest("exams"), () => HttpResponse.json(mockExams)),
     );
 
-    renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
+    renderWithAuth(
+      <StudyAnalyticsView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     expect(
       screen.queryByText("Study Analytics & Insights"),
@@ -124,7 +128,11 @@ describe("StudyAnalyticsView", () => {
       http.get(rest("exams"), () => HttpResponse.json(mockExams)),
     );
 
-    renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
+    renderWithAuth(
+      <StudyAnalyticsView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     /* Every stat on this screen is derived from four queries at once, so
        the view holds a skeleton until all four land rather than rendering a
@@ -191,7 +199,11 @@ describe("StudyAnalyticsView", () => {
       http.get(rest("exams"), () => HttpResponse.json(mockExams)),
     );
 
-    renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
+    renderWithAuth(
+      <StudyAnalyticsView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     /* Every stat on this screen is derived from four queries at once, so
        the view holds a skeleton until all four land rather than rendering a
@@ -233,7 +245,11 @@ describe("StudyAnalyticsView", () => {
       http.get(rest("exams"), () => HttpResponse.json(mockExams)),
     );
 
-    renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
+    renderWithAuth(
+      <StudyAnalyticsView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     expect(
       await screen.findByRole("status", {
@@ -257,7 +273,11 @@ describe("StudyAnalyticsView", () => {
       http.get(rest("exams"), () => HttpResponse.json(mockExams)),
     );
 
-    renderWithAuth(<StudyAnalyticsView />, { session: fakeSession() });
+    renderWithAuth(
+      <StudyAnalyticsView />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
 
     const table = await screen.findByRole("table", {
       name: /Study time logged per subject/,

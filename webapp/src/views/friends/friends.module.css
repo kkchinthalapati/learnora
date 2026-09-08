@@ -264,7 +264,7 @@
 .periodTabs {
   display: inline-flex;
   padding: 2px;
-  border: 1px solid var(--border);
+  border: var(--border);
   border-radius: var(--r-pill);
   background: var(--surface-2);
 }

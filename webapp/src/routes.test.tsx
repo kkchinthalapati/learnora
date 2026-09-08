@@ -29,6 +29,7 @@ function renderAt(path: string) {
 describe("route skeleton", () => {
   beforeEach(() => {
     mockAuthSession("user-1");
+    server.use(http.get(rest("notebooks"), () => HttpResponse.json([])));
   });
 
   afterEach(() => {
@@ -49,6 +50,7 @@ describe("route skeleton", () => {
     ["/plan", "This week's plan"],
     ["/friends", "Friends"],
     ["/analytics", "Progress"],
+    ["/study-lab", "What do you need help with?"],
     ["/feynman", "Explain It Simply"],
     ["/debugger", "Find My Mistake"],
     ["/premortem", "Practise on the questions designed to catch you out"],
@@ -72,10 +74,13 @@ describe("route skeleton", () => {
     "/library",
     "/plan",
     "/analytics",
+    "/study-lab",
     "/settings",
     "/feynman",
     "/debugger",
+    "/exam-detective",
     "/premortem",
+    "/sparring",
     "/room",
   ])("%s renders exactly one level-1 heading", async (path) => {
     renderAt(path);

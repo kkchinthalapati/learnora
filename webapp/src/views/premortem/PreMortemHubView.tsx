@@ -34,7 +34,7 @@ export function PreMortemHubView() {
   const [selectedExamId, setSelectedExamId] = useState<string>("");
 
   const [archetypes, setArchetypes] = useState<TrapArchetype[]>(
-    DEFAULT_TRAP_ARCHETYPES
+    DEFAULT_TRAP_ARCHETYPES,
   );
   const [selectedTrapIds, setSelectedTrapIds] = useState<string[]>([
     "boundary-condition-tricks",
@@ -44,10 +44,11 @@ export function PreMortemHubView() {
   ]);
 
   const [questionCount, setQuestionCount] = useState<number>(5);
-  const [intensity, setIntensity] = useState<string>("Extreme Hardcore");
 
   const [activeQuestions, setActiveQuestions] = useState<StressQuestion[]>([]);
-  const [activeReport, setActiveReport] = useState<PreMortemReport | null>(null);
+  const [activeReport, setActiveReport] = useState<PreMortemReport | null>(
+    null,
+  );
   const [pastReports, setPastReports] = useState<PreMortemReport[]>([]);
   const recordMisconceptions = useRecordMisconceptions();
   const [isLoading, setIsLoading] = useState(false);
@@ -96,7 +97,7 @@ export function PreMortemHubView() {
     setSelectedTrapIds((prev) =>
       prev.includes(trapId)
         ? prev.filter((id) => id !== trapId)
-        : [...prev, trapId]
+        : [...prev, trapId],
     );
   };
 
@@ -119,7 +120,7 @@ export function PreMortemHubView() {
       const questions = await generateStressTest(
         effectiveSubject,
         selectedTrapIds,
-        questionCount
+        questionCount,
       );
       setActiveQuestions(questions);
       setMode("running");
@@ -134,13 +135,14 @@ export function PreMortemHubView() {
     setActiveReport(report);
     setPastReports(getPreMortemReports());
     setMode("radar");
-    /* The radar's predictions are grounded in stress questions the student has
-       just answered, so a predicted failure is an observed one — and the only
-       calibrated probability any tool in this app produces. Recorded here
-       rather than inside evaluatePreMortemTest so the API layer stays a pure
-       report builder, matching how the debugger and Feynman write. */
+    /* Despite the legacy report field names, this records only misses observed
+       in the set the student just answered. It does not claim to forecast an
+       exam result. Keeping the write here leaves the report builder pure. */
     recordMisconceptions(
-      candidatesFromPreMortem({ ...report, subject: report.subject ?? selectedSubject }),
+      candidatesFromPreMortem({
+        ...report,
+        subject: report.subject ?? selectedSubject,
+      }),
     );
   };
 
@@ -187,16 +189,22 @@ export function PreMortemHubView() {
           <Icon name="shield" size={16} />
           <span>Spot the traps early</span>
         </div>
-        <h1 className={styles.heroTitle}>Practise on the questions designed to catch you out</h1>
+        <h1 className={styles.heroTitle}>
+          Practise on the questions designed to catch you out
+        </h1>
         <p className={styles.heroSub}>
-          Most marks are lost to the tricky bits, not to a lack of revision — edge cases,
-          questions phrased backwards, and assumptions you never noticed you were making.
-          Have a go at some now and see which ones catch you.
+          Most marks are lost to the tricky bits, not to a lack of revision —
+          edge cases, questions phrased backwards, and assumptions you never
+          noticed you were making. Have a go at some now and see which ones
+          catch you.
         </p>
       </section>
 
       {/* Subject & Exam Configuration */}
-      <section className={styles.configSection} aria-labelledby="config-heading">
+      <section
+        className={styles.configSection}
+        aria-labelledby="config-heading"
+      >
         <div className={styles.sectionHeader}>
           <h2 id="config-heading" className={styles.sectionTitle}>
             1. Which exam or subject?
@@ -248,22 +256,6 @@ export function PreMortemHubView() {
           )}
 
           <div className={styles.formField}>
-            <label className={styles.fieldLabel} htmlFor="intensity-select">
-              How hard should they be?
-            </label>
-            <select
-              id="intensity-select"
-              className={styles.selectInput}
-              value={intensity}
-              onChange={(e) => setIntensity(e.target.value)}
-            >
-              <option value="Extreme Hardcore">Brutal — the awkward edge cases</option>
-              <option value="Diabolical Professor">Sneaky — questions phrased backwards</option>
-              <option value="Standard Trap Mode">Standard — the usual traps</option>
-            </select>
-          </div>
-
-          <div className={styles.formField}>
             <label className={styles.fieldLabel} htmlFor="count-select">
               How many questions?
             </label>
@@ -294,7 +286,11 @@ export function PreMortemHubView() {
           </div>
 
           <div style={{ display: "flex", gap: "var(--s-2)" }}>
-            <Button variant="secondary" size="sm" onClick={handleSelectAllTraps}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleSelectAllTraps}
+            >
               Select All
             </Button>
             <Button variant="secondary" size="sm" onClick={handleClearTraps}>
@@ -347,7 +343,13 @@ export function PreMortemHubView() {
           <h3 style={{ margin: "0 0 var(--s-1) 0", fontSize: "var(--fs-lg)" }}>
             Ready to give it a go?
           </h3>
-          <p style={{ margin: 0, fontSize: "var(--fs-sm)", color: "var(--text-muted)" }}>
+          <p
+            style={{
+              margin: 0,
+              fontSize: "var(--fs-sm)",
+              color: "var(--text-muted)",
+            }}
+          >
             {selectedSubject}, with {selectedTrapIds.length} kinds of trap.
           </p>
         </div>
@@ -362,17 +364,16 @@ export function PreMortemHubView() {
           onClick={handleLaunchGauntlet}
         >
           <Icon name="zap" size={18} />
-          <span>
-            {isLoading
-              ? "Writing your questions…"
-              : "Start"}
-          </span>
+          <span>{isLoading ? "Writing your questions…" : "Start"}</span>
         </Button>
       </section>
 
       {/* Past attempts */}
       {pastReports.length > 0 && (
-        <section className={styles.configSection} aria-labelledby="history-heading">
+        <section
+          className={styles.configSection}
+          aria-labelledby="history-heading"
+        >
           <div className={styles.sectionHeader}>
             <h2 id="history-heading" className={styles.sectionTitle}>
               Your past attempts
@@ -392,18 +393,38 @@ export function PreMortemHubView() {
                 padding="md"
                 className={styles.historyCard}
               >
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
                   <span style={{ fontWeight: 700, fontSize: "var(--fs-sm)" }}>
                     {report.subject || "Past attempt"}
                   </span>
-                  <span style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
+                  <span
+                    style={{
+                      fontSize: "var(--fs-xs)",
+                      color: "var(--text-muted)",
+                    }}
+                  >
                     {new Date(report.timestamp).toLocaleDateString()}
                   </span>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "baseline", gap: "var(--s-2)" }}>
-                  <span className={styles.historyScore}>{report.predictedScore}%</span>
-                  <span style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: "var(--s-2)",
+                  }}
+                >
+                  <span className={styles.historyScore}>
+                    {report.predictedScore}%
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "var(--fs-xs)",
+                      color: "var(--text-muted)",
+                    }}
+                  >
                     {report.gradeEstimate}
                   </span>
                 </div>

@@ -66,7 +66,7 @@ describe("Sidebar", () => {
 
   afterEach(() => vi.restoreAllMocks());
 
-  it("renders the five primary destinations", () => {
+  it("renders the primary destinations", () => {
     renderSidebar();
     expect(screen.getByRole("link", { name: "Learnora" })).toHaveAttribute(
       "href",
@@ -92,6 +92,10 @@ describe("Sidebar", () => {
       "href",
       "/analytics",
     );
+    expect(screen.getByRole("link", { name: "Study Lab" })).toHaveAttribute(
+      "href",
+      "/study-lab",
+    );
   });
 
   it("opens Create and closes mobile navigation", async () => {
@@ -109,19 +113,13 @@ describe("Sidebar", () => {
     expect(onToggleRail).toHaveBeenCalledTimes(1);
   });
 
-  /* Tasks and Exams share Plan's "plan" destination so that sub-routes of the
-     family keep a parent lit. They also have rail entries of their own now, so
-     the item's own path has to win over the shared destination — matching on
-     destination alone marked Plan, Tasks and Exams aria-current="page" all at
-     once on every one of those three routes. */
-  it("lights the item that owns the route, not its whole family", () => {
+  /* Tasks and Exams now live inside Plan's local navigation instead of taking
+     permanent rail slots, so their child routes keep the Plan item current. */
+  it("keeps Plan current on planning child routes", () => {
     renderSidebar({ initialPath: "/tasks" });
-    expect(screen.getByRole("link", { name: "Tasks" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Plan" })).toHaveAttribute(
       "aria-current",
       "page",
-    );
-    expect(screen.getByRole("link", { name: "Plan" })).not.toHaveAttribute(
-      "aria-current",
     );
     expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveAttribute(
       "aria-current",
@@ -164,17 +162,9 @@ describe("Sidebar", () => {
       screen.getByRole("group", { name: "Workspace" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("group", { name: "Study Lab" }),
-    ).toBeInTheDocument();
-    expect(
       screen.getByRole("group", { name: "Community" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Account" })).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Expand Study Lab" }));
-    expect(
-      screen.getByRole("link", { name: "Find My Mistake" }),
-    ).toHaveAttribute("href", "/debugger");
 
     await user.click(screen.getByRole("button", { name: "Expand Community" }));
     expect(screen.getByRole("link", { name: "Friends" })).toHaveAttribute(

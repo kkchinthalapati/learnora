@@ -146,9 +146,7 @@ export function AhaWalkthroughModal({
           {step === 1 && (
             <>
               <div className={styles.sectionHeader}>
-                <h3 className={styles.sectionTitle}>
-                  {data.step1Bait.title}
-                </h3>
+                <h3 className={styles.sectionTitle}>{data.step1Bait.title}</h3>
                 <span
                   className={`${styles.badgePill} ${styles.badgePillAccent}`}
                 >
@@ -248,7 +246,7 @@ export function AhaWalkthroughModal({
                   <span
                     className={`${styles.badgePill} ${styles.badgePillSuccess}`}
                   >
-                    ✨ Trap Immune!
+                    Pattern spotted
                   </span>
                 )}
               </div>
@@ -299,7 +297,7 @@ export function AhaWalkthroughModal({
                   onClick={handleVerifyChallenge}
                   disabled={selectedChallengeOption === null}
                 >
-                  Verify Disarm Answer
+                  Check answer
                 </Button>
               ) : (
                 <div
@@ -309,10 +307,21 @@ export function AhaWalkthroughModal({
                       : styles.explanationCardBait
                   }
                 >
-                  <strong style={{ display: "flex", alignItems: "center", gap: "var(--s-1)" }}>
-                    {isImmune ? "✨ Trap Immune!" : "Almost there!"}
+                  <strong
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "var(--s-1)",
+                    }}
+                  >
+                    {isImmune ? "Pattern spotted" : "Review this pattern"}
                   </strong>
-                  <p style={{ margin: "var(--s-1) 0 0 0", fontSize: "var(--fs-sm)" }}>
+                  <p
+                    style={{
+                      margin: "var(--s-1) 0 0 0",
+                      fontSize: "var(--fs-sm)",
+                    }}
+                  >
                     {data.step4DisarmChallenge.explanation}
                   </p>
                   {isImmune && (

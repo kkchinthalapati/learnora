@@ -1,8 +1,4 @@
 import { useMemo } from "react";
-import {
-  CANONICAL_TRAP_ARCHETYPES,
-  type TrapArchetype,
-} from "../../api/aiExamDeconstructor";
 import { Icon } from "../../components/Icon";
 import styles from "./examDetective.module.css";
 
@@ -11,7 +7,6 @@ interface TrapImmunityRadarViewProps {
   disarmedTrapIds?: string[];
   score?: number;
   categoryScores?: Record<string, number>;
-  archetypes?: TrapArchetype[];
 }
 
 interface RadarAxis {
@@ -24,32 +19,32 @@ const RADAR_AXES: RadarAxis[] = [
   {
     label: "Edge Cases",
     key: "edge-case-hazards",
-    badgeName: "Edge Case Disarmer",
+    badgeName: "Edge cases",
   },
   {
     label: "Negative Wording",
     key: "negative-wording-maze",
-    badgeName: "Wording Sleuth",
+    badgeName: "Negative wording",
   },
   {
     label: "Assumptions",
     key: "hidden-assumptions",
-    badgeName: "Assumption Buster",
+    badgeName: "Hidden assumptions",
   },
   {
     label: "Lookalikes",
     key: "lookalike-terms",
-    badgeName: "Lookalike Master",
+    badgeName: "Lookalike terms",
   },
   {
     label: "Units & Scale",
     key: "units-and-scale-drift",
-    badgeName: "Scale Sentry",
+    badgeName: "Units and scale",
   },
   {
     label: "Shortcuts",
     key: "premature-shortcut-traps",
-    badgeName: "Shortcut Verifier",
+    badgeName: "Premature shortcuts",
   },
 ];
 
@@ -58,32 +53,27 @@ export function TrapImmunityRadarView({
   disarmedTrapIds = [],
   score,
   categoryScores,
-  archetypes = CANONICAL_TRAP_ARCHETYPES,
 }: TrapImmunityRadarViewProps) {
   const effectiveDisarmed = useMemo(
     () => new Set(disarmedTrapIds),
-    [disarmedTrapIds]
+    [disarmedTrapIds],
   );
 
   // Calculate radar axis values (0 to 100)
   const axisValues = useMemo(() => {
     return RADAR_AXES.map((axis) => {
       if (categoryScores && typeof categoryScores[axis.key] === "number") {
-        return Math.min(100, Math.max(20, categoryScores[axis.key]));
+        return Math.min(100, Math.max(0, categoryScores[axis.key]));
       }
-      const isDisarmed = effectiveDisarmed.has(axis.key);
-      const baseArch = archetypes.find((a) => a.id === axis.key);
-      const defaultScore = baseArch?.defaultImmunity ?? 65;
-      return isDisarmed ? 95 : defaultScore;
+      return 0;
     });
-  }, [categoryScores, effectiveDisarmed, archetypes]);
+  }, [categoryScores]);
 
   // Overall score
   const overallImmunityScore = useMemo(() => {
     if (typeof score === "number") return score;
-    const sum = axisValues.reduce((a, b) => a + b, 0);
-    return Math.round(sum / axisValues.length);
-  }, [score, axisValues]);
+    return null;
+  }, [score]);
 
   // SVG Radar Calculations
   const size = 380;
@@ -114,32 +104,35 @@ export function TrapImmunityRadarView({
     <div className={styles.radarContainer}>
       {/* Header */}
       <div style={{ textAlign: "center" }}>
-        <span className={styles.heroEyebrow}>Exam Trap Immunity Radar</span>
-        <h3 className={styles.sectionTitle}>{subject} Trap Shield</h3>
+        <span className={styles.heroEyebrow}>Observed practice results</span>
+        <h3 className={styles.sectionTitle}>{subject} trap profile</h3>
         <p className={styles.sectionDesc}>
-          Measures your resilience against tricky professor distractor archetypes.
+          Based only on questions you have answered. Unattempted trap types stay
+          at zero rather than being estimated.
         </p>
       </div>
 
       {/* Score Banner */}
       <div className={styles.scoreBanner}>
-        <span className={styles.scoreBig}>{overallImmunityScore}%</span>
+        <span className={styles.scoreBig}>
+          {overallImmunityScore === null ? "—" : `${overallImmunityScore}%`}
+        </span>
         <div>
           <span
             className={`${styles.badgePill} ${
-              overallImmunityScore >= 80
+              overallImmunityScore !== null && overallImmunityScore >= 80
                 ? styles.badgePillSuccess
                 : styles.badgePillAccent
             }`}
           >
-            {overallImmunityScore >= 90
-              ? "Master Detective"
-              : overallImmunityScore >= 75
-                ? "Trap Immune Guardian"
-                : "Active Sleuth"}
+            {overallImmunityScore === null
+              ? "No practice saved yet"
+              : "Correct in latest set"}
           </span>
           <div style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
-            {effectiveDisarmed.size} archetypes disarmed
+            {effectiveDisarmed.size} trap type
+            {effectiveDisarmed.size === 1 ? "" : "s"} reviewed or answered
+            correctly
           </div>
         </div>
       </div>
@@ -148,7 +141,7 @@ export function TrapImmunityRadarView({
       <svg
         className={styles.radarSvg}
         viewBox={`0 0 ${size} ${size}`}
-        aria-label="Trap Immunity Radar Chart"
+        aria-label="Trap practice results chart"
       >
         {/* Background guideline rings */}
         {rings.map((ring, rIdx) => {
@@ -185,7 +178,7 @@ export function TrapImmunityRadarView({
           );
         })}
 
-        {/* The student's immunity data polygon */}
+        {/* Observed category accuracy polygon */}
         <polygon
           points={dataPolygonPoints}
           fill="var(--accent-soft)"
@@ -229,7 +222,7 @@ export function TrapImmunityRadarView({
         })}
       </svg>
 
-      {/* Disarmed Trap Badges */}
+      {/* Reviewed trap checklist */}
       <div style={{ textAlign: "center", width: "100%" }}>
         <h4
           style={{
@@ -241,7 +234,7 @@ export function TrapImmunityRadarView({
             marginBottom: "var(--s-2)",
           }}
         >
-          Professor Trap Badges
+          Trap types encountered
         </h4>
         <div className={styles.badgesGrid}>
           {RADAR_AXES.map((axis) => {

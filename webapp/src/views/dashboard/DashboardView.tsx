@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { Link } from "react-router";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { AdaptiveHealthWidget } from "./AdaptiveHealthWidget";
@@ -54,27 +55,25 @@ export function DashboardView() {
             block.
           </p>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => setCustomizeOpen(true)}
-          aria-label="Customize dashboard layout"
-        >
-          <Icon name="settings" size={14} /> Customize
-        </Button>
+        <div className={styles.leadActions}>
+          <Link to="/study-lab" className={styles.studyLabLink}>
+            <Icon name="target" size={15} /> Choose a study exercise
+          </Link>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setCustomizeOpen(true)}
+            aria-label="Customize dashboard layout"
+          >
+            <Icon name="settings" size={14} /> Customize
+          </Button>
+        </div>
       </header>
 
       <OnboardingBanner
         onFocusTaskInput={() => taskInputRef.current?.focus()}
       />
 
-      {sections.todayTimeline && <TodayTimelineCard />}
-
-      {sections.activityRings && <ActivityRingsCard />}
-
-      {sections.recentNotebooks && <RecentNotebooksShelf />}
-
-      {/* Section 1: Priorities (3 distinct spacious cards) */}
       {sections.priorities && (
         <section
           className={styles.dashboardRegion}
@@ -82,13 +81,13 @@ export function DashboardView() {
         >
           <div className={styles.regionHeader}>
             <div>
-              <span className={styles.regionLabel}>Today</span>
+              <span className={styles.regionLabel}>Do this next</span>
               <h2 id="dashboard-priorities" className={styles.regionTitle}>
-                Priorities
+                Study next
               </h2>
             </div>
             <p className={styles.regionDescription}>
-              Upcoming exam, open tasks, and cards ready for review.
+              Choose one useful action, then start. Everything else can wait.
             </p>
           </div>
           <div className={styles.priorityGrid}>
@@ -98,6 +97,10 @@ export function DashboardView() {
           </div>
         </section>
       )}
+
+      {sections.todayTimeline && <TodayTimelineCard />}
+
+      {sections.recentNotebooks && <RecentNotebooksShelf />}
 
       {/* Section 2: Active Study & Focus (Balanced 2-column) */}
       {sections.continueStudying && (
@@ -122,6 +125,8 @@ export function DashboardView() {
           </div>
         </section>
       )}
+
+      {sections.activityRings && <ActivityRingsCard />}
 
       {/* Section 3: Progress, Streak & Memory Refresher */}
       {sections.progressStreak && (

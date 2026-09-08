@@ -294,12 +294,12 @@ export function SocraticSparringView() {
           <div className={styles.titleArea}>
             <span className={styles.eyebrow}>
               <Icon name="mic" size={14} />
-              <span>Voice Study Partner</span>
+              <span>Socratic coach</span>
             </span>
-            <h1 className={styles.pageTitle}>Socratic Audio Sparring</h1>
+            <h1 className={styles.pageTitle}>Challenge me out loud</h1>
             <p className={styles.pageSubtitle}>
-              Spar with two AI peer personas: Alex 🌱 probes your core
-              intuition, while Jordan ⚡ tests edge cases and counter-arguments.
+              Defend a topic against follow-up questions and counterexamples.
+              Speak or type; voice is optional.
             </p>
           </div>
 
@@ -343,7 +343,7 @@ export function SocraticSparringView() {
       {/* Topic Chooser / Notebook Selector */}
       {!session ? (
         <section className={styles.topicCard} aria-label="Topic Selection">
-          <div className={styles.topicCardTitle}>Choose a sparring topic</div>
+          <div className={styles.topicCardTitle}>What should we challenge?</div>
 
           <div className={styles.topicInputRow}>
             <input
@@ -383,7 +383,7 @@ export function SocraticSparringView() {
               onClick={() => void handleStartSession()}
               disabled={isLoadingSession || !topicInput.trim()}
             >
-              {isLoadingSession ? "Preparing Arena…" : "Enter Sparring Arena"}
+              {isLoadingSession ? "Preparing questions…" : "Start challenge"}
             </Button>
           </div>
 

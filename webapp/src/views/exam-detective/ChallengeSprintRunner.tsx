@@ -12,7 +12,10 @@ interface ChallengeSprintRunnerProps {
   onComplete: (results: {
     disarmedCount: number;
     total: number;
-    questions: SprintQuestion[];
+    answers: Array<{
+      trapArchetypeId: string;
+      isCorrect: boolean;
+    }>;
   }) => void;
   onExit: () => void;
 }
@@ -102,18 +105,20 @@ export function ChallengeSprintRunner({
       <div className={styles.runnerContainer}>
         <div className={styles.sectionHeader}>
           <div>
-            <span className={styles.heroEyebrow}>Challenge Sprint Completed</span>
+            <span className={styles.heroEyebrow}>
+              Challenge Sprint Completed
+            </span>
             <h2 className={styles.heroTitle}>Sprint Debrief</h2>
           </div>
           <span className={`${styles.badgePill} ${styles.badgePillSuccess}`}>
-            {disarmedTotal} / {questions.length} Traps Disarmed
+            {disarmedTotal} / {questions.length} traps spotted
           </span>
         </div>
 
         <div className={styles.disarmRuleBox}>
-          <strong>Sprint Score:</strong> You disarmed {disarmedTotal} out of{" "}
-          {questions.length} tricky professor traps! Keep practicing to build
-          full immunity across all trap archetypes.
+          <strong>Practice score:</strong> You spotted {disarmedTotal} out of{" "}
+          {questions.length} traps. Review the ones you missed, then try a new
+          set.
         </div>
 
         <div className={styles.optionsList}>
@@ -140,7 +145,9 @@ export function ChallengeSprintRunner({
                   Confidence: {res.confidence}
                 </span>
               </div>
-              <p style={{ margin: "var(--s-1) 0 0 0", fontSize: "var(--fs-sm)" }}>
+              <p
+                style={{ margin: "var(--s-1) 0 0 0", fontSize: "var(--fs-sm)" }}
+              >
                 {res.question.question}
               </p>
               <div style={{ marginTop: "var(--s-2)" }}>
@@ -158,18 +165,27 @@ export function ChallengeSprintRunner({
           ))}
         </div>
 
-        <div style={{ display: "flex", gap: "var(--s-3)", marginTop: "var(--s-4)" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "var(--s-3)",
+            marginTop: "var(--s-4)",
+          }}
+        >
           <Button
             variant="primary"
             onClick={() =>
               onComplete({
                 disarmedCount: disarmedTotal,
                 total: questions.length,
-                questions,
+                answers: questionResults.map((result) => ({
+                  trapArchetypeId: result.question.trapArchetypeId,
+                  isCorrect: result.isCorrect,
+                })),
               })
             }
           >
-            Save & View Immunity Radar
+            Save and view practice profile
           </Button>
           <Button variant="secondary" onClick={onExit}>
             Exit to Hub
@@ -197,7 +213,9 @@ export function ChallengeSprintRunner({
     <div className={styles.runnerContainer}>
       {/* Top bar */}
       <div className={styles.runnerHeader}>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+        <div
+          style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}
+        >
           <span className={`${styles.badgePill} ${styles.badgePillAccent}`}>
             Trap {currentIndex + 1} of {questions.length}
           </span>
@@ -220,13 +238,21 @@ export function ChallengeSprintRunner({
             type="button"
             className={styles.tabBtn}
             onClick={() => setInspectBaitRevealed((prev) => !prev)}
-            style={{ padding: "var(--s-1) var(--s-3)", fontSize: "var(--fs-xs)" }}
+            style={{
+              padding: "var(--s-1) var(--s-3)",
+              fontSize: "var(--fs-xs)",
+            }}
           >
             <Icon name="search" size={14} />
-            <span>{inspectBaitRevealed ? "Hide Bait Clue" : "Inspect Bait Clue"}</span>
+            <span>
+              {inspectBaitRevealed ? "Hide Bait Clue" : "Inspect Bait Clue"}
+            </span>
           </button>
           {inspectBaitRevealed && (
-            <div className={styles.inspectBaitBox} style={{ marginTop: "var(--s-2)" }}>
+            <div
+              className={styles.inspectBaitBox}
+              style={{ marginTop: "var(--s-2)" }}
+            >
               <strong>Detective Clue:</strong> {currentQ.hint}
             </div>
           )}
@@ -245,20 +271,22 @@ export function ChallengeSprintRunner({
           >
             Confidence Level:
           </span>
-          {(["certain", "tricky", "guessed"] as ConfidenceLevel[]).map((level) => (
-            <button
-              key={level}
-              type="button"
-              className={`${styles.confidenceChip} ${
-                confidence === level ? styles.confidenceChipActive : ""
-              }`}
-              onClick={() => setConfidence(level)}
-            >
-              {level === "certain" && "Certain (Clear)"}
-              {level === "tricky" && "Tricky (Watch out)"}
-              {level === "guessed" && "Guessed (Instinct)"}
-            </button>
-          ))}
+          {(["certain", "tricky", "guessed"] as ConfidenceLevel[]).map(
+            (level) => (
+              <button
+                key={level}
+                type="button"
+                className={`${styles.confidenceChip} ${
+                  confidence === level ? styles.confidenceChipActive : ""
+                }`}
+                onClick={() => setConfidence(level)}
+              >
+                {level === "certain" && "Certain (Clear)"}
+                {level === "tricky" && "Tricky (Watch out)"}
+                {level === "guessed" && "Guessed (Instinct)"}
+              </button>
+            ),
+          )}
         </div>
       )}
 
@@ -291,7 +319,9 @@ export function ChallengeSprintRunner({
                 style={{
                   fontWeight: 700,
                   minWidth: "24px",
-                  color: isSelected ? "var(--accent-text)" : "var(--text-muted)",
+                  color: isSelected
+                    ? "var(--accent-text)"
+                    : "var(--text-muted)",
                 }}
               >
                 {String.fromCharCode(65 + idx)}.
@@ -315,7 +345,7 @@ export function ChallengeSprintRunner({
             {isSelectedCorrect
               ? "✨ Trap Disarmed! You spotted the trick!"
               : isSelectedBait
-                ? "⚠️ Caught by the Bait! The professor predicted this."
+                ? "This distractor caught you. Here is why it looked plausible."
                 : "Not quite, but you're learning the pattern!"}
           </strong>
 
@@ -340,7 +370,9 @@ export function ChallengeSprintRunner({
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => setActiveWalkthroughTrapId(currentQ.trapArchetypeId)}
+              onClick={() =>
+                setActiveWalkthroughTrapId(currentQ.trapArchetypeId)
+              }
             >
               Explore 4-Step Aha! Breakdown
             </Button>
@@ -349,7 +381,13 @@ export function ChallengeSprintRunner({
       )}
 
       {/* Action Footer */}
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--s-3)" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: "var(--s-3)",
+        }}
+      >
         {!isAnswered ? (
           <Button
             variant="primary"

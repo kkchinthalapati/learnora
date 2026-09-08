@@ -39,7 +39,11 @@ describe("aiPreMortem API", () => {
 
   describe("generateStressTest", () => {
     it("generates questions tailored to Math & Physics subject", async () => {
-      const questions = await generateStressTest("Calculus", ["boundary-condition-tricks"], 3);
+      const questions = await generateStressTest(
+        "Calculus",
+        ["boundary-condition-tricks"],
+        3,
+      );
       expect(questions.length).toBe(3);
       expect(questions[0]).toHaveProperty("question");
       expect(questions[0].options.length).toBe(4);
@@ -49,22 +53,48 @@ describe("aiPreMortem API", () => {
     });
 
     it("generates questions tailored to Computer Science subject", async () => {
-      const questions = await generateStressTest("Computer Science Algorithms", ["boundary-condition-tricks"], 3);
+      const questions = await generateStressTest(
+        "Computer Science Algorithms",
+        ["boundary-condition-tricks"],
+        3,
+      );
       expect(questions.length).toBe(3);
-      expect(questions.some((q) => q.question.toLowerCase().includes("binary search") || q.question.toLowerCase().includes("knapsack") || q.question.toLowerCase().includes("authentication"))).toBe(true);
+      expect(
+        questions.some(
+          (q) =>
+            q.question.toLowerCase().includes("binary search") ||
+            q.question.toLowerCase().includes("knapsack") ||
+            q.question.toLowerCase().includes("authentication"),
+        ),
+      ).toBe(true);
     });
 
     it("generates questions tailored to Bio/Chem subject", async () => {
-      const questions = await generateStressTest("Organic Chemistry", ["boundary-condition-tricks"], 3);
+      const questions = await generateStressTest(
+        "Organic Chemistry",
+        ["boundary-condition-tricks"],
+        3,
+      );
       expect(questions.length).toBe(3);
-      expect(questions.some((q) => q.question.toLowerCase().includes("kinetics") || q.question.toLowerCase().includes("dna") || q.question.toLowerCase().includes("ph"))).toBe(true);
+      expect(
+        questions.some(
+          (q) =>
+            q.question.toLowerCase().includes("kinetics") ||
+            q.question.toLowerCase().includes("dna") ||
+            q.question.toLowerCase().includes("ph"),
+        ),
+      ).toBe(true);
     });
   });
 
   describe("evaluatePreMortemTest", () => {
-    it("evaluates answers, computes predictedScore, gradeEstimate, radarData, and predictedFailures", async () => {
-      const questions = await generateStressTest("Calculus", ["boundary-condition-tricks", "negative-phrasing-distractors"], 4);
-      
+    it("evaluates answers and reports observed accuracy and miss rates", async () => {
+      const questions = await generateStressTest(
+        "Calculus",
+        ["boundary-condition-tricks", "negative-phrasing-distractors"],
+        4,
+      );
+
       // Answer 2 correct and 2 wrong
       const answers: Record<string, number> = {
         [questions[0].id]: questions[0].correctAnswerIndex,
@@ -73,10 +103,14 @@ describe("aiPreMortem API", () => {
         [questions[3].id]: (questions[3].correctAnswerIndex + 1) % 4, // wrong
       };
 
-      const report = await evaluatePreMortemTest("Calculus", answers, questions);
+      const report = await evaluatePreMortemTest(
+        "Calculus",
+        answers,
+        questions,
+      );
 
-      expect(report.predictedScore).toBeGreaterThanOrEqual(35);
-      expect(report.predictedScore).toBeLessThanOrEqual(99);
+      expect(report.predictedScore).toBeGreaterThanOrEqual(0);
+      expect(report.predictedScore).toBeLessThanOrEqual(100);
       expect(report.gradeEstimate).toBeDefined();
       expect(report.radarData.length).toBeGreaterThan(0);
       expect(report.radarData[0]).toHaveProperty("topic");
@@ -90,7 +124,7 @@ describe("aiPreMortem API", () => {
 
     it("handles empty questions gracefully", async () => {
       const report = await evaluatePreMortemTest("Physics", {}, []);
-      expect(report.predictedScore).toBe(75);
+      expect(report.predictedScore).toBe(0);
       expect(report.radarData).toEqual([]);
       expect(report.predictedFailures).toEqual([]);
     });
@@ -127,7 +161,9 @@ describe("aiPreMortem API", () => {
         subject: "Linear Algebra",
         predictedScore: 82,
         gradeEstimate: "B (82%)",
-        radarData: [{ topic: "Eigenvalues", riskLevel: "low", failureProbability: 25 }],
+        radarData: [
+          { topic: "Eigenvalues", riskLevel: "low", failureProbability: 25 },
+        ],
         predictedFailures: [
           {
             topic: "Eigenvalues",

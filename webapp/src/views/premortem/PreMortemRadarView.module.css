@@ -201,6 +201,16 @@
   gap: var(--s-4);
 }
 
+.allClear {
+  margin: 0;
+  padding: var(--s-5);
+  border: var(--border);
+  border-radius: var(--r-md);
+  background: var(--success-soft);
+  color: var(--success-text);
+  line-height: 1.6;
+}
+
 .failureCard {
   display: flex;
   flex-direction: column;
@@ -211,7 +221,9 @@
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-sm);
-  transition: transform var(--t-fast), box-shadow var(--t-fast);
+  transition:
+    transform var(--t-fast),
+    box-shadow var(--t-fast);
 }
 
 .failureCard:hover {

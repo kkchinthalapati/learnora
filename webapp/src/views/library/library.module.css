@@ -534,7 +534,6 @@
  * and SubjectDetailPage now render <Badge tone="accent|warning|danger|success"
  * size="sm">. */
 
-
 .spinner {
   display: inline-block;
   width: 12px;
@@ -668,7 +667,7 @@
   gap: var(--s-2);
   padding: var(--s-4);
   margin-bottom: var(--s-4);
-  border: 1px solid var(--border);
+  border: var(--border);
   border-left: 3px solid var(--warning);
   border-radius: var(--r-lg);
   background: var(--surface);

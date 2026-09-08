@@ -40,7 +40,8 @@ export interface CommandPaletteProps {
 
 export function CommandPalette(props: CommandPaletteProps) {
   const context = useOptionalCommandPalette();
-  const isOpen = props.isOpen !== undefined ? props.isOpen : (context?.isOpen ?? false);
+  const isOpen =
+    props.isOpen !== undefined ? props.isOpen : (context?.isOpen ?? false);
   const handleClose = props.onClose || context?.close || (() => {});
 
   const [query, setQuery] = useState("");
@@ -113,7 +114,9 @@ export function CommandPalette(props: CommandPaletteProps) {
           {
             id: "action-prefix-task",
             category: "Task Action",
-            title: prefixMatch.text ? `Create task: "${prefixMatch.text}"` : "Type a task name...",
+            title: prefixMatch.text
+              ? `Create task: "${prefixMatch.text}"`
+              : "Type a task name...",
             subtitle: "Add task to Task Manager and sync",
             icon: "list-checks",
             badge: "Task",
@@ -122,7 +125,9 @@ export function CommandPalette(props: CommandPaletteProps) {
               if (!prefixMatch.text) return;
               try {
                 await tasksApi.add(prefixMatch.text);
-                await queryClient.invalidateQueries({ queryKey: tasksKeys.all });
+                await queryClient.invalidateQueries({
+                  queryKey: tasksKeys.all,
+                });
                 showToast(`Task created: "${prefixMatch.text}"`);
                 handleClose();
               } catch (_err) {
@@ -138,7 +143,9 @@ export function CommandPalette(props: CommandPaletteProps) {
           {
             id: "action-prefix-ai",
             category: "AI TurboChat",
-            title: prefixMatch.text ? `Ask AI: "${prefixMatch.text}"` : "Type an AI prompt...",
+            title: prefixMatch.text
+              ? `Ask AI: "${prefixMatch.text}"`
+              : "Type an AI prompt...",
             subtitle: "Send prompt directly into TurboChat",
             icon: "bot",
             badge: "AI Chat",
@@ -158,7 +165,9 @@ export function CommandPalette(props: CommandPaletteProps) {
           {
             id: "action-prefix-debug",
             category: "Find My Mistake",
-            title: prefixMatch.text ? `Look at: "${prefixMatch.text}"` : "Type a topic to look at…",
+            title: prefixMatch.text
+              ? `Look at: "${prefixMatch.text}"`
+              : "Type a topic to look at…",
             subtitle: "Work out what went wrong in Find My Mistake",
             icon: "brain",
             badge: "Find My Mistake",
@@ -173,7 +182,9 @@ export function CommandPalette(props: CommandPaletteProps) {
                 evidencePrompt: "Opened from the command palette",
                 suggestedAction: "debug_stack",
               });
-              navigate(`/debugger?topic=${encodeURIComponent(prefixMatch.text)}`);
+              navigate(
+                `/debugger?topic=${encodeURIComponent(prefixMatch.text)}`,
+              );
               handleClose();
             },
           },
@@ -220,7 +231,9 @@ export function CommandPalette(props: CommandPaletteProps) {
       id: "action-timer-toggle",
       category: "Quick Actions",
       title: timerRunning ? "Pause Timer" : "Toggle / Start Timer",
-      subtitle: timerRunning ? "Pause the active study timer" : "Start or resume study timer",
+      subtitle: timerRunning
+        ? "Pause the active study timer"
+        : "Start or resume study timer",
       icon: timerRunning ? "pause" : "play",
       shortcut: "Timer",
       keywords: ["toggle", "pause", "resume", "start", "timer", "stop"],
@@ -251,13 +264,36 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     // --- Study Lab tools ---
     items.push({
+      id: "nav-study-lab",
+      category: "Study Lab",
+      title: "Choose a study exercise",
+      subtitle:
+        "Start from the problem you have and pick the right kind of practice",
+      icon: "target",
+      badge: "Start here",
+      keywords: ["study lab", "help", "practice", "study", "learn"],
+      onSelect: () => {
+        navigate("/study-lab");
+        handleClose();
+      },
+    });
+
+    items.push({
       id: "nav-ai-debugger",
       category: "Study Lab",
       title: "Find My Mistake",
       subtitle: "Work backwards from a mistake to what you never quite learned",
       icon: "brain",
       badge: "AI Tool",
-      keywords: ["ai", "debugger", "debug", "mistake", "fix", "concept", "trace"],
+      keywords: [
+        "ai",
+        "debugger",
+        "debug",
+        "mistake",
+        "fix",
+        "concept",
+        "trace",
+      ],
       onSelect: () => {
         navigate("/debugger");
         handleClose();
@@ -271,7 +307,14 @@ export function CommandPalette(props: CommandPaletteProps) {
       subtitle: "Explain a topic out loud and find out what you really know",
       icon: "award",
       badge: "AI Tool",
-      keywords: ["ai", "feynman", "teach", "apprentice", "comprehension", "studio"],
+      keywords: [
+        "ai",
+        "feynman",
+        "teach",
+        "apprentice",
+        "comprehension",
+        "studio",
+      ],
       onSelect: () => {
         navigate("/feynman");
         handleClose();
@@ -281,25 +324,59 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-ai-premortem",
       category: "Study Lab",
-      title: "What Could Go Wrong",
-      subtitle: "Practise the questions designed to catch you out",
+      title: "Personal exam stress test",
+      subtitle: "Practise trap questions for a saved exam or subject",
       icon: "shield",
       badge: "AI Tool",
-      keywords: ["ai", "premortem", "pre-mortem", "radar", "exam", "failure", "stress"],
+      keywords: [
+        "ai",
+        "premortem",
+        "pre-mortem",
+        "radar",
+        "exam",
+        "failure",
+        "stress",
+      ],
       onSelect: () => {
         navigate("/premortem");
         handleClose();
       },
     });
 
+    items.push({
+      id: "nav-ai-sparring",
+      category: "Study Lab",
+      title: "Challenge me out loud",
+      subtitle: "Defend an idea against questions and counterexamples",
+      icon: "mic",
+      badge: "Socratic coach",
+      keywords: ["socratic", "sparring", "voice", "debate", "challenge"],
+      onSelect: () => {
+        navigate("/sparring");
+        handleClose();
+      },
+    });
+
+    items.push({
+      id: "nav-ai-exam-traps",
+      category: "Study Lab",
+      title: "Exam trap practice",
+      subtitle: "Analyse a past paper and practise common exam traps",
+      icon: "search",
+      badge: "Exam practice",
+      keywords: ["exam", "past paper", "traps", "practice", "detective"],
+      onSelect: () => {
+        navigate("/exam-detective");
+        handleClose();
+      },
+    });
 
     items.push({
       id: "nav-ai-analytics",
-      category: "Study Lab",
+      category: "Navigation",
       title: "Progress",
       subtitle: "Where your time goes, and how you're getting on",
       icon: "activity",
-      badge: "AI Tool",
       keywords: ["analytics", "progress", "stats", "charts", "data"],
       onSelect: () => {
         navigate("/analytics");
@@ -509,7 +586,8 @@ export function CommandPalette(props: CommandPaletteProps) {
       const matchTitle = item.title.toLowerCase().includes(q);
       const matchSubtitle = item.subtitle?.toLowerCase().includes(q) ?? false;
       const matchCategory = item.category.toLowerCase().includes(q);
-      const matchKeywords = item.keywords?.some((k) => k.toLowerCase().includes(q)) ?? false;
+      const matchKeywords =
+        item.keywords?.some((k) => k.toLowerCase().includes(q)) ?? false;
       return matchTitle || matchSubtitle || matchCategory || matchKeywords;
     });
   }, [allItems, prefixMatch, query]);
@@ -529,7 +607,9 @@ export function CommandPalette(props: CommandPaletteProps) {
   // Auto-scroll selected item into view
   useEffect(() => {
     if (!listRef.current) return;
-    const activeEl = listRef.current.querySelector(`[data-index="${selectedIndex}"]`) as HTMLElement | null;
+    const activeEl = listRef.current.querySelector(
+      `[data-index="${selectedIndex}"]`,
+    ) as HTMLElement | null;
     if (activeEl && typeof activeEl.scrollIntoView === "function") {
       activeEl.scrollIntoView({ block: "nearest" });
     }
@@ -545,7 +625,9 @@ export function CommandPalette(props: CommandPaletteProps) {
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       if (filteredItems.length > 0) {
-        setSelectedIndex((prev) => (prev - 1 + filteredItems.length) % filteredItems.length);
+        setSelectedIndex(
+          (prev) => (prev - 1 + filteredItems.length) % filteredItems.length,
+        );
       }
     } else if (e.key === "Enter") {
       e.preventDefault();
@@ -559,7 +641,10 @@ export function CommandPalette(props: CommandPaletteProps) {
   if (!isOpen) return null;
 
   // Group items by category for visual organization
-  const groupedItems: { category: string; items: { item: CommandItem; globalIndex: number }[] }[] = [];
+  const groupedItems: {
+    category: string;
+    items: { item: CommandItem; globalIndex: number }[];
+  }[] = [];
   let currentIndex = 0;
   filteredItems.forEach((item) => {
     let group = groupedItems.find((g) => g.category === item.category);
@@ -671,7 +756,8 @@ export function CommandPalette(props: CommandPaletteProps) {
               <Icon name="search" size={28} className={styles.emptyIcon} />
               <p className={styles.emptyTitle}>No matching results</p>
               <p className={styles.emptyDesc}>
-                No commands, subjects, or documents matched &ldquo;{query}&rdquo;
+                No commands, subjects, or documents matched &ldquo;{query}
+                &rdquo;
               </p>
             </div>
           ) : (
@@ -704,7 +790,9 @@ export function CommandPalette(props: CommandPaletteProps) {
                       <div className={styles.itemContent}>
                         <div className={styles.itemTitle}>{item.title}</div>
                         {item.subtitle && (
-                          <div className={styles.itemSubtitle}>{item.subtitle}</div>
+                          <div className={styles.itemSubtitle}>
+                            {item.subtitle}
+                          </div>
                         )}
                       </div>
 
@@ -713,7 +801,9 @@ export function CommandPalette(props: CommandPaletteProps) {
                           <span className={styles.badge}>{item.badge}</span>
                         )}
                         {item.shortcut ? (
-                          <kbd className={styles.shortcutKbd}>{item.shortcut}</kbd>
+                          <kbd className={styles.shortcutKbd}>
+                            {item.shortcut}
+                          </kbd>
                         ) : isSelected ? (
                           <kbd className={styles.shortcutKbd}>↵</kbd>
                         ) : null}

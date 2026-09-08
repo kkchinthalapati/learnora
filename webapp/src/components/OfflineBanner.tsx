@@ -25,7 +25,8 @@ export function OfflineBanner() {
   } else if (!isOnline) {
     pillClass = styles.offline;
     icon = "alert-triangle";
-    message = "You're offline. Your work is saved and will sync when you reconnect.";
+    message =
+      "You're offline. Queued task changes will sync when you reconnect; some other actions may be unavailable.";
   } else {
     pillClass = styles.pending;
     icon = "clock";

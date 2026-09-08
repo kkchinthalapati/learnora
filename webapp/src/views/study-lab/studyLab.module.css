@@ -1,0 +1,178 @@
+.view {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-bottom: var(--s-12);
+}
+
+.hero {
+  max-width: 720px;
+  margin-bottom: var(--s-8);
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: var(--s-2);
+  color: var(--accent-text);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-head);
+  font-size: clamp(30px, 5vw, 48px);
+  line-height: var(--lh-tight);
+}
+
+.hero p,
+.examChoice p {
+  margin: var(--s-3) 0 0;
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+
+.routeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-4);
+}
+
+.routeCard {
+  min-width: 0;
+  padding: var(--s-6);
+  border: var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  transition:
+    border-color var(--t-fast) ease,
+    background var(--t-fast) ease,
+    transform var(--t-fast) ease;
+}
+
+.routeCard:hover {
+  border-color: var(--accent-ring);
+  background: var(--surface-2);
+  transform: translateY(-2px);
+}
+
+.routeCard:focus-visible,
+.secondaryLink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.icon {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--s-5);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.prompt {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+}
+
+.routeCard h2,
+.examChoice h2 {
+  margin: var(--s-2) 0 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  line-height: var(--lh-tight);
+}
+
+.routeCard p {
+  min-height: 4.8em;
+  margin: var(--s-3) 0 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.outcome {
+  display: block;
+  margin-top: var(--s-5);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+}
+
+.open {
+  display: block;
+  margin-top: var(--s-3);
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.examChoice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-6);
+  margin-top: var(--s-6);
+  padding: var(--s-6);
+  border: var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+
+.examChoice > div {
+  max-width: 720px;
+}
+
+.secondaryLink {
+  flex-shrink: 0;
+  min-height: var(--touch-target-min);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--s-4);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--accent-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .routeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .routeCard p {
+    min-height: 0;
+  }
+
+  .examChoice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .secondaryLink {
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .routeCard {
+    transition: none;
+  }
+
+  .routeCard:hover {
+    transform: none;
+  }
+}

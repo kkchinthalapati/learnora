@@ -276,6 +276,53 @@ export const plans = [
   },
 ];
 
+export const notebooks = [
+  {
+    id: "nb-bio",
+    user_id: USER_ID,
+    title: "Biology Paper 2",
+    subject: "Biology",
+    color: "#4ade80",
+    description: "Enzymes, respiration and the topics still costing marks.",
+    notes:
+      "Focus on explaining rate-limiting factors without relying on memorised phrases.",
+    created_at: daysAgo(12),
+    updated_at: daysAgo(1),
+    notebook_sources: [
+      {
+        id: "nbs-1",
+        title: "Enzymes and rates of reaction",
+        type: "note",
+        content:
+          "Enzymes lower activation energy and have specific active sites.",
+        url: null,
+        selected: true,
+        created_at: daysAgo(9),
+      },
+      {
+        id: "nbs-2",
+        title: "Paper 2 topic list",
+        type: "syllabus",
+        content: "Cell biology, bioenergetics, homeostasis and inheritance.",
+        url: null,
+        selected: true,
+        created_at: daysAgo(8),
+      },
+    ],
+    notebook_artifacts: [
+      {
+        id: "nba-1",
+        type: "cheat_sheet",
+        title: "Enzymes: last-minute sheet",
+        content: "Activation energy; specificity; denaturation; rate factors.",
+        summary: "Four high-yield reminders for Paper 2.",
+        created_at: daysAgo(2),
+      },
+    ],
+    notebook_messages: [],
+  },
+];
+
 /** `get_friends_leaderboard(tz)` — friendship_id is null on your own row. */
 export const leaderboard = [
   {

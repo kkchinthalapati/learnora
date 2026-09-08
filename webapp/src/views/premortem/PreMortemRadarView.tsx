@@ -23,13 +23,13 @@ export function PreMortemRadarView({
 }: PreMortemRadarViewProps) {
   const navigate = useNavigate();
   const [report, setReport] = useState<PreMortemReport | null>(
-    initialReport ?? null
+    initialReport ?? null,
   );
   const [activeNeutralizerId, setActiveNeutralizerId] = useState<string | null>(
-    null
+    null,
   );
   const [neutralizedTraps, setNeutralizedTraps] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   useEffect(() => {
@@ -84,12 +84,12 @@ export function PreMortemRadarView({
     report.predictedScore >= 80
       ? styles.gradeHigh
       : report.predictedScore >= 65
-      ? styles.gradeMed
-      : styles.gradeLow;
+        ? styles.gradeMed
+        : styles.gradeLow;
 
-  const totalLostMarks = report.predictedFailures.reduce(
-    (acc, f) => acc + (neutralizedTraps.has(f.neutralizerId) ? 0 : f.predictedLostMarks),
-    0
+  const totalMisses = report.predictedFailures.reduce(
+    (acc, f) => acc + f.predictedLostMarks,
+    0,
   );
 
   // SVG Radar Polygon points computation
@@ -114,10 +114,10 @@ export function PreMortemRadarView({
       <PageHeader
         title="What Could Go Wrong"
         eyebrow={`Study Lab • ${report.subject || "All subjects"}`}
-        sub={`Predictive simulation generated on ${new Date(
-          report.timestamp
+        sub={`Practice set completed on ${new Date(
+          report.timestamp,
         ).toLocaleDateString()} at ${new Date(
-          report.timestamp
+          report.timestamp,
         ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
         actions={
           <Button
@@ -125,7 +125,7 @@ export function PreMortemRadarView({
             size="sm"
             onClick={() => (onRetest ? onRetest() : navigate("/premortem"))}
           >
-            Launch New Gauntlet
+            Try another set
           </Button>
         }
       />
@@ -134,29 +134,34 @@ export function PreMortemRadarView({
       <CognitiveCrossLinkBar
         payload={{
           subject: report.subject || "General",
-          topic: report.predictedFailures[0]?.topic || report.subject || "Exam prep",
-          concept: report.predictedFailures[0]?.coreTrap || report.radarData[0]?.topic,
+          topic:
+            report.predictedFailures[0]?.topic || report.subject || "Exam prep",
+          concept:
+            report.predictedFailures[0]?.coreTrap || report.radarData[0]?.topic,
           sourceTool: "premortem",
           sourceId: String(report.timestamp),
-          evidencePrompt: `Trap questions: ${report.gradeEstimate} (${report.predictedScore}%)`,
+          evidencePrompt: `Trap practice: ${report.gradeEstimate} (${report.predictedScore}% accuracy)`,
           misconceptions: report.predictedFailures.map(
-            (f) => `${f.topic}: ${f.coreTrap} (-${f.predictedLostMarks} marks)`
+            (f) => `${f.topic}: ${f.coreTrap} (${f.predictedLostMarks} missed)`,
           ),
           severity:
             report.predictedScore < 65
               ? "critical"
               : report.predictedScore < 80
-              ? "moderate"
-              : "minor",
+                ? "moderate"
+                : "minor",
           suggestedAction: "debug_stack",
         }}
         currentTool="premortem"
       />
 
       {/* Summary cards */}
-      <section className={styles.scoreBanner} aria-label="Summary of how you did">
+      <section
+        className={styles.scoreBanner}
+        aria-label="Summary of how you did"
+      >
         <div className={styles.metricCard}>
-          <span className={styles.metricLabel}>Score if the exam were today</span>
+          <span className={styles.metricLabel}>Practice accuracy</span>
           <span className={`${styles.metricValue} ${scoreClass}`}>
             {report.predictedScore}%
           </span>
@@ -164,9 +169,9 @@ export function PreMortemRadarView({
         </div>
 
         <div className={styles.metricCard}>
-          <span className={styles.metricLabel}>Marks you'd drop</span>
+          <span className={styles.metricLabel}>Trap questions missed</span>
           <span className={`${styles.metricValue} ${styles.gradeLow}`}>
-            {`-${totalLostMarks} pts`}
+            {totalMisses}
           </span>
           <span className={styles.metricSub}>
             {neutralizedTraps.size > 0
@@ -187,15 +192,18 @@ export function PreMortemRadarView({
       </section>
 
       {/* Risk chart and topic gauge */}
-      <section className={styles.radarLayout} aria-label="Chart of which topics are riskiest">
+      <section
+        className={styles.radarLayout}
+        aria-label="Chart of misses in this practice set"
+      >
         <div className={styles.radarCard}>
-          <h2 className={styles.radarTitle}>Where you're most likely to slip</h2>
+          <h2 className={styles.radarTitle}>Where this set caught you</h2>
           <svg
             className={styles.svgRadar}
             width="320"
             height="320"
             viewBox="0 0 320 320"
-            aria-label="Spiderweb chart of how risky each topic is"
+            aria-label="Spiderweb chart of the miss rate for each topic in this set"
           >
             {/* Concentric Guide Circles */}
             {[0.25, 0.5, 0.75, 1.0].map((ratio) => (
@@ -282,22 +290,22 @@ export function PreMortemRadarView({
               item.riskLevel === "high"
                 ? styles.riskHigh
                 : item.riskLevel === "medium"
-                ? styles.riskMedium
-                : styles.riskLow;
+                  ? styles.riskMedium
+                  : styles.riskLow;
 
             const fillClass =
               item.riskLevel === "high"
                 ? styles.fillHigh
                 : item.riskLevel === "medium"
-                ? styles.fillMed
-                : styles.fillLow;
+                  ? styles.fillMed
+                  : styles.fillLow;
 
             return (
               <div key={idx} className={styles.topicItem}>
                 <div className={styles.topicHeader}>
                   <span className={styles.topicName}>{item.topic}</span>
                   <span className={`${styles.riskBadge} ${riskClass}`}>
-                    {item.failureProbability}% — {item.riskLevel} risk
+                    {item.failureProbability}% missed — {item.riskLevel}
                   </span>
                 </div>
                 <div className={styles.progressBarContainer}>
@@ -313,97 +321,107 @@ export function PreMortemRadarView({
       </section>
 
       {/* The traps to work on */}
-      <section className={styles.failuresSection} aria-label="Traps that are likely to catch you out">
+      <section
+        className={styles.failuresSection}
+        aria-label="Traps missed in this practice set"
+      >
         <div className={styles.sectionHeading}>
           <div>
-            <h2 className={styles.sectionTitle}>
-              The traps most likely to catch you
-            </h2>
+            <h2 className={styles.sectionTitle}>The traps that caught you</h2>
             <p style={{ color: "var(--text-muted)", fontSize: "var(--fs-sm)" }}>
-              These are the question styles you fell for. Tap one and we'll walk you
-              through how to spot it next time.
+              These are the question styles you fell for. Tap one and we'll walk
+              you through how to spot it next time.
             </p>
           </div>
         </div>
 
         <div className={styles.failuresGrid}>
-          {report.predictedFailures.map((failure, idx) => {
-            const isNeutralized = neutralizedTraps.has(failure.neutralizerId);
+          {report.predictedFailures.length === 0 ? (
+            <p className={styles.allClear}>
+              You spotted every trap in this set. Try another set or raise the
+              question count before treating that as mastery.
+            </p>
+          ) : (
+            report.predictedFailures.map((failure, idx) => {
+              const isNeutralized = neutralizedTraps.has(failure.neutralizerId);
 
-            return (
-              <Card
-                key={idx}
-                variant="panel"
-                padding="md"
-                className={styles.failureCard}
-              >
-                <div className={styles.failureTop}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "var(--s-2)",
-                    }}
-                  >
-                    <span className={styles.trapTag}>
-                      <Icon name="shield" size={14} />
-                      <span>{failure.coreTrap}</span>
-                    </span>
-                    <span className={styles.lostMarksBadge}>
-                      -{failure.predictedLostMarks} marks
-                    </span>
-                  </div>
-
-                  <h3 className={styles.failureTopic}>{failure.topic}</h3>
-
-                  <div className={styles.statsRow}>
-                    <span>Chance of slipping:</span>
-                    <strong
+              return (
+                <Card
+                  key={idx}
+                  variant="panel"
+                  padding="md"
+                  className={styles.failureCard}
+                >
+                  <div className={styles.failureTop}>
+                    <div
                       style={{
-                        color:
-                          failure.failureProbability > 60
-                            ? "var(--danger)"
-                            : "var(--warning)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "var(--s-2)",
                       }}
                     >
-                      {failure.failureProbability}%
-                    </strong>
-                  </div>
-
-                  <div className={styles.progressBarContainer}>
-                    <div
-                      className={`${styles.progressBarFill} ${
-                        failure.failureProbability > 60
-                          ? styles.fillHigh
-                          : styles.fillMed
-                      }`}
-                      style={{ width: `${failure.failureProbability}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ marginTop: "var(--s-3)" }}>
-                  {isNeutralized ? (
-                    <div className={styles.neutralizedBadge}>
-                      <Icon name="check" size={14} />
-                      <span>Sorted — you'll spot this one now</span>
+                      <span className={styles.trapTag}>
+                        <Icon name="shield" size={14} />
+                        <span>{failure.coreTrap}</span>
+                      </span>
+                      <span className={styles.lostMarksBadge}>
+                        {failure.predictedLostMarks} missed
+                      </span>
                     </div>
-                  ) : (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      style={{ width: "100%" }}
-                      onClick={() => handleOpenNeutralizer(failure.neutralizerId)}
-                    >
-                      <Icon name="zap" size={16} />
-                      <span>Learn to spot it</span>
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
+
+                    <h3 className={styles.failureTopic}>{failure.topic}</h3>
+
+                    <div className={styles.statsRow}>
+                      <span>Miss rate in this set:</span>
+                      <strong
+                        style={{
+                          color:
+                            failure.failureProbability > 60
+                              ? "var(--danger)"
+                              : "var(--warning)",
+                        }}
+                      >
+                        {failure.failureProbability}%
+                      </strong>
+                    </div>
+
+                    <div className={styles.progressBarContainer}>
+                      <div
+                        className={`${styles.progressBarFill} ${
+                          failure.failureProbability > 60
+                            ? styles.fillHigh
+                            : styles.fillMed
+                        }`}
+                        style={{ width: `${failure.failureProbability}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: "var(--s-3)" }}>
+                    {isNeutralized ? (
+                      <div className={styles.neutralizedBadge}>
+                        <Icon name="check" size={14} />
+                        <span>Sorted — you'll spot this one now</span>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        style={{ width: "100%" }}
+                        onClick={() =>
+                          handleOpenNeutralizer(failure.neutralizerId)
+                        }
+                      >
+                        <Icon name="zap" size={16} />
+                        <span>Learn to spot it</span>
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              );
+            })
+          )}
         </div>
       </section>
 

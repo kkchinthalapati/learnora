@@ -157,7 +157,10 @@ export function getPreMortemReports(): PreMortemReport[] {
 export function savePreMortemReport(report: PreMortemReport): void {
   try {
     const existing = getPreMortemReports();
-    const updated = [report, ...existing.filter((r) => r.timestamp !== report.timestamp)].slice(0, 20);
+    const updated = [
+      report,
+      ...existing.filter((r) => r.timestamp !== report.timestamp),
+    ].slice(0, 20);
     localStorage.setItem(PRE_MORTEM_STORAGE_KEY, JSON.stringify(updated));
   } catch (err) {
     console.warn("[PreMortem] Failed to save report history", err);
@@ -165,12 +168,18 @@ export function savePreMortemReport(report: PreMortemReport): void {
 }
 
 /** Get the latest Pre-Mortem report, optionally filtered by subject */
-export function getLatestPreMortemReport(subject?: string): PreMortemReport | null {
+export function getLatestPreMortemReport(
+  subject?: string,
+): PreMortemReport | null {
   const reports = getPreMortemReports();
   if (reports.length === 0) return null;
   if (!subject) return reports[0];
   const normalized = subject.trim().toLowerCase();
-  return reports.find((r) => r.subject?.toLowerCase() === normalized) || reports[0] || null;
+  return (
+    reports.find((r) => r.subject?.toLowerCase() === normalized) ||
+    reports[0] ||
+    null
+  );
 }
 
 /** Clear stored reports */
@@ -188,7 +197,7 @@ export function clearPreMortemReports(): void {
 export async function extractProfessorTraps(
   subject: string,
   examName?: string,
-  settings?: Settings
+  settings?: Settings,
 ): Promise<TrapArchetype[]> {
   const cleanSubject = subject.trim() || "General Engineering & Science";
   const cleanExam = examName?.trim() || "";
@@ -238,12 +247,19 @@ Return a JSON array where each object has:
   // Tailor default archetypes with subject context
   return DEFAULT_TRAP_ARCHETYPES.map((archetype) => ({
     ...archetype,
-    description: archetype.description.replace(/formulas/g, `${cleanSubject} principles`),
+    description: archetype.description.replace(
+      /formulas/g,
+      `${cleanSubject} principles`,
+    ),
   }));
 }
 
 /** Subject question banks with rich adversarial questions */
-function generateSubjectQuestions(subject: string, count: number, trapIds: string[]): StressQuestion[] {
+function generateSubjectQuestions(
+  subject: string,
+  count: number,
+  trapIds: string[],
+): StressQuestion[] {
   const cleanSubject = subject.toLowerCase();
 
   const isMathOrPhysics =
@@ -356,7 +372,7 @@ function generateSubjectQuestions(subject: string, count: number, trapIds: strin
         difficulty: "Hard",
         hint: "Break down the Greek roots: 'iso-thermal' (same heat/temperature) vs 'a-diabatic' (not passing through).",
         topic: "Thermodynamics & Energy",
-      }
+      },
     );
   } else if (isCS) {
     library.push(
@@ -449,7 +465,7 @@ function generateSubjectQuestions(subject: string, count: number, trapIds: strin
         difficulty: "Hard",
         hint: "Look for the statement that violates multi-threading invariants.",
         topic: "Concurrency & OS Primitives",
-      }
+      },
     );
   } else if (isBioOrChem) {
     library.push(
@@ -542,7 +558,7 @@ function generateSubjectQuestions(subject: string, count: number, trapIds: strin
         difficulty: "Extreme",
         hint: "Can an acidic solution ever turn basic? Remember water auto-ionization Kw = 10⁻¹⁴.",
         topic: "Equilibrium & Auto-ionization",
-      }
+      },
     );
   } else {
     // General subject questions
@@ -631,7 +647,7 @@ function generateSubjectQuestions(subject: string, count: number, trapIds: strin
         difficulty: "Hard",
         hint: "Focus on formal definitions rather than common everyday language.",
         topic: `${subject} Definitions & Terminology`,
-      }
+      },
     );
   }
 
@@ -652,14 +668,14 @@ export async function generateStressTest(
   subject: string,
   trapIds: string[],
   count: number = 5,
-  settings?: Settings
+  settings?: Settings,
 ): Promise<StressQuestion[]> {
   const cleanSubject = subject.trim() || "General Engineering";
 
   if (settings) {
     try {
       const selectedArchetypeNames = DEFAULT_TRAP_ARCHETYPES.filter((a) =>
-        trapIds.includes(a.id)
+        trapIds.includes(a.id),
       )
         .map((a) => a.name)
         .join(", ");
@@ -691,8 +707,11 @@ For each question, provide:
           question: q.question,
           options: q.choices,
           correctAnswerIndex: q.correctIndex,
-          trapArchetypeId: trapIds[idx % trapIds.length] || "boundary-condition-tricks",
-          trapExplanation: q.feedback || "Adversarial trick designed to test edge preconditions.",
+          trapArchetypeId:
+            trapIds[idx % trapIds.length] || "boundary-condition-tricks",
+          trapExplanation:
+            q.feedback ||
+            "Adversarial trick designed to test edge preconditions.",
           difficulty: "Extreme",
           hint: "Check boundary limits, negative qualifiers, and unit consistency.",
           topic: q.topic || `${cleanSubject} Advanced Concept`,
@@ -707,33 +726,39 @@ For each question, provide:
 }
 
 /**
- * Evaluates candidate responses from the Stress-Test Gauntlet and generates
- * the full Pre-Mortem Failure Radar Report with predictive failure probabilities.
+ * Evaluates a practice set and groups the observed misses by topic and trap.
+ * Legacy property names are kept because saved reports already use them, but
+ * every number below is now derived directly from this attempt.
  */
 export async function evaluatePreMortemTest(
   subject: string,
   answers: Record<string, number>,
-  questions: StressQuestion[]
+  questions: StressQuestion[],
 ): Promise<PreMortemReport> {
   const total = questions.length;
   if (total === 0) {
     const fallbackReport: PreMortemReport = {
       subject,
-      predictedScore: 75,
-      gradeEstimate: "B (75%)",
+      predictedScore: 0,
+      gradeEstimate: "No questions answered",
       radarData: [],
       predictedFailures: [],
       timestamp: new Date().toISOString(),
       totalQuestions: 0,
       correctCount: 0,
     };
-    savePreMortemReport(fallbackReport);
     return fallbackReport;
   }
 
   let correctCount = 0;
-  const trapFailures: Record<string, { failed: number; total: number; questions: StressQuestion[] }> = {};
-  const topicFailures: Record<string, { failed: number; total: number; questions: StressQuestion[] }> = {};
+  const trapFailures: Record<
+    string,
+    { failed: number; total: number; questions: StressQuestion[] }
+  > = {};
+  const topicFailures: Record<
+    string,
+    { failed: number; total: number; questions: StressQuestion[] }
+  > = {};
 
   questions.forEach((q) => {
     const userChoice = answers[q.id];
@@ -761,53 +786,51 @@ export async function evaluatePreMortemTest(
     }
   });
 
-  // Calculate raw performance
   const accuracy = correctCount / total;
-  // Calculate predicted exam score (scaled based on adversarial hardness factor)
-  // Scoring 80% on extreme adversarial test correlates to ~92% on real exam; 40% correlates to ~58%
-  const predictedScore = Math.round(Math.min(99, Math.max(35, accuracy * 70 + 30)));
+  const predictedScore = Math.round(accuracy * 100);
 
-  let gradeEstimate = "A — really strong";
-  if (predictedScore < 50) gradeEstimate = "U — a lot to work on";
-  else if (predictedScore < 60) gradeEstimate = "D — needs work";
-  else if (predictedScore < 70) gradeEstimate = "C — the traps are catching you";
-  else if (predictedScore < 80) gradeEstimate = "B — solid, with a few blind spots";
-  else if (predictedScore < 90) gradeEstimate = "A- — you spot most of them";
-  else gradeEstimate = "A+ — hard to catch out";
+  let gradeEstimate = "Strong on this set";
+  if (predictedScore < 60) gradeEstimate = "Do another pass";
+  else if (predictedScore < 80) gradeEstimate = "Some traps still caught you";
 
   // Build Radar Data by Topic
   const radarData: PreMortemRadarDatum[] = Object.entries(topicFailures).map(
     ([topicName, stats]) => {
       const failRatio = stats.failed / stats.total;
-      // Probability of failing questions on exam day in this topic
-      const failureProbability = Math.round(failRatio * 80 + 15);
+      const failureProbability = Math.round(failRatio * 100);
       const riskLevel: "low" | "medium" | "high" =
-        failureProbability >= 65 ? "high" : failureProbability >= 35 ? "medium" : "low";
+        failureProbability >= 65
+          ? "high"
+          : failureProbability >= 35
+            ? "medium"
+            : "low";
 
       return {
         topic: topicName,
         riskLevel,
         failureProbability,
       };
-    }
+    },
   );
 
   // Build Failure Predictions
   const predictedFailures: PreMortemFailurePrediction[] = [];
 
   Object.entries(trapFailures).forEach(([trapId, stats]) => {
-    if (stats.failed > 0 || stats.total >= 1) {
-      const archetype =
-        DEFAULT_TRAP_ARCHETYPES.find((a) => a.id === trapId) || {
-          name: "Boundary Condition Trap",
-          description: "Edge case vulnerability",
-        };
+    if (stats.failed > 0) {
+      const archetype = DEFAULT_TRAP_ARCHETYPES.find(
+        (a) => a.id === trapId,
+      ) || {
+        name: "Boundary Condition Trap",
+        description: "Edge case vulnerability",
+      };
 
       const failRate = stats.failed / stats.total;
-      const failureProb = Math.round(failRate * 85 + (failRate > 0 ? 10 : 5));
-      const lostMarksEstimate = Math.max(3, Math.round(stats.failed * 4.5 + (failRate > 0.5 ? 4 : 0)));
+      const failureProb = Math.round(failRate * 100);
+      const lostMarksEstimate = stats.failed;
 
-      const associatedTopic = stats.questions[0]?.topic || `${subject} Problem Solving`;
+      const associatedTopic =
+        stats.questions[0]?.topic || `${subject} Problem Solving`;
 
       predictedFailures.push({
         topic: associatedTopic,
@@ -1031,7 +1054,9 @@ const TRAP_NEUTRALIZERS: Record<string, TrapNeutralizer> = {
 /**
  * Get the 3-step Trap Neutralizer for a given archetype ID.
  */
-export async function getTrapNeutralizer(trapId: string): Promise<TrapNeutralizer> {
+export async function getTrapNeutralizer(
+  trapId: string,
+): Promise<TrapNeutralizer> {
   const found = TRAP_NEUTRALIZERS[trapId];
   if (found) return found;
 

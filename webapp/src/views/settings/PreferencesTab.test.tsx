@@ -103,12 +103,12 @@ describe("PreferencesTab", () => {
     });
   });
 
-  it("updates and saves AI Study Persona & Web Access settings", async () => {
+  it("updates and saves study behaviour and source settings", async () => {
     const user = userEvent.setup();
     renderWithProviders(<PreferencesTab />, undefined, { withRouter: true });
 
     expect(
-      screen.getByRole("heading", { name: "AI Study Persona & Web Access" }),
+      screen.getByRole("heading", { name: "Study behaviour and sources" }),
     ).toBeInTheDocument();
 
     await user.selectOptions(

@@ -48,6 +48,7 @@ describe("sectionLabel", () => {
     expect(sectionLabel("/tasks", t)).toBe("Task Manager");
     expect(sectionLabel("/plan", t)).toBe("This week's plan");
     expect(sectionLabel("/exams", t)).toBe("Exams");
+    expect(sectionLabel("/study-lab", t)).toBe("Study Lab");
     expect(sectionLabel("/settings", t)).toBe("Settings");
   });
 
@@ -69,8 +70,13 @@ describe("primaryDestinationForPath", () => {
     expect(primaryDestinationForPath("/notes/material-1")).toBe("library");
   });
 
-  it("returns no primary destination for secondary tools", () => {
-    expect(primaryDestinationForPath("/debugger")).toBeNull();
+  it("groups study tools under Study Lab", () => {
+    expect(primaryDestinationForPath("/debugger")).toBe("study_lab");
+    expect(primaryDestinationForPath("/sparring")).toBe("study_lab");
+    expect(primaryDestinationForPath("/premortem")).toBe("study_lab");
+  });
+
+  it("returns no primary destination for secondary community routes", () => {
     expect(primaryDestinationForPath("/friends")).toBeNull();
   });
 });

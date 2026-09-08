@@ -32,7 +32,13 @@ export function isNotebooksSection(pathname: string): boolean {
 }
 
 export type PrimaryDestination =
-  "dashboard" | "notebooks" | "library" | "plan" | "focus" | "progress";
+  | "dashboard"
+  | "notebooks"
+  | "library"
+  | "plan"
+  | "focus"
+  | "progress"
+  | "study_lab";
 
 export function primaryDestinationForPath(
   pathname: string,
@@ -51,11 +57,14 @@ export function primaryDestinationForPath(
   if (pathname.startsWith("/timer")) return "focus";
   if (pathname.startsWith("/analytics") || pathname.startsWith("/trajectory"))
     return "progress";
+  if (isStudyLabSection(pathname)) return "study_lab";
   return null;
 }
 
 export function isStudyLabSection(pathname: string): boolean {
   return [
+    "/study-lab",
+    "/sparring",
     "/debugger",
     "/feynman",
     "/premortem",
@@ -81,9 +90,10 @@ export function sectionLabel(
      destination had two names depending on where you read it. */
   if (pathname.startsWith("/analytics")) return "Progress";
   if (pathname.startsWith("/trajectory")) return "Trajectory";
+  if (pathname.startsWith("/study-lab")) return "Study Lab";
   if (pathname.startsWith("/feynman")) return "Explain It Simply";
   if (pathname.startsWith("/debugger")) return "Find My Mistake";
-  if (pathname.startsWith("/exam-detective")) return "Exam Trap Radar";
+  if (pathname.startsWith("/exam-detective")) return "Exam trap practice";
   if (pathname.startsWith("/premortem")) return "What Could Go Wrong";
   if (pathname.startsWith("/my-week")) return "My week";
   if (pathname.startsWith("/plan")) return "This week's plan";
@@ -109,9 +119,11 @@ export function sectionLabel(
  * Two <h1>s per document is also an accessibility defect independent of how
  * it looks. The rule here is that a page has exactly one title: either the
  * shell supplies it (the common case, for views that are just content) or
- * the view does (these five, whose heroes carry more than a name). */
+ * the view does (these routes, whose heroes carry more than a name). */
 const HERO_ROUTES = [
   "/notebooks",
+  "/study-lab",
+  "/sparring",
   "/feynman",
   "/premortem",
   "/debugger",
