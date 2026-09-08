@@ -35,6 +35,7 @@
 import type { Flashcard, FlashcardDeck, QuizAttempt } from "../api/types";
 import { computeRetentionProbability } from "./adaptiveLearning";
 import { dateInDays, localDateStr, parseLocalDate } from "./date";
+import { fenceUntrusted } from "./actionTags";
 
 /* --- Model constants ---------------------------------------------------
  *
@@ -566,4 +567,87 @@ export function forecast(input: TrajectoryInput): TrajectoryForecast {
     verdict,
     topics,
   };
+}
+
+/* --- Rendering the forecast for a prompt --------------------------------- */
+
+/** How many topics the hour-value block carries. The same budget reasoning as
+ *  `MAX_PROMPT_MISCONCEPTIONS`: past roughly half a dozen a model stops
+ *  treating any single line as a ranking and starts treating it as a list. */
+export const MAX_PROMPT_INTERVENTIONS = 6;
+
+/** Below this a topic is not worth a block of anyone's week, and saying so is
+ *  the honest half of a ranking: a planner that fills seven days regardless of
+ *  value is the thing this block exists to replace. */
+const MIN_WORTHWHILE_POINTS_PER_HOUR = 0.1;
+
+const VERDICT_NOTE: Record<Verdict, string> = {
+  "on-track":
+    "the hours they already have are enough to hit the target, so the plan should protect what is solid rather than pile on more",
+  close:
+    "the target is inside the confidence band — the plan decides this one, so spend the week where the points are",
+  "at-risk":
+    "the hours they have are not currently enough; every block must be spent on the highest-value topic available",
+  "not-enough-time":
+    "the target is not reachable in the time left even at full capacity. Do not pretend otherwise: plan for the best achievable score, and say what is being given up",
+};
+
+/**
+ * The forecast, rendered for a planner.
+ *
+ * Every other block in a plan prompt describes the student's *state*: what
+ * they got wrong, what they scored, when they are free. This one describes
+ * consequences — what an hour on each topic is actually worth in marks — and
+ * it is the only block that can tell a model to *not* schedule something.
+ *
+ * That is the whole argument for this app over a chatbot with a calendar. Any
+ * model can list a student's weak topics and spread them across seven days.
+ * Ranking them by expected grade gain needs a memory model per topic and a
+ * real count of the hours left, and the numbers below are the output of both.
+ *
+ * Topic labels are deck and folder names — student-authored text — so the
+ * block is fenced like every other untrusted interpolation in a prompt.
+ */
+export function formatTrajectoryForPrompt(
+  forecast: TrajectoryForecast | null,
+): string {
+  if (!forecast) return "";
+
+  const worthwhile = forecast.interventions
+    .filter((i) => i.pointsPerHour >= MIN_WORTHWHILE_POINTS_PER_HOUR)
+    .slice(0, MAX_PROMPT_INTERVENTIONS);
+
+  const header = `WHAT THE NEXT HOUR IS WORTH (this app's own forecast for ${fenceUntrusted(forecast.examName)} on ${forecast.examDate}, ${forecast.daysRemaining} days away):`;
+
+  if (worthwhile.length === 0) {
+    return [
+      header,
+      "- Not enough memory data yet to rank topics by value. Do not invent point values; schedule from the other blocks and include a quiz or a first pass over untested material so the next forecast has something to measure.",
+    ].join("\n");
+  }
+
+  const lines = worthwhile.map((i) => {
+    const state = i.atRisk
+      ? "fading — they knew this and are losing it, so it needs revisiting, not re-teaching"
+      : `at ${Math.round(i.mastery * 100)}% mastery`;
+    return `- ${fenceUntrusted(i.label)}: ${i.pointsPerHour.toFixed(1)} marks per hour (${state})`;
+  });
+
+  const best = worthwhile[0];
+  const worst = worthwhile[worthwhile.length - 1];
+  const ratio =
+    worst.pointsPerHour > 0 ? best.pointsPerHour / worst.pointsPerHour : 0;
+
+  return [
+    header,
+    ...lines,
+    "",
+    `Projected on the current hours: ${Math.round(forecast.projectedScore)}%. If they do nothing more: ${Math.round(forecast.driftScore)}%. Target: ${forecast.targetScore}%.`,
+    `Verdict: ${VERDICT_NOTE[forecast.verdict]}.`,
+    ratio >= 2
+      ? `An hour on ${fenceUntrusted(best.label)} is worth ${ratio.toFixed(1)}× an hour on ${fenceUntrusted(worst.label)}. That gap is the point of this block: equal time across topics is the wrong plan.`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
