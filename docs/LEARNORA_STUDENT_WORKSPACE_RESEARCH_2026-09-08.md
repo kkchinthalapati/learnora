@@ -39,6 +39,9 @@ The rule is that intelligence must be inspectable. A recommendation should say w
 - Default Create opens directly at **What do you want to learn?** with one source picker and clear generation progress.
 - Topic-only creation states that it may use general knowledge and can be wrong. YouTube continues to disclose that a pasted link is not transcript-grounded.
 - The dashboard's default Focus view surfaces recent notebooks. The trajectory recommendation moves to Insights and replaces “marks an hour” with a defensible next action, evidence copy, projected range and low-confidence state.
+- Secondary destinations such as AI Tutor, Analytics, Settings, Friends and the Feynman/debugger hubs load on demand. This removes their code from the shared startup path and eliminates the duplicate eager/lazy sparring import.
+
+The measured production output changed from 1,040.99 kB to 805.95 kB for the main minified JavaScript chunk (312.80 kB to 246.76 kB gzip), and from 333.79 kB to 238.50 kB for the main CSS chunk. Route-level features now ship as separate chunks when opened.
 
 ## Product guardrails
 

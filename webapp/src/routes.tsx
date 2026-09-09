@@ -26,21 +26,13 @@ import {
   ContactView,
   DevelopersView,
 } from "./views/marketing/MarketingPages";
-import { SettingsView } from "./views/settings/SettingsView";
 import { TasksView } from "./views/tasks/TasksView";
 import { ExamsView } from "./views/exams/ExamsView";
 import { TimerView } from "./views/timer/TimerView";
 import { LibraryView } from "./views/library/LibraryView";
 import { DashboardView } from "./views/dashboard/DashboardView";
 import { PlanView } from "./views/plan/PlanView";
-import { FriendsView } from "./views/friends/FriendsView";
-import { FriendInviteLanding } from "./views/friends/FriendInviteLanding";
-import { StudyAnalyticsView } from "./views/analytics/StudyAnalyticsView";
-import { CognitiveDebuggerView } from "./views/debugger/CognitiveDebuggerView";
-import { FeynmanHubView } from "./views/feynman/FeynmanHubView";
 import { NotFoundView } from "./views/not-found/NotFoundView";
-import { StudyLabView } from "./views/study-lab/StudyLabView";
-import { AiTutorView } from "./views/ai-tutor/AiTutorView";
 import { Skeleton } from "./components/Skeleton";
 import styles from "./routes.module.css";
 
@@ -107,6 +99,33 @@ const LazyWelcomeToProView = lazy(async () => ({
    subject, so it has no business in the bundle everyone else downloads. */
 const LazyWelcomeView = lazy(async () => ({
   default: (await import("./views/onboarding/WelcomeView")).WelcomeView,
+}));
+const LazySettingsView = lazy(async () => ({
+  default: (await import("./views/settings/SettingsView")).SettingsView,
+}));
+const LazyFriendsView = lazy(async () => ({
+  default: (await import("./views/friends/FriendsView")).FriendsView,
+}));
+const LazyFriendInviteLanding = lazy(async () => ({
+  default: (await import("./views/friends/FriendInviteLanding"))
+    .FriendInviteLanding,
+}));
+const LazyStudyAnalyticsView = lazy(async () => ({
+  default: (await import("./views/analytics/StudyAnalyticsView"))
+    .StudyAnalyticsView,
+}));
+const LazyCognitiveDebuggerView = lazy(async () => ({
+  default: (await import("./views/debugger/CognitiveDebuggerView"))
+    .CognitiveDebuggerView,
+}));
+const LazyFeynmanHubView = lazy(async () => ({
+  default: (await import("./views/feynman/FeynmanHubView")).FeynmanHubView,
+}));
+const LazyStudyLabView = lazy(async () => ({
+  default: (await import("./views/study-lab/StudyLabView")).StudyLabView,
+}));
+const LazyAiTutorView = lazy(async () => ({
+  default: (await import("./views/ai-tutor/AiTutorView")).AiTutorView,
 }));
 
 /* The fallback covers the seven heaviest screens — quiz runner, review,
@@ -214,7 +233,14 @@ export function AppRoutes() {
               }
             />
             <Route path="/plan" element={<PlanView />} />
-            <Route path="/study-lab" element={<StudyLabView />} />
+            <Route
+              path="/study-lab"
+              element={
+                <DeferredView>
+                  <LazyStudyLabView />
+                </DeferredView>
+              }
+            />
             <Route
               path="/my-week"
               element={
@@ -263,7 +289,14 @@ export function AppRoutes() {
                 </DeferredView>
               }
             />
-            <Route path="/friends" element={<FriendsView />} />
+            <Route
+              path="/friends"
+              element={
+                <DeferredView>
+                  <LazyFriendsView />
+                </DeferredView>
+              }
+            />
             <Route
               path="/room"
               element={
@@ -280,7 +313,14 @@ export function AppRoutes() {
                 </DeferredView>
               }
             />
-            <Route path="/analytics" element={<StudyAnalyticsView />} />
+            <Route
+              path="/analytics"
+              element={
+                <DeferredView>
+                  <LazyStudyAnalyticsView />
+                </DeferredView>
+              }
+            />
             <Route
               path="/trajectory"
               element={
@@ -289,10 +329,38 @@ export function AppRoutes() {
                 </DeferredView>
               }
             />
-            <Route path="/ai-tutor" element={<AiTutorView />} />
-            <Route path="/ai-tutor/:mode" element={<AiTutorView />} />
-            <Route path="/solver" element={<CognitiveDebuggerView />} />
-            <Route path="/debugger" element={<CognitiveDebuggerView />} />
+            <Route
+              path="/ai-tutor"
+              element={
+                <DeferredView>
+                  <LazyAiTutorView />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/ai-tutor/:mode"
+              element={
+                <DeferredView>
+                  <LazyAiTutorView />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/solver"
+              element={
+                <DeferredView>
+                  <LazyCognitiveDebuggerView />
+                </DeferredView>
+              }
+            />
+            <Route
+              path="/debugger"
+              element={
+                <DeferredView>
+                  <LazyCognitiveDebuggerView />
+                </DeferredView>
+              }
+            />
             <Route
               path="/exam-traps"
               element={<Navigate to="/ai-tutor" replace />}
@@ -317,7 +385,14 @@ export function AppRoutes() {
               path="/premortem/radar"
               element={<Navigate to="/ai-tutor" replace />}
             />
-            <Route path="/feynman" element={<FeynmanHubView />} />
+            <Route
+              path="/feynman"
+              element={
+                <DeferredView>
+                  <LazyFeynmanHubView />
+                </DeferredView>
+              }
+            />
             <Route
               path="/feynman/studio"
               element={
@@ -379,9 +454,20 @@ export function AppRoutes() {
               `state: { from }` redirect and lands back here after login. */}
             <Route
               path="/friends/add/:code"
-              element={<FriendInviteLanding />}
+              element={
+                <DeferredView>
+                  <LazyFriendInviteLanding />
+                </DeferredView>
+              }
             />
-            <Route path="/settings" element={<SettingsView />} />
+            <Route
+              path="/settings"
+              element={
+                <DeferredView>
+                  <LazySettingsView />
+                </DeferredView>
+              }
+            />
             <Route
               path="/welcome-pro"
               element={
