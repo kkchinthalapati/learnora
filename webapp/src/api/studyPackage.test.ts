@@ -241,7 +241,9 @@ describe("createStudyPackage", () => {
       quiz: json(QUESTIONS),
     });
 
-    const result = await request();
+    const result = await request({
+      outputs: { flashcards: true, quiz: true, notes: true },
+    });
 
     expect(result.failures).toEqual([]);
     expect(result.material?.id).toBe("mat-1");
@@ -255,6 +257,19 @@ describe("createStudyPackage", () => {
     expect(inserted.flashcard_decks[0].folder_id).toBe("folder-1");
     expect(inserted.quizzes[0].folder_id).toBe("folder-1");
     expect(inserted.quizzes[0].material_id).toBe("mat-1");
+  });
+
+  it("uses generated text transiently when Summary Notes is deselected", async () => {
+    serveEdge({ notes: text(NOTES_MARKDOWN), flashcards: json(CARDS) });
+
+    const result = await request({
+      outputs: { flashcards: true, notes: false },
+    });
+
+    expect(result.deck?.id).toBe("deck-1");
+    expect(result.notes).toBeNull();
+    expect(inserted.notes).toBeUndefined();
+    expect(promptFor("flashcards")).toContain("## Photosynthesis");
   });
 
   /* The whole reason notes come first: a 40-page PDF is uploaded once, and
@@ -540,6 +555,21 @@ describe("createStudyPackage", () => {
   });
 
   describe("a topic source", () => {
+    it("creates and persists Summary Notes when they are selected", async () => {
+      serveEdge({ notes: text(NOTES_MARKDOWN) });
+
+      const result = await request({
+        source: { kind: "topic", topic: "Ionic bonding" },
+        folderId: null,
+        outputs: { notes: true },
+      });
+
+      expect(edgeCalls.map((c) => c.mode)).toEqual(["notes"]);
+      expect(result.material?.id).toBe("mat-1");
+      expect(result.notes).toBe(NOTES_MARKDOWN);
+      expect(inserted.notes[0].material_id).toBe("mat-1");
+    });
+
     it("generates from the topic line alone, with no material and no folder", async () => {
       serveEdge({ quiz: json(QUESTIONS) });
 

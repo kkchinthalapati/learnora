@@ -156,10 +156,15 @@ export async function generateNotes({
   material,
   source,
   settings,
+  persist = true,
 }: {
   material: Material;
   source: NotesSource;
   settings: Settings;
+  /** Derived outputs may need a textual intermediary even when the student
+   * did not select Summary Notes. In that case, do not file that intermediary
+   * as a user-visible note. */
+  persist?: boolean;
 }): Promise<string> {
   let inlineText: string | null = null;
   let attachment: FilePayload | null = null;
@@ -204,7 +209,7 @@ export async function generateNotes({
   const markdown = text.trim();
   if (markdown.length < MIN_NOTES_CHARS) throw new NotesShapeError();
 
-  await notesApi.add(material.id, markdown);
+  if (persist) await notesApi.add(material.id, markdown);
   return markdown;
 }
 
@@ -394,6 +399,11 @@ export async function createStudyPackage(
 ): Promise<StudyPackageResult> {
   const { source, settings } = request;
   const outputs = request.outputs ?? {};
+  // Existing non-topic API callers historically received notes by default;
+  // an explicit false is the opt-out. Topic creation is newer and only files
+  // a material when Summary Notes was explicitly requested.
+  const wantsNotes =
+    source.kind === "topic" ? outputs.notes === true : outputs.notes !== false;
   const options = { ...CREATE_DEFAULTS, ...(request.options ?? {}) };
   const result: StudyPackageResult = {
     material: null,
@@ -493,19 +503,22 @@ export async function createStudyPackage(
 
     // Always generated for new material — see the primitive's header.
     step("Reading your material and writing notes…");
+    let generatedNotes: string;
     try {
-      result.notes = await generateNotes({
+      generatedNotes = await generateNotes({
         material: result.material,
         source: notesSource,
         settings,
+        persist: wantsNotes,
       });
+      if (wantsNotes) result.notes = generatedNotes;
     } catch (err) {
       /* Without notes there is nothing for a deck or quiz to read, so stop
          here rather than firing two more calls that are certain to fail. */
       fail("notes", err);
       return result;
     }
-    sourceText = fenceUntrusted(result.notes.substring(0, MAX_SOURCE_CHARS));
+    sourceText = fenceUntrusted(generatedNotes.substring(0, MAX_SOURCE_CHARS));
   } else if (source.kind === "material") {
     const material = await materialsApi.fetchById(source.materialId);
     if (!material) throw new Error("That material could not be found.");
@@ -573,9 +586,29 @@ export async function createStudyPackage(
     if (!trimmed) throw new Error("Please enter a topic.");
     baseTitle = baseTitle || trimmed;
     topic = trimmed;
-    // A topic-only source has no notes document, so the topic line is itself
-    // the material the deck and quiz are built from.
-    sourceText = `Topic: ${fenceUntrusted(trimmed)}`;
+    if (wantsNotes) {
+      step("Writing summary notes…");
+      result.material = await materialsApi.addLink(
+        trimmed,
+        folderId,
+        baseTitle,
+      );
+      try {
+        result.notes = await generateNotes({
+          material: result.material,
+          source: { inlineText: `Topic: ${trimmed}` },
+          settings,
+        });
+      } catch (err) {
+        fail("notes", err);
+        return result;
+      }
+      sourceText = fenceUntrusted(result.notes.substring(0, MAX_SOURCE_CHARS));
+    } else {
+      // A topic-only source has no notes document, so the topic line is itself
+      // the material the deck and quiz are built from.
+      sourceText = `Topic: ${fenceUntrusted(trimmed)}`;
+    }
   }
 
   /* ---- Step 2: derive the requested outputs ----------------------------- */

@@ -69,6 +69,34 @@ describe("aiSparring API", () => {
       expect(session.status).toBe("active");
     });
 
+    it("preserves the selected viva role in subject-specific offline openings", async () => {
+      mockedCallEdge.mockRejectedValue(new Error("offline"));
+
+      const examiner = await startSparringSession(
+        "Newton's Third Law",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { vibe: "Tough CBSE Board Examiner" },
+      );
+      const buddy = await startSparringSession(
+        "Photosynthesis",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { vibe: "Chill Study Buddy" },
+      );
+
+      expect(examiner.currentChallenge.speaker).toBe("jordan");
+      expect(examiner.currentChallenge.speechText).toContain("Formal viva");
+      expect(buddy.currentChallenge.speaker).toBe("alex");
+      expect(buddy.currentChallenge.speechText).toContain(
+        "work through this together",
+      );
+    });
+
     it("aims the opening round with the student's measured performance", async () => {
       mockedCallEdge.mockResolvedValueOnce({
         text: JSON.stringify({

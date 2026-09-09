@@ -65,7 +65,8 @@ export const VIVA_ROLES: VivaRolePreset[] = [
     id: "examiner",
     title: "Tough CBSE Board Examiner",
     icon: "📋",
-    description: "Strict & formal. Demands exact NCERT terms, formulas, and rigorous step-by-step logic.",
+    description:
+      "Strict & formal. Demands exact NCERT terms, formulas, and rigorous step-by-step logic.",
     promptInstruction:
       "Act as a tough CBSE Board viva examiner. Demand exact terminology, definitions, formulas, and precise scientific boundaries. Do not accept hand-waving or casual approximations.",
     defaultSpeaker: "jordan",
@@ -74,7 +75,8 @@ export const VIVA_ROLES: VivaRolePreset[] = [
     id: "buddy",
     title: "Chill Study Buddy",
     icon: "☕",
-    description: "Relaxed & supportive. Explains with intuitive real-world analogies and friendly banter.",
+    description:
+      "Relaxed & supportive. Explains with intuitive real-world analogies and friendly banter.",
     promptInstruction:
       "Act as a relaxed, friendly peer study buddy. Use simple analogies, encouraging words, and conversational casual English to help test understanding without intimidation.",
     defaultSpeaker: "alex",
@@ -83,7 +85,8 @@ export const VIVA_ROLES: VivaRolePreset[] = [
     id: "socratic",
     title: "Socratic Challenger",
     icon: "🏛️",
-    description: "Questions every premise. Probes deeper into first principles and foundational causes.",
+    description:
+      "Questions every premise. Probes deeper into first principles and foundational causes.",
     promptInstruction:
       "Act as a deep Socratic challenger. Question basic assumptions, ask 'why does that hold?', and push the student to derive truths from first principles.",
     defaultSpeaker: "jordan",
@@ -92,7 +95,8 @@ export const VIVA_ROLES: VivaRolePreset[] = [
     id: "quizzer",
     title: "Rapid-Fire Viva Quizzer",
     icon: "⚡",
-    description: "Punchy, fast-paced questions testing instant recall, unit formulas, and speed.",
+    description:
+      "Punchy, fast-paced questions testing instant recall, unit formulas, and speed.",
     promptInstruction:
       "Act as a rapid-fire viva quizzer. Ask concise, rapid-fire questions testing immediate recall, key formulas, units, and quick deductions.",
     defaultSpeaker: "alex",
@@ -129,7 +133,8 @@ export const VIVA_FOCUS_GOALS: VivaFocusGoalPreset[] = [
     id: "comprehensive",
     title: "Comprehensive viva practice",
     icon: "🎯",
-    description: "Balanced mix of fundamentals, formulas, and critical thinking",
+    description:
+      "Balanced mix of fundamentals, formulas, and critical thinking",
   },
 ];
 
@@ -247,7 +252,11 @@ function generateOfflineOpening(
 ): SparringRound {
   const t = topic.toLowerCase();
   const v = (vibe || "").toLowerCase();
-  let speaker: SparringPersona = v.includes("examiner") || v.includes("socratic") ? "jordan" : "alex";
+  const isExaminer = v.includes("examiner");
+  const isQuizzer = v.includes("quizzer") || v.includes("rapid");
+  const isChill = v.includes("chill") || v.includes("study buddy");
+  let speaker: SparringPersona =
+    isExaminer || v.includes("socratic") ? "jordan" : "alex";
   let speechText = "";
   let conceptAnchor = "";
   let suggestedHints = [
@@ -266,7 +275,6 @@ function generateOfflineOpening(
     t.includes("momentum") ||
     t.includes("physics")
   ) {
-    speaker = "alex";
     conceptAnchor = "Action-Reaction & System Boundaries";
     speechText =
       "I've been thinking about this: if Newton's Third Law says every action has an equal and opposite reaction, why doesn't every single force just cancel out? How does anything ever accelerate?";
@@ -281,7 +289,6 @@ function generateOfflineOpening(
     t.includes("cell") ||
     t.includes("bio")
   ) {
-    speaker = "jordan";
     conceptAnchor = "Cellular Bioenergetics";
     speechText =
       "Everyone says plants produce oxygen for animals through photosynthesis, but aren't plants running aerobic cellular respiration 24/7 anyway? Doesn't that make their net oxygen contribution basically wash out?";
@@ -296,7 +303,6 @@ function generateOfflineOpening(
     t.includes("inflation") ||
     t.includes("money")
   ) {
-    speaker = "jordan";
     conceptAnchor = "Monetary & Supply Dynamics";
     speechText =
       "If lowering interest rates encourages investment and creates jobs, why wouldn't central banks simply keep rates near zero permanently? What is the breaking point?";
@@ -317,6 +323,18 @@ function generateOfflineOpening(
     speaker = "alex";
     conceptAnchor = `Core Foundations of ${topic}`;
     speechText = `I'm trying to wrap my head around ${topic}. If you had to explain the single most crucial mechanism behind it without using any technical jargon, how would you convince me it actually works?`;
+  }
+
+  // Keep the subject-specific challenge, but deliver it in the selected role
+  // instead of silently reverting to the old fixed persona when offline.
+  if (isExaminer) {
+    speechText = `Formal viva question: ${speechText} Define your terms precisely and justify each step.`;
+  } else if (isQuizzer) {
+    speaker = "alex";
+    speechText = `Rapid-fire question 1! ${speechText} Keep your answer concise.`;
+  } else if (isChill) {
+    speaker = "alex";
+    speechText = `Let's work through this together. ${speechText}`;
   }
 
   const citations = extractCitationsFromNotes(notesContext, topic);
@@ -519,7 +537,12 @@ Respond ONLY with valid JSON in this exact schema:
     };
   } catch {
     // Graceful offline fallback
-    initialRound = generateOfflineOpening(cleanTopic, notesContext, vibe, focusGoal);
+    initialRound = generateOfflineOpening(
+      cleanTopic,
+      notesContext,
+      vibe,
+      focusGoal,
+    );
   }
 
   const initialEntry: SparringDialogueEntry = {

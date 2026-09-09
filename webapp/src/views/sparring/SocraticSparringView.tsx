@@ -153,7 +153,14 @@ export function SocraticSparringView() {
         },
       });
     },
-    [autoPlayAudio, isCallPaused, isSttSupported, resetTranscript, speak, startListening],
+    [
+      autoPlayAudio,
+      isCallPaused,
+      isSttSupported,
+      resetTranscript,
+      speak,
+      startListening,
+    ],
   );
 
   // Scroll to bottom on new dialogue entry
@@ -181,7 +188,9 @@ export function SocraticSparringView() {
       : activeRolePreset?.title || "Tough CBSE Board Examiner";
 
   // Determine active goal text
-  const activeGoalPreset = VIVA_FOCUS_GOALS.find((g) => g.id === selectedGoalId);
+  const activeGoalPreset = VIVA_FOCUS_GOALS.find(
+    (g) => g.id === selectedGoalId,
+  );
   const activeFocusGoal =
     selectedGoalId === "custom"
       ? customGoalText.trim() || "General Conceptual Viva"
@@ -277,13 +286,9 @@ export function SocraticSparringView() {
     resetTranscript();
 
     try {
-      const notesContext =
-        linkedNotebook?.notes ||
-        (selectedNotebookId
-          ? notebooks.find((n) => n.id === selectedNotebookId)?.notes
-          : undefined) ||
-        pastedNotes.trim() ||
-        undefined;
+      // The session stores the exact combined context used for its opening,
+      // including both a notebook and any pasted notes.
+      const notesContext = session.notesContext;
 
       const result = await submitStudentAnswer(session, answer, notesContext);
       setSession(result.session);
@@ -413,8 +418,8 @@ export function SocraticSparringView() {
             </span>
             <h1 className={styles.pageTitle}>Oral Exam & Viva Practice</h1>
             <p className={styles.pageSubtitle}>
-              Defend a topic against oral exam questions and viva counterexamples.
-              Speak or type; voice is optional.
+              Defend a topic against oral exam questions and viva
+              counterexamples. Speak or type; voice is optional.
             </p>
           </div>
 
@@ -573,7 +578,8 @@ export function SocraticSparringView() {
                 <span className={styles.vibeCardIcon}>✨</span>
                 <span className={styles.vibeCardTitle}>Custom Persona</span>
                 <p className={styles.vibeCardDesc}>
-                  Enter any custom role (e.g. Oxford Professor, Tech Interviewer).
+                  Enter any custom role (e.g. Oxford Professor, Tech
+                  Interviewer).
                 </p>
               </button>
             </div>
@@ -649,7 +655,10 @@ export function SocraticSparringView() {
               className={styles.notesToggleBtn}
               onClick={() => setShowNotesInput((prev) => !prev)}
             >
-              <Icon name={showNotesInput ? "chevron-up" : "chevron-down"} size={14} />
+              <Icon
+                name={showNotesInput ? "chevron-up" : "chevron-down"}
+                size={14}
+              />
               <span>
                 {showNotesInput
                   ? "Hide pasted notes context"
@@ -754,7 +763,9 @@ export function SocraticSparringView() {
                   onClick={() => setShowTextInput((prev) => !prev)}
                 >
                   <Icon name="message-square" size={14} />
-                  <span>{showTextInput ? "Hide text input" : "Type response"}</span>
+                  <span>
+                    {showTextInput ? "Hide text input" : "Type response"}
+                  </span>
                 </Button>
 
                 <Button
