@@ -5,6 +5,7 @@ import { flashcardsKeys } from "./useFlashcards";
 import { materialsKeys } from "./useMaterials";
 import { notesKeys } from "./useNotes";
 import { quizzesKeys } from "./useQuizzes";
+import { notebooksKeys } from "./useNotebooks";
 
 export const foldersKeys = { all: ["folders"] as const };
 
@@ -40,6 +41,7 @@ export function useDeleteFolder() {
       qc.invalidateQueries({ queryKey: decksKeys.all });
       qc.invalidateQueries({ queryKey: quizzesKeys.all });
       qc.invalidateQueries({ queryKey: notesKeys.all });
+      qc.invalidateQueries({ queryKey: notebooksKeys.all });
       qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
     },
   });

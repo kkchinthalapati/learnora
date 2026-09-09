@@ -67,6 +67,7 @@ export function useNotebooks() {
     createNotebook: (input: {
       title: string;
       subject?: string;
+      folderId?: string | null;
       color?: string;
       description?: string;
     }) => create.mutateAsync(input),

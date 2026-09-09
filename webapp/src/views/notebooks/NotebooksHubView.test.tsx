@@ -17,6 +17,7 @@ const notebookRow = (over: Record<string, unknown> = {}) => ({
   id: "nb-1",
   title: "Grade 9 Mathematics: Geometry & Circle Theorems",
   subject: "Mathematics",
+  folder_id: "folder-1",
   color: "#4A90E2",
   description: "Core theorems and proof strategies.",
   notes: "",
@@ -27,12 +28,17 @@ const notebookRow = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-function serveNotebooks(rows = [notebookRow(), notebookRow({
-  id: "nb-2",
-  title: "A-Level Biology: Cell Structure & Transport",
-  subject: "Biology",
-  color: "#2FBF88",
-})]) {
+function serveNotebooks(
+  rows = [
+    notebookRow(),
+    notebookRow({
+      id: "nb-2",
+      title: "A-Level Biology: Cell Structure & Transport",
+      subject: "Biology",
+      color: "#2FBF88",
+    }),
+  ],
+) {
   server.use(http.get(rest("notebooks"), () => HttpResponse.json(rows)));
 }
 
@@ -91,11 +97,47 @@ describe("NotebooksHubView", () => {
     ).toBeInTheDocument();
   });
 
+  it("files a new notebook under the selected subject folder", async () => {
+    const user = userEvent.setup();
+    const inserts: unknown[] = [];
+    server.use(
+      http.post(rest("notebooks"), async ({ request }) => {
+        const body = await request.json();
+        inserts.push(body);
+        const [row] = body as Array<Record<string, unknown>>;
+        return HttpResponse.json(notebookRow({ id: "nb-new", ...row }));
+      }),
+    );
+    renderHub();
+    await screen.findByText(/Grade 9 Mathematics/);
+
+    await user.click(screen.getByRole("button", { name: /New notebook/i }));
+    await user.type(screen.getByLabelText("Notebook title"), "Cell revision");
+    await user.selectOptions(
+      screen.getByLabelText(/Subject folder/i),
+      "folder-1",
+    );
+    await user.click(screen.getByRole("button", { name: "Create notebook" }));
+
+    await waitFor(() => expect(inserts).toHaveLength(1));
+    expect(inserts).toEqual([
+      expect.arrayContaining([
+        expect.objectContaining({
+          folder_id: "folder-1",
+          subject: "Biology",
+          color: "#4A90E2",
+        }),
+      ]),
+    ]);
+  });
+
   it("shows an empty state when the account has no notebooks", async () => {
     serveNotebooks([]);
     renderHub();
 
-    expect(await screen.findByText(/No study notebooks yet/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/No study notebooks yet/i),
+    ).toBeInTheDocument();
   });
 
   it("opens a notebook on Space without also scrolling the page", async () => {

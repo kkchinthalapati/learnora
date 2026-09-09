@@ -428,7 +428,7 @@ Use British English throughout.`;
     try {
       const deck = await generateDeck({
         sourceText: groundedSourceText(),
-        folderId: null,
+        folderId: notebook.folderId,
         title: `${notebook.title} — Flashcards`,
         count: CREATE_DEFAULTS.cardCount,
         settings,
@@ -459,6 +459,7 @@ Use British English throughout.`;
         sourceText: groundedSourceText(),
         topic: notebook.title,
         title: `${notebook.title} — Quiz`,
+        folderId: notebook.folderId,
         settings,
       });
       showToast("Quiz created from your sources.", {

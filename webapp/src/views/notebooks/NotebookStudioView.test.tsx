@@ -18,6 +18,7 @@ const notebook = {
   id: "nb-1",
   title: "Grade 9 Mathematics: Geometry & Circle Theorems",
   subject: "Mathematics",
+  folder_id: "folder-1",
   color: "#4A90E2",
   description: "Core theorems and proof strategies.",
   notes: "<h2>Circle Theorems Revision</h2>",
@@ -249,6 +250,11 @@ describe("NotebookStudioView", () => {
       await user.click(screen.getByRole("button", { name: /Flashcard Deck/i }));
 
       await waitFor(() => expect(deckInserts).toHaveLength(1));
+      expect(deckInserts).toEqual([
+        expect.arrayContaining([
+          expect.objectContaining({ folder_id: "folder-1" }),
+        ]),
+      ]);
       expect(cardInserts).toHaveLength(1);
       // The stub's only output was an artifact. A real run writes none.
       expect(artifactInserts).toHaveLength(0);
@@ -282,6 +288,11 @@ describe("NotebookStudioView", () => {
       await user.click(screen.getByRole("button", { name: /Practice Quiz/i }));
 
       await waitFor(() => expect(quizInserts).toHaveLength(1));
+      expect(quizInserts).toEqual([
+        expect.arrayContaining([
+          expect.objectContaining({ folder_id: "folder-1" }),
+        ]),
+      ]);
     });
   });
   /* Both AI generators used to answer a failed callEdge by saving a hardcoded
