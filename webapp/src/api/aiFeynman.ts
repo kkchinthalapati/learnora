@@ -6,6 +6,7 @@
 
 import { callEdge } from "./ai";
 import { extractJSON } from "../lib/aiJson";
+import { collection } from "../lib/storage";
 import { fenceUntrusted } from "../lib/actionTags";
 /* Aliased: `Misconception` is already this module's own type for a planted
    draft flaw, which is a different thing from a ledger row. */
@@ -434,65 +435,35 @@ export interface FeynmanSessionState {
 const STORAGE_KEY_SESSIONS = "learnora_feynman_sessions";
 const STORAGE_KEY_ACTIVE_ID = "learnora_feynman_active_id";
 
+const sessionStore = collection<FeynmanSessionState>(
+  STORAGE_KEY_SESSIONS,
+  (session) => session.id,
+);
+
 export function listFeynmanSessions(): FeynmanSessionState[] {
-  if (typeof window === "undefined" || !window.localStorage) return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_SESSIONS);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (err) {
-    console.warn("Failed to load Feynman sessions from localStorage", err);
-    return [];
-  }
+  return sessionStore.list();
 }
 
-export function loadFeynmanSession(sessionId: string): FeynmanSessionState | null {
-  const sessions = listFeynmanSessions();
-  return sessions.find((s) => s.id === sessionId) ?? null;
+export function loadFeynmanSession(
+  sessionId: string,
+): FeynmanSessionState | null {
+  return sessionStore.find(sessionId);
 }
 
 export function saveFeynmanSession(session: FeynmanSessionState): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    const sessions = listFeynmanSessions();
-    const existingIndex = sessions.findIndex((s) => s.id === session.id);
-    const updated = {
-      ...session,
-      updatedAt: new Date().toISOString(),
-    };
-    if (existingIndex >= 0) {
-      sessions[existingIndex] = updated;
-    } else {
-      sessions.unshift(updated);
-    }
-    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
-  } catch (err) {
-    console.warn("Failed to save Feynman session to localStorage", err);
-  }
+  sessionStore.save({ ...session, updatedAt: new Date().toISOString() });
 }
 
 export function deleteFeynmanSession(sessionId: string): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    const sessions = listFeynmanSessions().filter((s) => s.id !== sessionId);
-    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
-    if (getActiveFeynmanSessionId() === sessionId) {
-      setActiveFeynmanSessionId(null);
-    }
-  } catch (err) {
-    console.warn("Failed to delete Feynman session from localStorage", err);
+  sessionStore.remove(sessionId);
+  if (getActiveFeynmanSessionId() === sessionId) {
+    setActiveFeynmanSessionId(null);
   }
 }
 
 export function clearFeynmanSessions(): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    localStorage.removeItem(STORAGE_KEY_SESSIONS);
-    localStorage.removeItem(STORAGE_KEY_ACTIVE_ID);
-  } catch (err) {
-    console.warn("Failed to clear Feynman sessions", err);
-  }
+  sessionStore.clear();
+  setActiveFeynmanSessionId(null);
 }
 
 export function getActiveFeynmanSessionId(): string | null {

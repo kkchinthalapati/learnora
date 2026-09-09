@@ -1,5 +1,6 @@
 import { callEdge } from "./ai";
 import { extractJSON } from "../lib/aiJson";
+import { collection } from "../lib/storage";
 import type { Settings } from "../lib/settings";
 
 export interface TrapArchetype {
@@ -728,24 +729,15 @@ export function markTrapDisarmed(trapId: string): string[] {
   }
 }
 
+const radarStore = collection<ImmunityRadarRecord>(
+  STORAGE_KEY_RADAR_HISTORY,
+  (record) => record.id,
+);
+
 export function getStoredRadarHistory(): ImmunityRadarRecord[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_RADAR_HISTORY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  return radarStore.list();
 }
 
 export function saveRadarRecord(record: ImmunityRadarRecord): void {
-  try {
-    const history = getStoredRadarHistory();
-    const updated = [
-      record,
-      ...history.filter((r) => r.id !== record.id),
-    ].slice(0, 20);
-    localStorage.setItem(STORAGE_KEY_RADAR_HISTORY, JSON.stringify(updated));
-  } catch (err) {
-    console.warn("[aiExamDeconstructor] Failed to save radar record", err);
-  }
+  radarStore.save(record);
 }
