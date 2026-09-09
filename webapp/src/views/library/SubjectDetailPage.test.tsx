@@ -37,6 +37,16 @@ const biology: Folder = {
   created_at: "2026-03-04T00:00:00.000Z",
 };
 
+/* A second subject, used where a test needs the folder under test to not be
+   the first one the create dialog would default to. */
+const chemistry: Folder = {
+  id: "folder-2",
+  user_id: "user-1",
+  name: "Chemistry",
+  color: "#E24A90",
+  created_at: "2026-03-03T00:00:00.000Z",
+};
+
 function material(overrides: Partial<Material> = {}): Material {
   return {
     id: "mat-1",
@@ -316,19 +326,27 @@ describe("SubjectDetailPage", () => {
 
   it("opens the create dialog with this folder pre-selected", async () => {
     const user = userEvent.setup();
-    serveSubject();
+    /* Biology is deliberately NOT first in the list. MaterialPanel falls back
+       to folders[0] when it is given no folderId, so with Biology first this
+       assertion passes whether or not the page actually passes its folder
+       through — which is how it survived the create-dialog rewrite asserting
+       a heading and a landmark that no longer exist. */
+    serveSubject({ folders: [chemistry, biology] });
     renderSubject();
 
     await user.click(await screen.findByRole("button", { name: "+ Create" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Build study resources" }),
+      await screen.findByRole("heading", { name: "What do you want to learn?" }),
     ).toBeInTheDocument();
+
+    /* "Pre-selected" means the destination Subject select already holds this
+       page's folder, so the student never re-picks the subject they are
+       already looking at. Asserted on the select's value rather than on rendered
+       text: the folder name also appears in the page behind the modal, so a
+       plain getByText("Biology") passes whether or not the wiring works. */
     await waitFor(() => {
-      const summary = screen.getByRole("complementary", {
-        name: "Creation summary",
-      });
-      expect(within(summary).getByText("Biology")).toBeInTheDocument();
+      expect(screen.getByLabelText("Subject")).toHaveValue("folder-1");
     });
   });
 
