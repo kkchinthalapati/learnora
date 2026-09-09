@@ -212,3 +212,20 @@ button.secondaryLink {
   font-family: inherit;
   font-size: inherit;
 }
+
+/* The topic carried in from a flashcard's "Open in AI Tutor" or the notes
+   sidebar. Sits between the hero and the menu so it reads as context for the
+   choice below it rather than as a separate card. */
+.activeTopic {
+  margin: 0 0 var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.activeTopic strong {
+  color: var(--text);
+}

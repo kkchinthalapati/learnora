@@ -15,6 +15,7 @@ Statuses: **open** (in progress) · **done** · **descoped** (with reason).
 | 5 | S1B4 — orphaned decks | — | **Descoped into Stage 4.** `handleCreateDeckFromArtifact` files decks with `folder_id: null`, and the plan called for passing "the real scope". There is no scope to pass: `notebooks` has no `folder_id` column until Stage 4's migration adds one, and a notebook's `subject` is free text, not a folder reference. Guessing a folder from the subject string would file decks under the wrong subject, which is worse than leaving them unfiled. Stage 4's backfill files these decks via the per-user "Unfiled sources" notebook. | n/a — no code change | descoped |
 | 6 | S1B5 — repoint dead CTAs | `views/study-lab/StudyLabView.tsx`, `views/library/SubjectDetailPage.tsx`, `views/pro-welcome/WelcomeToProView.tsx` | Three live CTAs pointed at redirect-only paths. Study Lab's "Set up a stress test" and the subject page's trap button went to `/premortem`, which `<Navigate>`s to `/ai-tutor` — a screen with no trap practice on it. Pro Welcome's "Open notebooks" went to `/notebooks`, which redirects to `/library`. Repointed to `/exam-detective` and `/library`. Study Lab's supporting copy drew a distinction between this link and "Exam Trap Practice" that no longer exists now both are the same destination, so it was rewritten to describe what Exam Detective actually offers. `handleLaunchPreMortem` renamed to `handleLaunchExamDetective`. | `npx vitest run` → **205/205 files, 2593/2593 passed**. `npm run build` → **✓ built in 1.34s**. | done |
 | 7 | S2B1 — merge Pre-Mortem into Exam Detective | **new** `views/exam-detective/SubjectPicker.tsx`; `views/exam-detective/ExamDetectiveHubView.tsx` + test; `examDetective.module.css`; `routes.tsx`; `routes.test.tsx`; `styles/drift.baseline.json`; **deleted** `views/premortem/` (4 components, 4 CSS modules, 4 test files) and `api/aiPreMortem.ts` | Ported the one piece genuinely worth keeping. Exam Detective hardcoded `subject = "Calculus & STEM"` and offered a `<select>` of five generic strings unrelated to anything the student had told the app — the "chatbot with a logo" failure its own `FEATURE_AUDIT.md` names. `SubjectPicker` sources the subject from the student's exams, then their subject folders, then free text, and consumes the `CognitiveBridge` payload that `SubjectDetailPage` has been writing to nobody (row 6). **Did not** port Pre-Mortem's radar: `ImmunityRadarRecord` already carries timestamp, subject and per-category scores, so exam-detective's data model was already as rich — re-rendering it a second way is churn, not value. Added guards so an empty subject cannot generate a sprint or deconstruction. | `npx vitest run` → **201/201 files, 2570/2570 passed** (4 dead premortem suites removed). `npm run build` → **✓ built in 1.30s**. New tests assert the picker lists the student's own exam and folder, excludes the canned "Calculus & STEM", and opens on a bridged subject. | done |
+| 8 | S2B2 — one canonical URL per tool | `routes.tsx`, **new** `routeIntegrity.test.ts`, `lib/sectionLabel.ts` + test, `lib/cognitiveBridge.ts` + test, `components/Sidebar.tsx` + test, `components/ai/CognitiveCrossLinkBar.tsx`, `components/command/CommandPalette.tsx`, `views/study-lab/StudyLabView.tsx` + CSS + test, `views/dashboard/DashboardView.tsx`, `views/library/SubjectDetailPage.tsx`, `views/notes/{NotesAiSidebar,StudyBuddyCard}.tsx`, `views/review/ReviewView.tsx`, `views/notebooks/NotebookStudioView.tsx`, `views/marketing/LandingView.tsx`; **deleted** `views/ai-tutor/`, `views/library/LibraryWorkspaceNav.tsx` + CSS | Each tool answered to three URLs and navigation was split across them — `StudyLabView`'s card linked `/solver` while its own `routeFor` returned `/debugger`. Canonical set is now `/study`, `/solver`, `/feynman`, `/viva`, `/exam-detective`; `/study-lab`, `/debugger`, `/sparring`, `/ai-tutor`, `/premortem`, `/exam-traps` remain as redirects for bookmarks only. Deleted `views/ai-tutor/`, a 272-line wrapper that rendered nothing of its own — it mounted the three tool views inline behind a tab strip, which is why the sidebar offered two entries onto the same three tools. Its `?topic=` deep links (flashcard review, notes sidebar) now reach `/study`, which reads the param and names the topic rather than showing a generic menu. Removed the dead `/feynman/studio` and `ai_tutor` destination. | `npx vitest run` → **201/201 files, 2569/2569 passed**. `npm run build` → **✓ built in 1.36s**. | done |
 
 ### Note on row 2
 
@@ -65,4 +66,22 @@ Still outstanding from this merge: `lib/cognitiveBridge.ts` and
 `components/ai/CognitiveCrossLinkBar.tsx` still declare a `"premortem"` tool in
 their type unions and label maps, and `lib/sectionLabel.ts` still branches on
 `/premortem` and `/exam-traps`. Those are the Stage 2 dead-reference sweep.
+
+### Note on row 8 — the route integrity guard
+
+`src/routeIntegrity.test.ts` is the guard the route table never had. It parses
+every `to=`, `path=` and `navigate()` target in `src/` and asserts three things:
+the canonical tool routes exist, no navigation points at a legacy alias, and
+every link target resolves to a declared route.
+
+It earned its place immediately. Having repointed the call sites I knew about,
+it found seven more — including two I had not seen at all:
+`NotebookStudioView` linking `/sparring?notebookId=…` and `StudyBuddyCard`
+linking `/sparring`. It also flagged the orphaned `LibraryWorkspaceNav`, whose
+two links presented `/library` and `/notebooks` as separate destinations when
+the second redirects to the first; that component had no importers and is
+deleted.
+
+This is the check that would have caught the original defect: `/premortem`
+becoming a redirect while three live CTAs still pointed at it.
 

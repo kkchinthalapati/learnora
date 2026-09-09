@@ -37,8 +37,7 @@ export type PrimaryDestination =
   | "plan"
   | "focus"
   | "progress"
-  | "study_lab"
-  | "ai_tutor";
+  | "study_lab";
 
 export function primaryDestinationForPath(
   pathname: string,
@@ -57,24 +56,17 @@ export function primaryDestinationForPath(
   if (pathname.startsWith("/timer")) return "focus";
   if (pathname.startsWith("/analytics") || pathname.startsWith("/trajectory"))
     return "progress";
-  if (pathname.startsWith("/ai-tutor")) return "ai_tutor";
   if (isStudyLabSection(pathname)) return "study_lab";
   return null;
 }
 
 export function isStudyLabSection(pathname: string): boolean {
-  return [
-    "/study-lab",
-    "/ai-tutor",
-    "/sparring",
-    "/viva",
-    "/debugger",
-    "/solver",
-    "/feynman",
-    "/premortem",
-    "/exam-traps",
-    "/exam-detective",
-  ].some((routePrefix) => pathname.startsWith(routePrefix));
+  /* Canonical routes only. /debugger, /sparring, /premortem, /exam-traps and
+     /ai-tutor are <Navigate> redirects, so the router replaces them before any
+     of this runs — matching on them here could never fire. */
+  return ["/study", "/viva", "/solver", "/feynman", "/exam-detective"].some(
+    (routePrefix) => pathname.startsWith(routePrefix),
+  );
 }
 
 export function isCommunitySection(pathname: string): boolean {
@@ -95,16 +87,11 @@ export function sectionLabel(
      destination had two names depending on where you read it. */
   if (pathname.startsWith("/analytics")) return "Progress";
   if (pathname.startsWith("/trajectory")) return "Trajectory";
-  if (pathname.startsWith("/study-lab")) return "Study Lab";
-  if (pathname.startsWith("/ai-tutor")) return "AI Tutor";
+  if (pathname.startsWith("/study")) return "Study Lab";
   if (pathname.startsWith("/feynman")) return "Explain It Simply";
-  if (pathname.startsWith("/debugger") || pathname.startsWith("/solver"))
-    return "Step-by-Step Solver";
+  if (pathname.startsWith("/solver")) return "Step-by-Step Solver";
   if (pathname.startsWith("/exam-detective")) return "Exam trap practice";
-  if (pathname.startsWith("/premortem") || pathname.startsWith("/exam-traps"))
-    return "Common Exam Traps";
-  if (pathname.startsWith("/sparring") || pathname.startsWith("/viva"))
-    return "Viva / Test Practice";
+  if (pathname.startsWith("/viva")) return "Viva / Test Practice";
   if (pathname.startsWith("/my-week")) return "My week";
   if (pathname.startsWith("/plan")) return "This week's plan";
   if (pathname.startsWith("/exams")) return "Exams";
@@ -132,15 +119,9 @@ export function sectionLabel(
  * the view does (these routes, whose heroes carry more than a name). */
 const HERO_ROUTES = [
   "/library",
-  "/notebooks",
-  "/study-lab",
-  "/ai-tutor",
-  "/sparring",
+  "/study",
   "/viva",
   "/feynman",
-  "/premortem",
-  "/exam-traps",
-  "/debugger",
   "/solver",
   "/room",
   "/exam-detective",

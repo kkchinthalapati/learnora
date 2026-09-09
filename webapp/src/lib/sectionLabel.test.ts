@@ -71,9 +71,21 @@ describe("primaryDestinationForPath", () => {
   });
 
   it("groups study tools under Study Lab", () => {
-    expect(primaryDestinationForPath("/debugger")).toBe("study_lab");
-    expect(primaryDestinationForPath("/sparring")).toBe("study_lab");
-    expect(primaryDestinationForPath("/premortem")).toBe("study_lab");
+    expect(primaryDestinationForPath("/study")).toBe("study_lab");
+    expect(primaryDestinationForPath("/solver")).toBe("study_lab");
+    expect(primaryDestinationForPath("/viva")).toBe("study_lab");
+    expect(primaryDestinationForPath("/feynman")).toBe("study_lab");
+    expect(primaryDestinationForPath("/exam-detective")).toBe("study_lab");
+  });
+
+  /* The legacy aliases are <Navigate> redirects: the router replaces them
+     before the shell reads the path, so matching them here would be dead
+     branching that could never fire. */
+  it("does not resolve the legacy aliases, which never render", () => {
+    expect(primaryDestinationForPath("/debugger")).toBeNull();
+    expect(primaryDestinationForPath("/sparring")).toBeNull();
+    expect(primaryDestinationForPath("/premortem")).toBeNull();
+    expect(primaryDestinationForPath("/ai-tutor")).toBeNull();
   });
 
   it("returns no primary destination for secondary community routes", () => {

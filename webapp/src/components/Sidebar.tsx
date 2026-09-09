@@ -79,16 +79,10 @@ const SECTIONS: NavSection[] = [
         destination: "progress",
       },
       {
-        to: "/study-lab",
+        to: "/study",
         icon: "target",
         label: "Study Lab",
         destination: "study_lab",
-      },
-      {
-        to: "/ai-tutor",
-        icon: "sparkles",
-        label: "AI Tutor",
-        destination: "ai_tutor",
       },
     ],
   },

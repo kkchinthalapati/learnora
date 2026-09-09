@@ -150,13 +150,13 @@ export const CognitiveBridge = {
   getTargetRoute(tool: "debugger" | "feynman" | "premortem" | "sparring"): string {
     switch (tool) {
       case "debugger":
-        return "/debugger";
+        return "/solver";
       case "feynman":
         return "/feynman";
       case "premortem":
-        return "/premortem";
+        return "/exam-detective";
       case "sparring":
-        return "/sparring";
+        return "/viva";
       default:
         return "/";
     }

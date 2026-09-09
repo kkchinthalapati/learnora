@@ -94,7 +94,7 @@ describe("Sidebar", () => {
     );
     expect(screen.getByRole("link", { name: "Study Lab" })).toHaveAttribute(
       "href",
-      "/study-lab",
+      "/study",
     );
   });
 

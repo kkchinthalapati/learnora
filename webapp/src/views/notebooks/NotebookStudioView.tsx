@@ -1128,7 +1128,7 @@ Use British English throughout.`;
                 className={styles.toolButton}
                 onClick={() => {
                   void navigate(
-                    `/sparring?notebookId=${encodeURIComponent(notebook.id)}&topic=${encodeURIComponent(notebook.title)}`,
+                    `/viva?notebookId=${encodeURIComponent(notebook.id)}&topic=${encodeURIComponent(notebook.title)}`,
                   );
                 }}
               >

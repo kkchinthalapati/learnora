@@ -145,7 +145,7 @@ export function SubjectDetailPage() {
       sourceTool: "notes",
       suggestedAction: "debug_stack",
     });
-    void navigate("/debugger");
+    void navigate("/solver");
   };
 
   const handleLaunchExamDetective = () => {

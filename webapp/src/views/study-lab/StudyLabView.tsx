@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
@@ -65,7 +65,7 @@ function routeFor(m: Misconception): {
         why: "It has come back after being corrected, so the fastest way through is to try teaching it.",
       }
     : {
-        to: "/debugger",
+        to: "/solver",
         action: "debug_stack",
         why: "Work backwards from it to the idea underneath.",
       };
@@ -74,6 +74,15 @@ function routeFor(m: Misconception): {
 export function StudyLabView() {
   const navigate = useNavigate();
   const { ranked } = useMisconceptions();
+  const [searchParams] = useSearchParams();
+
+  /* Arriving from "Open in AI Tutor" on a flashcard, or the notes sidebar.
+     Those screens used to reach a wrapper that showed the topic in a banner
+     above its tab strip; without this the student lands on a generic menu and
+     has to remember what they were working on. The callers also write the
+     topic to CognitiveBridge, which is what the tools themselves read — this
+     is the visible half of the same handoff. */
+  const activeTopic = searchParams.get("topic")?.trim() || "";
 
   /* The one row worth interrupting the menu for. Showing three would recreate
      the choice this page exists to remove, and showing a list of everything a
@@ -136,6 +145,13 @@ export function StudyLabView() {
             Start on this →
           </button>
         </aside>
+      ) : null}
+
+      {activeTopic ? (
+        <p className={styles.activeTopic}>
+          Working on <strong>{activeTopic}</strong> — pick how you want to
+          practise it.
+        </p>
       ) : null}
 
       <section className={styles.routeGrid} aria-label="Choose a study method">

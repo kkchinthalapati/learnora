@@ -124,9 +124,6 @@ const LazyFeynmanHubView = lazy(async () => ({
 const LazyStudyLabView = lazy(async () => ({
   default: (await import("./views/study-lab/StudyLabView")).StudyLabView,
 }));
-const LazyAiTutorView = lazy(async () => ({
-  default: (await import("./views/ai-tutor/AiTutorView")).AiTutorView,
-}));
 
 /* The fallback covers the seven heaviest screens — quiz runner, review,
    notes, the notebook studio — so it is on screen for a real moment on a slow
@@ -234,13 +231,14 @@ export function AppRoutes() {
             />
             <Route path="/plan" element={<PlanView />} />
             <Route
-              path="/study-lab"
+              path="/study"
               element={
                 <DeferredView>
                   <LazyStudyLabView />
                 </DeferredView>
               }
             />
+            <Route path="/study-lab" element={<Navigate to="/study" replace />} />
             <Route
               path="/my-week"
               element={
@@ -329,21 +327,14 @@ export function AppRoutes() {
                 </DeferredView>
               }
             />
-            <Route
-              path="/ai-tutor"
-              element={
-                <DeferredView>
-                  <LazyAiTutorView />
-                </DeferredView>
-              }
-            />
+            {/* /ai-tutor was a third way to reach tools that already had two
+                each: it rendered no UI of its own, only a tab strip that
+                mounted the Solver, Feynman and Viva views inline. The hub at
+                /study is the single front door now. */}
+            <Route path="/ai-tutor" element={<Navigate to="/study" replace />} />
             <Route
               path="/ai-tutor/:mode"
-              element={
-                <DeferredView>
-                  <LazyAiTutorView />
-                </DeferredView>
-              }
+              element={<Navigate to="/study" replace />}
             />
             <Route
               path="/solver"
@@ -355,11 +346,7 @@ export function AppRoutes() {
             />
             <Route
               path="/debugger"
-              element={
-                <DeferredView>
-                  <LazyCognitiveDebuggerView />
-                </DeferredView>
-              }
+              element={<Navigate to="/solver" replace />}
             />
             <Route
               path="/exam-detective"
@@ -400,14 +387,6 @@ export function AppRoutes() {
               }
             />
             <Route
-              path="/feynman/studio"
-              element={
-                <DeferredView>
-                  <LazyFeynmanStudioView />
-                </DeferredView>
-              }
-            />
-            <Route
               path="/feynman/studio/:sessionId"
               element={
                 <DeferredView>
@@ -439,21 +418,10 @@ export function AppRoutes() {
                 </DeferredView>
               }
             />
-            <Route
-              path="/sparring"
-              element={
-                <DeferredView>
-                  <LazySocraticSparringView />
-                </DeferredView>
-              }
-            />
+            <Route path="/sparring" element={<Navigate to="/viva" replace />} />
             <Route
               path="/sparring/:sessionId"
-              element={
-                <DeferredView>
-                  <LazySocraticSparringView />
-                </DeferredView>
-              }
+              element={<Navigate to="/viva" replace />}
             />
             {/* Inside the guard on purpose: an invite link opened by someone
               who is signed out goes through ProtectedRoute's existing

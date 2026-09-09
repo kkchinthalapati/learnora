@@ -846,7 +846,7 @@ export function SocraticCoachDrawer({
             onClick={() => {
               const topic = card?.front ? card.front.slice(0, 80) : "";
               CognitiveBridge.saveActiveTopic(topic);
-              navigate(`/ai-tutor?topic=${encodeURIComponent(topic)}`);
+              navigate(`/study?topic=${encodeURIComponent(topic)}`);
             }}
           >
             <Icon name="sparkles" size={14} />
@@ -1311,7 +1311,7 @@ function ReviewSession({
               onClick={() => {
                 const topic = card?.front ? card.front.slice(0, 80) : "";
                 CognitiveBridge.saveActiveTopic(topic);
-                navigate(`/ai-tutor?topic=${encodeURIComponent(topic)}`);
+                navigate(`/study?topic=${encodeURIComponent(topic)}`);
               }}
             >
               <Icon name="sparkles" size={16} />

@@ -20,7 +20,7 @@ export function StudyBuddyCard({
   const navigate = useNavigate();
 
   const handleSparringBridge = () => {
-    navigate("/sparring");
+    navigate("/viva");
   };
 
   const handleExamTrickBridge = () => {

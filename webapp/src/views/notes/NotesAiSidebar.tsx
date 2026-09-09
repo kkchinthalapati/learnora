@@ -357,7 +357,7 @@ export function NotesAiSidebar({
           onActivate={() => {
             const topic = materialTitle || "Study Notes";
             CognitiveBridge.saveActiveTopic(topic);
-            navigate(`/ai-tutor?topic=${encodeURIComponent(topic)}`);
+            navigate(`/study?topic=${encodeURIComponent(topic)}`);
           }}
         />
         <QuickActionCard
