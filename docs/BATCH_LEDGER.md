@@ -14,6 +14,7 @@ Statuses: **open** (in progress) · **done** · **descoped** (with reason).
 | 4 | S1B3 — remove fabricated AI fallbacks | `views/notebooks/NotebookStudioView.tsx`, `views/notebooks/NotebookStudioView.test.tsx` | On a failed `callEdge`, `handleGenerateCheatSheet` saved a hardcoded note about congruency conditions and `handleGenerateFeynman` a bicycle-wheel analogy, each toasting "generated and saved". The invented text entered the artifact list attributed to the student's own sources and was indistinguishable from a real result. Both now surface the real error and save nothing. | `npx vitest run` → **205/205 files, 2593/2593 passed**. `grep` for the invented strings in `src/` → no matches. New test asserts a failed generation writes zero `notebook_artifacts` rows and shows an error. | done |
 | 5 | S1B4 — orphaned decks | — | **Descoped into Stage 4.** `handleCreateDeckFromArtifact` files decks with `folder_id: null`, and the plan called for passing "the real scope". There is no scope to pass: `notebooks` has no `folder_id` column until Stage 4's migration adds one, and a notebook's `subject` is free text, not a folder reference. Guessing a folder from the subject string would file decks under the wrong subject, which is worse than leaving them unfiled. Stage 4's backfill files these decks via the per-user "Unfiled sources" notebook. | n/a — no code change | descoped |
 | 6 | S1B5 — repoint dead CTAs | `views/study-lab/StudyLabView.tsx`, `views/library/SubjectDetailPage.tsx`, `views/pro-welcome/WelcomeToProView.tsx` | Three live CTAs pointed at redirect-only paths. Study Lab's "Set up a stress test" and the subject page's trap button went to `/premortem`, which `<Navigate>`s to `/ai-tutor` — a screen with no trap practice on it. Pro Welcome's "Open notebooks" went to `/notebooks`, which redirects to `/library`. Repointed to `/exam-detective` and `/library`. Study Lab's supporting copy drew a distinction between this link and "Exam Trap Practice" that no longer exists now both are the same destination, so it was rewritten to describe what Exam Detective actually offers. `handleLaunchPreMortem` renamed to `handleLaunchExamDetective`. | `npx vitest run` → **205/205 files, 2593/2593 passed**. `npm run build` → **✓ built in 1.34s**. | done |
+| 7 | S2B1 — merge Pre-Mortem into Exam Detective | **new** `views/exam-detective/SubjectPicker.tsx`; `views/exam-detective/ExamDetectiveHubView.tsx` + test; `examDetective.module.css`; `routes.tsx`; `routes.test.tsx`; `styles/drift.baseline.json`; **deleted** `views/premortem/` (4 components, 4 CSS modules, 4 test files) and `api/aiPreMortem.ts` | Ported the one piece genuinely worth keeping. Exam Detective hardcoded `subject = "Calculus & STEM"` and offered a `<select>` of five generic strings unrelated to anything the student had told the app — the "chatbot with a logo" failure its own `FEATURE_AUDIT.md` names. `SubjectPicker` sources the subject from the student's exams, then their subject folders, then free text, and consumes the `CognitiveBridge` payload that `SubjectDetailPage` has been writing to nobody (row 6). **Did not** port Pre-Mortem's radar: `ImmunityRadarRecord` already carries timestamp, subject and per-category scores, so exam-detective's data model was already as rich — re-rendering it a second way is churn, not value. Added guards so an empty subject cannot generate a sprint or deconstruction. | `npx vitest run` → **201/201 files, 2570/2570 passed** (4 dead premortem suites removed). `npm run build` → **✓ built in 1.30s**. New tests assert the picker lists the student's own exam and folder, excludes the canned "Calculus & STEM", and opens on a bridged subject. | done |
 
 ### Note on row 2
 
@@ -52,4 +53,16 @@ payload (`subject`, `suggestedAction: "run_premortem"`) that nothing reads —
 already dropping its subject context before this change; repointing it does not
 fix that. Wiring Exam Detective to the bridge belongs to Stage 2, where the
 Pre-Mortem merge brings in the exam/subject config form that would consume it.
+
+### Note on row 7
+
+`/premortem`, `/premortem/radar`, `/exam-traps` and `/exam-traps/radar` are kept
+as redirects rather than deleted — they now point at `/exam-detective` instead of
+`/ai-tutor`, so an old bookmark reaches the feature it was about. Their previous
+target had no trap practice on it at all.
+
+Still outstanding from this merge: `lib/cognitiveBridge.ts` and
+`components/ai/CognitiveCrossLinkBar.tsx` still declare a `"premortem"` tool in
+their type unions and label maps, and `lib/sectionLabel.ts` still branches on
+`/premortem` and `/exam-traps`. Those are the Stage 2 dead-reference sweep.
 

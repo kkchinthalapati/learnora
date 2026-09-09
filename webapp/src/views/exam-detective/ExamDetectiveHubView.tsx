@@ -17,6 +17,7 @@ import { useSettings } from "../../context/settings";
 import { AhaWalkthroughModal } from "./AhaWalkthroughModal";
 import { ChallengeSprintRunner } from "./ChallengeSprintRunner";
 import { TrapImmunityRadarView } from "./TrapImmunityRadarView";
+import { SubjectPicker, CUSTOM_SUBJECT } from "./SubjectPicker";
 import styles from "./examDetective.module.css";
 
 type ActiveTab = "playbook" | "deconstruct" | "sprint" | "radar";
@@ -26,7 +27,12 @@ export function ExamDetectiveHubView() {
   const { settings } = useSettings();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("playbook");
-  const [subject, setSubject] = useState("Calculus & STEM");
+  /* Seeded empty and filled by SubjectPicker from the student's own exams,
+     folders, or a CognitiveBridge payload — see that component. It used to
+     default to the literal string "Calculus & STEM" for everyone. */
+  const [subject, setSubject] = useState("");
+  const [subjectSelection, setSubjectSelection] =
+    useState<string>(CUSTOM_SUBJECT);
   const [rawTextPayload, setRawTextPayload] = useState("");
   const [isDeconstructing, setIsDeconstructing] = useState(false);
   const [archetypes, setArchetypes] = useState<TrapArchetype[]>(
@@ -52,6 +58,10 @@ export function ExamDetectiveHubView() {
   }, []);
 
   const handleDeconstruct = async () => {
+    if (!subject.trim()) {
+      showToast("Choose or type a subject first.");
+      return;
+    }
     setIsDeconstructing(true);
     try {
       const results = await deconstructExamPaper(
@@ -72,6 +82,12 @@ export function ExamDetectiveHubView() {
   };
 
   const handleStartSprint = async () => {
+    /* The subject is free text now, so it can be empty — generating a sprint
+       on "" produces questions about nothing. */
+    if (!subject.trim()) {
+      showToast("Choose or type a subject first.");
+      return;
+    }
     setIsLoadingSprint(true);
     try {
       const questions = await generateChallengeSprint(
@@ -301,30 +317,13 @@ export function ExamDetectiveHubView() {
           </div>
 
           <div className={styles.inputArea}>
-            <div className={styles.formRow}>
-              <label
-                htmlFor="subject-select"
-                style={{ fontSize: "var(--fs-sm)", fontWeight: 600 }}
-              >
-                Subject:
-              </label>
-              <select
-                id="subject-select"
-                className={styles.selectInput}
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-              >
-                <option value="Calculus & STEM">Calculus & STEM</option>
-                <option value="Computer Science Algorithms">
-                  Computer Science Algorithms
-                </option>
-                <option value="Physics & Mechanics">Physics & Mechanics</option>
-                <option value="Organic Chemistry & Biology">
-                  Organic Chemistry & Biology
-                </option>
-                <option value="Economics & History">Economics & History</option>
-              </select>
-            </div>
+            <SubjectPicker
+              label="Subject"
+              value={subject}
+              onChange={setSubject}
+              selection={subjectSelection}
+              onSelectionChange={setSubjectSelection}
+            />
 
             <textarea
               className={styles.textarea}
@@ -375,21 +374,13 @@ export function ExamDetectiveHubView() {
           </div>
 
           <div className={styles.inputArea}>
-            <div className={styles.formRow}>
-              <label
-                htmlFor="sprint-subject"
-                style={{ fontSize: "var(--fs-sm)", fontWeight: 600 }}
-              >
-                Subject Topic:
-              </label>
-              <input
-                id="sprint-subject"
-                type="text"
-                className={styles.textInput}
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-              />
-            </div>
+            <SubjectPicker
+              label="Subject"
+              value={subject}
+              onChange={setSubject}
+              selection={subjectSelection}
+              onSelectionChange={setSubjectSelection}
+            />
 
             <div className={styles.formRow}>
               <label

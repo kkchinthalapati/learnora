@@ -5,11 +5,16 @@ import { http, HttpResponse } from "msw";
 import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { fakeSession, renderWithAuth } from "../../test/auth";
+import { mockAuthSession } from "../../test/mockSession";
+import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import { ExamDetectiveHubView } from "./ExamDetectiveHubView";
 
 describe("ExamDetectiveHubView", () => {
   beforeEach(() => {
     localStorage.clear();
+    /* The subject picker reads the student's exams and folders, and both
+       queries go through requireUserId(). */
+    mockAuthSession("user-1");
 
     server.use(
       http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () =>
@@ -87,6 +92,12 @@ describe("ExamDetectiveHubView", () => {
     });
     await user.click(sampleBtn);
 
+    /* No canned "Calculus & STEM" default any more: the subject is seeded
+       from the student's own exams, so wait for that before scanning. */
+    await waitFor(() =>
+      expect(screen.getByLabelText("Subject")).not.toHaveValue(""),
+    );
+
     const scanBtn = screen.getByRole("button", {
       name: /Find trap patterns/i,
     });
@@ -161,6 +172,10 @@ describe("ExamDetectiveHubView", () => {
 
     expect(screen.getByText("Practise under pressure")).toBeInTheDocument();
 
+    await waitFor(() =>
+      expect(screen.getByLabelText("Subject")).not.toHaveValue(""),
+    );
+
     const startBtn = screen.getByRole("button", {
       name: /Start practice/i,
     });
@@ -175,5 +190,94 @@ describe("ExamDetectiveHubView", () => {
     expect(
       screen.getByRole("button", { name: /Inspect Bait Clue/i }),
     ).toBeInTheDocument();
+  });
+  /* Exam Detective is one of the four diagnostic tools the product rests on,
+     and it used to open on a hardcoded <select> of five generic strings
+     ("Calculus & STEM", "Economics & History") with no relationship to
+     anything the student had told the app. */
+  describe("subject picker", () => {
+    const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
+
+    it("offers the student's own exams and subjects, not a canned list", async () => {
+      server.use(
+        http.get(rest("exams"), () =>
+          HttpResponse.json([
+            {
+              id: 1,
+              user_id: "user-1",
+              exam_name: "AQA Biology Paper 2",
+              exam_date: "2026-06-01",
+              difficulty: null,
+              status: null,
+            },
+          ]),
+        ),
+        http.get(rest("folders"), () =>
+          HttpResponse.json([
+            {
+              id: "f-1",
+              user_id: "user-1",
+              name: "Organic chemistry",
+              color: "#4A90E2",
+              created_at: "2026-01-01T00:00:00Z",
+            },
+          ]),
+        ),
+      );
+
+      renderWithAuth(
+        <ExamDetectiveHubView />,
+        { session: fakeSession() },
+        { withRouter: true },
+      );
+
+      const user = userEvent.setup();
+      await user.click(
+        await screen.findByRole("button", { name: /^Practice$/i }),
+      );
+
+      expect(
+        await screen.findByRole("option", { name: "AQA Biology Paper 2" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("option", { name: "Organic chemistry" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("option", { name: "Calculus & STEM" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("opens on the subject another screen sent it here about", async () => {
+      /* The subject page's trap button writes this payload. Nothing read it
+         before — ExamDetectiveHubView did not import CognitiveBridge at all —
+         so the subject context was silently dropped on every deep link. */
+      CognitiveBridge.setPayload({
+        subject: "Photosynthesis",
+        topic: "Photosynthesis",
+        sourceTool: "notes",
+        suggestedAction: "run_premortem",
+      });
+      server.use(
+        http.get(rest("exams"), () => HttpResponse.json([])),
+        http.get(rest("folders"), () => HttpResponse.json([])),
+      );
+
+      renderWithAuth(
+        <ExamDetectiveHubView />,
+        { session: fakeSession() },
+        { withRouter: true },
+      );
+
+      const user = userEvent.setup();
+      await user.click(
+        await screen.findByRole("button", { name: /^Practice$/i }),
+      );
+
+      await waitFor(() =>
+        expect(screen.getByLabelText("Which subject?")).toHaveValue(
+          "Photosynthesis",
+        ),
+      );
+    });
   });
 });

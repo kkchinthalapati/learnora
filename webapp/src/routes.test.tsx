@@ -70,12 +70,12 @@ describe("route skeleton", () => {
     "/exam-traps/radar",
     "/premortem",
     "/premortem/radar",
-  ])("%s redirects to /ai-tutor", async (path) => {
+  ])("%s redirects to /exam-detective", async (path) => {
     renderAt(path);
     expect(
       await screen.findByRole(
         "heading",
-        { level: 1, name: "AI Tutor" },
+        { level: 1, name: "Exam trap practice" },
         { timeout: 10000 },
       ),
     ).toBeInTheDocument();
