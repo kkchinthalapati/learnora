@@ -459,7 +459,7 @@ describe("Library — Folders tab", () => {
     );
     expect(
       screen.getByText(
-        /and everything inside it — materials, notes, flashcards, and quizzes — will be permanently deleted/,
+        /and everything inside it — notebooks, materials, notes, flashcards, and quizzes — will be permanently deleted/,
       ),
     ).toBeInTheDocument();
 

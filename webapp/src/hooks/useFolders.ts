@@ -26,11 +26,11 @@ export function useAddFolder() {
   });
 }
 
-/* Deleting a folder cascades in the database: materials, quizzes and
- * flashcard_decks are all ON DELETE CASCADE on folder_id (see
- * supabase/migrations/20260719000000), and a deck takes its flashcards with
- * it. Invalidating only the folder list would leave the Library's other three
- * tabs — and the flashcards due count — showing rows that no longer exist. */
+/* Deleting a folder cascades in the database: notebooks, materials, quizzes
+ * and flashcard_decks are all ON DELETE CASCADE on folder_id (see the
+ * 20260719000000 and 20260909000000 migrations), and their child rows cascade
+ * in turn. Invalidating only the folder list would leave the Library tabs and
+ * flashcards due count showing rows that no longer exist. */
 export function useDeleteFolder() {
   const qc = useQueryClient();
   return useMutation({

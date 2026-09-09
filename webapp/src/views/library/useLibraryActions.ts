@@ -37,7 +37,7 @@ export function useLibraryActions() {
   const removeFolder = useCallback(
     async (id: string, name: string) => {
       const ok = await confirm(
-        `"${name}" and everything inside it — materials, notes, flashcards, and quizzes — will be permanently deleted. Your logged study time for this folder is kept.`,
+        `"${name}" and everything inside it — notebooks, materials, notes, flashcards, and quizzes — will be permanently deleted. Your logged study time for this folder is kept.`,
         { title: "Delete folder?", confirmText: "Delete", danger: true },
       );
       if (!ok) return;
