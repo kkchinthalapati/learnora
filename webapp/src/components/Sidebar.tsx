@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { Icon } from "./Icon";
 import { IconButton } from "./IconButton";
 import { BrandLogo } from "./BrandLogo";
@@ -188,6 +188,7 @@ export function Sidebar({
   onToggleRail: () => void;
 }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const auth = useOptionalAuth();
   const session = auth?.session;
   const { openCreateModal } = useCreateModal();
@@ -260,7 +261,7 @@ export function Sidebar({
         onClick={() => {
           if (!session) {
             onNavigate();
-            window.location.href = "/signup";
+            void navigate("/signup");
             return;
           }
           openCreateModal();

@@ -1,4 +1,5 @@
 import { supabase, SUPABASE_URL } from "../lib/supabase";
+import { appUrl } from "../lib/appUrl";
 
 /* Direct port of js/api.js's `Auth` object (:86-348) — minus `getSession` and
  * `logout`, which Step 4 already ported into `AuthProvider`/`useAuth().signOut`
@@ -27,10 +28,7 @@ const MIN_SIGNUP_AGE = 13;
  * (Authentication → URL Configuration) or Supabase silently falls back to the
  * project's Site URL. That is a dashboard setting, not something this repo can
  * set — see the migration ledger. */
-function authRedirect(path: string): string {
-  const base = import.meta.env.BASE_URL || "/";
-  return `${window.location.origin}${base}${path.replace(/^\//, "")}`;
-}
+const authRedirect = appUrl;
 
 interface AuthErrorLike {
   message?: string;

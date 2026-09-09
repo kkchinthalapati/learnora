@@ -8,6 +8,7 @@ import { useSettings } from "./settings";
 import { useTimerIntervention } from "../hooks/useTimerIntervention";
 import { useFolders } from "../hooks/useFolders";
 import { Storage } from "../lib/storage";
+import { appUrl } from "../lib/appUrl";
 import { recordFocusGoal, saveStudySnapshot } from "../lib/continuity";
 import {
   QUOTES,
@@ -138,8 +139,12 @@ export function TimerProvider({ children }: { children: ReactNode }) {
             "Guest session saved locally! Sign up to sync across devices.",
             {
               actionLabel: "Sign Up",
+              /* A full page load rather than router navigation: TimerProvider
+                 is mounted above <BrowserRouter> (App.tsx), so there is no
+                 navigate() to call here. appUrl applies the deployed path
+                 prefix the router would otherwise have added. */
               onAction: () => {
-                window.location.href = "/signup";
+                window.location.href = appUrl("/signup");
               },
             },
           );

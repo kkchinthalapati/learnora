@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { appUrl } from "../lib/appUrl";
 import { requireUserId } from "./session";
 import type {
   FriendRequest,
@@ -146,12 +147,7 @@ export const friendsApi = {
 
 /* Built from BASE_URL rather than a bare path: this app is served under
  * `/app/` in production (vite.config.ts), so a link written as
- * `${origin}/friends/add/...` would land on the vanilla app's 404. BASE_URL
- * keeps its trailing slash, which is exactly what's wanted here. */
+ * `${origin}/friends/add/...` would land on the vanilla app's 404. */
 export function inviteLinkFor(code: string): string {
-  const origin =
-    typeof window === "undefined"
-      ? ""
-      : window.location.origin.replace(/\/$/, "");
-  return `${origin}${import.meta.env.BASE_URL}friends/add/${code}`;
+  return appUrl(`/friends/add/${code}`);
 }

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Combobox } from "../../components/Combobox";
@@ -88,6 +88,7 @@ function readRecentFocusSessions(): RecentFocusSession[] {
 }
 
 export function TimerView() {
+  const navigate = useNavigate();
   const {
     state,
     draftConfig,
@@ -187,7 +188,7 @@ export function TimerView() {
         {
           actionLabel: "Sign Up",
           onAction: () => {
-            window.location.href = "/signup";
+            void navigate("/signup");
           },
         },
       );
