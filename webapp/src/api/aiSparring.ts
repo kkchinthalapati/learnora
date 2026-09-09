@@ -9,6 +9,7 @@
  */
 
 import { callEdge } from "./ai";
+import { extractJSON } from "../lib/aiJson";
 import type { GroundedCitation } from "../types/notebooks";
 
 export type { GroundedCitation };
@@ -508,12 +509,13 @@ Respond ONLY with valid JSON in this exact schema:
       tool: "sparring",
     });
 
-    const parsed = JSON.parse(res.text) as {
-      speaker?: "alex" | "jordan";
-      speechText?: string;
-      conceptAnchor?: string;
-      suggestedHints?: string[];
-    };
+    const parsed =
+      extractJSON<{
+        speaker?: "alex" | "jordan";
+        speechText?: string;
+        conceptAnchor?: string;
+        suggestedHints?: string[];
+      }>(res.text) ?? {};
 
     const speaker: SparringPersona =
       parsed.speaker === "jordan" ? "jordan" : "alex";
@@ -669,7 +671,23 @@ Respond ONLY with valid JSON in this exact schema:
       tool: "sparring",
     });
 
-    const parsed = JSON.parse(res.text);
+    /* Every field below is read with a fallback, so a reply missing any of
+       them degrades rather than throwing. Spelled out as a type because the
+       old `JSON.parse` returned `any` and type-checked none of this. */
+    const parsed =
+      extractJSON<{
+        clarityScore?: unknown;
+        rigourScore?: unknown;
+        accuracyScore?: unknown;
+        reactionTone?: StudentFeedback["reactionTone"];
+        shortCritique?: string;
+        keyConceptsMastered?: string[];
+        missingPoints?: string[];
+        nextSpeaker?: string;
+        nextSpeechText?: string;
+        nextConceptAnchor?: string;
+        suggestedHints?: string[];
+      }>(res.text) ?? {};
 
     const clarityScore = Math.max(
       0,
@@ -829,7 +847,12 @@ Respond ONLY with JSON:
       history: [{ role: "user", content: prompt }],
       tool: "sparring",
     });
-    const parsed = JSON.parse(res.text);
+    const parsed =
+      extractJSON<{
+        speechText?: string;
+        conceptAnchor?: string;
+        suggestedHints?: string[];
+      }>(res.text) ?? {};
 
     return {
       id: `round-manual-${Date.now()}`,

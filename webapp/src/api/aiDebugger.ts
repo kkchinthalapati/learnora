@@ -1,4 +1,5 @@
 import { callEdge } from "./ai";
+import { extractJSON } from "../lib/aiJson";
 import { misconceptionsApi } from "./misconceptions";
 import {
   formatMisconceptionsForPrompt,
@@ -48,17 +49,6 @@ function generateId(): string {
     return crypto.randomUUID();
   }
   return "tr_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 9);
-}
-
-function sanitizeJSON(str: string): string {
-  return str.replace(/,(\s*[\]}])/g, "$1");
-}
-
-function stripFences(text: string): string {
-  return text
-    .replace(/```json\s*/gi, "")
-    .replace(/```\s*/g, "")
-    .trim();
 }
 
 /** Retrieve all cached cognitive stack traces from local/session storage */
@@ -318,21 +308,8 @@ export async function diagnoseCognitiveGap(
       tool: "debugger",
     });
 
-    const text = stripFences(result.text || "");
-    const sanitized = sanitizeJSON(text);
-
-    let parsed: any;
-    try {
-      parsed = JSON.parse(sanitized);
-    } catch {
-      // If direct parse fails, try extracting first JSON object
-      const match = sanitized.match(/\{[\s\S]*\}/);
-      if (match) {
-        parsed = JSON.parse(sanitizeJSON(match[0]));
-      } else {
-        throw new Error("Could not read the AI's answer");
-      }
-    }
+    const parsed = extractJSON<any>(result.text);
+    if (!parsed) throw new Error("Could not read the AI's answer");
 
     if (parsed && Array.isArray(parsed.layers) && parsed.layers.length > 0) {
       const layers: CognitiveLayer[] = parsed.layers.map((l: any, idx: number) => ({
@@ -387,20 +364,8 @@ export async function generateMicroRepair(rootConcept: string): Promise<MicroRep
       tool: "debugger",
     });
 
-    const text = stripFences(result.text || "");
-    const sanitized = sanitizeJSON(text);
-
-    let parsed: any;
-    try {
-      parsed = JSON.parse(sanitized);
-    } catch {
-      const match = sanitized.match(/\{[\s\S]*\}/);
-      if (match) {
-        parsed = JSON.parse(sanitizeJSON(match[0]));
-      } else {
-        throw new Error("Could not read the AI's answer");
-      }
-    }
+    const parsed = extractJSON<any>(result.text);
+    if (!parsed) throw new Error("Could not read the AI's answer");
 
     if (
       parsed &&

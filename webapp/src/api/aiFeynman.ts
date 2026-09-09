@@ -5,6 +5,7 @@
  */
 
 import { callEdge } from "./ai";
+import { extractJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
 /* Aliased: `Misconception` is already this module's own type for a planted
    draft flaw, which is a different thing from a ledger row. */
@@ -1431,9 +1432,8 @@ Rules:
     });
 
     if (res.text && !res.refused) {
-      const match = res.text.match(/\{[\s\S]*\}/);
-      if (match) {
-        const parsed = JSON.parse(match[0]);
+      const parsed = extractJSON<any>(res.text);
+      if (parsed) {
         if (parsed.draftText && Array.isArray(parsed.hiddenMisconceptions)) {
           return {
             id: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -1570,10 +1570,9 @@ Output valid JSON only, matching this schema:
 
   if (!res.text || res.refused) return null;
 
-  const match = res.text.match(/\{[\s\S]*\}/);
-  if (!match) return null;
+  const parsed = extractJSON<any>(res.text);
+  if (!parsed) return null;
 
-  const parsed = JSON.parse(match[0]);
   const reaction = typeof parsed.reaction === "string" ? parsed.reaction.trim() : "";
   if (!reaction) return null;
 

@@ -66,6 +66,36 @@ function tryParse(text: string): unknown {
   }
 }
 
+/** Parse a model reply that should contain one JSON value, tolerating the
+ *  three ways replies routinely fail to be bare JSON: a ```json fence, prose
+ *  wrapped around the value, and a trailing comma.
+ *
+ *  The typed extractors below cover the three shapes with their own validation
+ *  (quiz, flashcards, plan). This is for everywhere else — the sparring,
+ *  debugger, Feynman and exam-deconstructor replies, each of which had hand
+ *  rolled some subset of this. `api/aiSparring.ts` had rolled none of it and
+ *  called `JSON.parse` on the raw reply, so a fenced answer threw.
+ *
+ *  Returns undefined rather than throwing: every caller already has a failure
+ *  path, and a SyntaxError from deep inside a parse helper is not a better
+ *  signal than "the model did not return usable JSON". */
+export function extractJSON<T = unknown>(
+  text: string | null | undefined,
+): T | undefined {
+  if (!text) return undefined;
+  for (const candidate of [
+    text.trim(),
+    stripFences(text),
+    sliceBlock(text, "{", "}"),
+    sliceBlock(text, "[", "]"),
+  ]) {
+    if (!candidate) continue;
+    const parsed = tryParse(candidate);
+    if (parsed !== undefined) return parsed as T;
+  }
+  return undefined;
+}
+
 /** Slice out the first `open` … last `close` block, for a reply that arrived
  *  with prose wrapped around its JSON. */
 function sliceBlock(

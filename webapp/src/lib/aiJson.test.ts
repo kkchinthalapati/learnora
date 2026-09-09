@@ -3,8 +3,7 @@ import {
   decodeBase64UTF8,
   extractFlashcardJSON,
   extractPlanJSON,
-  extractQuizJSON,
-} from "./aiJson";
+  extractQuizJSON, extractJSON } from "./aiJson";
 
 /* The extractors exist because the edge function walks a chain of providers
  * with different response-format support, so the same request comes back in
@@ -216,5 +215,39 @@ describe("decodeBase64UTF8", () => {
     const text = "café — naïve — 日本語";
     const base64 = btoa(String.fromCharCode(...new TextEncoder().encode(text)));
     expect(decodeBase64UTF8(base64)).toBe(text);
+  });
+});
+
+describe("extractJSON", () => {
+  it("parses a bare object", () => {
+    expect(extractJSON('{"a":1}')).toEqual({ a: 1 });
+  });
+
+  /* The regression this exists for. api/aiSparring.ts called JSON.parse on the
+     raw reply with no fence stripping at all, so any provider that wrapped its
+     answer in a ```json fence — several do — threw a SyntaxError out of the
+     sparring engine. */
+  it("parses a fenced object", () => {
+    expect(extractJSON('```json\n{"a":1}\n```')).toEqual({ a: 1 });
+  });
+
+  it("parses an object wrapped in prose", () => {
+    expect(extractJSON('Sure! Here you go: {"a":1} Hope that helps.')).toEqual({
+      a: 1,
+    });
+  });
+
+  it("forgives a trailing comma", () => {
+    expect(extractJSON('{"a":1,}')).toEqual({ a: 1 });
+  });
+
+  it("parses a bare array", () => {
+    expect(extractJSON("[1,2]")).toEqual([1, 2]);
+  });
+
+  it("returns undefined rather than throwing on unusable input", () => {
+    expect(extractJSON("no json here")).toBeUndefined();
+    expect(extractJSON("")).toBeUndefined();
+    expect(extractJSON(null)).toBeUndefined();
   });
 });
