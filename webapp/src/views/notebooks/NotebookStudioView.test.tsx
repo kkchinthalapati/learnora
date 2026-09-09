@@ -198,6 +198,60 @@ describe("NotebookStudioView", () => {
     ).toBeInTheDocument();
   });
 
+  it("keeps a deck exported from an artifact in its notebook and subject", async () => {
+    const user = userEvent.setup();
+    const deckInserts: unknown[] = [];
+    server.use(
+      http.get(rest("notebooks"), () =>
+        HttpResponse.json({
+          ...notebook,
+          notebook_artifacts: [
+            {
+              id: "art-1",
+              type: "cheat_sheet",
+              title: "Circle Theorems Cheat Sheet",
+              content: "Chord: A line joining two points on a circle.",
+              created_at: "2026-08-02T00:00:00Z",
+            },
+          ],
+        }),
+      ),
+      http.post(rest("flashcard_decks"), async ({ request }) => {
+        deckInserts.push(await request.json());
+        return HttpResponse.json([{ id: "deck-new", title: "Revision" }]);
+      }),
+      http.post(rest("flashcards"), () => HttpResponse.json([])),
+    );
+    renderWithAuth(
+      <MemoryRouter initialEntries={["/notebooks/nb-1"]}>
+        <Routes>
+          <Route
+            path="/notebooks/:notebookId"
+            element={<NotebookStudioView />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await user.click(
+      await screen.findByRole("button", {
+        name: /Circle Theorems Cheat Sheet/,
+      }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Create Flashcard Deck" }),
+    );
+
+    await waitFor(() => expect(deckInserts).toHaveLength(1));
+    expect(deckInserts).toEqual([
+      expect.arrayContaining([
+        expect.objectContaining({
+          folder_id: "folder-1",
+          notebook_id: "nb-1",
+        }),
+      ]),
+    ]);
+  });
+
   it("opens WebSourceImportModal when 🌐 Web Search button is clicked", async () => {
     const user = userEvent.setup();
     renderStudio();
@@ -252,7 +306,10 @@ describe("NotebookStudioView", () => {
       await waitFor(() => expect(deckInserts).toHaveLength(1));
       expect(deckInserts).toEqual([
         expect.arrayContaining([
-          expect.objectContaining({ folder_id: "folder-1" }),
+          expect.objectContaining({
+            folder_id: "folder-1",
+            notebook_id: "nb-1",
+          }),
         ]),
       ]);
       expect(cardInserts).toHaveLength(1);
@@ -290,7 +347,10 @@ describe("NotebookStudioView", () => {
       await waitFor(() => expect(quizInserts).toHaveLength(1));
       expect(quizInserts).toEqual([
         expect.arrayContaining([
-          expect.objectContaining({ folder_id: "folder-1" }),
+          expect.objectContaining({
+            folder_id: "folder-1",
+            notebook_id: "nb-1",
+          }),
         ]),
       ]);
     });

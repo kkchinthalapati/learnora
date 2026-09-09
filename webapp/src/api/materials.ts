@@ -24,6 +24,7 @@ export const materialsApi = {
     folderId: string | null,
     type: MaterialType,
     customTitle?: string,
+    notebookId?: string | null,
   ): Promise<Material> {
     const userId = await requireUserId();
 
@@ -45,6 +46,7 @@ export const materialsApi = {
           title: customTitle || file.name,
           type,
           storage_path: filePath,
+          ...(notebookId ? { notebook_id: notebookId } : {}),
         },
       ])
       .select()
@@ -71,6 +73,7 @@ export const materialsApi = {
     url: string,
     folderId: string | null,
     customTitle?: string,
+    notebookId?: string | null,
   ): Promise<Material> {
     const userId = await requireUserId();
     const isYouTube = url.includes("youtube.com") || url.includes("youtu.be");
@@ -85,6 +88,7 @@ export const materialsApi = {
           title: customTitle || defaultTitle,
           type: isYouTube ? "youtube" : "text",
           raw_content: url,
+          ...(notebookId ? { notebook_id: notebookId } : {}),
         },
       ])
       .select()

@@ -152,8 +152,9 @@ export function NotebookStudioView() {
     try {
       const cards = flashcardsFromCheatSheet(activeArtifactPreview.content);
       const deck = await decksApi.add(
-        null,
+        notebook.folderId,
         `${notebook.title} — Revision Cheat Sheet`,
+        notebook.id,
       );
       await flashcardsApi.addBatch(deck.id, cards);
       showToast(`Created a flashcard deck with ${cards.length} cards.`);
@@ -429,6 +430,7 @@ Use British English throughout.`;
       const deck = await generateDeck({
         sourceText: groundedSourceText(),
         folderId: notebook.folderId,
+        notebookId: notebook.id,
         title: `${notebook.title} — Flashcards`,
         count: CREATE_DEFAULTS.cardCount,
         settings,
@@ -460,6 +462,7 @@ Use British English throughout.`;
         topic: notebook.title,
         title: `${notebook.title} — Quiz`,
         folderId: notebook.folderId,
+        notebookId: notebook.id,
         settings,
       });
       showToast("Quiz created from your sources.", {
