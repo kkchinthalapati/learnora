@@ -10,6 +10,7 @@ export const quizzesApi = {
     folderId: string | null,
     title: string,
     questions: unknown,
+    notebookId?: string | null,
   ): Promise<Quiz> {
     const userId = await requireUserId();
     const { data, error } = await supabase
@@ -21,6 +22,7 @@ export const quizzesApi = {
           folder_id: folderId,
           title,
           questions_json: questions,
+          ...(notebookId ? { notebook_id: notebookId } : {}),
         },
       ])
       .select()

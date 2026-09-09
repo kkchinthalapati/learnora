@@ -126,5 +126,25 @@ describe("aiExamDeconstructor", () => {
       expect(history.length).toBe(1);
       expect(history[0].overallScore).toBe(85);
     });
+
+    it("keeps only the 20 most recent radar records", () => {
+      for (let index = 0; index < 21; index += 1) {
+        saveRadarRecord({
+          id: `radar-${index}`,
+          subject: "Calculus",
+          timestamp: new Date(index).toISOString(),
+          overallScore: index,
+          disarmedTrapIds: [],
+          totalAttempted: 1,
+          correctCount: 1,
+          categoryScores: {},
+        });
+      }
+
+      const history = getStoredRadarHistory();
+      expect(history).toHaveLength(20);
+      expect(history[0].id).toBe("radar-20");
+      expect(history.at(-1)?.id).toBe("radar-1");
+    });
   });
 });

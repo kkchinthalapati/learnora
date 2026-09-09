@@ -240,12 +240,14 @@ ${sourceText}
 export async function generateDeck({
   sourceText,
   folderId,
+  notebookId,
   title,
   count,
   settings,
 }: {
   sourceText: string;
   folderId: string | null;
+  notebookId?: string | null;
   title: string;
   count: number;
   settings: Settings;
@@ -273,7 +275,7 @@ export async function generateDeck({
   // Created only once there are cards to put in it — an empty deck row is
   // worse than no deck, since the library lists it and the review screen
   // serves nothing.
-  const deck = await decksApi.add(folderId, title);
+  const deck = await decksApi.add(folderId, title, notebookId);
   await flashcardsApi.addBatch(deck.id, cards);
   return deck;
 }
@@ -336,6 +338,8 @@ export interface StudyPackageRequest {
   source: StudySource;
   /** Ignored for a topic source, which files nothing. */
   folderId?: string | null;
+  /** Optional owning notebook during the Stage 4 dual-write transition. */
+  notebookId?: string | null;
   /** Optional custom title; otherwise derived from the material or topic. */
   title?: string;
   outputs?: { flashcards?: boolean; quiz?: boolean; notes?: boolean };
@@ -433,6 +437,7 @@ export async function createStudyPackage(
   };
 
   let folderId = request.folderId || null;
+  const notebookId = request.notebookId || null;
   let baseTitle = (request.title ?? "").trim();
   let topic: string;
   let sourceText: string;
@@ -457,6 +462,7 @@ export async function createStudyPackage(
         folderId,
         AUDIO_FILE.test(file.name) ? "audio" : "pdf",
         baseTitle || undefined,
+        notebookId,
       );
       setMaterialProcessing({
         materialId: result.material.id,
@@ -485,6 +491,7 @@ export async function createStudyPackage(
         raw,
         folderId,
         baseTitle || undefined,
+        notebookId,
       );
       setMaterialProcessing({
         materialId: result.material.id,
@@ -592,6 +599,7 @@ export async function createStudyPackage(
         trimmed,
         folderId,
         baseTitle,
+        notebookId,
       );
       try {
         result.notes = await generateNotes({
@@ -618,6 +626,7 @@ export async function createStudyPackage(
       result.deck = await generateDeck({
         sourceText,
         folderId,
+        notebookId,
         title: withOutputSuffix(baseTitle, "Flashcards"),
         count: options.cardCount,
         settings,
@@ -637,6 +646,7 @@ export async function createStudyPackage(
         title: withOutputSuffix(baseTitle, "Quiz"),
         materialId: result.material?.id ?? null,
         folderId,
+        notebookId,
         settings,
         options,
       });

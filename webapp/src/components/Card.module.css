@@ -1,23 +1,38 @@
 .card {
-  border: 1px solid var(--line);
+  border: var(--card-border, 1px solid var(--line));
 }
 
 .elevated {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  background: var(--card-bg, var(--surface));
+  box-shadow: var(--card-shadow, var(--shadow-sm));
 }
 
 .panel,
 .row {
-  background: var(--surface);
+  background: var(--card-bg, var(--surface));
   box-shadow: none;
 }
 
 .subtle {
-  background: var(--surface-2);
+  background: var(--card-bg-subtle, var(--surface-2));
+}
+
+.interactive {
+  cursor: pointer;
+  background: var(--card-bg, var(--surface));
+  border: var(--card-border, var(--border));
+  border-radius: var(--card-radius, var(--r-lg));
+  box-shadow: var(--card-shadow, var(--shadow-sm));
+  transition: var(--card-transition);
+}
+
+.interactive:hover {
+  border-color: var(--card-border-hover, var(--accent-ring));
+  box-shadow: var(--card-shadow-hover, var(--shadow-md));
+  transform: var(--card-hover-lift, translateY(-2px));
 }
 
 .padding-none {
@@ -37,11 +52,11 @@
 }
 
 .radius-lg {
-  border-radius: var(--r-lg);
+  border-radius: var(--card-radius, var(--r-lg));
 }
 
 .radius-xl {
-  border-radius: var(--r-xl);
+  border-radius: var(--card-radius-lg, var(--r-xl));
 }
 
 .hoverElevation {
@@ -51,13 +66,15 @@
 }
 
 .hoverElevation:hover {
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
+  box-shadow: var(--card-shadow, var(--shadow-sm));
+  transform: var(--card-hover-lift-sm, translateY(-1px));
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hoverElevation,
-  .hoverElevation:hover {
+  .hoverElevation:hover,
+  .interactive,
+  .interactive:hover {
     transition: none;
     transform: none;
   }

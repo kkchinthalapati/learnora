@@ -79,10 +79,15 @@ describe("CognitiveBridge", () => {
     expect(listener).toHaveBeenCalledTimes(2);
   });
 
-  it("maps AI tools to correct target routes", () => {
-    expect(CognitiveBridge.getTargetRoute("debugger")).toBe("/debugger");
+  /* One canonical route per tool. /debugger, /sparring and /premortem are
+     <Navigate> redirects kept for old bookmarks; nothing in the app should
+     send a student to one. */
+  it("maps AI tools to their canonical routes, not the legacy aliases", () => {
+    expect(CognitiveBridge.getTargetRoute("debugger")).toBe("/solver");
     expect(CognitiveBridge.getTargetRoute("feynman")).toBe("/feynman");
-    expect(CognitiveBridge.getTargetRoute("premortem")).toBe("/premortem");
+    expect(CognitiveBridge.getTargetRoute("sparring")).toBe("/viva");
+    expect(CognitiveBridge.getTargetRoute("exam_detective")).toBe("/exam-detective");
+    expect(CognitiveBridge.getTargetRoute("premortem")).toBe("/exam-detective");
   });
 
   it("handles storage persistence gracefully", () => {

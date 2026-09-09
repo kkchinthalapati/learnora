@@ -135,13 +135,24 @@
   align-items: stretch;
   gap: var(--s-2);
   padding: var(--s-2);
-  background: var(--surface-2);
-  border: 1px solid var(--glass-border-subtle);
+  background: var(--card-bg-subtle);
+  border: var(--card-border);
   border-radius: var(--r-md);
+  transition: border-color var(--t-fast) var(--ease);
 }
 
 .resultItem:hover {
-  border-color: var(--accent-ring);
+  border-color: var(--card-border-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resultItem {
+    transition: none;
+  }
+}
+
+.resultCard {
+  composes: resultItem;
 }
 
 .resultLink {

@@ -80,6 +80,39 @@ describe("CognitiveCrossLinkBar", () => {
     expect(screen.getByTestId("cross-link-severity-badge")).toHaveTextContent("Worth a look");
   });
 
+  it("renders source label for exam_detective and legacy premortem payloads", () => {
+    const { unmount } = renderWithAuth(
+      <CognitiveCrossLinkBar
+        payload={{
+          subject: "Biology",
+          topic: "Mitosis",
+          sourceTool: "exam_detective",
+        }}
+      />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
+    expect(screen.getByTestId("cross-link-source-badge")).toHaveTextContent(
+      "From: Exam Detective",
+    );
+    unmount();
+
+    renderWithAuth(
+      <CognitiveCrossLinkBar
+        payload={{
+          subject: "Biology",
+          topic: "Mitosis",
+          sourceTool: "premortem",
+        }}
+      />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
+    expect(screen.getByTestId("cross-link-source-badge")).toHaveTextContent(
+      "From: Exam trap practice",
+    );
+  });
+
   it("cross-launches into target tool with custom onNavigate callback and sets suggestedAction", () => {
     const handleNavigate = vi.fn();
 

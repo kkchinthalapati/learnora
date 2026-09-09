@@ -21,12 +21,12 @@ export interface CognitiveCrossLinkBarProps {
   misconceptions?: string[];
   severity?: CognitiveSeverity;
   suggestedAction?: CognitiveSuggestedAction;
-  currentTool?: "debugger" | "feynman" | "premortem" | "sparring";
+  currentTool?: "debugger" | "feynman" | "sparring" | "exam_detective" | "premortem";
   compact?: boolean;
   className?: string;
   onNavigate?: (
     route: string,
-    tool: "debugger" | "feynman" | "premortem" | "sparring",
+    tool: "debugger" | "feynman" | "sparring",
   ) => void;
   onClear?: () => void;
   showDismiss?: boolean;
@@ -58,8 +58,12 @@ const TOOL_CONFIGS: {
 const SOURCE_TOOL_LABELS: Record<CognitiveSourceTool, string> = {
   debugger: "Step-by-Step Solver",
   feynman: "Explain It Simply",
-  premortem: "Common Exam Traps",
   sparring: "Oral Exam & Viva",
+  exam_detective: "Exam Detective",
+  /* Retained because CognitiveSourceTool still admits it: a payload written
+     before Pre-Mortem was folded into Exam Detective can still be sitting in a
+     student's localStorage, and it needs a label when it is read back. */
+  premortem: "Exam trap practice",
   quiz: "a quiz",
   notes: "your notes",
 };

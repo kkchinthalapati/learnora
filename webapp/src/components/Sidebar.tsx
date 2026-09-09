@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { Icon } from "./Icon";
 import { IconButton } from "./IconButton";
 import { BrandLogo } from "./BrandLogo";
@@ -30,6 +30,12 @@ interface NavItemConfig {
   destination?: PrimaryDestination;
   badgeType?: "due_flashcards" | "friend_requests";
   opensNewTab?: boolean;
+  /* Revealed only while this section is the active one. The rail stays short
+     for the common case, and the pages that hang off a section stop being
+     reachable exclusively through a sub-nav you cannot see until you have
+     already arrived — which is how /tasks, /exams, /my-week and /trajectory
+     ended up findable only by typing a URL or opening the command palette. */
+  children?: Array<{ to: string; label: string }>;
 }
 
 interface NavSection {
@@ -65,6 +71,11 @@ const SECTIONS: NavSection[] = [
         icon: "calendar",
         label: "Plan",
         destination: "plan",
+        children: [
+          { to: "/my-week", label: "My week" },
+          { to: "/tasks", label: "Tasks" },
+          { to: "/exams", label: "Exams" },
+        ],
       },
       {
         to: "/timer",
@@ -77,18 +88,19 @@ const SECTIONS: NavSection[] = [
         icon: "activity",
         label: "Progress",
         destination: "progress",
+        children: [{ to: "/trajectory", label: "Trajectory" }],
       },
       {
-        to: "/study-lab",
+        to: "/study",
         icon: "target",
         label: "Study Lab",
         destination: "study_lab",
-      },
-      {
-        to: "/ai-tutor",
-        icon: "sparkles",
-        label: "AI Tutor",
-        destination: "ai_tutor",
+        children: [
+          { to: "/solver", label: "Step-by-step solver" },
+          { to: "/feynman", label: "Explain it simply" },
+          { to: "/viva", label: "Viva practice" },
+          { to: "/exam-detective", label: "Exam traps" },
+        ],
       },
     ],
   },
@@ -188,6 +200,7 @@ export function Sidebar({
   onToggleRail: () => void;
 }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const auth = useOptionalAuth();
   const session = auth?.session;
   const { openCreateModal } = useCreateModal();
@@ -260,7 +273,7 @@ export function Sidebar({
         onClick={() => {
           if (!session) {
             onNavigate();
-            window.location.href = "/signup";
+            void navigate("/signup");
             return;
           }
           openCreateModal();
@@ -329,6 +342,13 @@ export function Sidebar({
                         ? requestsPending
                         : false;
 
+                  /* Exactly one link may be aria-current="page". When a
+                     child route is open the child is the current page, and
+                     the parent is merely the section containing it. */
+                  const currentChild = item.children?.some((child) =>
+                    pathOwnedBy(pathname, child.to),
+                  );
+
                   return (
                     <li key={item.to}>
                       <Link
@@ -338,7 +358,9 @@ export function Sidebar({
                           item.opensNewTab ? "noopener noreferrer" : undefined
                         }
                         onClick={item.opensNewTab ? undefined : onNavigate}
-                        aria-current={isActive ? "page" : undefined}
+                        aria-current={
+                          isActive && !currentChild ? "page" : undefined
+                        }
                         aria-label={label}
                         title={label}
                         className={`${styles.navLink} ${
@@ -356,6 +378,30 @@ export function Sidebar({
                           <span className={styles.badge}>{badgeCount}</span>
                         ) : null}
                       </Link>
+                      {item.children && isActive && !railCollapsed ? (
+                        <ul className={styles.subLinks}>
+                          {item.children.map((child) => (
+                            <li key={child.to}>
+                              <Link
+                                to={child.to}
+                                onClick={onNavigate}
+                                aria-current={
+                                  pathOwnedBy(pathname, child.to)
+                                    ? "page"
+                                    : undefined
+                                }
+                                className={`${styles.subLink} ${
+                                  pathOwnedBy(pathname, child.to)
+                                    ? styles.subLinkActive
+                                    : ""
+                                }`}
+                              >
+                                {child.label}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
                     </li>
                   );
                 })}

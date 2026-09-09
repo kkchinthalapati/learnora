@@ -10,6 +10,7 @@
 export type CognitiveSourceTool =
   | "debugger"
   | "feynman"
+  | "exam_detective"
   | "premortem"
   | "quiz"
   | "notes"
@@ -20,6 +21,7 @@ export type CognitiveSeverity = "critical" | "moderate" | "minor";
 export type CognitiveSuggestedAction =
   | "debug_stack"
   | "teach_apprentice"
+  | "exam_detective"
   | "run_premortem"
   | "spar_orally";
 
@@ -147,16 +149,17 @@ export const CognitiveBridge = {
     };
   },
 
-  getTargetRoute(tool: "debugger" | "feynman" | "premortem" | "sparring"): string {
+  getTargetRoute(tool: "debugger" | "feynman" | "exam_detective" | "premortem" | "sparring"): string {
     switch (tool) {
       case "debugger":
-        return "/debugger";
+        return "/solver";
       case "feynman":
         return "/feynman";
+      case "exam_detective":
       case "premortem":
-        return "/premortem";
+        return "/exam-detective";
       case "sparring":
-        return "/sparring";
+        return "/viva";
       default:
         return "/";
     }

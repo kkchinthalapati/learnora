@@ -260,4 +260,20 @@
      are the tighter settings headings and stat numbers want. */
   --lh-tight: 1.15;
   --lh-snug: 1.35;
+
+  /* --- Shared Card tokens (S3B4 consolidation) --- */
+  --card-bg: var(--surface);
+  --card-bg-subtle: var(--surface-2);
+  --card-border: var(--border);
+  --card-border-hover: var(--accent-ring);
+  --card-radius: var(--r-lg);
+  --card-radius-lg: var(--r-xl);
+  --card-shadow: var(--shadow-sm);
+  --card-shadow-hover: var(--shadow-md);
+  --card-transition:
+    transform var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+  --card-hover-lift: translateY(-2px);
+  --card-hover-lift-sm: translateY(-1px);
 }

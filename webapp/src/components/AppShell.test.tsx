@@ -104,11 +104,15 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: /Dashboard/ })).not.toHaveAttribute(
       "aria-current",
     );
-    /* Tasks now lives inside Plan's local navigation, so the compact rail
-       marks its planning workspace as current. */
-    expect(screen.getByRole("link", { name: /Plan/ })).toHaveAttribute(
+    /* Tasks hangs off Plan in the rail. The child link is the current page —
+       only one element may carry aria-current — and Plan is the section that
+       contains it. */
+    expect(screen.getByRole("link", { name: "Tasks" })).toHaveAttribute(
       "aria-current",
       "page",
+    );
+    expect(screen.getByRole("link", { name: "Plan" })).not.toHaveAttribute(
+      "aria-current",
     );
   });
 

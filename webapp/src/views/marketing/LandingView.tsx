@@ -325,7 +325,7 @@ export function LandingView() {
           <div className={styles.footerCol}>
             <span className={styles.footerColTitle}>Product</span>
             <Link to="/timer" className={styles.footerLink}>Focus Timer</Link>
-            <Link to="/ai-tutor" className={styles.footerLink}>AI Tutor</Link>
+            <Link to="/study" className={styles.footerLink}>Study Lab</Link>
             <a href="#pricing" className={styles.footerLink}>Pricing</a>
             <Link to="/login" className={styles.footerLink}>Sign In</Link>
           </div>
@@ -335,7 +335,7 @@ export function LandingView() {
             <Link to="/about" className={styles.footerLink}>About</Link>
             <Link to="/contact" className={styles.footerLink}>Contact</Link>
             <Link to="/privacy" className={styles.footerLink}>Privacy Notice</Link>
-            <a href="/terms.html" className={styles.footerLink}>Terms of Service</a>
+            <Link to="/terms" className={styles.footerLink}>Terms of Service</Link>
           </div>
 
           <div className={styles.footerCol}>

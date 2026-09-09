@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes } from "react-router";
@@ -18,6 +18,7 @@ const notebook = {
   id: "nb-1",
   title: "Grade 9 Mathematics: Geometry & Circle Theorems",
   subject: "Mathematics",
+  folder_id: "folder-1",
   color: "#4A90E2",
   description: "Core theorems and proof strategies.",
   notes: "<h2>Circle Theorems Revision</h2>",
@@ -197,6 +198,60 @@ describe("NotebookStudioView", () => {
     ).toBeInTheDocument();
   });
 
+  it("keeps a deck exported from an artifact in its notebook and subject", async () => {
+    const user = userEvent.setup();
+    const deckInserts: unknown[] = [];
+    server.use(
+      http.get(rest("notebooks"), () =>
+        HttpResponse.json({
+          ...notebook,
+          notebook_artifacts: [
+            {
+              id: "art-1",
+              type: "cheat_sheet",
+              title: "Circle Theorems Cheat Sheet",
+              content: "Chord: A line joining two points on a circle.",
+              created_at: "2026-08-02T00:00:00Z",
+            },
+          ],
+        }),
+      ),
+      http.post(rest("flashcard_decks"), async ({ request }) => {
+        deckInserts.push(await request.json());
+        return HttpResponse.json([{ id: "deck-new", title: "Revision" }]);
+      }),
+      http.post(rest("flashcards"), () => HttpResponse.json([])),
+    );
+    renderWithAuth(
+      <MemoryRouter initialEntries={["/notebooks/nb-1"]}>
+        <Routes>
+          <Route
+            path="/notebooks/:notebookId"
+            element={<NotebookStudioView />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await user.click(
+      await screen.findByRole("button", {
+        name: /Circle Theorems Cheat Sheet/,
+      }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Create Flashcard Deck" }),
+    );
+
+    await waitFor(() => expect(deckInserts).toHaveLength(1));
+    expect(deckInserts).toEqual([
+      expect.arrayContaining([
+        expect.objectContaining({
+          folder_id: "folder-1",
+          notebook_id: "nb-1",
+        }),
+      ]),
+    ]);
+  });
+
   it("opens WebSourceImportModal when 🌐 Web Search button is clicked", async () => {
     const user = userEvent.setup();
     renderStudio();
@@ -209,6 +264,160 @@ describe("NotebookStudioView", () => {
 
     expect(
       await screen.findByRole("dialog", { name: /Research the web/i }),
+    ).toBeInTheDocument();
+  });
+  /* The two studio generators shipped as stubs: they wrote a notebook_artifact
+     claiming "8 Cards" / "Five quick questions" and created no flashcard_decks
+     or quizzes row at all. Nothing in this file covered them, which is how the
+     fakes survived review. These assert the rows actually reach the database. */
+  describe("studio generators write real rows", () => {
+    it("creates a real flashcard deck and its cards, not an artifact", async () => {
+      const user = userEvent.setup();
+      const deckInserts: unknown[] = [];
+      const cardInserts: unknown[] = [];
+      const artifactInserts: unknown[] = [];
+
+      server.use(
+        http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () =>
+          HttpResponse.json({
+            text: JSON.stringify([
+              { front: "What is a chord?", back: "A line joining two points." },
+            ]),
+          }),
+        ),
+        http.post(rest("flashcard_decks"), async ({ request }) => {
+          deckInserts.push(await request.json());
+          return HttpResponse.json([{ id: "deck-new", title: "d" }]);
+        }),
+        http.post(rest("flashcards"), async ({ request }) => {
+          cardInserts.push(await request.json());
+          return HttpResponse.json([]);
+        }),
+        http.post(rest("notebook_artifacts"), async ({ request }) => {
+          artifactInserts.push(await request.json());
+          return HttpResponse.json([]);
+        }),
+      );
+
+      renderStudio();
+      await screen.findByRole("heading", { name: "Sources" });
+      await user.click(screen.getByRole("button", { name: /Flashcard Deck/i }));
+
+      await waitFor(() => expect(deckInserts).toHaveLength(1));
+      expect(deckInserts).toEqual([
+        expect.arrayContaining([
+          expect.objectContaining({
+            folder_id: "folder-1",
+            notebook_id: "nb-1",
+          }),
+        ]),
+      ]);
+      expect(cardInserts).toHaveLength(1);
+      // The stub's only output was an artifact. A real run writes none.
+      expect(artifactInserts).toHaveLength(0);
+    });
+
+    it("creates a real quiz row", async () => {
+      const user = userEvent.setup();
+      const quizInserts: unknown[] = [];
+
+      server.use(
+        http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () =>
+          HttpResponse.json({
+            text: JSON.stringify([
+              {
+                question: "What is a chord?",
+                choices: ["A line", "A radius", "A tangent", "An arc"],
+                correctIndex: 0,
+                explanation: "Because.",
+              },
+            ]),
+          }),
+        ),
+        http.post(rest("quizzes"), async ({ request }) => {
+          quizInserts.push(await request.json());
+          return HttpResponse.json([{ id: "quiz-new" }]);
+        }),
+      );
+
+      renderStudio();
+      await screen.findByRole("heading", { name: "Sources" });
+      await user.click(screen.getByRole("button", { name: /Practice Quiz/i }));
+
+      await waitFor(() => expect(quizInserts).toHaveLength(1));
+      expect(quizInserts).toEqual([
+        expect.arrayContaining([
+          expect.objectContaining({
+            folder_id: "folder-1",
+            notebook_id: "nb-1",
+          }),
+        ]),
+      ]);
+    });
+  });
+  /* Both AI generators used to answer a failed callEdge by saving a hardcoded
+     paragraph — a congruency-conditions note, a bicycle-wheel analogy — and
+     toasting "generated and saved". The invented text landed in the artifact
+     list attributed to the student's own sources, indistinguishable from a
+     real result. A failure must now read as one. */
+  it("saves nothing and reports the error when generation fails", async () => {
+    const user = userEvent.setup();
+    const artifactInserts: unknown[] = [];
+
+    server.use(
+      http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () =>
+        HttpResponse.json({ error: "upstream unavailable" }, { status: 500 }),
+      ),
+      http.post(rest("notebook_artifacts"), async ({ request }) => {
+        artifactInserts.push(await request.json());
+        return HttpResponse.json([]);
+      }),
+    );
+
+    renderStudio();
+    await screen.findByRole("heading", { name: "Sources" });
+    await user.click(
+      screen.getByRole("button", { name: /Revision Cheat Sheet/i }),
+    );
+
+    /* callEdge retries once with a 2s backoff (MAX_RETRIES / RETRY_DELAY_MS in
+       api/ai.ts), so the failure toast cannot arrive within the default 1s. */
+    expect(
+      await screen.findByText(
+        /Could not generate the cheat sheet|unavailable|went wrong|try again/i,
+        {},
+        { timeout: 6000 },
+      ),
+    ).toBeInTheDocument();
+    expect(artifactInserts).toHaveLength(0);
+  }, 15000);
+
+  it("surfaces tool quota limits and prevents generation when exceeded", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(rest("ai_request_log"), () =>
+        HttpResponse.json([
+          { tool: "flashcards" },
+          { tool: "flashcards" },
+          { tool: "flashcards" },
+        ]),
+      ),
+    );
+
+    renderStudio();
+    await screen.findByRole("heading", { name: "Sources" });
+
+    // Verify limit badge appears
+    expect(await screen.findByText(/Limit reached/i)).toBeInTheDocument();
+
+    // Clicking the exceeded tool shows quota warning toast
+    const flashcardBtn = screen.getByRole("button", {
+      name: /Flashcard Deck/i,
+    });
+    await user.click(flashcardBtn);
+
+    expect(
+      await screen.findByText(/reached today's limit for flashcard decks/i),
     ).toBeInTheDocument();
   });
 });

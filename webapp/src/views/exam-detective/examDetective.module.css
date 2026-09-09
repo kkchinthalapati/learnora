@@ -227,6 +227,14 @@
   flex-wrap: wrap;
 }
 
+/* Replaces the inline `style={{ fontSize: …, fontWeight: 600 }}` these labels
+   carried, so the picker's two labels and the sprint's own match without
+   repeating the declaration at each call site. */
+.pickerLabel {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
 .selectInput,
 .textInput {
   padding: var(--s-2) var(--s-3);

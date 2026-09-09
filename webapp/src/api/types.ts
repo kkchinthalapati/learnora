@@ -33,6 +33,7 @@ export interface Material {
   id: string;
   user_id: string;
   folder_id: string | null;
+  notebook_id?: string | null;
   title: string;
   type: MaterialType;
   raw_content: string | null;
@@ -53,6 +54,7 @@ export interface FlashcardDeck {
   id: string;
   user_id: string;
   folder_id: string | null;
+  notebook_id?: string | null;
   title: string;
   created_at: string;
 }
@@ -113,6 +115,7 @@ export interface Quiz {
   user_id: string;
   material_id: string | null;
   folder_id: string | null;
+  notebook_id?: string | null;
   title: string;
   questions_json: unknown;
   created_at: string;
@@ -207,4 +210,3 @@ export type {
   TimerSyncPayload,
   TimerStatus,
 } from "./studyRoom";
-

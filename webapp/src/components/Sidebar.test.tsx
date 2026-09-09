@@ -94,7 +94,7 @@ describe("Sidebar", () => {
     );
     expect(screen.getByRole("link", { name: "Study Lab" })).toHaveAttribute(
       "href",
-      "/study-lab",
+      "/study",
     );
   });
 
@@ -113,17 +113,35 @@ describe("Sidebar", () => {
     expect(onToggleRail).toHaveBeenCalledTimes(1);
   });
 
-  /* Tasks and Exams now live inside Plan's local navigation instead of taking
-     permanent rail slots, so their child routes keep the Plan item current. */
-  it("keeps Plan current on planning child routes", () => {
+  /* Tasks, Exams and My week hang off Plan rather than taking permanent rail
+     slots. They used to be reachable only by typing a URL or through a sub-nav
+     that is invisible until you are already on one of those pages; the rail
+     now reveals them while Plan is the open section. */
+  it("reveals Plan's child destinations while Plan is the open section", () => {
     renderSidebar({ initialPath: "/tasks" });
-    expect(screen.getByRole("link", { name: "Plan" })).toHaveAttribute(
+
+    for (const label of ["My week", "Tasks", "Exams"]) {
+      expect(screen.getByRole("link", { name: label })).toBeInTheDocument();
+    }
+
+    /* The child is the current page; Plan is the section that contains it, so
+       only one link may carry aria-current. */
+    expect(screen.getByRole("link", { name: "Tasks" })).toHaveAttribute(
       "aria-current",
       "page",
+    );
+    expect(screen.getByRole("link", { name: "Plan" })).not.toHaveAttribute(
+      "aria-current",
     );
     expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveAttribute(
       "aria-current",
     );
+  });
+
+  it("hides other sections' children", () => {
+    renderSidebar({ initialPath: "/tasks" });
+    expect(screen.queryByRole("link", { name: "Trajectory" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Viva practice" })).toBeNull();
   });
 
   it.each(["/", "/plan", "/tasks", "/exams", "/library", "/analytics"])(

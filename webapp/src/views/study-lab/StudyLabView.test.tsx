@@ -36,7 +36,7 @@ function renderLab() {
     <MemoryRouter initialEntries={["/study-lab"]}>
       <Routes>
         <Route path="/study-lab" element={<StudyLabView />} />
-        <Route path="/debugger" element={<h1>Debugger Page</h1>} />
+        <Route path="/solver" element={<h1>Debugger Page</h1>} />
         <Route path="/feynman" element={<h1>Feynman Page</h1>} />
       </Routes>
     </MemoryRouter>,

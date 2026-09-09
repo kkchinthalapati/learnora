@@ -1,4 +1,6 @@
 import { callEdge } from "./ai";
+import { extractJSON } from "../lib/aiJson";
+import { collection } from "../lib/storage";
 import { misconceptionsApi } from "./misconceptions";
 import {
   formatMisconceptionsForPrompt,
@@ -50,76 +52,36 @@ function generateId(): string {
   return "tr_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 9);
 }
 
-function sanitizeJSON(str: string): string {
-  return str.replace(/,(\s*[\]}])/g, "$1");
-}
-
-function stripFences(text: string): string {
-  return text
-    .replace(/```json\s*/gi, "")
-    .replace(/```\s*/g, "")
-    .trim();
-}
-
 /** Retrieve all cached cognitive stack traces from local/session storage */
+/* Capped at 50, as this store always has been. */
+const traceStore = collection<CognitiveStackTrace>(
+  STORAGE_KEY_TRACES,
+  (t) => t.id,
+  { limit: 50 },
+);
+
 export function getSavedTraces(): CognitiveStackTrace[] {
-  if (typeof window === "undefined" || !window.localStorage) return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY_TRACES);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return traceStore.list();
 }
 
 /** Retrieve a specific cognitive trace by ID */
 export function getSavedTraceById(id: string): CognitiveStackTrace | null {
-  const traces = getSavedTraces();
-  return traces.find((t) => t.id === id) || null;
+  return traceStore.find(id);
 }
 
 /** Save or update a cognitive trace in local storage */
 export function saveTrace(trace: CognitiveStackTrace): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    const traces = getSavedTraces();
-    const existingIndex = traces.findIndex((t) => t.id === trace.id);
-    let updated: CognitiveStackTrace[];
-    if (existingIndex >= 0) {
-      updated = [...traces];
-      updated[existingIndex] = trace;
-    } else {
-      updated = [trace, ...traces];
-    }
-    // Cap at 50 historical traces
-    window.localStorage.setItem(STORAGE_KEY_TRACES, JSON.stringify(updated.slice(0, 50)));
-  } catch (err) {
-    console.warn("Failed to persist the saved mistake to localStorage:", err);
-  }
+  traceStore.save(trace);
 }
 
 /** Delete a cognitive trace by ID */
 export function deleteTrace(id: string): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    const traces = getSavedTraces();
-    const filtered = traces.filter((t) => t.id !== id);
-    window.localStorage.setItem(STORAGE_KEY_TRACES, JSON.stringify(filtered));
-  } catch (err) {
-    console.warn("Failed to delete trace from localStorage:", err);
-  }
+  traceStore.remove(id);
 }
 
 /** Clear all trace history */
 export function clearTraceHistory(): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
-  try {
-    window.localStorage.removeItem(STORAGE_KEY_TRACES);
-  } catch (err) {
-    console.warn("Failed to clear trace history:", err);
-  }
+  traceStore.clear();
 }
 
 /** Retrieve all cached micro-repair challenges */
@@ -318,21 +280,8 @@ export async function diagnoseCognitiveGap(
       tool: "debugger",
     });
 
-    const text = stripFences(result.text || "");
-    const sanitized = sanitizeJSON(text);
-
-    let parsed: any;
-    try {
-      parsed = JSON.parse(sanitized);
-    } catch {
-      // If direct parse fails, try extracting first JSON object
-      const match = sanitized.match(/\{[\s\S]*\}/);
-      if (match) {
-        parsed = JSON.parse(sanitizeJSON(match[0]));
-      } else {
-        throw new Error("Could not read the AI's answer");
-      }
-    }
+    const parsed = extractJSON<any>(result.text);
+    if (!parsed) throw new Error("Could not read the AI's answer");
 
     if (parsed && Array.isArray(parsed.layers) && parsed.layers.length > 0) {
       const layers: CognitiveLayer[] = parsed.layers.map((l: any, idx: number) => ({
@@ -387,20 +336,8 @@ export async function generateMicroRepair(rootConcept: string): Promise<MicroRep
       tool: "debugger",
     });
 
-    const text = stripFences(result.text || "");
-    const sanitized = sanitizeJSON(text);
-
-    let parsed: any;
-    try {
-      parsed = JSON.parse(sanitized);
-    } catch {
-      const match = sanitized.match(/\{[\s\S]*\}/);
-      if (match) {
-        parsed = JSON.parse(sanitizeJSON(match[0]));
-      } else {
-        throw new Error("Could not read the AI's answer");
-      }
-    }
+    const parsed = extractJSON<any>(result.text);
+    if (!parsed) throw new Error("Could not read the AI's answer");
 
     if (
       parsed &&

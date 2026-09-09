@@ -183,7 +183,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                 suggestedAction: "debug_stack",
               });
               navigate(
-                `/debugger?topic=${encodeURIComponent(prefixMatch.text)}`,
+                `/solver?topic=${encodeURIComponent(prefixMatch.text)}`,
               );
               handleClose();
             },
@@ -273,7 +273,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       badge: "Start here",
       keywords: ["study lab", "help", "practice", "study", "learn"],
       onSelect: () => {
-        navigate("/study-lab");
+        navigate("/study");
         handleClose();
       },
     });

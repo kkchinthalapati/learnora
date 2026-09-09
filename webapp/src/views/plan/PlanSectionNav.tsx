@@ -1,6 +1,7 @@
 import { NavLink, useInRouterContext } from "react-router";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
+import { appPath } from "../../lib/appUrl";
 import styles from "./planSectionNav.module.css";
 
 const PLAN_SECTIONS: ReadonlyArray<{
@@ -39,7 +40,10 @@ export function PlanSectionNav() {
             {content}
           </NavLink>
         ) : (
-          <a key={section.path} href={section.path} className={styles.link}>
+          /* Outside a router there is no basename to apply the deployed path
+             prefix, so the href is built with it explicitly — a bare
+             `/plan` here would leave this app entirely. */
+          <a key={section.path} href={appPath(section.path)} className={styles.link}>
             {content}
           </a>
         );

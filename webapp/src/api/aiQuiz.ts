@@ -19,10 +19,7 @@ import { extractQuizJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
 import { AI_PERSONA_QUIZ_HOST, type Settings } from "../lib/settings";
 import { misconceptionsApi } from "./misconceptions";
-import {
-  rankMisconceptions,
-  type Misconception,
-} from "../lib/misconceptions";
+import { rankMisconceptions, type Misconception } from "../lib/misconceptions";
 import type { Quiz } from "./types";
 
 /** Applied whenever the caller omits a value — the vanilla's `CREATE_DEFAULTS`
@@ -167,6 +164,7 @@ export async function generateQuizFrom({
   title,
   materialId = null,
   folderId = null,
+  notebookId = null,
   settings,
   options = {},
 }: {
@@ -175,6 +173,7 @@ export async function generateQuizFrom({
   title: string;
   materialId?: string | null;
   folderId?: string | null;
+  notebookId?: string | null;
   settings: Settings;
   options?: QuizOptions;
 }): Promise<Quiz> {
@@ -219,7 +218,7 @@ export async function generateQuizFrom({
   const questions = extractQuizJSON(text);
   if (questions.length === 0) throw new QuizShapeError();
 
-  return quizzesApi.add(materialId, folderId, title, questions);
+  return quizzesApi.add(materialId, folderId, title, questions, notebookId);
 }
 
 /** Generate and save a quiz on a bare topic — no material, no folder. The

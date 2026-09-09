@@ -46,13 +46,16 @@ describe("route skeleton", () => {
     ["/exams", "Exams"],
     ["/timer", "Timer"],
     ["/library", "Your learning"],
-    ["/library/notes", "Your learning"],
+    /* A real tab. This row used to read "/library/notes", which is not in
+       LIBRARY_TABS — LibraryView bounced it to /library and rendered the same
+       heading, so the assertion passed whether or not tab routing worked. */
+    ["/library/quizzes", "Your learning"],
     ["/plan", "This week's plan"],
     ["/friends", "Friends"],
     ["/analytics", "Progress"],
-    ["/study-lab", "What do you need help with?"],
+    ["/study", "What do you need help with?"],
     ["/feynman", "Explain It Simply"],
-    ["/debugger", "Step-by-Step Solver"],
+    ["/solver", "Step-by-Step Solver"],
     ["/settings", "Settings"],
   ])("%s renders the %s view for a signed-in user", async (path, heading) => {
     renderAt(path);
@@ -70,12 +73,12 @@ describe("route skeleton", () => {
     "/exam-traps/radar",
     "/premortem",
     "/premortem/radar",
-  ])("%s redirects to /ai-tutor", async (path) => {
+  ])("%s redirects to /exam-detective", async (path) => {
     renderAt(path);
     expect(
       await screen.findByRole(
         "heading",
-        { level: 1, name: "AI Tutor" },
+        { level: 1, name: "Exam trap practice" },
         { timeout: 10000 },
       ),
     ).toBeInTheDocument();
@@ -87,18 +90,22 @@ describe("route skeleton", () => {
      twice, 150px apart, and /feynman printed a shell title above the hub's own
      longer hero title. A document has one <h1>; which of the two owns it
      is decided by viewOwnsPageTitle() in lib/sectionLabel.ts. */
+  /* Canonical paths only. This list used to include /notebooks, /debugger and
+     /sparring, all of which are <Navigate> redirects — so three rows were
+     re-testing the heading count of a target already covered by another row,
+     and the /notebooks row in particular no longer guarded the defect its
+     comment describes. */
   it.each([
     "/",
-    "/notebooks",
     "/library",
     "/plan",
     "/analytics",
-    "/study-lab",
+    "/study",
     "/settings",
     "/feynman",
-    "/debugger",
+    "/solver",
     "/exam-detective",
-    "/sparring",
+    "/viva",
     "/room",
   ])("%s renders exactly one level-1 heading", async (path) => {
     renderAt(path);

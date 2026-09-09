@@ -8,6 +8,8 @@ import type { SourceType } from "../../types/notebooks";
 import { callEdge } from "../../api/ai";
 import { decksApi } from "../../api/decks";
 import { flashcardsApi } from "../../api/flashcards";
+import { CREATE_DEFAULTS, generateDeck } from "../../api/studyPackage";
+import { generateQuizFrom } from "../../api/aiQuiz";
 import { useToast } from "../../context/toast";
 import styles from "./notebooks.module.css";
 import { EmptyState } from "../../components/EmptyState";
@@ -24,6 +26,7 @@ import { formatEvidenceForPrompt } from "../../lib/studentEvidence";
 import { formatMisconceptionsForPrompt } from "../../lib/misconceptions";
 import { useSettings } from "../../context/settings";
 import { fenceUntrusted } from "../../lib/actionTags";
+import { useAiUsage } from "../../hooks/useAiUsage";
 
 const MAX_NOTEBOOK_SOURCE_CHARS = 12_000;
 
@@ -92,6 +95,24 @@ export function NotebookStudioView() {
     useStudentEvidence();
   const { all: ledger, isPending: isLedgerPending } = useMisconceptions();
 
+  const { usageFor, isPending: isUsagePending } = useAiUsage();
+  const flashcardsUsage = usageFor("flashcards");
+  const quizUsage = usageFor("quiz");
+  const studioUsage = usageFor("notebookStudio");
+
+  const renderQuotaBadge = (usage: ReturnType<typeof usageFor>) => {
+    if (isUsagePending || usage.unlimited) return null;
+    const badgeClass = usage.exceeded
+      ? styles.toolQuotaBadgeExceeded
+      : usage.fraction >= 0.8
+        ? styles.toolQuotaBadgeWarn
+        : styles.toolQuotaBadge;
+    const label = usage.exceeded
+      ? "Limit reached"
+      : `${usage.remaining} left today`;
+    return <span className={badgeClass}>{label}</span>;
+  };
+
   const {
     checks: studyBuddyChecks,
     isScanning: isStudyBuddyScanning,
@@ -150,8 +171,9 @@ export function NotebookStudioView() {
     try {
       const cards = flashcardsFromCheatSheet(activeArtifactPreview.content);
       const deck = await decksApi.add(
-        null,
+        notebook.folderId,
         `${notebook.title} — Revision Cheat Sheet`,
+        notebook.id,
       );
       await flashcardsApi.addBatch(deck.id, cards);
       showToast(`Created a flashcard deck with ${cards.length} cards.`);
@@ -195,6 +217,23 @@ export function NotebookStudioView() {
 
   const selectedSources = notebook.sources.filter((s) => s.selected);
 
+  /* The selected sources as one prompt-ready block, numbered so the model can
+     cite them as [1], [2].
+     Source text is student-supplied and can carry instructions of its own — a
+     pasted past paper, a scraped web page — so every source is fenced and
+     capped here rather than at each call site. The chat path already did this;
+     the studio generators below interpolated `s.content` raw, which is the
+     same prompt-injection hole with none of the protection. */
+  const groundedSourceText = () =>
+    selectedSources
+      .map(
+        (s, idx) =>
+          `[Source ${idx + 1}: ${s.title}]\n"""\n${fenceUntrusted(
+            s.content.slice(0, MAX_NOTEBOOK_SOURCE_CHARS),
+          )}\n"""`,
+      )
+      .join("\n\n---\n\n");
+
   const handleAddSourceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSourceTitle.trim() || !newSourceContent.trim()) return;
@@ -225,14 +264,7 @@ export function NotebookStudioView() {
       // Build grounded context from selected sources
       const sourcesContext =
         selectedSources.length > 0
-          ? selectedSources
-              .map(
-                (s, idx) =>
-                  `[Source ${idx + 1}: ${s.title}]\n"""\n${fenceUntrusted(
-                    s.content.slice(0, MAX_NOTEBOOK_SOURCE_CHARS),
-                  )}\n"""`,
-              )
-              .join("\n\n---\n\n")
+          ? groundedSourceText()
           : "No external sources attached. Use general subject knowledge.";
 
       const systemPrompt = `You are Learnora's AI Study Tutor in a deep revision Notebook Studio for ${notebook.subject}.
@@ -305,11 +337,18 @@ Keep explanations friendly, encouraging, and structured for student success.`;
 
   // Studio Generator Handlers
   const handleGenerateCheatSheet = async () => {
+    if (studioUsage.exceeded) {
+      showToast("You've reached today's limit for Studio AI tools.", {
+        actionLabel: "View plan",
+        onAction: () => void navigate("/settings?tab=subscription"),
+      });
+      return;
+    }
     setIsGenerating(true);
     showToast("Generating high-yield Revision Cheat Sheet…");
 
     try {
-      const sourcesText = selectedSources.map((s) => s.content).join("\n\n");
+      const sourcesText = groundedSourceText();
       const prompt = `Create a high-yield, structured Revision Cheat Sheet for "${notebook.title}".
 Format in clean Markdown with:
 1. 📌 Core Definitions & Fundamentals
@@ -337,26 +376,35 @@ Use British English throughout.`;
           "Structured summary covering core theorems, definitions, and exam pitfalls.",
       });
       showToast("Cheat Sheet saved to your Notebook Studio!");
-    } catch {
-      // Fallback
-      addArtifact({
-        type: "cheat_sheet",
-        title: `${notebook.subject}: High-Yield Revision Cheat Sheet`,
-        content: `### High-Yield Revision Sheet\n\n- **Key Principle**: Always break down the given theorem into assumptions and conclusions.\n- **Exam Strategy**: Show step-by-step working and state exact theorem names.\n- **Common Trap**: Forgetting to justify congruency conditions (SAS, SSS, RHS).`,
-        summary: "Essential theorem rules and exam tips.",
-      });
-      showToast("Cheat Sheet generated and saved!");
+    } catch (cause) {
+      /* Deliberately no fallback artifact. This used to save a hardcoded
+         paragraph about congruency conditions and tell the student their cheat
+         sheet was "generated and saved" — content invented here, attributed to
+         their own sources, and indistinguishable from a real one once it was
+         in the artifact list. A failure has to read as a failure. */
+      showToast(
+        cause instanceof Error
+          ? cause.message
+          : "Could not generate the cheat sheet. Please try again.",
+      );
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleGenerateFeynman = async () => {
+    if (studioUsage.exceeded) {
+      showToast("You've reached today's limit for Studio AI tools.", {
+        actionLabel: "View plan",
+        onAction: () => void navigate("/settings?tab=subscription"),
+      });
+      return;
+    }
     setIsGenerating(true);
     showToast("Writing a plain-English breakdown…");
 
     try {
-      const sourcesText = selectedSources.map((s) => s.content).join("\n\n");
+      const sourcesText = groundedSourceText();
       const prompt = `Generate a Feynman Technique Concept Breakdown for "${notebook.title}".
 1. Core Concept in Plain English (as if explaining to a 10-year-old).
 2. The Everyday Analogy.
@@ -383,38 +431,100 @@ Use British English throughout.`;
           "Plain-language analogy, concept simplification, and gap-finder questions.",
       });
       showToast("Breakdown saved to your notebook.");
-    } catch {
-      addArtifact({
-        type: "feynman",
-        title: `Feynman Intuition: ${notebook.title}`,
-        content: `### Feynman Concept Breakdown\n\n**Plain-Language Idea**: Think of a circle like a bicycle wheel where all spokes have equal length (the radius).\n\n**Common Gap**: Students often assume chords are diameters unless explicitly stated.`,
-        summary: "Plain-language simplification and gap-finder.",
-      });
-      showToast("Breakdown saved.");
+    } catch (cause) {
+      /* As above: the fallback here invented a circle-theorem analogy and
+         saved it as though the model had written it from this notebook. */
+      showToast(
+        cause instanceof Error
+          ? cause.message
+          : "Could not write the breakdown. Please try again.",
+      );
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleGenerateFlashcards = () => {
-    showToast("Flashcards generator ready! Creating SRS cards…");
-    addArtifact({
-      type: "flashcards",
-      title: `${notebook.subject} Flashcard Pack (8 Cards)`,
-      content:
-        "Flashcard deck created from your selected notebook sources. Ready to review in Library.",
-      summary: "8 active recall cards generated from notebook sources.",
-    });
+  /* Both of these used to write a `notebook_artifacts` row describing a deck
+     or quiz that was never created — the artifact claimed "8 Cards" and "Five
+     quick questions", nothing was generated, and no row reached
+     `flashcard_decks` or `quizzes`. They now call the same generators the rest
+     of the app uses, so what the toast claims is what actually exists.
+
+     Note these are real `callEdge` calls where the stubs were free, so they
+     now count against the student's `flashcards` and `quiz` tool quotas. */
+
+  const handleGenerateFlashcards = async () => {
+    if (flashcardsUsage.exceeded) {
+      showToast("You've reached today's limit for flashcard decks.", {
+        actionLabel: "View plan",
+        onAction: () => void navigate("/settings?tab=subscription"),
+      });
+      return;
+    }
+    if (selectedSources.length === 0) {
+      showToast("Select at least one source to make flashcards from.");
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const deck = await generateDeck({
+        sourceText: groundedSourceText(),
+        folderId: notebook.folderId,
+        notebookId: notebook.id,
+        title: `${notebook.title} — Flashcards`,
+        count: CREATE_DEFAULTS.cardCount,
+        settings,
+      });
+      showToast("Flashcard deck created from your sources.", {
+        actionLabel: "Review",
+        onAction: () => void navigate(`/review/${deck.id}`),
+      });
+    } catch (cause) {
+      showToast(
+        cause instanceof Error
+          ? cause.message
+          : "Could not create the flashcard deck. Please try again.",
+      );
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleGenerateQuiz = () => {
-    showToast("Practice Quiz generated!");
-    addArtifact({
-      type: "quiz",
-      title: `${notebook.subject} Formative Self-Quiz`,
-      content: "Five quick questions on this notebook's topic.",
-      summary: "Formative quiz to verify theorem application.",
-    });
+  const handleGenerateQuiz = async () => {
+    if (quizUsage.exceeded) {
+      showToast("You've reached today's limit for practice quizzes.", {
+        actionLabel: "View plan",
+        onAction: () => void navigate("/settings?tab=subscription"),
+      });
+      return;
+    }
+    if (selectedSources.length === 0) {
+      showToast("Select at least one source to make a quiz from.");
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const quiz = await generateQuizFrom({
+        sourceText: groundedSourceText(),
+        topic: notebook.title,
+        title: `${notebook.title} — Quiz`,
+        folderId: notebook.folderId,
+        notebookId: notebook.id,
+        settings,
+      });
+      showToast("Quiz created from your sources.", {
+        actionLabel: "Start",
+        onAction: () => void navigate(`/quiz/${quiz.id}`),
+      });
+    } catch (cause) {
+      showToast(
+        cause instanceof Error
+          ? cause.message
+          : "Could not create the quiz. Please try again.",
+      );
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -1010,9 +1120,10 @@ Use British English throughout.`;
             <div className={styles.toolsGrid}>
               <button
                 type="button"
-                className={styles.toolButton}
+                className={`${styles.toolButton} ${studioUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={() => void handleGenerateFeynman()}
                 disabled={isGenerating}
+                title={studioUsage.exceeded ? "Daily allowance reached for Studio tools" : undefined}
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="brain" size={18} />
@@ -1021,13 +1132,15 @@ Use British English throughout.`;
                 <div className={styles.toolSubtext}>
                   Explain simply & find knowledge gaps
                 </div>
+                {renderQuotaBadge(studioUsage)}
               </button>
 
               <button
                 type="button"
-                className={styles.toolButton}
+                className={`${styles.toolButton} ${studioUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={() => void handleGenerateCheatSheet()}
                 disabled={isGenerating}
+                title={studioUsage.exceeded ? "Daily allowance reached for Studio tools" : undefined}
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="file-text" size={18} />
@@ -1036,12 +1149,15 @@ Use British English throughout.`;
                 <div className={styles.toolSubtext}>
                   High-yield formulas & definitions
                 </div>
+                {renderQuotaBadge(studioUsage)}
               </button>
 
               <button
                 type="button"
-                className={styles.toolButton}
+                className={`${styles.toolButton} ${flashcardsUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={handleGenerateFlashcards}
+                disabled={isGenerating}
+                title={flashcardsUsage.exceeded ? "Daily allowance reached for flashcard decks" : undefined}
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="layers" size={18} />
@@ -1050,18 +1166,22 @@ Use British English throughout.`;
                 <div className={styles.toolSubtext}>
                   Generate active recall deck
                 </div>
+                {renderQuotaBadge(flashcardsUsage)}
               </button>
 
               <button
                 type="button"
-                className={styles.toolButton}
+                className={`${styles.toolButton} ${quizUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={handleGenerateQuiz}
+                disabled={isGenerating}
+                title={quizUsage.exceeded ? "Daily allowance reached for practice quizzes" : undefined}
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="check" size={18} />
                 </div>
                 <div className={styles.toolLabel}>Practice Quiz</div>
                 <div className={styles.toolSubtext}>Quick self-test</div>
+                {renderQuotaBadge(quizUsage)}
               </button>
 
               <button
@@ -1069,7 +1189,7 @@ Use British English throughout.`;
                 className={styles.toolButton}
                 onClick={() => {
                   void navigate(
-                    `/sparring?notebookId=${encodeURIComponent(notebook.id)}&topic=${encodeURIComponent(notebook.title)}`,
+                    `/viva?notebookId=${encodeURIComponent(notebook.id)}&topic=${encodeURIComponent(notebook.title)}`,
                   );
                 }}
               >

@@ -1,4 +1,6 @@
 import { callEdge } from "./ai";
+import { extractJSON } from "../lib/aiJson";
+import { collection } from "../lib/storage";
 import type { Settings } from "../lib/settings";
 
 export interface TrapArchetype {
@@ -559,23 +561,20 @@ Return a valid JSON array of objects with:
       });
 
       if (response.text) {
-        const jsonMatch = response.text.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].name) {
-            return parsed.map((item, idx) => ({
-              id: item.id || `trap-${idx + 1}`,
-              name: String(item.name || `Trap ${idx + 1}`),
-              category: String(item.category || "edge_cases"),
-              description: String(item.description || ""),
-              examplePattern: String(item.examplePattern || ""),
-              frequency: (item.frequency ||
-                "High") as TrapArchetype["frequency"],
-              disarmRule: String(
-                item.disarmRule || "Check boundary conditions carefully.",
-              ),
-            }));
-          }
+        const parsed = extractJSON<any[]>(response.text);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].name) {
+          return parsed.map((item, idx) => ({
+            id: item.id || `trap-${idx + 1}`,
+            name: String(item.name || `Trap ${idx + 1}`),
+            category: String(item.category || "edge_cases"),
+            description: String(item.description || ""),
+            examplePattern: String(item.examplePattern || ""),
+            frequency: (item.frequency ||
+              "High") as TrapArchetype["frequency"],
+            disarmRule: String(
+              item.disarmRule || "Check boundary conditions carefully.",
+            ),
+          }));
         }
       }
     } catch (err) {
@@ -658,12 +657,9 @@ Return JSON array only.`;
       });
 
       if (response.text) {
-        const match = response.text.match(/\[[\s\S]*\]/);
-        if (match) {
-          const parsed = JSON.parse(match[0]);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed.slice(0, count);
-          }
+        const parsed = extractJSON<any[]>(response.text);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.slice(0, count);
         }
       }
     } catch {
@@ -733,24 +729,16 @@ export function markTrapDisarmed(trapId: string): string[] {
   }
 }
 
+const radarStore = collection<ImmunityRadarRecord>(
+  STORAGE_KEY_RADAR_HISTORY,
+  (record) => record.id,
+  { limit: 20 },
+);
+
 export function getStoredRadarHistory(): ImmunityRadarRecord[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_RADAR_HISTORY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  return radarStore.list();
 }
 
 export function saveRadarRecord(record: ImmunityRadarRecord): void {
-  try {
-    const history = getStoredRadarHistory();
-    const updated = [
-      record,
-      ...history.filter((r) => r.id !== record.id),
-    ].slice(0, 20);
-    localStorage.setItem(STORAGE_KEY_RADAR_HISTORY, JSON.stringify(updated));
-  } catch (err) {
-    console.warn("[aiExamDeconstructor] Failed to save radar record", err);
-  }
+  radarStore.save(record);
 }

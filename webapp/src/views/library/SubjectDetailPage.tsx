@@ -13,6 +13,7 @@ import { useAllDecks } from "../../hooks/useDecks";
 import { useAllDueFlashcards } from "../../hooks/useFlashcards";
 import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
+import { useNotebooks } from "../../hooks/useNotebooks";
 import { useQuizzes } from "../../hooks/useQuizzes";
 import { useRetryStudyPackage } from "../../hooks/useStudyPackage";
 import {
@@ -89,6 +90,7 @@ export function SubjectDetailPage() {
   const materials = useMaterials(folderId);
   const decks = useAllDecks();
   const quizzes = useQuizzes();
+  const { notebooks, isLoading: isNotebooksLoading } = useNotebooks();
   const allDueCards = useAllDueFlashcards(100);
   const retryMutation = useRetryStudyPackage();
   const processingRecords = useAllMaterialProcessing();
@@ -99,6 +101,10 @@ export function SubjectDetailPage() {
   const subjectMisconceptions = useMemo(
     () => (folder ? forSubject(folder.name) : []),
     [folder, forSubject],
+  );
+  const folderNotebooks = useMemo(
+    () => notebooks.filter((nb) => nb.folderId === folderId),
+    [notebooks, folderId],
   );
   const folderDecks = useMemo(
     () => (decks.data ?? []).filter((d) => d.folder_id === folderId),
@@ -145,10 +151,10 @@ export function SubjectDetailPage() {
       sourceTool: "notes",
       suggestedAction: "debug_stack",
     });
-    void navigate("/debugger");
+    void navigate("/solver");
   };
 
-  const handleLaunchPreMortem = () => {
+  const handleLaunchExamDetective = () => {
     if (!folder) return;
     CognitiveBridge.setPayload({
       subject: folder.name,
@@ -156,7 +162,7 @@ export function SubjectDetailPage() {
       sourceTool: "notes",
       suggestedAction: "run_premortem",
     });
-    void navigate("/premortem");
+    void navigate("/exam-detective");
   };
 
   if (folders.isPending) {
@@ -262,7 +268,7 @@ export function SubjectDetailPage() {
           <button
             type="button"
             className={styles.subjectAiBtn}
-            onClick={handleLaunchPreMortem}
+            onClick={handleLaunchExamDetective}
             title="Spot tricky wording and exam traps before test day"
           >
             <Icon name="shield" size={13} />
@@ -410,6 +416,30 @@ export function SubjectDetailPage() {
                   </li>
                 );
               })}
+            </ul>
+          )}
+        </Section>
+
+        <Section
+          title="Notebooks"
+          icon="book-open"
+          hint="Workspaces with sources, notes, and generated study tools."
+          count={isNotebooksLoading ? undefined : folderNotebooks.length}
+        >
+          {isNotebooksLoading ? (
+            <Skeleton label="Loading notebooks" height={80} />
+          ) : folderNotebooks.length === 0 ? (
+            <EmptyState size="sm" message="No notebooks in this subject yet." />
+          ) : (
+            <ul className={styles.rowList}>
+              {folderNotebooks.map((nb) => (
+                <li key={nb.id} className={styles.row}>
+                  <Link to={`/notebooks/${nb.id}`} className={styles.rowLink}>
+                    <Icon name="book-open" size={15} />
+                    <span className={styles.rowTitle}>{nb.title}</span>
+                  </Link>
+                </li>
+              ))}
             </ul>
           )}
         </Section>

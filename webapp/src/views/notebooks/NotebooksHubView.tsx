@@ -10,6 +10,7 @@ import { Badge } from "../../components/Badge";
 import { EmptyState } from "../../components/EmptyState";
 import { Skeleton } from "../../components/Skeleton";
 import { useToast } from "../../context/toast";
+import { useFolders } from "../../hooks/useFolders";
 
 const SUBJECT_COLORS = [
   "#4A90E2", // Blue (Maths)
@@ -33,6 +34,8 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
   const titleId = useId();
   const subjectId = useId();
   const descriptionId = useId();
+  const folderIdId = useId();
+  const { data: folders = [] } = useFolders();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState<string>("All");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -41,6 +44,7 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
+  const [folderId, setFolderId] = useState<string | null>(null);
   const [color, setColor] = useState(SUBJECT_COLORS[0]);
 
   // Extract unique subjects
@@ -75,6 +79,7 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
       const created = await createNotebook({
         title,
         subject: subject || "General Study",
+        folderId,
         color,
         description,
       });
@@ -82,6 +87,7 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
       setTitle("");
       setSubject("");
       setDescription("");
+      setFolderId(null);
       void navigate(`/notebooks/${created.id}`);
     } catch (error) {
       showToast(
@@ -338,6 +344,34 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
                 onChange={(e) => setTitle(e.target.value)}
                 className={styles.formControl}
               />
+            </div>
+
+            <div>
+              <label htmlFor={folderIdId} className={styles.fieldLabel}>
+                Subject folder{" "}
+                <span className={styles.optional}>(optional)</span>
+              </label>
+              <select
+                id={folderIdId}
+                value={folderId ?? ""}
+                onChange={(event) => {
+                  const nextId = event.target.value || null;
+                  setFolderId(nextId);
+                  const folder = folders.find((item) => item.id === nextId);
+                  if (folder) {
+                    setSubject(folder.name);
+                    setColor(folder.color);
+                  }
+                }}
+                className={styles.formControl}
+              >
+                <option value="">No subject folder</option>
+                {folders.map((folder) => (
+                  <option key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

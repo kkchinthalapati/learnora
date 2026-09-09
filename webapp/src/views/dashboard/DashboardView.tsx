@@ -74,7 +74,7 @@ export function DashboardView({
           </p>
         </div>
         <div className={styles.leadActions}>
-          <Link to="/study-lab" className={styles.studyLabLink}>
+          <Link to="/study" className={styles.studyLabLink}>
             <Icon name="target" size={15} /> Choose a study exercise
           </Link>
           <Button
