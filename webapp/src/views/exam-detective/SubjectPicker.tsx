@@ -46,12 +46,11 @@ export function SubjectPicker({
   const exams = useExams();
   const folders = useFolders();
 
-  /* Ref rather than a dependency: this must run once on arrival. Re-running it
-     when the queries settle would drag the student back to the bridged subject
-     after they had picked a different one. */
+  /* Only seed empty parent state. The picker remounts when switching tool tabs,
+     so the local ref alone cannot distinguish arrival from a later tab mount. */
   const consumedBridge = useRef(false);
   useEffect(() => {
-    if (consumedBridge.current) return;
+    if (consumedBridge.current || value) return;
     const bridged = CognitiveBridge.getPayload();
     const target = bridged?.subject || bridged?.concept || bridged?.topic;
     if (!target) return;
@@ -59,7 +58,7 @@ export function SubjectPicker({
     onSelectionChange(CUSTOM_SUBJECT);
     onChange(target);
     onBridgedSubject?.(target);
-  }, [onChange, onSelectionChange, onBridgedSubject]);
+  }, [value, onChange, onSelectionChange, onBridgedSubject]);
 
   /* An exam and a folder can carry the same name — revising for "Biology"
      with a "Biology" subject folder is the normal case, not an edge one — and

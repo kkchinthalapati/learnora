@@ -86,14 +86,29 @@ export function extractJSON<T = unknown>(
   for (const candidate of [
     text.trim(),
     stripFences(text),
-    sliceBlock(text, "{", "}"),
-    sliceBlock(text, "[", "]"),
+    ...jsonBlocksByStart(text),
   ]) {
     if (!candidate) continue;
     const parsed = tryParse(candidate);
     if (parsed !== undefined) return parsed as T;
   }
   return undefined;
+}
+
+/** Keep prose-wrapped containers in source order. An array commonly contains
+ * objects, so always trying an object block first would return an inner item
+ * instead of the outer array the provider actually emitted. */
+function jsonBlocksByStart(text: string): string[] {
+  return [
+    { start: text.indexOf("{"), value: sliceBlock(text, "{", "}") },
+    { start: text.indexOf("["), value: sliceBlock(text, "[", "]") },
+  ]
+    .filter(
+      (candidate): candidate is { start: number; value: string } =>
+        candidate.start !== -1 && candidate.value !== undefined,
+    )
+    .sort((a, b) => a.start - b.start)
+    .map((candidate) => candidate.value);
 }
 
 /** Slice out the first `open` … last `close` block, for a reply that arrived

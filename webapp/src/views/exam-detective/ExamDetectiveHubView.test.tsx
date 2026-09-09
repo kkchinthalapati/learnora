@@ -279,5 +279,40 @@ describe("ExamDetectiveHubView", () => {
         ),
       );
     });
+
+    it("preserves a changed subject when switching between tool tabs", async () => {
+      CognitiveBridge.setPayload({
+        subject: "Photosynthesis",
+        topic: "Photosynthesis",
+        sourceTool: "notes",
+        suggestedAction: "run_premortem",
+      });
+      server.use(
+        http.get(rest("exams"), () => HttpResponse.json([])),
+        http.get(rest("folders"), () => HttpResponse.json([])),
+      );
+
+      renderWithAuth(
+        <ExamDetectiveHubView />,
+        { session: fakeSession() },
+        { withRouter: true },
+      );
+
+      const user = userEvent.setup();
+      await user.click(
+        await screen.findByRole("button", { name: /Analyse a past paper/i }),
+      );
+
+      const subjectInput = await screen.findByLabelText("Which subject?");
+      expect(subjectInput).toHaveValue("Photosynthesis");
+      await user.clear(subjectInput);
+      await user.type(subjectInput, "Organic chemistry");
+
+      await user.click(screen.getByRole("button", { name: /^Practice$/i }));
+
+      expect(await screen.findByLabelText("Which subject?")).toHaveValue(
+        "Organic chemistry",
+      );
+    });
   });
 });

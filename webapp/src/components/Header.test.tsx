@@ -99,6 +99,27 @@ describe("Header", () => {
     );
   });
 
+  it.each([
+    "/study",
+    "/solver",
+    "/feynman",
+    "/viva",
+    "/exam-detective",
+  ])("shows Study Lab help on canonical study route %s", async (path) => {
+    renderHeader({ path });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Help and support" }),
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Study Lab" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Choose the exercise that matches your goal/i),
+    ).toBeInTheDocument();
+  });
+
   it("toggles sidebar menu when hamburger button is clicked", async () => {
     renderHeader();
 

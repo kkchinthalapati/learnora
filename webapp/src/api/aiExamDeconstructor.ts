@@ -732,6 +732,7 @@ export function markTrapDisarmed(trapId: string): string[] {
 const radarStore = collection<ImmunityRadarRecord>(
   STORAGE_KEY_RADAR_HISTORY,
   (record) => record.id,
+  { limit: 20 },
 );
 
 export function getStoredRadarHistory(): ImmunityRadarRecord[] {

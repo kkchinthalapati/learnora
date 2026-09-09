@@ -68,10 +68,18 @@ const HELP_BY_ROUTE: ReadonlyArray<{
   },
   {
     matches: (path) =>
-      path.startsWith("/study-lab") ||
-      path.startsWith("/sparring") ||
-      path.startsWith("/feynman") ||
-      path.startsWith("/debugger"),
+      [
+        "/study",
+        "/solver",
+        "/feynman",
+        "/viva",
+        "/exam-detective",
+        // Keep redirect aliases covered while navigation is settling on the
+        // canonical routes above.
+        "/study-lab",
+        "/debugger",
+        "/sparring",
+      ].some((route) => path === route || path.startsWith(`${route}/`)),
     title: "Study Lab",
     summary:
       "Choose the exercise that matches your goal: explain, challenge, diagnose, or practise.",

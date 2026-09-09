@@ -245,6 +245,18 @@ describe("extractJSON", () => {
     expect(extractJSON("[1,2]")).toEqual([1, 2]);
   });
 
+  it("preserves a prose-wrapped outer array instead of returning its first object", () => {
+    expect(extractJSON<any[]>('Here is the result: [{"name":"Trap"}]')).toEqual(
+      [{ name: "Trap" }],
+    );
+  });
+
+  it("preserves a prose-wrapped outer object when it contains an array", () => {
+    expect(extractJSON('Result: {"items":[{"name":"Trap"}]}')).toEqual({
+      items: [{ name: "Trap" }],
+    });
+  });
+
   it("returns undefined rather than throwing on unusable input", () => {
     expect(extractJSON("no json here")).toBeUndefined();
     expect(extractJSON("")).toBeUndefined();
