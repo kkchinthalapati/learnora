@@ -95,6 +95,7 @@ function serveLibrary({
   dueCount = 0,
 } = {}) {
   server.use(
+    http.get(rest("notebooks"), () => HttpResponse.json([])),
     http.get(rest("folders"), () => HttpResponse.json(folders)),
     http.get(rest("materials"), ({ request }) => {
       const folderId = new URL(request.url).searchParams
@@ -125,7 +126,7 @@ function LocationProbe() {
   return <div data-testid="path">{location.pathname}</div>;
 }
 
-function renderLibrary(path = "/library") {
+function renderLibrary(path = "/library/folders") {
   return renderWithAuth(
     <>
       <LocationProbe />
@@ -156,22 +157,25 @@ describe("LibraryView shell", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders the four tabs with Folders selected on /library", async () => {
+  it("opens one workspace with Notebooks first on /library", async () => {
     serveLibrary({ folders: [folder()] });
-    renderLibrary();
+    renderLibrary("/library");
 
     const tabs = await screen.findAllByRole("tab");
     expect(tabs.map((t) => t.textContent)).toEqual([
-      "Folders",
-      "Materials",
+      "Notebooks",
+      "Subjects",
+      "Files & notes",
       "Flashcards",
       "Quizzes",
     ]);
-    expect(tab("Folders")).toHaveAttribute("aria-selected", "true");
+    expect(tab("Notebooks")).toHaveAttribute("aria-selected", "true");
     expect(
-      screen.queryByRole("heading", { name: "Library" }),
-    ).not.toBeInTheDocument();
-    expect(await screen.findByText("Biology")).toBeInTheDocument();
+      screen.getByRole("heading", { name: "Your learning" }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("No study notebooks yet"),
+    ).toBeInTheDocument();
   });
 
   it("searches every library type and opens the matching destination", async () => {
@@ -191,7 +195,7 @@ describe("LibraryView shell", () => {
     );
 
     expect(
-      await screen.findByText("Materials", { selector: "h2" }),
+      await screen.findByText("Files & notes", { selector: "h2" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Quizzes", { selector: "h2" })).toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
@@ -245,10 +249,10 @@ describe("LibraryView shell", () => {
 
     expect(await screen.findByText("Cell division quiz")).toBeInTheDocument();
     expect(tab("Quizzes")).toHaveAttribute("aria-selected", "true");
-    expect(tab("Folders")).toHaveAttribute("aria-selected", "false");
+    expect(tab("Subjects")).toHaveAttribute("aria-selected", "false");
   });
 
-  it("redirects an unknown tab back to the Folders tab", async () => {
+  it("redirects an unknown tab back to Notebooks", async () => {
     serveLibrary({ folders: [folder()] });
     renderLibrary("/library/not-a-tab");
 
@@ -256,7 +260,7 @@ describe("LibraryView shell", () => {
       expect(screen.getByTestId("path")).toHaveTextContent("/library"),
     );
     expect(screen.getByTestId("path").textContent).toBe("/library");
-    expect(tab("Folders")).toHaveAttribute("aria-selected", "true");
+    expect(tab("Notebooks")).toHaveAttribute("aria-selected", "true");
   });
 
   it("switches tab and URL on click, mounting only that tab's panel", async () => {
@@ -265,7 +269,7 @@ describe("LibraryView shell", () => {
     renderLibrary();
     await screen.findByText("Biology");
 
-    await user.click(tab("Materials"));
+    await user.click(tab("Files & notes"));
 
     expect(await screen.findByText("Cell division")).toBeInTheDocument();
     expect(screen.getByTestId("path")).toHaveTextContent("/library/materials");
@@ -279,15 +283,15 @@ describe("LibraryView shell", () => {
     renderLibrary();
     await screen.findByText("Biology");
 
-    expect(tab("Folders")).toHaveAttribute("tabindex", "0");
-    expect(tab("Materials")).toHaveAttribute("tabindex", "-1");
+    expect(tab("Subjects")).toHaveAttribute("tabindex", "0");
+    expect(tab("Files & notes")).toHaveAttribute("tabindex", "-1");
 
-    tab("Folders").focus();
+    tab("Subjects").focus();
     await user.keyboard("{ArrowRight}");
 
     expect(await screen.findByText("Cell division")).toBeInTheDocument();
-    expect(tab("Materials")).toHaveAttribute("aria-selected", "true");
-    expect(tab("Materials")).toHaveFocus();
+    expect(tab("Files & notes")).toHaveAttribute("aria-selected", "true");
+    expect(tab("Files & notes")).toHaveFocus();
   });
 
   it("wraps from the last tab back to the first with Home/End", async () => {
@@ -296,13 +300,15 @@ describe("LibraryView shell", () => {
     renderLibrary();
     await screen.findByText("Biology");
 
-    tab("Folders").focus();
+    tab("Subjects").focus();
     await user.keyboard("{End}");
     expect(tab("Quizzes")).toHaveAttribute("aria-selected", "true");
 
     await user.keyboard("{Home}");
-    expect(await screen.findByText("Biology")).toBeInTheDocument();
-    expect(tab("Folders")).toHaveAttribute("aria-selected", "true");
+    expect(
+      await screen.findByText("No study notebooks yet"),
+    ).toBeInTheDocument();
+    expect(tab("Notebooks")).toHaveAttribute("aria-selected", "true");
   });
 
   it("names the panel from its tab", async () => {
@@ -321,10 +327,14 @@ describe("LibraryView shell", () => {
     renderLibrary();
     await screen.findByText("Biology");
 
-    await user.click(screen.getByRole("button", { name: "+ Create" }));
+    await user.click(
+      screen.getByRole("button", { name: "Start with a source" }),
+    );
 
     expect(
-      await screen.findByRole("heading", { name: "Create something new" }),
+      await screen.findByRole("heading", {
+        name: "What do you want to learn?",
+      }),
     ).toBeInTheDocument();
   });
 });
@@ -538,10 +548,10 @@ describe("Library — Materials tab", () => {
     renderLibrary("/library/materials");
 
     expect(await screen.findByText("No materials yet.")).toBeInTheDocument();
-    // The header opens the hub; this contextual action skips straight to the
-    // guided study-resource flow.
+    // Both the workspace action and this contextual empty-state action open
+    // the same source-first flow.
     expect(
-      screen.getByRole("button", { name: "+ Create" }),
+      screen.getByRole("button", { name: "Start with a source" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Create study resources" }),

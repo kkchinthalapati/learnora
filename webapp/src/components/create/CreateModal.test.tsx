@@ -31,18 +31,16 @@ describe("CreateModal", () => {
     vi.restoreAllMocks();
   });
 
-  it("opens on a clear creation hub by default", async () => {
+  it("opens directly on the source-first study flow by default", async () => {
     const user = userEvent.setup();
     renderModal(<Harness />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     expect(
-      screen.getByRole("dialog", { name: "Create something new" }),
+      screen.getByRole("dialog", { name: "What do you want to learn?" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Build study resources/ }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Task/ })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Upload/ })).toBeInTheDocument();
+    expect(screen.queryByText("Create something new")).not.toBeInTheDocument();
   });
 
   it("opens directly on the requested panel", async () => {
@@ -56,19 +54,18 @@ describe("CreateModal", () => {
     expect(screen.getByRole("textbox", { name: "Task" })).toBeInTheDocument();
   });
 
-  it("moves from the hub into a quick-create form without closing", async () => {
+  it("keeps explicit quick-create callers direct", async () => {
     const user = userEvent.setup();
-    renderModal(<Harness />);
+    renderModal(<Harness initial={{ type: "subject" }} />);
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
-    await user.click(screen.getByRole("button", { name: /Subject/ }));
     expect(
       screen.getByRole("dialog", { name: "Create a subject" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "All create options" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("tab", { name: /Upload/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("resets to a fresh panel every time it's reopened", async () => {
@@ -77,14 +74,14 @@ describe("CreateModal", () => {
     await user.click(screen.getByRole("button", { name: "Open create" }));
 
     // Open Subject and type a name, then cancel.
-    await user.click(screen.getByRole("button", { name: /Subject/ }));
-    await user.type(screen.getByLabelText("Name"), "Half-typed name");
+    await user.click(screen.getByRole("tab", { name: "Topic" }));
+    await user.type(screen.getByLabelText("Topic"), "Half-typed topic");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     // Reopen — should be back on the hub, not Subject with stale text.
     await user.click(screen.getByRole("button", { name: "Open create" }));
     expect(
-      screen.getByRole("dialog", { name: "Create something new" }),
+      screen.getByRole("dialog", { name: "What do you want to learn?" }),
     ).toBeInTheDocument();
   });
 });

@@ -10,7 +10,6 @@ import { Badge } from "../../components/Badge";
 import { EmptyState } from "../../components/EmptyState";
 import { Skeleton } from "../../components/Skeleton";
 import { useToast } from "../../context/toast";
-import { LibraryWorkspaceNav } from "../library/LibraryWorkspaceNav";
 
 const SUBJECT_COLORS = [
   "#4A90E2", // Blue (Maths)
@@ -20,7 +19,7 @@ const SUBJECT_COLORS = [
   "#E24A4A", // Coral/Red (Physics/Chemistry)
 ];
 
-export function NotebooksHubView() {
+export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const {
@@ -93,15 +92,20 @@ export function NotebooksHubView() {
   };
 
   return (
-    <div className={styles.hubView}>
-      <LibraryWorkspaceNav />
+    <div
+      className={`${styles.hubView}${embedded ? ` ${styles.embedded}` : ""}`}
+    >
       <header className={styles.hubHeader}>
         <div className={styles.hubTitleGroup}>
           <span className={styles.hubEyebrow}>
             <Icon name="book-open" size={16} />
             Grounded in your own sources
           </span>
-          <h1 className={styles.hubTitle}>Notebooks</h1>
+          {embedded ? (
+            <h2 className={styles.hubTitle}>Notebooks</h2>
+          ) : (
+            <h1 className={styles.hubTitle}>Notebooks</h1>
+          )}
           <p className={styles.hubSubtitle}>
             Bring several sources together, ask cited questions, and turn what
             you learn into revision material.
@@ -122,15 +126,17 @@ export function NotebooksHubView() {
         </Button>
       </header>
 
-      <div className={styles.hubGuide}>
-        <strong>Notebooks connect sources.</strong>
-        <span>
-          Use the Library to store individual files, notes, decks and quizzes.
-        </span>
-        <Link to="/library" className={styles.hubGuideLink}>
-          Open Library →
-        </Link>
-      </div>
+      {!embedded ? (
+        <div className={styles.hubGuide}>
+          <strong>Notebooks connect sources.</strong>
+          <span>
+            Use the Library to store individual files, notes, decks and quizzes.
+          </span>
+          <Link to="/library" className={styles.hubGuideLink}>
+            Open Library →
+          </Link>
+        </div>
+      ) : null}
 
       {!isLoading && !isError ? (
         <div className={styles.hubControls}>

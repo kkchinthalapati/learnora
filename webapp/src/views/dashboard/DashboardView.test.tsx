@@ -528,7 +528,9 @@ describe("DashboardView", () => {
         await screen.findByRole("button", { name: /Create study material/ }),
       );
       expect(
-        await screen.findByRole("heading", { name: "Build study resources" }),
+        await screen.findByRole("heading", {
+          name: "What do you want to learn?",
+        }),
       ).toBeInTheDocument();
     });
 
@@ -667,10 +669,7 @@ describe("DashboardView", () => {
       renderWithAuth(
         <ChatProvider>
           <Routes>
-            <Route
-              path="/"
-              element={<DashboardView initialTab="focus" />}
-            />
+            <Route path="/" element={<DashboardView initialTab="focus" />} />
           </Routes>
         </ChatProvider>,
         { session: fakeSession() },
@@ -686,7 +685,9 @@ describe("DashboardView", () => {
       ).toBeInTheDocument();
 
       // Switch to Insights
-      await user.click(screen.getByRole("tab", { name: /Insights & Trajectory/i }));
+      await user.click(
+        screen.getByRole("tab", { name: /Insights & Trajectory/i }),
+      );
       expect(
         screen.getByRole("heading", { name: "Mistakes & Retention" }),
       ).toBeInTheDocument();

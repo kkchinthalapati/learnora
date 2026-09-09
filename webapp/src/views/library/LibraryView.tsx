@@ -8,7 +8,7 @@ import { MaterialsPanel } from "./MaterialsPanel";
 import { FlashcardsPanel } from "./FlashcardsPanel";
 import { QuizzesPanel } from "./QuizzesPanel";
 import { LibrarySearch } from "./LibrarySearch";
-import { LibraryWorkspaceNav } from "./LibraryWorkspaceNav";
+import { NotebooksHubView } from "../notebooks/NotebooksHubView";
 import {
   LIBRARY_TABS,
   isLibraryTab,
@@ -18,6 +18,7 @@ import {
 import styles from "./library.module.css";
 
 const PANELS: Record<LibraryTabId, () => React.ReactElement> = {
+  notebooks: () => <NotebooksHubView embedded />,
   folders: FoldersPanel,
   materials: MaterialsPanel,
   flashcards: FlashcardsPanel,
@@ -34,7 +35,7 @@ export function LibraryView() {
   if (tab !== undefined && !isLibraryTab(tab)) {
     return <Navigate to="/library" replace />;
   }
-  const active: LibraryTabId = tab ?? "folders";
+  const active: LibraryTabId = tab ?? "notebooks";
 
   function onTabKeyDown(e: KeyboardEvent<HTMLButtonElement>, index: number) {
     const count = LIBRARY_TABS.length;
@@ -56,12 +57,16 @@ export function LibraryView() {
 
   return (
     <div className={styles.view}>
-      <LibraryWorkspaceNav />
+      <header className={styles.lead}>
+        <span className={styles.eyebrow}>Your study workspace</span>
+        <h1>Your learning</h1>
+        <p>Sources, notebooks and revision tools that stay connected.</p>
+      </header>
       <LibrarySearch
         onActiveChange={setIsSearching}
         action={
           <Button variant="primary" onClick={() => openCreateModal()}>
-            + Create
+            Start with a source
           </Button>
         }
       />

@@ -53,16 +53,19 @@ const PERSONALITY_DESC: Record<string, string> = {
 const SOURCE_TABS: Array<{
   kind: SourceKind;
   label: string;
+  accessibleLabel?: string;
   icon: IconName;
 }> = [
   {
     kind: "file",
-    label: "Upload Document / PDF",
+    label: "Upload",
+    accessibleLabel: "Upload Document / PDF",
     icon: "upload-cloud",
   },
   {
     kind: "text",
-    label: "Paste Text / Notes",
+    label: "Paste text",
+    accessibleLabel: "Paste Text / Notes",
     icon: "file-text",
   },
   {
@@ -72,12 +75,14 @@ const SOURCE_TABS: Array<{
   },
   {
     kind: "link",
-    label: "Web Link",
+    label: "Link",
+    accessibleLabel: "Web Link",
     icon: "link",
   },
   {
     kind: "material",
-    label: "Saved Material",
+    label: "From Learnora",
+    accessibleLabel: "Saved Material",
     icon: "folder",
   },
 ];
@@ -346,7 +351,11 @@ export function MaterialPanel({
         source: sourceToUse,
         folderId: source === "topic" ? null : folderId || null,
         title: titleOverride,
-        outputs: { flashcards: wantFlashcards, quiz: wantQuiz, notes: wantNotes },
+        outputs: {
+          flashcards: wantFlashcards,
+          quiz: wantQuiz,
+          notes: wantNotes,
+        },
         options: { cardCount, questionCount, difficulty, personality },
         onProgress: setProgress,
       });
@@ -414,7 +423,11 @@ export function MaterialPanel({
         source: sourceToUse,
         folderId: source === "topic" ? null : folderId || null,
         title: titleOverride,
-        outputs: { flashcards: retryFlashcards, quiz: retryQuiz, notes: wantNotes },
+        outputs: {
+          flashcards: retryFlashcards,
+          quiz: retryQuiz,
+          notes: wantNotes,
+        },
         options: { cardCount, questionCount, difficulty, personality },
         onProgress: setProgress,
       });
@@ -458,28 +471,47 @@ export function MaterialPanel({
   };
 
   const visibleTabs = SOURCE_TABS.filter(
-    (tab) => tab.kind !== "material" || Boolean(initialMaterialId) || hasSavedMaterials,
+    (tab) =>
+      tab.kind !== "material" ||
+      Boolean(initialMaterialId) ||
+      hasSavedMaterials,
   );
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} noValidate className={styles.panel}>
+    <form
+      onSubmit={(e) => void handleSubmit(e)}
+      noValidate
+      className={styles.panel}
+    >
       {/* Step 1: Provide Source */}
-      <section className={styles.section} aria-labelledby="source-section-heading">
+      <section
+        className={styles.section}
+        aria-labelledby="source-section-heading"
+      >
         <div className={styles.sectionHeader}>
-          <h3 id="source-section-heading" className={styles.sectionTitle}>
-            1. Provide Source
+          <h3
+            id="source-section-heading"
+            className={styles.sectionTitle}
+            aria-label="1. Provide Source"
+          >
+            Start with one source
           </h3>
           <span className={styles.sectionHint}>
-            Choose how you want to add your material
+            Your source keeps the result grounded
           </span>
         </div>
 
-        <div className={styles.sourceTabs} role="tablist" aria-label="Source formats">
+        <div
+          className={styles.sourceTabs}
+          role="tablist"
+          aria-label="Source formats"
+        >
           {visibleTabs.map((tab) => (
             <button
               key={tab.kind}
               type="button"
               role="tab"
+              aria-label={tab.accessibleLabel}
               aria-selected={source === tab.kind}
               className={`${styles.sourceTab} ${source === tab.kind ? styles.sourceTabActive : ""}`}
               onClick={() => chooseSource(tab.kind)}
@@ -569,7 +601,9 @@ export function MaterialPanel({
                 placeholder="Paste lecture notes, study guide, or transcript text here…"
                 autoFocus
               />
-              <p className={styles.fieldHint}>At least one paragraph works best.</p>
+              <p className={styles.fieldHint}>
+                At least one paragraph works best.
+              </p>
             </div>
           ) : null}
 
@@ -591,7 +625,11 @@ export function MaterialPanel({
                 placeholder="e.g. Ionic bonding, French Revolution, Quantum physics…"
                 autoFocus
               />
-              <p className={styles.fieldHint}>Learnora will use general knowledge.</p>
+              <p className={styles.infoNote}>
+                <Icon name="help-circle" size={16} />
+                No source attached. AI may use general knowledge and can be
+                wrong.
+              </p>
             </div>
           ) : null}
 
@@ -615,7 +653,9 @@ export function MaterialPanel({
               />
               <p className={styles.infoNote}>
                 <Icon name="help-circle" size={16} />
-                YouTube links use the video's title and topic, not its full transcript. For spoken content, upload the audio or video file instead.
+                YouTube links use the video's title and topic, not its full
+                transcript. For spoken content, upload the audio or video file
+                instead.
               </p>
             </div>
           ) : null}
@@ -654,14 +694,15 @@ export function MaterialPanel({
       </section>
 
       {/* Step 2: Choose Outputs */}
-      <section className={styles.section} aria-labelledby="outputs-section-heading">
+      <section
+        className={styles.section}
+        aria-labelledby="outputs-section-heading"
+      >
         <div className={styles.sectionHeader}>
           <h3 id="outputs-section-heading" className={styles.sectionTitle}>
-            2. What do you want to create?
+            Choose your study kit
           </h3>
-          <span className={styles.sectionHint}>
-            Tap pills to select one or more
-          </span>
+          <span className={styles.sectionHint}>Pick one or more</span>
         </div>
 
         <div className={styles.outputGrid}>
@@ -817,7 +858,10 @@ export function MaterialPanel({
 
           {wantFlashcards ? (
             <div className={styles.formGroup}>
-              <label htmlFor="material-card-count" className={styles.fieldLabel}>
+              <label
+                htmlFor="material-card-count"
+                className={styles.fieldLabel}
+              >
                 Flashcards: {cardCount}
               </label>
               <input
@@ -961,7 +1005,7 @@ export function MaterialPanel({
         <div className={styles.progress} role="status" aria-live="polite">
           <span className={styles.spinner} aria-hidden="true" />
           <div className={styles.progressCopy}>
-            <strong>Creating your resources</strong>
+            <strong>Building from your source</strong>
             <span>{progress}</span>
           </div>
         </div>
@@ -969,11 +1013,7 @@ export function MaterialPanel({
 
       {/* Action Footer */}
       <div className={styles.actions}>
-        <Button
-          type="button"
-          onClick={onClose}
-          disabled={create.isPending}
-        >
+        <Button type="button" onClick={onClose} disabled={create.isPending}>
           Cancel
         </Button>
         <Button
@@ -982,8 +1022,11 @@ export function MaterialPanel({
           size="md"
           disabled={create.isPending}
           className={styles.submitButton}
+          aria-label={
+            create.isPending ? "Creating…" : "Generate Study Resources"
+          }
         >
-          {create.isPending ? "Creating…" : "Generate Study Resources"}
+          {create.isPending ? "Creating…" : "Create my study kit"}
         </Button>
       </div>
     </form>

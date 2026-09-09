@@ -45,8 +45,8 @@ describe("route skeleton", () => {
     ["/tasks", "Task Manager"],
     ["/exams", "Exams"],
     ["/timer", "Timer"],
-    ["/library", "Library"],
-    ["/library/notes", "Library"],
+    ["/library", "Your learning"],
+    ["/library/notes", "Your learning"],
     ["/plan", "This week's plan"],
     ["/friends", "Friends"],
     ["/analytics", "Progress"],
@@ -54,10 +54,14 @@ describe("route skeleton", () => {
     ["/feynman", "Explain It Simply"],
     ["/debugger", "Step-by-Step Solver"],
     ["/settings", "Settings"],
-  ])("%s renders the %s view for a signed-in user", (path, heading) => {
+  ])("%s renders the %s view for a signed-in user", async (path, heading) => {
     renderAt(path);
     expect(
-      screen.getByRole("heading", { level: 1, name: heading }),
+      await screen.findByRole(
+        "heading",
+        { level: 1, name: heading },
+        { timeout: 10000 },
+      ),
     ).toBeInTheDocument();
   });
 
