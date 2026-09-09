@@ -121,6 +121,11 @@ export const notebooksApi = {
       .from("notebooks")
       .select(LIST_SELECT)
       .eq("user_id", userId)
+      // Stage 4 creates one internal ownership row per subject (plus an
+      // unfiled fallback). They keep Library content connected but are not
+      // student workspaces and would otherwise duplicate every subject as an
+      // empty-looking notebook card.
+      .is("system_key", null)
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []).map(toNotebook);
@@ -133,6 +138,7 @@ export const notebooksApi = {
       .select(DETAIL_SELECT)
       .eq("id", id)
       .eq("user_id", userId)
+      .is("system_key", null)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data ? toNotebook(data) : null;

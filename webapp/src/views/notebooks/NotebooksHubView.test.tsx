@@ -69,6 +69,36 @@ describe("NotebooksHubView", () => {
     expect(screen.getByText(/A-Level Biology/)).toBeInTheDocument();
   });
 
+  it("requests only student-created notebooks, not internal subject owners", async () => {
+    let requestedStudentNotebooks = false;
+    server.use(
+      http.get(rest("notebooks"), ({ request }) => {
+        requestedStudentNotebooks =
+          new URL(request.url).searchParams.get("system_key") === "is.null";
+        return HttpResponse.json(
+          requestedStudentNotebooks
+            ? [notebookRow()]
+            : [
+                notebookRow(),
+                notebookRow({
+                  id: "system-folder-1",
+                  title: "Internal Mathematics owner",
+                  system_key: "folder_contents",
+                }),
+              ],
+        );
+      }),
+    );
+
+    renderHub();
+
+    expect(await screen.findByText(/Grade 9 Mathematics/)).toBeInTheDocument();
+    expect(requestedStudentNotebooks).toBe(true);
+    expect(
+      screen.queryByText("Internal Mathematics owner"),
+    ).not.toBeInTheDocument();
+  });
+
   it("filters notebooks based on search query", async () => {
     const user = userEvent.setup();
     renderHub();
