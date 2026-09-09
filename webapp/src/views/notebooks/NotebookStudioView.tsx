@@ -349,15 +349,17 @@ Use British English throughout.`;
           "Structured summary covering core theorems, definitions, and exam pitfalls.",
       });
       showToast("Cheat Sheet saved to your Notebook Studio!");
-    } catch {
-      // Fallback
-      addArtifact({
-        type: "cheat_sheet",
-        title: `${notebook.subject}: High-Yield Revision Cheat Sheet`,
-        content: `### High-Yield Revision Sheet\n\n- **Key Principle**: Always break down the given theorem into assumptions and conclusions.\n- **Exam Strategy**: Show step-by-step working and state exact theorem names.\n- **Common Trap**: Forgetting to justify congruency conditions (SAS, SSS, RHS).`,
-        summary: "Essential theorem rules and exam tips.",
-      });
-      showToast("Cheat Sheet generated and saved!");
+    } catch (cause) {
+      /* Deliberately no fallback artifact. This used to save a hardcoded
+         paragraph about congruency conditions and tell the student their cheat
+         sheet was "generated and saved" — content invented here, attributed to
+         their own sources, and indistinguishable from a real one once it was
+         in the artifact list. A failure has to read as a failure. */
+      showToast(
+        cause instanceof Error
+          ? cause.message
+          : "Could not generate the cheat sheet. Please try again.",
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -395,14 +397,14 @@ Use British English throughout.`;
           "Plain-language analogy, concept simplification, and gap-finder questions.",
       });
       showToast("Breakdown saved to your notebook.");
-    } catch {
-      addArtifact({
-        type: "feynman",
-        title: `Feynman Intuition: ${notebook.title}`,
-        content: `### Feynman Concept Breakdown\n\n**Plain-Language Idea**: Think of a circle like a bicycle wheel where all spokes have equal length (the radius).\n\n**Common Gap**: Students often assume chords are diameters unless explicitly stated.`,
-        summary: "Plain-language simplification and gap-finder.",
-      });
-      showToast("Breakdown saved.");
+    } catch (cause) {
+      /* As above: the fallback here invented a circle-theorem analogy and
+         saved it as though the model had written it from this notebook. */
+      showToast(
+        cause instanceof Error
+          ? cause.message
+          : "Could not write the breakdown. Please try again.",
+      );
     } finally {
       setIsGenerating(false);
     }

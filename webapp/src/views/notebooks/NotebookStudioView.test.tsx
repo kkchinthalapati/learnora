@@ -284,4 +284,40 @@ describe("NotebookStudioView", () => {
       await waitFor(() => expect(quizInserts).toHaveLength(1));
     });
   });
+  /* Both AI generators used to answer a failed callEdge by saving a hardcoded
+     paragraph — a congruency-conditions note, a bicycle-wheel analogy — and
+     toasting "generated and saved". The invented text landed in the artifact
+     list attributed to the student's own sources, indistinguishable from a
+     real result. A failure must now read as one. */
+  it("saves nothing and reports the error when generation fails", async () => {
+    const user = userEvent.setup();
+    const artifactInserts: unknown[] = [];
+
+    server.use(
+      http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () =>
+        HttpResponse.json({ error: "upstream unavailable" }, { status: 500 }),
+      ),
+      http.post(rest("notebook_artifacts"), async ({ request }) => {
+        artifactInserts.push(await request.json());
+        return HttpResponse.json([]);
+      }),
+    );
+
+    renderStudio();
+    await screen.findByRole("heading", { name: "Sources" });
+    await user.click(
+      screen.getByRole("button", { name: /Revision Cheat Sheet/i }),
+    );
+
+    /* callEdge retries once with a 2s backoff (MAX_RETRIES / RETRY_DELAY_MS in
+       api/ai.ts), so the failure toast cannot arrive within the default 1s. */
+    expect(
+      await screen.findByText(
+        /Could not generate the cheat sheet|unavailable|went wrong|try again/i,
+        {},
+        { timeout: 6000 },
+      ),
+    ).toBeInTheDocument();
+    expect(artifactInserts).toHaveLength(0);
+  }, 15000);
 });
