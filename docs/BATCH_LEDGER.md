@@ -13,6 +13,7 @@ Statuses: **open** (in progress) · **done** · **descoped** (with reason).
 | 3 | S1B2 — replace the stub generators | `views/notebooks/NotebookStudioView.tsx`, `views/notebooks/NotebookStudioView.test.tsx` | `handleGenerateFlashcards` and `handleGenerateQuiz` wrote a `notebook_artifacts` row advertising "8 Cards" / "Five quick questions" and created **no** `flashcard_decks`, `flashcards` or `quizzes` row at all. Both now call the generators the rest of the app already uses (`generateDeck`, `generateQuizFrom`), surface real errors instead of a success toast, and offer a Review/Start action on the row they actually created. Also added `groundedSourceText()`: the chat path fenced source text with `fenceUntrusted` but the cheat-sheet and Feynman generators interpolated `s.content` raw — the same prompt-injection hole with none of the protection. All four callers now share the fenced, capped builder. | `npx vitest run` → **205/205 files, 2592/2592 passed**. `npm run build` → **✓ built in 1.31s**. Mutation-checked: restoring the original stub bodies makes both new tests fail, and the real implementation makes them pass. | done |
 | 4 | S1B3 — remove fabricated AI fallbacks | `views/notebooks/NotebookStudioView.tsx`, `views/notebooks/NotebookStudioView.test.tsx` | On a failed `callEdge`, `handleGenerateCheatSheet` saved a hardcoded note about congruency conditions and `handleGenerateFeynman` a bicycle-wheel analogy, each toasting "generated and saved". The invented text entered the artifact list attributed to the student's own sources and was indistinguishable from a real result. Both now surface the real error and save nothing. | `npx vitest run` → **205/205 files, 2593/2593 passed**. `grep` for the invented strings in `src/` → no matches. New test asserts a failed generation writes zero `notebook_artifacts` rows and shows an error. | done |
 | 5 | S1B4 — orphaned decks | — | **Descoped into Stage 4.** `handleCreateDeckFromArtifact` files decks with `folder_id: null`, and the plan called for passing "the real scope". There is no scope to pass: `notebooks` has no `folder_id` column until Stage 4's migration adds one, and a notebook's `subject` is free text, not a folder reference. Guessing a folder from the subject string would file decks under the wrong subject, which is worse than leaving them unfiled. Stage 4's backfill files these decks via the per-user "Unfiled sources" notebook. | n/a — no code change | descoped |
+| 6 | S1B5 — repoint dead CTAs | `views/study-lab/StudyLabView.tsx`, `views/library/SubjectDetailPage.tsx`, `views/pro-welcome/WelcomeToProView.tsx` | Three live CTAs pointed at redirect-only paths. Study Lab's "Set up a stress test" and the subject page's trap button went to `/premortem`, which `<Navigate>`s to `/ai-tutor` — a screen with no trap practice on it. Pro Welcome's "Open notebooks" went to `/notebooks`, which redirects to `/library`. Repointed to `/exam-detective` and `/library`. Study Lab's supporting copy drew a distinction between this link and "Exam Trap Practice" that no longer exists now both are the same destination, so it was rewritten to describe what Exam Detective actually offers. `handleLaunchPreMortem` renamed to `handleLaunchExamDetective`. | `npx vitest run` → **205/205 files, 2593/2593 passed**. `npm run build` → **✓ built in 1.34s**. | done |
 
 ### Note on row 2
 
@@ -42,4 +43,13 @@ Two consequences worth carrying forward:
   because a notebook has no folder until Stage 4 adds `notebooks.folder_id`.
   This is the same orphaning that batch S1B4 was meant to fix, and it cannot be
   fixed before the schema supports it — see row 4.
+
+### Note on row 6
+
+`SubjectDetailPage.handleLaunchExamDetective` still writes a `CognitiveBridge`
+payload (`subject`, `suggestedAction: "run_premortem"`) that nothing reads —
+`ExamDetectiveHubView` does not import `CognitiveBridge` at all. The button was
+already dropping its subject context before this change; repointing it does not
+fix that. Wiring Exam Detective to the bridge belongs to Stage 2, where the
+Pre-Mortem merge brings in the exam/subject config form that would consume it.
 

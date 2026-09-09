@@ -148,7 +148,7 @@ export function SubjectDetailPage() {
     void navigate("/debugger");
   };
 
-  const handleLaunchPreMortem = () => {
+  const handleLaunchExamDetective = () => {
     if (!folder) return;
     CognitiveBridge.setPayload({
       subject: folder.name,
@@ -156,7 +156,7 @@ export function SubjectDetailPage() {
       sourceTool: "notes",
       suggestedAction: "run_premortem",
     });
-    void navigate("/premortem");
+    void navigate("/exam-detective");
   };
 
   if (folders.isPending) {
@@ -262,7 +262,7 @@ export function SubjectDetailPage() {
           <button
             type="button"
             className={styles.subjectAiBtn}
-            onClick={handleLaunchPreMortem}
+            onClick={handleLaunchExamDetective}
             title="Spot tricky wording and exam traps before test day"
           >
             <Icon name="shield" size={13} />

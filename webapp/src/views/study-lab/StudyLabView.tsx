@@ -156,14 +156,14 @@ export function StudyLabView() {
       <aside className={styles.examChoice} aria-labelledby="exam-choice-title">
         <div>
           <span className={styles.eyebrow}>Already know the exam?</span>
-          <h2 id="exam-choice-title">Run a personal exam stress test</h2>
+          <h2 id="exam-choice-title">Learn the traps, then sit a timed set</h2>
           <p>
-            Use your saved exam or subject, choose the trap types, and answer a
-            timed set. This is practice; Exam Trap Practice is where you first
-            learn and analyse the patterns.
+            Read the playbook of tricks examiners reuse, pull a past paper
+            apart, then answer a timed sprint and see which traps still catch
+            you.
           </p>
         </div>
-        <Link to="/premortem" className={styles.secondaryLink}>
+        <Link to="/exam-detective" className={styles.secondaryLink}>
           Set up a stress test →
         </Link>
       </aside>

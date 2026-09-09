@@ -57,7 +57,7 @@ const FEATURE_ROUTE: Partial<Record<FeatureId, { to: string; cta: string }>> =
     calendarImport: { to: "/my-week", cta: "Import your timetable" },
     autoSchedule: { to: "/my-week", cta: "Set up your week" },
     scheduleExport: { to: "/my-week", cta: "Set up your week" },
-    unlimitedNotebooks: { to: "/notebooks", cta: "Open notebooks" },
+    unlimitedNotebooks: { to: "/library", cta: "Open notebooks" },
     customAppearance: { to: "/settings", cta: "Pick a colour" },
   };
 
