@@ -18,17 +18,13 @@ vi.mock("../sparring/SocraticSparringView", () => ({
   SocraticSparringView: () => <div data-testid="viva-view">Viva Content</div>,
 }));
 
-vi.mock("../premortem/PreMortemHubView", () => ({
-  PreMortemHubView: () => <div data-testid="traps-view">Traps Content</div>,
-}));
-
 describe("AiTutorView", () => {
   beforeEach(() => {
     localStorage.clear();
     CognitiveBridge.clear();
   });
 
-  it("renders header, all 4 mode tabs, and default solver view", () => {
+  it("renders header, all 3 mode tabs, and default solver view", () => {
     render(
       <MemoryRouter initialEntries={["/ai-tutor"]}>
         <AiTutorView />
@@ -39,7 +35,7 @@ describe("AiTutorView", () => {
     expect(screen.getByText("Step-by-Step Solver")).toBeInTheDocument();
     expect(screen.getByText("Explain & Teach")).toBeInTheDocument();
     expect(screen.getByText("Viva / Test Practice")).toBeInTheDocument();
-    expect(screen.getByText("Common Exam Traps")).toBeInTheDocument();
+    expect(screen.queryByText("Common Exam Traps")).not.toBeInTheDocument();
 
     // Default view is solver
     expect(screen.getByTestId("solver-view")).toBeInTheDocument();
@@ -64,10 +60,10 @@ describe("AiTutorView", () => {
     await user.click(vivaTab);
     expect(screen.getByTestId("viva-view")).toBeInTheDocument();
 
-    // Switch to Common Exam Traps
-    const trapsTab = screen.getByRole("tab", { name: /Common Exam Traps/i });
-    await user.click(trapsTab);
-    expect(screen.getByTestId("traps-view")).toBeInTheDocument();
+    // Common Exam Traps should not exist
+    expect(
+      screen.queryByRole("tab", { name: /Common Exam Traps/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("loads and persists topic from CognitiveBridge and URL search params", async () => {

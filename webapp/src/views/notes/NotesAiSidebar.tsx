@@ -353,7 +353,7 @@ export function NotesAiSidebar({
         <QuickActionCard
           icon="sparkles"
           title="AI Tutor"
-          description="Solve, viva, & traps"
+          description="Solver, Explain, Viva"
           onActivate={() => {
             const topic = materialTitle || "Study Notes";
             CognitiveBridge.saveActiveTopic(topic);

@@ -765,12 +765,610 @@
   color: var(--text-faint);
 }
 
+/* Call AI Setup Styles: Vibe Selector & Goals */
+.setupSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.setupHeadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.setupSectionTitle {
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--text-muted);
+}
+
+.vibeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--s-3);
+}
+
+.vibeCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--r-xl);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+
+.vibeCard:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent-ring);
+}
+
+.vibeCardSelected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-accent);
+}
+
+.vibeCardIcon {
+  font-size: var(--fs-xl);
+  line-height: 1;
+}
+
+.vibeCardTitle {
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.vibeCardDesc {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  line-height: var(--lh-snug);
+  margin: 0;
+}
+
+.customVibeInput {
+  width: 100%;
+  padding: var(--s-2) var(--s-3);
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  color: var(--text);
+  background: var(--surface-2);
+  border: var(--border);
+  border-radius: var(--r-md);
+  outline: none;
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.customVibeInput:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.goalsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.goalPill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: var(--border);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+
+.goalPill:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.goalPillSelected {
+  background: var(--accent);
+  color: var(--accent-on);
+  border-color: var(--accent);
+}
+
+.notesToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  background: none;
+  border: none;
+  color: var(--accent-text);
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.notesToggleBtn:hover {
+  text-decoration: underline;
+}
+
+.notesAreaWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.notesTextarea {
+  width: 100%;
+  min-height: 80px;
+  padding: var(--s-3);
+  font-family: var(--font-read);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+  color: var(--text);
+  background: var(--surface-2);
+  border: var(--border);
+  border-radius: var(--r-md);
+  resize: vertical;
+  outline: none;
+}
+
+.notesTextarea:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+/* Call AI Active Stage Enhancements */
+.callMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.callLiveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-3);
+  font-family: var(--font-numeric);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--success-text);
+  background: var(--success-soft);
+  border-radius: var(--r-pill);
+  letter-spacing: var(--tracking-wider);
+}
+
+.callLiveBadgePaused {
+  color: var(--warning-text);
+  background: var(--warning-soft);
+}
+
+.callLiveDot {
+  width: var(--s-2);
+  height: var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--success);
+  animation: liveDotBlink 1.5s infinite var(--ease);
+}
+
+.callLiveDotPaused {
+  background: var(--warning);
+  animation: none;
+}
+
+.personaVibePill {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--s-1) var(--s-3);
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-2);
+  border: var(--border);
+  border-radius: var(--r-pill);
+}
+
+/* Center Call Orb */
+.callCenterOrb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--s-16);
+  height: var(--s-16);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  border: var(--border);
+  box-shadow: var(--shadow-md);
+  transition: all var(--t) var(--ease);
+}
+
+.callCenterOrbSpeaking {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px -2px var(--accent-ring);
+  transform: scale(1.05);
+}
+
+.callCenterOrbListening {
+  border-color: var(--danger);
+  box-shadow: 0 0 20px -2px var(--danger-soft);
+  transform: scale(1.05);
+}
+
+.callCenterOrbPaused {
+  border-color: var(--warning);
+  opacity: 0.8;
+}
+
+.callOrbPulseRing {
+  position: absolute;
+  inset: -6px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--accent);
+  animation: podPulseAnim 2s infinite var(--ease);
+}
+
+.callOrbListeningRing {
+  position: absolute;
+  inset: -6px;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--danger);
+  animation: micAuraAnim 1.5s infinite var(--ease);
+}
+
+/* Stage Live Transcript Box */
+.stageTranscriptBox {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  max-width: 90%;
+  padding: var(--s-2) var(--s-4);
+  background: var(--surface);
+  border: 1px dashed var(--accent);
+  border-radius: var(--r-pill);
+  animation: bubbleFadeIn var(--t-fast) var(--ease);
+}
+
+.stageTranscriptText {
+  font-family: var(--font-read);
+  font-size: var(--fs-sm);
+  color: var(--text);
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 380px;
+}
+
+/* Bottom Call Controls Bar */
+.callControlsBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  width: 100%;
+  padding-top: var(--s-2);
+}
+
+.callCtrlBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: var(--touch-target-min);
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r-pill);
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  border: var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+
+.callCtrlBtn:hover {
+  background: var(--surface-hover);
+}
+
+.callCtrlBtnActive {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--accent-ring);
+}
+
+.callCtrlBtnSend {
+  background: var(--accent);
+  color: var(--accent-on);
+  border: none;
+}
+
+.callCtrlBtnSend:hover {
+  background: var(--accent-hover);
+}
+
+.callCtrlBtnEnd {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  border-color: var(--danger);
+}
+
+.callCtrlBtnEnd:hover {
+  background: var(--danger);
+  color: var(--danger-on);
+}
+
+/* Oral Parsing Feedback Card */
+.parsingCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-sm);
+  animation: bubbleFadeIn var(--t) var(--ease);
+}
+
+.parsingHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.parsingTitle {
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.scoresRow {
+  display: flex;
+  gap: var(--s-3);
+  align-items: center;
+}
+
+.scorePill {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.scorePill strong {
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.parsingGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-3);
+}
+
+@media (max-width: 600px) {
+  .parsingGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.strengthsBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  background: var(--success-soft);
+  border-radius: var(--r-md);
+}
+
+.strengthsTitle {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--success-text);
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.critiqueList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.critiqueListItem {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-snug);
+  color: var(--text);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+}
+
+.misconceptionsBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  background: var(--warning-soft);
+  border-radius: var(--r-md);
+}
+
+.misconceptionsTitle {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--warning-text);
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.probingBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  background: var(--accent-soft);
+  border-radius: var(--r-md);
+  border-left: 3px solid var(--accent);
+}
+
+.probingTitle {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--accent-text);
+}
+
+.probingText {
+  font-family: var(--font-read);
+  font-size: var(--fs-base);
+  line-height: var(--lh);
+  color: var(--text);
+  margin: 0;
+}
+
+/* End Call Summary Modal */
+.summaryModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-4);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+}
+
+.summaryModalCard {
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--r-2xl);
+  padding: var(--s-6);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  animation: bubbleFadeIn var(--t) var(--ease);
+}
+
+.summaryModalHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.summaryModalTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-tight);
+  color: var(--text);
+  margin: 0;
+}
+
+.summaryModalSub {
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.summaryStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--s-3);
+}
+
+.summaryStatCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding: var(--s-3);
+  background: var(--surface-2);
+  border-radius: var(--r-lg);
+  border: var(--border);
+  text-align: center;
+}
+
+.summaryStatVal {
+  font-family: var(--font-numeric);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--accent-text);
+}
+
+.summaryStatLabel {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.summaryActionsRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pulseRing,
   .micAura,
   .waveBarActive,
   .liveDot,
-  .dialogueBubble {
+  .dialogueBubble,
+  .callLiveDot,
+  .callOrbPulseRing,
+  .callOrbListeningRing,
+  .stageTranscriptBox,
+  .parsingCard,
+  .summaryModalCard {
     animation: none;
   }
 }

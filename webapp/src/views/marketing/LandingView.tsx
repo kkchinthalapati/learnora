@@ -96,11 +96,31 @@ export function LandingView() {
 
           <div className={styles.featureCard}>
             <div className={styles.featureIcon}>
-              <Icon name="sparkles" size={24} />
+              <Icon name="layers" size={24} />
             </div>
-            <h3 className={styles.featureTitle}>Unified AI Tutor</h3>
+            <h3 className={styles.featureTitle}>Step-by-Step Solver</h3>
             <p className={styles.featureDesc}>
-              Step-by-step mistake repair, oral viva defense, Feynman concept teaching, and spotting sneaky exam traps.
+              Identify exactly where reasoning broke down and test your repair before moving forward.
+            </p>
+          </div>
+
+          <div className={styles.featureCard}>
+            <div className={styles.featureIcon}>
+              <Icon name="book-open" size={24} />
+            </div>
+            <h3 className={styles.featureTitle}>Explain &amp; Teach</h3>
+            <p className={styles.featureDesc}>
+              Teach concepts in plain words to an AI apprentice that asks clarifying questions to reveal knowledge gaps.
+            </p>
+          </div>
+
+          <div className={styles.featureCard}>
+            <div className={styles.featureIcon}>
+              <Icon name="mic" size={24} />
+            </div>
+            <h3 className={styles.featureTitle}>Viva / Oral Practice</h3>
+            <p className={styles.featureDesc}>
+              Practice oral exam questions, defend your logic out loud, and build unshakeable test-day confidence.
             </p>
           </div>
 
@@ -116,31 +136,11 @@ export function LandingView() {
 
           <div className={styles.featureCard}>
             <div className={styles.featureIcon}>
-              <Icon name="layers" size={24} />
+              <Icon name="sparkles" size={24} />
             </div>
             <h3 className={styles.featureTitle}>Active Spaced Repetition</h3>
             <p className={styles.featureDesc}>
               Flashcards that adjust intervals dynamically based on how quickly you recall answers under real test conditions.
-            </p>
-          </div>
-
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon}>
-              <Icon name="calendar" size={24} />
-            </div>
-            <h3 className={styles.featureTitle}>Life Sync &amp; Free Blocks</h3>
-            <p className={styles.featureDesc}>
-              Plan your revision around your real school and life timetable — never around an unrealistic fantasy calendar.
-            </p>
-          </div>
-
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon}>
-              <Icon name="users" size={24} />
-            </div>
-            <h3 className={styles.featureTitle}>Virtual Study Rooms</h3>
-            <p className={styles.featureDesc}>
-              Study alongside peers and friends in silent virtual rooms to stay accountable and build consistent streaks.
             </p>
           </div>
         </div>
@@ -177,7 +177,7 @@ export function LandingView() {
             <div className={styles.featureIcon}>📝</div>
             <h3 className={styles.featureTitle}>Mock Exam Simulator</h3>
             <p className={styles.featureDesc}>
-              Timed test runs with rubric grading and immediate post-mortem breakdown of common traps missed.
+              Timed test runs with rubric grading and immediate step-by-step mistake repair.
             </p>
           </div>
         </div>

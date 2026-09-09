@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from "react";
-import { Route, Routes } from "react-router";
+import { Navigate, Route, Routes } from "react-router";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import {
   OnboardingGate,
@@ -37,12 +37,11 @@ import { FriendsView } from "./views/friends/FriendsView";
 import { FriendInviteLanding } from "./views/friends/FriendInviteLanding";
 import { StudyAnalyticsView } from "./views/analytics/StudyAnalyticsView";
 import { CognitiveDebuggerView } from "./views/debugger/CognitiveDebuggerView";
-import { PreMortemHubView } from "./views/premortem/PreMortemHubView";
-import { PreMortemRadarView } from "./views/premortem/PreMortemRadarView";
 import { FeynmanHubView } from "./views/feynman/FeynmanHubView";
 import { NotebooksHubView } from "./views/notebooks/NotebooksHubView";
 import { NotFoundView } from "./views/not-found/NotFoundView";
 import { StudyLabView } from "./views/study-lab/StudyLabView";
+import { AiTutorView } from "./views/ai-tutor/AiTutorView";
 import { Skeleton } from "./components/Skeleton";
 import styles from "./routes.module.css";
 
@@ -103,9 +102,6 @@ const LazySocraticSparringView = lazy(async () => ({
 const LazyWelcomeToProView = lazy(async () => ({
   default: (await import("./views/pro-welcome/WelcomeToProView"))
     .WelcomeToProView,
-}));
-const LazyAiTutorView = lazy(async () => ({
-  default: (await import("./views/ai-tutor/AiTutorView")).AiTutorView,
 }));
 /* The first-run wizard. Deferred like the rest: it is a screen each account
    sees once, and it pulls in the folder/exam mutations to create a first
@@ -291,33 +287,18 @@ export function AppRoutes() {
                 </DeferredView>
               }
             />
-            <Route
-              path="/ai-tutor"
-              element={
-                <DeferredView>
-                  <LazyAiTutorView />
-                </DeferredView>
-              }
-            />
-            <Route
-              path="/ai-tutor/:mode"
-              element={
-                <DeferredView>
-                  <LazyAiTutorView />
-                </DeferredView>
-              }
-            />
+            <Route path="/ai-tutor" element={<AiTutorView />} />
+            <Route path="/ai-tutor/:mode" element={<AiTutorView />} />
             <Route path="/solver" element={<CognitiveDebuggerView />} />
             <Route path="/debugger" element={<CognitiveDebuggerView />} />
             <Route
               path="/exam-traps"
-              element={
-                <DeferredView>
-                  <LazyExamDetectiveHubView />
-                </DeferredView>
-              }
+              element={<Navigate to="/ai-tutor" replace />}
             />
-            <Route path="/exam-traps/radar" element={<PreMortemRadarView />} />
+            <Route
+              path="/exam-traps/radar"
+              element={<Navigate to="/ai-tutor" replace />}
+            />
             <Route
               path="/exam-detective"
               element={
@@ -326,8 +307,14 @@ export function AppRoutes() {
                 </DeferredView>
               }
             />
-            <Route path="/premortem" element={<PreMortemHubView />} />
-            <Route path="/premortem/radar" element={<PreMortemRadarView />} />
+            <Route
+              path="/premortem"
+              element={<Navigate to="/ai-tutor" replace />}
+            />
+            <Route
+              path="/premortem/radar"
+              element={<Navigate to="/ai-tutor" replace />}
+            />
             <Route path="/feynman" element={<FeynmanHubView />} />
             <Route
               path="/feynman/studio"

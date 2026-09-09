@@ -43,15 +43,6 @@ const STUDY_ROUTES: StudyRoute[] = [
     to: "/viva",
     icon: "mic",
   },
-  {
-    prompt: "I am preparing for an exam",
-    title: "Common Exam Traps",
-    description:
-      "Practise questions with tricky wording, edge cases and subtle traps that cost marks.",
-    outcome: "Leave knowing the common traps to avoid",
-    to: "/exam-traps",
-    icon: "target",
-  },
 ];
 
 /* Which route suits a diagnosis.

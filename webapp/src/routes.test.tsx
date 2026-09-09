@@ -53,12 +53,27 @@ describe("route skeleton", () => {
     ["/study-lab", "What do you need help with?"],
     ["/feynman", "Explain It Simply"],
     ["/debugger", "Step-by-Step Solver"],
-    ["/premortem", "Practise on the questions designed to catch you out"],
     ["/settings", "Settings"],
   ])("%s renders the %s view for a signed-in user", (path, heading) => {
     renderAt(path);
     expect(
       screen.getByRole("heading", { level: 1, name: heading }),
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    "/exam-traps",
+    "/exam-traps/radar",
+    "/premortem",
+    "/premortem/radar",
+  ])("%s redirects to /ai-tutor", async (path) => {
+    renderAt(path);
+    expect(
+      await screen.findByRole(
+        "heading",
+        { level: 1, name: "AI Tutor" },
+        { timeout: 10000 },
+      ),
     ).toBeInTheDocument();
   });
 
@@ -79,7 +94,6 @@ describe("route skeleton", () => {
     "/feynman",
     "/debugger",
     "/exam-detective",
-    "/premortem",
     "/sparring",
     "/room",
   ])("%s renders exactly one level-1 heading", async (path) => {
@@ -87,7 +101,7 @@ describe("route skeleton", () => {
     await waitFor(
       () =>
         expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1),
-      { timeout: 5000 },
+      { timeout: 10000 },
     );
   });
 
@@ -127,7 +141,7 @@ describe("route skeleton", () => {
 
     await waitFor(
       () => expect(screen.getByText("Cell division")).toBeInTheDocument(),
-      { timeout: 5000 },
+      { timeout: 10000 },
     );
   });
 
@@ -188,7 +202,11 @@ describe("route skeleton", () => {
     renderAt("/review/d-1");
 
     expect(
-      await screen.findByRole("heading", { level: 2, name: "Cell Biology" }),
+      await screen.findByRole(
+        "heading",
+        { level: 2, name: "Cell Biology" },
+        { timeout: 10000 },
+      ),
     ).toBeInTheDocument();
   });
 

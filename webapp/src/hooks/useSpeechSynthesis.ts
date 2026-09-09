@@ -7,6 +7,8 @@ export interface SpeakOptions {
   pitch?: number;
   rate?: number;
   volume?: number;
+  voice?: SpeechSynthesisVoice;
+  lang?: string;
   onEnd?: () => void;
   onError?: (err: unknown) => void;
 }
@@ -17,6 +19,9 @@ export interface UseSpeechSynthesisReturn {
   isSupported: boolean;
   currentSpeaker: SparringSpeaker | null;
   voices: SpeechSynthesisVoice[];
+  audioRate: number;
+  setAudioRate: (rate: number) => void;
+  selectedVoice: SpeechSynthesisVoice | null;
   speak: (text: string, options?: SpeakOptions) => void;
   cancel: () => void;
   pause: () => void;
@@ -27,9 +32,112 @@ export const PERSONA_VOICE_CONFIGS: Record<
   SparringSpeaker,
   { pitch: number; rate: number }
 > = {
-  alex: { pitch: 1.15, rate: 1.0 },
-  jordan: { pitch: 0.92, rate: 1.08 },
+  alex: { pitch: 1.05, rate: 1.0 },
+  jordan: { pitch: 0.96, rate: 1.04 },
 };
+
+export function getDefaultSpeechLocale(): string {
+  if (typeof navigator !== "undefined" && navigator.language) {
+    return navigator.language;
+  }
+  return "en-US";
+}
+
+/**
+ * Evaluates and scores browser voices to pick the most natural, highest-fidelity
+ * speech synthesis voice matching the user's locale and persona.
+ */
+export function scoreVoice(
+  voice: SpeechSynthesisVoice,
+  targetLocale: string,
+  persona?: SparringSpeaker,
+): number {
+  let score = 0;
+  const name = voice.name.toLowerCase();
+  const vLang = voice.lang.toLowerCase().replace(/_/g, "-");
+  const targetNorm = targetLocale.toLowerCase().replace(/_/g, "-");
+  const targetLang = targetNorm.split("-")[0]; // e.g. "en"
+
+  // 1. Natural / Neural / High-Fidelity keywords (Edge, Chrome, Safari, macOS)
+  if (name.includes("natural") || name.includes("online (natural)")) {
+    score += 70;
+  } else if (name.includes("neural") || name.includes("premium") || name.includes("enhanced")) {
+    score += 55;
+  } else if (name.includes("google")) {
+    score += 35;
+  } else if (name.includes("siri") || name.includes("microsoft") || name.includes("apple")) {
+    score += 20;
+  }
+
+  // 2. Locale matching
+  if (vLang === targetNorm) {
+    score += 50; // Exact match (e.g. en-IN === en-IN, en-US === en-US)
+  } else if (vLang.startsWith(targetNorm) || targetNorm.startsWith(vLang)) {
+    score += 40;
+  } else if (vLang.startsWith(targetLang)) {
+    score += 25; // Same language family
+  } else if (vLang.startsWith("en") && targetLang !== "en") {
+    score += 15; // Universal fallback English
+  } else {
+    // Completely unrelated language
+    score -= 100;
+  }
+
+  // 3. Persona styling
+  if (persona === "jordan") {
+    // Assertive, authoritative or crisp tone
+    if (
+      name.includes("guy") ||
+      name.includes("daniel") ||
+      name.includes("ryan") ||
+      name.includes("george") ||
+      name.includes("male") ||
+      name.includes("david")
+    ) {
+      score += 12;
+    }
+  } else if (persona === "alex") {
+    // Warm, curious, conversational tone
+    if (
+      name.includes("jenny") ||
+      name.includes("sonia") ||
+      name.includes("aria") ||
+      name.includes("samantha") ||
+      name.includes("female") ||
+      name.includes("zira")
+    ) {
+      score += 12;
+    }
+  }
+
+  // 4. Default voice bonus
+  if (voice.default) {
+    score += 5;
+  }
+
+  return score;
+}
+
+export function findBestVoice(
+  voices: SpeechSynthesisVoice[],
+  targetLocale: string,
+  persona?: SparringSpeaker,
+): SpeechSynthesisVoice | null {
+  if (!voices || voices.length === 0) return null;
+
+  let bestVoice: SpeechSynthesisVoice | null = null;
+  let bestScore = -Infinity;
+
+  for (const v of voices) {
+    const s = scoreVoice(v, targetLocale, persona);
+    if (s > bestScore) {
+      bestScore = s;
+      bestVoice = v;
+    }
+  }
+
+  return bestVoice || voices[0] || null;
+}
 
 export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -38,11 +146,15 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
     null,
   );
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [audioRate, setAudioRate] = useState<number>(1.0);
+  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
 
   const isSupported =
     typeof window !== "undefined" && "speechSynthesis" in window;
 
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRateRef = useRef(audioRate);
+  audioRateRef.current = audioRate;
 
   // Load and cache available voices
   useEffect(() => {
@@ -51,7 +163,11 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
     const synth = window.speechSynthesis;
     const updateVoices = () => {
       const loaded = synth.getVoices();
-      setVoices(loaded);
+      if (loaded.length > 0) {
+        setVoices(loaded);
+        const best = findBestVoice(loaded, getDefaultSpeechLocale(), "alex");
+        setSelectedVoice(best);
+      }
     };
 
     updateVoices();
@@ -62,7 +178,7 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
     };
   }, [isSupported]);
 
-  // Cleanup on unmount
+  // Clean cancellation on unmount
   useEffect(() => {
     return () => {
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -74,43 +190,6 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
       }
     };
   }, []);
-
-  const selectVoiceForPersona = useCallback(
-    (persona: SparringSpeaker): SpeechSynthesisVoice | null => {
-      if (voices.length === 0) return null;
-
-      // Filter for British English voices
-      const gbVoices = voices.filter((v) => {
-        const lang = v.lang.toLowerCase().replace(/_/g, "-");
-        return lang.startsWith("en-gb");
-      });
-
-      if (gbVoices.length > 0) {
-        if (persona === "alex") {
-          return gbVoices[0];
-        } else {
-          // Jordan prefers a second GB voice if available, or first
-          return gbVoices[1] || gbVoices[0];
-        }
-      }
-
-      // Fallback to any English voice
-      const anyEnVoices = voices.filter((v) =>
-        v.lang.toLowerCase().startsWith("en"),
-      );
-      if (anyEnVoices.length > 0) {
-        if (persona === "alex") {
-          return anyEnVoices[0];
-        } else {
-          return anyEnVoices[1] || anyEnVoices[0];
-        }
-      }
-
-      // Final fallback to default system voice
-      return voices[0] || null;
-    },
-    [voices],
-  );
 
   const cancel = useCallback(() => {
     if (!isSupported) return;
@@ -152,23 +231,28 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
       const persona = options.persona ?? "alex";
       const preset = PERSONA_VOICE_CONFIGS[persona];
       const pitch = options.pitch ?? preset.pitch;
-      const rate = options.rate ?? preset.rate;
+      const rate = (options.rate ?? preset.rate) * audioRateRef.current;
       const volume = options.volume ?? 1.0;
+      const targetLocale = options.lang || getDefaultSpeechLocale();
 
-      // Cancel any ongoing utterance before speaking new text
+      // Clean cancellation before starting new utterance so speech never overlaps
       cancel();
 
       try {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "en-GB";
+        const utterance = new SpeechSynthesisUtterance(text.trim());
+        const chosenVoice =
+          options.voice || findBestVoice(voices, targetLocale, persona);
+
+        if (chosenVoice) {
+          utterance.voice = chosenVoice;
+          utterance.lang = chosenVoice.lang;
+        } else {
+          utterance.lang = targetLocale;
+        }
+
         utterance.pitch = pitch;
         utterance.rate = rate;
         utterance.volume = volume;
-
-        const voice = selectVoiceForPersona(persona);
-        if (voice) {
-          utterance.voice = voice;
-        }
 
         utterance.onstart = () => {
           setIsSpeaking(true);
@@ -204,7 +288,7 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
         setCurrentSpeaker(null);
       }
     },
-    [cancel, isSupported, selectVoiceForPersona],
+    [cancel, isSupported, voices],
   );
 
   return {
@@ -213,6 +297,9 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
     isSupported,
     currentSpeaker,
     voices,
+    audioRate,
+    setAudioRate,
+    selectedVoice,
     speak,
     cancel,
     pause,

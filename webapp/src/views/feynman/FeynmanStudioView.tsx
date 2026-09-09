@@ -3,7 +3,9 @@ import { useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import {
-  PERSONA_PROFILES,
+  getPersonaProfile,
+  ANALOGY_STYLE_PROFILES,
+  EXPLANATION_DEPTH_PROFILES,
   type FeynmanSessionState,
   type Misconception,
   loadFeynmanSession,
@@ -81,7 +83,9 @@ export function FeynmanStudioView() {
     );
   }
 
-  const persona = PERSONA_PROFILES[session.persona];
+  const persona = getPersonaProfile(session.persona, session.customAudience);
+  const analogyProfile = session.analogyStyle ? ANALOGY_STYLE_PROFILES[session.analogyStyle] : null;
+  const depthProfile = session.depth ? EXPLANATION_DEPTH_PROFILES[session.depth] : null;
   const lastTurn =
     session.turns.length > 0 ? session.turns[session.turns.length - 1] : null;
   const currentEmotion = lastTurn?.emotion ?? "confused";
@@ -135,7 +139,10 @@ export function FeynmanStudioView() {
         session.draft,
         session.turns,
         explanationText.trim(),
-        session.persona
+        session.persona,
+        session.analogyStyle,
+        session.depth,
+        session.customAudience
       );
 
       const updatedTurns = [...session.turns, turn];
@@ -216,6 +223,41 @@ export function FeynmanStudioView() {
     }
   };
 
+  const analogyShortcut = (() => {
+    switch (session.analogyStyle) {
+      case "sports_cricket":
+        return {
+          label: "🏏 Cricket comparison",
+          text: "Think of it like a cricket pitch: imagine the bowler delivers a ball where...",
+        };
+      case "cooking_kitchen":
+        return {
+          label: "🍳 Kitchen comparison",
+          text: "Think of it like cooking a recipe: imagine when ingredients react in a pan and...",
+        };
+      case "gaming_tech":
+        return {
+          label: "🎮 Gaming/tech comparison",
+          text: "Think of it like a game engine loop: imagine when player input updates and...",
+        };
+      case "physical_machinery":
+        return {
+          label: "⚙️ Machinery comparison",
+          text: "Think of it like interlocking gears and valves: imagine a mechanism where...",
+        };
+      case "storytelling":
+        return {
+          label: "📖 Story metaphor",
+          text: "Picture a royal courier carrying an urgent scroll through castles: imagine...",
+        };
+      default:
+        return {
+          label: "💡 Use a comparison",
+          text: "Think of it like this analogy: imagine...",
+        };
+    }
+  })();
+
   return (
     <div className={styles.container}>
       {/* Header and quick actions */}
@@ -231,13 +273,23 @@ export function FeynmanStudioView() {
           </Button>
           <div className={styles.headerTitleGroup}>
             <span className={styles.headerEyebrow}>
-              {session.subject} • {session.difficulty}
+              {session.subject} • {depthProfile ? depthProfile.label : session.difficulty}
             </span>
             <div className={styles.headerTitle}>
               {session.topic}
-              <span className={styles.personaBadge}>
+              <span className={styles.personaBadge} data-testid="active-persona-badge">
                 {persona.avatar} {persona.name}
               </span>
+              {analogyProfile && (
+                <span className={styles.analogyBadge} data-testid="active-analogy-badge">
+                  {analogyProfile.icon} {analogyProfile.label}
+                </span>
+              )}
+              {depthProfile && (
+                <span className={styles.depthBadge} data-testid="active-depth-badge">
+                  ⏱ {depthProfile.estimatedMinutes}m
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -457,6 +509,47 @@ export function FeynmanStudioView() {
                     <div className={styles.apprenticeReplyBubble} data-testid="apprentice-turn-bubble">
                       <strong>{persona.name}:</strong>
                       <p>{turn.apprenticeReaction}</p>
+
+                      {/* Creative apprentice feedback breakdown */}
+                      {turn.feedback && (
+                        <div className={styles.feedbackBreakdown} data-testid="turn-feedback-breakdown">
+                          {turn.feedback.whatMadeSense && turn.feedback.whatMadeSense.length > 0 && (
+                            <div className={styles.feedbackSense} data-testid="feedback-what-made-sense">
+                              <div className={styles.feedbackSenseTitle}>
+                                <Icon name="check" size={13} /> Crystal clear:
+                              </div>
+                              <ul className={styles.feedbackList}>
+                                {turn.feedback.whatMadeSense.map((item, sIdx) => (
+                                  <li key={sIdx}>{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {turn.feedback.followUpQuestion && (
+                            <div className={styles.feedbackQuestion} data-testid="feedback-follow-up-question">
+                              <div className={styles.feedbackQuestionTitle}>
+                                <Icon name="help-circle" size={13} /> {persona.shortName} asks:
+                              </div>
+                              <div className={styles.feedbackQuestionText}>
+                                &quot;{turn.feedback.followUpQuestion}&quot;
+                              </div>
+                            </div>
+                          )}
+                          {turn.feedback.remainingGaps && turn.feedback.remainingGaps.length > 0 && (
+                            <div className={styles.feedbackGaps} data-testid="feedback-remaining-gaps">
+                              <div className={styles.feedbackGapsTitle}>
+                                <Icon name="alert-triangle" size={13} /> Points to clarify:
+                              </div>
+                              <ul className={styles.feedbackList}>
+                                {turn.feedback.remainingGaps.map((item, gIdx) => (
+                                  <li key={gIdx}>{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {(turn.solvedPoints.length > 0 ||
                         (turn.quality && turn.quality !== "substantive")) && (
                         <div className={styles.turnFeedbackPills}>
@@ -492,11 +585,11 @@ export function FeynmanStudioView() {
                 className={styles.shortcutBtn}
                 onClick={() =>
                   handleApplyShortcut(
-                    "Think of it like this analogy: imagine..."
+                    analogyShortcut.text
                   )
                 }
               >
-                💡 Use a comparison
+                {analogyShortcut.label}
               </button>
               <button
                 type="button"

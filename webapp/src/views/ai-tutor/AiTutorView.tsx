@@ -5,12 +5,11 @@ import { Button } from "../../components/Button";
 import { CognitiveDebuggerView } from "../debugger/CognitiveDebuggerView";
 import { FeynmanHubView } from "../feynman/FeynmanHubView";
 import { SocraticSparringView } from "../sparring/SocraticSparringView";
-import { PreMortemHubView } from "../premortem/PreMortemHubView";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import type { IconName } from "../../components/icons";
 import styles from "./aiTutor.module.css";
 
-export type TutorMode = "solver" | "explain" | "viva" | "traps";
+export type TutorMode = "solver" | "explain" | "viva";
 
 interface ModeConfig {
   id: TutorMode;
@@ -41,13 +40,6 @@ const TUTOR_MODES: ModeConfig[] = [
     subtitle: "Socratic Voice & Defense",
     icon: "mic",
     description: "Practice oral exams, defend your logic out loud, and build confidence.",
-  },
-  {
-    id: "traps",
-    title: "Common Exam Traps",
-    subtitle: "Adversarial Stress Test",
-    icon: "alert-triangle",
-    description: "Spot distractor tricks and boundary traps before real exams.",
   },
 ];
 
@@ -101,9 +93,7 @@ export function AiTutorView() {
               ? "debugger"
               : mode === "explain"
                 ? "feynman"
-                : mode === "traps"
-                  ? "premortem"
-                  : "notes",
+                : "sparring",
         });
       }
     },
@@ -126,9 +116,7 @@ export function AiTutorView() {
             ? "debugger"
             : activeMode === "explain"
               ? "feynman"
-              : activeMode === "traps"
-                ? "premortem"
-                : "notes",
+              : "sparring",
       });
     }
   };
@@ -152,8 +140,7 @@ export function AiTutorView() {
         <h1 className={styles.title}>AI Tutor</h1>
         <p className={styles.subtitle}>
           Your unified personal study companion. Switch between step-by-step
-          problem solving, teaching to learn, viva exam rehearsal, and spotting
-          exam traps.
+          problem solving, teaching to learn, and viva exam rehearsal.
         </p>
       </header>
 
@@ -217,7 +204,7 @@ export function AiTutorView() {
         </div>
       </div>
 
-      {/* 4 Mode Tabs */}
+      {/* 3 Mode Tabs */}
       <div
         className={styles.modeTabs}
         role="tablist"
@@ -277,16 +264,6 @@ export function AiTutorView() {
             aria-labelledby="tutor-tab-viva"
           >
             <SocraticSparringView />
-          </div>
-        )}
-
-        {activeMode === "traps" && (
-          <div
-            id="tutor-panel-traps"
-            role="tabpanel"
-            aria-labelledby="tutor-tab-traps"
-          >
-            <PreMortemHubView />
           </div>
         )}
       </div>

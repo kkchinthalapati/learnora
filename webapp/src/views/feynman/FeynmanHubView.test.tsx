@@ -23,11 +23,22 @@ vi.mock("../../api/aiFeynman", async () => {
   const actual = await vi.importActual("../../api/aiFeynman");
   return {
     ...actual,
-    generateApprenticeDraft: vi.fn().mockImplementation((subject, topic, persona, difficulty) => {
-      return Promise.resolve(
-        (actual as any).generateDynamicDraft(subject, topic, persona, difficulty)
-      );
-    }),
+    generateApprenticeDraft: vi.fn().mockImplementation(
+      (subject, topic, persona, difficulty, ledger, analogyStyle, depth, customAudience) => {
+        return Promise.resolve(
+          (actual as any).generateDynamicDraft(
+            subject,
+            topic,
+            persona,
+            difficulty,
+            ledger,
+            analogyStyle,
+            depth,
+            customAudience
+          )
+        );
+      }
+    ),
   };
 });
 
@@ -175,5 +186,64 @@ describe("FeynmanHubView Component", () => {
 
     expect(screen.queryByText(/Dijkstra Shortest Path/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId("session-row")).not.toBeInTheDocument();
+  });
+
+  it("renders creative parameters: primary personas, analogy styles, and depth options", () => {
+    renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
+
+    // Primary personas
+    expect(screen.getByTestId("persona-eli10")).toBeInTheDocument();
+    expect(screen.getByTestId("persona-ninth_grader")).toBeInTheDocument();
+    expect(screen.getByTestId("persona-skeptical_buddy")).toBeInTheDocument();
+    expect(screen.getByTestId("persona-cbse_examiner")).toBeInTheDocument();
+    expect(screen.getByTestId("persona-custom")).toBeInTheDocument();
+
+    // Analogy styles
+    expect(screen.getByTestId("analogy-sports_cricket")).toBeInTheDocument();
+    expect(screen.getByTestId("analogy-cooking_kitchen")).toBeInTheDocument();
+    expect(screen.getByTestId("analogy-gaming_tech")).toBeInTheDocument();
+    expect(screen.getByTestId("analogy-physical_machinery")).toBeInTheDocument();
+    expect(screen.getByTestId("analogy-storytelling")).toBeInTheDocument();
+
+    // Depth options
+    expect(screen.getByTestId("depth-quick_intuition")).toBeInTheDocument();
+    expect(screen.getByTestId("depth-core_mechanism")).toBeInTheDocument();
+    expect(screen.getByTestId("depth-deep_dive")).toBeInTheDocument();
+  });
+
+  it("allows selecting custom audience, analogy style, and depth", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
+
+    // Custom audience input should not be visible initially
+    expect(screen.queryByTestId("custom-audience-input")).not.toBeInTheDocument();
+
+    // Select custom audience persona
+    const customPersonaCard = screen.getByTestId("persona-custom");
+    await user.click(customPersonaCard);
+
+    // Custom audience input should now appear
+    const customInput = screen.getByTestId("custom-audience-input") as HTMLInputElement;
+    expect(customInput).toBeInTheDocument();
+    await user.type(customInput, "My 75-year-old grandfather who loves carpentry");
+    expect(customInput.value).toBe("My 75-year-old grandfather who loves carpentry");
+
+    // Select gaming & tech analogy style
+    const gamingAnalogy = screen.getByTestId("analogy-gaming_tech");
+    await user.click(gamingAnalogy);
+
+    // Select deep dive depth
+    const deepDiveBtn = screen.getByTestId("depth-deep_dive");
+    await user.click(deepDiveBtn);
+
+    // Launch session
+    const startBtn = screen.getByTestId("start-arena-btn");
+    await user.click(startBtn);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.stringMatching(/\/feynman\/studio\/feynman-/)
+      );
+    });
   });
 });

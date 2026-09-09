@@ -333,7 +333,7 @@ export interface StudyPackageRequest {
   folderId?: string | null;
   /** Optional custom title; otherwise derived from the material or topic. */
   title?: string;
-  outputs?: { flashcards?: boolean; quiz?: boolean };
+  outputs?: { flashcards?: boolean; quiz?: boolean; notes?: boolean };
   options?: CreateOptions;
   settings: Settings;
   /** Reports the stage actually in flight, so a loader can caption itself with

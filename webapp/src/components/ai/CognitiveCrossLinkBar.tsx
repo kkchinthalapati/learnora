@@ -21,19 +21,22 @@ export interface CognitiveCrossLinkBarProps {
   misconceptions?: string[];
   severity?: CognitiveSeverity;
   suggestedAction?: CognitiveSuggestedAction;
-  currentTool?: "debugger" | "feynman" | "premortem";
+  currentTool?: "debugger" | "feynman" | "premortem" | "sparring";
   compact?: boolean;
   className?: string;
-  onNavigate?: (route: string, tool: "debugger" | "feynman" | "premortem") => void;
+  onNavigate?: (
+    route: string,
+    tool: "debugger" | "feynman" | "premortem" | "sparring",
+  ) => void;
   onClear?: () => void;
   showDismiss?: boolean;
 }
 
 const TOOL_CONFIGS: {
-  id: "debugger" | "feynman" | "premortem";
+  id: "debugger" | "feynman";
   label: string;
   route: string;
-  icon: "zap" | "users" | "shield";
+  icon: "zap" | "users";
   action: CognitiveSuggestedAction;
 }[] = [
   {
@@ -50,19 +53,13 @@ const TOOL_CONFIGS: {
     icon: "users",
     action: "teach_apprentice",
   },
-  {
-    id: "premortem",
-    label: "Common exam traps",
-    route: "/exam-traps",
-    icon: "shield",
-    action: "run_premortem",
-  },
 ];
 
 const SOURCE_TOOL_LABELS: Record<CognitiveSourceTool, string> = {
   debugger: "Step-by-Step Solver",
   feynman: "Explain It Simply",
   premortem: "Common Exam Traps",
+  sparring: "Oral Exam & Viva",
   quiz: "a quiz",
   notes: "your notes",
 };
