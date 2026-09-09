@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes } from "react-router";
@@ -210,5 +210,78 @@ describe("NotebookStudioView", () => {
     expect(
       await screen.findByRole("dialog", { name: /Research the web/i }),
     ).toBeInTheDocument();
+  });
+  /* The two studio generators shipped as stubs: they wrote a notebook_artifact
+     claiming "8 Cards" / "Five quick questions" and created no flashcard_decks
+     or quizzes row at all. Nothing in this file covered them, which is how the
+     fakes survived review. These assert the rows actually reach the database. */
+  describe("studio generators write real rows", () => {
+    it("creates a real flashcard deck and its cards, not an artifact", async () => {
+      const user = userEvent.setup();
+      const deckInserts: unknown[] = [];
+      const cardInserts: unknown[] = [];
+      const artifactInserts: unknown[] = [];
+
+      server.use(
+        http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () =>
+          HttpResponse.json({
+            text: JSON.stringify([
+              { front: "What is a chord?", back: "A line joining two points." },
+            ]),
+          }),
+        ),
+        http.post(rest("flashcard_decks"), async ({ request }) => {
+          deckInserts.push(await request.json());
+          return HttpResponse.json([{ id: "deck-new", title: "d" }]);
+        }),
+        http.post(rest("flashcards"), async ({ request }) => {
+          cardInserts.push(await request.json());
+          return HttpResponse.json([]);
+        }),
+        http.post(rest("notebook_artifacts"), async ({ request }) => {
+          artifactInserts.push(await request.json());
+          return HttpResponse.json([]);
+        }),
+      );
+
+      renderStudio();
+      await screen.findByRole("heading", { name: "Sources" });
+      await user.click(screen.getByRole("button", { name: /Flashcard Deck/i }));
+
+      await waitFor(() => expect(deckInserts).toHaveLength(1));
+      expect(cardInserts).toHaveLength(1);
+      // The stub's only output was an artifact. A real run writes none.
+      expect(artifactInserts).toHaveLength(0);
+    });
+
+    it("creates a real quiz row", async () => {
+      const user = userEvent.setup();
+      const quizInserts: unknown[] = [];
+
+      server.use(
+        http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, () =>
+          HttpResponse.json({
+            text: JSON.stringify([
+              {
+                question: "What is a chord?",
+                choices: ["A line", "A radius", "A tangent", "An arc"],
+                correctIndex: 0,
+                explanation: "Because.",
+              },
+            ]),
+          }),
+        ),
+        http.post(rest("quizzes"), async ({ request }) => {
+          quizInserts.push(await request.json());
+          return HttpResponse.json([{ id: "quiz-new" }]);
+        }),
+      );
+
+      renderStudio();
+      await screen.findByRole("heading", { name: "Sources" });
+      await user.click(screen.getByRole("button", { name: /Practice Quiz/i }));
+
+      await waitFor(() => expect(quizInserts).toHaveLength(1));
+    });
   });
 });
