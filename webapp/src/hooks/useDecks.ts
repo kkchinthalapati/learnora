@@ -11,8 +11,6 @@ export function useAllDecks() {
   return useQuery({ queryKey: decksKeys.all, queryFn: decksApi.fetchAll });
 }
 
-export const useDecks = useAllDecks;
-
 /* `flashcards.deck_id` is ON DELETE CASCADE, so deleting a deck also changes
  * the due count the Library's Flashcards banner (and, later, the dashboard
  * badge) reads. */

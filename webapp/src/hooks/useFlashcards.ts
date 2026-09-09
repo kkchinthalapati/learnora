@@ -16,8 +16,6 @@ export function useFlashcards() {
   });
 }
 
-export const useAllFlashcards = useFlashcards;
-
 export function useFlashcardsByDeck(deckId: string) {
   return useQuery({
     queryKey: flashcardsKeys.byDeck(deckId),

@@ -14,7 +14,7 @@ import {
 } from "../lib/analyticsEngine";
 import { useAllDecks } from "./useDecks";
 import { useExams } from "./useExams";
-import { useAllFlashcards, useFlashcardsDueCount } from "./useFlashcards";
+import { useFlashcards, useFlashcardsDueCount } from "./useFlashcards";
 import { useFolders } from "./useFolders";
 import { useMaterials } from "./useMaterials";
 import { useQuizAttempts, useQuizzes } from "./useQuizzes";
@@ -35,7 +35,7 @@ export interface UseAdaptiveLearningResult {
 }
 
 export function useAdaptiveLearning(): UseAdaptiveLearningResult {
-  const flashcardsQuery = useAllFlashcards();
+  const flashcardsQuery = useFlashcards();
   const dueCountQuery = useFlashcardsDueCount();
   const decksQuery = useAllDecks();
   const foldersQuery = useFolders();
