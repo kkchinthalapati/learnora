@@ -335,7 +335,7 @@ export function LandingView() {
             <Link to="/about" className={styles.footerLink}>About</Link>
             <Link to="/contact" className={styles.footerLink}>Contact</Link>
             <Link to="/privacy" className={styles.footerLink}>Privacy Notice</Link>
-            <a href="/terms.html" className={styles.footerLink}>Terms of Service</a>
+            <Link to="/terms" className={styles.footerLink}>Terms of Service</Link>
           </div>
 
           <div className={styles.footerCol}>

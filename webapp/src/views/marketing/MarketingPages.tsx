@@ -38,7 +38,7 @@ function MarketingLayout({ children }: { children: ReactNode }) {
             <Link to="/contact" className={styles.footerNavLink}>Contact</Link>
             <Link to="/privacy" className={styles.footerNavLink}>Privacy</Link>
             <Link to="/developers" className={styles.footerNavLink}>Developers</Link>
-            <a href="/terms.html" className={styles.footerNavLink}>Terms</a>
+            <Link to="/terms" className={styles.footerNavLink}>Terms</Link>
           </nav>
         </div>
       </footer>
@@ -120,7 +120,7 @@ export function ContactView() {
         uses authenticated accounts for private study work, and support may need to verify
         ownership before discussing account-specific information. Read our{" "}
         <Link to="/privacy" className={styles.link}>privacy notice</Link> and{" "}
-        <a href="/terms.html" className={styles.link}>terms</a> before contacting us for
+        <Link to="/terms" className={styles.link}>terms</Link> before contacting us for
         policy questions.
       </p>
     </MarketingLayout>

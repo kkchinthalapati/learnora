@@ -18,6 +18,7 @@ Statuses: **open** (in progress) · **done** · **descoped** (with reason).
 | 8 | S2B2 — one canonical URL per tool | `routes.tsx`, **new** `routeIntegrity.test.ts`, `lib/sectionLabel.ts` + test, `lib/cognitiveBridge.ts` + test, `components/Sidebar.tsx` + test, `components/ai/CognitiveCrossLinkBar.tsx`, `components/command/CommandPalette.tsx`, `views/study-lab/StudyLabView.tsx` + CSS + test, `views/dashboard/DashboardView.tsx`, `views/library/SubjectDetailPage.tsx`, `views/notes/{NotesAiSidebar,StudyBuddyCard}.tsx`, `views/review/ReviewView.tsx`, `views/notebooks/NotebookStudioView.tsx`, `views/marketing/LandingView.tsx`; **deleted** `views/ai-tutor/`, `views/library/LibraryWorkspaceNav.tsx` + CSS | Each tool answered to three URLs and navigation was split across them — `StudyLabView`'s card linked `/solver` while its own `routeFor` returned `/debugger`. Canonical set is now `/study`, `/solver`, `/feynman`, `/viva`, `/exam-detective`; `/study-lab`, `/debugger`, `/sparring`, `/ai-tutor`, `/premortem`, `/exam-traps` remain as redirects for bookmarks only. Deleted `views/ai-tutor/`, a 272-line wrapper that rendered nothing of its own — it mounted the three tool views inline behind a tab strip, which is why the sidebar offered two entries onto the same three tools. Its `?topic=` deep links (flashcard review, notes sidebar) now reach `/study`, which reads the param and names the topic rather than showing a generic menu. Removed the dead `/feynman/studio` and `ai_tutor` destination. | `npx vitest run` → **201/201 files, 2569/2569 passed**. `npm run build` → **✓ built in 1.36s**. | done |
 | 9 | S2B3 — grouped sidebar, reachability, honest route tests | `components/Sidebar.tsx` + `.module.css` + test, `components/AppShell.test.tsx`, `routeIntegrity.test.ts`, `routes.test.tsx` | The rail offered 11 of ~45 routes; `/tasks`, `/exams`, `/my-week`, `/trajectory` and `/exam-detective` were reachable only by typing a URL or via a section sub-nav that is invisible until you are already on one of its pages. Nav items can now declare `children`, revealed while that section is open — the rail stays short by default and every primary destination is one click from its section. Fixed an ARIA defect this exposed: with a child route open, both parent and child claimed `aria-current="page"`; the child is the current page and the parent merely contains it. Also de-vacuumed two `routes.test.tsx` assertions — `/library/notes` is not a `LIBRARY_TAB`, so it redirected to `/library` and rendered the same heading whether or not tab routing worked, and the single-`h1` list included three redirect paths that were re-testing a target another row already covered. | `npx vitest run` → **201/201 files, 2570/2570 passed**. `npm run build` → **✓ built in 1.34s**. New `routeIntegrity` case asserts all 17 primary destinations appear in the rail. | done |
 | 10 | S2B4 — AchievementsModal | — | **Not an orphan; nothing to do.** Exploration reported it as dead code reachable only from its own test. That is wrong: `views/dashboard/StreakCard.tsx` imports it at line 14 and renders it at lines 101 and 255. Verified by grep before deleting. Recorded because the plan listed it for deletion. | `grep -rn AchievementsModal src` → two live call sites in `StreakCard.tsx` | descoped |
+| 11 | S2B5 — marketing page duplication | `views/marketing/MarketingPages.tsx`, `views/marketing/LandingView.tsx` | Fixed the defect; **did not** delete the React marketing views. In the same footer, "Privacy Notice" was a React `<Link to="/privacy">` while "Terms of Service" was `<a href="/terms.html">` — two different Terms documents depending on which link you clicked. Terms now resolves in-app like Privacy beside it. `/llms.txt` stays an `<a href>`; it is a genuine static asset. | `npx vitest run` → **201/201 files, 2570/2570 passed**. `npm run build` → **✓ built in 1.31s**. | done |
 
 ### Note on row 2
 
@@ -86,4 +87,28 @@ deleted.
 
 This is the check that would have caught the original defect: `/premortem`
 becoming a redirect while three live CTAs still pointed at it.
+
+### Note on row 11 — a decision left to the product owner
+
+The plan called for deleting the React marketing views and keeping the static
+`.html` pages as the single source of truth. I did not do that, because the
+premise does not survive contact with the history.
+
+`landing.html` (25KB, hand-written) and `views/marketing/LandingView.tsx`
+(355 lines + 435 lines of CSS) are both maintained, and the React one is the
+*newer* of the two — it arrived in `ec010d5`, the UX overhaul. Deleting it in
+favour of the older static page is as likely to be a downgrade as a cleanup,
+and which page a visitor should see at `learnora.app/` is a marketing decision
+rather than a code-health one.
+
+What is unambiguous, and is fixed: the two were linked inconsistently from the
+same footers.
+
+Still duplicated, awaiting that decision:
+- `/` serves `landing.html`; `/app/landing` renders `LandingView` and has no
+  inbound links at all.
+- `/about`, `/contact`, `/developers` exist as both static pages (served at the
+  domain root by `vercel.json`) and React routes under `/app/`.
+- `/privacy` likewise, though the React one must stay: the auth screens link to
+  it, and it has to be reachable from inside the app.
 
