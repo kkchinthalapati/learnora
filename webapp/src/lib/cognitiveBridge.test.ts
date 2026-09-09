@@ -86,6 +86,7 @@ describe("CognitiveBridge", () => {
     expect(CognitiveBridge.getTargetRoute("debugger")).toBe("/solver");
     expect(CognitiveBridge.getTargetRoute("feynman")).toBe("/feynman");
     expect(CognitiveBridge.getTargetRoute("sparring")).toBe("/viva");
+    expect(CognitiveBridge.getTargetRoute("exam_detective")).toBe("/exam-detective");
     expect(CognitiveBridge.getTargetRoute("premortem")).toBe("/exam-detective");
   });
 

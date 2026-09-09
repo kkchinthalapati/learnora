@@ -391,4 +391,33 @@ describe("NotebookStudioView", () => {
     ).toBeInTheDocument();
     expect(artifactInserts).toHaveLength(0);
   }, 15000);
+
+  it("surfaces tool quota limits and prevents generation when exceeded", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(rest("ai_request_log"), () =>
+        HttpResponse.json([
+          { tool: "flashcards" },
+          { tool: "flashcards" },
+          { tool: "flashcards" },
+        ]),
+      ),
+    );
+
+    renderStudio();
+    await screen.findByRole("heading", { name: "Sources" });
+
+    // Verify limit badge appears
+    expect(await screen.findByText(/Limit reached/i)).toBeInTheDocument();
+
+    // Clicking the exceeded tool shows quota warning toast
+    const flashcardBtn = screen.getByRole("button", {
+      name: /Flashcard Deck/i,
+    });
+    await user.click(flashcardBtn);
+
+    expect(
+      await screen.findByText(/reached today's limit for flashcard decks/i),
+    ).toBeInTheDocument();
+  });
 });

@@ -1205,22 +1205,31 @@
 }
 
 .shelfCard {
-  background: var(--surface);
-  border: var(--border);
-  border-radius: var(--r-lg);
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: var(--s-3);
   cursor: pointer;
-  transition: all var(--t-fast) var(--ease);
+  transition: var(--card-transition);
 }
 
 .shelfCard:hover {
-  transform: translateY(-1px);
-  border-color: var(--accent-ring);
-  box-shadow: var(--shadow-sm);
+  transform: var(--card-hover-lift-sm);
+  border-color: var(--card-border-hover);
+  box-shadow: var(--card-shadow-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shelfCard,
+  .shelfCard:hover {
+    transition: none;
+    transform: none;
+  }
 }
 
 .shelfCardTop {
@@ -1242,8 +1251,8 @@
 }
 
 .shelfDot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
 }
 

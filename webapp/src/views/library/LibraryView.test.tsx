@@ -92,10 +92,11 @@ function serveLibrary({
   materials = [] as Material[],
   decks = [] as FlashcardDeck[],
   quizzes = [] as Quiz[],
+  notebooks = [] as Record<string, unknown>[],
   dueCount = 0,
 } = {}) {
   server.use(
-    http.get(rest("notebooks"), () => HttpResponse.json([])),
+    http.get(rest("notebooks"), () => HttpResponse.json(notebooks)),
     http.get(rest("folders"), () => HttpResponse.json(folders)),
     http.get(rest("materials"), ({ request }) => {
       const folderId = new URL(request.url).searchParams
@@ -364,6 +365,56 @@ describe("Library — Folders tab", () => {
 
     const history = screen.getByText("History").closest("li")!;
     expect(history).toHaveTextContent("1 material •");
+  });
+
+  it("counts both materials and notebooks in each folder", async () => {
+    serveLibrary({
+      folders: [folder(), folder({ id: "folder-2", name: "History" })],
+      materials: [
+        material({ id: "m1" }),
+        material({ id: "m2", title: "Meiosis" }),
+        material({ id: "m3", folder_id: "folder-2" }),
+      ],
+      notebooks: [
+        {
+          id: "nb-1",
+          folder_id: "folder-1",
+          title: "Bio Notes",
+          subject: "Biology",
+          color: "#4A90E2",
+          notes: "",
+          created_at: "2026-03-08T00:00:00Z",
+          updated_at: "2026-03-08T00:00:00Z",
+        },
+        {
+          id: "nb-2",
+          folder_id: "folder-1",
+          title: "Genetics",
+          subject: "Biology",
+          color: "#4A90E2",
+          notes: "",
+          created_at: "2026-03-08T00:00:00Z",
+          updated_at: "2026-03-08T00:00:00Z",
+        },
+        {
+          id: "nb-3",
+          folder_id: "folder-2",
+          title: "Rome",
+          subject: "History",
+          color: "#4A90E2",
+          notes: "",
+          created_at: "2026-03-08T00:00:00Z",
+          updated_at: "2026-03-08T00:00:00Z",
+        },
+      ],
+    });
+    renderLibrary();
+
+    const biology = (await screen.findByText("Biology")).closest("li")!;
+    expect(biology).toHaveTextContent("2 materials • 2 notebooks");
+
+    const history = screen.getByText("History").closest("li")!;
+    expect(history).toHaveTextContent("1 material • 1 notebook •");
   });
 
   it("links a folder card to its workspace", async () => {

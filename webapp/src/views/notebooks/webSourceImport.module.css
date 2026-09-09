@@ -161,9 +161,9 @@
   flex-direction: column;
   gap: var(--s-2);
   padding: var(--s-3) var(--s-4);
-  border: var(--border);
-  border-radius: var(--r-lg);
-  background: var(--surface);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
   transition:
     border-color var(--t-fast) var(--ease),
     box-shadow var(--t-fast) var(--ease);
@@ -176,8 +176,8 @@
 }
 
 .resultCard:hover {
-  border-color: var(--accent-ring);
-  box-shadow: var(--shadow-sm);
+  border-color: var(--card-border-hover);
+  box-shadow: var(--card-shadow);
 }
 
 .cardTop {

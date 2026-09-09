@@ -7,6 +7,7 @@ import { Skeleton } from "../../components/Skeleton";
 import { useCreateModal } from "../../context/createModal";
 import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
+import { useNotebooks } from "../../hooks/useNotebooks";
 import { formatCreatedLong, safeColor } from "./libraryMeta";
 import { useLibraryActions } from "./useLibraryActions";
 import styles from "./library.module.css";
@@ -14,8 +15,18 @@ import styles from "./library.module.css";
 export function FoldersPanel() {
   const { data: folders, isPending, isError, error } = useFolders();
   const { data: materials } = useMaterials();
+  const { notebooks } = useNotebooks();
   const { rename, removeFolder } = useLibraryActions();
   const { openCreateModal } = useCreateModal();
+
+  const notebookCountByFolder = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const nb of notebooks ?? []) {
+      if (!nb.folderId) continue;
+      counts.set(nb.folderId, (counts.get(nb.folderId) ?? 0) + 1);
+    }
+    return counts;
+  }, [notebooks]);
 
   const materialCountByFolder = useMemo(() => {
     const folderCounts = new Map<string, number>();
@@ -65,6 +76,7 @@ export function FoldersPanel() {
     <ul className={styles.grid}>
       {folders.map((folder) => {
         const count = materialCountByFolder.get(folder.id) ?? 0;
+        const notebookCount = notebookCountByFolder.get(folder.id) ?? 0;
         const created = formatCreatedLong(folder.created_at);
         return (
           <li
@@ -79,6 +91,9 @@ export function FoldersPanel() {
               </h3>
               <p className={styles.cardMeta}>
                 {count} material{count === 1 ? "" : "s"}
+                {notebookCount > 0
+                  ? ` • ${notebookCount} notebook${notebookCount === 1 ? "" : "s"}`
+                  : ""}
                 {created ? ` • Created ${created}` : ""}
               </p>
             </Link>

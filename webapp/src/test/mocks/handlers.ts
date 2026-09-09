@@ -66,6 +66,7 @@ export const handlers = [
   http.delete(rest("folders"), () => new HttpResponse(null, { status: 204 })),
 
   http.get(rest("materials"), () => HttpResponse.json([])),
+  http.get(rest("notebooks"), () => HttpResponse.json([])),
 
   http.get(rest("exams"), () => HttpResponse.json(examFixtures)),
   http.post(rest("exams"), () => new HttpResponse(null, { status: 201 })),
@@ -135,4 +136,7 @@ export const handlers = [
   ),
   http.post(rpc("get_friends_leaderboard"), () => HttpResponse.json([])),
   http.post(rpc("get_friend_requests"), () => HttpResponse.json([])),
+
+  /* AI daily request log — returns empty log by default (0 used across all tools) */
+  http.get(rest("ai_request_log"), () => HttpResponse.json([])),
 ];

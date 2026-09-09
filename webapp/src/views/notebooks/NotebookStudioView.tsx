@@ -26,6 +26,7 @@ import { formatEvidenceForPrompt } from "../../lib/studentEvidence";
 import { formatMisconceptionsForPrompt } from "../../lib/misconceptions";
 import { useSettings } from "../../context/settings";
 import { fenceUntrusted } from "../../lib/actionTags";
+import { useAiUsage } from "../../hooks/useAiUsage";
 
 const MAX_NOTEBOOK_SOURCE_CHARS = 12_000;
 
@@ -93,6 +94,24 @@ export function NotebookStudioView() {
   const { evidence: studentEvidence, isPending: isEvidencePending } =
     useStudentEvidence();
   const { all: ledger, isPending: isLedgerPending } = useMisconceptions();
+
+  const { usageFor, isPending: isUsagePending } = useAiUsage();
+  const flashcardsUsage = usageFor("flashcards");
+  const quizUsage = usageFor("quiz");
+  const studioUsage = usageFor("notebookStudio");
+
+  const renderQuotaBadge = (usage: ReturnType<typeof usageFor>) => {
+    if (isUsagePending || usage.unlimited) return null;
+    const badgeClass = usage.exceeded
+      ? styles.toolQuotaBadgeExceeded
+      : usage.fraction >= 0.8
+        ? styles.toolQuotaBadgeWarn
+        : styles.toolQuotaBadge;
+    const label = usage.exceeded
+      ? "Limit reached"
+      : `${usage.remaining} left today`;
+    return <span className={badgeClass}>{label}</span>;
+  };
 
   const {
     checks: studyBuddyChecks,
@@ -318,6 +337,13 @@ Keep explanations friendly, encouraging, and structured for student success.`;
 
   // Studio Generator Handlers
   const handleGenerateCheatSheet = async () => {
+    if (studioUsage.exceeded) {
+      showToast("You've reached today's limit for Studio AI tools.", {
+        actionLabel: "View plan",
+        onAction: () => void navigate("/settings?tab=subscription"),
+      });
+      return;
+    }
     setIsGenerating(true);
     showToast("Generating high-yield Revision Cheat Sheet…");
 
@@ -367,6 +393,13 @@ Use British English throughout.`;
   };
 
   const handleGenerateFeynman = async () => {
+    if (studioUsage.exceeded) {
+      showToast("You've reached today's limit for Studio AI tools.", {
+        actionLabel: "View plan",
+        onAction: () => void navigate("/settings?tab=subscription"),
+      });
+      return;
+    }
     setIsGenerating(true);
     showToast("Writing a plain-English breakdown…");
 
@@ -421,6 +454,13 @@ Use British English throughout.`;
      now count against the student's `flashcards` and `quiz` tool quotas. */
 
   const handleGenerateFlashcards = async () => {
+    if (flashcardsUsage.exceeded) {
+      showToast("You've reached today's limit for flashcard decks.", {
+        actionLabel: "View plan",
+        onAction: () => void navigate("/settings?tab=subscription"),
+      });
+      return;
+    }
     if (selectedSources.length === 0) {
       showToast("Select at least one source to make flashcards from.");
       return;
@@ -451,6 +491,13 @@ Use British English throughout.`;
   };
 
   const handleGenerateQuiz = async () => {
+    if (quizUsage.exceeded) {
+      showToast("You've reached today's limit for practice quizzes.", {
+        actionLabel: "View plan",
+        onAction: () => void navigate("/settings?tab=subscription"),
+      });
+      return;
+    }
     if (selectedSources.length === 0) {
       showToast("Select at least one source to make a quiz from.");
       return;
@@ -1073,9 +1120,10 @@ Use British English throughout.`;
             <div className={styles.toolsGrid}>
               <button
                 type="button"
-                className={styles.toolButton}
+                className={`${styles.toolButton} ${studioUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={() => void handleGenerateFeynman()}
                 disabled={isGenerating}
+                title={studioUsage.exceeded ? "Daily allowance reached for Studio tools" : undefined}
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="brain" size={18} />
@@ -1084,13 +1132,15 @@ Use British English throughout.`;
                 <div className={styles.toolSubtext}>
                   Explain simply & find knowledge gaps
                 </div>
+                {renderQuotaBadge(studioUsage)}
               </button>
 
               <button
                 type="button"
-                className={styles.toolButton}
+                className={`${styles.toolButton} ${studioUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={() => void handleGenerateCheatSheet()}
                 disabled={isGenerating}
+                title={studioUsage.exceeded ? "Daily allowance reached for Studio tools" : undefined}
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="file-text" size={18} />
@@ -1099,12 +1149,15 @@ Use British English throughout.`;
                 <div className={styles.toolSubtext}>
                   High-yield formulas & definitions
                 </div>
+                {renderQuotaBadge(studioUsage)}
               </button>
 
               <button
                 type="button"
-                className={styles.toolButton}
+                className={`${styles.toolButton} ${flashcardsUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={handleGenerateFlashcards}
+                disabled={isGenerating}
+                title={flashcardsUsage.exceeded ? "Daily allowance reached for flashcard decks" : undefined}
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="layers" size={18} />
@@ -1113,18 +1166,22 @@ Use British English throughout.`;
                 <div className={styles.toolSubtext}>
                   Generate active recall deck
                 </div>
+                {renderQuotaBadge(flashcardsUsage)}
               </button>
 
               <button
                 type="button"
-                className={styles.toolButton}
+                className={`${styles.toolButton} ${quizUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={handleGenerateQuiz}
+                disabled={isGenerating}
+                title={quizUsage.exceeded ? "Daily allowance reached for practice quizzes" : undefined}
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="check" size={18} />
                 </div>
                 <div className={styles.toolLabel}>Practice Quiz</div>
                 <div className={styles.toolSubtext}>Quick self-test</div>
+                {renderQuotaBadge(quizUsage)}
               </button>
 
               <button

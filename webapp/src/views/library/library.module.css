@@ -105,19 +105,26 @@
   flex-direction: column;
   min-height: 152px;
   padding: var(--s-5);
-  background: var(--surface);
-  border: 1px solid var(--glass-border-subtle);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-sm);
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
-  transition:
-    box-shadow var(--t-fast) ease,
-    border-color var(--t-fast) ease;
+  transition: var(--card-transition);
 }
 
 .card:hover {
-  border-color: var(--accent-ring);
-  box-shadow: var(--shadow-md);
+  border-color: var(--card-border-hover);
+  box-shadow: var(--card-shadow-hover);
+  transform: var(--card-hover-lift-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card:hover {
+    transition: none;
+    transform: none;
+  }
 }
 
 .cardLink {
@@ -278,13 +285,13 @@
   font-size: var(--fs-lg);
   font-weight: 600;
   color: var(--text);
-  background: var(--surface-2);
+  background: var(--card-bg-subtle);
   border: 1px dashed var(--text-faint);
-  border-radius: var(--r-lg);
+  border-radius: var(--card-radius);
   cursor: pointer;
   transition:
-    border-color var(--t-fast) ease,
-    color var(--t-fast) ease;
+    border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
 }
 
 .newCardBtn:hover {
