@@ -160,4 +160,39 @@ describe("route integrity", () => {
 
     expect(unroutable).toEqual([]);
   });
+  /* Reachability. The rail listed 11 of ~45 routes, and /tasks, /exams,
+     /my-week, /trajectory and /exam-detective could be reached only by typing
+     a URL or opening the command palette — the section sub-navs that led to
+     them are invisible until you are already on one of their pages. */
+  it("offers every primary destination in the sidebar", () => {
+    const sidebar = readFileSync(
+      join(SRC, "components", "Sidebar.tsx"),
+      "utf8",
+    );
+    const offered = new Set(
+      [...sidebar.matchAll(/\bto:\s*"(\/[^"]*)"/g)].map((m) => m[1]),
+    );
+
+    for (const destination of [
+      "/",
+      "/library",
+      "/plan",
+      "/my-week",
+      "/tasks",
+      "/exams",
+      "/timer",
+      "/analytics",
+      "/trajectory",
+      "/study",
+      "/solver",
+      "/feynman",
+      "/viva",
+      "/exam-detective",
+      "/room",
+      "/friends",
+      "/settings",
+    ]) {
+      expect([...offered]).toContain(destination);
+    }
+  });
 });
