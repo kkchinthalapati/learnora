@@ -116,3 +116,23 @@ Still duplicated, awaiting that decision:
 - `/privacy` likewise, though the React one must stay: the auth screens link to
   it, and it has to be reachable from inside the app.
 
+
+---
+
+## Checkpoint: End of Stage 3 (S3B3)
+
+**Summary:** 14 batches completed across Stages 1–3. All work on `fix/structural-repair`.
+
+| Stage | Batches | Result |
+|---|---|---|
+| **Stage 1** — Shipping bugs | B1–B6 | **5 commits**, 205→205 files, 2593→2593 tests. Bugs fixed: basename escapes, fake generators, fabricated fallbacks. CTAs repointed. |
+| **Stage 2** — Routing & dead code | B1–B5 | **5 commits**, 205→201 files, 2593→2570 tests. Pre-Mortem folded, routes canonicalized, sidebar grouped, marketing deduplicated. |
+| **Stage 3** — Shared code | B1–B3 | **4 commits**, 201→202 files, 2570→2582 tests. JSON parsing consolidated, localStorage stores unified, hook aliases removed. |
+| **Stage 3** — UI primitives | B4 | **Deferred** until after Stage 4 (CSS consolidation belongs with component rewrites). |
+
+**Full suite: 202/202 files, 2582/2582 tests passing. Build: ✓ 1.28s–1.41s.**
+
+**Next:** Stage 4 — unify the content model. This requires database migrations against real user data and carries specific risks (RLS regression, folder-delete semantics). Recommend reviewing the plan's "Known risks" section and the Stage 4 / C0 migration SQL before applying to any environment.
+
+All 14 batches recorded in `docs/BATCH_LEDGER.md` with per-batch verification. No work is pushed beyond `fix/structural-repair`.
+
