@@ -10,9 +10,10 @@ import {
   callEdge,
   trimHistory,
   type ChatMessage as HistoryMessage,
-  type FilePayload,
 } from "../../api/ai";
 import { stripActionTagBlocks, fenceUntrusted } from "../../lib/actionTags";
+import { isPdf, planPdfUpload, truncationNote } from "../../lib/pdfText";
+import type { AttachedFile } from "../../context/chat";
 import { decodeBase64UTF8 } from "../../lib/aiJson";
 import {
   buildNotesSystemContext,
@@ -136,7 +137,7 @@ export function NotesAiSidebar({
   const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
-  const [file, setFile] = useState<FilePayload | null>(null);
+  const [file, setFile] = useState<AttachedFile | null>(null);
   const [input, setInput] = useState("");
 
   /* The model-facing transcript: clean text only (tags stripped, the injected
@@ -209,7 +210,10 @@ export function NotesAiSidebar({
            attacker-influenced input (js/ai.js:1416-1424). */
         let filePayload = attached;
         let appendedFileContext = "";
-        if (attached && attached.mimeType === "text/plain") {
+        if (attached && attached.inlineText) {
+          appendedFileContext = `\n\nThe student attached "${attached.name}" with the following content:\n"""\n${fenceUntrusted(attached.inlineText)}\n"""`;
+          filePayload = null;
+        } else if (attached && attached.mimeType === "text/plain") {
           try {
             const decoded = fenceUntrusted(decodeBase64UTF8(attached.data));
             appendedFileContext = `\n\nThe student attached a text file "${attached.name}" with the following content:\n"""\n${decoded}\n"""`;
@@ -295,11 +299,7 @@ export function NotesAiSidebar({
     void send(value || "Analyze this document.");
   };
 
-  const attachFile = (picked: File) => {
-    if (picked.size > MAX_FILE_BYTES) {
-      showToast("File too large. Maximum size is 10MB.", { error: true });
-      return;
-    }
+  const readAsAttachment = (picked: File) => {
     const reader = new FileReader();
     reader.onerror = () => showToast("Failed to read file.", { error: true });
     reader.onload = (e) => {
@@ -311,6 +311,41 @@ export function NotesAiSidebar({
       });
     };
     reader.readAsDataURL(picked);
+  };
+
+  const attachFile = (picked: File) => {
+    if (picked.size > MAX_FILE_BYTES) {
+      showToast("File too large. Maximum size is 10MB.", { error: true });
+      return;
+    }
+
+    /* Parsed to text here rather than attached, so any provider in the chain
+       can read it — see lib/pdfText.ts. A scan with no text layer still needs
+       the binary, because OCR is the only thing that will read it. */
+    if (isPdf(picked)) {
+      planPdfUpload(picked)
+        .then((plan) => {
+          if (plan.kind === "inline") {
+            setFile({
+              name: picked.name,
+              mimeType: picked.type || "application/pdf",
+              data: "",
+              inlineText: plan.text + truncationNote(plan.extraction),
+            });
+            return;
+          }
+          if (plan.reason === "scanned") {
+            showToast(
+              "That PDF looks scanned, so it'll be read as an image — answers may be less precise.",
+            );
+          }
+          readAsAttachment(picked);
+        })
+        .catch(() => readAsAttachment(picked));
+      return;
+    }
+
+    readAsAttachment(picked);
   };
 
   /* Both cards open the same Create dialog, scoped to the document on screen

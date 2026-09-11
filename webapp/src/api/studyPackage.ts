@@ -43,6 +43,7 @@ import { decodeBase64UTF8, extractFlashcardJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
 import { supabase } from "../lib/supabase";
 import { setMaterialProcessing } from "../lib/materialProcessing";
+import { isPdf, planPdfUpload, truncationNote } from "../lib/pdfText";
 import type { Settings } from "../lib/settings";
 import type { FlashcardDeck, Material, Quiz } from "./types";
 
@@ -171,6 +172,17 @@ export async function generateNotes({
 
   if ("inlineText" in source) {
     inlineText = source.inlineText;
+  } else if (isPdf(source.file)) {
+    /* A PDF is parsed to text here rather than attached, so that every
+       provider in the chain can read it and not just Gemini — see
+       lib/pdfText.ts for why that mattered. A scan with no text layer still
+       goes as an attachment, since OCR is the only thing that will read it. */
+    const plan = await planPdfUpload(source.file);
+    if (plan.kind === "inline") {
+      inlineText = plan.text + truncationNote(plan.extraction);
+    } else {
+      attachment = await fileToPayload(source.file);
+    }
   } else {
     const payload = await fileToPayload(source.file);
     /* Gemini rejects text/plain as inlineData, so a plain-text upload is

@@ -33,6 +33,7 @@ import {
   type ActionHandlers,
 } from "../lib/chatActions";
 import { stripActionTagBlocks, fenceUntrusted } from "../lib/actionTags";
+import { isPdf, planPdfUpload, truncationNote } from "../lib/pdfText";
 import { activeContextForPath, buildSystemContext } from "../lib/chatPrompt";
 import { loadStudentEvidence } from "../api/studentEvidence";
 import { formatEvidenceForPrompt } from "../lib/studentEvidence";
@@ -199,25 +200,59 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const clearFile = useCallback(() => setFile(null), []);
 
+  const readAsAttachment = useCallback((picked: File) => {
+    const reader = new FileReader();
+    reader.onerror = () => showToast("Failed to read file.", { error: true });
+    reader.onload = (e) => {
+      const result = String(e.target?.result ?? "");
+      setFile({
+        name: picked.name,
+        mimeType: picked.type,
+        data: result.split(",")[1] ?? "",
+      });
+    };
+    reader.readAsDataURL(picked);
+  }, [showToast]);
+
   const attachFile = useCallback(
     (picked: File) => {
       if (picked.size > MAX_FILE_BYTES) {
         showToast("File too large. Maximum size is 10MB.", { error: true });
         return;
       }
-      const reader = new FileReader();
-      reader.onerror = () => showToast("Failed to read file.", { error: true });
-      reader.onload = (e) => {
-        const result = String(e.target?.result ?? "");
-        setFile({
-          name: picked.name,
-          mimeType: picked.type,
-          data: result.split(",")[1] ?? "",
-        });
-      };
-      reader.readAsDataURL(picked);
+
+      /* A PDF is read here rather than shipped as a blob, so that whichever
+         provider answers can see its contents — attachments are readable by
+         exactly one provider in the chain, which is why a PDF question used
+         to get a confident answer about nothing whenever that provider was
+         rate-limited. A scan with no text layer still goes as an attachment,
+         because OCR is the only thing that will read it. */
+      if (isPdf(picked)) {
+        planPdfUpload(picked)
+          .then((plan) => {
+            if (plan.kind === "inline") {
+              setFile({
+                name: picked.name,
+                mimeType: picked.type || "application/pdf",
+                data: "",
+                inlineText: plan.text + truncationNote(plan.extraction),
+              });
+              return;
+            }
+            if (plan.reason === "scanned") {
+              showToast(
+                "That PDF looks scanned, so it'll be read as an image — answers may be less precise.",
+              );
+            }
+            readAsAttachment(picked);
+          })
+          .catch(() => readAsAttachment(picked));
+        return;
+      }
+
+      readAsAttachment(picked);
     },
-    [showToast],
+    [readAsAttachment, showToast],
   );
 
   /* --- action handlers ------------------------------------------------- */
@@ -483,7 +518,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
            body is fenced: an uploaded .txt is attacker-influenced input. */
         let filePayload = attached;
         let appendedFileContext = "";
-        if (attached && attached.mimeType === "text/plain") {
+        if (attached && attached.inlineText) {
+          /* Already parsed to text on the way in (a PDF). Fenced for the same
+             reason a .txt upload is: the body is attacker-influenced input. */
+          appendedFileContext = `\n\nThe student attached "${attached.name}" with the following content:\n"""\n${fenceUntrusted(attached.inlineText)}\n"""`;
+          filePayload = null;
+        } else if (attached && attached.mimeType === "text/plain") {
           try {
             const decoded = fenceUntrusted(decodeBase64UTF8(attached.data));
             appendedFileContext = `\n\nThe student attached a text file "${attached.name}" with the following content:\n"""\n${decoded}\n"""`;

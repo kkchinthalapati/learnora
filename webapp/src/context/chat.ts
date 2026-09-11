@@ -60,8 +60,15 @@ export interface ChatMessage {
 export interface AttachedFile {
   name: string;
   mimeType: string;
-  /** base64, without the `data:…;base64,` prefix. */
+  /** base64, without the `data:…;base64,` prefix. Empty when `inlineText`
+   *  carries the file instead. */
   data: string;
+  /** Text parsed out of the file in the browser, for formats Learnora can
+   *  read without a model — currently PDFs. When it is set, the chat sends
+   *  this text folded into the prompt rather than the binary, so every
+   *  provider in the chain can read the file and not only the one that
+   *  accepts attachments. See lib/pdfText.ts. */
+  inlineText?: string;
 }
 
 export type ChatSourceMode = "web" | "notebook" | "hybrid";
