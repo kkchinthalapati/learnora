@@ -1,5 +1,16 @@
-import { test, expect, loginAs, TEST_PASSWORD } from "./support/fixtures";
-import { FREE_DAILY_AI_LIMIT, type Row } from "./support/mockBackend";
+import {
+  test,
+  expect,
+  loginAs,
+  openDashboardAiActions,
+  TEST_PASSWORD,
+} from "./support/fixtures";
+import {
+  AI_TOOL_QUOTAS,
+  DAILY_LIMIT_MESSAGE_FREE,
+  FREE_CHAT_LIMIT,
+  type Row,
+} from "./support/mockBackend";
 
 /* The critical path: the journeys that, if broken, mean students cannot use
  * Learnora at all — signing in, paying, generating, quizzing, and being told
@@ -128,7 +139,10 @@ test.describe("Auth", () => {
     await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByRole("link", { name: "Tasks" })).toBeVisible();
+    /* A workspace destination in the rail, to prove the signed-in shell and
+       not just the heading rendered. "Plan" rather than "Tasks": Tasks is a
+       child of Plan now, revealed only once Plan is the active section. */
+    await expect(page.getByRole("link", { name: "Plan" })).toBeVisible();
   });
 
   test("password reset sends a recovery link without confirming the address exists", async ({
@@ -173,47 +187,52 @@ test.describe("Rate limiting", () => {
     page,
     backend,
   }) => {
-    /* Standing one request short of the ceiling rather than making 25 real
-       ones: the limit under test is the server's, and 24 extra round trips
-       would only make the test slower and flakier, not more truthful. */
-    backend.spendAiRequests(FREE_DAILY_AI_LIMIT - 1);
+    /* Standing one request short of the ceiling rather than making fifteen
+       real ones: the limit under test is the server's, and the extra round
+       trips would only make the test slower and flakier, not more truthful.
+       The dashboard's AI actions bill against `chat`, so that is the tool
+       whose allowance has to be nearly spent. */
+    backend.spendAiRequests(FREE_CHAT_LIMIT - 1, "chat");
     await loginAs(page);
+    await openDashboardAiActions(page);
 
-    // The 25th generation is still inside the allowance.
+    // The last generation inside the allowance still goes through.
     await page.getByRole("button", { name: "What next?" }).click();
     await expect(page.getByRole("region", { name: "Learnora AI chat" })).toBeVisible();
     await expect(page.getByRole("log")).toContainText("Here is a study plan", {
       timeout: 20_000,
     });
-    expect(backend.aiRequestsToday).toBe(FREE_DAILY_AI_LIMIT);
+    expect(backend.aiRequestsToday("chat")).toBe(FREE_CHAT_LIMIT);
 
-    // The 26th is over it, and the refusal has to reach the student.
+    // The next one is over it, and the refusal has to reach the student.
     const input = page.getByLabel("AI chat input");
     await input.fill("One more thing");
     await input.press("Enter");
 
-    await expect(page.getByRole("log")).toContainText("Rate limit exceeded", {
+    /* The server's own words, not a paraphrase: this is the sentence that has
+       to survive the trip from the edge function through src/api/ai.ts into
+       the transcript, and asserting on anything else would pass against a UI
+       showing a student nothing they could act on. */
+    await expect(page.getByRole("log")).toContainText(DAILY_LIMIT_MESSAGE_FREE, {
       timeout: 30_000,
     });
-    await expect(page.getByRole("log")).toContainText(
-      `all ${FREE_DAILY_AI_LIMIT} AI generations`,
-    );
   });
 
   test("Pro raises the ceiling: the 26th generation of the day succeeds", async ({
     page,
     backend,
   }) => {
-    backend.setPlan("pro").spendAiRequests(FREE_DAILY_AI_LIMIT);
+    backend.setPlan("pro").spendAiRequests(FREE_CHAT_LIMIT, "chat");
     await loginAs(page);
+    await openDashboardAiActions(page);
 
     await page.getByRole("button", { name: "What next?" }).click();
 
     await expect(page.getByRole("log")).toContainText("Here is a study plan", {
       timeout: 20_000,
     });
-    await expect(page.getByRole("log")).not.toContainText("Rate limit exceeded");
-    expect(backend.aiRequestsToday).toBe(FREE_DAILY_AI_LIMIT + 1);
+    await expect(page.getByRole("log")).not.toContainText(DAILY_LIMIT_MESSAGE_FREE);
+    expect(backend.aiRequestsToday("chat")).toBe(FREE_CHAT_LIMIT + 1);
   });
 
   test("the allowance resets at midnight UTC — yesterday's usage does not count", async ({
@@ -224,10 +243,11 @@ test.describe("Rate limiting", () => {
        night. The meter counts from midnight UTC, so today they start clean. */
     const yesterday = new Date();
     yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-    for (let i = 0; i < FREE_DAILY_AI_LIMIT; i++) {
+    for (let i = 0; i < FREE_CHAT_LIMIT; i++) {
       backend.table("ai_request_log").push({
         id: `yesterday-${i}`,
         user_id: backend.user.id,
+        tool: "chat",
         created_at: yesterday.toISOString(),
       });
     }
@@ -236,12 +256,16 @@ test.describe("Rate limiting", () => {
     await page.goto("settings");
     await page.getByRole("tab", { name: /Plan/ }).click();
 
-    const meter = page.getByRole("progressbar");
+    /* The meter is per tool now, so the assertion names one: an unqualified
+       `getByRole("progressbar")` matches all eleven. */
+    const meter = page.getByRole("progressbar", { name: "Chat & quick edits" });
     await expect(meter).toHaveAttribute(
       "aria-valuetext",
-      `0 of ${FREE_DAILY_AI_LIMIT} generations used today`,
+      `0 of ${FREE_CHAT_LIMIT} Chat & quick edits generations used today`,
     );
-    await expect(page.getByText(`${FREE_DAILY_AI_LIMIT} of ${FREE_DAILY_AI_LIMIT} left.`)).toBeVisible();
+    await expect(
+      page.getByText(`${FREE_CHAT_LIMIT} of ${FREE_CHAT_LIMIT} left`),
+    ).toBeVisible();
   });
 });
 
@@ -258,12 +282,13 @@ test.describe("Stripe", () => {
     await page.getByRole("tab", { name: /Plan/ }).click();
 
     /* Two steps on purpose: the plan panel's button opens the paywall, and
-       the paywall is where a price is chosen and checkout actually starts. */
-    await page.locator("main").getByRole("button", { name: "Upgrade to Pro" }).click();
-    await page
-      .getByRole("dialog")
-      .getByRole("button", { name: "Upgrade to Pro" })
-      .click();
+       the paywall is where a tier and price are chosen and checkout actually
+       starts. The paywall opens on Plus, so the Pro tier is selected there
+       rather than reached from the settings panel. */
+    await page.locator("main").getByRole("button", { name: "Upgrade" }).click();
+    const paywall = page.getByRole("dialog");
+    await paywall.getByRole("radio", { name: "Pro", exact: true }).click();
+    await paywall.getByRole("button", { name: "Upgrade to Pro" }).click();
 
     await expect
       .poll(() => stripeRedirects.length, { timeout: 20_000 })
@@ -306,20 +331,13 @@ test.describe("Quizzes", () => {
     await page.goto("library/quizzes");
     await page.getByRole("button", { name: "Create a quiz" }).click();
 
-    /* The radio itself is visually hidden behind a styled card, so the label
-       is what a student actually clicks — and what this clicks. */
-    await page.getByText("Just a topic").click();
-    await page.getByRole("textbox", { name: "Topic" }).fill("Photosynthesis");
-    await page.getByRole("button", { name: /Continue to results/ }).click();
-    await page.getByRole("button", { name: /Review and create/ }).click();
-    /* Scoped to the dialog: the page's own "Create a quiz" trigger button
-       (line above) stays in the DOM behind the modal, and its name also
-       starts with "Create" — an unscoped match resolves to both it and the
-       wizard's real submit button. */
-    await page
-      .getByRole("dialog")
-      .getByRole("button", { name: /^Create .*quiz/ })
-      .click();
+    /* One panel, not a wizard: pick where the material comes from, name it,
+       and submit. "Topic" is the no-upload path — the one a student takes
+       when they have nothing to hand but a subject. */
+    const wizard = page.getByRole("dialog");
+    await wizard.getByRole("tab", { name: "Topic" }).click();
+    await wizard.getByLabel("Topic").fill("Photosynthesis");
+    await wizard.getByRole("button", { name: "Create my study kit" }).click();
 
     await expect
       .poll(() => backend.table("quizzes").length, { timeout: 30_000 })
@@ -327,6 +345,10 @@ test.describe("Quizzes", () => {
     const saved = backend.table("quizzes")[0];
     expect(saved.title).toBeTruthy();
     expect(Array.isArray(saved.questions_json)).toBe(true);
+
+    /* And the student is put into it, rather than left looking at the panel
+       wondering whether anything happened. */
+    await expect(page).toHaveURL(new RegExp(`/quiz/${saved.id}$`));
   });
 
   test("taking a quiz walks through every question", async ({ page, backend }) => {
@@ -517,6 +539,7 @@ test.describe("AI grounding", () => {
       attemptRow("Genetics", 3, 10, 4),
     ]);
     await loginAs(page);
+    await openDashboardAiActions(page);
 
     await page.getByRole("button", { name: "What next?" }).click();
     await expect
@@ -540,6 +563,7 @@ test.describe("AI grounding", () => {
     backend,
   }) => {
     await loginAs(page);
+    await openDashboardAiActions(page);
 
     await page.getByRole("button", { name: "What next?" }).click();
     await expect
@@ -560,6 +584,7 @@ test.describe("AI grounding", () => {
     backend.seed("quizzes", [quizRow()]);
     backend.seed("quiz_attempts", [attemptRow("Cells", 4, 5, 1)]);
     await loginAs(page);
+    await openDashboardAiActions(page);
 
     await page.getByRole("button", { name: "What next?" }).click();
     await expect
@@ -648,6 +673,7 @@ test.describe("Errors", () => {
     backend,
   }) => {
     await loginAs(page);
+    await openDashboardAiActions(page);
     backend.stub("/functions/v1/learnora-ai", 500, { error: "Model unavailable" });
 
     await page.getByRole("button", { name: "What next?" }).click();
@@ -656,8 +682,8 @@ test.describe("Errors", () => {
       timeout: 30_000,
     });
     // Still navigable afterwards — one failed generation is not a dead app.
-    await page.getByRole("link", { name: "Tasks" }).click();
-    await expect(page).toHaveURL(/\/tasks/);
+    await page.getByRole("link", { name: "Plan" }).click();
+    await expect(page).toHaveURL(/\/plan/);
   });
 });
 
@@ -716,7 +742,14 @@ test.describe("Data safety", () => {
         raw.startsWith("base64-") ? `base64-${btoa(next)}` : next,
       );
     });
-    await page.reload();
+    /* A fresh load rather than page.reload(): react-router settles the index
+       route on "/app" without the trailing slash, and vite's dev server
+       answers that exact path with its own "did you mean /app/?" notice
+       instead of the app, so a reload from there never re-mounts anything to
+       redirect. Production rewrites /app to the SPA (vercel.json), so this is
+       the dev server's shape, not the app's — but the test has to load the
+       app to test it. */
+    await page.goto("");
 
     await expect(page).toHaveURL(/\/login/, { timeout: 25_000 });
   });

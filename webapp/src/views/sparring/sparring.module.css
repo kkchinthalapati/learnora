@@ -1372,3 +1372,12 @@
     animation: none;
   }
 }
+/* Touch sizing — see the note in Sidebar.module.css. The starter-topic chips
+ * measured 24px and the audio toggles 34px. The audio ones matter twice over:
+ * they are pressed mid-session, one-handed, while the student is listening. */
+@media (pointer: coarse) {
+  .chipBtn,
+  .audioToggleBtn {
+    min-height: var(--touch-target-min);
+  }
+}

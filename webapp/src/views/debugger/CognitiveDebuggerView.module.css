@@ -461,3 +461,12 @@
   text-align: center;
   gap: 1rem;
 }
+/* Touch sizing — see the note in Sidebar.module.css. The "or try one of
+ * these" presets measured 26px. They are how a first-time student starts a
+ * debug session without typing a mistake out on a phone keyboard, so they are
+ * the first thing a thumb goes for and the hardest thing to hit. */
+@media (pointer: coarse) {
+  .presetPill {
+    min-height: var(--touch-target-min);
+  }
+}

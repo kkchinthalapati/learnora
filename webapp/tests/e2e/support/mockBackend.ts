@@ -27,11 +27,40 @@ const SUPABASE_GLOB = "**/mlvgqwqiynpwpwzqufdf.supabase.co/**";
 
 export const TEST_USER_ID = "11111111-1111-4111-8111-111111111111";
 
-/** Free plan's daily AI allowance — mirrors QUOTAS in src/lib/entitlements.ts.
- *  The mocked edge function enforces it the way the real one does, by counting
- *  rows in `ai_request_log`, so the limit is observed rather than asserted. */
-export const FREE_DAILY_AI_LIMIT = 25;
-export const PRO_DAILY_AI_LIMIT = 400;
+/** Daily AI allowances — mirrors AI_TOOL_QUOTAS in
+ *  supabase/functions/learnora-ai/index.ts and QUOTAS in
+ *  src/lib/entitlements.ts. The mocked edge function enforces them the way the
+ *  real one does, by counting this user's rows in `ai_request_log` for the
+ *  tool being billed, so the limit is observed rather than asserted.
+ *
+ *  Per tool, not one pooled number: a student who has spent today's three
+ *  quizzes can still chat, and a suite that models a single 25/day ceiling
+ *  cannot tell those two refusals apart. */
+export const AI_TOOL_QUOTAS: Record<"free" | "pro", Record<string, number>> = {
+  free: {
+    chat: 15, notes: 3, flashcards: 3, quiz: 3, plan: 1,
+    debugger: 2, preMortem: 2, feynman: 2, examDeconstructor: 2,
+    sparring: 2, notebookStudio: 5,
+  },
+  pro: {
+    chat: 400, notes: 60, flashcards: 60, quiz: 60, plan: 30,
+    debugger: 40, preMortem: 40, feynman: 40, examDeconstructor: 40,
+    sparring: 40, notebookStudio: 80,
+  },
+};
+
+/** The tool the edge function bills a call to when the caller names none. */
+export const DEFAULT_AI_TOOL = "chat";
+
+/** The free plan's chat allowance — the ceiling the dashboard's own AI actions
+ *  run into, and so the one most of the rate-limit tests stand next to. */
+export const FREE_CHAT_LIMIT = AI_TOOL_QUOTAS.free.chat;
+
+/** Verbatim from the edge function, because the app shows the server's own
+ *  words: a test asserting on different copy would pass against a UI that
+ *  displays nothing a student would understand. */
+export const DAILY_LIMIT_MESSAGE_FREE =
+  "You've used today's allowance for this tool on the free plan. It resets at midnight — or Learnora Plus/Pro raises the limit.";
 
 export type Row = Record<string, unknown>;
 
@@ -174,6 +203,11 @@ export class MockBackend {
   /** Flipped by tests that need a signed-in session to go stale mid-run. */
   sessionRevoked = false;
 
+  /** What the mocked web-research function returns for a search. Empty by
+   *  default — most tests care that the chat copes with having no sources,
+   *  not about the sources themselves. */
+  webResults: Row[] = [];
+
   constructor(seed: SeedUser = {}) {
     Object.assign(this.user, seed);
     this.resetTables();
@@ -241,27 +275,34 @@ export class MockBackend {
     return this;
   }
 
-  /** How many AI generations today's log holds — the same number the real
-   *  edge function counts before deciding whether to refuse. */
-  get aiRequestsToday(): number {
+  /** How many AI generations today's log holds — the same rows the real edge
+   *  function counts before deciding whether to refuse. Pass a tool to count
+   *  only that tool's, which is what the limiter actually compares. */
+  aiRequestsToday(tool?: string): number {
     const midnight = new Date();
     midnight.setUTCHours(0, 0, 0, 0);
     return this.table("ai_request_log").filter(
-      (row) => new Date(String(row.created_at)) >= midnight,
+      (row) =>
+        new Date(String(row.created_at)) >= midnight &&
+        (tool === undefined || String(row.tool ?? DEFAULT_AI_TOOL) === tool),
     ).length;
   }
 
-  get dailyAiLimit(): number {
-    return this.user.plan === "pro" ? PRO_DAILY_AI_LIMIT : FREE_DAILY_AI_LIMIT;
+  /** This user's plan's allowance for one tool. */
+  dailyAiLimit(tool: string = DEFAULT_AI_TOOL): number {
+    const plan = this.user.plan === "pro" ? "pro" : "free";
+    const quotas = AI_TOOL_QUOTAS[plan];
+    return quotas[tool] ?? quotas[DEFAULT_AI_TOOL];
   }
 
-  /** Pre-spend part of today's allowance, so a test can stand one request away
-   *  from the ceiling without making 25 real ones. */
-  spendAiRequests(count: number): this {
+  /** Pre-spend part of today's allowance for one tool, so a test can stand one
+   *  request away from the ceiling without making that many real ones. */
+  spendAiRequests(count: number, tool: string = DEFAULT_AI_TOOL): this {
     for (let i = 0; i < count; i++) {
       this.table("ai_request_log").push({
         id: nextId(),
         user_id: this.user.id,
+        tool,
         created_at: nowIso(),
       });
     }
@@ -664,20 +705,26 @@ export class MockBackend {
     const payload = (body ?? {}) as Record<string, unknown>;
 
     if (fn === "learnora-ai") {
-      /* The real function counts this user's rows in `ai_request_log` since
-         midnight UTC and answers 429 past the plan's allowance. Reproducing
-         that here — rather than hard-coding a 429 after N calls — is what
-         makes the rate-limit tests test the app's handling of a real limit
-         rather than a fixture. */
-      if (this.aiRequestsToday >= this.dailyAiLimit) {
+      /* The real function counts this user's rows in `ai_request_log` for the
+         tool being billed, since midnight UTC, and answers 429 past that
+         tool's allowance. Reproducing that here — rather than hard-coding a
+         429 after N calls — is what makes the rate-limit tests test the app's
+         handling of a real limit rather than a fixture. */
+      const tool = String(payload.tool ?? DEFAULT_AI_TOOL);
+      if (this.aiRequestsToday(tool) >= this.dailyAiLimit(tool)) {
+        /* Both keys, because the real function is inconsistent about which one
+           carries the message — `error` for the JSON modes and `text` for
+           chat and notes — and src/api/ai.ts reads whichever is present. */
         await json(route, 429, {
-          error: `Rate limit exceeded. You have used all ${this.dailyAiLimit} AI generations for today. Your allowance resets at midnight UTC.`,
+          error: DAILY_LIMIT_MESSAGE_FREE,
+          text: DAILY_LIMIT_MESSAGE_FREE,
         });
         return;
       }
       this.table("ai_request_log").push({
         id: nextId(),
         user_id: this.user.id,
+        tool,
         created_at: nowIso(),
       });
       await json(route, 200, { text: this.aiReply(payload) });
@@ -696,6 +743,29 @@ export class MockBackend {
 
     if (fn === "delete-account") {
       await json(route, 200, { message: "Account deleted" });
+      return;
+    }
+
+    if (fn === "web-research") {
+      /* The chat runs a web search whenever the student's message looks like a
+         question, which is most of them — including the dashboard's own "What
+         next?". Answering it with the real response shape (see
+         supabase/functions/web-research/index.ts) rather than letting it fall
+         through to the empty `{}` below is what keeps the AI tests about the
+         assistant instead of about an unimplemented mock. */
+      if (payload.action === "extract") {
+        await json(route, 200, {
+          title: "Photosynthesis",
+          url: String(payload.url ?? "https://example.edu/photosynthesis"),
+          domain: "example.edu",
+          markdown: "# Photosynthesis\n\nPlants convert light into sugar.",
+        });
+        return;
+      }
+      await json(route, 200, {
+        query: String(payload.query ?? ""),
+        results: this.webResults,
+      });
       return;
     }
 

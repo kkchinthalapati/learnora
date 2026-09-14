@@ -16,11 +16,20 @@ export interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
-  backend: async ({ page }, provideFixture) => {
-    const backend = new MockBackend();
-    await backend.install(page);
-    await provideFixture(backend);
-  },
+  /* `auto` is the safety property, not a convenience. A test that forgets to
+     ask for `backend` gets no `page.route` interception at all, so every call
+     it makes leaves the browser and hits the real Supabase project — which
+     both fails (no test account exists there) and is exactly what
+     mockBackend's "nothing is ever forwarded" guarantee is supposed to
+     prevent. Installing it for every test makes that guarantee unconditional. */
+  backend: [
+    async ({ page }, provideFixture) => {
+      const backend = new MockBackend();
+      await backend.install(page);
+      await provideFixture(backend);
+    },
+    { auto: true },
+  ],
 
   stripeRedirects: async ({ page }, provideFixture) => {
     const seen: string[] = [];
@@ -53,6 +62,18 @@ export async function loginAs(
   await expect(page.getByRole("navigation").first()).toBeVisible({
     timeout: 20_000,
   });
+}
+
+/** Reveal the dashboard's AI actions card ("What next?", "Quiz me", …).
+ *
+ * The dashboard is tabbed now — Focus & Tasks / Insights & Trajectory /
+ * Activity & Peers / All — and the AI actions live on the last two, not on the
+ * tab that opens by default. A test that clicks straight for "What next?"
+ * waits out its timeout against a button that is not rendered, which says
+ * nothing about whether the assistant works. */
+export async function openDashboardAiActions(page: Page): Promise<void> {
+  await page.getByRole("tab", { name: "Activity & Peers" }).click();
+  await expect(page.getByRole("button", { name: "What next?" })).toBeVisible();
 }
 
 /** Ask the assistant for something and wait for the round trip to finish.

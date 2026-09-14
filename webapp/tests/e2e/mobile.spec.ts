@@ -83,14 +83,17 @@ test.describe("Mobile", () => {
       .first();
     await menu.click();
 
-    const tasks = page.getByRole("link", { name: "Tasks" });
-    await expect(tasks).toBeVisible();
+    /* "Plan" rather than "Tasks": the rail lists sections now, and Tasks is a
+       child revealed only once Plan is the active one — so Plan is the link a
+       student on a phone actually reaches for to get there. */
+    const plan = page.getByRole("link", { name: "Plan" });
+    await expect(plan).toBeVisible();
 
-    const box = await tasks.boundingBox();
+    const box = await plan.boundingBox();
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
 
-    await tasks.click();
-    await expect(page).toHaveURL(/\/tasks/);
+    await plan.click();
+    await expect(page).toHaveURL(/\/plan/);
   });
 
   test("quiz answers are tappable and on screen", async ({ page, backend }) => {
