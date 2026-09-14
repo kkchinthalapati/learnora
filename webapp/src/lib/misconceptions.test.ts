@@ -427,6 +427,37 @@ describe("extractors", () => {
     expect(out.detail).toContain("40 days");
   });
 
+  it("uses the documented FSRS difficulty and interval boundaries", () => {
+    const out = candidatesFromReviewLapses(
+      [
+        { card: { front: "Difficulty boundary", difficulty: 7 }, quality: 1 },
+        {
+          card: {
+            front: "Established interval boundary",
+            difficulty: 6.99,
+            srs_interval: 21,
+          },
+          quality: 1,
+        },
+        {
+          card: {
+            front: "Below both boundaries",
+            difficulty: 6.99,
+            srs_interval: 20,
+          },
+          quality: 1,
+        },
+      ],
+      { subject: "Physics" },
+    );
+
+    expect(out.map(({ severity }) => severity)).toEqual([
+      "critical",
+      "critical",
+      "moderate",
+    ]);
+  });
+
   it("falls back to ease factor on cards with no FSRS difficulty", () => {
     const [out] = candidatesFromReviewLapses(
       [{ card: { front: "Mitosis stages", ease_factor: 1.8 }, quality: 0 }],

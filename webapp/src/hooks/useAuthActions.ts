@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { authApi } from "../api/auth";
+import { migrateGuestSessionsForCurrentUser } from "../lib/guestSessionMigration";
 
 /* One-shot auth mutations (login, signup, password/email/profile changes,
  * account deletion) — distinct from `useAuth()` in `context/auth.ts`, which
@@ -9,6 +10,7 @@ export function useLogin() {
   return useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) =>
       authApi.login(email, password),
+    onSuccess: () => migrateGuestSessionsForCurrentUser(),
   });
 }
 
@@ -27,6 +29,8 @@ export function useSignup() {
       dob: string;
       consentGiven: boolean;
     }) => authApi.signup(name, email, password, dob, consentGiven),
+    onSuccess: (outcome) =>
+      outcome === "ok" ? migrateGuestSessionsForCurrentUser() : undefined,
   });
 }
 

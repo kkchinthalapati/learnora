@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { User } from "@supabase/supabase-js";
 import {
   EMPTY_ANSWERS,
+  CURRICULUM_PRESETS,
   ONBOARDING_LOCAL_KEY,
   ONBOARDING_RELEASE_ISO,
   dashboardLayoutFor,
+  dateMonthsFromNow,
   lifeContextPatchFor,
   markOnboardedLocally,
   nextStepsFor,
@@ -35,6 +37,29 @@ function fakeUser(overrides: Partial<User> = {}): User {
 
 beforeEach(() => {
   localStorage.clear();
+});
+
+describe("curriculum presets", () => {
+  it("ships the three one-tap school setups with complete subject lists", () => {
+    expect(CURRICULUM_PRESETS.map((preset) => preset.label)).toEqual([
+      "CBSE Class 10",
+      "ICSE Class 10",
+      "GCSE / IGCSE Year 11",
+    ]);
+    expect(CURRICULUM_PRESETS[0].folders).toContain("Science · Physics");
+    expect(CURRICULUM_PRESETS[0].folders).toContain(
+      "Social Science · Economics",
+    );
+    expect(
+      CURRICULUM_PRESETS.every((preset) => preset.milestones.length > 0),
+    ).toBe(true);
+  });
+
+  it("creates local calendar dates rather than drifting through UTC", () => {
+    expect(dateMonthsFromNow(2, new Date(2026, 0, 15, 23, 30))).toBe(
+      "2026-03-15",
+    );
+  });
 });
 
 describe("parseAnswers", () => {

@@ -52,7 +52,7 @@
   flex: 1 1 auto;
   justify-content: center;
   padding: var(--s-2) var(--s-3);
-  min-height: 38px;
+  min-height: var(--touch-target-min);
   border: 0;
   border-radius: var(--r-md);
   background: transparent;
@@ -124,7 +124,7 @@
 .select {
   width: 100%;
   box-sizing: border-box;
-  height: 42px;
+  min-height: var(--touch-target-min);
   padding: 0 var(--s-3);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-md);
@@ -373,6 +373,7 @@
   font-weight: 600;
   cursor: pointer;
   list-style: none;
+  min-height: var(--touch-target-min);
 }
 
 .advancedSummary::-webkit-details-marker {
@@ -431,6 +432,7 @@
   font-size: var(--fs-xs);
   font-weight: 600;
   cursor: pointer;
+  min-height: var(--touch-target-min);
 }
 
 .segmentedOption:has(input:checked) {

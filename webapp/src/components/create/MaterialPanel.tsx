@@ -511,7 +511,11 @@ export function MaterialPanel({
               key={tab.kind}
               type="button"
               role="tab"
-              aria-label={tab.accessibleLabel}
+              aria-label={
+                tab.accessibleLabel
+                  ? `${tab.label}: ${tab.accessibleLabel}`
+                  : undefined
+              }
               aria-selected={source === tab.kind}
               className={`${styles.sourceTab} ${source === tab.kind ? styles.sourceTabActive : ""}`}
               onClick={() => chooseSource(tab.kind)}
@@ -1026,7 +1030,7 @@ export function MaterialPanel({
             create.isPending ? "Creating…" : "Generate Study Resources"
           }
         >
-          {create.isPending ? "Creating…" : "Create my study kit"}
+          {create.isPending ? "Creating…" : "Generate Study Resources"}
         </Button>
       </div>
     </form>

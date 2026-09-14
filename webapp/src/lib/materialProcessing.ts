@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import type { Material } from "../api/types";
 
 export type MaterialProcessingStatus =
-  "processing" | "completed" | "partially_processed" | "failed";
+  | "processing"
+  | "completed"
+  | "partially_processed"
+  | "failed";
 
 export interface StageFailureRecord {
   stage: string;
@@ -16,6 +19,8 @@ export interface MaterialProcessingRecord {
   stageFailures?: Array<{ stage: string; message: string }>;
   updatedAt: number;
   requestPayload?: unknown;
+  /** False means notes were deliberately omitted, not left processing. */
+  notesRequested?: boolean;
 }
 
 const STORAGE_KEY = "learnora_material_processing";

@@ -11,6 +11,7 @@ import { supabase } from "../lib/supabase";
 import { queryClient } from "../lib/queryClient";
 import { clearAppearance } from "../lib/appearance";
 import { AuthContext } from "./auth";
+import { migrateGuestSessions } from "../lib/guestSessionMigration";
 
 /* Port of Auth.getSession / Auth.logout from js/api.js.
  *
@@ -33,6 +34,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     lastUserId.current = nextUserId;
     setSession(nextSession);
+    if (nextUserId) {
+      void migrateGuestSessions(nextUserId).catch((error) =>
+        console.warn(
+          "[Auth] Guest session import will retry next login:",
+          error,
+        ),
+      );
+    }
   }, []);
 
   useEffect(() => {

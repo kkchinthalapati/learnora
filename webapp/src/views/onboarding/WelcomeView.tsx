@@ -35,6 +35,7 @@ import { useSaveExam } from "../../hooks/useExams";
 import {
   CAPACITY_CHOICES,
   COACH_STYLES,
+  CURRICULUM_PRESETS,
   EMPTY_ANSWERS,
   EXAM_BOARDS,
   FOCUS_AREAS,
@@ -44,6 +45,7 @@ import {
   STUDY_GOALS,
   STUDY_TIMES,
   dashboardLayoutFor,
+  dateMonthsFromNow,
   goalSummary,
   lifeContextPatchFor,
   markOnboardedLocally,
@@ -52,6 +54,7 @@ import {
   settingsPatchFor,
   studyProfilePatchFor,
   type FocusAreaId,
+  type CurriculumPresetId,
   type OnboardingAnswers,
 } from "../../lib/onboarding";
 import { profileApi } from "../../api/profile";
@@ -107,6 +110,8 @@ export function WelcomeView() {
   const [notifyOptIn, setNotifyOptIn] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [createdSubject, setCreatedSubject] = useState<string | null>(null);
+  const [curriculumPreset, setCurriculumPreset] =
+    useState<CurriculumPresetId | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   const firstName = useMemo(() => {
@@ -176,14 +181,42 @@ export function WelcomeView() {
 
       if (user) markOnboardedLocally(user.id);
 
+      const preset = CURRICULUM_PRESETS.find(
+        (item) => item.id === curriculumPreset,
+      );
       const trimmedSubject = subjectName.trim();
-      if (trimmedSubject) {
+      const folders =
+        preset?.folders ?? (trimmedSubject ? [trimmedSubject] : []);
+      if (folders.length) {
         try {
-          await addFolder.mutateAsync({ name: trimmedSubject });
-          setCreatedSubject(trimmedSubject);
+          await Promise.all(
+            folders.map((name) => addFolder.mutateAsync({ name })),
+          );
+          setCreatedSubject(
+            preset ? `${preset.label} subjects` : trimmedSubject,
+          );
         } catch {
           showToast(
             "Couldn't create that subject — you can add it from Library.",
+          );
+        }
+      }
+
+      if (preset) {
+        try {
+          await Promise.all(
+            preset.milestones.map((milestone) =>
+              saveExam.mutateAsync({
+                payload: {
+                  exam_name: milestone.name,
+                  exam_date: dateMonthsFromNow(milestone.monthsFromNow),
+                },
+              }),
+            ),
+          );
+        } catch {
+          showToast(
+            "Subjects were created, but exam dates need adding from Exams.",
           );
         }
       }
@@ -225,6 +258,7 @@ export function WelcomeView() {
     },
     [
       addFolder,
+      curriculumPreset,
       examDate,
       examName,
       saveExam,
@@ -570,10 +604,36 @@ export function WelcomeView() {
                 What's the first thing you're working on?
               </h1>
               <p className={styles.sub}>
-                One subject is enough to get started — it gives your notes,
-                flashcards and quizzes somewhere to live. You can skip this and
-                add it later.
+                Pick your curriculum to create all your subject folders and key
+                exam milestones in one tap, or add just one subject yourself.
               </p>
+              <fieldset className={styles.inlineChoice}>
+                <legend className={styles.inlineLegend}>
+                  Quick curriculum setup
+                </legend>
+                <div className={styles.optionRow}>
+                  {CURRICULUM_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      className={`${styles.preset} ${curriculumPreset === preset.id ? styles.presetOn : ""}`}
+                      aria-pressed={curriculumPreset === preset.id}
+                      onClick={() => {
+                        const selected =
+                          curriculumPreset === preset.id ? null : preset.id;
+                        setCurriculumPreset(selected);
+                        if (selected) {
+                          setSubjectName(preset.folders[0]);
+                          patch({ goal: "school", examType: preset.examType });
+                        }
+                      }}
+                    >
+                      <strong>{preset.label}</strong>
+                      <span>{preset.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
               <Card
                 variant="elevated"
                 radius="lg"

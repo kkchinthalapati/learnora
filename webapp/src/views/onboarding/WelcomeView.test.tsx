@@ -86,6 +86,26 @@ describe("WelcomeView", () => {
     expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled();
   });
 
+  it("offers one-tap Class 10 curriculum presets", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await walkToSubjectStep(user);
+
+    const cbse = screen.getByRole("button", { name: /cbse class 10/i });
+    expect(
+      screen.getByRole("button", { name: /icse class 10/i }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: /gcse \/ igcse year 11/i }),
+    ).toBeVisible();
+    await user.click(cbse);
+
+    expect(cbse).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("textbox", { name: /subject/i })).toHaveValue(
+      "Mathematics",
+    );
+  });
+
   it("writes the answers into settings, life context and the dashboard layout", async () => {
     const user = userEvent.setup();
     renderWizard();
@@ -152,7 +172,10 @@ describe("WelcomeView", () => {
       screen.getByRole("textbox", { name: /subject/i }),
       "Organic Chemistry",
     );
-    await user.type(screen.getByRole("textbox", { name: /target grade/i }), "A");
+    await user.type(
+      screen.getByRole("textbox", { name: /target grade/i }),
+      "A",
+    );
     await user.click(
       screen.getByRole("button", { name: /create it and finish/i }),
     );
@@ -186,7 +209,9 @@ describe("WelcomeView", () => {
     await user.click(aLevel);
     expect(aLevel).toHaveAttribute("aria-pressed", "true");
 
-    await user.click(screen.getByRole("button", { name: /learning for myself/i }));
+    await user.click(
+      screen.getByRole("button", { name: /learning for myself/i }),
+    );
     expect(
       screen.queryByRole("button", { name: /^a-level$/i }),
     ).not.toBeInTheDocument();

@@ -54,7 +54,12 @@ const COMPLEXITY_LABELS = {
 } as const;
 
 type SaveStatus =
-  "idle" | "unsaved" | "saving" | "saved" | "failed" | "readonly";
+  | "idle"
+  | "unsaved"
+  | "saving"
+  | "saved"
+  | "failed"
+  | "readonly";
 
 interface ActiveSelection {
   range: EditorRange;
@@ -151,6 +156,7 @@ export function NotesEditorPane({
   const processingRecord = useMaterialProcessing(materialId);
   const retryMutation = useRetryStudyPackage();
   const isRetrying = retryMutation.isPending;
+  const notesOmitted = !note && processingRecord?.notesRequested === false;
 
   const [notesPlainText, setNotesPlainText] = useState("");
 
@@ -278,10 +284,7 @@ ${fenceUntrusted(currentHtml)}
        that point would leave a timer running against a dead component. */
     if (!mountedRef.current) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(
-      () => flushRef.current(),
-      delayMs,
-    );
+    saveTimerRef.current = setTimeout(() => flushRef.current(), delayMs);
   }, []);
 
   const flush = useCallback(() => {
@@ -673,7 +676,9 @@ ${fenceUntrusted(currentHtml)}
     (note?.markdown_content ? renderMarkdown(note.markdown_content) : "") ||
     (note
       ? ""
-      : "<p>No notes yet — Learnora is still processing this material.</p>");
+      : notesOmitted
+        ? "<h2>Flashcards &amp; Quiz Only</h2><p>You chose not to create summary notes for this material. Your flashcards and quiz are ready in the Library.</p>"
+        : "<p>No notes yet — Learnora is still processing this material.</p>");
 
   return (
     <div className={styles.view}>
@@ -727,13 +732,27 @@ ${fenceUntrusted(currentHtml)}
         {undoStack.length > 0 && (
           <Button size="sm" variant="secondary" onClick={undoLastAiEdit}>
             {undoStack.at(-1)?.source === "inline"
-               ? "Undo Last AI Edit"
-               : "Undo Rewrite"}
+              ? "Undo Last AI Edit"
+              : "Undo Rewrite"}
           </Button>
         )}
       </div>
 
-      {isRetrying || processingRecord?.status === "processing" ? (
+      {notesOmitted ? (
+        <div className={styles.processingBanner} role="status">
+          <div className={styles.bannerContent}>
+            <span className={styles.bannerIcon} aria-hidden="true">
+              <Icon name="check" size={18} />
+            </span>
+            <div className={styles.bannerText}>
+              <strong className={styles.bannerTitle}>
+                Flashcards &amp; Quiz Only
+              </strong>
+              <span>Summary notes were not selected for this material.</span>
+            </div>
+          </div>
+        </div>
+      ) : isRetrying || processingRecord?.status === "processing" ? (
         <div className={styles.processingBanner} role="status">
           <div className={styles.bannerContent}>
             <span className={styles.bannerSpinner} aria-hidden="true" />
@@ -741,9 +760,7 @@ ${fenceUntrusted(currentHtml)}
               <strong className={styles.bannerTitle}>
                 Processing study notes…
               </strong>
-              <span>
-                Learnora is reading your material and writing notes.
-              </span>
+              <span>Learnora is reading your material and writing notes.</span>
             </div>
           </div>
         </div>

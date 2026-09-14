@@ -125,7 +125,7 @@ export function useStudyRoom(
   const timer = useTimer();
   const toastCtx = useContext(ToastContext);
 
-  const foldersQuery = useFolders();
+  const foldersQuery = useFolders({ enabled: Boolean(session) });
   const foldersData = foldersQuery.data;
 
   const [remoteParticipants, setRemoteParticipants] = useState<StudyParticipant[]>([]);
@@ -258,6 +258,12 @@ export function useStudyRoom(
 
   // Set up Supabase Realtime Channel (Presence + Broadcast)
   useEffect(() => {
+    if (!session) {
+      channelRef.current = null;
+      setIsConnected(false);
+      setRemoteParticipants([]);
+      return;
+    }
     let isMounted = true;
     const joinedAt = Date.now();
     joinedAtRef.current = joinedAt;
@@ -544,7 +550,7 @@ export function useStudyRoom(
       reactionTimeouts.forEach((timeout) => clearTimeout(timeout));
       reactionTimeouts.clear();
     };
-  }, [channelName, userId, fullName, avatarUrl, addReaction, toastCtx]);
+  }, [session, channelName, userId, fullName, avatarUrl, addReaction, toastCtx]);
 
   // Track presence changes whenever user profile or timer state updates
   useEffect(() => {
