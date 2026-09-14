@@ -166,76 +166,94 @@ function isSafetyError(err: any): boolean {
    with however many are set up.
    ========================================================================= */
 
-type OpenAIProvider = {
+type ProviderDialect = "openai" | "anthropic";
+
+/* What the key costs the operator. This is documentation that the ordering
+   below has to agree with, not a runtime switch: `free` is a standing free
+   tier, `credits` is a free allowance that runs out and then bills, `paid`
+   bills from the first token. The chain is ordered free → credits → paid so
+   that a deployment with every key set still spends nothing until the free
+   tiers are exhausted. */
+type ProviderCost = "free" | "credits" | "paid";
+
+type AIProvider = {
   id: string;
   keyEnv: string;
   modelEnv: string;
   defaultModel: string;
+  /* May contain `{account}`, filled from `accountEnv`. A provider whose URL
+     needs an account id it hasn't been given is skipped rather than called
+     with the placeholder still in the path — see `resolveProviderUrl`. */
   url: string;
+  accountEnv?: string;
+  /* Request/response shape. Everything here speaks OpenAI's
+     /chat/completions except Anthropic, which has its own. */
+  dialect?: ProviderDialect;
   extraHeaders?: Record<string, string>;
   /* Whether the provider honours response_format:json_object. Used only for
      quiz/plan generation, where a stray sentence around the JSON is the single
      most common cause of a failed generation. */
   jsonMode: boolean;
+  cost: ProviderCost;
 };
 
-const OPENAI_PROVIDERS: OpenAIProvider[] = [
-  // Primary: Fast + high-quality reasoning (best for student experience)
+/* Ordered free-first. The previous order put three providers ahead of every
+   free one — and two of them could not have worked:
+
+   - Cloudflare was pointed at `/accounts/me/ai/run/`. Workers AI has no `me`
+     alias, that path is not the OpenAI-compatible one, and its model name was
+     missing the `@cf/` prefix every Workers AI model carries. Fixed below to
+     the documented `/accounts/{account}/ai/v1/chat/completions`.
+   - Anthropic was listed as an OpenAI-dialect provider, but `/v1/messages`
+     authenticates with `x-api-key`, requires `anthropic-version` and
+     `max_tokens`, and returns `content[0].text` rather than
+     `choices[0].message.content`. Sending it an OpenAI request got a 401
+     every time. It now goes through the Anthropic dialect, and sits with the
+     other paid keys at the end.
+
+   Both were dead weight at the front of the chain: every request walked two
+   guaranteed failures before reaching a provider that could answer.
+
+   Adding a provider is one entry here plus its key in Supabase secrets, or —
+   with no code change at all — one entry in AI_EXTRA_PROVIDERS (below). A
+   provider with no key configured is skipped silently, so the chain works
+   with however many are set up. */
+const BUILTIN_PROVIDERS: AIProvider[] = [
+  /* ---- Free tiers, strongest first --------------------------------- */
   {
-    id: "cloudflare",
-    keyEnv: "CLOUDFLARE_API_TOKEN",
-    modelEnv: "CLOUDFLARE_MODEL",
-    defaultModel: "deepseek-r1-distill-llama-70b",
-    url: "https://api.cloudflare.com/client/v4/accounts/me/ai/run/",
-    jsonMode: true,
-  },
-  // Secondary: Highest capability model (Claude 3.5 Sonnet)
-  {
-    id: "claude",
-    keyEnv: "CLAUDE_API_KEY",
-    modelEnv: "CLAUDE_MODEL",
-    defaultModel: "claude-3-5-sonnet-20241022",
-    url: "https://api.anthropic.com/v1/messages",
-    jsonMode: true,
-  },
-  // Tertiary: Extreme speed for time-sensitive requests
-  {
-    id: "groq",
-    keyEnv: "GROQ_API_KEY",
-    modelEnv: "GROQ_MODEL",
-    defaultModel: "llama-3.3-70b-versatile",
-    url: "https://api.groq.com/openai/v1/chat/completions",
-    jsonMode: true,
-  },
-  // Quaternary: Highest reliability + quality for edge cases
-  {
-    id: "openai",
-    keyEnv: "OPENAI_API_KEY",
-    modelEnv: "OPENAI_MODEL",
-    defaultModel: "gpt-4o-mini",
-    url: "https://api.openai.com/v1/chat/completions",
-    jsonMode: true,
-  },
-  // Quinary: Strong model for reasoning-heavy tasks
-  {
+    // ~1M tokens/day, and the fastest inference in the chain.
     id: "cerebras",
     keyEnv: "CEREBRAS_API_KEY",
     modelEnv: "CEREBRAS_MODEL",
     defaultModel: "gpt-oss-120b",
     url: "https://api.cerebras.ai/v1/chat/completions",
     jsonMode: true,
+    cost: "free",
   },
-  // Senary: Reliable fallback
   {
-    id: "mistral",
-    keyEnv: "MISTRAL_API_KEY",
-    modelEnv: "MISTRAL_MODEL",
-    defaultModel: "mistral-small-latest",
-    url: "https://api.mistral.ai/v1/chat/completions",
+    // Free tier, rate-limited per minute rather than per token.
+    id: "groq",
+    keyEnv: "GROQ_API_KEY",
+    modelEnv: "GROQ_MODEL",
+    defaultModel: "llama-3.3-70b-versatile",
+    url: "https://api.groq.com/openai/v1/chat/completions",
     jsonMode: true,
+    cost: "free",
   },
-  // Septenary: Free tier fallback
   {
+    // Free daily allowance on Workers AI. Needs the account id as well as the
+    // token — Cloudflare scopes the endpoint per account.
+    id: "cloudflare",
+    keyEnv: "CLOUDFLARE_API_TOKEN",
+    modelEnv: "CLOUDFLARE_MODEL",
+    defaultModel: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    url: "https://api.cloudflare.com/client/v4/accounts/{account}/ai/v1/chat/completions",
+    accountEnv: "CLOUDFLARE_ACCOUNT_ID",
+    jsonMode: true,
+    cost: "free",
+  },
+  {
+    // Free with any GitHub account; needs a PAT with `models: read`.
     id: "github-models",
     keyEnv: "GITHUB_MODELS_TOKEN",
     modelEnv: "GITHUB_MODELS_MODEL",
@@ -243,9 +261,21 @@ const OPENAI_PROVIDERS: OpenAIProvider[] = [
     url: "https://models.github.ai/inference/chat/completions",
     extraHeaders: { "X-GitHub-Api-Version": "2026-03-10" },
     jsonMode: true,
+    cost: "free",
   },
-  // Last resort: Free aggregator (slowest, weakest, but always available)
   {
+    // Free "Experiment" tier. See AI_PROVIDERS.md on its training opt-in
+    // before setting this one.
+    id: "mistral",
+    keyEnv: "MISTRAL_API_KEY",
+    modelEnv: "MISTRAL_MODEL",
+    defaultModel: "mistral-small-latest",
+    url: "https://api.mistral.ai/v1/chat/completions",
+    jsonMode: true,
+    cost: "free",
+  },
+  {
+    // Free `:free` models. Weakest in the chain, so it is the last free stop.
     id: "openrouter",
     keyEnv: "OPENROUTER_API_KEY",
     modelEnv: "OPENROUTER_MODEL",
@@ -256,8 +286,123 @@ const OPENAI_PROVIDERS: OpenAIProvider[] = [
     url: "https://openrouter.ai/api/v1/chat/completions",
     extraHeaders: { "HTTP-Referer": "https://learnora.app", "X-Title": "Learnora" },
     jsonMode: false,
+    cost: "free",
+  },
+
+  /* ---- Free credits that eventually run out ------------------------- */
+  {
+    // build.nvidia.com hands new accounts a pool of free credits; it bills
+    // once they are spent, which is why it sits below the standing free tiers.
+    id: "nvidia",
+    keyEnv: "NVIDIA_API_KEY",
+    modelEnv: "NVIDIA_MODEL",
+    defaultModel: "meta/llama-3.3-70b-instruct",
+    url: "https://integrate.api.nvidia.com/v1/chat/completions",
+    jsonMode: true,
+    cost: "credits",
+  },
+
+  /* ---- Paid, and last on purpose ------------------------------------ */
+  {
+    id: "openai",
+    keyEnv: "OPENAI_API_KEY",
+    modelEnv: "OPENAI_MODEL",
+    defaultModel: "gpt-4o-mini",
+    url: "https://api.openai.com/v1/chat/completions",
+    jsonMode: true,
+    cost: "paid",
+  },
+  {
+    id: "anthropic",
+    keyEnv: "CLAUDE_API_KEY",
+    modelEnv: "CLAUDE_MODEL",
+    defaultModel: "claude-3-5-haiku-20241022",
+    url: "https://api.anthropic.com/v1/messages",
+    dialect: "anthropic",
+    // /v1/messages has no response_format; JSON is asked for in the prompt.
+    jsonMode: false,
+    cost: "paid",
   },
 ];
+
+/* Free-tier catalogues churn faster than this function can be redeployed —
+   two model IDs in this file were already dead before anyone noticed, and the
+   whole `modelEnv` indirection exists for the same reason. AI_EXTRA_PROVIDERS
+   extends that one step further: a provider that did not exist when this was
+   written can be added as a secret rather than a release.
+
+   Shape: a JSON array, each entry `{ id, keyEnv, defaultModel, url }` plus
+   optional `modelEnv`, `jsonMode`, `headers`, `accountEnv`, `dialect`, `cost`.
+
+     AI_EXTRA_PROVIDERS='[{"id":"together","keyEnv":"TOGETHER_API_KEY",
+       "defaultModel":"...","url":"https://api.together.xyz/v1/chat/completions"}]'
+
+   Entries are appended, so they are tried after everything above — a new key
+   can never displace a known-good one. They go through the same caller as the
+   built-ins, which is what keeps the output safety screen applied to them;
+   a provider bolted on anywhere else would bypass it. */
+function parseExtraProviders(): AIProvider[] {
+  const raw = Deno.env.get("AI_EXTRA_PROVIDERS");
+  if (!raw || !raw.trim()) return [];
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    console.error("[providers] AI_EXTRA_PROVIDERS is not valid JSON; ignoring it.", err);
+    return [];
+  }
+  if (!Array.isArray(parsed)) {
+    console.error("[providers] AI_EXTRA_PROVIDERS must be a JSON array; ignoring it.");
+    return [];
+  }
+
+  const out: AIProvider[] = [];
+  for (const entry of parsed as any[]) {
+    if (!entry || typeof entry !== "object") continue;
+    const { id, keyEnv, defaultModel, url } = entry;
+    if (!id || !keyEnv || !defaultModel || !url) {
+      console.error("[providers] Skipping AI_EXTRA_PROVIDERS entry missing id/keyEnv/defaultModel/url:", id ?? entry);
+      continue;
+    }
+    // Only https, so a misconfigured secret cannot send student material
+    // over plaintext or at a loopback address inside the function's network.
+    if (!/^https:\/\//i.test(String(url))) {
+      console.error(`[providers] Skipping AI_EXTRA_PROVIDERS entry "${id}": url must be https.`);
+      continue;
+    }
+    out.push({
+      id: String(id),
+      keyEnv: String(keyEnv),
+      modelEnv: String(entry.modelEnv || `${String(id).toUpperCase().replace(/[^A-Z0-9]+/g, "_")}_MODEL`),
+      defaultModel: String(defaultModel),
+      url: String(url),
+      accountEnv: entry.accountEnv ? String(entry.accountEnv) : undefined,
+      dialect: entry.dialect === "anthropic" ? "anthropic" : "openai",
+      extraHeaders: entry.headers && typeof entry.headers === "object" ? entry.headers : undefined,
+      jsonMode: entry.jsonMode !== false,
+      cost: entry.cost === "paid" || entry.cost === "credits" ? entry.cost : "free",
+    });
+  }
+  return out;
+}
+
+/* Built-ins first, operator additions after. Recomputed per request so a
+   secret change takes effect without a redeploy. */
+function providerChain(): AIProvider[] {
+  return [...BUILTIN_PROVIDERS, ...parseExtraProviders()];
+}
+
+/* The configured URL with `{account}` substituted, or null when the provider
+   needs an account id that isn't set. Returning null means "skip" — calling
+   the URL with the placeholder intact is a guaranteed 404 that costs a
+   timeout and buries the real reason in the debug output. */
+function resolveProviderUrl(provider: AIProvider): string | null {
+  if (!provider.url.includes("{account}")) return provider.url;
+  const account = provider.accountEnv ? Deno.env.get(provider.accountEnv) : "";
+  if (!account) return null;
+  return provider.url.replace("{account}", encodeURIComponent(account));
+}
 
 /* Structured JSON takes noticeably longer than a chat turn — a ten-question
    quiz with per-question feedback is a lot of tokens — and the old flat 15s
@@ -377,14 +522,87 @@ function timeoutFor(mode: string | undefined): number {
    a provider that returned HTTP 200 used to be passed straight back to the
    client as a successful-but-blank reply; treating it as a failure lets the
    next provider have a go. */
-function extractContent(data: any): string | null {
+/* Response readers, one per dialect. OpenAI-shaped providers put the text at
+   choices[0].message.content; Anthropic returns a content block array, which
+   is why routing it through the OpenAI reader returned "empty completion"
+   even on the requests that got far enough to be answered at all. */
+function extractContent(data: any, dialect: ProviderDialect): string | null {
+  if (dialect === "anthropic") {
+    const blocks = data?.content;
+    if (!Array.isArray(blocks)) return null;
+    const text = blocks
+      .filter((b: any) => b?.type === "text" && typeof b.text === "string")
+      .map((b: any) => b.text)
+      .join("");
+    return text.trim() === "" ? null : text;
+  }
+
   const content = data?.choices?.[0]?.message?.content;
   if (typeof content !== "string" || content.trim() === "") return null;
   return content;
 }
 
-async function callOpenAICompatible(
-  provider: OpenAIProvider,
+/* Largest completion any mode here asks for. Anthropic's /v1/messages
+   requires max_tokens — omitting it is a 400 — and a ten-question quiz with
+   per-question feedback needs real headroom. */
+const ANTHROPIC_MAX_TOKENS = Number(Deno.env.get("ANTHROPIC_MAX_TOKENS")) || 4096;
+
+/* Builds the request for a provider's dialect. Split out from the caller so
+   the two shapes are visible side by side rather than interleaved with the
+   fetch/timeout plumbing. */
+function buildProviderRequest(
+  provider: AIProvider,
+  model: string,
+  key: string,
+  opts: { systemInstruction: string; history: any[]; userContent: string; wantsJson: boolean },
+): { headers: Record<string, string>; body: Record<string, unknown> } {
+  const priorTurns = (opts.history || []).slice(0, -1).map((m: any) => ({
+    role: m.role === "model" ? "assistant" : "user",
+    content: m.content,
+  }));
+
+  if (provider.dialect === "anthropic") {
+    return {
+      headers: {
+        "x-api-key": key,
+        "anthropic-version": Deno.env.get("ANTHROPIC_VERSION") || "2023-06-01",
+        "Content-Type": "application/json",
+        ...(provider.extraHeaders || {}),
+      },
+      body: {
+        model,
+        max_tokens: ANTHROPIC_MAX_TOKENS,
+        // The system prompt is a top-level field here, not a message.
+        system: opts.systemInstruction,
+        messages: [...priorTurns, { role: "user", content: opts.userContent }],
+      },
+    };
+  }
+
+  const body: Record<string, unknown> = {
+    model,
+    messages: [
+      { role: "system", content: opts.systemInstruction },
+      ...priorTurns,
+      { role: "user", content: opts.userContent },
+    ],
+  };
+  if (opts.wantsJson && provider.jsonMode) {
+    body.response_format = { type: "json_object" };
+  }
+
+  return {
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+      ...(provider.extraHeaders || {}),
+    },
+    body,
+  };
+}
+
+async function callProvider(
+  provider: AIProvider,
   opts: {
     systemInstruction: string;
     history: any[];
@@ -396,22 +614,21 @@ async function callOpenAICompatible(
   const key = Deno.env.get(provider.keyEnv);
   if (!key) throw new Error(`${provider.keyEnv} is not set in Supabase secrets.`);
 
-  const model = Deno.env.get(provider.modelEnv) || provider.defaultModel;
-  const wantsJson = isJsonMode(opts.mode);
-
-  const messages = [
-    { role: "system", content: opts.systemInstruction },
-    ...(opts.history || []).slice(0, -1).map((m: any) => ({
-      role: m.role === "model" ? "assistant" : "user",
-      content: m.content,
-    })),
-    { role: "user", content: opts.userContent },
-  ];
-
-  const body: Record<string, unknown> = { model, messages };
-  if (wantsJson && provider.jsonMode) {
-    body.response_format = { type: "json_object" };
+  const url = resolveProviderUrl(provider);
+  if (!url) {
+    throw new Error(
+      `${provider.accountEnv} is not set in Supabase secrets, and ${provider.id} needs it to build its endpoint URL.`,
+    );
   }
+
+  const model = Deno.env.get(provider.modelEnv) || provider.defaultModel;
+  const dialect: ProviderDialect = provider.dialect || "openai";
+  const { headers, body } = buildProviderRequest(provider, model, key, {
+    systemInstruction: opts.systemInstruction,
+    history: opts.history,
+    userContent: opts.userContent,
+    wantsJson: isJsonMode(opts.mode),
+  });
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutFor(opts.mode));
@@ -419,14 +636,10 @@ async function callOpenAICompatible(
   opts.signal?.addEventListener("abort", onParentAbort);
 
   try {
-    const response = await fetch(provider.url, {
+    const response = await fetch(url, {
       method: "POST",
       signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        ...(provider.extraHeaders || {}),
-      },
+      headers,
       body: JSON.stringify(body),
     });
 
@@ -439,7 +652,7 @@ async function callOpenAICompatible(
     // Some gateways report failures in the body with a 200 status.
     if (data?.error) throw new Error(`${provider.id} error: ${JSON.stringify(data.error)}`);
 
-    const content = extractContent(data);
+    const content = extractContent(data, dialect);
     if (content === null) throw new Error(`${provider.id} returned an empty completion.`);
     return content;
   } finally {
@@ -904,9 +1117,14 @@ Deno.serve(async (req) => {
         // Each is tried until one returns usable text; unconfigured ones are
         // skipped without being treated as failures.
         // =========================================================================
-        for (const provider of OPENAI_PROVIDERS) {
+        for (const provider of providerChain()) {
             if (!Deno.env.get(provider.keyEnv)) {
                 debugErrors[provider.id] = `${provider.keyEnv} is not set in Supabase.`;
+                continue;
+            }
+            if (!resolveProviderUrl(provider)) {
+                debugErrors[provider.id] =
+                    `${provider.accountEnv} is not set in Supabase, and ${provider.id} needs it to build its endpoint URL.`;
                 continue;
             }
             if (budgetExhausted()) {
@@ -915,7 +1133,7 @@ Deno.serve(async (req) => {
             }
 
             try {
-                let text = await callOpenAICompatible(provider, {
+                let text = await callProvider(provider, {
                     systemInstruction,
                     history,
                     userContent: fallbackMsg,
