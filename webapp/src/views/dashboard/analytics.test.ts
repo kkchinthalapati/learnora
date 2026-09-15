@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Exam, Folder, StudySession } from "../../api/types";
-import type { LocalSessionEntry } from "./useLocalSessions";
+import type { LocalSession } from "../../lib/localSessions";
 import {
   computeFolderBreakdown,
   computeSparkline,
@@ -26,7 +26,7 @@ function session(overrides: Partial<StudySession> = {}): StudySession {
   };
 }
 
-function local(overrides: Partial<LocalSessionEntry> = {}): LocalSessionEntry {
+function local(overrides: Partial<LocalSession> = {}): LocalSession {
   return {
     id: Date.now(),
     timestamp: "Jul 30, 10:00 AM",

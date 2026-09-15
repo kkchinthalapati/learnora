@@ -1,20 +1,11 @@
 import { supabase } from "./supabase";
 import { Storage } from "./storage";
+import {
+  LOCAL_SESSIONS_KEY,
+  type LocalSession as GuestSessionRecord,
+} from "./localSessions";
 
-const LOCAL_SESSIONS_KEY = "sessions";
 const IMPORT_BATCH_SIZE = 100;
-
-interface GuestSessionRecord {
-  id: number;
-  timestamp: string;
-  minutes: number;
-  task: string;
-  folderId?: string | null;
-  timerType?: string | null;
-  startedAt?: string;
-  guestSessionId?: string;
-  guest?: boolean;
-}
 
 const migrations = new Map<string, Promise<number>>();
 

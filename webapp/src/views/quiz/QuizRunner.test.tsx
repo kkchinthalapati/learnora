@@ -517,4 +517,72 @@ describe("QuizRunner draft autosave", () => {
       screen.queryByText(/Resume where you left off/),
     ).not.toBeInTheDocument();
   });
+  describe("study time", () => {
+    /* Date.now is stubbed rather than vi.useFakeTimers(): the clock has to
+       advance, but fake timers break MSW and userEvent pacing. */
+    function stubClock() {
+      let now = Date.now();
+      vi.spyOn(Date, "now").mockImplementation(() => now);
+      return (ms: number) => {
+        now += ms;
+      };
+    }
+
+    async function playThroughTaking(perQuestionMs: number) {
+      const logged: Record<string, unknown>[] = [];
+      serveQuiz();
+      server.use(
+        http.post(rest("study_sessions"), async ({ request }) => {
+          logged.push(...((await request.json()) as Record<string, unknown>[]));
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      const advance = stubClock();
+      renderRunner();
+
+      await screen.findByText("Question 1 of 2");
+      advance(perQuestionMs);
+      await userEvent.click(
+        screen.getByRole("button", { name: "Mitochondrion" }),
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "Next Question →" }),
+      );
+      advance(perQuestionMs);
+      await userEvent.click(
+        screen.getByRole("button", { name: "Deoxyribonucleic acid" }),
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "See results →" }),
+      );
+      await screen.findByText("2 / 2 correct");
+      return logged;
+    }
+
+    it("credits the quiz with the time its questions took", async () => {
+      const logged = await playThroughTaking(90_000);
+
+      await waitFor(() => expect(logged).toHaveLength(1));
+      expect(logged[0]).toMatchObject({
+        minutes: 3,
+        task: "Biology basics",
+        timer_type: "quiz",
+      });
+    });
+
+    it("does not credit a question that was left open and abandoned", async () => {
+      const logged = await playThroughTaking(30 * 60_000);
+
+      await waitFor(() => expect(logged).toHaveLength(1));
+      // Both questions clipped to the 2-minute idle cap.
+      expect(logged[0]).toMatchObject({ minutes: 4 });
+    });
+
+    it("logs nothing for a quiz answered too fast to be worth a row", async () => {
+      const logged = await playThroughTaking(2_000);
+
+      expect(logged).toEqual([]);
+    });
+  });
+
 });

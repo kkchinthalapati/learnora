@@ -27,6 +27,7 @@ import {
   useUpdateFlashcardReview,
 } from "../../hooks/useFlashcards";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { useStudyClock } from "../../hooks/useStudyClock";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useOverlayBehavior } from "../../context/overlayStack";
 import { dateInDays } from "../../lib/date";
@@ -939,6 +940,13 @@ function ReviewSession({
   const { recordDeck } = useContinuity();
   const recordMisconceptions = useRecordMisconceptions();
   const folders = useFolders();
+  /* Credits this review with the time it takes. The deck is the task, and the
+     folder the subject, matching how the ledger write below files its rows. */
+  const studyClock = useStudyClock({
+    timerType: "review",
+    task: deckTitle,
+    folderId: folderId ?? null,
+  });
 
   const finished = index >= cards.length;
 
@@ -984,6 +992,7 @@ function ReviewSession({
         );
         setResults((current) => [...current, { card, quality }]);
         recordCardReviewedToday();
+        studyClock.mark();
       }
       aiGradeInFlight.current = false;
       setIndex((i) => i + 1);
@@ -992,7 +1001,7 @@ function ReviewSession({
       setGrading(false);
       setSourceDrawerOpen(false);
     },
-    [cards, index, practiceRound, updateReview, showToast],
+    [cards, index, practiceRound, updateReview, showToast, studyClock],
   );
 
   /* Keyboard shortcuts: Space to flip, 1-4 to grade (only when flipped and
@@ -1028,10 +1037,15 @@ function ReviewSession({
 
   useEffect(() => {
     mountedRef.current = true;
+    /* Opens the clock, so the time spent on the *first* card counts too —
+       every later mark is a grade, and a gap needs both of its ends. */
+    studyClock.mark();
     return () => {
       mountedRef.current = false;
       aiGradeInFlight.current = false;
     };
+    // Mount-only: one clock per session, opened when the session begins.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* Spaced repetition, filed as diagnosis.
@@ -1069,6 +1083,11 @@ function ReviewSession({
     recordMisconceptions(
       candidatesFromReviewLapses(results, { subject, sessionId: deckId }),
     );
+
+    /* Same moment, same guards: a practice round promises not to change the
+       schedule, and time re-covering cards this session already credited would
+       be counted twice. */
+    studyClock.commit();
   }, [
     finished,
     practiceRound,
@@ -1078,6 +1097,7 @@ function ReviewSession({
     deckTitle,
     deckId,
     recordMisconceptions,
+    studyClock,
   ]);
 
   if (finished) {

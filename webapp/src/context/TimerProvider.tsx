@@ -7,8 +7,8 @@ import { useAuth } from "./auth";
 import { useSettings } from "./settings";
 import { useTimerIntervention } from "../hooks/useTimerIntervention";
 import { useFolders } from "../hooks/useFolders";
-import { Storage } from "../lib/storage";
 import { appUrl } from "../lib/appUrl";
+import { appendLocalSession } from "../lib/localSessions";
 import { recordFocusGoal, saveStudySnapshot } from "../lib/continuity";
 import {
   QUOTES,
@@ -46,27 +46,6 @@ import { TimerContext, type TimerApi } from "./timer";
  * preserved: the local write is synchronous and the Supabase mutation's failure
  * is swallowed with a warning, so a flaky connection never loses a logged
  * session. */
-
-const LOCAL_SESSIONS_KEY = "sessions";
-const MAX_LOCAL_SESSIONS = 500;
-/* The vanilla dispatches this after every local write (js/timer.js:463) so
- * the dashboard's session log and "today" total repaint live even though the
- * timer that logged them can be running on a different route — FocusStudyHUD
- * keeps ticking app-wide. A `storage` event won't do it: that only fires in
- * *other* tabs, never the one that made the write. */
-export const SESSION_LOGGED_EVENT = "learnora:sessionLogged";
-
-interface LocalSession {
-  id: number;
-  timestamp: string;
-  minutes: number;
-  task: string;
-  folderId?: string | null;
-  timerType?: string | null;
-  startedAt?: string;
-  guestSessionId?: string;
-  guest?: boolean;
-}
 
 export function TimerProvider({ children }: { children: ReactNode }) {
   const { showToast } = useToast();
@@ -112,27 +91,13 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         const folderId = activeFolderId || null;
 
         /* Local history first, synchronously — see the note above. */
-        const stored = Storage.get<LocalSession[]>(LOCAL_SESSIONS_KEY, []);
-        const sessions = Array.isArray(stored) ? stored : [];
-        const completedAt = Date.now();
-        sessions.unshift({
-          id: completedAt,
-          timestamp: new Date().toLocaleString([], {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+        appendLocalSession({
           minutes,
           task,
           folderId,
           timerType: state.type,
-          startedAt: new Date(completedAt - minutes * 60_000).toISOString(),
-          guestSessionId: !session ? crypto.randomUUID() : undefined,
-          guest: !session,
+          isGuest: !session,
         });
-        Storage.set(LOCAL_SESSIONS_KEY, sessions.slice(0, MAX_LOCAL_SESSIONS));
-        window.dispatchEvent(new Event(SESSION_LOGGED_EVENT));
 
         if (session) {
           logSession.mutate(

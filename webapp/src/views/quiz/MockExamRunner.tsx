@@ -20,6 +20,7 @@ import styles from "./quiz.module.css";
 import { QUIZZES_PATH } from "./QuizRunner";
 import { newAttemptKey } from "../../lib/attemptKey";
 import { examDraftKey } from "../../lib/draftKeys";
+import { useStudyClock } from "../../hooks/useStudyClock";
 
 interface ExamDraftState {
   index: number;
@@ -131,16 +132,25 @@ export function MockExamRunner() {
 
   return (
     <div className={styles.view} ref={containerRef} style={{ background: "var(--bg)", height: "100vh", overflowY: "auto" }}>
-      <MockExamSession quizId={quiz.id} questions={questions} />
+      <MockExamSession
+        quizId={quiz.id}
+        quizTitle={quiz.title || "Mock Exam"}
+        folderId={quiz.folder_id}
+        questions={questions}
+      />
     </div>
   );
 }
 
 function MockExamSession({
   quizId,
+  quizTitle,
+  folderId,
   questions,
 }: {
   quizId: string;
+  quizTitle: string;
+  folderId: string | null;
   questions: QuizQuestion[];
 }) {
   const recordAttempt = useRecordQuizAttempt();
@@ -148,6 +158,19 @@ function MockExamSession({
   const { confirm } = useDialog();
   const navigate = useNavigate();
   const { settings } = useSettings();
+  /* Unlike QuizRunner, this screen doesn't time its questions, so the clock is
+     marked per answer instead of fed pre-measured durations. */
+  const studyClock = useStudyClock({
+    timerType: "quiz",
+    task: quizTitle,
+    folderId,
+  });
+
+  useEffect(() => {
+    studyClock.mark();
+    // Mount-only: opens the clock so the first question's time counts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const draftKey = examDraftKey(quizId);
 
@@ -241,6 +264,7 @@ function MockExamSession({
           showToast("Failed to save exam attempt.", { error: true }),
       },
     );
+    studyClock.commit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finished, quizId, score, total, answers, record, showToast]);
 
@@ -296,6 +320,11 @@ function MockExamSession({
           showToast("Failed to save exam attempt.", { error: true }),
       },
     );
+    /* Terminated exams included: the student still spent the time studying.
+       commit is idempotent, so this and the natural-finish effect above can
+       never double-credit one sitting. */
+    studyClock.commit();
+
     if (reason === "terminated") {
       showToast(
         proctorReason === "fullscreen"
@@ -325,6 +354,7 @@ function MockExamSession({
 
   const choose = (chosenIndex: number) => {
     const correct = chosenIndex === question.correctIndex;
+    studyClock.mark();
     setAnswers((prev) => [
       ...prev,
       {

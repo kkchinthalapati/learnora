@@ -1382,4 +1382,93 @@ describe("ReviewView", () => {
       ).toBeInTheDocument();
     });
   });
+  describe("study time", () => {
+    /* Date.now is stubbed rather than vi.useFakeTimers(): the clock needs to
+       advance, but fake timers break MSW and userEvent pacing (see the note in
+       components/AppShell.test.tsx). */
+    function stubClock() {
+      let now = Date.now();
+      vi.spyOn(Date, "now").mockImplementation(() => now);
+      return (ms: number) => {
+        now += ms;
+      };
+    }
+
+    function captureSessionLog() {
+      const logged: Record<string, unknown>[] = [];
+      server.use(
+        http.patch(rest("flashcards"), () => new HttpResponse(null, { status: 204 })),
+        http.post(rest("study_sessions"), async ({ request }) => {
+          logged.push(
+            ...((await request.json()) as Record<string, unknown>[]),
+          );
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      return logged;
+    }
+
+    async function gradeBothCards(advance: (ms: number) => void, gap = 90_000) {
+      const user = userEvent.setup();
+      for (const front of ["Q1", "Q2"]) {
+        await screen.findByText(front);
+        advance(gap);
+        await user.click(
+          screen.getByRole("button", { name: "Flip card to see the answer" }),
+        );
+        await user.click(screen.getByRole("button", { name: "Good (3)" }));
+      }
+    }
+
+    const twoCards = {
+      cards: [
+        card({ id: "c-1", front: "Q1", back: "A1" }),
+        card({ id: "c-2", front: "Q2", back: "A2" }),
+      ],
+    };
+
+    it("credits a finished review with the minutes it took", async () => {
+      serve(twoCards);
+      const logged = captureSessionLog();
+      const advance = stubClock();
+      renderReview();
+
+      await gradeBothCards(advance);
+
+      await waitFor(() => expect(logged).toHaveLength(1));
+      /* Two 90s stretches, both under the idle cap, so both count in full. */
+      expect(logged[0]).toMatchObject({
+        minutes: 3,
+        task: "Cell Biology",
+        timer_type: "review",
+      });
+    });
+
+    it("does not count the minutes a student spent away from the tab", async () => {
+      serve(twoCards);
+      const logged = captureSessionLog();
+      const advance = stubClock();
+      renderReview();
+
+      // Half an hour between two grades is not half an hour of studying.
+      await gradeBothCards(advance, 30 * 60_000);
+
+      await waitFor(() => expect(logged).toHaveLength(1));
+      // Each gap clipped to the 2-minute idle cap.
+      expect(logged[0]).toMatchObject({ minutes: 4 });
+    });
+
+    it("logs nothing for a review too short to be worth a row", async () => {
+      serve(twoCards);
+      const logged = captureSessionLog();
+      const advance = stubClock();
+      renderReview();
+
+      await gradeBothCards(advance, 2_000);
+
+      expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+      expect(logged).toEqual([]);
+    });
+  });
+
 });

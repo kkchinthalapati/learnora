@@ -19,6 +19,7 @@ import {
   type StoredAnswer,
 } from "./quizMeta";
 import { QuizHost, type HostTone } from "./QuizHost";
+import { useStudyClock } from "../../hooks/useStudyClock";
 import styles from "./quiz.module.css";
 import { newAttemptKey } from "../../lib/attemptKey";
 import { quizDraftKey } from "../../lib/draftKeys";
@@ -103,6 +104,7 @@ export function QuizRunner() {
     <QuizSession
       quizId={quiz.id}
       quizTitle={quiz.title || "Quiz"}
+      folderId={quiz.folder_id}
       questions={questions}
       /* A fresh quiz is a fresh run: keying on the id resets index, answers
          and the recorded flag when the route changes between two quizzes. */
@@ -141,14 +143,23 @@ function isUsableDraft(
 function QuizSession({
   quizId,
   quizTitle,
+  folderId,
   questions,
 }: {
   quizId: string;
   quizTitle: string;
+  folderId: string | null;
   questions: QuizQuestion[];
 }) {
   const recordAttempt = useRecordQuizAttempt();
   const { showToast } = useToast();
+  /* No marking needed: `choose` below already stamps `secondsSpent` into every
+     stored answer, which is the same measurement the clock wants. */
+  const studyClock = useStudyClock({
+    timerType: "quiz",
+    task: quizTitle,
+    folderId,
+  });
   const { confirm } = useDialog();
   const { recordQuiz } = useContinuity();
 
@@ -261,6 +272,10 @@ function QuizSession({
           ),
       },
     );
+    /* A resumed draft carries the earlier sitting's answers and their times;
+       crediting those is right — it was real study — and studyClock's per-answer
+       cap handles a question that sat open overnight. */
+    studyClock.commit(answers.map((a) => (a.secondsSpent ?? 0) * 1000));
     // Runs on the transition into "finished" only; `answers` is frozen by then.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finished]);

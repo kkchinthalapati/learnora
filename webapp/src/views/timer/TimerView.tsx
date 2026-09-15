@@ -17,7 +17,7 @@ import { useStudyRoom } from "../../hooks/useStudyRoom";
 import { useTranslation } from "../../hooks/useTranslation";
 import type { TranslationKey } from "../../lib/i18n";
 import { Storage } from "../../lib/storage";
-import { SESSION_LOGGED_EVENT } from "../../context/TimerProvider";
+import { SESSION_LOGGED_EVENT } from "../../lib/localSessions";
 import { ambianceEngine } from "../room/audioAmbiance";
 import type { AmbiancePreset } from "../room/types";
 import {
