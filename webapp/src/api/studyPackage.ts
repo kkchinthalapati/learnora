@@ -480,6 +480,7 @@ export async function createStudyPackage(
         materialId: result.material.id,
         status: "processing",
         requestPayload: request,
+        notesRequested: wantsNotes,
       });
       notesSource = { file };
     } else {
@@ -509,6 +510,7 @@ export async function createStudyPackage(
         materialId: result.material.id,
         status: "processing",
         requestPayload: request,
+        notesRequested: wantsNotes,
       });
       /* Straight through as text. The vanilla base64-encoded it into a
          `text/plain` payload here and decoded it again inside `_generateNotes`

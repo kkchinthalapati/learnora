@@ -808,9 +808,9 @@
   font-size: var(--fs-xs);
   font-weight: 600;
   border-radius: var(--r-pill);
-  background: var(--warning-soft);
+  background: var(--warning-soft, rgba(234, 179, 8, 0.1));
   color: var(--warning-text);
-  border: 1px solid var(--warning-soft);
+  border: 1px solid var(--warning-soft, rgba(234, 179, 8, 0.3));
 }
 
 .toolQuotaBadgeExceeded {
@@ -821,9 +821,9 @@
   font-size: var(--fs-xs);
   font-weight: 600;
   border-radius: var(--r-pill);
-  background: var(--danger-soft);
+  background: var(--danger-soft, rgba(239, 68, 68, 0.1));
   color: var(--danger-text);
-  border: 1px solid var(--danger-soft);
+  border: 1px solid var(--danger-soft, rgba(239, 68, 68, 0.3));
 }
 
 .toolButtonDisabled {
