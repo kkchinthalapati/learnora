@@ -746,7 +746,11 @@
  * setting up a session one-handed. */
 @media (pointer: coarse) {
   .smallInput,
-  .taskBinder select {
+  .taskBinder select,
+  /* The soundscape toggles measured 34px. They sit in a wrapping row, so a
+     miss lands on the neighbouring sound rather than on nothing — the worst
+     kind of near-miss, because it does something. */
+  .soundButton {
     min-height: var(--touch-target-min);
   }
 }

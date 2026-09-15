@@ -89,4 +89,51 @@ describe("web research API", () => {
       "Please log in to use web research.",
     );
   });
+
+  /* A 2xx is not a promise about the body. A stale function revision, a
+     gateway answering with its own JSON, or an action the deployed function
+     does not recognise all return a well-formed 200 with no `results` — and
+     the old `as T` cast let that through as `undefined`.
+
+     It mattered because of where it landed. ChatProvider catches a failing
+     searchWebSources and carries on without web evidence, but the crash
+     happened later, on `formatWebEvidence(webResponse.results)`, past that
+     catch — so the student's reply was replaced in the transcript by the
+     words "Cannot read properties of undefined (reading 'slice')". */
+  it("treats a 200 with no results as no results, not as undefined", async () => {
+    server.use(http.post(ENDPOINT, () => HttpResponse.json({})));
+
+    await expect(searchWebSources("mitosis")).resolves.toEqual({
+      query: "mitosis",
+      results: [],
+    });
+  });
+
+  it("does not hand callers a non-array results field", async () => {
+    server.use(
+      http.post(ENDPOINT, () =>
+        HttpResponse.json({ query: "mitosis", results: "none" }),
+      ),
+    );
+
+    await expect(searchWebSources("mitosis")).resolves.toMatchObject({
+      results: [],
+    });
+  });
+
+  /* The extract path's equivalent: `markdown` is saved verbatim as a notebook
+     source and as study-package content, so an unchecked cast wrote the string
+     "undefined" into the student's library. Naming the failure is the only
+     honest option — there is nothing to import. */
+  it("refuses an extraction that carries no text", async () => {
+    server.use(
+      http.post(ENDPOINT, () =>
+        HttpResponse.json({ title: "A page", url: "https://example.edu/x" }),
+      ),
+    );
+
+    await expect(extractWebContent("https://example.edu/x")).rejects.toThrow(
+      "No readable text was found on that page.",
+    );
+  });
 });

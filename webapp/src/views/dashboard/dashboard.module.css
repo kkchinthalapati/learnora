@@ -1116,8 +1116,11 @@
 
 .dismissBtn {
   flex-shrink: 0;
-  width: 42px;
-  height: 42px;
+  /* 42px missed the token by two pixels — close enough to look right and
+     still under the floor the app commits to, on the one control a student
+     aims at to clear the onboarding card. */
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1302,6 +1305,14 @@
  * dashboard. */
 @media (pointer: coarse) {
   .focusPresetBtn {
+    min-height: var(--touch-target-min);
+  }
+
+  /* The dashboard's progressive-disclosure tabs measured 33px. They are the
+     only way to reach the Insights and Activity sections on a phone, where
+     the tab strip is also horizontally scrollable — a short target next to a
+     scroll gesture is the combination that turns a tap into a swipe. */
+  .tabBtn {
     min-height: var(--touch-target-min);
   }
 

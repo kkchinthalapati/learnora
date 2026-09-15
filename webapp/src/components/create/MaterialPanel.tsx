@@ -1026,9 +1026,6 @@ export function MaterialPanel({
           size="md"
           disabled={create.isPending}
           className={styles.submitButton}
-          aria-label={
-            create.isPending ? "Creating…" : "Generate Study Resources"
-          }
         >
           {create.isPending ? "Creating…" : "Generate Study Resources"}
         </Button>

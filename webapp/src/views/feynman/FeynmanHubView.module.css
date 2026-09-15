@@ -509,3 +509,11 @@
 }
 
 /* .emptyState/.emptyIcon replaced by the EmptyState primitive. */
+/* Touch sizing — see the note in Sidebar.module.css. The suggested-topic
+ * chips measured 24px, the smallest target in the app: they wrap into a dense
+ * block where every neighbour is another live button. */
+@media (pointer: coarse) {
+  .topicChip {
+    min-height: var(--touch-target-min);
+  }
+}

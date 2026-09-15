@@ -1073,3 +1073,11 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* Touch sizing — see the note in Sidebar.module.css. The subject filter pills
+ * measured 28px, the shortest interactive control on the hub, and they are
+ * the only way to narrow a long notebook list on a phone. */
+@media (pointer: coarse) {
+  .filterPill {
+    min-height: var(--touch-target-min);
+  }
+}

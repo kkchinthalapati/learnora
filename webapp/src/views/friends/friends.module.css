@@ -299,7 +299,10 @@
  * tapped to select the link before sharing it, so it is a target, not just a
  * readout. */
 @media (pointer: coarse) {
-  .linkField {
+  .linkField,
+  /* The leaderboard's range tabs measured 29px and sit shoulder to shoulder;
+     picking "This month" landed on "All time" often enough to notice. */
+  .periodTab {
     min-height: var(--touch-target-min);
   }
 }
