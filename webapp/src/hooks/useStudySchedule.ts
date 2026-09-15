@@ -17,6 +17,7 @@ import { isLifeContextConfigured, type LifeContext } from "../lib/lifeContext";
 import { buildDemands } from "../lib/studyDemands";
 import { localDateStr } from "../lib/date";
 import { anyPending } from "../lib/queryState";
+import { useOptionalAuth } from "../context/auth";
 
 /* The whole Life Sync engine, assembled from what the app already knows.
  *
@@ -58,11 +59,13 @@ export interface StudySchedule {
 export function useStudySchedule(
   horizonDays: number = DEFAULT_HORIZON_DAYS,
 ): StudySchedule {
+  const session = useOptionalAuth()?.session;
+  const enabled = Boolean(session);
   const { context } = useLifeContext();
-  const tasks = useTasks();
-  const exams = useExams();
-  const dueCount = useFlashcardsDueCount();
-  const weakTopics = useWeakTopics(2);
+  const tasks = useTasks({ enabled });
+  const exams = useExams({ enabled });
+  const dueCount = useFlashcardsDueCount({ enabled });
+  const weakTopics = useWeakTopics(2, { enabled });
 
   /* Recomputed once a day rather than once a render. `localDateStr()` is not a
      stable dependency — it changes at midnight — and threading a live clock in

@@ -59,6 +59,92 @@ export type ExamTypeId =
   "ap" | "ib" | "a_level" | "gcse" | "sat" | "act" | "other";
 /** Mirrors the `profiles_study_pace_check` constraint. */
 export type StudyPaceId = "light" | "balanced" | "intensive";
+export type CurriculumPresetId = "cbse-10" | "icse-10" | "gcse-11";
+
+export interface CurriculumPreset {
+  id: CurriculumPresetId;
+  label: string;
+  hint: string;
+  examType: ExamTypeId;
+  /** Folder names use a visible parent · child convention because folders are
+   * intentionally flat in the current database schema. */
+  folders: readonly string[];
+  milestones: readonly { name: string; monthsFromNow: number }[];
+}
+
+export const CURRICULUM_PRESETS: readonly CurriculumPreset[] = [
+  {
+    id: "cbse-10",
+    label: "CBSE Class 10",
+    hint: "Maths, Science, Social Science and English",
+    examType: "other",
+    folders: [
+      "Mathematics",
+      "Science · Physics",
+      "Science · Chemistry",
+      "Science · Biology",
+      "Social Science · History",
+      "Social Science · Geography",
+      "Social Science · Civics",
+      "Social Science · Economics",
+      "English Language & Literature",
+    ],
+    milestones: [
+      { name: "Unit Test", monthsFromNow: 1 },
+      { name: "Pre-Board Exam", monthsFromNow: 3 },
+      { name: "CBSE Board Exam", monthsFromNow: 5 },
+    ],
+  },
+  {
+    id: "icse-10",
+    label: "ICSE Class 10",
+    hint: "Maths, Sciences, Humanities and English",
+    examType: "other",
+    folders: [
+      "Mathematics",
+      "Physics",
+      "Chemistry",
+      "Biology",
+      "History & Civics",
+      "Geography",
+      "English",
+    ],
+    milestones: [
+      { name: "Unit Test", monthsFromNow: 1 },
+      { name: "Preliminary Exam", monthsFromNow: 3 },
+      { name: "ICSE Board Exam", monthsFromNow: 5 },
+    ],
+  },
+  {
+    id: "gcse-11",
+    label: "GCSE / IGCSE Year 11",
+    hint: "Maths, Combined Science and English",
+    examType: "gcse",
+    folders: [
+      "Maths",
+      "Combined Science",
+      "English Literature",
+      "English Language",
+    ],
+    milestones: [
+      { name: "Year 11 Mock Exam", monthsFromNow: 2 },
+      { name: "GCSE / IGCSE Exam", monthsFromNow: 6 },
+    ],
+  },
+] as const;
+
+export function dateMonthsFromNow(months: number, now = new Date()): string {
+  const date = new Date(
+    now.getFullYear(),
+    now.getMonth() + months,
+    now.getDate(),
+  );
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
 
 export interface OnboardingAnswers {
   version: number;

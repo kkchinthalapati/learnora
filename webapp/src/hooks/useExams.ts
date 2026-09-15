@@ -3,8 +3,12 @@ import { examsApi, type ExamPayload } from "../api/exams";
 
 export const examsKeys = { all: ["exams"] as const };
 
-export function useExams() {
-  return useQuery({ queryKey: examsKeys.all, queryFn: examsApi.fetch });
+export function useExams(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: examsKeys.all,
+    queryFn: examsApi.fetch,
+    ...options,
+  });
 }
 
 export function useSaveExam() {

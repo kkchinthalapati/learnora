@@ -42,10 +42,11 @@ export function useLatestQuizAttempt(quizId: string) {
   });
 }
 
-export function useWeakTopics(limit = 5) {
+export function useWeakTopics(limit = 5, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: quizzesKeys.weakTopics(limit),
     queryFn: () => quizzesApi.fetchWeakTopics(limit),
+    ...options,
   });
 }
 
@@ -120,8 +121,7 @@ function recordQuizMisconceptions(
   const quizzes = qc.getQueryData<Quiz[]>(quizzesKeys.all);
   const folders = qc.getQueryData<Folder[]>(foldersKeys.all);
   const quiz = quizzes?.find((q) => q.id === quizId);
-  const subject =
-    folders?.find((f) => f.id === quiz?.folder_id)?.name ?? "";
+  const subject = folders?.find((f) => f.id === quiz?.folder_id)?.name ?? "";
 
   const candidates = candidatesFromQuizAnswers(
     answers as Array<{ topic?: string; correct?: boolean }>,

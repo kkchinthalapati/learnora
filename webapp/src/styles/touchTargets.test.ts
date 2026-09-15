@@ -68,4 +68,38 @@ describe("touch targets", () => {
     expect(body).toMatch(/opacity/);
     expect(body).toMatch(/cursor:\s*not-allowed/);
   });
+
+  it("study-kit controls use the shared 44px target floor", () => {
+    const css = read("components/create/MaterialPanel.module.css");
+    for (const selector of [
+      ".sourceTab",
+      ".input",
+      ".select",
+      ".advancedSummary",
+      ".segmentedOption",
+    ]) {
+      expect(ruleBody(css, selector), `${selector} is undersized`).toMatch(
+        /min-height:\s*var\(--touch-target-min\)/,
+      );
+    }
+  });
+
+  it("calendar navigation and note AI actions use the 44px target floor", () => {
+    const examButton = ruleBody(
+      read("views/exams/exams.module.css"),
+      ".iconBtn",
+    );
+    expect(examButton).toMatch(/width:\s*var\(--touch-target-min\)/);
+    expect(examButton).toMatch(/height:\s*var\(--touch-target-min\)/);
+
+    const notes = read("views/notes/notes.module.css");
+    expect(ruleBody(notes, ".inlineToolbarBtn")).toMatch(
+      /min-height:\s*var\(--touch-target-min\)/,
+    );
+    for (const selector of [".inlineMiniChatSend", ".inlineMiniChatClose"]) {
+      const action = ruleBody(notes, selector);
+      expect(action).toMatch(/width:\s*var\(--touch-target-min\)/);
+      expect(action).toMatch(/height:\s*var\(--touch-target-min\)/);
+    }
+  });
 });

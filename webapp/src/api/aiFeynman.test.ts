@@ -436,6 +436,26 @@ describe("aiFeynman API & Simulation Engine", () => {
       expect(turn.apprenticeReaction.length).toBeGreaterThan(10);
     });
 
+    it("keeps the selected examiner persona in the offline scorer", async () => {
+      const d = generateDynamicDraft(
+        "Biology",
+        "Photosynthesis",
+        "cbse_examiner",
+        "intermediate",
+      );
+      mockedCallEdge.mockRejectedValue(new Error("network down"));
+
+      const turn = await evaluateTeachingExplanation(
+        d,
+        [],
+        "First chlorophyll absorbs light, then water supplies electrons because the light reaction transfers that energy before carbon dioxide is fixed.",
+        "cbse_examiner",
+      );
+
+      expect(turn.apprenticeReaction).toMatch(/marks|NCERT|CBSE/i);
+      expect(turn.apprenticeReaction).not.toContain("explain it like I'm 10");
+    });
+
     it("does not spend a model call on obvious junk", async () => {
       mockedCallEdge.mockResolvedValue({ text: "{}" });
       await evaluateTeachingExplanation(draft(), [], "asdf jkl qwerty");

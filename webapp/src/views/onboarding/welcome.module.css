@@ -687,3 +687,27 @@
     transition: none;
   }
 }
+.preset {
+  min-height: 72px;
+  padding: var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.preset strong,
+.preset span {
+  display: block;
+}
+.preset span {
+  margin-top: var(--s-1);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.presetOn {
+  border-color: var(--accent-ring);
+  background: var(--accent-soft);
+}

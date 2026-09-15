@@ -61,6 +61,11 @@ interface LocalSession {
   timestamp: string;
   minutes: number;
   task: string;
+  folderId?: string | null;
+  timerType?: string | null;
+  startedAt?: string;
+  guestSessionId?: string;
+  guest?: boolean;
 }
 
 export function TimerProvider({ children }: { children: ReactNode }) {
@@ -109,8 +114,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         /* Local history first, synchronously — see the note above. */
         const stored = Storage.get<LocalSession[]>(LOCAL_SESSIONS_KEY, []);
         const sessions = Array.isArray(stored) ? stored : [];
+        const completedAt = Date.now();
         sessions.unshift({
-          id: Date.now(),
+          id: completedAt,
           timestamp: new Date().toLocaleString([], {
             month: "short",
             day: "numeric",
@@ -119,6 +125,11 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           }),
           minutes,
           task,
+          folderId,
+          timerType: state.type,
+          startedAt: new Date(completedAt - minutes * 60_000).toISOString(),
+          guestSessionId: !session ? crypto.randomUUID() : undefined,
+          guest: !session,
         });
         Storage.set(LOCAL_SESSIONS_KEY, sessions.slice(0, MAX_LOCAL_SESSIONS));
         window.dispatchEvent(new Event(SESSION_LOGGED_EVENT));
