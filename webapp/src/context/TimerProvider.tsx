@@ -37,6 +37,18 @@ import {
 } from "../lib/timer";
 import { TimerContext, type TimerApi } from "./timer";
 
+/* crypto.randomUUID() is available in the browser and in jsdom/node 24; a
+ * fallback keeps this working in older test environments. */
+function randomClientId(): string {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2);
+}
+
 /* Drives js/timer.js's state machine (lib/timer.ts) and owns the one live
  * interval. Mounted above the router because a running timer has to survive
  * navigating away from /timer, and the mini-timer is docked on every route.
@@ -70,6 +82,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
      does the logging, holds them. */
   const [activeTask, setActiveTask] = useState("None");
   const [activeFolderId, setActiveFolderId] = useState("");
+  const [activeDeckId, setActiveDeckId] = useState<string | null>(null);
   const [sessionNote, setSessionNote] = useState("");
   const sessionNoteRef = useRef("");
   sessionNoteRef.current = sessionNote;
@@ -106,9 +119,18 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
         sessionNoteRef.current = "";
         setSessionNote("");
+        setActiveDeckId(null);
         if (session) {
           logSession.mutate(
-            { minutes, task, folderId, timerType: state.type, notes },
+            {
+              minutes,
+              task,
+              folderId,
+              timerType: state.type,
+              notes,
+              deckId: activeDeckId,
+              clientId: randomClientId(),
+            },
             {
               onError: (err) =>
                 console.warn(
@@ -160,6 +182,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     [
       activeTask,
       activeFolderId,
+      activeDeckId,
       logSession,
       session,
       settings.notifyTimerAlerts,
@@ -383,7 +406,12 @@ export function TimerProvider({ children }: { children: ReactNode }) {
      only `focus` left a student on the Countdown type staring at an unchanged
      duration with no indication the button had done anything. */
   const prepareFocus = useCallback(
-    (mins: number, task?: string, folderId?: string | null) => {
+    (
+      mins: number,
+      task?: string,
+      folderId?: string | null,
+      deckId?: string | null,
+    ) => {
       const partial: Partial<TimerConfig> = { focus: mins, countdown: mins };
       setDraft((prev) => ({ ...prev, ...partial }));
       setState((s) => {
@@ -408,6 +436,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           setActiveFolderId(matched.id);
         }
       }
+      if (deckId !== undefined) setActiveDeckId(deckId);
     },
     [folders],
   );
@@ -480,6 +509,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       setActiveTask,
       activeFolderId,
       setActiveFolderId,
+      activeDeckId,
+      setActiveDeckId,
       sessionNote,
       setSessionNote,
       favs,
@@ -492,6 +523,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     [
       activeTask,
       activeFolderId,
+      activeDeckId,
       sessionNote,
       state,
       draftConfig,
