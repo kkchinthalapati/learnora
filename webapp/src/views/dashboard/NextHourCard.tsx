@@ -5,6 +5,11 @@ import { Skeleton } from "../../components/Skeleton";
 import { useTimer } from "../../context/timer";
 import { useTrajectory } from "../../hooks/useTrajectory";
 import { INTERVENTION_BLOCK_MINS } from "../../lib/trajectory";
+import {
+  getGradeScale,
+  normaliseScore,
+  renderGrade,
+} from "../../lib/gradeScale";
 import styles from "./NextHourCard.module.css";
 
 export function NextHourCard() {
@@ -25,6 +30,15 @@ export function NextHourCard() {
   if (!top || top.pointsPerHour <= 0) return null;
 
   const lowEvidence = forecast.confidence.evidence < 0.5;
+  /* Maya Vance ledger #9: the engine reasons in percentages, but the student
+     reads in their own scale (GCSE 9–1, AP 1–5, letters…). Convert at the
+     edge, never in the engine. */
+  const scale = getGradeScale();
+  const grade = (score: number) => renderGrade(normaliseScore(score), scale);
+  const lower = grade(forecast.confidence.lower);
+  const upper = grade(forecast.confidence.upper);
+  const projected =
+    lower === upper ? `around ${lower}` : `range ${lower}–${upper}`;
   const start = () => {
     prepareFocus(INTERVENTION_BLOCK_MINS, top.label);
     void navigate("/timer");
@@ -57,7 +71,7 @@ export function NextHourCard() {
       <p className={styles.reason}>
         {top.atRisk
           ? "Your recent answers suggest this topic is fading, so revisit it before relearning something new."
-          : `Your recent answers put current mastery around ${Math.round(top.mastery * 100)}%.`}
+          : `Your recent answers put current mastery around ${grade(top.mastery)}.`}
         {lowEvidence
           ? " This is a low-confidence suggestion until Learnora has more attempts from you."
           : " This recommendation uses your attempts, memory strength and exam date."}
@@ -69,9 +83,8 @@ export function NextHourCard() {
         </Button>
         <span className={styles.verdict}>
           {exam.exam_name} in {forecast.daysRemaining}{" "}
-          {forecast.daysRemaining === 1 ? "day" : "days"} · projected range{" "}
-          {Math.round(forecast.confidence.lower)}–
-          {Math.round(forecast.confidence.upper)}%
+          {forecast.daysRemaining === 1 ? "day" : "days"} · projected{" "}
+          {projected}
         </span>
       </footer>
     </section>
