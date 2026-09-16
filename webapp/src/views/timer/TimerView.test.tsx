@@ -462,10 +462,19 @@ describe("TimerView", () => {
     await user.click(
       await screen.findByRole("option", { name: "Read chapter 4" }),
     );
+    await user.type(
+      screen.getByLabelText("What did you cover? (optional)"),
+      "Equilibrium problems 1-12",
+    );
     await user.click(screen.getByRole("button", { name: "Stop & log" }));
 
     await waitFor(() => expect(body).toBeDefined());
     expect(body![0]).toMatchObject({ task: "Read chapter 4", minutes: 2 });
+    expect(body![0].notes).toBe("Equilibrium problems 1-12");
+    expect(Storage.get<Array<{ notes: string }>>("sessions", [])[0].notes).toBe(
+      "Equilibrium problems 1-12",
+    );
+    expect(screen.getByText("Equilibrium problems 1-12")).toBeInTheDocument();
   });
 
   it("selects active folder and unlisted task when bound to a subject", async () => {

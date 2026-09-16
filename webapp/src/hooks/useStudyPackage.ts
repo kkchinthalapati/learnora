@@ -7,6 +7,7 @@ import {
 } from "../api/studyPackage";
 import {
   getMaterialProcessing,
+  flushMaterialProcessing,
   setMaterialProcessing,
 } from "../lib/materialProcessing";
 import { useSettings } from "../context/settings";
@@ -94,6 +95,7 @@ export function useCreateStudyPackage() {
         const targetMaterialId = result.material?.id ?? startingMaterialId;
         if (targetMaterialId) {
           handleProcessingStatusUpdate(targetMaterialId, result, input);
+          await flushMaterialProcessing(targetMaterialId);
         }
         return result;
       } catch (err) {
@@ -158,13 +160,12 @@ export function useRetryStudyPackage() {
       const materialId = typeof args === "string" ? args : args.materialId;
       const prevRecord = getMaterialProcessing(materialId);
       const prevPayload = prevRecord?.requestPayload as
-        | StudyPackageInput
-        | undefined;
+        StudyPackageInput | undefined;
 
       const outputs =
         typeof args !== "string" && args.outputs
           ? args.outputs
-          : prevPayload?.outputs ?? { flashcards: true, quiz: true };
+          : (prevPayload?.outputs ?? { flashcards: true, quiz: true });
 
       const options =
         typeof args !== "string" && args.options
@@ -206,6 +207,8 @@ export function useRetryStudyPackage() {
           outputs,
           options,
         });
+
+        await flushMaterialProcessing(materialId);
 
         return result;
       } catch (err) {

@@ -42,10 +42,11 @@ beforeEach(() => {
 
 describe("curriculum presets", () => {
   it("puts the student's own board first and ships complete subject lists", () => {
-    expect(presetsForRegion("IN").slice(0, 2).map((p) => p.label)).toEqual([
-      "CBSE Class 10",
-      "ICSE Class 10",
-    ]);
+    expect(
+      presetsForRegion("IN")
+        .slice(0, 2)
+        .map((p) => p.label),
+    ).toEqual(["CBSE Class 10", "ICSE Class 10"]);
     expect(presetsForRegion("US")[0].label).toBe("AP Courses");
     expect(presetsForRegion("GB")[0].label).toBe("GCSE / IGCSE Year 11");
     expect(presetsForRegion("IN")).toHaveLength(CURRICULUM_PRESETS.length);
@@ -227,6 +228,15 @@ describe("readOnboarding", () => {
 });
 
 describe("settingsPatchFor", () => {
+  it.each(["ap", "sat", "act", "ib", "a_level", "gcse"] as const)(
+    "applies the selected %s curriculum to examiner settings",
+    (examType) => {
+      expect(
+        settingsPatchFor(answers({ region: "US", examType })),
+      ).toMatchObject({ region: "US", framework: examType });
+    },
+  );
+
   it("carries the AI voice straight through and derives a depth", () => {
     const patch = settingsPatchFor(
       answers({ coachStyle: "professor", detail: "detailed" }),

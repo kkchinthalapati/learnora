@@ -96,6 +96,8 @@ export const handlers = [
     () => new HttpResponse(null, { status: 201 }),
   ),
   http.patch(rest("notes"), () => new HttpResponse(null, { status: 204 })),
+  http.patch(rest("materials"), () => new HttpResponse(null, { status: 204 })),
+  http.patch(rest("profiles"), () => new HttpResponse(null, { status: 204 })),
 
   /* The misconception ledger. Read on the dashboard and on every chat send, so
      without these any test that mounts either trips the unhandled-request

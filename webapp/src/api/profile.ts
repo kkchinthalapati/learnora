@@ -6,6 +6,20 @@ export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 export const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 export const profileApi = {
+  async fetchRegion(userId: string): Promise<{
+    region?: string | null;
+    framework_id?: string | null;
+    grade_scale_id?: string | null;
+  } | null> {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("region, framework_id, grade_scale_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
   async updateTimezone(timezone: string): Promise<void> {
     const userId = await requireUserId();
     const { error } = await supabase
@@ -23,7 +37,10 @@ export const profileApi = {
     grade_scale_id?: string | null;
   }): Promise<void> {
     const userId = await requireUserId();
-    const { error } = await supabase.from("profiles").update(fields).eq("id", userId);
+    const { error } = await supabase
+      .from("profiles")
+      .update(fields)
+      .eq("id", userId);
     if (error) throw new Error(error.message);
   },
 

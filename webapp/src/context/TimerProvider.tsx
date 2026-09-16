@@ -94,16 +94,18 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         const folderId = activeFolderId || null;
 
         /* Local history first, synchronously — see the note above. */
+        const notes = sessionNoteRef.current.trim() || null;
         appendLocalSession({
           minutes,
           task,
           folderId,
           timerType: state.type,
           isGuest: !session,
+          notes,
         });
 
-        const notes = sessionNoteRef.current.trim() || null;
-        if (notes) setSessionNote("");
+        sessionNoteRef.current = "";
+        setSessionNote("");
         if (session) {
           logSession.mutate(
             { minutes, task, folderId, timerType: state.type, notes },

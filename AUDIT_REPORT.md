@@ -155,3 +155,37 @@ All 20 items applied on `audit/maya-feedback`. `tsc` clean; Vitest 2683 pass. Th
 | 18 | ✅ | `profiles.region / framework_id / grade_scale_id / tenant_id` (migration `20260916020000`). |
 | 19 | ✅ | `js/`, `vendor/`, `i18n.js`, root `index.html`, `terms/verify/reset-password.*` deleted; `build.sh`, `vercel.json` (`/terms` → app), site links and the root `tests/` that read them updated. |
 | 20 | ✅ | "dropping marks" → "losing credit"; Feynman fallbacks use `fullCreditLabel`. |
+
+## 6. Follow-up audit of merged PR #97 (2026-09-16)
+
+Baseline: `046e8a885bded7091f28421d49ba5a92d09cbebc`, the merge of PR #97. Its original PR description says documentation only, but the merged change also modifies the app and database schema. Section 5 records that PR's execution report; the findings below supersede its completion claims for these workflows.
+
+Publication was interrupted by a usage limit. Before resuming, this follow-up was reconciled with `472e2254a1b603e07a3be4dd71afaec5372f73b1` (merged PR #98). That PR independently delivered the build repairs and creation-test cleanup described below, plus command history and grade displays. Those upstream changes are retained; this follow-up adds the curriculum/state persistence fixes and scanned-PDF regression coverage.
+
+Maya's test case remains a US high-school junior balancing AP classes and SAT preparation, using a phone at school and a laptop at home. This pass follows curriculum selection, source creation and recovery, notes editing, and recorded study sessions.
+
+| Priority | Finding | Follow-up implementation |
+|---|---|---|
+| P0 | The merged source fails TypeScript checks: the Solver mode is absent from `EdgeMode`, removed Study Buddy code leaves unused editor state, and a timer fixture lacks the new note fields. | Complete the Solver client contract, remove the unused state, and update the fixture. |
+| P1 | Region/framework preferences are written to profiles but never restored. The selectors write remotely before Save Changes and silently swallow failures. | Restore validated profile pins after sign-in, protect edits from late responses, clear pins on account changes, and save the three choices together with visible sync errors. |
+| P1 | Selecting SAT during onboarding does not change examiner vocabulary; SAT, ACT and A-Level are absent as independent framework choices. | Add these framework definitions, apply the chosen framework to saved settings and the profile, and honor explicit region preferences in onboarding. |
+| P1 | Pending and completed status writes race, cache invalidation can beat the final row update, and the Notes editor ignores the server status. | Serialize writes per material, flush before success invalidation, refresh pending rows, use the newer status in the editor, and refresh notes after a processing-state change. |
+| P1 | A device without the local record cannot distinguish intentionally omitted notes from missing output. | Persist the existing `skipped` status when notes were deliberately omitted and render that explanation on another device. |
+| P1 | Timer coverage notes are saved only to Supabase, disappearing from the local history used offline and from guest-account imports. | Preserve notes in local session history and guest imports, show them in recent sessions, and use them as the topic for the post-session quick check. |
+| P1 | Creation tests stop at a stale submit-button label, and drafts leak between tests. | Match the current visible label, isolate drafts, and verify the scanned-PDF warning. All 21 creation tests now exercise their intended flows. |
+
+### Verification
+
+- **239 tests passed across 20 focused files after integrating PR #98**: Solver; settings hydration and preferences; onboarding helpers and wizard; material synchronization and polling; source creation; Notes route, editor, sidebar and autosave; timer, study-room integration, local history and guest imports; command palette; dashboard and trajectory grade displays. The earlier pre-integration run passed 193 tests across 16 files.
+- `npm run build` passed, including application and test TypeScript projects and the production Vite build. Existing large-bundle warnings remain.
+- `npm run lint` passed with 14 existing warnings. Prettier passed for all changed source/test files; `git diff --check` passed.
+- Validation used a clean temporary copy with `npm ci` from the committed lockfile because a native dependency was locked in the workspace. Workspace dependencies were restored from that install; their versions match the lockfile and the locked binary matches the validated copy.
+- The browser runtime reported no available browsers. These are source and automated component-flow findings, not visual browser QA or a live two-device test.
+
+### Remaining work from the original roadmap
+
+- Deploy and verify PR #97's Supabase migrations and per-currency Stripe configuration. This follow-up adds no migration and does not change production services.
+- Persist the original generation options for cross-device retries. Status sync is not a durable background job: closing the generating tab or racing retries on two devices still needs a server job/ownership design.
+- The timer note is captured before logging; editing an already-finished session remains separate work.
+- PR #98 wired grade-scale presentation into the dashboard and trajectory. These remain heuristic forecasts, not official AP or SAT scores. The remaining conversation-shell adoption and notebook-studio split are still incomplete.
+- The framework remains an account-wide default. Per-course AP/SAT overrides would support Maya's mixed workload more directly.

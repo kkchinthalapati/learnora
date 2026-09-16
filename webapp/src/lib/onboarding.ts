@@ -36,7 +36,13 @@ import type { Chronotype, LifeContext } from "./lifeContext";
 import type { DashboardLayoutPreferences } from "../views/dashboard/DashboardCustomizeModal";
 import { DEFAULT_DASHBOARD_LAYOUT } from "../views/dashboard/DashboardCustomizeModal";
 import type { IconName } from "../components/icons";
-import { REGIONS, getFramework, isRegionId, type RegionId } from "./region";
+import {
+  REGIONS,
+  getFramework,
+  isFrameworkId,
+  isRegionId,
+  type RegionId,
+} from "./region";
 
 export const ONBOARDING_VERSION = 1;
 
@@ -61,8 +67,14 @@ export type ExamTypeId =
 /** Mirrors the `profiles_study_pace_check` constraint. */
 export type StudyPaceId = "light" | "balanced" | "intensive";
 export type CurriculumPresetId =
-  | "cbse-10" | "icse-10" | "gcse-11" | "a-level-13"
-  | "ap-12" | "sat-11" | "ib-dp" | "atar-12";
+  | "cbse-10"
+  | "icse-10"
+  | "gcse-11"
+  | "a-level-13"
+  | "ap-12"
+  | "sat-11"
+  | "ib-dp"
+  | "atar-12";
 
 export interface CurriculumPreset {
   id: CurriculumPresetId;
@@ -157,7 +169,12 @@ export const CURRICULUM_PRESETS: readonly CurriculumPreset[] = [
     hint: "College Board AP exams in May",
     examType: "ap",
     regions: ["US", "CA"],
-    folders: ["AP Calculus", "AP Biology", "AP US History", "AP English Language"],
+    folders: [
+      "AP Calculus",
+      "AP Biology",
+      "AP US History",
+      "AP English Language",
+    ],
     milestones: [
       { name: "Midterm", monthsFromNow: 2 },
       { name: "AP Exams", monthsFromNow: 5 },
@@ -181,7 +198,14 @@ export const CURRICULUM_PRESETS: readonly CurriculumPreset[] = [
     hint: "Six subject groups, TOK and the Extended Essay",
     examType: "ib",
     regions: ["EU", "CA", "AU", "INTL"],
-    folders: ["Group 1 · Language", "Group 3 · Humanities", "Group 4 · Sciences", "Group 5 · Mathematics", "TOK", "Extended Essay"],
+    folders: [
+      "Group 1 · Language",
+      "Group 3 · Humanities",
+      "Group 4 · Sciences",
+      "Group 5 · Mathematics",
+      "TOK",
+      "Extended Essay",
+    ],
     milestones: [
       { name: "Internal Assessment deadline", monthsFromNow: 2 },
       { name: "IB Exams", monthsFromNow: 6 },
@@ -203,7 +227,9 @@ export const CURRICULUM_PRESETS: readonly CurriculumPreset[] = [
 
 /** Native presets first, then the rest — the whole world is one scroll
  *  away, the student's own board is one tap away. */
-export function presetsForRegion(regionId: RegionId): readonly CurriculumPreset[] {
+export function presetsForRegion(
+  regionId: RegionId,
+): readonly CurriculumPreset[] {
   const native = new Set(REGIONS[regionId].presetIds);
   return [...CURRICULUM_PRESETS].sort(
     (a, b) => Number(native.has(b.id)) - Number(native.has(a.id)),
@@ -321,7 +347,10 @@ export const EXAM_BOARDS: ReadonlyArray<{
 
 /** The region's own board label is shown for "other", so a CBSE student
  *  sees "CBSE Board" rather than "Something else". */
-export function examBoardLabel(id: ExamTypeId, regionId?: RegionId | null): string {
+export function examBoardLabel(
+  id: ExamTypeId,
+  regionId?: RegionId | null,
+): string {
   if (id === "other") {
     const fw = getFramework(regionId);
     return fw.id === "generic" ? "Something else" : fw.boardLabel;
@@ -486,8 +515,11 @@ export function parseAnswers(raw: unknown): OnboardingAnswers | null {
         : null,
     region: isRegionId(r.region) ? r.region : null,
     consent: {
-      analytics: (r.consent as Record<string, unknown> | undefined)?.analytics === true,
-      aiProcessing: (r.consent as Record<string, unknown> | undefined)?.aiProcessing === true,
+      analytics:
+        (r.consent as Record<string, unknown> | undefined)?.analytics === true,
+      aiProcessing:
+        (r.consent as Record<string, unknown> | undefined)?.aiProcessing ===
+        true,
     },
     focusAreas: Array.isArray(r.focusAreas)
       ? r.focusAreas.filter(isFocusArea)
@@ -586,6 +618,10 @@ export function settingsPatchFor(
     answers.focusAreas.includes(focus),
   )?.[1];
   return {
+    ...(answers.region && isRegionId(answers.region)
+      ? { region: answers.region }
+      : {}),
+    ...(isFrameworkId(answers.examType) ? { framework: answers.examType } : {}),
     aiPersona: answers.coachStyle,
     aiConciseness: answers.detail,
     aiDepth: DEPTH_BY_DETAIL[answers.detail],

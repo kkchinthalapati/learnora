@@ -31,6 +31,7 @@ describe("guest session migration", () => {
           timestamp: "now",
           minutes: 25,
           task: "Algebra",
+          notes: "Quadratic equations",
           folderId: "math",
           timerType: "pomodoro",
           startedAt: "2026-09-14T09:00:00.000Z",
@@ -47,6 +48,7 @@ describe("guest session migration", () => {
         user_id: "user-1",
         minutes: 25,
         folder_id: "math",
+        notes: "Quadratic equations",
       }),
     ]);
     expect(JSON.parse(localStorage.getItem("sessions")!)[0].guest).toBe(false);

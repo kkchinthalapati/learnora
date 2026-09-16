@@ -17,7 +17,11 @@ import {
   isFrameworkId,
   isRegionId,
 } from "../../lib/region";
-import { GRADE_SCALES, GRADE_SCALE_IDS, isGradeScaleId } from "../../lib/gradeScale";
+import {
+  GRADE_SCALES,
+  GRADE_SCALE_IDS,
+  isGradeScaleId,
+} from "../../lib/gradeScale";
 import { examsApi } from "../../api/exams";
 import { plansApi } from "../../api/plans";
 import { generateICS, downloadICS } from "../../lib/ics";
@@ -106,6 +110,7 @@ export function PreferencesTab() {
   const [examType, setExamType] = useState("");
   const [targetGrade, setTargetGrade] = useState("");
   const [studyPace, setStudyPace] = useState("");
+  const [savingPreferences, setSavingPreferences] = useState(false);
 
   /* Seeded once the query resolves, then left to the fields — re-syncing on
    * every refetch would stomp an in-progress edit each time the query
@@ -528,7 +533,9 @@ export function PreferencesTab() {
           <div className={styles.fieldLabel}>
             <label htmlFor={regionId}>Region</label>
             <p className={styles.fieldDesc}>
-              Sets your currency, curriculum presets and privacy rights. Timezone is a clock, not a passport — change this if we guessed wrong.
+              Sets your currency, curriculum presets and privacy rights.
+              Timezone is a clock, not a passport — change this if we guessed
+              wrong.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -536,14 +543,20 @@ export function PreferencesTab() {
               id={regionId}
               value={settings.region}
               onChange={(e) => {
-                const region = isRegionId(e.target.value) ? e.target.value : "auto";
+                const region = isRegionId(e.target.value)
+                  ? e.target.value
+                  : "auto";
                 setSettings({ region });
-                profileApi.updateRegion({ region: region === "auto" ? null : region }).catch(() => {});
               }}
             >
-              <option value="auto">Detect automatically ({REGIONS[detectRegion(settings.timezone)].label})</option>
+              <option value="auto">
+                Detect automatically (
+                {REGIONS[detectRegion(settings.timezone)].label})
+              </option>
               {REGION_IDS.map((id) => (
-                <option key={id} value={id}>{REGIONS[id].label}</option>
+                <option key={id} value={id}>
+                  {REGIONS[id].label}
+                </option>
               ))}
             </select>
           </div>
@@ -553,7 +566,8 @@ export function PreferencesTab() {
           <div className={styles.fieldLabel}>
             <label htmlFor={frameworkId}>Exam framework</label>
             <p className={styles.fieldDesc}>
-              Which board the AI examiners imitate and whose syllabus terms they check for.
+              Which board the AI examiners imitate and whose syllabus terms they
+              check for.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -561,14 +575,24 @@ export function PreferencesTab() {
               id={frameworkId}
               value={settings.framework}
               onChange={(e) => {
-                const framework = isFrameworkId(e.target.value) ? e.target.value : "auto";
+                const framework = isFrameworkId(e.target.value)
+                  ? e.target.value
+                  : "auto";
                 setSettings({ framework });
-                profileApi.updateRegion({ framework_id: framework === "auto" ? null : framework }).catch(() => {});
               }}
             >
-              <option value="auto">Follow region ({getRegion(settings.region === "auto" ? null : settings.region).framework.boardLabel})</option>
+              <option value="auto">
+                Follow region (
+                {
+                  getRegion(settings.region === "auto" ? null : settings.region)
+                    .framework.boardLabel
+                }
+                )
+              </option>
               {Object.values(FRAMEWORKS).map((f) => (
-                <option key={f.id} value={f.id}>{f.boardLabel}</option>
+                <option key={f.id} value={f.id}>
+                  {f.boardLabel}
+                </option>
               ))}
             </select>
           </div>
@@ -577,21 +601,26 @@ export function PreferencesTab() {
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
             <label htmlFor={gradeScaleId}>Grade scale</label>
-            <p className={styles.fieldDesc}>How readiness and forecasts are shown.</p>
+            <p className={styles.fieldDesc}>
+              How readiness and forecasts are shown.
+            </p>
           </div>
           <div className={styles.fieldAction}>
             <select
               id={gradeScaleId}
               value={settings.gradeScale}
               onChange={(e) => {
-                const gradeScale = isGradeScaleId(e.target.value) ? e.target.value : "auto";
+                const gradeScale = isGradeScaleId(e.target.value)
+                  ? e.target.value
+                  : "auto";
                 setSettings({ gradeScale });
-                profileApi.updateRegion({ grade_scale_id: gradeScale === "auto" ? null : gradeScale }).catch(() => {});
               }}
             >
               <option value="auto">Follow framework</option>
               {GRADE_SCALE_IDS.map((id) => (
-                <option key={id} value={id}>{GRADE_SCALES[id].label}</option>
+                <option key={id} value={id}>
+                  {GRADE_SCALES[id].label}
+                </option>
               ))}
             </select>
           </div>
@@ -634,16 +663,37 @@ export function PreferencesTab() {
       <div className={styles.actionsRight}>
         <Button
           variant="primary"
-          onClick={() => {
+          disabled={savingPreferences}
+          onClick={async () => {
             save();
-            profileApi.updateTimezone(settings.timezone).catch((err) => {
-              if (!(
-                err instanceof Error && err.message === "Not authenticated"
-              )) {
-                console.error("Failed to sync timezone", err);
+            setSavingPreferences(true);
+            try {
+              await Promise.all([
+                profileApi.updateTimezone(settings.timezone),
+                profileApi.updateRegion({
+                  region: settings.region === "auto" ? null : settings.region,
+                  framework_id:
+                    settings.framework === "auto" ? null : settings.framework,
+                  grade_scale_id:
+                    settings.gradeScale === "auto" ? null : settings.gradeScale,
+                }),
+              ]);
+              showToast("Preferences saved.");
+            } catch (error) {
+              if (
+                error instanceof Error &&
+                error.message === "Not authenticated"
+              ) {
+                showToast("Preferences saved.");
+              } else {
+                showToast(
+                  "Saved on this device. Could not sync preferences; try Save Changes again when connected.",
+                  { error: true },
+                );
               }
-            });
-            showToast("Preferences saved.");
+            } finally {
+              setSavingPreferences(false);
+            }
           }}
         >
           {t("btn_save_config")}

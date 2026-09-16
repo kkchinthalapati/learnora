@@ -7,7 +7,9 @@ import {
   readLocalSessions,
 } from "./localSessions";
 
-const entry = (over: Partial<Parameters<typeof appendLocalSession>[0]> = {}) => ({
+const entry = (
+  over: Partial<Parameters<typeof appendLocalSession>[0]> = {},
+) => ({
   minutes: 25,
   task: "General Study",
   folderId: null,
@@ -37,6 +39,11 @@ describe("readLocalSessions", () => {
 });
 
 describe("appendLocalSession", () => {
+  it("keeps a trimmed coverage note in the local recovery copy", () => {
+    appendLocalSession(entry({ notes: "  Equilibrium problems 1-12  " }));
+    expect(readLocalSessions()[0].notes).toBe("Equilibrium problems 1-12");
+  });
+
   it("writes to the key the vanilla app and the dashboard both read", () => {
     appendLocalSession(entry());
     expect(LOCAL_SESSIONS_KEY).toBe("sessions");
@@ -57,7 +64,9 @@ describe("appendLocalSession", () => {
   });
 
   it("records the timer type so review and quiz sessions stay distinguishable", () => {
-    appendLocalSession(entry({ timerType: "review", task: "Organic Chemistry" }));
+    appendLocalSession(
+      entry({ timerType: "review", task: "Organic Chemistry" }),
+    );
     const [session] = readLocalSessions();
     expect(session.timerType).toBe("review");
     expect(session.task).toBe("Organic Chemistry");
