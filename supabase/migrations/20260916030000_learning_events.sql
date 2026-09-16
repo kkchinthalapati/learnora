@@ -27,10 +27,10 @@ alter table public.learning_events enable row level security;
 
 drop policy if exists "learning_events_select_own" on public.learning_events;
 create policy "learning_events_select_own" on public.learning_events
-  for select using (auth.uid() = user_id);
+  for select to authenticated using ((select auth.uid()) = user_id);
 drop policy if exists "learning_events_insert_own" on public.learning_events;
 create policy "learning_events_insert_own" on public.learning_events
-  for insert with check (auth.uid() = user_id);
+  for insert to authenticated with check ((select auth.uid()) = user_id);
 drop policy if exists "learning_events_delete_own" on public.learning_events;
 create policy "learning_events_delete_own" on public.learning_events
-  for delete using (auth.uid() = user_id);
+  for delete to authenticated using ((select auth.uid()) = user_id);
