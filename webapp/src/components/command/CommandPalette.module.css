@@ -21,7 +21,9 @@
   background: var(--surface-2);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-xl);
-  box-shadow: var(--shadow-lg), 0 0 0 1px var(--glass-border);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px var(--glass-border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -187,7 +189,9 @@
   border-radius: var(--r-md);
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.08s ease, transform 0.08s ease;
+  transition:
+    background-color 0.08s ease,
+    transform 0.08s ease;
 }
 
 .item:hover {

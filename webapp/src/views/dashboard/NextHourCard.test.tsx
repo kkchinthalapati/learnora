@@ -73,12 +73,36 @@ describe("NextHourCard", () => {
   });
 
   it("recommends an action without presenting a precise marks-per-hour promise", () => {
-    renderCard();
-    expect(
-      screen.getByRole("heading", { name: "Study Titration next" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/projected range 55–70%/)).toBeInTheDocument();
-    expect(screen.queryByText(/marks an hour/)).not.toBeInTheDocument();
+    localStorage.setItem(
+      "learnora_settings",
+      JSON.stringify({ gradeScale: "percent" }),
+    );
+    try {
+      renderCard();
+      expect(
+        screen.getByRole("heading", { name: "Study Titration next" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/projected range 55%–70%/)).toBeInTheDocument();
+      expect(screen.queryByText(/marks an hour/)).not.toBeInTheDocument();
+    } finally {
+      localStorage.removeItem("learnora_settings");
+    }
+  });
+
+  it("renders the projected range in the student's own grade scale", () => {
+    localStorage.setItem(
+      "learnora_settings",
+      JSON.stringify({ gradeScale: "gcse" }),
+    );
+    try {
+      renderCard();
+      // 55% and 70% are GCSE grades 5 and 7; mastery 30% is a grade 3.
+      expect(screen.getByText(/projected range 5–7$/)).toBeInTheDocument();
+      expect(screen.getByText(/mastery around 3\./)).toBeInTheDocument();
+      expect(screen.queryByText(/%/)).not.toBeInTheDocument();
+    } finally {
+      localStorage.removeItem("learnora_settings");
+    }
   });
 
   it("discloses when the recommendation has little evidence", () => {

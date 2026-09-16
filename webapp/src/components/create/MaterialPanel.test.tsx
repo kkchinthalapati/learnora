@@ -9,7 +9,10 @@ import { mockAuthSession } from "../../test/mockSession";
 import { SETTINGS_KEY, DEFAULT_SETTINGS } from "../../lib/settings";
 import { Storage } from "../../lib/storage";
 import { useLocation } from "react-router";
-import { useCreateModal, type OpenCreateModalOptions } from "../../context/createModal";
+import {
+  useCreateModal,
+  type OpenCreateModalOptions,
+} from "../../context/createModal";
 import { MATERIAL_DRAFT_KEY } from "../../lib/draftKeys";
 
 function Harness({ initial }: { initial?: OpenCreateModalOptions }) {
@@ -102,7 +105,9 @@ describe("MaterialPanel streamlined creation", () => {
 
   it("opens with clean source tabs, 1-tap outputs, and instant action button", async () => {
     await openDialog();
-    expect(screen.getByRole("tab", { name: /Upload Document/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: /Upload Document/ }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Paste Text/ })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Topic/ })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Web Link/ })).toBeInTheDocument();
@@ -112,14 +117,15 @@ describe("MaterialPanel streamlined creation", () => {
     expect(outputCheckbox("Practice Quiz")).not.toBeChecked();
 
     /* The accessible name and the visible label are the same string. They
-       were not: the button read "Create my study kit" and announced itself as
-       "Generate Study Resources", with no word in common — so a screen-reader
-       user and a sighted user were told about two different buttons, and
-       voice control could not activate it by the name on screen at all
-       (WCAG 2.5.3, Label in Name). */
-    const submit = screen.getByRole("button", { name: "Create my study kit" });
+       once were not: the button showed one label and announced itself with
+       another, with no word in common — so a screen-reader user and a sighted
+       user were told about two different buttons, and voice control could not
+       activate it by the name on screen at all (WCAG 2.5.3, Label in Name). */
+    const submit = screen.getByRole("button", {
+      name: "Generate Study Resources",
+    });
     expect(submit).toBeInTheDocument();
-    expect(submit).toHaveTextContent("Create my study kit");
+    expect(submit).toHaveTextContent("Generate Study Resources");
     expect(submit).not.toHaveAttribute("aria-label");
   });
 
@@ -166,14 +172,18 @@ describe("MaterialPanel streamlined creation", () => {
   it("validates the active source before generation", async () => {
     const user = await openDialog();
     await user.click(screen.getByRole("tab", { name: /Upload Document/ }));
-    await user.click(screen.getByRole("button", { name: "Create my study kit" }));
+    await user.click(
+      screen.getByRole("button", { name: "Generate Study Resources" }),
+    );
     expect(await screen.findByRole("alert")).toHaveTextContent("Choose a file");
   });
 
   it("requires enough pasted text", async () => {
     const user = await openDialog();
     await chooseText(user, "Too short");
-    await user.click(screen.getByRole("button", { name: "Create my study kit" }));
+    await user.click(
+      screen.getByRole("button", { name: "Generate Study Resources" }),
+    );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "a bit short to study from",
     );
@@ -184,13 +194,17 @@ describe("MaterialPanel streamlined creation", () => {
     await user.click(screen.getByRole("tab", { name: /Web Link/ }));
     const input = screen.getByRole("textbox", { name: "Web or YouTube link" });
     await user.type(input, "javascript:alert(1)");
-    await user.click(screen.getByRole("button", { name: "Create my study kit" }));
+    await user.click(
+      screen.getByRole("button", { name: "Generate Study Resources" }),
+    );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Links have to start with http:// or https://",
     );
     await user.clear(input);
     await user.type(input, "not a link");
-    await user.click(screen.getByRole("button", { name: "Create my study kit" }));
+    await user.click(
+      screen.getByRole("button", { name: "Generate Study Resources" }),
+    );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "doesn't look like a link",
     );
@@ -210,7 +224,9 @@ describe("MaterialPanel streamlined creation", () => {
     await chooseText(user);
     await user.click(outputCheckbox("Flashcards"));
     await user.click(outputCheckbox("Summary Notes"));
-    await user.click(screen.getByRole("button", { name: "Create my study kit" }));
+    await user.click(
+      screen.getByRole("button", { name: "Generate Study Resources" }),
+    );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Pick at least one thing",
     );
@@ -232,7 +248,9 @@ describe("MaterialPanel streamlined creation", () => {
     const user = await openDialog();
     await chooseText(user);
     expect(screen.getByLabelText("Subject")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Create my study kit" }));
+    await user.click(
+      screen.getByRole("button", { name: "Generate Study Resources" }),
+    );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Choose a subject to save this into",
     );
@@ -268,7 +286,9 @@ describe("MaterialPanel streamlined creation", () => {
     );
     const user = await openDialog();
     await chooseText(user);
-    await user.click(screen.getByRole("button", { name: "Create my study kit" }));
+    await user.click(
+      screen.getByRole("button", { name: "Generate Study Resources" }),
+    );
     expect(
       await screen.findByText("Created notes, flashcards."),
     ).toBeInTheDocument();
@@ -290,7 +310,9 @@ describe("MaterialPanel streamlined creation", () => {
     );
     const user = await openDialog();
     await chooseText(user);
-    await user.click(screen.getByRole("button", { name: "Create my study kit" }));
+    await user.click(
+      screen.getByRole("button", { name: "Generate Study Resources" }),
+    );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "That topic isn't supported.",
     );
@@ -313,7 +335,9 @@ describe("MaterialPanel streamlined creation", () => {
     );
     const user = await openDialog();
     await chooseText(user);
-    await user.click(screen.getByRole("button", { name: "Create my study kit" }));
+    await user.click(
+      screen.getByRole("button", { name: "Generate Study Resources" }),
+    );
     const busy = await screen.findByRole("button", { name: "Creating…" });
     expect(busy).toBeDisabled();
     expect(
@@ -388,7 +412,9 @@ describe("MaterialPanel streamlined creation", () => {
     );
     const user = await openDialog();
     await chooseText(user);
-    await user.click(screen.getByRole("button", { name: "Create my study kit" }));
+    await user.click(
+      screen.getByRole("button", { name: "Generate Study Resources" }),
+    );
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(
@@ -409,7 +435,9 @@ describe("MaterialPanel streamlined creation", () => {
   });
 
   it("pre-populates outputs from caller options", async () => {
-    await openDialog({ outputs: { flashcards: false, quiz: true, notes: false } });
+    await openDialog({
+      outputs: { flashcards: false, quiz: true, notes: false },
+    });
     expect(outputCheckbox("Flashcards")).not.toBeChecked();
     expect(outputCheckbox("Practice Quiz")).toBeChecked();
     expect(outputCheckbox("Summary Notes")).not.toBeChecked();
