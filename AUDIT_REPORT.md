@@ -129,3 +129,29 @@ Priority: **P0** = I'd bounce without it. **P1** = costs me real time this week.
 **Bottom line:** the engine is better than the paint. The scheduler, the timer, and the "study this next" math are ahead of Quizlet. But the app introduces itself in rupees and grades me like a CBSE examiner, and no amount of Feynman pedagogy survives that first screen. Fix the region layer and the rest of this ledger becomes a polish list instead of a rescue.
 
 — Maya
+
+---
+
+## 5. EXECUTION STATUS (2026-09-16 — ledger complete)
+
+All 20 items applied on `audit/maya-feedback`. `tsc` clean; Vitest 2683 pass. The 12 failures in `MaterialPanel.test.tsx` and `NotesAiSidebar.test.tsx` are pre-existing (identical on the pre-change baseline) and untouched here.
+
+| # | State | Notes / follow-ups |
+|---|---|---|
+| 1–4 | ✅ | `lib/region.ts`; `PLAN_PRICING_BY_CURRENCY` (GBP/USD/INR/EUR/AUD/CAD); landing, paywall, billing render from region. |
+| 5 | ✅ | Client sends `currency`; `stripe-billing` validates against allowlist, reads `STRIPE_PRICE_{PLAN}_{PERIOD}_{CUR}` (GBP falls back to the unsuffixed var); webhook maps every variant. **Ops:** create per-currency Stripe prices and set the secrets before non-GBP checkout works. |
+| 6 | ✅ | Personas templated on `getFramework()` (Settings override > region). Feynman reads it lazily now (Proxy), not at module load. |
+| 7 | ✅ | `materials.processing_status/_error/_updated_at` (migration `20260916000000`); client syncs the row, prefers it when newer. Open: cross-device *retry* still needs `requestPayload` persisted (localStorage only). |
+| 8 | ✅ | Presets per region; board picker is on step 1 (goal) already; `region`/`consent` on answers. |
+| 9 | ✅ | `lib/gradeScale.ts` — `GradeScale`, `normaliseScore`, `renderGrade`, override via Settings. Open: `examReadiness`/`analyticsEngine` still emit percentages internally; wire `renderGrade` at the render sites next. |
+| 10 | ✅ | "All" tab default hides rings / streak / community (six cards); "More (n hidden)" opens the customize modal. |
+| 11 | ✅ | `study_sessions.notes` (migration `20260916010000`); "What did you cover?" field on the timer; HUD buttons 44px on coarse pointers. |
+| 12 | ✅ | `dayItemEditBtn` 44×44. |
+| 13 | ✅ | Scanned-PDF warning under the chosen file in the Create dialog. |
+| 14 | ✅ | New `solver` JSON mode in `learnora-ai`; `aiDebugger` no longer sends the Markdown-only `rewrite` mode with a JSON schema. |
+| 15 | ✅ (partial) | `components/conversation/ConversationShell` (bubble, composer, typing, error, scroll-pinned log); adopted for Sparring bubbles. `/premortem`, `/exam-traps` routes removed. Open: migrate Feynman / Solver / Detective onto the shell's `Composer` + `ConversationShell`. |
+| 16 | ✅ (partial) | Study Buddy gutter, card and hook deleted from Notes and Notebook Studio. Front door decision: **Library** (`/library`) — Notebooks stays a workspace reached from it; Folders is its subject page. Open: split `NotebookStudioView` (now ~1,440 lines) into `SourcesDesk` / `Canvas` / `ToolsRail` components. |
+| 17 | ✅ | Wipe requires the password (`authApi.verifyPassword`); Region, Exam framework and Grade scale selectors in Preferences, persisted to `profiles`. |
+| 18 | ✅ | `profiles.region / framework_id / grade_scale_id / tenant_id` (migration `20260916020000`). |
+| 19 | ✅ | `js/`, `vendor/`, `i18n.js`, root `index.html`, `terms/verify/reset-password.*` deleted; `build.sh`, `vercel.json` (`/terms` → app), site links and the root `tests/` that read them updated. |
+| 20 | ✅ | "dropping marks" → "losing credit"; Feynman fallbacks use `fullCreditLabel`. |

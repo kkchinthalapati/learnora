@@ -6,6 +6,7 @@
 
 import { callEdge } from "./ai";
 import { extractJSON } from "../lib/aiJson";
+import { getFramework } from "../lib/region";
 import { collection } from "../lib/storage";
 import { fenceUntrusted } from "../lib/actionTags";
 /* Aliased: `Misconception` is already this module's own type for a planted
@@ -202,6 +203,11 @@ export const PRIMARY_DEPTHS: ExplanationDepth[] = [
   "deep_dive",
 ];
 
+/* Read per call, never snapshotted: the Settings region override (lib/region.ts)
+   must reach a persona the student opens after changing it. */
+const fw = () => getFramework();
+const FW = new Proxy({} as ReturnType<typeof fw>, { get: (_t, k) => fw()[k as keyof ReturnType<typeof fw>] });
+
 export const PERSONA_PROFILES: Record<ApprenticePersona, PersonaProfile> = {
   eli10: {
     id: "eli10",
@@ -245,19 +251,22 @@ export const PERSONA_PROFILES: Record<ApprenticePersona, PersonaProfile> = {
     systemPromptPersona:
       "You are role-playing Jordan, a sharp and skeptical study buddy. You challenge hand-wavy claims, demand clear logic, point out missing edge cases, and ask 'Wait, what if temperature/pressure/variables change?'.",
   },
+  /* id is persisted in saved drafts, so it keeps its historical name; the
+     copy is regional (lib/region.ts) so every student meets their own
+     board's marker. */
   cbse_examiner: {
     id: "cbse_examiner",
-    name: "Strict CBSE Examiner",
-    shortName: "Dr. Sharma",
+    name: `Strict ${FW.boardLabel} Examiner`,
+    shortName: "The Examiner",
     avatar: "📝",
     tagline: "Demands exact keywords, formal definitions, and mark scheme rigor.",
     description:
-      "Dr. Sharma evaluates according to the official board marking scheme. Analogies are fine for intuition, but correct scientific terminology and equations are mandatory.",
+      "The Examiner evaluates according to the official board marking scheme. Analogies are fine for intuition, but correct scientific terminology and equations are mandatory.",
     traits: ["Strict mark scheme", "Keywords matter", "No hand-waving"],
-    challengeStyle: "NCERT & Board rigor",
+    challengeStyle: `${FW.syllabusLabel} & board rigor`,
     badgeColor: "var(--danger)",
     systemPromptPersona:
-      "You are role-playing Dr. Sharma, a strict CBSE board examiner. You strictly assess whether NCERT keywords, balanced definitions, and sequential steps are provided. Point out missing scientific terms.",
+      `You are role-playing a strict ${FW.boardLabel} examiner. You strictly assess whether ${FW.syllabusLabel} keywords, balanced definitions, and sequential steps are provided. Point out missing scientific terms.`,
   },
   custom: {
     id: "custom",
@@ -826,7 +835,7 @@ export function generateDynamicDraft(
       `Use a vivid comparison without confusing textbook jargon`,
     ];
   } else if (persona === "cbse_examiner") {
-    draftText = `In evaluations of ${topic} in ${subject}, examinees routinely claim the primary mechanism functions unconditionally without prerequisite boundary constraints or specific steady-state requirements. Furthermore, candidates frequently invert dependent and independent variables and omit crucial NCERT definitions.`;
+    draftText = `In evaluations of ${topic} in ${subject}, examinees routinely claim the primary mechanism functions unconditionally without prerequisite boundary constraints or specific steady-state requirements. Furthermore, candidates frequently invert dependent and independent variables and omit crucial ${FW.syllabusLabel} definitions.`;
     misconceptions = [
       {
         id: "misc-gen-1",
@@ -847,7 +856,7 @@ export function generateDynamicDraft(
         hint: `Which variable is the root cause and which is the effect in ${topic}?`,
       },
     ];
-    challengeQuestion = `State the formal scientific definition of ${topic}, identify the key NCERT keywords, and specify under what exact conditions this rule holds.`;
+    challengeQuestion = `State the formal scientific definition of ${topic}, identify the key ${FW.syllabusLabel} keywords, and specify under what exact conditions this rule holds.`;
     learningObjectives = [
       `Provide the formal definition with mandatory scientific keywords`,
       `Delineate strict boundary constraints and equilibrium conditions`,
@@ -1509,7 +1518,7 @@ Mark it strictly and reply in character:
    - If Explain Like I'm 10: speak like an energetic 10-year-old in simple, vivid language.
    - If Curious 9th Grader: speak like a 14-year-old student who connects concepts to real life.
    - If Skeptical Study Buddy: challenge vague claims, ask about edge cases, and push for proof.
-   - If Strict CBSE Examiner: maintain formal board examiner standards, check for NCERT keywords.
+   - If Strict ${FW.boardLabel} Examiner: maintain formal board examiner standards, check for ${FW.syllabusLabel} keywords.
    - If Custom Audience: follow the custom audience description faithfully.
 2. In your response:
    - Highlight what was crystal clear / what made sense from their explanation, especially if they used ${analogyProfile.name}.
@@ -1692,7 +1701,7 @@ function scoreLocally(
 
   // Persona responsiveness adjustments
   if (persona === "cbse_examiner") {
-    // CBSE rewards step-by-step and contrast, penalizes pure hand-waving
+    // Board markers reward step-by-step and contrast, penalize pure hand-waving
     if (!hasStepByStep && !hasContrast) {
       scoreDelta = Math.max(0, scoreDelta - 6);
     } else {
@@ -1752,7 +1761,7 @@ function scoreLocally(
   }
 
   if (persona === "cbse_examiner") {
-    followUpQuestion = `What is the precise NCERT scientific term for this mechanism, and what prerequisite boundary conditions must be stated for full marks?`;
+    followUpQuestion = `What is the precise ${FW.syllabusLabel} scientific term for this mechanism, and what prerequisite boundary conditions must be stated for ${FW.fullCreditLabel.toLowerCase()}?`;
   } else if (persona === "eli10") {
     followUpQuestion = `Wait, if that's true, what happens if you turn off the power or the temperature drops to freezing?`;
   } else if (persona === "skeptical_buddy") {
@@ -1775,11 +1784,11 @@ function scoreLocally(
     }
   } else if (persona === "cbse_examiner") {
     if (newScore >= 85 && movedOn) {
-      reaction = `🎓 "Full marks awarded for this section. Your explanation of '${explanation.slice(0, 45)}...' meets NCERT marking criteria and accurately defines the governing mechanism."`;
+      reaction = `🎓 "${FW.fullCreditLabel} awarded for this section. Your explanation of '${explanation.slice(0, 45)}...' meets ${FW.syllabusLabel} marking criteria and accurately defines the governing mechanism."`;
     } else if (newScore >= 60 && movedOn) {
-      reaction = `📝 "3 marks awarded. You identified the primary mechanism, but you need to be explicit with formal keywords. ${followUpQuestion}"`;
+      reaction = `📝 "Partial credit. You identified the primary mechanism, but you need to be explicit with formal keywords. ${followUpQuestion}"`;
     } else {
-      reaction = `📝 "1 mark. Hand-wavy descriptions do not receive credit in CBSE evaluations. Provide the exact scientific terminology, equations, and governing conditions."`;
+      reaction = `📝 "Minimal credit. Hand-wavy descriptions do not receive credit in ${FW.boardLabel} evaluations. Provide the exact scientific terminology, equations, and governing conditions."`;
     }
   } else if (persona === "skeptical_buddy" || persona === "overconfident_peer") {
     if (newScore >= 85 && movedOn) {

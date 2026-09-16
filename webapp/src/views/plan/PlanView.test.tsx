@@ -873,3 +873,125 @@ describe("PlanView", () => {
     expect(screen.queryByText("This week's plan")).not.toBeInTheDocument();
   });
 });
+
+/* A plan block used to be prose with a blank timer behind it: the generator
+ * knew which deck was weak, and the grid could only offer "Start →". These
+ * cover the handoff once the block resolves to real content — see
+ * planTargets.ts for why the match is deliberately strict. */
+describe("PlanView — launching the block's content", () => {
+  const BIO_PLAN = {
+    days: [
+      {
+        date: dayOffset(0),
+        blocks: [{ subject: "Biology", durationMins: 45 }],
+      },
+    ],
+  };
+
+  function serveContent({
+    decks = [] as unknown[],
+    dueCards = [] as unknown[],
+    quizzes = [] as unknown[],
+  }) {
+    server.use(
+      http.get(rest("folders"), () =>
+        HttpResponse.json([{ id: "f-bio", user_id: "user-1", name: "Biology" }]),
+      ),
+      http.get(rest("flashcard_decks"), () => HttpResponse.json(decks)),
+      http.get(rest("flashcards"), () => HttpResponse.json(dueCards)),
+      http.get(rest("quizzes"), () => HttpResponse.json(quizzes)),
+    );
+  }
+
+  function renderPlanWithContent() {
+    return renderWithAuth(
+      <MemoryRouter initialEntries={["/plan"]}>
+        <Routes>
+          <Route path="/plan" element={<PlanView />} />
+          <Route path="/timer" element={<div>Timer view</div>} />
+          <Route path="/review/:deckId" element={<div>Review view</div>} />
+          <Route path="/quiz/:quizId" element={<div>Quiz view</div>} />
+        </Routes>
+      </MemoryRouter>,
+      { session: fakeSession() },
+      { withTimer: true },
+    );
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    mockAuthSession("user-1");
+    serveWorkspace();
+  });
+
+  it("opens the subject's due deck instead of a blank timer", async () => {
+    serveContent({
+      decks: [{ id: "d-cells", user_id: "user-1", folder_id: "f-bio", title: "Cells" }],
+      dueCards: [
+        { id: "c1", user_id: "user-1", deck_id: "d-cells", next_review_date: null },
+        { id: "c2", user_id: "user-1", deck_id: "d-cells", next_review_date: null },
+      ],
+    });
+    servePlan(planRow(BIO_PLAN));
+    renderPlanWithContent();
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Review 2 due cards in Cells for Biology",
+      }),
+    );
+
+    expect(await screen.findByText("Review view")).toBeInTheDocument();
+  });
+
+  it("names the deck the block will open, so Start is not a blind jump", async () => {
+    serveContent({
+      decks: [{ id: "d-cells", user_id: "user-1", folder_id: "f-bio", title: "Cells" }],
+      dueCards: [
+        { id: "c1", user_id: "user-1", deck_id: "d-cells", next_review_date: null },
+      ],
+    });
+    servePlan(planRow(BIO_PLAN));
+    renderPlanWithContent();
+
+    expect(await screen.findByText("Cells · 1 card due")).toBeInTheDocument();
+  });
+
+  it("falls back to the subject's quiz when no cards are due", async () => {
+    serveContent({
+      quizzes: [
+        {
+          id: "q-bio",
+          user_id: "user-1",
+          folder_id: "f-bio",
+          title: "Cell Division",
+          created_at: "2026-03-01T00:00:00.000Z",
+        },
+      ],
+    });
+    servePlan(planRow(BIO_PLAN));
+    renderPlanWithContent();
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Take the quiz Cell Division for Biology",
+      }),
+    );
+
+    expect(await screen.findByText("Quiz view")).toBeInTheDocument();
+  });
+
+  it("still stages the timer when the subject matches no content", async () => {
+    serveContent({});
+    servePlan(planRow(BIO_PLAN));
+    renderPlanWithContent();
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Start a 45 minute focus session for Biology",
+      }),
+    );
+
+    expect(await screen.findByText("Timer view")).toBeInTheDocument();
+  });
+});

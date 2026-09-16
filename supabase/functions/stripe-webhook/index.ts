@@ -69,12 +69,14 @@ type PaidPlan = "plus" | "pro";
  *  the fallback for exactly that case. */
 function planByPriceId(): Record<string, PaidPlan> {
   const map: Record<string, PaidPlan> = {};
+  const currencies = ["", "GBP", "USD", "INR", "EUR", "AUD", "CAD"];
   for (const plan of ["plus", "pro"] as const) {
     for (const period of ["monthly", "annual"] as const) {
-      const id = Deno.env.get(
-        `STRIPE_PRICE_${plan.toUpperCase()}_${period.toUpperCase()}`,
-      );
-      if (id) map[id] = plan;
+      const base = `STRIPE_PRICE_${plan.toUpperCase()}_${period.toUpperCase()}`;
+      for (const cur of currencies) {
+        const id = Deno.env.get(cur ? `${base}_${cur}` : base);
+        if (id) map[id] = plan;
+      }
     }
   }
   return map;

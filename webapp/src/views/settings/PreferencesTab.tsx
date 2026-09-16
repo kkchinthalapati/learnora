@@ -8,6 +8,16 @@ import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
 import { useTranslation } from "../../hooks/useTranslation";
 import { profileApi } from "../../api/profile";
+import {
+  FRAMEWORKS,
+  REGIONS,
+  REGION_IDS,
+  detectRegion,
+  getRegion,
+  isFrameworkId,
+  isRegionId,
+} from "../../lib/region";
+import { GRADE_SCALES, GRADE_SCALE_IDS, isGradeScaleId } from "../../lib/gradeScale";
 import { examsApi } from "../../api/exams";
 import { plansApi } from "../../api/plans";
 import { generateICS, downloadICS } from "../../lib/ics";
@@ -81,6 +91,9 @@ export function PreferencesTab() {
   const uiLangId = useId();
   const aiLangId = useId();
   const tzId = useId();
+  const regionId = useId();
+  const frameworkId = useId();
+  const gradeScaleId = useId();
   const subjectId = useId();
   const examTypeId = useId();
   const targetGradeId = useId();
@@ -508,6 +521,79 @@ export function PreferencesTab() {
               onChange={(tz) => setSettings({ timezone: tz })}
               placeholder="Search timezone..."
             />
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={regionId}>Region</label>
+            <p className={styles.fieldDesc}>
+              Sets your currency, curriculum presets and privacy rights. Timezone is a clock, not a passport — change this if we guessed wrong.
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={regionId}
+              value={settings.region}
+              onChange={(e) => {
+                const region = isRegionId(e.target.value) ? e.target.value : "auto";
+                setSettings({ region });
+                profileApi.updateRegion({ region: region === "auto" ? null : region }).catch(() => {});
+              }}
+            >
+              <option value="auto">Detect automatically ({REGIONS[detectRegion(settings.timezone)].label})</option>
+              {REGION_IDS.map((id) => (
+                <option key={id} value={id}>{REGIONS[id].label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={frameworkId}>Exam framework</label>
+            <p className={styles.fieldDesc}>
+              Which board the AI examiners imitate and whose syllabus terms they check for.
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={frameworkId}
+              value={settings.framework}
+              onChange={(e) => {
+                const framework = isFrameworkId(e.target.value) ? e.target.value : "auto";
+                setSettings({ framework });
+                profileApi.updateRegion({ framework_id: framework === "auto" ? null : framework }).catch(() => {});
+              }}
+            >
+              <option value="auto">Follow region ({getRegion(settings.region === "auto" ? null : settings.region).framework.boardLabel})</option>
+              {Object.values(FRAMEWORKS).map((f) => (
+                <option key={f.id} value={f.id}>{f.boardLabel}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={gradeScaleId}>Grade scale</label>
+            <p className={styles.fieldDesc}>How readiness and forecasts are shown.</p>
+          </div>
+          <div className={styles.fieldAction}>
+            <select
+              id={gradeScaleId}
+              value={settings.gradeScale}
+              onChange={(e) => {
+                const gradeScale = isGradeScaleId(e.target.value) ? e.target.value : "auto";
+                setSettings({ gradeScale });
+                profileApi.updateRegion({ grade_scale_id: gradeScale === "auto" ? null : gradeScale }).catch(() => {});
+              }}
+            >
+              <option value="auto">Follow framework</option>
+              {GRADE_SCALE_IDS.map((id) => (
+                <option key={id} value={id}>{GRADE_SCALES[id].label}</option>
+              ))}
+            </select>
           </div>
         </div>
       </Card>

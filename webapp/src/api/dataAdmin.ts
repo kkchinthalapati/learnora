@@ -348,7 +348,7 @@ export const dataAdminApi = {
   <div class="container">
     <header>
       <h1>Your Study Report</h1>
-      <p class="report-date">Generated on ${new Date().toLocaleDateString("en-US", {
+      <p class="report-date">Generated on ${new Date().toLocaleDateString(undefined, {
         weekday: "long",
         year: "numeric",
         month: "long",

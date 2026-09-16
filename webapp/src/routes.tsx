@@ -356,28 +356,9 @@ export function AppRoutes() {
                 </DeferredView>
               }
             />
-            {/* Pre-Mortem and Exam Traps were the same feature built twice.
-                Pre-Mortem's view tree is gone; its config form — which reads
-                the student's own exams rather than a canned subject list —
-                lives on in Exam Detective's SubjectPicker. These four paths
-                previously redirected to /ai-tutor, a screen with no trap
-                practice on it at all; they now land on the real feature. */}
-            <Route
-              path="/premortem"
-              element={<Navigate to="/exam-detective" replace />}
-            />
-            <Route
-              path="/premortem/radar"
-              element={<Navigate to="/exam-detective" replace />}
-            />
-            <Route
-              path="/exam-traps"
-              element={<Navigate to="/exam-detective" replace />}
-            />
-            <Route
-              path="/exam-traps/radar"
-              element={<Navigate to="/exam-detective" replace />}
-            />
+            {/* /premortem and /exam-traps (and their /radar children) were
+                redirect aliases for /exam-detective. Removed: nothing in the
+                app links to them, and Exam Detective is the one front door. */}
             <Route
               path="/feynman"
               element={

@@ -7,6 +7,7 @@ import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { DangerTab } from "./DangerTab";
+import { authApi } from "../../api/auth";
 
 const WIPED_TABLES = [
   "tasks",
@@ -26,6 +27,15 @@ async function confirmDialog(
 ) {
   const dialog = await screen.findByRole("alertdialog");
   await user.click(within(dialog).getByRole("button", { name }));
+}
+
+/** Wipe's second step: the password prompt. The re-auth itself is covered in
+ *  api/auth.test.ts; here it is stubbed so the wipe path is what's tested. */
+async function confirmWipePassword(user: ReturnType<typeof userEvent.setup>) {
+  vi.spyOn(authApi, "verifyPassword").mockResolvedValue(undefined);
+  const dialog = await screen.findByRole("alertdialog");
+  await user.type(within(dialog).getByLabelText("Confirm your password"), "hunter2");
+  await user.click(within(dialog).getByRole("button", { name: "Wipe everything" }));
 }
 
 /** The second step of account deletion: type the password, then confirm. */
@@ -89,6 +99,7 @@ describe("DangerTab", () => {
 
     await user.click(screen.getByRole("button", { name: /Wipe Data/ }));
     await confirmDialog(user, "Delete everything");
+    await confirmWipePassword(user);
 
     await waitFor(() =>
       expect(Object.keys(deleted).sort()).toEqual([...WIPED_TABLES].sort()),
@@ -110,6 +121,7 @@ describe("DangerTab", () => {
 
     await user.click(screen.getByRole("button", { name: /Wipe Data/ }));
     await confirmDialog(user, "Delete everything");
+    await confirmWipePassword(user);
 
     await waitFor(() => expect(localStorage.getItem("sessions")).toBeNull());
     expect(localStorage.getItem("fav_times")).toBeNull();
@@ -127,6 +139,7 @@ describe("DangerTab", () => {
 
     await user.click(screen.getByRole("button", { name: /Wipe Data/ }));
     await confirmDialog(user, "Delete everything");
+    await confirmWipePassword(user);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Some data could not be deleted.",

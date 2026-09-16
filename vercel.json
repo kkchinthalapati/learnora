@@ -7,6 +7,8 @@
     { "source": "/", "destination": "/landing.html" },
     { "source": "/app", "destination": "/app/index.html" },
     { "source": "/app/:path*", "destination": "/app/index.html" },
+    { "source": "/terms", "destination": "/app/index.html" },
+    { "source": "/terms.html", "destination": "/app/index.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/contact", "destination": "/contact.html" },
     { "source": "/privacy", "destination": "/privacy.html" },

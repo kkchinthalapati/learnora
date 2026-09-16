@@ -8,6 +8,10 @@
 
 import { Storage } from "./storage";
 
+import { isFrameworkId, isRegionId, type RegionId } from "./region";
+import { isGradeScaleId, type GradeScaleId } from "./gradeScale";
+
+/* Also read raw by lib/region.ts (kept in sync by hand — see the note there). */
 export const SETTINGS_KEY = "learnora_settings";
 
 export type AiPersona = "tutor" | "coach" | "buddy" | "professor";
@@ -37,6 +41,13 @@ export interface Settings {
   aiStyle: StudyStyle;
   aiAutoAdapt: boolean;
   webAccess: boolean;
+  /** Where the student studies — "auto" detects (lib/region.ts). Drives
+   *  currency, presets, examiner persona and privacy copy. */
+  region: RegionId | "auto";
+  /** Exam-board vocabulary the AI examiners use; "auto" follows the region. */
+  framework: string | "auto";
+  /** How scores are rendered (AP 1–5, IB 1–7, …); "auto" follows the framework. */
+  gradeScale: GradeScaleId | "auto";
 }
 
 export const DEFAULT_SETTINGS: Settings = Object.freeze({
@@ -53,6 +64,9 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   aiStyle: "concise",
   aiAutoAdapt: true,
   webAccess: true,
+  region: "auto",
+  framework: "auto",
+  gradeScale: "auto",
 });
 
 export const AI_PERSONA_OPTIONS: ReadonlyArray<{
@@ -197,6 +211,9 @@ export function loadSettings(): Settings {
       typeof stored.webAccess === "boolean"
         ? stored.webAccess
         : DEFAULT_SETTINGS.webAccess,
+    region: isRegionId(stored.region) ? stored.region : "auto",
+    framework: isFrameworkId(stored.framework) ? stored.framework : "auto",
+    gradeScale: isGradeScaleId(stored.gradeScale) ? stored.gradeScale : "auto",
   };
 }
 

@@ -91,8 +91,8 @@ function DayExamRow({ exam, onEditExam, onOpenPrepRoadmap }: DayExamRowProps) {
             cursor: "pointer",
             color: "var(--text-muted)",
             display: "inline-flex",
-            padding: "4px",
           }}
+          className={styles.dayItemEditBtn}
           onClick={() => onEditExam(exam)}
           aria-label={`Edit ${exam.exam_name}`}
         >

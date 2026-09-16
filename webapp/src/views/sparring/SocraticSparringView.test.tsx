@@ -405,7 +405,7 @@ describe("SocraticSparringView", () => {
 
     // Verify vibe options are present
     expect(screen.getByText("Chill Study Buddy")).toBeInTheDocument();
-    expect(screen.getByText("Tough CBSE Board Examiner")).toBeInTheDocument();
+    expect(screen.getByText(/^Tough .+ Examiner$/)).toBeInTheDocument();
     expect(screen.getByText("Socratic Challenger")).toBeInTheDocument();
     expect(screen.getByText("Rapid-Fire Viva Quizzer")).toBeInTheDocument();
 

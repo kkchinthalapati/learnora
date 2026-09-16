@@ -677,7 +677,7 @@ export function computeUnifiedExamReadiness(params: {
   } else if (score >= 70) {
     tier = "On track";
     summary =
-      "Good progress. Go back over the quiz topics you keep dropping marks on.";
+      "Good progress. Go back over the quiz topics you keep losing credit on.";
   } else if (score >= 50) {
     tier = "Needs review";
     summary =

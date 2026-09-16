@@ -11,6 +11,7 @@ import { useFolders, useAddFolder } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useQuizDraft } from "../../hooks/useQuizDraft";
 import { Storage } from "../../lib/storage";
+import { isPdf, planPdfUpload } from "../../lib/pdfText";
 import { MATERIAL_DRAFT_KEY } from "../../lib/draftKeys";
 import { useCreateStudyPackage } from "../../hooks/useStudyPackage";
 import { useDialog } from "../../context/dialog";
@@ -116,6 +117,25 @@ export function MaterialPanel({
   });
 
   const [file, setFile] = useState<File | null>(null);
+  /* Set when a chosen PDF has no usable text layer: it will be sent as an
+     attachment for OCR, which is slower and less reliable than text. */
+  const [fileWarning, setFileWarning] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setFileWarning(null);
+    if (!file || !isPdf(file)) return;
+    planPdfUpload(file)
+      .then((plan) => {
+        if (cancelled || plan.kind !== "attach" || plan.reason !== "scanned") return;
+        setFileWarning(
+          "This PDF looks scanned (no text layer). It will be read by OCR, so notes may take longer and miss handwriting or faint print.",
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [file]);
   const [isDragging, setIsDragging] = useState(false);
   const [text, setText] = useState(restoredDraft?.text ?? "");
   const [link, setLink] = useState(restoredDraft?.link ?? "");
@@ -565,6 +585,11 @@ export function MaterialPanel({
                   <span>
                     {`${Math.max(0.1, file.size / (1024 * 1024)).toFixed(1)}MB selected`}
                   </span>
+                  {fileWarning && (
+                    <span role="status" className={styles.fileWarning}>
+                      {fileWarning}
+                    </span>
+                  )}
                 </div>
               ) : (
                 <div className={styles.dropzonePrompt}>

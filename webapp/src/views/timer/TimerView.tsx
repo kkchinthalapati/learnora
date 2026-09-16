@@ -103,6 +103,8 @@ export function TimerView() {
     applyAndReset,
     activeTask,
     setActiveTask,
+    sessionNote,
+    setSessionNote,
     activeFolderId,
     setActiveFolderId,
     favs,
@@ -128,6 +130,7 @@ export function TimerView() {
   const countdownId = useId();
   const taskId = useId();
   const folderId = useId();
+  const sessionNoteId = useId();
   const recentSessionsTitleId = useId();
   const displayRef = useRef<HTMLDivElement>(null);
   const [recentSessions, setRecentSessions] = useState(readRecentFocusSessions);
@@ -435,6 +438,19 @@ export function TimerView() {
             <TopicValueHint
               activeTask={activeTask}
               onUseTopic={setActiveTask}
+            />
+          </div>
+
+          <div className={styles.taskBinder}>
+            <label htmlFor={sessionNoteId}>What did you cover? (optional)</label>
+            <input
+              id={sessionNoteId}
+              type="text"
+              maxLength={280}
+              value={sessionNote}
+              onChange={(e) => setSessionNote(e.target.value)}
+              placeholder="e.g. Ch. 4 equilibrium problems 1–12"
+              autoComplete="off"
             />
           </div>
 

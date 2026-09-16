@@ -36,6 +36,7 @@ import type { Chronotype, LifeContext } from "./lifeContext";
 import type { DashboardLayoutPreferences } from "../views/dashboard/DashboardCustomizeModal";
 import { DEFAULT_DASHBOARD_LAYOUT } from "../views/dashboard/DashboardCustomizeModal";
 import type { IconName } from "../components/icons";
+import { REGIONS, getFramework, isRegionId, type RegionId } from "./region";
 
 export const ONBOARDING_VERSION = 1;
 
@@ -59,13 +60,17 @@ export type ExamTypeId =
   "ap" | "ib" | "a_level" | "gcse" | "sat" | "act" | "other";
 /** Mirrors the `profiles_study_pace_check` constraint. */
 export type StudyPaceId = "light" | "balanced" | "intensive";
-export type CurriculumPresetId = "cbse-10" | "icse-10" | "gcse-11";
+export type CurriculumPresetId =
+  | "cbse-10" | "icse-10" | "gcse-11" | "a-level-13"
+  | "ap-12" | "sat-11" | "ib-dp" | "atar-12";
 
 export interface CurriculumPreset {
   id: CurriculumPresetId;
   label: string;
   hint: string;
   examType: ExamTypeId;
+  /** Regions this preset is native to. Empty = shown everywhere. */
+  regions: readonly RegionId[];
   /** Folder names use a visible parent · child convention because folders are
    * intentionally flat in the current database schema. */
   folders: readonly string[];
@@ -78,6 +83,7 @@ export const CURRICULUM_PRESETS: readonly CurriculumPreset[] = [
     label: "CBSE Class 10",
     hint: "Maths, Science, Social Science and English",
     examType: "other",
+    regions: ["IN"],
     folders: [
       "Mathematics",
       "Science · Physics",
@@ -100,6 +106,7 @@ export const CURRICULUM_PRESETS: readonly CurriculumPreset[] = [
     label: "ICSE Class 10",
     hint: "Maths, Sciences, Humanities and English",
     examType: "other",
+    regions: ["IN"],
     folders: [
       "Mathematics",
       "Physics",
@@ -120,6 +127,7 @@ export const CURRICULUM_PRESETS: readonly CurriculumPreset[] = [
     label: "GCSE / IGCSE Year 11",
     hint: "Maths, Combined Science and English",
     examType: "gcse",
+    regions: ["GB", "INTL"],
     folders: [
       "Maths",
       "Combined Science",
@@ -131,7 +139,76 @@ export const CURRICULUM_PRESETS: readonly CurriculumPreset[] = [
       { name: "GCSE / IGCSE Exam", monthsFromNow: 6 },
     ],
   },
+  {
+    id: "a-level-13",
+    label: "A-Level Year 13",
+    hint: "Three or four subjects, exam-board specification",
+    examType: "a_level",
+    regions: ["GB"],
+    folders: ["Subject 1", "Subject 2", "Subject 3"],
+    milestones: [
+      { name: "Year 13 Mock Exam", monthsFromNow: 2 },
+      { name: "A-Level Exams", monthsFromNow: 6 },
+    ],
+  },
+  {
+    id: "ap-12",
+    label: "AP Courses",
+    hint: "College Board AP exams in May",
+    examType: "ap",
+    regions: ["US", "CA"],
+    folders: ["AP Calculus", "AP Biology", "AP US History", "AP English Language"],
+    milestones: [
+      { name: "Midterm", monthsFromNow: 2 },
+      { name: "AP Exams", monthsFromNow: 5 },
+    ],
+  },
+  {
+    id: "sat-11",
+    label: "SAT / ACT Prep",
+    hint: "Reading & Writing, Math",
+    examType: "sat",
+    regions: ["US"],
+    folders: ["Reading & Writing", "Math"],
+    milestones: [
+      { name: "Practice Test", monthsFromNow: 1 },
+      { name: "SAT / ACT Test Day", monthsFromNow: 3 },
+    ],
+  },
+  {
+    id: "ib-dp",
+    label: "IB Diploma",
+    hint: "Six subject groups, TOK and the Extended Essay",
+    examType: "ib",
+    regions: ["EU", "CA", "AU", "INTL"],
+    folders: ["Group 1 · Language", "Group 3 · Humanities", "Group 4 · Sciences", "Group 5 · Mathematics", "TOK", "Extended Essay"],
+    milestones: [
+      { name: "Internal Assessment deadline", monthsFromNow: 2 },
+      { name: "IB Exams", monthsFromNow: 6 },
+    ],
+  },
+  {
+    id: "atar-12",
+    label: "Year 12 (HSC / VCE)",
+    hint: "English plus your elective subjects",
+    examType: "other",
+    regions: ["AU"],
+    folders: ["English", "Mathematics", "Science", "Humanities"],
+    milestones: [
+      { name: "Trial Exams", monthsFromNow: 2 },
+      { name: "Final Exams", monthsFromNow: 5 },
+    ],
+  },
 ] as const;
+
+/** Native presets first, then the rest — the whole world is one scroll
+ *  away, the student's own board is one tap away. */
+export function presetsForRegion(regionId: RegionId): readonly CurriculumPreset[] {
+  const native = new Set(REGIONS[regionId].presetIds);
+  return [...CURRICULUM_PRESETS].sort(
+    (a, b) => Number(native.has(b.id)) - Number(native.has(a.id)),
+  );
+}
 
 export function dateMonthsFromNow(months: number, now = new Date()): string {
   const date = new Date(
@@ -155,6 +232,12 @@ export interface OnboardingAnswers {
   /** Free text — a syllabus's grading scale is not something to hardcode
    *  (IB 1-7, GCSE 9-1, letters, percentages). */
   targetGrade: string | null;
+  /** Where the student studies. Drives currency, presets, examiner persona
+   *  and the privacy regime shown in Settings. Null = detected each session. */
+  region: RegionId | null;
+  /** Explicit, per-purpose consent (GDPR Art. 7 / FERPA directory-style).
+   *  Absent keys mean "not asked yet", never "yes". */
+  consent: { analytics: boolean; aiProcessing: boolean };
   focusAreas: FocusAreaId[];
   coachStyle: AiPersona;
   detail: AiConciseness;
@@ -171,6 +254,8 @@ export const EMPTY_ANSWERS: OnboardingAnswers = Object.freeze({
   goal: null,
   examType: null,
   targetGrade: null,
+  region: null,
+  consent: { analytics: false, aiProcessing: false },
   focusAreas: [],
   coachStyle: "tutor",
   detail: "medium",
@@ -233,6 +318,16 @@ export const EXAM_BOARDS: ReadonlyArray<{
   { id: "act", label: "ACT" },
   { id: "other", label: "Something else" },
 ];
+
+/** The region's own board label is shown for "other", so a CBSE student
+ *  sees "CBSE Board" rather than "Something else". */
+export function examBoardLabel(id: ExamTypeId, regionId?: RegionId | null): string {
+  if (id === "other") {
+    const fw = getFramework(regionId);
+    return fw.id === "generic" ? "Something else" : fw.boardLabel;
+  }
+  return EXAM_BOARDS.find((b) => b.id === id)?.label ?? id;
+}
 
 /** Goals for which "which board?" is a question worth asking. */
 export const GOALS_WITH_BOARDS: ReadonlyArray<StudyGoalId> = [
@@ -389,6 +484,11 @@ export function parseAnswers(raw: unknown): OnboardingAnswers | null {
       typeof r.targetGrade === "string" && r.targetGrade.trim()
         ? r.targetGrade.trim().slice(0, 20)
         : null,
+    region: isRegionId(r.region) ? r.region : null,
+    consent: {
+      analytics: (r.consent as Record<string, unknown> | undefined)?.analytics === true,
+      aiProcessing: (r.consent as Record<string, unknown> | undefined)?.aiProcessing === true,
+    },
     focusAreas: Array.isArray(r.focusAreas)
       ? r.focusAreas.filter(isFocusArea)
       : [],

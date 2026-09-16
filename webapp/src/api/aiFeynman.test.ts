@@ -452,7 +452,7 @@ describe("aiFeynman API & Simulation Engine", () => {
         "cbse_examiner",
       );
 
-      expect(turn.apprenticeReaction).toMatch(/marks|NCERT|CBSE/i);
+      expect(turn.apprenticeReaction).toMatch(/marks|credit|evaluations/i);
       expect(turn.apprenticeReaction).not.toContain("explain it like I'm 10");
     });
 

@@ -28,11 +28,6 @@ import {
 import { InlineAiToolbar } from "./InlineAiToolbar";
 import { InlineDiffPreview } from "./InlineDiffPreview";
 import { InlineMiniChat } from "./InlineMiniChat";
-import {
-  useStudyBuddyChecks,
-  type StudyBuddyCheckItem,
-} from "../../hooks/useStudyBuddyChecks";
-import { StudyBuddyGutter } from "./StudyBuddyGutter";
 import styles from "./notes.module.css";
 
 export const SAVE_DEBOUNCE_MS = 2000;
@@ -159,16 +154,6 @@ export function NotesEditorPane({
   const notesOmitted = !note && processingRecord?.notesRequested === false;
 
   const [notesPlainText, setNotesPlainText] = useState("");
-
-  const {
-    checks: studyBuddyChecks,
-    isScanning: isStudyBuddyScanning,
-    dismissCheck: dismissStudyBuddyCheck,
-  } = useStudyBuddyChecks(notesPlainText, {
-    enabled: !!note,
-    subject: materialTitle,
-    settings,
-  });
 
   useEffect(() => {
     if (note && editorRef.current) {
@@ -348,21 +333,6 @@ ${fenceUntrusted(currentHtml)}
       }
     },
     [scheduleSave],
-  );
-
-  const handleApplyStudyBuddyFix = useCallback(
-    (item: StudyBuddyCheckItem) => {
-      if (editorRef.current?.appendText && item.suggestedFix) {
-        editorRef.current.appendText(
-          `\n\n[Study Buddy Note: ${item.suggestedFix}]\n`,
-        );
-        dirtyHtmlRef.current = editorRef.current.getHtml();
-        setStatus("unsaved");
-        scheduleSave(SAVE_DEBOUNCE_MS);
-        showToast("Study Buddy improvement accepted!");
-      }
-    },
-    [scheduleSave, showToast],
   );
 
   /* Warn before a tab closes on work that hasn't reached the server, the way
@@ -853,16 +823,6 @@ ${fenceUntrusted(currentHtml)}
                 onUserChange={note ? handleUserChange : undefined}
               />
             </div>
-            {note && (
-              <div style={{ padding: "var(--s-3) var(--s-3) var(--s-3) 0" }}>
-                <StudyBuddyGutter
-                  checks={studyBuddyChecks}
-                  isScanning={isStudyBuddyScanning}
-                  onAcceptFix={handleApplyStudyBuddyFix}
-                  onDismiss={dismissStudyBuddyCheck}
-                />
-              </div>
-            )}
           </div>
         </Card>
 

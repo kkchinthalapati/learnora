@@ -24,14 +24,22 @@ export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayoutPreferences = {
   visibleSections: {
     nextHour: true,
     todayTimeline: true,
-    activityRings: true,
+    /* Off by default: the "All" tab is capped at six cards a student can act
+       on before Thursday. Rings, streak widgets and the community feed live
+       behind "More" (this modal) rather than costing scroll time up front. */
+    activityRings: false,
     recentNotebooks: true,
     priorities: true,
     continueStudying: true,
-    progressStreak: true,
-    sessionsCommunity: true,
+    progressStreak: false,
+    sessionsCommunity: false,
   },
 };
+
+/** Sections hidden by the current layout — what "More" would reveal. */
+export function hiddenSectionCount(layout: DashboardLayoutPreferences): number {
+  return Object.values(layout.visibleSections).filter((v) => !v).length;
+}
 
 export function loadDashboardLayout(): DashboardLayoutPreferences {
   const stored = Storage.get<Partial<DashboardLayoutPreferences>>(
@@ -70,7 +78,7 @@ const SECTION_DESCRIPTIONS: Record<
 > = {
   nextHour: {
     title: "What your next hour is worth",
-    desc: "The topic worth the most marks per hour before your next exam, and a timer for it",
+    desc: "The topic worth the most credit per hour before your next exam, and a timer for it",
     icon: "zap",
   },
   todayTimeline: {

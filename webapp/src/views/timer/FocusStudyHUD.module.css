@@ -355,3 +355,12 @@
     transition: none;
   }
 }
+
+/* Touch sizing — the HUD's 32px controls were the only buttons on the timer
+   route below the 44px token every sibling screen already honours. */
+@media (pointer: coarse) {
+  .btn {
+    height: var(--touch-target-min);
+    min-width: var(--touch-target-min);
+  }
+}

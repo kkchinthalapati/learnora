@@ -145,7 +145,7 @@ describe("route integrity", () => {
 
   it("every link target resolves to a declared route", () => {
     /* Root-relative hrefs to static pages served outside the SPA. */
-    const external = ["/terms.html", "/llms.txt", "/privacy.html"];
+    const external = ["/llms.txt", "/privacy.html"];
     const unroutable: string[] = [];
 
     for (const file of FILES) {

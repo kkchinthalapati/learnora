@@ -3,6 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import {
   EMPTY_ANSWERS,
   CURRICULUM_PRESETS,
+  presetsForRegion,
   ONBOARDING_LOCAL_KEY,
   ONBOARDING_RELEASE_ISO,
   dashboardLayoutFor,
@@ -40,16 +41,18 @@ beforeEach(() => {
 });
 
 describe("curriculum presets", () => {
-  it("ships the three one-tap school setups with complete subject lists", () => {
-    expect(CURRICULUM_PRESETS.map((preset) => preset.label)).toEqual([
+  it("puts the student's own board first and ships complete subject lists", () => {
+    expect(presetsForRegion("IN").slice(0, 2).map((p) => p.label)).toEqual([
       "CBSE Class 10",
       "ICSE Class 10",
-      "GCSE / IGCSE Year 11",
     ]);
-    expect(CURRICULUM_PRESETS[0].folders).toContain("Science · Physics");
-    expect(CURRICULUM_PRESETS[0].folders).toContain(
-      "Social Science · Economics",
-    );
+    expect(presetsForRegion("US")[0].label).toBe("AP Courses");
+    expect(presetsForRegion("GB")[0].label).toBe("GCSE / IGCSE Year 11");
+    expect(presetsForRegion("IN")).toHaveLength(CURRICULUM_PRESETS.length);
+    const cbse = CURRICULUM_PRESETS.find((p) => p.id === "cbse-10")!;
+    expect(cbse.folders).toContain("Science · Physics");
+    expect(cbse.folders).toContain("Social Science · Economics");
+    expect(CURRICULUM_PRESETS.every((p) => p.folders.length > 0)).toBe(true);
     expect(
       CURRICULUM_PRESETS.every((preset) => preset.milestones.length > 0),
     ).toBe(true);

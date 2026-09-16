@@ -12,6 +12,7 @@ import {
   loadDashboardLayout,
   saveDashboardLayout,
   type DashboardLayoutPreferences,
+  hiddenSectionCount,
 } from "./DashboardCustomizeModal";
 import { FocusCard } from "./FocusCard";
 import { NextExamCard } from "./NextExamCard";
@@ -390,6 +391,16 @@ export function DashboardView({
                 <SessionHistoryCard />
               </div>
             </section>
+          )}
+
+          {hiddenSectionCount(layout) > 0 && (
+            <button
+              type="button"
+              className={styles.moreBtn}
+              onClick={() => setCustomizeOpen(true)}
+            >
+              More ({hiddenSectionCount(layout)} hidden)
+            </button>
           )}
         </div>
       )}

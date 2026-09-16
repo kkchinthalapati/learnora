@@ -642,3 +642,12 @@
     align-items: center;
   }
 }
+
+/* The pencil inside the day modal was 24px while its list twin was 44px. */
+.dayItemEditBtn {
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+}

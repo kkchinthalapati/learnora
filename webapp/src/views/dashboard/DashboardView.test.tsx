@@ -100,7 +100,17 @@ function serveDashboard({
   );
 }
 
+const ALL_SECTIONS_VISIBLE = JSON.stringify({
+  visibleSections: { activityRings: true, progressStreak: true, sessionsCommunity: true },
+});
+
 function renderDashboard() {
+  /* The "All" tab hides rings, streak and community by default (dashboard
+     diet); these tests exercise every card, so opt them back in. The default
+     itself is asserted in "keeps the All tab to six cards by default". */
+  if (!localStorage.getItem("learnora_dashboard_layout_v2")) {
+    localStorage.setItem("learnora_dashboard_layout_v2", ALL_SECTIONS_VISIBLE);
+  }
   return renderWithAuth(
     /* The dashboard's AI card talks to the chat, and ChatProvider has to sit
        inside the router (it navigates) — which the harness now supplies,
@@ -131,6 +141,17 @@ describe("DashboardView", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("keeps the All tab to six cards by default and offers More", () => {
+    serveDashboard();
+    localStorage.setItem("learnora_dashboard_layout_v2", JSON.stringify({}));
+    renderDashboard();
+
+    expect(screen.getByRole("heading", { name: "Study next" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Progress and streak" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Sessions and community" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^More \(3 hidden\)/ })).toBeInTheDocument();
   });
 
   it("groups content by urgency and study context", () => {

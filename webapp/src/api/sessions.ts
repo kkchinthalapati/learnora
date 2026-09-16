@@ -7,6 +7,8 @@ export interface LogSessionInput {
   task?: string | null;
   folderId?: string | null;
   timerType?: string | null;
+  /** "What I covered" — one line, optional, persisted on the row. */
+  notes?: string | null;
 }
 
 /* Direct port of js/api.js's `Sessions` object (:920-957). */
@@ -16,6 +18,7 @@ export const sessionsApi = {
     task,
     folderId = null,
     timerType = null,
+    notes = null,
   }: LogSessionInput): Promise<void> {
     const userId = await requireUserId();
     const startedAt = new Date(Date.now() - minutes * 60000).toISOString();
@@ -27,6 +30,7 @@ export const sessionsApi = {
         minutes,
         timer_type: timerType,
         started_at: startedAt,
+        notes: notes?.trim() ? notes.trim().slice(0, 280) : null,
       },
     ]);
     if (error) throw new Error(error.message);

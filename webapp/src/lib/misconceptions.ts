@@ -691,7 +691,10 @@ export const MAX_REVIEW_CANDIDATES = 5;
  *  callers pass their cards straight through — but declared here rather than
  *  imported, to keep this module free of the API layer like the rest of it. */
 export interface ReviewedCard {
-  front: string;
+  /** Optional because `wasAlreadyHard` reads only the memory fields below, and
+   *  is called against due-card rows that carry no face text. The extractor
+   *  that does need it already guards with `?? ""`. */
+  front?: string;
   /** FSRS difficulty, 1..10. Absent on cards last reviewed before the column. */
   difficulty?: number | null;
   /** SM-2 ease factor. The pre-FSRS stand-in for `difficulty`. */

@@ -19,8 +19,8 @@ don't use it to infer what's currently true or what's currently left to do.
 
 - **`webapp/`** — the live React app (Vite + TS + Vitest). This is where
   features, fixes, and UI work happen.
-- **`js/`, `index.html`, `style.css`** at the repo root — a thin legacy
-  shell. Every real view now redirects into `webapp/` (see
-  `js/router.js`'s `CUTOVER_ROUTES`); what's left is auth-adjacent pages
-  (`terms.html`, `reset-password.html`, `verify.html`) and the redirect
-  glue itself. Don't build new features here.
+- Root `*.html` + `public.css` / `style.css` — static marketing and policy
+  pages only (landing, about, contact, privacy, developers, 404). The
+  vanilla JS shell (`js/`, `index.html`, `terms/verify/reset-password.html`)
+  was deleted on 2026-09-16; `/terms`, `/verify` and `/reset-password` are
+  routes in `webapp/`. Don't build features here.

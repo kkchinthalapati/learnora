@@ -221,6 +221,14 @@ export const authApi = {
     currentPassword: string,
     newPassword: string,
   ): Promise<void> {
+    await this.verifyPassword(currentPassword);
+    await applyPasswordChange(newPassword);
+  },
+
+  /** Prove the caller knows the account password before a destructive
+   *  action (wipe, password change). Same re-auth trick as above; throws a
+   *  friendly error on a wrong password or a rate limit. */
+  async verifyPassword(currentPassword: string): Promise<void> {
     if (!currentPassword) {
       throw new Error("Please enter your current password.");
     }
@@ -256,8 +264,6 @@ export const authApi = {
       }
       throw new Error("Your current password is incorrect.");
     }
-
-    await applyPasswordChange(newPassword);
   },
 
   /** Sign out all other sessions (not the current one). */
