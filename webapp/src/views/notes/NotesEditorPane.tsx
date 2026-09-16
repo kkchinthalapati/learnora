@@ -49,12 +49,7 @@ const COMPLEXITY_LABELS = {
 } as const;
 
 type SaveStatus =
-  | "idle"
-  | "unsaved"
-  | "saving"
-  | "saved"
-  | "failed"
-  | "readonly";
+  "idle" | "unsaved" | "saving" | "saved" | "failed" | "readonly";
 
 interface ActiveSelection {
   range: EditorRange;
@@ -153,8 +148,6 @@ export function NotesEditorPane({
   const isRetrying = retryMutation.isPending;
   const notesOmitted = !note && processingRecord?.notesRequested === false;
 
-  const [notesPlainText, setNotesPlainText] = useState("");
-
   useEffect(() => {
     if (note && editorRef.current) {
       const html =
@@ -163,9 +156,6 @@ export function NotesEditorPane({
       if (html) {
         editorRef.current.setHtml(html);
         setStatus("idle");
-        if (editorRef.current.getPlainText) {
-          setNotesPlainText(editorRef.current.getPlainText());
-        }
       }
     }
   }, [note]);
@@ -328,9 +318,6 @@ ${fenceUntrusted(currentHtml)}
       retriedRef.current = false;
       setStatus("unsaved");
       scheduleSave(SAVE_DEBOUNCE_MS);
-      if (editorRef.current?.getPlainText) {
-        setNotesPlainText(editorRef.current.getPlainText());
-      }
     },
     [scheduleSave],
   );

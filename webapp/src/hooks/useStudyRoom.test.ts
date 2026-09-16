@@ -97,6 +97,8 @@ describe("useStudyRoom", () => {
     applyFav: vi.fn(),
     quote: "Stay focused",
     newQuote: vi.fn(),
+    sessionNote: "",
+    setSessionNote: vi.fn(),
     ...overrides,
   });
 
@@ -382,7 +384,9 @@ describe("useStudyRoom", () => {
       };
       for (let i = 1; i <= peerCount; i++) {
         // Every peer arrived earlier than us.
-        state[`peer-${i}`] = [peer(i, selfJoinedAt - 1000 * (peerCount - i + 1))];
+        state[`peer-${i}`] = [
+          peer(i, selfJoinedAt - 1000 * (peerCount - i + 1)),
+        ];
       }
       return state;
     }
@@ -460,7 +464,9 @@ describe("useStudyRoom", () => {
       const channel = mockChannelsMap.get("study-room:global");
       const now = Date.now();
 
-      channel!.presenceState.mockReturnValue(crowdedRoom(MAX_ROOM_PARTICIPANTS, now));
+      channel!.presenceState.mockReturnValue(
+        crowdedRoom(MAX_ROOM_PARTICIPANTS, now),
+      );
       act(() => channel!._presenceSyncCb?.());
       expect(result.current.isRoomFull).toBe(true);
 
@@ -720,7 +726,10 @@ describe("useStudyRoom", () => {
       // A stray echo of our own broadcast must not overwrite our own state.
       act(() => {
         channel!._groupTimerUpdateCb?.({
-          payload: { ...result.current.groupTimerState, hostUserId: "user-123" },
+          payload: {
+            ...result.current.groupTimerState,
+            hostUserId: "user-123",
+          },
         });
       });
       expect(result.current.isGroupTimerHost).toBe(true);

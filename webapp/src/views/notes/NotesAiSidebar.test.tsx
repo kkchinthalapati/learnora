@@ -314,9 +314,10 @@ describe("NotesAiSidebar", () => {
     ).not.toBeChecked();
 
     // Source tab is directly selected to Saved Material with mat-1 selected
-    expect(
-      screen.getByRole("tab", { name: "Saved Material" }),
-    ).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Saved Material/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     expect(screen.getByLabelText("Saved material")).toHaveValue("mat-1");
   });
 
