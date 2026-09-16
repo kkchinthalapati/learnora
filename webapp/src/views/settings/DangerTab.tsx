@@ -12,6 +12,7 @@ import { useToast } from "../../context/toast";
 import { useAuth } from "../../context/auth";
 import { useDeleteAccount } from "../../hooks/useAuthActions";
 import { useWipeData } from "../../hooks/useDataAdmin";
+import { authApi } from "../../api/auth";
 import styles from "./settings.module.css";
 
 /* Danger Zone tab — ports index.html:1642-1673 + js/main.js:1140-1170.
@@ -50,7 +51,22 @@ export function DangerTab() {
       },
     );
     if (!ok) return;
+    /* Second factor, same reason as account deletion: a passer-by at an
+       unlocked laptop should not be able to erase a term's work on one
+       click. */
+    const password = await promptText(
+      "Enter your password to confirm the wipe.",
+      {
+        title: "Confirm your password",
+        confirmText: "Wipe everything",
+        danger: true,
+        placeholder: "Your password",
+        inputType: "password",
+      },
+    );
+    if (password === null) return;
     try {
+      await authApi.verifyPassword(password);
       await wipeData.mutateAsync();
       await queryClient.invalidateQueries();
       setFeedback(null);

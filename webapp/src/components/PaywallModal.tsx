@@ -6,11 +6,8 @@ import { useToast } from "../context/toast";
 import { useStartCheckout } from "../hooks/useSubscription";
 import {
   FEATURES,
-  PLAN_PRICING,
   PRO_FEATURES,
-  formatPrice,
   getLocalizedPlanPricing,
-  isIndianLocale,
   type FeatureId,
 } from "../lib/entitlements";
 import styles from "./PaywallModal.module.css";
@@ -63,9 +60,8 @@ export function PaywallModal({
 
   const lead = feature ? FEATURES[feature] : null;
   const rest = PRO_FEATURES.filter((f) => f.id !== feature);
-  const isIndian = isIndianLocale();
-  const localizedPricing = getLocalizedPlanPricing();
-  const pricing = localizedPricing[selectedPlan];
+  const localized = getLocalizedPlanPricing();
+  const pricing = localized.plans[selectedPlan];
   const planLabel = pricing.name.replace("Learnora ", "");
 
   const upgrade = () => {
@@ -137,7 +133,7 @@ export function PaywallModal({
                 }`}
                 onClick={() => setSelectedPlan(p)}
               >
-                {PLAN_PRICING[p].name.replace("Learnora ", "")}
+                {localized.plans[p].name.replace("Learnora ", "")}
               </button>
             ))}
           </div>
@@ -168,7 +164,7 @@ export function PaywallModal({
                     ) : null}
                   </span>
                   <span className={styles.priceAmount}>
-                    {formatPrice(price.amountPence, isIndian ? "INR" : "GBP")}
+                    {localized.format(price.amountPence)}
                     <span className={styles.priceInterval}>
                       {" "}
                       / {price.interval}
@@ -183,9 +179,9 @@ export function PaywallModal({
           })}
         </ul>
 
-        {isIndian && (
+        {localized.paymentHint && (
           <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", marginTop: "var(--s-2)", textAlign: "center" }}>
-            ⚡ Supports UPI (Google Pay, PhonePe, Paytm), Net Banking & Cards
+            {localized.paymentHint}
           </p>
         )}
 

@@ -2,11 +2,13 @@
 #
 # Deploy build: assembles ./dist as the single directory Vercel serves.
 #
-# The two apps run side by side during the migration, so the output is the
-# vanilla app at the root plus the React app under /app:
+# Static marketing/policy pages at the root plus the React app under /app:
 #
-#   dist/            index.html, style.css, js/, vendor/, …   (vanilla)
-#   dist/app/        index.html, assets/…                     (React)
+#   dist/            landing.html, about.html, 404.html, style.css, …  (static)
+#   dist/app/        index.html, assets/…                              (React)
+#
+# The vanilla JS app (js/, index.html, terms/verify/reset-password pages) is
+# gone; /terms, /verify and /reset-password live in webapp/ (routes.tsx).
 #
 # Why an explicit copy list rather than serving the repo root directly:
 # `outputDirectory: "."` would publish whatever is in the working tree after
@@ -27,14 +29,10 @@ echo "==> Cleaning $OUT"
 rm -rf "$OUT"
 mkdir -p "$OUT"
 
-# Everything the vanilla app serves. Checked against index.html's asset
-# references plus the standalone pages.
+# Everything served outside /app.
 VANILLA_PATHS=(
   404.html
   style.css
-  i18n.js
-  js
-  vendor
   learnora.jpg
   study-planner-imageandlogo.jpg
   public.css
@@ -48,14 +46,9 @@ VANILLA_PATHS=(
   sitemap.xml
   robots.txt
   .well-known
-  terms.html
-  verify.html
-  verify.js
-  reset-password.html
-  reset-password.js
 )
 
-echo "==> Copying the vanilla app"
+echo "==> Copying the static pages"
 for path in "${VANILLA_PATHS[@]}"; do
   if [[ ! -e "$ROOT/$path" ]]; then
     echo "ERROR: $path is listed in scripts/build.sh but does not exist." >&2

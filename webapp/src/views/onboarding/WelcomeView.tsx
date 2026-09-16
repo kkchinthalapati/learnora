@@ -35,7 +35,6 @@ import { useSaveExam } from "../../hooks/useExams";
 import {
   CAPACITY_CHOICES,
   COACH_STYLES,
-  CURRICULUM_PRESETS,
   EMPTY_ANSWERS,
   EXAM_BOARDS,
   FOCUS_AREAS,
@@ -46,10 +45,12 @@ import {
   STUDY_TIMES,
   dashboardLayoutFor,
   dateMonthsFromNow,
+  examBoardLabel,
   goalSummary,
   lifeContextPatchFor,
   markOnboardedLocally,
   nextStepsFor,
+  presetsForRegion,
   readOnboarding,
   settingsPatchFor,
   studyProfilePatchFor,
@@ -58,6 +59,7 @@ import {
   type OnboardingAnswers,
 } from "../../lib/onboarding";
 import { profileApi } from "../../api/profile";
+import { detectRegion } from "../../lib/region";
 import { useProfileDetails } from "../../hooks/useProfileDetails";
 import {
   loadDashboardLayout,
@@ -86,7 +88,9 @@ export function WelcomeView() {
   const [params] = useSearchParams();
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { updateAndSave } = useSettings();
+  const { settings, updateAndSave } = useSettings();
+  const region = useMemo(() => detectRegion(settings.timezone), [settings.timezone]);
+  const curriculumPresets = useMemo(() => presetsForRegion(region), [region]);
   const { update: updateLifeContext } = useLifeContext();
   const updateProfile = useUpdateProfile();
   const addFolder = useAddFolder();
@@ -181,7 +185,7 @@ export function WelcomeView() {
 
       if (user) markOnboardedLocally(user.id);
 
-      const preset = CURRICULUM_PRESETS.find(
+      const preset = curriculumPresets.find(
         (item) => item.id === curriculumPreset,
       );
       const trimmedSubject = subjectName.trim();
@@ -259,6 +263,7 @@ export function WelcomeView() {
     [
       addFolder,
       curriculumPreset,
+      curriculumPresets,
       examDate,
       examName,
       saveExam,
@@ -471,7 +476,7 @@ export function WelcomeView() {
                           })
                         }
                       >
-                        {board.label}
+                        {examBoardLabel(board.id, region)}
                       </button>
                     ))}
                   </div>
@@ -612,7 +617,7 @@ export function WelcomeView() {
                   Quick curriculum setup
                 </legend>
                 <div className={styles.optionRow}>
-                  {CURRICULUM_PRESETS.map((preset) => (
+                  {curriculumPresets.map((preset) => (
                     <button
                       key={preset.id}
                       type="button"
@@ -624,7 +629,7 @@ export function WelcomeView() {
                         setCurriculumPreset(selected);
                         if (selected) {
                           setSubjectName(preset.folders[0]);
-                          patch({ goal: "school", examType: preset.examType });
+                          patch({ goal: "school", examType: preset.examType, region });
                         }
                       }}
                     >

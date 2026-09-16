@@ -15,6 +15,7 @@ import { supabase, SUPABASE_URL } from "../lib/supabase";
 import { requireUserId } from "./session";
 import {
   FREE_SUBSCRIPTION,
+  getLocalizedPlanPricing,
   type Plan,
   type PlanStatus,
   type Subscription,
@@ -127,11 +128,13 @@ export const billingApi = {
   async createCheckoutSession(
     plan: "plus" | "pro",
     period: "monthly" | "annual",
+    currency: string = getLocalizedPlanPricing().currency,
   ): Promise<string> {
     const { url } = await callBilling<{ url: string }>({
       action: "checkout",
       plan,
       period,
+      currency,
       returnUrl: `${window.location.origin}/app/settings`,
     });
     return url;

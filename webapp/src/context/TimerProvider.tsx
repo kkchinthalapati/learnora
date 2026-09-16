@@ -70,6 +70,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
      does the logging, holds them. */
   const [activeTask, setActiveTask] = useState("None");
   const [activeFolderId, setActiveFolderId] = useState("");
+  const [sessionNote, setSessionNote] = useState("");
+  const sessionNoteRef = useRef("");
+  sessionNoteRef.current = sessionNote;
 
   const pause = useCallback(() => setState((s) => pauseT(s)), []);
 
@@ -99,9 +102,11 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           isGuest: !session,
         });
 
+        const notes = sessionNoteRef.current.trim() || null;
+        if (notes) setSessionNote("");
         if (session) {
           logSession.mutate(
-            { minutes, task, folderId, timerType: state.type },
+            { minutes, task, folderId, timerType: state.type, notes },
             {
               onError: (err) =>
                 console.warn(
@@ -473,6 +478,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       setActiveTask,
       activeFolderId,
       setActiveFolderId,
+      sessionNote,
+      setSessionNote,
       favs,
       saveFav,
       deleteFav,
@@ -483,6 +490,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     [
       activeTask,
       activeFolderId,
+      sessionNote,
       state,
       draftConfig,
       setDraftConfig,

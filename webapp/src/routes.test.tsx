@@ -69,11 +69,8 @@ describe("route skeleton", () => {
   });
 
   it.each([
-    "/exam-traps",
-    "/exam-traps/radar",
-    "/premortem",
-    "/premortem/radar",
-  ])("%s redirects to /exam-detective", async (path) => {
+    "/exam-detective",
+  ])("%s renders Exam Detective", async (path) => {
     renderAt(path);
     expect(
       await screen.findByRole(

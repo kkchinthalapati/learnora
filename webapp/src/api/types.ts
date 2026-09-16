@@ -39,7 +39,14 @@ export interface Material {
   raw_content: string | null;
   storage_path: string | null;
   created_at: string;
+  /** Server-side pipeline state; see materialProcessing.ts for the mapping
+   *  onto the richer client status. Missing on rows read before the column. */
+  processing_status?: MaterialProcessingDbStatus | null;
+  processing_error?: string | null;
+  processing_updated_at?: string | null;
 }
+
+export type MaterialProcessingDbStatus = "pending" | "done" | "partial" | "failed" | "skipped";
 
 export interface Note {
   id: string;
@@ -99,6 +106,8 @@ export interface StudySession {
   timer_type: string | null;
   started_at: string;
   created_at: string;
+  /** Optional end-of-session line: what was actually covered. */
+  notes?: string | null;
 }
 
 export interface WeeklyPlan {

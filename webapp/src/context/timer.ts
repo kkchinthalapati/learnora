@@ -43,6 +43,10 @@ export interface TimerApi {
   /** Subject/folder this session is bound to; "" is unassigned. */
   activeFolderId: string;
   setActiveFolderId: (id: string) => void;
+  /** Optional "what I covered" line, attached to the next logged session
+   *  and cleared once it is written. */
+  sessionNote: string;
+  setSessionNote: (note: string) => void;
 
   favs: FavPreset[];
   saveFav: (name: string) => void;

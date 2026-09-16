@@ -25,13 +25,14 @@ describe("Marketing Views", () => {
       expect(timerBtn).toBeInTheDocument();
       expect(timerBtn).toHaveAttribute("href", "/timer");
 
-      // Localized INR pricing
-      expect(screen.getByText("₹0")).toBeInTheDocument();
-      expect(screen.getByText("₹199")).toBeInTheDocument();
-      expect(screen.getByText("₹399")).toBeInTheDocument();
+      // Pricing follows the detected region (jsdom reports en-US → USD)
+      expect(screen.getByText("$0")).toBeInTheDocument();
+      expect(screen.getByText("$3.99")).toBeInTheDocument();
+      expect(screen.getByText("$7.99")).toBeInTheDocument();
 
-      // UPI badge
-      expect(screen.getByText(/Supports UPI/i)).toBeInTheDocument();
+      // No region-specific payment rail for a card-only market
+      expect(screen.queryByText(/Supports UPI/i)).not.toBeInTheDocument();
+      expect(screen.getByText(/Cancel anytime/i)).toBeInTheDocument();
     });
   });
 

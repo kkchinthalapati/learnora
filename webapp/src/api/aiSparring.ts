@@ -10,6 +10,7 @@
 
 import { callEdge } from "./ai";
 import { extractJSON } from "../lib/aiJson";
+import { getFramework } from "../lib/region";
 import type { GroundedCitation } from "../types/notebooks";
 
 export type { GroundedCitation };
@@ -61,17 +62,23 @@ export interface VivaRolePreset {
   defaultSpeaker: SparringPersona;
 }
 
-export const VIVA_ROLES: VivaRolePreset[] = [
-  {
+/* The examiner borrows the student's own board vocabulary (lib/region.ts)
+   so a CBSE student meets an NCERT marker and an AP student meets a College
+   Board reader — same rigor, no hardcoded country. */
+function examinerRole(): VivaRolePreset {
+  const { boardLabel, syllabusLabel } = getFramework();
+  return {
     id: "examiner",
-    title: "Tough CBSE Board Examiner",
+    title: `Tough ${boardLabel} Examiner`,
     icon: "📋",
-    description:
-      "Strict & formal. Demands exact NCERT terms, formulas, and rigorous step-by-step logic.",
-    promptInstruction:
-      "Act as a tough CBSE Board viva examiner. Demand exact terminology, definitions, formulas, and precise scientific boundaries. Do not accept hand-waving or casual approximations.",
+    description: `Strict & formal. Demands exact ${syllabusLabel} terms, formulas, and rigorous step-by-step logic.`,
+    promptInstruction: `Act as a tough ${boardLabel} viva examiner. Demand exact ${syllabusLabel} terminology, definitions, formulas, and precise scientific boundaries. Do not accept hand-waving or casual approximations.`,
     defaultSpeaker: "jordan",
-  },
+  };
+}
+
+export const VIVA_ROLES: VivaRolePreset[] = [
+  examinerRole(),
   {
     id: "buddy",
     title: "Chill Study Buddy",

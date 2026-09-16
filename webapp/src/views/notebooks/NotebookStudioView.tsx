@@ -15,11 +15,6 @@ import styles from "./notebooks.module.css";
 import { EmptyState } from "../../components/EmptyState";
 import { WebSourceImportModal } from "./WebSourceImportModal";
 import { renderMarkdownNodes } from "../../lib/markdownToReact";
-import {
-  useStudyBuddyChecks,
-  type StudyBuddyCheckItem,
-} from "../../hooks/useStudyBuddyChecks";
-import { StudyBuddyGutter } from "../notes/StudyBuddyGutter";
 import { useStudentEvidence } from "../../hooks/useStudentEvidence";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { formatEvidenceForPrompt } from "../../lib/studentEvidence";
@@ -111,22 +106,6 @@ export function NotebookStudioView() {
       ? "Limit reached"
       : `${usage.remaining} left today`;
     return <span className={badgeClass}>{label}</span>;
-  };
-
-  const {
-    checks: studyBuddyChecks,
-    isScanning: isStudyBuddyScanning,
-    dismissCheck: dismissStudyBuddyCheck,
-  } = useStudyBuddyChecks(notebook?.notes ?? "", {
-    enabled: !!notebook,
-    subject: notebook?.title,
-  });
-
-  const handleApplyNotebookBuddyFix = (item: StudyBuddyCheckItem) => {
-    if (!notebook) return;
-    const addition = `\n\n---\n[Study Buddy Note: ${item.suggestedFix}]`;
-    updateNotes((notebook.notes || "") + addition);
-    showToast("Study Buddy fix added to your Notes Canvas!");
   };
 
   // New source form state
@@ -789,12 +768,6 @@ Use British English throughout.`;
                         gap: "var(--s-2)",
                       }}
                     >
-                      <StudyBuddyGutter
-                        checks={studyBuddyChecks}
-                        isScanning={isStudyBuddyScanning}
-                        onAcceptFix={handleApplyNotebookBuddyFix}
-                        onDismiss={dismissStudyBuddyCheck}
-                      />
                       <span className={styles.saveIndicator}>
                         <Icon
                           name="check"
@@ -963,12 +936,6 @@ Use British English throughout.`;
                   >
                     Notes Canvas
                   </span>
-                  <StudyBuddyGutter
-                    checks={studyBuddyChecks}
-                    isScanning={isStudyBuddyScanning}
-                    onAcceptFix={handleApplyNotebookBuddyFix}
-                    onDismiss={dismissStudyBuddyCheck}
-                  />
                 </div>
                 <textarea
                   value={notebook.notes}

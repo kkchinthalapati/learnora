@@ -484,7 +484,7 @@ export function generatePrepRoadmap(
 
   const p3WeakTaskDescription =
     weak.length > 0
-      ? `Focus on the topics you keep dropping marks on: ${weak.slice(0, 3).join(", ")}.`
+      ? `Focus on the topics you keep losing credit on: ${weak.slice(0, 3).join(", ")}.`
       : `Work through the harder questions and get the ${examName} formulas down.`;
 
   const p3Tasks: PrepMilestoneTask[] = [

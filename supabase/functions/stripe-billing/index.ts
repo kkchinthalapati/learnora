@@ -16,6 +16,7 @@
  *   supabase secrets set STRIPE_PRICE_PLUS_ANNUAL=price_...
  *   supabase secrets set STRIPE_PRICE_PRO_MONTHLY=price_...
  *   supabase secrets set STRIPE_PRICE_PRO_ANNUAL=price_...
+ *   # per-currency (optional): STRIPE_PRICE_PLUS_MONTHLY_USD=price_... etc.
  *
  * Until those secrets exist the function answers 503 with
  * `{ notConfigured: true }`, which the client turns into "billing isn't set up
@@ -25,6 +26,9 @@
  * not-configured while Pro keeps working. */
 
 import Stripe from "npm:stripe@17.5.0";
+
+/* Mirrors PLAN_PRICING_BY_CURRENCY in webapp/src/lib/entitlements.ts. */
+const ALLOWED_CURRENCIES = new Set(["GBP", "USD", "INR", "EUR", "AUD", "CAD"]);
 
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://learnora.app",
@@ -183,13 +187,19 @@ Deno.serve(async (req: Request) => {
     if (payload.action === "checkout") {
       const plan = payload.plan === "plus" ? "plus" : "pro";
       const period = payload.period === "annual" ? "annual" : "monthly";
-      /* PLUS_MONTHLY / PLUS_ANNUAL / PRO_MONTHLY / PRO_ANNUAL — four distinct
-         Stripe prices, one per plan/period pair. The webhook re-derives which
-         plan a subscription belongs to from this same price id (see
-         PLAN_BY_PRICE_ID there), so the two must be edited together. */
-      const priceId = Deno.env.get(
-        `STRIPE_PRICE_${plan.toUpperCase()}_${period.toUpperCase()}`,
-      );
+      /* The client sends the currency its region resolved to; it is validated
+         against the allowlist here, never trusted as a free string. Price
+         lookup is `STRIPE_PRICE_{PLAN}_{PERIOD}_{CURRENCY}` first, then the
+         unsuffixed GBP-era var, so a deployment with only four prices keeps
+         working. The webhook re-derives the plan from this same price id
+         (see planByPriceId there), so the two must be edited together. */
+      const currency = ALLOWED_CURRENCIES.has(String(payload.currency ?? "").toUpperCase())
+        ? String(payload.currency).toUpperCase()
+        : "GBP";
+      const base = `STRIPE_PRICE_${plan.toUpperCase()}_${period.toUpperCase()}`;
+      const priceId =
+        Deno.env.get(`${base}_${currency}`) ??
+        (currency === "GBP" ? Deno.env.get(base) : undefined);
       if (!priceId) {
         return json(
           {

@@ -14,9 +14,7 @@ import {
 import { BillingError } from "../../api/billing";
 import {
   PRO_FEATURES,
-  formatPrice,
   getLocalizedPlanPricing,
-  isIndianLocale,
   type Plan,
 } from "../../lib/entitlements";
 import { AiUsageMeter } from "./AiUsageMeter";
@@ -198,10 +196,8 @@ export function BillingTab() {
                 <div className={styles.fieldAction}>
                   <span className={styles.fieldValue}>
                     {(() => {
-                      const isIndian = isIndianLocale();
-                      const localized = getLocalizedPlanPricing();
-                      const cur = isIndian ? "INR" : "GBP";
-                      return `Plus from ${formatPrice(localized.plus.prices[1].amountPence / 12, cur)}/mo · Pro from ${formatPrice(localized.pro.prices[1].amountPence / 12, cur)}/mo`;
+                      const { plans, format } = getLocalizedPlanPricing();
+                      return `Plus from ${format(plans.plus.prices[1].amountPence / 12)}/mo · Pro from ${format(plans.pro.prices[1].amountPence / 12)}/mo`;
                     })()}
                   </span>
                 </div>

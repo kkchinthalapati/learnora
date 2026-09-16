@@ -15,6 +15,18 @@ export const profileApi = {
     if (error) throw new Error(error.message);
   },
 
+  /** Region / framework / grade-scale pins (null = detect). Columns from
+   *  migration 20260916020000; a tenant can later set them for everyone. */
+  async updateRegion(fields: {
+    region?: string | null;
+    framework_id?: string | null;
+    grade_scale_id?: string | null;
+  }): Promise<void> {
+    const userId = await requireUserId();
+    const { error } = await supabase.from("profiles").update(fields).eq("id", userId);
+    if (error) throw new Error(error.message);
+  },
+
   async fetchProfile(): Promise<{
     bio: string | null;
     subject: string | null;

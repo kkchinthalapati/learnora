@@ -27,6 +27,7 @@ import {
   formatMisconceptionsForPrompt,
 } from "../../lib/misconceptions";
 import { SparringStage } from "./SparringStage";
+import { MessageBubble } from "../../components/conversation/ConversationShell";
 import styles from "./sparring.module.css";
 
 const QUICK_STARTER_TOPICS = [
@@ -185,7 +186,7 @@ export function SocraticSparringView() {
   const activeVibeTitle =
     selectedVibeId === "custom"
       ? customVibeText.trim() || "Custom Role"
-      : activeRolePreset?.title || "Tough CBSE Board Examiner";
+      : activeRolePreset?.title || VIVA_ROLES[0].title;
 
   // Determine active goal text
   const activeGoalPreset = VIVA_FOCUS_GOALS.find(
@@ -787,29 +788,17 @@ export function SocraticSparringView() {
               {session.dialogue.map((entry) => {
                 const isStudent = entry.speaker === "student";
                 const isAlex = entry.speaker === "alex";
-                const bubbleClass = isStudent
-                  ? styles.bubbleStudent
-                  : isAlex
-                    ? styles.bubbleAlex
-                    : styles.bubbleJordan;
+                const tone = isStudent ? "student" : isAlex ? "tutor" : "peer";
 
                 return (
-                  <div
+                  <MessageBubble
                     key={entry.id}
-                    className={`${styles.dialogueBubble} ${bubbleClass}`}
-                  >
-                    <span className={styles.bubbleAvatar}>{entry.avatar}</span>
-                    <div className={styles.bubbleBody}>
-                      <div className={styles.bubbleHeader}>
-                        <span className={styles.bubbleSpeakerName}>
-                          {entry.name}
-                        </span>
-                        <span className={styles.bubbleTime}>
-                          {entry.timestamp}
-                        </span>
-                      </div>
-
-                      <p className={styles.bubbleContent}>{entry.content}</p>
+                    tone={tone}
+                    avatar={entry.avatar}
+                    name={entry.name}
+                    time={entry.timestamp}
+                    footer={
+                      <>
 
                       {/* Inline Citations */}
                       {entry.citations && entry.citations.length > 0 && (
@@ -906,8 +895,11 @@ export function SocraticSparringView() {
                           </div>
                         </div>
                       )}
-                    </div>
-                  </div>
+                      </>
+                    }
+                  >
+                    <p>{entry.content}</p>
+                  </MessageBubble>
                 );
               })}
 

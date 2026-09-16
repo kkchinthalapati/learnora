@@ -20,7 +20,7 @@ import {
 import { parseLocalDate } from "./date";
 
 function dayName(date: string): string {
-  return parseLocalDate(date).toLocaleDateString("en-GB", { weekday: "short" });
+  return parseLocalDate(date).toLocaleDateString(undefined, { weekday: "short" });
 }
 
 /** One line per day: what is booked, and what is genuinely left. */

@@ -1,16 +1,18 @@
 import { Link } from "react-router";
 import { BrandLogo } from "../../components/BrandLogo";
 import { Icon } from "../../components/Icon";
-import { PLAN_PRICING_INR, formatPrice } from "../../lib/entitlements";
+import { getLocalizedPlanPricing } from "../../lib/entitlements";
 import styles from "./landing.module.css";
 
 export function LandingView() {
-  const plusPlan = PLAN_PRICING_INR.plus;
-  const proPlan = PLAN_PRICING_INR.pro;
-  const plusMonthly = formatPrice(plusPlan.prices.find((p) => p.id === "monthly")?.amountPence ?? 19900, "INR");
-  const plusAnnual = formatPrice(plusPlan.prices.find((p) => p.id === "annual")?.amountPence ?? 199900, "INR");
-  const proMonthly = formatPrice(proPlan.prices.find((p) => p.id === "monthly")?.amountPence ?? 39900, "INR");
-  const proAnnual = formatPrice(proPlan.prices.find((p) => p.id === "annual")?.amountPence ?? 399900, "INR");
+  const { plans, format, paymentHint } = getLocalizedPlanPricing();
+  const priceOf = (plan: "plus" | "pro", id: "monthly" | "annual") =>
+    format(plans[plan].prices.find((p) => p.id === id)?.amountPence ?? 0);
+  const plusMonthly = priceOf("plus", "monthly");
+  const plusAnnual = priceOf("plus", "annual");
+  const proMonthly = priceOf("pro", "monthly");
+  const proAnnual = priceOf("pro", "annual");
+  const free = format(0);
 
   return (
     <div className={styles.container}>
@@ -199,7 +201,7 @@ export function LandingView() {
             <div className={styles.planTier}>Free</div>
             <p className={styles.planDesc}>Forever free for students</p>
             <div className={styles.planPriceRow}>
-              <span className={styles.planPrice}>₹0</span>
+              <span className={styles.planPrice}>{free}</span>
               <span className={styles.planPeriod}>/ forever</span>
             </div>
             <ul className={styles.planFeatures}>
@@ -286,11 +288,10 @@ export function LandingView() {
           </div>
         </div>
 
-        {/* UPI Payment Support Badge */}
         <div className={styles.upiNotice}>
           <Icon name="check" size={18} className={styles.checkIcon} />
           <span>
-            <strong>Supports UPI</strong> (Google Pay, PhonePe, Paytm), Net Banking &amp; Cards • Cancel anytime with 1-click
+            {paymentHint ? <>{paymentHint} • </> : null}Cancel anytime with 1-click
           </span>
         </div>
       </section>

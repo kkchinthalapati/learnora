@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import type { Material } from "../api/types";
+import type { Material, MaterialProcessingDbStatus } from "../api/types";
+import { supabase } from "./supabase";
 
 export type MaterialProcessingStatus =
   | "processing"
@@ -101,11 +102,46 @@ export function subscribeMaterialProcessing(listener: () => void): () => void {
   };
 }
 
+const TO_DB: Record<MaterialProcessingStatus, MaterialProcessingDbStatus> = {
+  processing: "pending",
+  completed: "done",
+  partially_processed: "partial",
+  failed: "failed",
+};
+
+const FROM_DB: Record<MaterialProcessingDbStatus, MaterialProcessingStatus> = {
+  pending: "processing",
+  done: "completed",
+  partial: "partially_processed",
+  failed: "failed",
+  skipped: "completed",
+};
+
+/* The row is the source of truth across devices; localStorage is only the
+   synchronous cache for the tab that is doing the work. The write is
+   fire-and-forget: a lost update degrades to the pre-column behaviour, it
+   never blocks the pipeline. */
+function syncToRow(entry: { materialId: string; status: MaterialProcessingStatus; error?: string }) {
+  if (!supabase) return;
+  void supabase
+    .from("materials")
+    .update({
+      processing_status: TO_DB[entry.status],
+      processing_error: entry.status === "failed" || entry.status === "partially_processed" ? entry.error ?? null : null,
+      processing_updated_at: new Date().toISOString(),
+    })
+    .eq("id", entry.materialId)
+    .then(({ error }) => {
+      if (error) console.warn("[materialProcessing] row sync failed", error.message);
+    });
+}
+
 export function setMaterialProcessing(
   entry: Partial<MaterialProcessingRecord> & {
     materialId: string;
     status: MaterialProcessingStatus;
   },
+  opts: { sync?: boolean } = {},
 ): MaterialProcessingRecord {
   const records = loadRecords();
   const existing = records.get(entry.materialId);
@@ -117,7 +153,19 @@ export function setMaterialProcessing(
   records.set(entry.materialId, updated);
   persistRecords(records);
   notify();
+  if (opts.sync !== false) syncToRow(updated);
   return updated;
+}
+
+/** Status the server row carries, mapped to the client vocabulary. Null when
+ *  the row predates the column. */
+export function rowProcessingStatus(material: Material): DerivedMaterialStatus | null {
+  const db = material.processing_status;
+  if (!db || !(db in FROM_DB)) return null;
+  const status = FROM_DB[db];
+  return status === "failed" || status === "partially_processed"
+    ? { status, error: material.processing_error ?? undefined }
+    : { status };
 }
 
 export function getMaterialProcessing(
@@ -154,8 +202,18 @@ export function deriveMaterialStatus(
   notesCount: number,
   record?: MaterialProcessingRecord | null,
 ): DerivedMaterialStatus {
-  const activeRecord =
+  const localRecord =
     record !== undefined ? record : getMaterialProcessing(material.id);
+  const rowStatus = rowProcessingStatus(material);
+  /* Prefer whichever is newer: the local cache during this tab's own run,
+     the row when another device finished (or failed) the job. */
+  const rowNewer =
+    rowStatus &&
+    (!localRecord ||
+      (material.processing_updated_at &&
+        Date.parse(material.processing_updated_at) > localRecord.updatedAt));
+  if (rowNewer) return rowStatus;
+  const activeRecord = localRecord;
 
   if (activeRecord) {
     if (activeRecord.status === "processing") {

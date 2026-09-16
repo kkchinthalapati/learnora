@@ -276,7 +276,7 @@ export async function diagnoseCognitiveGap(
   try {
     const result = await callEdge({
       history: [{ role: "user", content: prompt }],
-      mode: "rewrite",
+      mode: "solver",
       tool: "debugger",
     });
 
@@ -332,7 +332,7 @@ export async function generateMicroRepair(rootConcept: string): Promise<MicroRep
   try {
     const result = await callEdge({
       history: [{ role: "user", content: prompt }],
-      mode: "rewrite",
+      mode: "solver",
       tool: "debugger",
     });
 

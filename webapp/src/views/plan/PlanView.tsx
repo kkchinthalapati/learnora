@@ -1,4 +1,11 @@
-import { useId, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { useNavigate } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
@@ -13,7 +20,9 @@ import {
   useUpdatePlan,
 } from "../../hooks/usePlans";
 import { useExams } from "../../hooks/useExams";
-import { useQuizAttempts } from "../../hooks/useQuizzes";
+import { useQuizAttempts, useQuizzes } from "../../hooks/useQuizzes";
+import { useAllDecks } from "../../hooks/useDecks";
+import { useAllDueFlashcards } from "../../hooks/useFlashcards";
 import { AiError } from "../../api/ai";
 import { PlanShapeError } from "../../api/aiPlan";
 import {
@@ -47,6 +56,11 @@ import {
   type PlanBlockLocation,
 } from "./planEdits";
 import { PlanSectionNav } from "./PlanSectionNav";
+import {
+  resolveBlockTarget,
+  type PlanTargetSources,
+  type ResolvedBlockTarget,
+} from "./planTargets";
 import styles from "./plan.module.css";
 
 /* The Weekly Plan — ports index.html:942-955 + js/router.js's `loadPlanView`
@@ -88,16 +102,21 @@ function DaySkeleton() {
 
 function BlockCard({
   block,
+  resolved,
   onStart,
   onEdit,
   saving,
 }: {
   block: PlanBlock;
+  resolved: ResolvedBlockTarget;
   onStart: (block: PlanBlock) => void;
   onEdit: () => void;
   saving: boolean;
 }) {
   const mins = block.durationMins ?? DEFAULT_BLOCK_MINUTES;
+  const target = resolved.target;
+  const dueCount = target?.dueCount ?? 0;
+  const cardsWord = dueCount === 1 ? "card" : "cards";
   const isPeak =
     block.startHint?.includes("Peak Focus") ||
     block.startHint?.toLowerCase().includes("optimal") ||
@@ -131,16 +150,42 @@ function BlockCard({
           <Button
             size="sm"
             className={styles.blockStart}
-            aria-label={`Start a ${mins} minute focus session for ${block.subject}`}
+            aria-label={
+              target?.kind === "deck"
+                ? `Review ${dueCount} due ${cardsWord} in ${target.title} for ${block.subject}`
+                : target?.kind === "quiz"
+                  ? `Take the quiz ${target.title} for ${block.subject}`
+                  : `Start a ${mins} minute focus session for ${block.subject}`
+            }
             onClick={() => onStart(block)}
           >
-            Start →
+            {target?.kind === "deck"
+              ? `Review ${dueCount} →`
+              : target?.kind === "quiz"
+                ? "Take quiz →"
+                : "Start →"}
           </Button>
         </span>
       </div>
       <div className={styles.blockMeta}>
         {mins}m{block.startHint ? ` · ${block.startHint}` : ""}
       </div>
+      {/* Naming the content means Start is never a blind jump: the student can
+          see it is about to open a deck they did not pick, and edit the block
+          instead if that is wrong. */}
+      {target ? (
+        <div className={styles.blockTarget}>
+          <Icon
+            name={target.kind === "deck" ? "layers" : "list-checks"}
+            size={12}
+          />
+          <span>
+            {target.kind === "deck"
+              ? `${target.title} · ${dueCount} ${cardsWord} due`
+              : `${target.title} · quiz`}
+          </span>
+        </div>
+      ) : null}
       {block.reason ? (
         <p className={styles.blockReason}>{block.reason}</p>
       ) : null}
@@ -152,6 +197,7 @@ function DayCard({
   day,
   dayIndex,
   today,
+  resolveTarget,
   onStart,
   onEdit,
   onAdd,
@@ -160,6 +206,7 @@ function DayCard({
   day: PlanDay;
   dayIndex: number;
   today: string;
+  resolveTarget: (block: PlanBlock) => ResolvedBlockTarget;
   onStart: (block: PlanBlock) => void;
   onEdit: (location: PlanBlockLocation, block: PlanBlock, date: string) => void;
   onAdd: (date: string) => void;
@@ -205,6 +252,7 @@ function DayCard({
             <BlockCard
               key={`${block.subject}-${i}`}
               block={block}
+              resolved={resolveTarget(block)}
               onStart={onStart}
               onEdit={() =>
                 onEdit({ dayIndex, blockIndex: i }, block, day.date)
@@ -424,6 +472,32 @@ export function PlanView() {
   const { data: recentSessions } = useSessionsSince(14);
   const { data: quizAttempts = [] } = useQuizAttempts();
   const { data: folders } = useFolders();
+
+  /* What each block can actually open. All four reads are already cached by
+     the Library and dashboard for most students, so this usually costs the
+     plan nothing.
+
+     The due-card read is capped (`fetchAllDue` orders by due date), so a
+     student sitting on a backlog larger than the cap has the per-deck counts
+     understated rather than wrong — the deck named is still genuinely due. */
+  const { data: allDecks } = useAllDecks();
+  const { data: dueCards } = useAllDueFlashcards(200);
+  const { data: allQuizzes } = useQuizzes();
+
+  const targetSources = useMemo<PlanTargetSources>(
+    () => ({
+      folders: folders ?? [],
+      decks: allDecks ?? [],
+      quizzes: allQuizzes ?? [],
+      dueCards: dueCards ?? [],
+    }),
+    [folders, allDecks, allQuizzes, dueCards],
+  );
+
+  const resolveTarget = useCallback(
+    (block: PlanBlock) => resolveBlockTarget(block, targetSources),
+    [targetSources],
+  );
   const prevParsed = prevPlan ? parseStoredPlan(prevPlan.plan_json) : null;
   const adherence =
     prevParsed && prevParsed.days.length > 0 && recentSessions && folders
@@ -468,11 +542,34 @@ export function PlanView() {
     }
   };
 
-  /* Ports the vanilla's `start-plan-block` handoff (js/router.js:82-85): the
-     block's duration and subject are pre-staged on the timer and the student
-     lands on /timer with only Start left to press. */
+  /* Ports the vanilla's `start-plan-block` handoff (js/router.js:82-85), and
+     then goes past it. The vanilla could only stage a timer, because a block
+     is prose and nothing carried the deck that justified it — so the student
+     landed on /timer and still had to go and find the content themselves.
+     `resolveBlockTarget` recovers it from the library, and a block that
+     resolves opens the real thing instead.
+
+     The timer is deliberately not staged on that path: review and quiz screens
+     run their own `useStudyClock`, so the session is already credited, and a
+     staged focus timer nobody lands on is clutter left behind on /timer.
+
+     `folderId` is passed through as-is rather than coerced to null — it is
+     `undefined` when the subject named no folder, and prepareFocus treats
+     `undefined` as "match the task against folder names yourself", which is
+     the fallback this relies on to stay no worse than before. */
   const startBlock = (block: PlanBlock) => {
-    prepareFocus(block.durationMins ?? DEFAULT_BLOCK_MINUTES, block.subject);
+    const { folderId, target } = resolveTarget(block);
+    if (target) {
+      void navigate(
+        target.kind === "deck" ? `/review/${target.id}` : `/quiz/${target.id}`,
+      );
+      return;
+    }
+    prepareFocus(
+      block.durationMins ?? DEFAULT_BLOCK_MINUTES,
+      block.subject,
+      folderId,
+    );
     void navigate("/timer");
   };
 
@@ -739,6 +836,7 @@ export function PlanView() {
               day={day}
               dayIndex={dayIndex}
               today={today}
+              resolveTarget={resolveTarget}
               onStart={startBlock}
               saving={updatePlan.isPending}
               onAdd={(date) =>

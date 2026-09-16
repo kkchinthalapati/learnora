@@ -32,6 +32,8 @@
  * functions re-derive the plan from the database on every call, because a
  * localStorage flag is not a payment. */
 
+import { formatMoney, getRegion, type RegionId } from "./region";
+
 export type Plan = "free" | "plus" | "pro";
 
 /** Ordering for "does this plan meet the minimum" comparisons. Free < Plus <
@@ -419,67 +421,121 @@ export const PLAN_PRICING: Record<"plus" | "pro", PlanPricing> = {
   },
 };
 
-export function isIndianLocale(): boolean {
-  if (typeof Intl !== "undefined") {
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-      if (tz.includes("Calcutta") || tz.includes("Kolkata") || tz.includes("India")) return true;
-    } catch {}
-  }
-  if (typeof navigator !== "undefined") {
-    const langs = navigator.languages || [navigator.language || ""];
-    if (langs.some((l) => l.toLowerCase().includes("-in") || l.toLowerCase() === "hi")) return true;
-  }
-  return false;
-}
-
-export const PLAN_PRICING_INR: Record<"plus" | "pro", PlanPricing> = {
-  plus: {
-    plan: "plus",
-    name: "Learnora Plus",
-    tagline: "More headroom on every AI tool — less than chai and samosas a week.",
-    prices: [
-      { id: "monthly", label: "Monthly", amountPence: 19900, interval: "month", note: "UPI, Google Pay, Cards accepted" },
-      {
-        id: "annual",
-        label: "Yearly",
-        amountPence: 199900,
-        interval: "year",
-        note: "₹166 a month, billed once a year (UPI / GPay / Cards)",
-        savingPercent: 16,
-      },
-    ],
+/* One table per currency, keyed by ISO 4217. The region (lib/region.ts)
+   decides the currency; nothing here knows a country. Amounts are minor
+   units of that currency. Add a market by adding a key. */
+export const PLAN_PRICING_BY_CURRENCY: Readonly<
+  Record<string, Record<"plus" | "pro", PlanPricing>>
+> = {
+  GBP: PLAN_PRICING,
+  USD: {
+    plus: {
+      ...PLAN_PRICING.plus,
+      prices: [
+        { id: "monthly", label: "Monthly", amountPence: 399, interval: "month" },
+        { id: "annual", label: "Yearly", amountPence: 3200, interval: "year", note: "$2.67 a month, billed once a year", savingPercent: 33 },
+      ],
+    },
+    pro: {
+      ...PLAN_PRICING.pro,
+      prices: [
+        { id: "monthly", label: "Monthly", amountPence: 799, interval: "month" },
+        { id: "annual", label: "Yearly", amountPence: 6500, interval: "year", note: "$5.42 a month, billed once a year", savingPercent: 32 },
+      ],
+    },
   },
-  pro: {
-    plan: "pro",
-    name: "Learnora Pro",
-    tagline:
-      "The full system: exam marks forecast, past-paper traps, calendar sync, and highest AI ceiling.",
-    prices: [
-      { id: "monthly", label: "Monthly", amountPence: 39900, interval: "month", note: "UPI, Google Pay, Cards accepted" },
-      {
-        id: "annual",
-        label: "Yearly",
-        amountPence: 399900,
-        interval: "year",
-        note: "₹333 a month, billed once a year (UPI / GPay / Cards)",
-        savingPercent: 16,
-      },
-    ],
+  INR: {
+    plus: {
+      ...PLAN_PRICING.plus,
+      prices: [
+        { id: "monthly", label: "Monthly", amountPence: 19900, interval: "month" },
+        { id: "annual", label: "Yearly", amountPence: 199900, interval: "year", note: "₹166 a month, billed once a year", savingPercent: 16 },
+      ],
+    },
+    pro: {
+      ...PLAN_PRICING.pro,
+      prices: [
+        { id: "monthly", label: "Monthly", amountPence: 39900, interval: "month" },
+        { id: "annual", label: "Yearly", amountPence: 399900, interval: "year", note: "₹333 a month, billed once a year", savingPercent: 16 },
+      ],
+    },
+  },
+  EUR: {
+    plus: {
+      ...PLAN_PRICING.plus,
+      prices: [
+        { id: "monthly", label: "Monthly", amountPence: 399, interval: "month" },
+        { id: "annual", label: "Yearly", amountPence: 3200, interval: "year", note: "€2.67 a month, billed once a year", savingPercent: 33 },
+      ],
+    },
+    pro: {
+      ...PLAN_PRICING.pro,
+      prices: [
+        { id: "monthly", label: "Monthly", amountPence: 799, interval: "month" },
+        { id: "annual", label: "Yearly", amountPence: 6500, interval: "year", note: "€5.42 a month, billed once a year", savingPercent: 32 },
+      ],
+    },
+  },
+  AUD: {
+    plus: {
+      ...PLAN_PRICING.plus,
+      prices: [
+        { id: "monthly", label: "Monthly", amountPence: 599, interval: "month" },
+        { id: "annual", label: "Yearly", amountPence: 4900, interval: "year", note: "A$4.08 a month, billed once a year", savingPercent: 32 },
+      ],
+    },
+    pro: {
+      ...PLAN_PRICING.pro,
+      prices: [
+        { id: "monthly", label: "Monthly", amountPence: 1199, interval: "month" },
+        { id: "annual", label: "Yearly", amountPence: 9900, interval: "year", note: "A$8.25 a month, billed once a year", savingPercent: 31 },
+      ],
+    },
+  },
+  CAD: {
+    plus: {
+      ...PLAN_PRICING.plus,
+      prices: [
+        { id: "monthly", label: "Monthly", amountPence: 549, interval: "month" },
+        { id: "annual", label: "Yearly", amountPence: 4400, interval: "year", note: "CA$3.67 a month, billed once a year", savingPercent: 33 },
+      ],
+    },
+    pro: {
+      ...PLAN_PRICING.pro,
+      prices: [
+        { id: "monthly", label: "Monthly", amountPence: 1099, interval: "month" },
+        { id: "annual", label: "Yearly", amountPence: 8900, interval: "year", note: "CA$7.42 a month, billed once a year", savingPercent: 33 },
+      ],
+    },
   },
 };
 
-export function getLocalizedPlanPricing(): Record<"plus" | "pro", PlanPricing> {
-  return isIndianLocale() ? PLAN_PRICING_INR : PLAN_PRICING;
+export interface LocalizedPricing {
+  currency: string;
+  locale?: string;
+  paymentHint?: string;
+  plans: Record<"plus" | "pro", PlanPricing>;
+  format: (minorUnits: number) => string;
 }
 
-export function formatPrice(pence: number, currency = "GBP"): string {
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
+/** Pricing for a region, falling back to GBP when the currency has no
+ *  table yet — a missing row must never blank the paywall. */
+export function getLocalizedPlanPricing(regionId?: RegionId | null): LocalizedPricing {
+  const region = getRegion(regionId);
+  const plans = PLAN_PRICING_BY_CURRENCY[region.currency] ?? PLAN_PRICING;
+  const currency = PLAN_PRICING_BY_CURRENCY[region.currency] ? region.currency : "GBP";
+  return {
     currency,
-    minimumFractionDigits: pence % 100 === 0 ? 0 : 2,
-  }).format(pence / 100);
+    locale: region.locale,
+    paymentHint: region.paymentHint,
+    plans,
+    format: (minorUnits) => formatMoney(minorUnits, currency, region.locale),
+  };
 }
+
+/** Back-compat shim; new code should go through `getLocalizedPlanPricing().format`. */
+export const formatPrice = (minorUnits: number, currency = "GBP", locale?: string) =>
+  formatMoney(minorUnits, currency, locale);
 
 /** What the student is told when a gate stops them. Kept here rather than in
  *  the modal so the same sentence is used wherever the gate appears. */

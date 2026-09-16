@@ -503,7 +503,7 @@ Write every human-readable string in plain, everyday English aimed at a student 
    long decks were cut off mid-array and surfaced as "couldn't generate
    flashcards". Anything added here must also emit a JSON-only instruction in
    `modeInstructions` below, and be unwrappable by the matching client parser. */
-const JSON_MODES = new Set(["quiz", "plan", "flashcards"]);
+const JSON_MODES = new Set(["quiz", "plan", "flashcards", "solver"]);
 
 /* `notes` is long-form Markdown, not JSON — it must not get response_format,
    but a full study-notes document is easily as slow as a quiz, so it shares
@@ -949,6 +949,11 @@ Deno.serve(async (req) => {
             ? `\nYou are generating study notes as long-form Markdown. Output the notes only — no JSON, no preamble, no closing commentary.`
             : mode === "rewrite"
             ? `\nYou are rewriting the provided study notes to match a specific complexity or tone. Output the rewritten notes as long-form Markdown only — no JSON, no preamble, no closing commentary.`
+            : mode === "solver"
+            // The Solver / Cognitive Debugger sends its own schema in the user
+            // turn; this only pins the container so it never collides with
+            // the Markdown instruction `rewrite` used to add on top of it.
+            ? `\nYou are diagnosing a student's mistake. Output ONLY raw JSON (no prose, no code fences) matching the schema given in the request.`
             : "";
 
         /* One of three, never a mix: prose formatting rules next to a

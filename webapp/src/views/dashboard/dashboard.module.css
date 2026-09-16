@@ -1336,3 +1336,17 @@
     min-height: var(--touch-target-min);
   }
 }
+
+/* "More" — reveals the demoted sections via the customize modal. */
+.moreBtn {
+  align-self: center;
+  min-height: var(--touch-target-min);
+  padding: 0 var(--s-4);
+  border-radius: var(--r-full, 999px);
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+}
+.moreBtn:hover { color: var(--text); border-color: var(--text-muted); }
