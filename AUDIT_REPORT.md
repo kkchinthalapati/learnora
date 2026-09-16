@@ -143,7 +143,7 @@ All 20 items applied on `audit/maya-feedback`. `tsc` clean; Vitest 2683 pass. Th
 | 6 | ✅ | Personas templated on `getFramework()` (Settings override > region). Feynman reads it lazily now (Proxy), not at module load. |
 | 7 | ✅ | `materials.processing_status/_error/_updated_at` (migration `20260916000000`); client syncs the row, prefers it when newer. Open: cross-device *retry* still needs `requestPayload` persisted (localStorage only). |
 | 8 | ✅ | Presets per region; board picker is on step 1 (goal) already; `region`/`consent` on answers. |
-| 9 | ✅ | `lib/gradeScale.ts` — `GradeScale`, `normaliseScore`, `renderGrade`, override via Settings. Open: `examReadiness`/`analyticsEngine` still emit percentages internally; wire `renderGrade` at the render sites next. |
+| 9 | ✅ | `lib/gradeScale.ts` — `GradeScale`, `normaliseScore`, `renderGrade`, override via Settings. Engines still emit percentages internally by design; `renderGrade` is now wired at the render sites (`NextHourCard`, `TrajectoryView`, 2026-09-16). Remaining: analytics views. |
 | 10 | ✅ | "All" tab default hides rings / streak / community (six cards); "More (n hidden)" opens the customize modal. |
 | 11 | ✅ | `study_sessions.notes` (migration `20260916010000`); "What did you cover?" field on the timer; HUD buttons 44px on coarse pointers. |
 | 12 | ✅ | `dayItemEditBtn` 44×44. |
