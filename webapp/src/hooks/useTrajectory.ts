@@ -4,6 +4,7 @@ import { useAllDecks } from "./useDecks";
 import { useExams } from "./useExams";
 import { useFlashcards } from "./useFlashcards";
 import { useFolders } from "./useFolders";
+import { useLearningEvents } from "./useLearningEvents";
 import { useLifeContext } from "./useLifeContext";
 import { useQuizAttempts } from "./useQuizzes";
 import { localDateStr } from "../lib/date";
@@ -42,6 +43,7 @@ export function useTrajectory(examId?: number | null): UseTrajectoryResult {
   const decks = useAllDecks();
   const cards = useFlashcards();
   const attempts = useQuizAttempts();
+  const events = useLearningEvents();
 
   const today = localDateStr();
 
@@ -51,6 +53,7 @@ export function useTrajectory(examId?: number | null): UseTrajectoryResult {
     decks.isPending,
     cards.isPending,
     attempts.isPending,
+    events.isPending,
   );
 
   const join = useMemo(
@@ -64,6 +67,7 @@ export function useTrajectory(examId?: number | null): UseTrajectoryResult {
         life: context,
         today,
         examId,
+        events: events.data ?? [],
       }),
     [
       exams.data,
@@ -74,6 +78,7 @@ export function useTrajectory(examId?: number | null): UseTrajectoryResult {
       context,
       today,
       examId,
+      events.data,
     ],
   );
 

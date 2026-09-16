@@ -20,6 +20,7 @@ import type {
   Flashcard,
   FlashcardDeck,
   Folder,
+  LearningEvent,
   QuizAttempt,
 } from "../api/types";
 import { availabilityRange } from "./availability";
@@ -49,6 +50,7 @@ export interface ForecastSources {
   /** Which exam to forecast. Defaults to the soonest upcoming one, which is
    *  the one a student means when they have not said. */
   examId?: number | null;
+  events?: LearningEvent[];
 }
 
 export interface ForecastJoin {
@@ -123,6 +125,7 @@ export function buildForecast(src: ForecastSources): ForecastJoin {
        forecast off everything, which is imprecise but far better than
        forecasting off nothing — and the view says which of the two it is. */
     folderId: folder?.id ?? null,
+    events: src.events ?? [],
   });
 
   if (topics.length === 0) {
