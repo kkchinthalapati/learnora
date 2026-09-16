@@ -5,6 +5,7 @@ import {
   INTERVENTION_BLOCK_MINS,
   MAX_CONFIDENCE_BAND,
   SCORE_EVENT_WEIGHT,
+  TIME_EVENT_EVIDENCE,
   UNMEASURED_MASTERY,
   bestTopicFor,
   buildTopicStates,
@@ -637,6 +638,17 @@ describe("buildTopicStates with learning events", () => {
     })[0];
     expect(state.evidence).toBeGreaterThan(0);
     expect(state.mastery).not.toBe(UNMEASURED_MASTERY);
+  });
+
+  it("a deck with events but no cards becomes measured from time alone", () => {
+    const decks = [deck({ id: "d1", title: "Enzymes" })];
+    const state = buildTopicStates({
+      decks, cards: [], attempts: [], now,
+      events: [event({ topic_key: "enzymes", minutes: 60 })],
+    })[0];
+    expect(state.evidence).toBeGreaterThan(0);
+    expect(state.evidence).toBeCloseTo(TIME_EVENT_EVIDENCE, 5);
+    expect(state.mastery).toBeGreaterThan(UNMEASURED_MASTERY);
   });
 
   it("ignores events beyond the horizon", () => {

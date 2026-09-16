@@ -109,6 +109,11 @@ export const SCORE_EVENT_WEIGHT = 0.35;
 /** Evidence gained per scored outcome. Four checks on a topic with no cards
  *  is enough to trust the number more than a fresh deck of twenty. */
 export const SCORE_EVENT_EVIDENCE = 0.15;
+/** Evidence gained per hour of timed study. A card-less topic that has only
+ *  ever been timed is still evidence of something, not nothing — this is what
+ *  keeps it from staying "unmeasured" forever just because no score was ever
+ *  attached to the time spent. */
+export const TIME_EVENT_EVIDENCE = 0.1;
 
 export interface TopicState {
   id: string;
@@ -242,6 +247,7 @@ function applyEvents(
     for (let d = 0; d < daysAgo; d++) gain = decayOneDay(gain, stabilityDays);
     mastery = Math.min(1, mastery + gain);
     stabilityDays += STABILITY_DAYS_PER_HOUR * (e.minutes / 60);
+    evidence = Math.min(1, evidence + TIME_EVENT_EVIDENCE * (e.minutes / 60));
   }
 
   let weight = SCORE_EVENT_WEIGHT;
