@@ -42,6 +42,7 @@ import {
 import { importIcsForRange } from "../lib/icsImport";
 import { isLifeContextConfigured, loadLifeContext } from "../lib/lifeContext";
 import { decksApi } from "./decks";
+import { learningEventsApi } from "./learningEvents";
 import { buildForecast } from "../lib/trajectoryJoin";
 import { formatTrajectoryForPrompt } from "../lib/trajectory";
 import { loadStudentEvidence } from "./studentEvidence";
@@ -385,12 +386,13 @@ export async function loadHourValueContext(
        time this student does not have. */
     if (!isLifeContextConfigured(life)) return "";
 
-    const [exams, folders, decks, cards, attempts] = await Promise.all([
+    const [exams, folders, decks, cards, attempts, events] = await Promise.all([
       examsApi.fetch(),
       foldersApi.fetch(),
       decksApi.fetchAll(),
       flashcardsApi.fetchAll(),
       quizzesApi.fetchAllAttempts(),
+      learningEventsApi.fetchSince(),
     ]);
 
     return formatTrajectoryForPrompt(
@@ -402,6 +404,7 @@ export async function loadHourValueContext(
         attempts,
         life,
         today: todayStr,
+        events,
       }).forecast,
     );
   } catch (err) {

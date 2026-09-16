@@ -116,9 +116,18 @@ export const handlers = [
   ),
 
   http.get(rest("study_sessions"), () => HttpResponse.json([])),
+  http.post(
+    rest("study_sessions"),
+    () => new HttpResponse(null, { status: 201 }),
+  ),
   http.delete(
     rest("study_sessions"),
     () => new HttpResponse(null, { status: 204 }),
+  ),
+
+  http.get(rest("learning_events"), () => HttpResponse.json([])),
+  http.post(rest("learning_events"), () =>
+    HttpResponse.json(null, { status: 201 }),
   ),
   http.get(rest("weekly_plans"), () => HttpResponse.json([])),
   http.post(

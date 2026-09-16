@@ -33,9 +33,15 @@ export interface TimerApi {
   applyAndReset: () => void;
   /** Apply a preset and start it running, for the dashboard quick-starts. */
   startPreset: (partial: Partial<TimerConfig>, type?: TimerType) => void;
-  /** Pre-stage a duration (and optionally the task and folder) without starting,
-   *  for the Weekly Plan, Tasks, and Review handoffs to /timer. */
-  prepareFocus: (mins: number, task?: string, folderId?: string | null) => void;
+  /** Pre-stage a duration (and optionally the task, folder and deck) without
+   *  starting, for the Weekly Plan, Tasks, Review, and NextHour handoffs to
+   *  /timer. */
+  prepareFocus: (
+    mins: number,
+    task?: string,
+    folderId?: string | null,
+    deckId?: string | null,
+  ) => void;
 
   /** Task this session is bound to; "None" logs as General Study. */
   activeTask: string;
@@ -43,6 +49,10 @@ export interface TimerApi {
   /** Subject/folder this session is bound to; "" is unassigned. */
   activeFolderId: string;
   setActiveFolderId: (id: string) => void;
+  /** Deck this session is bound to, for the learning event it logs; null is
+   *  unassigned. */
+  activeDeckId: string | null;
+  setActiveDeckId: (id: string | null) => void;
   /** Optional "what I covered" line, attached to the next logged session
    *  and cleared once it is written. */
   sessionNote: string;

@@ -32,10 +32,16 @@
  * Deterministic and pure — same inputs, same forecast. See `autoSchedule.ts`
  * for why that property is load-bearing rather than nice to have. */
 
-import type { Flashcard, FlashcardDeck, QuizAttempt } from "../api/types";
+import type {
+  Flashcard,
+  FlashcardDeck,
+  LearningEvent,
+  QuizAttempt,
+} from "../api/types";
 import { computeRetentionProbability } from "./adaptiveLearning";
 import { dateInDays, localDateStr, parseLocalDate } from "./date";
 import { fenceUntrusted } from "./actionTags";
+import { topicMatches } from "./topicKey";
 
 /* --- Model constants ---------------------------------------------------
  *
@@ -91,6 +97,23 @@ export const MAX_DAILY_GAP_CLOSURE = 0.4;
 /** The most study we will assume a student could add to any one day when
  *  answering "how much more work would reach my target". */
 export const MAX_REALISTIC_DAY_MINS = 480;
+
+/** Evidence older than this is ignored: what a student knew six weeks ago is
+ *  not what they know now, and the SRS state already carries the durable
+ *  part of it. */
+export const EVENT_HORIZON_DAYS = 45;
+/** How far one scored outcome (a quick check, a Viva round) pulls mastery
+ *  toward the score. The newest event on a topic carries this weight; each
+ *  older one carries half of the one before it. */
+export const SCORE_EVENT_WEIGHT = 0.35;
+/** Evidence gained per scored outcome. Four checks on a topic with no cards
+ *  is enough to trust the number more than a fresh deck of twenty. */
+export const SCORE_EVENT_EVIDENCE = 0.15;
+/** Evidence gained per hour of timed study. A card-less topic that has only
+ *  ever been timed is still evidence of something, not nothing — this is what
+ *  keeps it from staying "unmeasured" forever just because no score was ever
+ *  attached to the time spent. */
+export const TIME_EVENT_EVIDENCE = 0.1;
 
 export interface TopicState {
   id: string;
@@ -183,6 +206,63 @@ export interface TopicSources {
    *  wrong than forecasting a Chemistry exam off an empty topic list. */
   folderId?: string | null;
   now?: Date;
+  /** Outcomes and time from the timer, quick checks and the AI tools. Optional
+   *  so a caller that has not fetched them still gets the card-only forecast. */
+  events?: LearningEvent[];
+}
+
+/** Events that belong to a deck: by id when the recorder knew it, else by the
+ *  same loose title match quiz weak-topics use. Newest first. */
+function eventsForDeck(
+  deck: FlashcardDeck,
+  events: LearningEvent[],
+): LearningEvent[] {
+  return events
+    .filter((e) =>
+      e.deck_id ? e.deck_id === deck.id : topicMatches(e.topic_key, deck.title),
+    )
+    .sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
+}
+
+/** Fold a deck's events into the card-derived state. Time events apply
+ *  `learningGain` and then decay for the days since; score events blend
+ *  toward the score with recency-halved weights. */
+function applyEvents(
+  base: { mastery: number; evidence: number; stabilityDays: number },
+  events: LearningEvent[],
+  now: Date,
+): { mastery: number; evidence: number; stabilityDays: number } {
+  let { mastery, evidence, stabilityDays } = base;
+  const horizon = now.getTime() - EVENT_HORIZON_DAYS * 86_400_000;
+  const live = events.filter((e) => new Date(e.occurred_at).getTime() >= horizon);
+
+  /* Time first, oldest first, so a later check measures the studied state. */
+  for (const e of [...live].reverse()) {
+    if (e.minutes <= 0) continue;
+    const daysAgo = Math.max(
+      0,
+      Math.floor((now.getTime() - new Date(e.occurred_at).getTime()) / 86_400_000),
+    );
+    let gain = learningGain(mastery, e.minutes);
+    for (let d = 0; d < daysAgo; d++) gain = decayOneDay(gain, stabilityDays);
+    mastery = Math.min(1, mastery + gain);
+    stabilityDays += STABILITY_DAYS_PER_HOUR * (e.minutes / 60);
+    evidence = Math.min(1, evidence + TIME_EVENT_EVIDENCE * (e.minutes / 60));
+  }
+
+  let weight = SCORE_EVENT_WEIGHT;
+  for (const e of live) {
+    if (e.score == null) continue;
+    mastery = mastery + (e.score - mastery) * weight;
+    evidence = Math.min(1, evidence + SCORE_EVENT_EVIDENCE);
+    weight /= 2;
+  }
+
+  return {
+    mastery: Math.max(0, Math.min(1, mastery)),
+    evidence,
+    stabilityDays: Math.max(MIN_STABILITY_DAYS, stabilityDays),
+  };
 }
 
 /** Turn decks, cards and quiz history into the topic set a forecast runs on.
@@ -219,20 +299,19 @@ export function buildTopicStates(src: TopicSources): TopicState[] {
     return hits;
   };
 
+  const events = src.events ?? [];
   const raw = decks.map((deck) => {
     const cards = src.cards.filter((c) => c.deck_id === deck.id);
     const cardCount = cards.length;
+    const deckEvents = eventsForDeck(deck, events);
 
     if (cardCount === 0) {
-      return {
-        id: deck.id,
-        label: deck.title,
-        mastery: UNMEASURED_MASTERY,
-        evidence: 0,
-        stabilityDays: MIN_STABILITY_DAYS,
-        weight: 1,
-        cardCount: 0,
-      };
+      const blended = applyEvents(
+        { mastery: UNMEASURED_MASTERY, evidence: 0, stabilityDays: MIN_STABILITY_DAYS },
+        deckEvents,
+        now,
+      );
+      return { id: deck.id, label: deck.title, ...blended, weight: 1, cardCount: 0 };
     }
 
     const retention =
@@ -247,12 +326,20 @@ export function buildTopicStates(src: TopicSources): TopicState[] {
        a signal, thirty is the same signal with more noise attached. */
     const penalty = Math.min(0.3, weaknessFor(deck.title) * 0.06);
 
+    const blended = applyEvents(
+      {
+        mastery: Math.max(0, Math.min(1, retention - penalty)),
+        evidence: Math.min(1, evidence * 0.7 + Math.min(1, cardCount / 20) * 0.3),
+        stabilityDays: Math.max(MIN_STABILITY_DAYS, stabilityDays),
+      },
+      deckEvents,
+      now,
+    );
+
     return {
       id: deck.id,
       label: deck.title,
-      mastery: Math.max(0, Math.min(1, retention - penalty)),
-      evidence: Math.min(1, evidence * 0.7 + Math.min(1, cardCount / 20) * 0.3),
-      stabilityDays: Math.max(MIN_STABILITY_DAYS, stabilityDays),
+      ...blended,
       /* Bigger decks weigh more, but sub-linearly — a hundred-card deck is a
          bigger part of the exam than a ten-card deck, not ten times bigger. */
       weight: Math.sqrt(cardCount) || 1,
@@ -281,6 +368,14 @@ export function learningGain(mastery: number, minutes: number): number {
   if (minutes <= 0) return 0;
   const gap = Math.max(0, 1 - mastery);
   return gap * (1 - Math.exp(-minutes / LEARNING_CONSTANT_MINS));
+}
+
+/** The word a student reads instead of a mastery decimal. A mastery is not a
+ *  grade, so it is never rendered through the grade scale. */
+export function masteryLevel(mastery: number): "low" | "building" | "solid" {
+  if (mastery < 0.35) return "low";
+  if (mastery < 0.65) return "building";
+  return "solid";
 }
 
 /** Score, 0-100, of a set of topic states. */

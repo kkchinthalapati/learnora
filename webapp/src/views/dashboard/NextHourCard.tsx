@@ -40,7 +40,7 @@ export function NextHourCard() {
   const projected =
     lower === upper ? `around ${lower}` : `range ${lower}–${upper}`;
   const start = () => {
-    prepareFocus(INTERVENTION_BLOCK_MINS, top.label);
+    prepareFocus(INTERVENTION_BLOCK_MINS, top.label, undefined, top.topicId);
     void navigate("/timer");
   };
 

@@ -121,7 +121,12 @@ describe("NextHourCard", () => {
     await user.click(
       screen.getByRole("button", { name: /Start 45 min on Titration/ }),
     );
-    expect(prepareFocus).toHaveBeenCalledWith(45, "Titration");
+    expect(prepareFocus).toHaveBeenCalledWith(
+      45,
+      "Titration",
+      undefined,
+      "topic-1",
+    );
     expect(await screen.findByText("Timer Page")).toBeInTheDocument();
   });
 

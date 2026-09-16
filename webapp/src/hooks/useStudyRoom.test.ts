@@ -91,6 +91,8 @@ describe("useStudyRoom", () => {
     setActiveTask: vi.fn(),
     activeFolderId: "",
     setActiveFolderId: vi.fn(),
+    activeDeckId: null,
+    setActiveDeckId: vi.fn(),
     favs: [],
     saveFav: vi.fn(),
     deleteFav: vi.fn(),
