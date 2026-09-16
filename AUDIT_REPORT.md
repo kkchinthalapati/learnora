@@ -189,3 +189,79 @@ Maya's test case remains a US high-school junior balancing AP classes and SAT pr
 - The timer note is captured before logging; editing an already-finished session remains separate work.
 - PR #98 wired grade-scale presentation into the dashboard and trajectory. These remain heuristic forecasts, not official AP or SAT scores. The remaining conversation-shell adoption and notebook-studio split are still incomplete.
 - The framework remains an account-wide default. Per-course AP/SAT overrides would support Maya's mixed workload more directly.
+
+---
+
+## 7. SECOND PASS — Maya Vance, after PRs #98 and #99 (2026-09-16)
+
+**Baseline:** `bcf79fe` (merge of #99). `tsc -b` clean. Vitest 211 files / 2723 tests green. This pass is a browser walkthrough of the signed-in app (`/app/harness.html`, desktop 1280px and phone 375px) plus a source read of everything the walkthrough touched. Same filter as before: does it save me time before Thursday's AP Chem test.
+
+### 7.1 What #97–#99 actually fixed
+
+Credit where due. The passport problem is gone: no rupees, no Dr. Sharma, no NCERT. The framework I pick now survives a sign-in on a second device (#99). The timer asks what I covered. Grade forecasts render in my scale on the two screens I'd read them on (#98). The processing-status bug that stranded my notes between phone and laptop is fixed at the row level. I can get past the landing page. That was the whole ask of pass one, and it landed.
+
+### 7.2 The verdict this time
+
+**The app has a thesis and the app doesn't believe it.** `lib/trajectory.ts` opens with the best product statement in the repo: *"every other tool is an artifact factory... none of them own the outcome."* Then the UI is organised exactly like an artifact factory. Library has five tabs of artifacts (Notebooks / Subjects / Files & notes / Flashcards / Quizzes). Study Lab has four tools. Plan has four tabs. The Dashboard has four tabs times fourteen cards times a Customize modal, and the sidebar has six destinations with children. And the one screen that *owns the outcome* — "Study Enzymes next, 45 min, here's why" — is on **tab 2** of the dashboard. Not the default tab. On my phone, it is a horizontal swipe I don't know exists (see 7.4, mobile).
+
+I opened the app twelve times during this walkthrough. Not once did the first paint tell me what to do. It told me the date, gave me a paragraph ("Check what is due, open your notebooks, or continue your last study block"), two buttons ("Choose a study exercise", "Customize"), a tab strip, a notebooks shelf, and then a 25-minute Pomodoro button next to a countdown. The Pomodoro button is not attached to a topic. The countdown is not attached to an action. Quizlet doesn't do better than this, but Quizlet isn't claiming to.
+
+### 7.3 The loop is open (the finding that matters)
+
+Follow the one thing the app is for — "what should I do right now" — end to end:
+
+| Step | What happens | Evidence | Where it breaks |
+|---|---|---|---|
+| 1. Forecast | `useTrajectory` builds topic states from **decks, cards, quiz attempts, lifeContext** | `hooks/useTrajectory.ts:39-44`, `lib/trajectory.ts:195` | "A deck is the unit of a topic... a topic with no cards has nothing to project." Until I've made flashcards, NextHour is silent. I take notes and do past papers; I don't make cards on day one. |
+| 2. Start | NextHour's "Start 45 min on Enzymes" calls `prepareFocus()` and navigates to `/timer` | `NextHourCard.tsx:42-45` | Fine. This is the one hand-off that works. |
+| 3. Session | Timer runs; `TopicValueHint` says "Enzymes is worth 49.3 **marks** an hour" | `views/timer/TopicValueHint.tsx:63`, `lib/trajectory.ts:633` | "marks" survived ledger #20. Also 49.3 is a raw-percent-per-hour figure shown to a student whose scale is AP 1–5. Meaningless number, wrong unit. |
+| 4. End | Timer logs `study_sessions{minutes, task, folder_id, notes}` | `api/sessions.ts:25` | Logged — and **never read by the forecast**. An hour of timed study on Enzymes changes nothing in step 1. The module I trust most is invisible to the model. |
+| 5. Check | "Quick check" opens the chat drawer with a free-text prompt: *"Give me a fast 3-question multiple-choice check on ${topic}"* | `TimerView.tsx:201-212` | Not grounded in my cards or notebook. Not scored. Writes nothing. The answer I give to question 2 evaporates. |
+| 6. AI tools | Feynman, Viva, Solver, Detective each run a real pedagogy | `api/aiFeynman.ts:444`, `aiSparring.ts:224`, `aiDebugger.ts:45`, `aiExamDeconstructor.ts:711` | Sessions, traces, repairs and disarmed traps are **localStorage**. Phone at school, laptop at home: two different histories. Misconceptions do go to Supabase (`misconceptions` table) — and `trajectory.ts` never reads them. |
+| 7. Availability | The forecast's "hours you actually have" comes from `lifeContext` | `lib/lifeContext.ts:27` — `learnora_life_context_v1`, localStorage by design ("readable synchronously on first paint") | My week exists on one device. The forecast on my phone and the forecast on my laptop are computed from different availability. "Learnora doesn't know your week yet" greets me on every new device. |
+| 8. Back to 1 | — | — | Nothing from steps 3–7 moves the number in step 1 except flashcard reviews and quiz attempts (and attempts only *penalise*, `trajectory.ts:248`). |
+
+So: the engine is real, the CTA is real, and the loop is open on both ends. Studying doesn't count as evidence, and the evidence that is collected doesn't sync. #99 fixed cross-device sync for exactly one of the nine localStorage silos (material processing). The other eight are listed below.
+
+**Local-only state that should follow the account** (from `grep learnora_` on `src/`):
+`learnora_life_context_v1` (my week — feeds the forecast), `learnora_feynman_sessions`, `learnora_cognitive_traces_v1`, `learnora_micro_repairs_v1`, `learnora_disarmed_traps_v1`, `learnora_trap_immunity_radar_v1`, `learnora_study_goals`, `learnora_unlocked_achievements`, `learnora_daily_progress_v1`, `learnora_settings` (three of its fields were pinned to `profiles` in #99; the rest — coach style, detail level, AI language — still reset per device), `learnora_dashboard_layout_v1`. Sparring sessions go through `saveSparringSession` (`aiSparring.ts:224`) to the same place.
+
+### 7.4 Everything else I hit, by screen
+
+**Dashboard (`views/dashboard/DashboardView.tsx`)**
+- NextHourCard renders only in the `insights` and `all` tabs (`:224`, `:278`). Default is `focus` (`:52`). The best card in the app is not on the home tab.
+- `if (import.meta.env.MODE === "test") return "all"` (`:51`). Tests exercise a tab users don't land on. `DashboardView.test.tsx` is testing a layout nobody sees by default.
+- "Your recent answers put current mastery around 1." (`NextHourCard.tsx:74`). Grade-scale rendering of a *mastery* number. On GCSE this reads "around 1"; on AP it will read "around 1" too. A mastery isn't a grade. Show it as a level ("low", "building", "solid") or don't show it.
+- Adjacent cards disagree on units: NextExam says "25% Ready", NextHour says "projected range 6–9". Same exam, two scales, one screen.
+- Three "start" affordances on one tab: "Start a focus session (25m Pomodoro)" (FocusCard, no topic), "Start 45 min on Enzymes" (NextHour, topic-bound), "Choose a study exercise" (header, → Study Lab). Pick one.
+- "Tell us when your **lectures, shifts and training** are" (`TodayTimelineCard`). I'm sixteen. Lectures are for the university persona; the copy doesn't read `onboarding.goal`.
+- `dashboardDate()` hardcodes `"en-GB"` (`:31`). A US student reads "Wednesday 16 September" while the rest of the app formats by browser locale. Last `en-GB` literal outside `region.ts`.
+- **Mobile (375px):** the tab strip is `overflow-x: auto; scrollbar-width: none` (`dashboard.module.css:68-81`). "Activity & Peers" and "All" are off-screen with no affordance. First actionable content (the notebooks shelf) is ~900px below the fold, under a date, a paragraph, two full-width buttons and the tab strip.
+
+**Timer (`views/timer/`)** — still the best module. Two leaks: "marks an hour" (above), and the post-session check being an unscored chat prompt. The "What did you cover?" note from #99 is captured but only used as the chat topic string.
+
+**Onboarding (`lib/onboarding.ts`)** — presets are mutually exclusive. "AP Courses" (`:167`) *or* "SAT / ACT Prep" (`:184`). I am both. #99's own follow-up list names per-course framework as open; the preset model is the same problem one layer up. The AP preset's milestones are "Midterm" and "AP Exams" — nothing models the *unit test on Thursday*, which is the thing that actually drives what I study this week.
+
+**Library (`views/library/`)** — five tabs plus `/notebooks` plus `/folders/:id`. Pass one said "one front door" and Section 5 says the decision was Library. The tabs inside Library are the same four doors, one level down.
+
+**Study Lab (`views/study-lab/`)** — the launcher copy is good ("Start with the problem you have, not the name of a tool"). Then it presents four tools by name. Only Sparring is on `ConversationShell` (ledger #15 still partial). Feynman (`aiFeynman.ts`, 2064 lines) and Sparring (893) each carry their own persona, session, storage and scoring stacks.
+
+**Settings** — eight sections. "Interactive Report" and "CSV Export" are the second card on the first tab. I have never once wanted to export a CSV of my study logs at 11pm.
+
+**Plan** — "Optimal Focus: Afternoon Flow (3 PM – 6 PM)" is shown as a fact on the harness account with no week set up. If it's a default, say so.
+
+### 7.5 What "beast mode" should mean
+
+Not another twenty-row ledger. The previous ledger was right and it's done. The remaining structural cleanups (#15 shell migration, #16 studio split) are real but they're refactors — I wouldn't notice them on Thursday.
+
+The one change that would make me pick this over ChatGPT-plus-Quizlet: **close the loop, and make the closed loop the home screen.**
+
+1. **Home = one decision.** Replace the four-tab dashboard with a *Today* screen whose first paint is the NextHour decision, the reason, and one Start button. Everything else (tasks due today, next exam, notebooks) is below it, in that order. No tabs. No Customize modal. The "All" grid is what Progress is for.
+2. **Sessions are evidence.** `study_sessions` already has `minutes`, `folder_id`, `task`, `notes`. Map a session to a topic (deck or folder) and feed `minutes` into `buildTopicStates` as learning gain via the existing `learningGain()` — the engine already has the function, it's only ever called inside the simulation.
+3. **The quick check is a real check.** Replace the chat prompt with 3–5 questions generated from the cards and notebook of the topic just studied (the `learnora-ai` edge function already has quiz and solver modes), scored, written as a `quiz_attempt` with `weak_topics` — which is the one input the forecast already consumes. Then re-render NextHour on the same screen: "Enzymes moved 3 → 4. Next: Titration."
+4. **The evidence follows the account.** One `learning_events` table (`user_id, topic_key, source, score, minutes, occurred_at, payload jsonb`) that Feynman, Viva, Solver, Detective, quick-check and the timer all append to, replacing the localStorage silos for *outcomes* (drafts and UI preferences can stay local). `life_context` moves to `profiles` (jsonb) with the same last-write-wins, offline-cached pattern #99 used for framework pins.
+5. **Feynman and Viva move the number.** A Feynman debrief that scores a concept, and a Viva round, each append a `learning_event` with a 0–1 score for the topic. `buildTopicStates` reads events alongside cards. The AI Study Lab stops being a side quest.
+
+That's it. Five moves, one loop. After it, the app's first screen says what its best file says: your next hour is worth this much, here, go — and it's right, because everything you did yesterday on any device counted.
+
+— Maya
