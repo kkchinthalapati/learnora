@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, fireEvent } from "@testing-library/react";
+import { screen, waitFor, fireEvent, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Route, Routes } from "react-router";
@@ -67,7 +67,10 @@ describe("CommandPalette", () => {
           <Route path="/feynman" element={<div>Feynman Page</div>} />
           <Route path="/premortem" element={<div>Pre-Mortem Page</div>} />
           <Route path="/analytics" element={<div>Analytics Page</div>} />
-          <Route path="/folders/:folderId" element={<div>Subject Folder Page</div>} />
+          <Route
+            path="/folders/:folderId"
+            element={<div>Subject Folder Page</div>}
+          />
           <Route path="/notes/:materialId" element={<div>Notes Page</div>} />
           <Route path="/review/:deckId" element={<div>Review Deck Page</div>} />
         </Routes>
@@ -80,7 +83,9 @@ describe("CommandPalette", () => {
   it("renders when open and displays search input with default quick actions", () => {
     renderPalette({ isOpen: true });
 
-    expect(screen.getByRole("dialog", { name: /command palette/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: /command palette/i }),
+    ).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText(/type a command, search, or prefix/i),
     ).toBeInTheDocument();
@@ -103,7 +108,9 @@ describe("CommandPalette", () => {
     fireEvent.mouseDown(overlay);
     expect(mockClose).toHaveBeenCalledTimes(1);
 
-    const input = screen.getByPlaceholderText(/type a command, search, or prefix/i);
+    const input = screen.getByPlaceholderText(
+      /type a command, search, or prefix/i,
+    );
     fireEvent.keyDown(input, { key: "Escape" });
     expect(mockClose).toHaveBeenCalledTimes(2);
   });
@@ -113,7 +120,9 @@ describe("CommandPalette", () => {
     const mockClose = vi.fn();
     renderPalette({ isOpen: true, onClose: mockClose });
 
-    const input = screen.getByPlaceholderText(/type a command, search, or prefix/i);
+    const input = screen.getByPlaceholderText(
+      /type a command, search, or prefix/i,
+    );
     const user = userEvent.setup();
 
     await user.type(input, "t: Finish physics lab report");
@@ -135,7 +144,9 @@ describe("CommandPalette", () => {
     const mockClose = vi.fn();
     renderPalette({ isOpen: true, onClose: mockClose });
 
-    const input = screen.getByPlaceholderText(/type a command, search, or prefix/i);
+    const input = screen.getByPlaceholderText(
+      /type a command, search, or prefix/i,
+    );
     const user = userEvent.setup();
 
     await user.type(input, "task: Revise Organic Chemistry");
@@ -155,7 +166,9 @@ describe("CommandPalette", () => {
     const mockClose = vi.fn();
     renderPalette({ isOpen: true, onClose: mockClose });
 
-    const input = screen.getByPlaceholderText(/type a command, search, or prefix/i);
+    const input = screen.getByPlaceholderText(
+      /type a command, search, or prefix/i,
+    );
     const user = userEvent.setup();
 
     await user.type(input, "ai: Explain Bayes Theorem intuitively");
@@ -167,7 +180,9 @@ describe("CommandPalette", () => {
     await user.keyboard("{Enter}");
 
     expect(mockChat.open).toHaveBeenCalled();
-    expect(mockChat.send).toHaveBeenCalledWith("Explain Bayes Theorem intuitively");
+    expect(mockChat.send).toHaveBeenCalledWith(
+      "Explain Bayes Theorem intuitively",
+    );
     expect(mockClose).toHaveBeenCalled();
   });
 
@@ -175,7 +190,9 @@ describe("CommandPalette", () => {
     const mockClose = vi.fn();
     renderPalette({ isOpen: true, onClose: mockClose });
 
-    const input = screen.getByPlaceholderText(/type a command, search, or prefix/i);
+    const input = screen.getByPlaceholderText(
+      /type a command, search, or prefix/i,
+    );
     const user = userEvent.setup();
 
     await user.type(input, "? What is the Krebs cycle?");
@@ -195,7 +212,9 @@ describe("CommandPalette", () => {
     const mockClose = vi.fn();
     renderPalette({ isOpen: true, onClose: mockClose });
 
-    const input = screen.getByPlaceholderText(/type a command, search, or prefix/i);
+    const input = screen.getByPlaceholderText(
+      /type a command, search, or prefix/i,
+    );
     const user = userEvent.setup();
 
     await user.type(input, "debug: Chain Rule Derivative");
@@ -260,7 +279,9 @@ describe("CommandPalette", () => {
 
     renderPalette({ isOpen: true });
 
-    const input = screen.getByPlaceholderText(/type a command, search, or prefix/i);
+    const input = screen.getByPlaceholderText(
+      /type a command, search, or prefix/i,
+    );
     const user = userEvent.setup();
 
     await user.type(input, "Molecular");
@@ -273,7 +294,9 @@ describe("CommandPalette", () => {
   it("displays empty state when no items match the search query", async () => {
     renderPalette({ isOpen: true });
 
-    const input = screen.getByPlaceholderText(/type a command, search, or prefix/i);
+    const input = screen.getByPlaceholderText(
+      /type a command, search, or prefix/i,
+    );
     const user = userEvent.setup();
 
     await user.type(input, "xyznonexistentquery123");
@@ -285,7 +308,9 @@ describe("CommandPalette", () => {
     const mockClose = vi.fn();
     renderPalette({ isOpen: true, onClose: mockClose });
 
-    const input = screen.getByPlaceholderText(/type a command, search, or prefix/i);
+    const input = screen.getByPlaceholderText(
+      /type a command, search, or prefix/i,
+    );
     const user = userEvent.setup();
 
     // Default selection is 0 ("Start 25m Timer")
@@ -315,7 +340,9 @@ describe("CommandPalette", () => {
     fireEvent.keyDown(window, { key: "k", metaKey: true });
 
     await waitFor(() => {
-      expect(screen.getByRole("dialog", { name: /command palette/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("dialog", { name: /command palette/i }),
+      ).toBeInTheDocument();
     });
 
     // Press Escape to close
@@ -324,5 +351,36 @@ describe("CommandPalette", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+  });
+
+  it("lists recently run commands first on the next open, newest first", async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderPalette({ isOpen: true, onClose: vi.fn() });
+
+    expect(screen.queryByText("Recent")).not.toBeInTheDocument();
+    await user.click(screen.getByText("Start 25m Timer"));
+    await user.click(screen.getByText(/switch to (dark|light) mode/i));
+    unmount();
+
+    renderPalette({ isOpen: true, onClose: vi.fn() });
+    const recentHeader = screen.getByText("Recent");
+    const recentGroup = recentHeader.closest("li")!;
+    const titles = within(recentGroup)
+      .getAllByRole("option")
+      .map((el) => el.textContent);
+    expect(titles[0]).toMatch(/switch to (dark|light) mode/i);
+    expect(titles[1]).toContain("Start 25m Timer");
+    expect(recentGroup.parentElement!.firstElementChild).toBe(recentGroup);
+  });
+
+  it("does not record prefix actions as recent commands", async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderPalette({ isOpen: true, onClose: vi.fn() });
+    await user.type(screen.getByRole("textbox"), "debug: 2x=5");
+    await user.keyboard("{Enter}");
+    unmount();
+
+    renderPalette({ isOpen: true, onClose: vi.fn() });
+    expect(screen.queryByText("Recent")).not.toBeInTheDocument();
   });
 });

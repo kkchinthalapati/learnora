@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -18,6 +18,11 @@ import { tasksKeys } from "../../hooks/useTasks";
 import { resolveDark, THEME_KEY } from "../../lib/appearance";
 import { Storage } from "../../lib/storage";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
+import {
+  RECENT_CATEGORY,
+  readRecentCommandIds,
+  rememberCommandId,
+} from "./recentCommands";
 import styles from "./CommandPalette.module.css";
 
 export interface CommandItem {
@@ -46,6 +51,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [recentIds, setRecentIds] = useState<string[]>(readRecentCommandIds);
   const paletteRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -182,9 +188,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                 evidencePrompt: "Opened from the command palette",
                 suggestedAction: "debug_stack",
               });
-              navigate(
-                `/solver?topic=${encodeURIComponent(prefixMatch.text)}`,
-              );
+              navigate(`/solver?topic=${encodeURIComponent(prefixMatch.text)}`);
               handleClose();
             },
           },
@@ -282,7 +286,8 @@ export function CommandPalette(props: CommandPaletteProps) {
       id: "nav-ai-debugger",
       category: "Study Lab",
       title: "Step-by-Step Solver",
-      subtitle: "Work backwards from a mistake to find where you got stuck and repair the gap",
+      subtitle:
+        "Work backwards from a mistake to find where you got stuck and repair the gap",
       icon: "brain",
       badge: "AI Tool",
       keywords: [
@@ -330,7 +335,16 @@ export function CommandPalette(props: CommandPaletteProps) {
       subtitle: "Defend an idea against questions and viva counterexamples",
       icon: "mic",
       badge: "Viva Coach",
-      keywords: ["viva", "oral", "test", "socratic", "sparring", "voice", "debate", "challenge"],
+      keywords: [
+        "viva",
+        "oral",
+        "test",
+        "socratic",
+        "sparring",
+        "voice",
+        "debate",
+        "challenge",
+      ],
       onSelect: () => {
         navigate("/viva");
         handleClose();
@@ -559,7 +573,11 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     const q = query.trim().toLowerCase();
     if (!q) {
-      return allItems;
+      const recent = recentIds
+        .map((id) => allItems.find((item) => item.id === id))
+        .filter((item): item is CommandItem => Boolean(item))
+        .map((item) => ({ ...item, category: RECENT_CATEGORY }));
+      return [...recent, ...allItems];
     }
 
     return allItems.filter((item) => {
@@ -570,7 +588,16 @@ export function CommandPalette(props: CommandPaletteProps) {
         item.keywords?.some((k) => k.toLowerCase().includes(q)) ?? false;
       return matchTitle || matchSubtitle || matchCategory || matchKeywords;
     });
-  }, [allItems, prefixMatch, query]);
+  }, [allItems, prefixMatch, query, recentIds]);
+
+  /** Run an item and, unless it came from a typed prefix, record it as recent. */
+  const runItem = useCallback(
+    (item: CommandItem) => {
+      if (!prefixMatch) setRecentIds(rememberCommandId(item.id));
+      void item.onSelect();
+    },
+    [prefixMatch],
+  );
 
   // Reset selected index when query changes or bounds change
   useEffect(() => {
@@ -613,7 +640,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       e.preventDefault();
       const currentItem = filteredItems[selectedIndex];
       if (currentItem) {
-        void currentItem.onSelect();
+        runItem(currentItem);
       }
     }
   };
@@ -748,12 +775,12 @@ export function CommandPalette(props: CommandPaletteProps) {
                   const isSelected = globalIndex === selectedIndex;
                   return (
                     <div
-                      key={item.id}
+                      key={`${group.category}-${item.id}`}
                       data-index={globalIndex}
                       role="option"
                       aria-selected={isSelected}
                       className={`${styles.item} ${isSelected ? styles.selected : ""}`}
-                      onClick={() => void item.onSelect()}
+                      onClick={() => runItem(item)}
                       onMouseEnter={() => setSelectedIndex(globalIndex)}
                     >
                       <div className={styles.itemIcon}>
