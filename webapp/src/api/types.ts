@@ -146,6 +146,31 @@ export interface WeakTopic {
   count: number;
 }
 
+/* Learning events — the evidence stream behind the trajectory forecast.
+ * `score` is an outcome in 0–1 (null for a pure time event); `minutes` is
+ * time spent. See supabase/migrations/20260916030000_learning_events.sql. */
+export type LearningEventSource =
+  | "timer"
+  | "quick_check"
+  | "feynman"
+  | "viva"
+  | "solver"
+  | "detective";
+
+export interface LearningEvent {
+  id: string;
+  user_id: string;
+  topic_key: string;
+  deck_id: string | null;
+  folder_id: string | null;
+  source: LearningEventSource;
+  score: number | null;
+  minutes: number;
+  occurred_at: string;
+  payload: Record<string, unknown>;
+  client_id: string | null;
+}
+
 /* Friends. Unlike everything above, most of these are not table rows — they
  * are the return shapes of the SECURITY DEFINER RPCs added in
  * 20260803000000_add_friends_feature.sql. `profiles` and `study_sessions`

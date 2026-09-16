@@ -120,6 +120,9 @@ export const handlers = [
     rest("study_sessions"),
     () => new HttpResponse(null, { status: 204 }),
   ),
+
+  http.get(rest("learning_events"), () => HttpResponse.json([])),
+  http.post(rest("learning_events"), () => HttpResponse.json(null, { status: 201 })),
   http.get(rest("weekly_plans"), () => HttpResponse.json([])),
   http.post(
     rest("weekly_plans"),
