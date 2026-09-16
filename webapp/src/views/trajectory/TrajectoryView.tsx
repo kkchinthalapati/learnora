@@ -9,6 +9,11 @@ import { Skeleton } from "../../components/Skeleton";
 import { useTimer } from "../../context/timer";
 import { useTrajectory } from "../../hooks/useTrajectory";
 import { formatDuration } from "../../lib/lifeContext";
+import {
+  getGradeScale,
+  normaliseScore,
+  renderGrade,
+} from "../../lib/gradeScale";
 import { INTERVENTION_BLOCK_MINS, type Verdict } from "../../lib/trajectory";
 import { TrajectoryChart } from "./TrajectoryChart";
 import { QuizOnlyForecast } from "./QuizOnlyForecast";
@@ -97,6 +102,16 @@ function TrajectoryBody() {
     void navigate("/timer");
   };
 
+  /* Maya Vance ledger #9: the engine forecasts out of 100, and that stays the
+     honest unit for the arithmetic. But a GCSE or AP student thinks in grades,
+     so every headline score also says which grade it lands on. Percent-scale
+     students see nothing extra. */
+  const scale = getGradeScale();
+  const asGrade = (score: number) =>
+    scale.id === "percent"
+      ? ""
+      : ` (grade ${renderGrade(normaliseScore(score), scale)})`;
+
   return (
     <>
       {candidates.length > 1 ? (
@@ -124,11 +139,16 @@ function TrajectoryBody() {
           </span>
           <p className={styles.heroScore}>
             {forecast.projectedScore}
-            <span className={styles.heroOutOf}>/100</span>
+            <span className={styles.heroOutOf}>
+              /100{asGrade(forecast.projectedScore)}
+            </span>
           </p>
           <p className={styles.heroBand}>
             most likely between {forecast.confidence.lower} and{" "}
             {forecast.confidence.upper}
+            {scale.id === "percent"
+              ? ""
+              : ` (grade ${renderGrade(normaliseScore(forecast.confidence.lower), scale)} to ${renderGrade(normaliseScore(forecast.confidence.upper), scale)})`}
             {forecast.confidence.evidence < 0.35
               ? " — a wide range, because there is not much review history yet"
               : ""}
@@ -158,7 +178,10 @@ function TrajectoryBody() {
         <div className={styles.deltaRow}>
           <div className={styles.delta}>
             <span className={styles.deltaLabel}>If you stop here</span>
-            <strong className={styles.deltaBad}>{forecast.driftScore}</strong>
+            <strong className={styles.deltaBad}>
+              {forecast.driftScore}
+              {asGrade(forecast.driftScore)}
+            </strong>
             <span className={styles.deltaNote}>
               {forecast.driftScore < forecast.todayScore
                 ? `down ${forecast.todayScore - forecast.driftScore} from today — memory fades whether or not you feel it`
@@ -176,6 +199,7 @@ function TrajectoryBody() {
             <div className={styles.delta}>
               <span className={styles.deltaLabel}>
                 To reach {forecast.targetScore}
+                {asGrade(forecast.targetScore)}
               </span>
               <strong className={styles.deltaWarn}>
                 +{formatDuration(forecast.minsToTarget)}

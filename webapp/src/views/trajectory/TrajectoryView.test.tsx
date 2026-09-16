@@ -189,6 +189,32 @@ describe("TrajectoryView", () => {
     ).toBeInTheDocument();
   });
 
+  it("says which grade the forecast lands on for students who think in grades", async () => {
+    localStorage.setItem(
+      "learnora_settings",
+      JSON.stringify({ gradeScale: "gcse" }),
+    );
+    serve();
+    render();
+    await screen.findByText(/Where this is heading/);
+    // Every headline score keeps its out-of-100 arithmetic and adds the grade.
+    expect(screen.getByText(/\/100 \(grade \d\)/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/most likely between \d+ and \d+ \(grade \d to \d\)/),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps percent-scale students on plain out-of-100 numbers", async () => {
+    localStorage.setItem(
+      "learnora_settings",
+      JSON.stringify({ gradeScale: "percent" }),
+    );
+    serve();
+    render();
+    await screen.findByText(/Where this is heading/);
+    expect(screen.queryByText(/\(grade/)).not.toBeInTheDocument();
+  });
+
   it("shows what doing nothing costs", async () => {
     serve();
     render();
@@ -286,9 +312,7 @@ describe("TrajectoryView", () => {
     expect(screen.getByText("How this is worked out")).toBeInTheDocument();
     /* 60 − 5 ± 5 = 50–60, every term of it on the screen. */
     expect(screen.getByText(/60 − 5 ± 5 =/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/are not in this arithmetic/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/are not in this arithmetic/)).toBeInTheDocument();
   });
 
   it("offers a picker when there is more than one exam", async () => {
