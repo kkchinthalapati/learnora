@@ -3,10 +3,7 @@ import type { Material, MaterialProcessingDbStatus } from "../api/types";
 import { supabase } from "./supabase";
 
 export type MaterialProcessingStatus =
-  | "processing"
-  | "completed"
-  | "partially_processed"
-  | "failed";
+  "processing" | "completed" | "partially_processed" | "failed";
 
 export interface StageFailureRecord {
   stage: string;
@@ -117,23 +114,43 @@ const FROM_DB: Record<MaterialProcessingDbStatus, MaterialProcessingStatus> = {
   skipped: "completed",
 };
 
-/* The row is the source of truth across devices; localStorage is only the
-   synchronous cache for the tab that is doing the work. The write is
-   fire-and-forget: a lost update degrades to the pre-column behaviour, it
-   never blocks the pipeline. */
-function syncToRow(entry: { materialId: string; status: MaterialProcessingStatus; error?: string }) {
+const rowWrites = new Map<string, Promise<void>>();
+
+// Serialize each material's writes so a slow pending update cannot overwrite done.
+function syncToRow(entry: MaterialProcessingRecord) {
   if (!supabase) return;
-  void supabase
-    .from("materials")
-    .update({
-      processing_status: TO_DB[entry.status],
-      processing_error: entry.status === "failed" || entry.status === "partially_processed" ? entry.error ?? null : null,
-      processing_updated_at: new Date().toISOString(),
+  const write = (rowWrites.get(entry.materialId) ?? Promise.resolve())
+    .then(async () => {
+      const { error } = await supabase
+        .from("materials")
+        .update({
+          processing_status:
+            entry.status === "completed" && entry.notesRequested === false
+              ? "skipped"
+              : TO_DB[entry.status],
+          processing_error:
+            entry.status === "failed" || entry.status === "partially_processed"
+              ? (entry.error ?? null)
+              : null,
+          processing_updated_at: new Date(entry.updatedAt).toISOString(),
+        })
+        .eq("id", entry.materialId);
+      if (error) throw new Error(error.message);
     })
-    .eq("id", entry.materialId)
-    .then(({ error }) => {
-      if (error) console.warn("[materialProcessing] row sync failed", error.message);
+    .catch((error) =>
+      console.warn("[materialProcessing] row sync failed", error),
+    )
+    .finally(() => {
+      if (rowWrites.get(entry.materialId) === write)
+        rowWrites.delete(entry.materialId);
     });
+  rowWrites.set(entry.materialId, write);
+}
+
+export async function flushMaterialProcessing(
+  materialId: string,
+): Promise<void> {
+  await rowWrites.get(materialId);
 }
 
 export function setMaterialProcessing(
@@ -159,9 +176,11 @@ export function setMaterialProcessing(
 
 /** Status the server row carries, mapped to the client vocabulary. Null when
  *  the row predates the column. */
-export function rowProcessingStatus(material: Material): DerivedMaterialStatus | null {
+export function rowProcessingStatus(
+  material: Material,
+): DerivedMaterialStatus | null {
   const db = material.processing_status;
-  if (!db || !(db in FROM_DB)) return null;
+  if (!db || !Object.hasOwn(FROM_DB, db)) return null;
   const status = FROM_DB[db];
   return status === "failed" || status === "partially_processed"
     ? { status, error: material.processing_error ?? undefined }

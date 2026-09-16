@@ -78,6 +78,7 @@ interface RecentFocusSession {
   timestamp: string;
   minutes: number;
   task: string;
+  notes?: string | null;
 }
 
 function readRecentFocusSessions(): RecentFocusSession[] {
@@ -198,7 +199,11 @@ export function TimerView() {
       return;
     }
     if (!chat) return;
-    const topic = completedSession?.task || activeTask || "what I just studied";
+    const topic =
+      completedSession?.notes ||
+      completedSession?.task ||
+      activeTask ||
+      "what I just studied";
     setCompletedSession(null);
     chat.open();
     await chat.send(
@@ -270,7 +275,8 @@ export function TimerView() {
           <div className={styles.guestBannerInfo}>
             <span className={styles.guestBannerBadge}>Guest Mode</span>
             <span className={styles.guestBannerText}>
-              Focusing without an account. Your timer sessions are safely saved locally on this browser.
+              Focusing without an account. Your timer sessions are safely saved
+              locally on this browser.
             </span>
           </div>
           <Link to="/signup" className={styles.guestBannerCta}>
@@ -442,7 +448,9 @@ export function TimerView() {
           </div>
 
           <div className={styles.taskBinder}>
-            <label htmlFor={sessionNoteId}>What did you cover? (optional)</label>
+            <label htmlFor={sessionNoteId}>
+              What did you cover? (optional)
+            </label>
             <input
               id={sessionNoteId}
               type="text"
@@ -670,6 +678,11 @@ export function TimerView() {
                 {recentSessions.map((session) => (
                   <li key={session.id} className={styles.sessionRow}>
                     <span className={styles.sessionTask}>{session.task}</span>
+                    {session.notes && (
+                      <span className={styles.sessionMeta}>
+                        {session.notes}
+                      </span>
+                    )}
                     <span className={styles.sessionMeta}>
                       {session.minutes} min · {session.timestamp}
                     </span>

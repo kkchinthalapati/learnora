@@ -32,6 +32,7 @@ export interface LocalSession {
   startedAt?: string;
   guestSessionId?: string;
   guest?: boolean;
+  notes?: string | null;
 }
 
 export interface AppendLocalSessionInput {
@@ -42,6 +43,7 @@ export interface AppendLocalSessionInput {
   /** Guest sessions carry an id so `guestSessionMigration` can replay them
    *  into Supabase exactly once when the student signs up. */
   isGuest: boolean;
+  notes?: string | null;
 }
 
 export function readLocalSessions(): LocalSession[] {
@@ -55,6 +57,7 @@ export function appendLocalSession({
   folderId,
   timerType,
   isGuest,
+  notes,
 }: AppendLocalSessionInput): void {
   const completedAt = Date.now();
   const sessions = readLocalSessions();
@@ -69,6 +72,7 @@ export function appendLocalSession({
     }),
     minutes,
     task,
+    notes: notes?.trim().slice(0, 280) || null,
     folderId,
     timerType,
     startedAt: new Date(completedAt - minutes * 60_000).toISOString(),

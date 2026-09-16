@@ -13,6 +13,12 @@ export function useMaterials(folderId: string | null = null) {
   return useQuery({
     queryKey: materialsKeys.list(folderId),
     queryFn: () => materialsApi.fetch(folderId),
+    refetchInterval: (query) =>
+      query.state.data?.some(
+        (material) => material.processing_status === "pending",
+      )
+        ? 5000
+        : false,
   });
 }
 
@@ -21,6 +27,8 @@ export function useMaterial(id: string) {
     queryKey: materialsKeys.byId(id),
     queryFn: () => materialsApi.fetchById(id),
     enabled: !!id,
+    refetchInterval: (query) =>
+      query.state.data?.processing_status === "pending" ? 5000 : false,
   });
 }
 

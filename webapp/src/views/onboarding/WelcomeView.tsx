@@ -59,7 +59,7 @@ import {
   type OnboardingAnswers,
 } from "../../lib/onboarding";
 import { profileApi } from "../../api/profile";
-import { detectRegion } from "../../lib/region";
+import { getRegion } from "../../lib/region";
 import { useProfileDetails } from "../../hooks/useProfileDetails";
 import {
   loadDashboardLayout,
@@ -89,7 +89,10 @@ export function WelcomeView() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const { settings, updateAndSave } = useSettings();
-  const region = useMemo(() => detectRegion(settings.timezone), [settings.timezone]);
+  const region = useMemo(
+    () => getRegion(settings.region === "auto" ? null : settings.region).id,
+    [settings.region],
+  );
   const curriculumPresets = useMemo(() => presetsForRegion(region), [region]);
   const { update: updateLifeContext } = useLifeContext();
   const updateProfile = useUpdateProfile();
@@ -176,7 +179,24 @@ export function WelcomeView() {
      first and cannot be lost to a failed network call. */
   const commit = useCallback(
     async (final: OnboardingAnswers) => {
-      updateAndSave(settingsPatchFor(final));
+      const curriculumSettings = settingsPatchFor(final);
+      updateAndSave(curriculumSettings);
+      if (curriculumSettings.region || curriculumSettings.framework) {
+        try {
+          await profileApi.updateRegion({
+            ...(curriculumSettings.region
+              ? { region: curriculumSettings.region }
+              : {}),
+            ...(curriculumSettings.framework
+              ? { framework_id: curriculumSettings.framework }
+              : {}),
+          });
+        } catch {
+          showToast(
+            "Your curriculum is saved here. Sync it from Settings when you're connected.",
+          );
+        }
+      }
 
       const lifePatch = lifeContextPatchFor(final);
       if (Object.keys(lifePatch).length > 0) updateLifeContext(lifePatch);
@@ -629,7 +649,11 @@ export function WelcomeView() {
                         setCurriculumPreset(selected);
                         if (selected) {
                           setSubjectName(preset.folders[0]);
-                          patch({ goal: "school", examType: preset.examType, region });
+                          patch({
+                            goal: "school",
+                            examType: preset.examType,
+                            region,
+                          });
                         }
                       }}
                     >

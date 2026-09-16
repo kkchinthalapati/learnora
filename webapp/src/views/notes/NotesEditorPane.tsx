@@ -11,10 +11,13 @@ import {
 } from "../../components/RichTextEditor";
 import { useUpdateNoteHtml } from "../../hooks/useNotes";
 import { useRetryStudyPackage } from "../../hooks/useStudyPackage";
-import { useMaterialProcessing } from "../../lib/materialProcessing";
+import {
+  deriveMaterialStatus,
+  useMaterialProcessing,
+} from "../../lib/materialProcessing";
 import { renderMarkdown } from "../../lib/markdown";
 import { NotesAiSidebar } from "./NotesAiSidebar";
-import type { Note } from "../../api/types";
+import type { Material, Note } from "../../api/types";
 import { callEdge } from "../../api/ai";
 import { useMutation } from "@tanstack/react-query";
 import { useSettings } from "../../context/settings";
@@ -102,6 +105,7 @@ const STATUS_CLASS: Record<SaveStatus, string | undefined> = {
 };
 
 interface NotesEditorPaneProps {
+  material?: Material;
   materialId: string;
   materialTitle: string;
   /** The open material's folder, passed through to the AI sidebar's
@@ -118,6 +122,7 @@ interface NotesEditorPaneProps {
  * knows how to hold a document — ports js/editor.js's `save`/`scheduleSave`/
  * `destroy` (:122-189). */
 export function NotesEditorPane({
+  material,
   materialId,
   materialTitle,
   folderId,
@@ -143,10 +148,17 @@ export function NotesEditorPane({
 
   const { settings } = useSettings();
   const { showToast } = useToast();
-  const processingRecord = useMaterialProcessing(materialId);
+  const localProcessingRecord = useMaterialProcessing(materialId);
+  const processingRecord = material?.processing_status
+    ? deriveMaterialStatus(material, note ? 1 : 0, localProcessingRecord)
+    : localProcessingRecord;
   const retryMutation = useRetryStudyPackage();
   const isRetrying = retryMutation.isPending;
-  const notesOmitted = !note && processingRecord?.notesRequested === false;
+  const notesOmitted =
+    !note &&
+    ((processingRecord?.status === "completed" &&
+      material?.processing_status === "skipped") ||
+      localProcessingRecord?.notesRequested === false);
 
   useEffect(() => {
     if (note && editorRef.current) {

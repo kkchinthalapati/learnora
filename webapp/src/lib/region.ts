@@ -11,7 +11,8 @@
 
 export type RegionId = "IN" | "GB" | "US" | "EU" | "AU" | "CA" | "INTL";
 
-export type PrivacyRegime = "GDPR" | "FERPA" | "DPDP" | "PIPEDA" | "APP" | "NONE";
+export type PrivacyRegime =
+  "GDPR" | "FERPA" | "DPDP" | "PIPEDA" | "APP" | "NONE";
 
 /** The exam-board vocabulary the AI examiner personas borrow from. */
 export interface CurriculumFramework {
@@ -57,7 +58,8 @@ export const REGIONS: Readonly<Record<RegionId, RegionProfile>> = {
     label: "India",
     currency: "INR",
     locale: "en-IN",
-    paymentHint: "Supports UPI (Google Pay, PhonePe, Paytm), Net Banking & Cards",
+    paymentHint:
+      "Supports UPI (Google Pay, PhonePe, Paytm), Net Banking & Cards",
     privacy: "DPDP",
     presetIds: ["cbse-10", "icse-10"],
     framework: {
@@ -114,7 +116,13 @@ export const REGIONS: Readonly<Record<RegionId, RegionProfile>> = {
       syllabusLabel: "curriculum guide",
       fullCreditLabel: "Full credit",
     },
-    timeZonePrefixes: ["America/Toronto", "America/Vancouver", "America/Edmonton", "America/Winnipeg", "America/Halifax"],
+    timeZonePrefixes: [
+      "America/Toronto",
+      "America/Vancouver",
+      "America/Edmonton",
+      "America/Winnipeg",
+      "America/Halifax",
+    ],
     localeRegions: ["ca"],
   },
   AU: {
@@ -146,7 +154,21 @@ export const REGIONS: Readonly<Record<RegionId, RegionProfile>> = {
       fullCreditLabel: "Full marks",
     },
     timeZonePrefixes: ["Europe/"],
-    localeRegions: ["de", "fr", "es", "it", "nl", "ie", "pt", "at", "be", "fi", "se", "dk", "pl"],
+    localeRegions: [
+      "de",
+      "fr",
+      "es",
+      "it",
+      "nl",
+      "ie",
+      "pt",
+      "at",
+      "be",
+      "fi",
+      "se",
+      "dk",
+      "pl",
+    ],
   },
   INTL: {
     id: "INTL",
@@ -163,7 +185,7 @@ export const REGIONS: Readonly<Record<RegionId, RegionProfile>> = {
 export const REGION_IDS = Object.keys(REGIONS) as RegionId[];
 
 export function isRegionId(v: unknown): v is RegionId {
-  return typeof v === "string" && v in REGIONS;
+  return typeof v === "string" && Object.hasOwn(REGIONS, v);
 }
 
 /* Longest prefix wins, so "America/Toronto" beats "America/". */
@@ -183,7 +205,9 @@ function regionForLocales(langs: readonly string[]): RegionId | null {
   for (const l of langs) {
     const sub = l.toLowerCase().split("-")[1];
     if (!sub) continue;
-    const hit = Object.values(REGIONS).find((r) => r.localeRegions.includes(sub));
+    const hit = Object.values(REGIONS).find((r) =>
+      r.localeRegions.includes(sub),
+    );
     if (hit) return hit.id;
   }
   return null;
@@ -216,7 +240,11 @@ export function detectRegion(timezone?: string): RegionId {
    "auto" all mean "detect". */
 const SETTINGS_STORAGE_KEY = "learnora_settings";
 
-function readSettingsOverride(): { region?: unknown; framework?: unknown; gradeScale?: unknown } {
+function readSettingsOverride(): {
+  region?: unknown;
+  framework?: unknown;
+  gradeScale?: unknown;
+} {
   try {
     if (typeof localStorage === "undefined") return {};
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
@@ -236,12 +264,34 @@ export function getRegion(id?: RegionId | null): RegionProfile {
   return REGIONS[detectRegion()];
 }
 
-export const FRAMEWORKS: Readonly<Record<string, CurriculumFramework>> = Object.fromEntries(
-  [GENERIC_FRAMEWORK, ...Object.values(REGIONS).map((r) => r.framework)].map((f) => [f.id, f]),
-);
+export const FRAMEWORKS: Readonly<Record<string, CurriculumFramework>> =
+  Object.fromEntries(
+    [
+      GENERIC_FRAMEWORK,
+      ...Object.values(REGIONS).map((r) => r.framework),
+      {
+        id: "sat",
+        boardLabel: "SAT / College Board",
+        syllabusLabel: "SAT test specifications",
+        fullCreditLabel: "Full credit",
+      },
+      {
+        id: "act",
+        boardLabel: "ACT",
+        syllabusLabel: "ACT test specifications",
+        fullCreditLabel: "Full credit",
+      },
+      {
+        id: "a_level",
+        boardLabel: "A-Level",
+        syllabusLabel: "exam-board specification",
+        fullCreditLabel: "Full marks",
+      },
+    ].map((f) => [f.id, f]),
+  );
 
 export function isFrameworkId(v: unknown): v is string {
-  return typeof v === "string" && v in FRAMEWORKS;
+  return typeof v === "string" && Object.hasOwn(FRAMEWORKS, v);
 }
 
 /** The examiner vocabulary in force: Settings override, else the region's. */
@@ -270,11 +320,40 @@ export function formatMoney(
 }
 
 /** Rights copy the account screens must surface, keyed by regime. */
-export const PRIVACY_RIGHTS: Readonly<Record<PrivacyRegime, { label: string; exportLabel: string; deleteLabel: string }>> = {
-  GDPR: { label: "GDPR", exportLabel: "Download my data (Art. 20)", deleteLabel: "Erase my account (Art. 17)" },
-  FERPA: { label: "FERPA", exportLabel: "Request my education records", deleteLabel: "Delete my account" },
-  DPDP: { label: "DPDP Act", exportLabel: "Download my data", deleteLabel: "Erase my account" },
-  PIPEDA: { label: "PIPEDA", exportLabel: "Access my personal information", deleteLabel: "Delete my account" },
-  APP: { label: "Privacy Act", exportLabel: "Access my personal information", deleteLabel: "Delete my account" },
-  NONE: { label: "Privacy", exportLabel: "Download my data", deleteLabel: "Delete my account" },
+export const PRIVACY_RIGHTS: Readonly<
+  Record<
+    PrivacyRegime,
+    { label: string; exportLabel: string; deleteLabel: string }
+  >
+> = {
+  GDPR: {
+    label: "GDPR",
+    exportLabel: "Download my data (Art. 20)",
+    deleteLabel: "Erase my account (Art. 17)",
+  },
+  FERPA: {
+    label: "FERPA",
+    exportLabel: "Request my education records",
+    deleteLabel: "Delete my account",
+  },
+  DPDP: {
+    label: "DPDP Act",
+    exportLabel: "Download my data",
+    deleteLabel: "Erase my account",
+  },
+  PIPEDA: {
+    label: "PIPEDA",
+    exportLabel: "Access my personal information",
+    deleteLabel: "Delete my account",
+  },
+  APP: {
+    label: "Privacy Act",
+    exportLabel: "Access my personal information",
+    deleteLabel: "Delete my account",
+  },
+  NONE: {
+    label: "Privacy",
+    exportLabel: "Download my data",
+    deleteLabel: "Delete my account",
+  },
 };

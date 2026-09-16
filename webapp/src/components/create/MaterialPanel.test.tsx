@@ -14,6 +14,7 @@ import {
   type OpenCreateModalOptions,
 } from "../../context/createModal";
 import { MATERIAL_DRAFT_KEY } from "../../lib/draftKeys";
+import * as pdfText from "../../lib/pdfText";
 
 function Harness({ initial }: { initial?: OpenCreateModalOptions }) {
   const { openCreateModal } = useCreateModal();
@@ -60,6 +61,7 @@ function serveDb() {
 
 describe("MaterialPanel streamlined creation", () => {
   beforeEach(() => {
+    localStorage.clear();
     mockAuthSession("user-1");
     server.use(
       http.get(`${SUPABASE_URL}/rest/v1/folders`, () =>
@@ -116,11 +118,7 @@ describe("MaterialPanel streamlined creation", () => {
     expect(outputCheckbox("Summary Notes")).toBeChecked();
     expect(outputCheckbox("Practice Quiz")).not.toBeChecked();
 
-    /* The accessible name and the visible label are the same string. They
-       once were not: the button showed one label and announced itself with
-       another, with no word in common — so a screen-reader user and a sighted
-       user were told about two different buttons, and voice control could not
-       activate it by the name on screen at all (WCAG 2.5.3, Label in Name). */
+    // Voice control and screen readers must use the visible button label.
     const submit = screen.getByRole("button", {
       name: "Generate Study Resources",
     });
@@ -130,6 +128,10 @@ describe("MaterialPanel streamlined creation", () => {
   });
 
   it("accepts a file and displays its details", async () => {
+    vi.spyOn(pdfText, "planPdfUpload").mockResolvedValue({
+      kind: "attach",
+      reason: "scanned",
+    });
     const user = await openDialog();
     await user.click(screen.getByRole("tab", { name: /Upload Document/ }));
     const file = new File(["study content"], "chapter.pdf", {
@@ -137,6 +139,9 @@ describe("MaterialPanel streamlined creation", () => {
     });
     await user.upload(screen.getByLabelText("Browse files"), file);
     expect(screen.getByText("chapter.pdf")).toBeInTheDocument();
+    expect(
+      await screen.findByText(/This PDF looks scanned/),
+    ).toBeInTheDocument();
   });
 
   it("only offers Saved Material when the student has one", async () => {

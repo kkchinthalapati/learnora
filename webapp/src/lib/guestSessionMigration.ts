@@ -66,6 +66,7 @@ async function runMigration(userId: string): Promise<number> {
         minutes: item.minutes,
         timer_type: item.timerType ?? null,
         started_at: item.startedAt,
+        notes: item.notes?.trim().slice(0, 280) || null,
       })),
     );
     if (error) throw new Error(error.message);
