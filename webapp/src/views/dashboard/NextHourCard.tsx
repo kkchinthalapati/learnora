@@ -4,7 +4,7 @@ import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useTimer } from "../../context/timer";
 import { useTrajectory } from "../../hooks/useTrajectory";
-import { INTERVENTION_BLOCK_MINS } from "../../lib/trajectory";
+import { masteryLevel, INTERVENTION_BLOCK_MINS } from "../../lib/trajectory";
 import {
   getGradeScale,
   normaliseScore,
@@ -71,7 +71,7 @@ export function NextHourCard() {
       <p className={styles.reason}>
         {top.atRisk
           ? "Your recent answers suggest this topic is fading, so revisit it before relearning something new."
-          : `Your recent answers put current mastery around ${grade(top.mastery)}.`}
+          : `Your mastery here is ${masteryLevel(top.mastery)}.`}
         {lowEvidence
           ? " This is a low-confidence suggestion until Learnora has more attempts from you."
           : " This recommendation uses your attempts, memory strength and exam date."}

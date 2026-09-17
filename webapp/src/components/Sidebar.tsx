@@ -54,8 +54,7 @@ const SECTIONS: NavSection[] = [
       {
         to: "/",
         icon: "dashboard",
-        label: "Dashboard",
-        translationKey: "nav_dashboard",
+        label: "Today",
         destination: "dashboard",
       },
       {

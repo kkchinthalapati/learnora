@@ -1,3 +1,4 @@
+import { TodayView } from "./views/today/TodayView";
 import { lazy, Suspense, type ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -195,7 +196,8 @@ export function AppRoutes() {
           {/* The sidebar/header chrome — see AppShell's own comment for why
             this sits here rather than inside ProtectedRoute itself. */}
           <Route element={<AppShell />}>
-            <Route path="/" element={<DashboardView />} />
+            <Route path="/" element={<TodayView />} />
+            <Route path="/dashboard" element={<DashboardView />} />
             <Route
               path="/notebooks"
               element={<Navigate to="/library" replace />}

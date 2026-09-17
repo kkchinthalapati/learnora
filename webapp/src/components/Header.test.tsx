@@ -53,10 +53,10 @@ describe("Header", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders page title, user greeting, live clock and actions", () => {
+  it("renders user greeting, live clock and actions on the root route", () => {
     renderHeader({ path: "/", fullName: "Marie Curie" });
 
-    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
     expect(screen.getByText(/Marie/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /search/i })).toBeInTheDocument();
     expect(
@@ -65,6 +65,13 @@ describe("Header", () => {
     expect(
       screen.getByRole("button", { name: /log out/i }),
     ).toBeInTheDocument();
+  });
+
+  it("renders page title heading on non-hero routes like /dashboard", () => {
+    renderHeader({ path: "/dashboard" });
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Dashboard",
+    );
   });
 
   it("renders the Cmd+K search trigger button and opens Command Palette on click", async () => {
@@ -99,26 +106,23 @@ describe("Header", () => {
     );
   });
 
-  it.each([
-    "/study",
-    "/solver",
-    "/feynman",
-    "/viva",
-    "/exam-detective",
-  ])("shows Study Lab help on canonical study route %s", async (path) => {
-    renderHeader({ path });
+  it.each(["/study", "/solver", "/feynman", "/viva", "/exam-detective"])(
+    "shows Study Lab help on canonical study route %s",
+    async (path) => {
+      renderHeader({ path });
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "Help and support" }),
-    );
+      await userEvent.click(
+        screen.getByRole("button", { name: "Help and support" }),
+      );
 
-    expect(
-      screen.getByRole("heading", { level: 2, name: "Study Lab" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Choose the exercise that matches your goal/i),
-    ).toBeInTheDocument();
-  });
+      expect(
+        screen.getByRole("heading", { level: 2, name: "Study Lab" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Choose the exercise that matches your goal/i),
+      ).toBeInTheDocument();
+    },
+  );
 
   it("toggles sidebar menu when hamburger button is clicked", async () => {
     renderHeader();

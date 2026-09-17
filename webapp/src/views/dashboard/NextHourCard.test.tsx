@@ -96,9 +96,11 @@ describe("NextHourCard", () => {
     );
     try {
       renderCard();
-      // 55% and 70% are GCSE grades 5 and 7; mastery 30% is a grade 3.
+      // 55% and 70% are GCSE grades 5 and 7; qualitative mastery for 0.3 is "low".
       expect(screen.getByText(/projected range 5–7$/)).toBeInTheDocument();
-      expect(screen.getByText(/mastery around 3\./)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Your mastery here is low\./),
+      ).toBeInTheDocument();
       expect(screen.queryByText(/%/)).not.toBeInTheDocument();
     } finally {
       localStorage.removeItem("learnora_settings");

@@ -72,7 +72,7 @@ describe("Sidebar", () => {
       "href",
       "/",
     );
-    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Today" })).toHaveAttribute(
       "href",
       "/",
     );
@@ -133,7 +133,7 @@ describe("Sidebar", () => {
     expect(screen.getByRole("link", { name: "Plan" })).not.toHaveAttribute(
       "aria-current",
     );
-    expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Today" })).not.toHaveAttribute(
       "aria-current",
     );
   });

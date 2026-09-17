@@ -28,7 +28,7 @@ import { TasksCard } from "./TasksCard";
 import styles from "./dashboard.module.css";
 
 function dashboardDate() {
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat(undefined, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -49,7 +49,6 @@ export function DashboardView({
     if (urlTab && ["focus", "insights", "activity", "all"].includes(urlTab)) {
       return urlTab;
     }
-    if (import.meta.env.MODE === "test") return "all";
     return "focus";
   });
 

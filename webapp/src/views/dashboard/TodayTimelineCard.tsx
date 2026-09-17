@@ -1,3 +1,5 @@
+import { useOptionalAuth } from "../../context/auth";
+import { readOnboarding } from "../../lib/onboarding";
 import { useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import { Button } from "../../components/Button";
@@ -68,6 +70,8 @@ function minutesNow(now: Date): number {
 }
 
 export function TodayTimelineCard() {
+  const goal = readOnboarding(useOptionalAuth()?.user ?? null)?.goal;
+  const commitmentsLabel = goal === "school" ? "classes, practice and work" : goal === "university" ? "lectures, shifts and training" : "work, commitments and downtime";
   const schedule = useStudySchedule();
   const { prepareFocus } = useTimer();
   const { showToast } = useToast();
@@ -138,7 +142,7 @@ export function TodayTimelineCard() {
               Learnora doesn&rsquo;t know your week yet
             </h3>
             <p className={styles.inviteCopy}>
-              Tell us when your lectures, shifts and training are — or import
+              Tell us when your {commitmentsLabel} are — or import
               your calendar — and every day gets a schedule built around them,
               in the hours your head actually works.
             </p>

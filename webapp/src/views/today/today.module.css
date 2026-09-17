@@ -1,0 +1,12 @@
+.view { display: grid; gap: var(--s-6); max-width: 1000px; margin: 0 auto; }
+.hero { padding: clamp(20px, 4vw, 40px); border: 1px solid var(--glass-border); border-radius: 20px; background: var(--glass-bg); }
+.eyebrow { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: var(--fs-sm); }
+.headline { font-family: var(--font-display); font-size: var(--fs-3xl); line-height: 1.15; margin: 16px 0; }
+.reason { line-height: 1.6; max-width: 64ch; color: var(--text-muted); }
+.heroActions { display: flex; align-items: center; gap: 20px; margin-top: 24px; flex-wrap: wrap; }
+.primaryLink { display: inline-block; padding: 12px 18px; margin-top: 16px; border-radius: 10px; background: var(--accent); color: white; }
+.whyLink { color: var(--accent); }
+.region { display: grid; gap: var(--s-4); min-width: 0; }
+.regionTitle { font-size: var(--fs-lg); margin: 0; }
+.footer { color: var(--text-muted); padding-bottom: 24px; }
+@media (max-width: 640px) { .heroActions > button { width: 100%; white-space: normal; } }

@@ -5,6 +5,7 @@ import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useExams } from "../../hooks/useExams";
 import { useExamReadiness } from "../../hooks/useExamReadiness";
+import { getGradeScale, normaliseScore, renderGrade } from "../../lib/gradeScale";
 import { localDateStr } from "../../lib/date";
 import { Storage } from "../../lib/storage";
 import { ExamPrepModal } from "../exams/ExamPrepModal";
@@ -146,10 +147,10 @@ export function NextExamCard() {
                 size="sm"
                 onClick={() => setPrepModalOpen(true)}
                 title="View AI Exam Readiness & Prep Roadmap"
-                aria-label={`Exam readiness: ${readiness.score}% ready. Click to open AI Prep Roadmap.`}
+                aria-label={`Exam readiness: ${renderGrade(normaliseScore(readiness.score), getGradeScale())}. Click to open AI Prep Roadmap.`}
               >
                 <Icon name="brain" size={13} />
-                {readiness.score}% Ready
+                {renderGrade(normaliseScore(readiness.score), getGradeScale())} readiness
               </Chip>
             )}
           </div>

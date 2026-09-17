@@ -697,6 +697,14 @@
   white-space: nowrap;
 }
 
+@media (max-width: 640px) {
+  .dashTask { flex-wrap: wrap; }
+  .dashContent { flex-basis: calc(100% - 40px); }
+  .dashLabel { white-space: normal; }
+  .dashActions { margin-left: 30px; flex-wrap: wrap; }
+  .dashActions button { min-height: 44px; padding-inline: var(--s-3); }
+}
+
 .dashAddRow {
   display: flex;
   gap: var(--s-2);

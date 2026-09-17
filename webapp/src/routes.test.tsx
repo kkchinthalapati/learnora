@@ -37,7 +37,8 @@ describe("route skeleton", () => {
   });
 
   it.each([
-    ["/", "Dashboard"],
+    ["/", "Add your next exam to get a next step"],
+    ["/dashboard", "Dashboard"],
     /* The app shell's Header now supplies the page's <h1> (the redesign
        audit found Tasks' old page-only "Tasks" heading duplicating the
        shell's own nav-derived label right below it); the shell's label —

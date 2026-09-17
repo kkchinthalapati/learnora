@@ -31,7 +31,8 @@ describe("isLibrarySection", () => {
 
 describe("sectionLabel", () => {
   it("labels the dashboard", () => {
-    expect(sectionLabel("/", t)).toBe("Dashboard");
+    expect(sectionLabel("/", t)).toBe("Today");
+    expect(sectionLabel("/dashboard", t)).toBe("Dashboard");
   });
 
   it("labels every library-family route as Library", () => {
@@ -58,7 +59,7 @@ describe("sectionLabel", () => {
 
   it("translates when given a non-English t", () => {
     const es = (key: Parameters<typeof translate>[1]) => translate("es", key);
-    expect(sectionLabel("/", es)).toBe("Tablero");
+    expect(sectionLabel("/dashboard", es)).toBe("Tablero");
     expect(sectionLabel("/tasks", es)).toBe("Tareas");
   });
 });

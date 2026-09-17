@@ -75,7 +75,7 @@ describe("AppShell", () => {
     serveDueCount(0);
     renderShell("/");
 
-    expect(screen.getByRole("link", { name: /Dashboard/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Today/ })).toHaveAttribute(
       "href",
       "/",
     );
@@ -101,7 +101,7 @@ describe("AppShell", () => {
     serveDueCount(0);
     renderShell("/tasks");
 
-    expect(screen.getByRole("link", { name: /Dashboard/ })).not.toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Today/ })).not.toHaveAttribute(
       "aria-current",
     );
     /* Tasks hangs off Plan in the rail. The child link is the current page —
@@ -309,7 +309,7 @@ describe("AppShell", () => {
 
     // Labels are visually hidden in the rail, but aria-label keeps each
     // link's accessible name intact for assistive tech.
-    expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Today" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Plan" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create" })).toBeInTheDocument();
   });

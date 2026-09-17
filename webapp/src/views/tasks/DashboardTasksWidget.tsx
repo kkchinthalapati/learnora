@@ -9,6 +9,7 @@ import { sortTasksByUrgency } from "./sortTasks";
 import { useTaskActions } from "./useTaskActions";
 import {
   dateInDays,
+  localDateStr,
   formatDueDate,
   formatRecurrenceCleanText,
   isRecurringWeekly,
@@ -29,11 +30,13 @@ type DashboardTasksWidgetProps = {
   /* Lets OnboardingBanner focus the quick-add input without reaching across
    * components via document.getElementById — see DashboardView, which owns
    * the ref both components need. */
+  dueOnly?: boolean;
   inputRef?: Ref<HTMLInputElement>;
 };
 
 export function DashboardTasksWidget({
   inputRef,
+  dueOnly = false,
 }: DashboardTasksWidgetProps = {}) {
   const { data: tasks, isPending } = useTasks();
   const addTask = useAddTask();
@@ -55,7 +58,7 @@ export function DashboardTasksWidget({
     setText("");
     /* The quick-add deliberately has no due-date field, matching the vanilla. */
     addTask.mutate(
-      { text: trimmed },
+      { text: trimmed, ...(dueOnly ? { due_date: localDateStr() } : {}) },
       {
         onError: (err) =>
           showToast(`Could not add task. ${err.message}`, { error: true }),
@@ -64,7 +67,7 @@ export function DashboardTasksWidget({
   }
 
   const all = tasks ? visible(tasks) : [];
-  const pending = sortTasksByUrgency(all.filter((t) => !t.is_done)).slice(
+  const pending = sortTasksByUrgency(all.filter((t) => !t.is_done && (!dueOnly || (t.due_date && t.due_date <= localDateStr())))).slice(
     0,
     MAX_VISIBLE,
   );
@@ -107,7 +110,7 @@ export function DashboardTasksWidget({
         <ul className={styles.dashList}>
           {pending.length === 0 ? (
             <li className={styles.empty}>
-              {all.length
+              {dueOnly ? "Nothing due today. View all tasks to plan ahead." : all.length
                 ? "All caught up — nothing pending."
                 : "No tasks yet. Add your first above."}
             </li>
@@ -206,4 +209,3 @@ export function DashboardTasksWidget({
     </div>
   );
 }
-

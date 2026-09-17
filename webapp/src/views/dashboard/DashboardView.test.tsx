@@ -117,7 +117,7 @@ function renderDashboard() {
        since the create dialog needs it too. */
     <ChatProvider>
       <Routes>
-        <Route path="/" element={<DashboardView />} />
+        <Route path="/" element={<DashboardView initialTab="all" />} />
         <Route path="/timer" element={<h1>Timer</h1>} />
         <Route path="/tasks" element={<h1>Tasks</h1>} />
         <Route path="/exams" element={<h1>Exams</h1>} />

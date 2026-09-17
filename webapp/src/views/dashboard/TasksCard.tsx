@@ -13,10 +13,11 @@ import { DashboardCardHeader } from "./DashboardCardHeader";
 import styles from "./dashboard.module.css";
 
 type TasksCardProps = {
+  dueOnly?: boolean;
   taskInputRef?: Ref<HTMLInputElement>;
 };
 
-export function TasksCard({ taskInputRef }: TasksCardProps = {}) {
+export function TasksCard({ taskInputRef, dueOnly }: TasksCardProps = {}) {
   const { data: dueCount, isPending } = useFlashcardsDueCount();
   const { settings } = useSettings();
 
@@ -32,7 +33,7 @@ export function TasksCard({ taskInputRef }: TasksCardProps = {}) {
         eyebrow="Today's tasks"
         action={{ to: "/tasks", label: "View all" }}
       />
-      <DashboardTasksWidget inputRef={taskInputRef} />
+      <DashboardTasksWidget inputRef={taskInputRef} dueOnly={dueOnly} />
       {/* Suppress during the initial fetch rather than defaulting to 0 —
           otherwise every dashboard load flashes "no cards due" for a beat
           before the real count arrives (see FEATURE_BACKLOG.md's note on

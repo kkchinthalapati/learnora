@@ -42,7 +42,7 @@ export type PrimaryDestination =
 export function primaryDestinationForPath(
   pathname: string,
 ): PrimaryDestination | null {
-  if (pathname === "/") return "dashboard";
+  if (pathname === "/" || pathname.startsWith("/dashboard")) return "dashboard";
   if (isNotebooksSection(pathname)) return "library";
   if (isLibrarySection(pathname)) return "library";
   if (
@@ -77,7 +77,8 @@ export function sectionLabel(
   pathname: string,
   t: (key: TranslationKey) => string,
 ): string {
-  if (pathname === "/") return t("nav_dashboard");
+  if (pathname === "/") return "Today";
+  if (pathname.startsWith("/dashboard")) return t("nav_dashboard");
   if (isNotebooksSection(pathname)) return "Notebooks";
   if (isLibrarySection(pathname)) return t("nav_library");
   if (pathname.startsWith("/timer")) return t("nav_timer");
@@ -118,6 +119,7 @@ export function sectionLabel(
  * shell supplies it (the common case, for views that are just content) or
  * the view does (these routes, whose heroes carry more than a name). */
 const HERO_ROUTES = [
+  "/",
   "/library",
   "/study",
   "/viva",

@@ -379,15 +379,16 @@ export function CommandPalette(props: CommandPaletteProps) {
     });
 
     // --- Navigation ---
+    items.push({ id: "nav-today", category: "Navigation", title: "Today", subtitle: "Your next study step", icon: "zap", keywords: ["home", "today"], onSelect: () => { navigate("/"); handleClose(); } });
     items.push({
       id: "nav-dashboard",
       category: "Navigation",
-      title: "Dashboard",
+      title: "Full dashboard",
       subtitle: "Study overview, goals, and daily streak",
       icon: "dashboard",
       keywords: ["home", "dashboard", "overview"],
       onSelect: () => {
-        navigate("/");
+        navigate("/dashboard");
         handleClose();
       },
     });
