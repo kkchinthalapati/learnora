@@ -4,11 +4,12 @@ import { server } from "../test/mocks/server";
 import { SUPABASE_URL } from "../lib/supabase";
 import { mockAuthSession, mockNoAuthSession } from "../test/mockSession";
 import { learningEventsApi } from "./learningEvents";
+import { clearOfflineQueue, flushOfflineQueue, getOfflineQueue } from "../lib/offlineSync";
 
 const url = `${SUPABASE_URL}/rest/v1/learning_events`;
 
 describe("learningEventsApi", () => {
-  beforeEach(() => mockAuthSession("user-1"));
+  beforeEach(() => { mockAuthSession("user-1"); clearOfflineQueue(); });
   afterEach(() => vi.restoreAllMocks());
 
   it("records an event scoped to the user with defaults filled", async () => {
@@ -88,5 +89,29 @@ describe("learningEventsApi", () => {
   it("throws without a session", async () => {
     mockNoAuthSession();
     await expect(learningEventsApi.fetchSince()).rejects.toThrow("Not authenticated");
+  });
+
+  it("retains a failed event, feeds the local forecast, and replays with its original timestamp and id", async () => {
+    server.use(http.post(url, () => HttpResponse.json({ message: "temporarily unavailable" }, { status: 503 })));
+    const at = new Date().toISOString();
+    await expect(learningEventsApi.record({ topicKey: "enzymes", source: "quick_check", score: .75, clientId: "retry-1", occurredAt: at })).resolves.toEqual({ queued: true });
+    expect(getOfflineQueue()).toHaveLength(1);
+    expect(await learningEventsApi.fetchSince()).toEqual([expect.objectContaining({ client_id: "retry-1", occurred_at: at, score: .75 })]);
+    let sent: unknown;
+    server.use(http.post(url, async ({ request }) => { sent = await request.json(); return new HttpResponse(null, { status: 201 }); }));
+    await flushOfflineQueue();
+    expect(sent).toEqual([expect.objectContaining({ client_id: "retry-1", occurred_at: at })]);
+    expect(getOfflineQueue()).toHaveLength(0);
+  });
+
+  it("does not replay another account's queued evidence", async () => {
+    server.use(http.post(url, () => HttpResponse.error()));
+    await learningEventsApi.record({ topicKey: "private topic", source: "timer", clientId: "owned" });
+    mockAuthSession("user-2");
+    const send = vi.spyOn(learningEventsApi, "send");
+    await flushOfflineQueue();
+    expect(send).not.toHaveBeenCalled();
+    expect(await learningEventsApi.fetchSince()).toEqual([]);
+    expect(getOfflineQueue()).toHaveLength(1);
   });
 });

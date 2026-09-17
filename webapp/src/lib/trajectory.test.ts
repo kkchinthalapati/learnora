@@ -17,7 +17,12 @@ import {
   scoreOf,
   type TopicState,
 } from "./trajectory";
-import type { Flashcard, FlashcardDeck, LearningEvent, QuizAttempt } from "../api/types";
+import type {
+  Flashcard,
+  FlashcardDeck,
+  LearningEvent,
+  QuizAttempt,
+} from "../api/types";
 
 const TODAY = "2026-09-01";
 const EXAM = "2026-09-15";
@@ -528,7 +533,7 @@ describe("formatTrajectoryForPrompt", () => {
     /* The weak topic must be listed above the solid one: the ordering is the
        instruction, not the numbers beside it. */
     expect(out.indexOf("Titration")).toBeLessThan(out.indexOf("Bonding"));
-    expect(out).toMatch(/marks per hour/);
+    expect(out).toMatch(/points per hour/);
     expect(out).toContain("equal time across topics is the wrong plan");
   });
 
@@ -558,7 +563,9 @@ describe("formatTrajectoryForPrompt", () => {
   });
 });
 
-function event(patch: Partial<LearningEvent> & { topic_key: string }): LearningEvent {
+function event(
+  patch: Partial<LearningEvent> & { topic_key: string },
+): LearningEvent {
   return {
     id: `e-${Math.random()}`,
     user_id: "u1",
@@ -582,7 +589,10 @@ describe("buildTopicStates with learning events", () => {
     const cards = [card({ id: "c1", deck_id: "d1", srs_interval: 5 })];
     const before = buildTopicStates({ decks, cards, attempts: [], now })[0];
     const after = buildTopicStates({
-      decks, cards, attempts: [], now,
+      decks,
+      cards,
+      attempts: [],
+      now,
       events: [event({ topic_key: "enzymes", minutes: 60 })],
     })[0];
     expect(after.mastery).toBeGreaterThan(before.mastery);
@@ -590,11 +600,22 @@ describe("buildTopicStates with learning events", () => {
   });
 
   it("matches by deck_id before topic_key", () => {
-    const decks = [deck({ id: "d1", title: "Enzymes" }), deck({ id: "d2", title: "Titration" })];
-    const cards = [card({ id: "c1", deck_id: "d1" }), card({ id: "c2", deck_id: "d2" })];
+    const decks = [
+      deck({ id: "d1", title: "Enzymes" }),
+      deck({ id: "d2", title: "Titration" }),
+    ];
+    const cards = [
+      card({ id: "c1", deck_id: "d1" }),
+      card({ id: "c2", deck_id: "d2" }),
+    ];
     const states = buildTopicStates({
-      decks, cards, attempts: [], now,
-      events: [event({ topic_key: "something else", deck_id: "d2", minutes: 60 })],
+      decks,
+      cards,
+      attempts: [],
+      now,
+      events: [
+        event({ topic_key: "something else", deck_id: "d2", minutes: 60 }),
+      ],
     });
     const base = buildTopicStates({ decks, cards, attempts: [], now });
     expect(states[1].mastery).toBeGreaterThan(base[1].mastery);
@@ -604,10 +625,16 @@ describe("buildTopicStates with learning events", () => {
   it("a score event pulls mastery toward the score by SCORE_EVENT_WEIGHT", () => {
     const decks = [deck({ id: "d1", title: "Enzymes" })];
     const cards = [card({ id: "c1", deck_id: "d1" })];
-    const base = buildTopicStates({ decks, cards, attempts: [], now })[0].mastery;
+    const base = buildTopicStates({ decks, cards, attempts: [], now })[0]
+      .mastery;
     const after = buildTopicStates({
-      decks, cards, attempts: [], now,
-      events: [event({ topic_key: "enzymes", source: "quick_check", score: 1 })],
+      decks,
+      cards,
+      attempts: [],
+      now,
+      events: [
+        event({ topic_key: "enzymes", source: "quick_check", score: 1 }),
+      ],
     })[0].mastery;
     expect(after).toBeCloseTo(base + (1 - base) * SCORE_EVENT_WEIGHT, 5);
   });
@@ -616,25 +643,55 @@ describe("buildTopicStates with learning events", () => {
     const decks = [deck({ id: "d1", title: "Enzymes" })];
     const cards = [card({ id: "c1", deck_id: "d1" })];
     const one = buildTopicStates({
-      decks, cards, attempts: [], now,
-      events: [event({ topic_key: "enzymes", source: "viva", score: 1, occurred_at: `${TODAY}T11:00:00Z` })],
+      decks,
+      cards,
+      attempts: [],
+      now,
+      events: [
+        event({
+          topic_key: "enzymes",
+          source: "viva",
+          score: 1,
+          occurred_at: `${TODAY}T11:00:00Z`,
+        }),
+      ],
     })[0].mastery;
     const two = buildTopicStates({
-      decks, cards, attempts: [], now,
+      decks,
+      cards,
+      attempts: [],
+      now,
       events: [
-        event({ topic_key: "enzymes", source: "viva", score: 1, occurred_at: `${TODAY}T11:00:00Z` }),
-        event({ topic_key: "enzymes", source: "viva", score: 1, occurred_at: `${TODAY}T09:00:00Z` }),
+        event({
+          topic_key: "enzymes",
+          source: "viva",
+          score: 1,
+          occurred_at: `${TODAY}T11:00:00Z`,
+        }),
+        event({
+          topic_key: "enzymes",
+          source: "viva",
+          score: 1,
+          occurred_at: `${TODAY}T09:00:00Z`,
+        }),
       ],
     })[0].mastery;
     expect(two).toBeGreaterThan(one);
-    expect(two - one).toBeLessThan(one - buildTopicStates({ decks, cards, attempts: [], now })[0].mastery);
+    expect(two - one).toBeLessThan(
+      one - buildTopicStates({ decks, cards, attempts: [], now })[0].mastery,
+    );
   });
 
   it("a deck with events but no cards becomes measured", () => {
     const decks = [deck({ id: "d1", title: "Enzymes" })];
     const state = buildTopicStates({
-      decks, cards: [], attempts: [], now,
-      events: [event({ topic_key: "enzymes", source: "quick_check", score: 0.75 })],
+      decks,
+      cards: [],
+      attempts: [],
+      now,
+      events: [
+        event({ topic_key: "enzymes", source: "quick_check", score: 0.75 }),
+      ],
     })[0];
     expect(state.evidence).toBeGreaterThan(0);
     expect(state.mastery).not.toBe(UNMEASURED_MASTERY);
@@ -643,7 +700,10 @@ describe("buildTopicStates with learning events", () => {
   it("a deck with events but no cards becomes measured from time alone", () => {
     const decks = [deck({ id: "d1", title: "Enzymes" })];
     const state = buildTopicStates({
-      decks, cards: [], attempts: [], now,
+      decks,
+      cards: [],
+      attempts: [],
+      now,
       events: [event({ topic_key: "enzymes", minutes: 60 })],
     })[0];
     expect(state.evidence).toBeGreaterThan(0);
@@ -654,11 +714,23 @@ describe("buildTopicStates with learning events", () => {
   it("ignores events beyond the horizon", () => {
     const decks = [deck({ id: "d1", title: "Enzymes" })];
     const cards = [card({ id: "c1", deck_id: "d1" })];
-    const stale = new Date(now.getTime() - (EVENT_HORIZON_DAYS + 1) * 86_400_000).toISOString();
+    const stale = new Date(
+      now.getTime() - (EVENT_HORIZON_DAYS + 1) * 86_400_000,
+    ).toISOString();
     const base = buildTopicStates({ decks, cards, attempts: [], now })[0];
     const after = buildTopicStates({
-      decks, cards, attempts: [], now,
-      events: [event({ topic_key: "enzymes", score: 1, source: "viva", occurred_at: stale })],
+      decks,
+      cards,
+      attempts: [],
+      now,
+      events: [
+        event({
+          topic_key: "enzymes",
+          score: 1,
+          source: "viva",
+          occurred_at: stale,
+        }),
+      ],
     })[0];
     expect(after.mastery).toBe(base.mastery);
   });
@@ -666,7 +738,10 @@ describe("buildTopicStates with learning events", () => {
   it("is deterministic", () => {
     const decks = [deck({ id: "d1", title: "Enzymes" })];
     const cards = [card({ id: "c1", deck_id: "d1" })];
-    const events = [event({ topic_key: "enzymes", minutes: 30 }), event({ topic_key: "enzymes", source: "viva", score: 0.6 })];
+    const events = [
+      event({ topic_key: "enzymes", minutes: 30 }),
+      event({ topic_key: "enzymes", source: "viva", score: 0.6 }),
+    ];
     const a = buildTopicStates({ decks, cards, attempts: [], now, events });
     const b = buildTopicStates({ decks, cards, attempts: [], now, events });
     expect(a).toEqual(b);

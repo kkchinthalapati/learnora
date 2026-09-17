@@ -3,6 +3,8 @@ import { flashcardsApi } from "../api/flashcards";
 import { sessionsApi, type LogSessionInput } from "../api/sessions";
 import { tasksApi } from "../api/tasks";
 import { queryClient } from "./queryClient";
+import { learningEventsApi, type RecordLearningEventInput } from "../api/learningEvents";
+import { requireUserId } from "../api/session";
 
 export const OFFLINE_QUEUE_KEY = "learnora:offline_queue";
 export const OFFLINE_QUEUE_EVENT = "learnora:offline_queue_changed";
@@ -27,6 +29,7 @@ export interface ToggleTaskPayload {
 }
 
 export interface OfflineActionPayloadMap {
+  recordLearningEvent: { input: RecordLearningEventInput; userId: string };
   submitSrsReview: SrsReviewPayload;
   logSession: LogSessionPayload;
   toggleTask: ToggleTaskPayload;
@@ -145,6 +148,12 @@ export function enqueueOfflineAction<T extends OfflineActionType>(
   payload: OfflineActionPayloadMap[T],
 ): OfflineAction<T> {
   const queue = getOfflineQueue();
+  if (type === "recordLearningEvent") {
+    const p = payload as OfflineActionPayloadMap["recordLearningEvent"];
+    const existing = queue.find(a => a.type === type &&
+      (a.payload as typeof p).userId === p.userId && (a.payload as typeof p).input.clientId === p.input.clientId);
+    if (existing) return existing as OfflineAction<T>;
+  }
   const id = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   const newAction: OfflineAction<T> = {
     id,
@@ -231,6 +240,11 @@ export async function flushOfflineQueue(): Promise<FlushResult> {
         if (currentQueue.length === 0) break;
 
         const action = currentQueue[0];
+        // Do not upload another account's evidence or consume its retry budget.
+        if (action.type === "recordLearningEvent") {
+          const owner = (action.payload as OfflineActionPayloadMap["recordLearningEvent"]).userId;
+          if (await requireUserId().catch(() => null) !== owner) break;
+        }
         try {
           if (action.type === "submitSrsReview") {
             const p = action.payload as SrsReviewPayload;
@@ -242,10 +256,15 @@ export async function flushOfflineQueue(): Promise<FlushResult> {
               { stability: p.stability, difficulty: p.difficulty },
             );
             queryClient.invalidateQueries({ queryKey: ["flashcards"] });
+          } else if (action.type === "recordLearningEvent") {
+            const p = action.payload as OfflineActionPayloadMap["recordLearningEvent"];
+            await learningEventsApi.send(p.input, p.userId);
+            queryClient.invalidateQueries({ queryKey: ["learning_events"] });
           } else if (action.type === "logSession") {
             const p = action.payload as LogSessionPayload;
             await sessionsApi.log(p);
             queryClient.invalidateQueries({ queryKey: ["sessions"] });
+            queryClient.invalidateQueries({ queryKey: ["learning_events"] });
           } else if (action.type === "toggleTask") {
             const p = action.payload as ToggleTaskPayload;
             await tasksApi.toggle(p.id, p.currentStatus);
@@ -268,7 +287,10 @@ export async function flushOfflineQueue(): Promise<FlushResult> {
             err,
           );
 
-          if (nextRetry >= MAX_RETRIES) {
+          if (nextRetry >= MAX_RETRIES && action.type === "recordLearningEvent") {
+            // Keep evidence for the next reconnect/manual retry instead of dropping it.
+            break;
+          } else if (nextRetry >= MAX_RETRIES) {
             console.warn(
               `[offlineSync] Action ${action.id} exceeded max retries (${MAX_RETRIES}). Dropping.`,
             );

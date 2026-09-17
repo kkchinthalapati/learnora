@@ -234,7 +234,10 @@ function applyEvents(
 ): { mastery: number; evidence: number; stabilityDays: number } {
   let { mastery, evidence, stabilityDays } = base;
   const horizon = now.getTime() - EVENT_HORIZON_DAYS * 86_400_000;
-  const live = events.filter((e) => new Date(e.occurred_at).getTime() >= horizon);
+  const live = events.filter((e) => {
+    const at = new Date(e.occurred_at).getTime();
+    return at >= horizon && at <= now.getTime();
+  });
 
   /* Time first, oldest first, so a later check measures the studied state. */
   for (const e of [...live].reverse()) {
@@ -725,7 +728,7 @@ export function formatTrajectoryForPrompt(
     const state = i.atRisk
       ? "fading — they knew this and are losing it, so it needs revisiting, not re-teaching"
       : `at ${Math.round(i.mastery * 100)}% mastery`;
-    return `- ${fenceUntrusted(i.label)}: ${i.pointsPerHour.toFixed(1)} marks per hour (${state})`;
+    return `- ${fenceUntrusted(i.label)}: ${i.pointsPerHour.toFixed(1)} points per hour (${state})`;
   });
 
   const best = worthwhile[0];

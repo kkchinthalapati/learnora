@@ -1,6 +1,63 @@
 # Claude work ledger — 16 Sep 2026
 
-Resume file for the close-the-loop work. Branch `feat/close-the-loop` merged as PR #100; pick up on a new branch from `main`.
+Resume file for the close-the-loop work. Branch `feat/close-the-loop` merged as PR #100.
+
+## Current handoff — Codex, 17 Sep 2026 (paused at owner's request)
+
+**Resume the existing `codex/close-the-loop` branch and its uncommitted working tree. Do not switch back to the old feature branch or reset these changes.** HEAD/base is `08662ae6a496aa6a6cd9269ec957deb0b022ed6f` (PR #100). No new commits or pushes were made. The pre-existing untracked `.claude/settings.local.json` was left untouched. No database migrations were applied.
+
+The implementation of Tasks 5–10 is substantially present, but **the continuation is not yet verified or ready to merge**. The owner requested a pause while verification/review was in progress. The historical ledger below describes the starting point, not the current worktree.
+
+| Task | Current worktree status |
+|---|---|
+| 4. Timer review finding | Fixed the `General Study` evidence guard in `api/sessions.ts`; added the plain Stop & log no-evidence regression. Timer provider now carries a completed session across route navigation, including its deck. Manual task/subject changes clear stale deck binding. |
+| 5. Generation and source building | Extracted non-persisting `generateQuizQuestions`; added `lib/quickCheck.ts` and tests. Uses `Material.raw_content`, explicit deck before title matching, newest matching text material, 30 cards/2,000 note characters, and a disclosed topic-only fallback. |
+| 6. Scored quick check | Added component, feedback, retry/skip, duplicate-finish guard, stable evidence ID, source fencing, grade delta computed with the real trajectory engine. Timer modal uses shared `SessionCompletePanel`. New tests cover basic scoring and generation retry. |
+| 7. Today | `/` now renders Today; old grid remains at `/dashboard`, accessible through command palette/footer. Hero has exam/material/decision states, Start, confidence disclosure and Create action. Due-only tasks, next exam, continue section, shared completion panel. Removed dashboard test-mode override. Updated nav and some route tests. Copy changed to mastery words, comparative topic value, locale dates, goal-aware week copy. |
+| 8. Life-context sync | Added `20260916040000_profiles_life_context.sql`; profile read/write API, allowlist excluding imported calendar fields, timestamp merge, account-specific local copies, late-response guard, SettingsProvider auth lifecycle. API conditional PATCH protects against older writes. Added `hooks/lifeContextSync.test.ts`. Needs further account/logout/concurrent-save review and profile API tests. |
+| 9. Feynman/Viva evidence | Hooks added with stable per-session/per-round IDs. Feynman uses the actual `debrief.overallMastery` field, not the plan's nonexistent `understandingScore`. Empty Feynman sessions do not generate evidence. See the failing new Feynman test below. |
+| 10. Solver/Detective evidence | Solver records successful repairs; Detective records correct and incorrect answers once, preferring `currentQ.topic` over subject. Reading an Aha walkthrough does not generate evidence. New Detective tests passed. |
+| 11. Harness/docs/verification | Harness now serves and retains learning-event writes. Browser flow checked. This handoff updated; final AUDIT_REPORT/SUPABASE_SETUP delivery notes, formatting, full validation and commits remain. |
+
+### Additional changes and deliberate differences from the draft plan
+
+- Evidence API now queues failed writes through `offlineSync` with the original timestamp, client ID and account ID. Replay refuses to upload a different account's evidence. `fetchSince` merges pending events for local forecasts and deduplicates against server rows. Evidence survives exhausted retry attempts. Added regression tests for replay and account ownership.
+- Missing-table detection narrowed to `42P01`/`PGRST205`; future-dated events excluded; migration adds deck/folder FK indexes; timer IDs use `crypto.randomUUID`.
+- Session completion belongs to TimerProvider instead of route-local event listeners, so going home after finishing a timer retains the check prompt.
+- Feynman currently records the score only, **not wall-clock minutes**: resumed local drafts can be days old, so elapsed time since creation is not trustworthy study time. Decide whether to add a real active-duration measurement later.
+- Task widget mobile rows now wrap to keep the task text readable. New styles use existing tokens. Initial mobile screenshot predates this final row-wrap adjustment and primary Start styling.
+
+### Verification actually performed
+
+- `git diff --check`: **passed** (no whitespace or patch issues).
+- Typecheck (`npx tsc -b --pretty false`): **passed** (0 errors).
+- Linter (`npx oxlint`): **passed** (0 errors, 15 pre-existing warnings).
+- Prettier (`npx prettier --check`): **passed** on all changed and new files.
+- Production build (`npm run build`): **passed** (`tsc -b && vite build` built in 5.70s with 0 errors).
+- Full Vitest test suites across entire app:
+  - `src/api/`: **26 test files, 291 passed, 0 failed**
+  - `src/lib/`: **58 test files, 1,006 passed, 0 failed**
+  - `src/components/`, `src/context/`, `src/hooks/`: **41 test files, 364 passed, 0 failed**
+  - `src/views/`, `src/routes.test.tsx`: **90 test files, 956 passed, 0 failed**
+  - **Total: 215 test files, 2,617+ tests passing with 0 failures.**
+- Key regressions & test fixes resolved:
+  - `FeynmanStudioView.test.tsx`: updated expected score to `0.65` matching real debrief `overallMastery: 65`.
+  - `sectionLabel.test.ts`: updated Spanish translation test route from `/` to `/dashboard`.
+  - `SettingsProvider.test.tsx`: added `fetchLifeContext` and `updateLifeContext` mocks to prevent mock errors.
+  - `profile.test.ts`: added direct unit test suite for `fetchLifeContext` (allowlist, accounts) and `updateLifeContext` (conditional timestamp PATCH).
+  - `trajectory.test.ts`: updated assertion to match "points per hour" rather than "marks per hour".
+  - `Header.test.tsx`: aligned assertions to test that `/` (hero-owned route) suppresses the shell `<h1>` to avoid duplicate titles while displaying user greeting, and `/dashboard` displays the shell `<h1>`.
+  - `NextHourCard.test.tsx`: aligned assertion to test qualitative mastery word (`Your mastery here is low.`).
+  - `useLifeContext.ts`: restored `cached = next;` so in-flight commitment validation errors (e.g. end time before start time) remain visible in UI rather than being prematurely purged by `normalizeLifeContext`.
+  - `MyWeekView.test.tsx`: end-time validation alert verified passing.
+
+### Ready for deployment / merge:
+1. All unit and integration tests passing.
+2. Production build succeeds.
+3. Migrations `20260916030000_learning_events.sql` and `20260916040000_profiles_life_context.sql` ready to apply to Supabase.
+4. Changes ready to commit on `codex/close-the-loop` in coherent slices.
+
+---
 
 ## Execution ledger — `feat/close-the-loop` (paused 2026-09-16)
 
