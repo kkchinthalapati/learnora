@@ -1,15 +1,14 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Combobox } from "../../components/Combobox";
 import { TopicValueHint } from "./TopicValueHint";
 import { Icon } from "../../components/Icon";
 import { Modal } from "../../components/Modal";
-import { useOptionalChat } from "../../context/chat";
+import { SessionCompletePanel } from "../today/SessionCompletePanel";
 import { useDialog } from "../../context/dialog";
 import { useOptionalAuth } from "../../context/auth";
-import { useToast } from "../../context/toast";
 import { useTimer } from "../../context/timer";
 import { useFolders } from "../../hooks/useFolders";
 import { useTasks } from "../../hooks/useTasks";
@@ -89,8 +88,9 @@ function readRecentFocusSessions(): RecentFocusSession[] {
 }
 
 export function TimerView() {
-  const navigate = useNavigate();
   const {
+    completedFocus: completedSession,
+    dismissCompletedFocus,
     state,
     draftConfig,
     setDraftConfig,
@@ -103,7 +103,8 @@ export function TimerView() {
     selectType,
     applyAndReset,
     activeTask,
-    setActiveTask,
+    setActiveTask: bindTask,
+    setActiveDeckId,
     sessionNote,
     setSessionNote,
     activeFolderId,
@@ -114,15 +115,14 @@ export function TimerView() {
     applyFav,
     quote,
   } = useTimer();
+  const setActiveTask = (task: string) => { bindTask(task); setActiveDeckId(null); };
   const auth = useOptionalAuth();
   const session = auth?.session;
-  const { showToast } = useToast();
   const { confirm, promptText } = useDialog();
   const { data: tasks } = useTasks({ enabled: Boolean(session) });
   const { data: folders } = useFolders({ enabled: Boolean(session) });
   const { focusParticipants, activeCount } = useStudyRoom();
   const t = useTranslation();
-  const chat = useOptionalChat();
 
   const focusId = useId();
   const shortId = useId();
@@ -135,8 +135,6 @@ export function TimerView() {
   const recentSessionsTitleId = useId();
   const displayRef = useRef<HTMLDivElement>(null);
   const [recentSessions, setRecentSessions] = useState(readRecentFocusSessions);
-  const [completedSession, setCompletedSession] =
-    useState<RecentFocusSession | null>(null);
   const [focusSound, setFocusSound] = useState<AmbiancePreset>("none");
 
   useEffect(() => {
@@ -147,7 +145,6 @@ export function TimerView() {
     const offerSessionCheck = () => {
       const latest = readRecentFocusSessions();
       setRecentSessions(latest);
-      setCompletedSession(latest[0] ?? null);
     };
     window.addEventListener(SESSION_LOGGED_EVENT, offerSessionCheck);
     window.addEventListener("storage", refreshRecentSessions);
@@ -183,32 +180,6 @@ export function TimerView() {
       /* The browser can decline fullscreen because of a device policy. The
          timer remains fully usable in-page, so this is a soft failure. */
     }
-  };
-
-  const startSessionCheck = async () => {
-    if (!session) {
-      showToast(
-        "Create a free account to unlock AI session checks and quizzes!",
-        {
-          actionLabel: "Sign Up",
-          onAction: () => {
-            void navigate("/signup");
-          },
-        },
-      );
-      return;
-    }
-    if (!chat) return;
-    const topic =
-      completedSession?.notes ||
-      completedSession?.task ||
-      activeTask ||
-      "what I just studied";
-    setCompletedSession(null);
-    chat.open();
-    await chat.send(
-      `Give me a fast 3-question multiple-choice check on ${topic}. Ask one question at a time, wait for my answer, then explain it briefly. Do not reveal later answers early.`,
-    );
   };
 
   /* A bound task that isn't one of the fetched rows — see the note on the
@@ -467,7 +438,7 @@ export function TimerView() {
             <select
               id={folderId}
               value={activeFolderId}
-              onChange={(e) => setActiveFolderId(e.target.value)}
+              onChange={(e) => { setActiveFolderId(e.target.value); setActiveDeckId(null); }}
             >
               <option value="">Unassigned</option>
               {(folders ?? []).map((f) => (
@@ -698,29 +669,8 @@ export function TimerView() {
         </div>
       </div>
 
-      <Modal
-        open={Boolean(completedSession)}
-        onClose={() => setCompletedSession(null)}
-        title="Lock in what you learned"
-        subtitle={`Session complete: ${completedSession?.task ?? "General Study"}. A three-question check takes about a minute.`}
-        footer={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => setCompletedSession(null)}
-            >
-              Not now
-            </Button>
-            <Button variant="primary" onClick={() => void startSessionCheck()}>
-              Start quick check
-            </Button>
-          </>
-        }
-      >
-        <p className={styles.quizPrompt}>
-          Retrieval straight after learning reveals what stuck while the
-          material is still fresh.
-        </p>
+      <Modal open={Boolean(completedSession)} onClose={dismissCompletedFocus} title="Lock in what you learned">
+        {completedSession ? <SessionCompletePanel session={completedSession} onClose={dismissCompletedFocus} /> : null}
       </Modal>
     </div>
   );

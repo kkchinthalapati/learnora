@@ -56,7 +56,7 @@ describe("TopicValueHint", () => {
     );
 
     expect(screen.getByText("Titration")).toBeInTheDocument();
-    expect(screen.getByText(/6\.0× an hour on Bonding/)).toBeInTheDocument();
+    expect(screen.getByText(/6\.0× the value of an hour on Bonding/)).toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", { name: "Study that instead" }),

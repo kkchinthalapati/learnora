@@ -9,7 +9,7 @@ import styles from "./topicValueHint.module.css";
  * The task binder above this offers the student their to-do list, which
  * answers "what did I say I'd do" — a different question from "what is this
  * block worth", and usually a worse one. The forecast can answer the second in
- * marks, so it should, at the moment the student is deciding rather than
+ * points, so it should, at the moment the student is deciding rather than
  * afterwards on a chart.
  *
  * One line and one button, on purpose. This is a nudge in a panel the student
@@ -54,15 +54,13 @@ export function TopicValueHint({
         {alreadyChosen ? (
           <>
             Good pick — <strong>{top.label}</strong> is the highest-value hour
-            you have before {forecast.examName}, at about{" "}
-            {top.pointsPerHour.toFixed(1)} marks.
+            you have before {forecast.examName}.
           </>
         ) : (
           <>
-            <strong>{top.label}</strong> is worth about{" "}
-            {top.pointsPerHour.toFixed(1)} marks an hour right now
+            <strong>{top.label}</strong> is your highest-value study topic right now
             {ratio >= MEANINGFUL_RATIO && worst
-              ? `, ${ratio.toFixed(1)}× an hour on ${worst.label}`
+              ? `, about ${ratio.toFixed(1)}× the value of an hour on ${worst.label}`
               : ""}
             .
           </>
