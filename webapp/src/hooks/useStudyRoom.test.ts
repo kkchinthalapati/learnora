@@ -73,7 +73,9 @@ describe("useStudyRoom", () => {
   };
 
   const createTimerApi = (overrides?: Partial<TimerApi>): TimerApi => ({
-    state: initialTimerState(),
+    completedFocus: null,
+  dismissCompletedFocus: vi.fn(),
+  state: initialTimerState(),
     draftConfig: initialTimerState().config,
     setDraftConfig: vi.fn(),
     panelType: "pomodoro",

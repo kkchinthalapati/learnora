@@ -47,7 +47,7 @@ export const sessionsApi = {
     /* The hour counts as evidence. Failure here must not fail the session
        log — the row is already in; the forecast merely misses one hour. */
     const topic = (task ?? "").trim();
-    if (topic && topic !== "None") {
+    if (topic && !["none", "general study"].includes(normaliseTopicKey(topic))) {
       try {
         await learningEventsApi.record({
           topicKey: normaliseTopicKey(topic),

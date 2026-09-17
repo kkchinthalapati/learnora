@@ -25,6 +25,7 @@ export function useLogSession() {
     onSuccess: ({ queued }) => {
       if (queued) return;
       qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["learning_events"] });
     },
   });
 }

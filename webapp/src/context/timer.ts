@@ -1,3 +1,4 @@
+import type { LocalSession } from "../lib/localSessions";
 import { createContext, useContext } from "react";
 import type {
   FavPreset,
@@ -13,6 +14,8 @@ import type {
  * navigating away from /timer. */
 
 export interface TimerApi {
+  completedFocus: LocalSession | null;
+  dismissCompletedFocus: () => void;
   state: TimerState;
   /** Config values shown in the panel — a draft, committed on Apply & Reset. */
   draftConfig: TimerConfig;

@@ -8,7 +8,7 @@ import { useSettings } from "./settings";
 import { useTimerIntervention } from "../hooks/useTimerIntervention";
 import { useFolders } from "../hooks/useFolders";
 import { appUrl } from "../lib/appUrl";
-import { appendLocalSession } from "../lib/localSessions";
+import { appendLocalSession, readLocalSessions, type LocalSession } from "../lib/localSessions";
 import { recordFocusGoal, saveStudySnapshot } from "../lib/continuity";
 import {
   QUOTES,
@@ -37,16 +37,8 @@ import {
 } from "../lib/timer";
 import { TimerContext, type TimerApi } from "./timer";
 
-/* crypto.randomUUID() is available in the browser and in jsdom/node 24; a
- * fallback keeps this working in older test environments. */
 function randomClientId(): string {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).slice(2);
+  return crypto.randomUUID();
 }
 
 /* Drives js/timer.js's state machine (lib/timer.ts) and owns the one live
@@ -87,6 +79,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const sessionNoteRef = useRef("");
   sessionNoteRef.current = sessionNote;
 
+  const [completedFocus, setCompletedFocus] = useState<LocalSession | null>(null);
+  const dismissCompletedFocus = useCallback(() => setCompletedFocus(null), []);
+  useEffect(() => setCompletedFocus(null), [session?.user.id]);
+
   const pause = useCallback(() => setState((s) => pauseT(s)), []);
 
   useTimerIntervention(
@@ -114,9 +110,11 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           folderId,
           timerType: state.type,
           isGuest: !session,
+          deckId: activeDeckId,
           notes,
         });
 
+        setCompletedFocus(readLocalSessions()[0] ?? null);
         sessionNoteRef.current = "";
         setSessionNote("");
         setActiveDeckId(null);
@@ -436,7 +434,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           setActiveFolderId(matched.id);
         }
       }
-      if (deckId !== undefined) setActiveDeckId(deckId);
+      setActiveDeckId(deckId ?? null);
     },
     [folders],
   );
@@ -491,6 +489,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<TimerApi>(
     () => ({
+      completedFocus, dismissCompletedFocus,
       state,
       draftConfig,
       setDraftConfig,
@@ -521,6 +520,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       newQuote,
     }),
     [
+      completedFocus, dismissCompletedFocus,
       activeTask,
       activeFolderId,
       activeDeckId,

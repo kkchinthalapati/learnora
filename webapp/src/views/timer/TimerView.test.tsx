@@ -285,7 +285,9 @@ describe("TimerView", () => {
   it("logs the banked stopwatch session on Stop & log", async () => {
     const user = userEvent.setup();
     let body: Record<string, unknown>[] | undefined;
+    const evidencePost = vi.fn();
     server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/learning_events`, () => { evidencePost(); return new HttpResponse(null, {status: 201}); }),
       http.post(
         `${SUPABASE_URL}/rest/v1/study_sessions`,
         async ({ request }) => {
@@ -313,6 +315,7 @@ describe("TimerView", () => {
       timer_type: "stopwatch",
       user_id: "user-1",
     });
+    expect(evidencePost).not.toHaveBeenCalled();
     // Local history is written too — the source of truth for instant UI.
     expect(Storage.get<unknown[]>("sessions", [])).toHaveLength(1);
     expect(screen.getByText("General Study")).toBeInTheDocument();

@@ -33,9 +33,11 @@ export interface LocalSession {
   guestSessionId?: string;
   guest?: boolean;
   notes?: string | null;
+  deckId?: string | null;
 }
 
 export interface AppendLocalSessionInput {
+  deckId?: string | null;
   minutes: number;
   task: string;
   folderId: string | null;
@@ -58,6 +60,7 @@ export function appendLocalSession({
   timerType,
   isGuest,
   notes,
+  deckId,
 }: AppendLocalSessionInput): void {
   const completedAt = Date.now();
   const sessions = readLocalSessions();
@@ -74,6 +77,7 @@ export function appendLocalSession({
     task,
     notes: notes?.trim().slice(0, 280) || null,
     folderId,
+    deckId,
     timerType,
     startedAt: new Date(completedAt - minutes * 60_000).toISOString(),
     guestSessionId: isGuest ? crypto.randomUUID() : undefined,
