@@ -15,7 +15,7 @@
 
 import { callEdge } from "./ai";
 import { quizzesApi } from "./quizzes";
-import { extractQuizJSON } from "../lib/aiJson";
+import { type QuizQuestion, extractQuizJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
 import { AI_PERSONA_QUIZ_HOST, type Settings } from "../lib/settings";
 import { misconceptionsApi } from "./misconceptions";
@@ -177,6 +177,37 @@ export async function generateQuizFrom({
   settings: Settings;
   options?: QuizOptions;
 }): Promise<Quiz> {
+  const questions = await generateQuizQuestions({ sourceText, topic, settings, options });
+
+  return quizzesApi.add(materialId, folderId, title, questions, notebookId);
+}
+
+/** Generate and save a quiz on a bare topic — no material, no folder. The
+ *  vanilla's own code reduces a topic source to `sourceText = "Topic: <topic>"`
+ *  before it reaches the model (js/ai.js:759-762), so that is all this adds. */
+export async function generateQuizFromTopic(
+  topic: string,
+  settings: Settings,
+  options: QuizOptions = {},
+): Promise<Quiz> {
+  const trimmed = topic.trim();
+  if (!trimmed) throw new Error("Please enter a topic.");
+
+  /* The topic can reach here from a model reply (`<ADD_QUIZ>…</ADD_QUIZ>`), so
+     it is not app-authored text — fenced before it goes back into a prompt. */
+  const safeTopic = fenceUntrusted(trimmed);
+
+  return generateQuizFrom({
+    sourceText: `Topic: ${safeTopic}`,
+    topic: safeTopic,
+    title: `${trimmed} Quiz`,
+    settings,
+    options,
+  });
+}
+
+/** Generate a transient check without adding a quiz to the library. */
+export async function generateQuizQuestions({ sourceText, topic, settings, options = {} }: { sourceText: string; topic: string; settings: Settings; options?: QuizOptions }): Promise<QuizQuestion[]> {
   /* Best-effort, like every other context read in this app: a quiz that is
      merely generic is a far smaller loss than no quiz at all, so a failed
      ledger read falls back to the prompt exactly as it was. */
@@ -218,29 +249,5 @@ export async function generateQuizFrom({
   const questions = extractQuizJSON(text);
   if (questions.length === 0) throw new QuizShapeError();
 
-  return quizzesApi.add(materialId, folderId, title, questions, notebookId);
-}
-
-/** Generate and save a quiz on a bare topic — no material, no folder. The
- *  vanilla's own code reduces a topic source to `sourceText = "Topic: <topic>"`
- *  before it reaches the model (js/ai.js:759-762), so that is all this adds. */
-export async function generateQuizFromTopic(
-  topic: string,
-  settings: Settings,
-  options: QuizOptions = {},
-): Promise<Quiz> {
-  const trimmed = topic.trim();
-  if (!trimmed) throw new Error("Please enter a topic.");
-
-  /* The topic can reach here from a model reply (`<ADD_QUIZ>…</ADD_QUIZ>`), so
-     it is not app-authored text — fenced before it goes back into a prompt. */
-  const safeTopic = fenceUntrusted(trimmed);
-
-  return generateQuizFrom({
-    sourceText: `Topic: ${safeTopic}`,
-    topic: safeTopic,
-    title: `${trimmed} Quiz`,
-    settings,
-    options,
-  });
+  return questions;
 }
