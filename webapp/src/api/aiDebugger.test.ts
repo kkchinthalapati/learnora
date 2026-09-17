@@ -1,3 +1,5 @@
+import { learningEventsApi } from "./learningEvents";
+vi.mock("./learningEvents", () => ({ learningEventsApi: { record: vi.fn().mockResolvedValue(undefined) } }));
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/mocks/server";
@@ -265,6 +267,7 @@ describe("aiDebugger API", () => {
       saveRepair(challenge);
 
       await recordRepairSuccess("trace_test_123", "repair_test_456");
+      expect(learningEventsApi.record).toHaveBeenCalledWith(expect.objectContaining({ source: "solver", score: 1, clientId: "solver:trace_test_123:repair_test_456" }));
 
       const updatedRepairs = getSavedRepairs();
       expect(updatedRepairs["repair_test_456"].verified).toBe(true);

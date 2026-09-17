@@ -1,4 +1,6 @@
 import { callEdge } from "./ai";
+import { learningEventsApi } from "./learningEvents";
+import { normaliseTopicKey } from "../lib/topicKey";
 import { extractJSON } from "../lib/aiJson";
 import { collection } from "../lib/storage";
 import { misconceptionsApi } from "./misconceptions";
@@ -410,5 +412,8 @@ export async function recordRepairSuccess(traceId: string, repairId: string): Pr
       layers: updatedLayers,
     };
     saveTrace(updatedTrace);
+    const topic = trace.layers.find(layer => layer.level === 1)?.concept ?? trace.failedQuestionOrTopic;
+    void learningEventsApi.record({ source: "solver", topicKey: normaliseTopicKey(topic), score: 1,
+      clientId: `solver:${traceId}:${repairId}`, payload: { traceId, repairId } }).catch(err => console.warn("[solver] evidence:", err));
   }
 }

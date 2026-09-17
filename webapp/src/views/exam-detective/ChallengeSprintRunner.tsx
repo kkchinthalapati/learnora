@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { learningEventsApi } from "../../api/learningEvents";
+import { normaliseTopicKey } from "../../lib/topicKey";
 import type { SprintQuestion } from "../../api/aiExamDeconstructor";
 import { markTrapDisarmed } from "../../api/aiExamDeconstructor";
 import { Button } from "../../components/Button";
@@ -30,6 +32,8 @@ export function ChallengeSprintRunner({
   onComplete,
   onExit,
 }: ChallengeSprintRunnerProps) {
+  const runId = useRef(crypto.randomUUID());
+  const graded = useRef(new Set<number>());
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [confidence, setConfidence] = useState<ConfidenceLevel>("certain");
@@ -93,9 +97,13 @@ export function ChallengeSprintRunner({
   };
 
   const handleConfirmAnswer = () => {
-    if (selectedOption === null) return;
+    if (selectedOption === null || graded.current.has(currentIndex)) return;
+    graded.current.add(currentIndex);
     const isCorrect = selectedOption === currentQ.correctAnswerIndex;
     setIsAnswered(true);
+    const topic = currentQ.topic?.trim() || subject?.trim();
+    if (topic) void learningEventsApi.record({ source: "detective", topicKey: normaliseTopicKey(topic), score: isCorrect ? 1 : 0,
+      clientId: `detective:${runId.current}:${currentIndex}`, payload: { trapId: currentQ.trapArchetypeId } }).catch(err => console.warn("[detective] evidence:", err));
 
     if (isCorrect) {
       markTrapDisarmed(currentQ.trapArchetypeId);

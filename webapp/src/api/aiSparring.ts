@@ -9,6 +9,8 @@
  */
 
 import { callEdge } from "./ai";
+import { learningEventsApi } from "./learningEvents";
+import { normaliseTopicKey } from "../lib/topicKey";
 import { extractJSON } from "../lib/aiJson";
 import { getFramework } from "../lib/region";
 import type { GroundedCitation } from "../types/notebooks";
@@ -815,6 +817,9 @@ Respond ONLY with valid JSON in this exact schema:
   };
 
   saveSparringSession(updatedSession);
+  void learningEventsApi.record({ source: "viva", topicKey: normaliseTopicKey(session.topic),
+    score: Math.max(0, Math.min(1, feedback.overallScore / 100)), clientId: `viva:${session.id}:${session.currentRound}`,
+    payload: { sessionId: session.id, round: session.currentRound } }).catch(err => console.warn("[viva] evidence:", err));
 
   return {
     session: updatedSession,

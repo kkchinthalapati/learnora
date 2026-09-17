@@ -1,3 +1,5 @@
+import { learningEventsApi } from "./learningEvents";
+vi.mock("./learningEvents", () => ({ learningEventsApi: { record: vi.fn().mockResolvedValue(undefined) } }));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { callEdge } from "./ai";
 import {
@@ -203,6 +205,7 @@ describe("aiSparring API", () => {
       );
 
       expect(result.feedback.clarityScore).toBe(88);
+      expect(learningEventsApi.record).toHaveBeenCalledWith(expect.objectContaining({ source: "viva", score: result.feedback.overallScore / 100 }));
       expect(result.feedback.rigourScore).toBe(82);
       expect(result.feedback.reactionTone).toBe("enthusiastic");
       expect(result.nextRound.speaker).toBe("jordan");

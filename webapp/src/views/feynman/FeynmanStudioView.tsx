@@ -1,3 +1,5 @@
+import { learningEventsApi } from "../../api/learningEvents";
+import { normaliseTopicKey } from "../../lib/topicKey";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
@@ -214,6 +216,9 @@ export function FeynmanStudioView() {
 
       setSession(completedSession);
       saveFeynmanSession(completedSession);
+      if (session.turns.length) void learningEventsApi.record({ source: "feynman", topicKey: normaliseTopicKey(session.topic),
+        score: Math.max(0, Math.min(1, debrief.overallMastery / 100)), clientId: `feynman:${session.id}`,
+        payload: { sessionId: session.id, subject: session.subject } }).catch(err => console.warn("[feynman] evidence:", err));
       navigate(`/feynman/debrief/${completedSession.id}`);
     } catch (err) {
       console.error("Failed to generate debrief", err);
