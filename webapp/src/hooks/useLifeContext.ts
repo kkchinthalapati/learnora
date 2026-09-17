@@ -1,3 +1,11 @@
+import { profileApi } from "../api/profile";
+import { Storage } from "../lib/storage";
+import {
+  DEFAULT_LIFE_CONTEXT,
+  LIFE_CONTEXT_KEY,
+  mergeRemoteLifeContext,
+  toSyncableLifeContext,
+} from "../lib/lifeContext";
 import { useCallback, useSyncExternalStore } from "react";
 import {
   LIFE_CONTEXT_CHANGED_EVENT,
@@ -68,6 +76,12 @@ export function useLifeContext(): LifeContextApi {
   const save = useCallback((next: LifeContext) => {
     cached = next;
     saveLifeContext(next);
+    if (accountId) {
+      Storage.set(`${LIFE_CONTEXT_KEY}:${accountId}`, cached);
+      void profileApi
+        .updateLifeContext(toSyncableLifeContext(cached), accountId)
+        .catch((err) => console.warn("[lifeContext] push failed:", err));
+    }
     window.dispatchEvent(new Event(LIFE_CONTEXT_CHANGED_EVENT));
   }, []);
 
@@ -84,4 +98,59 @@ export function useLifeContext(): LifeContextApi {
 /** Test seam: drops the module cache so a fresh render re-reads storage. */
 export function resetLifeContextCache(): void {
   cached = null;
+  accountId = null;
+  generation++;
+}
+
+let accountId: string | null = null;
+let generation = 0;
+/** SettingsProvider owns the auth lifecycle; a generation prevents late hydration after switching accounts. */
+export async function hydrateLifeContextFromProfile(
+  userId: string | null,
+): Promise<void> {
+  const token = ++generation;
+  const prior = Storage.get<string | null>(LIFE_CONTEXT_KEY + ":owner", null);
+  const owner = userId ?? "guest";
+  if (prior !== owner && !(prior === null && !userId)) {
+    if (prior) Storage.set(LIFE_CONTEXT_KEY + ":" + prior, loadLifeContext());
+    const next = Storage.get<LifeContext | null>(
+      LIFE_CONTEXT_KEY + ":" + owner,
+      null,
+    );
+    // The first sign-in may adopt a pre-sync local week. Subsequent accounts get their own copy.
+    cached =
+      next ??
+      (prior === null && userId
+        ? loadLifeContext()
+        : { ...DEFAULT_LIFE_CONTEXT });
+    saveLifeContext(cached, false);
+    Storage.set(LIFE_CONTEXT_KEY + ":owner", owner);
+    window.dispatchEvent(new Event(LIFE_CONTEXT_CHANGED_EVENT));
+  }
+  accountId = userId;
+  if (!userId) return;
+  try {
+    const { lifeContext: remote } = await profileApi.fetchLifeContext(userId);
+    if (token !== generation || accountId !== userId) return;
+    const local = loadLifeContext();
+    const merged = mergeRemoteLifeContext(local, remote);
+    if (merged !== local) {
+      cached = merged;
+      saveLifeContext(merged, false);
+      Storage.set(LIFE_CONTEXT_KEY + ":" + userId, merged);
+      window.dispatchEvent(new Event(LIFE_CONTEXT_CHANGED_EVENT));
+    } else if (
+      local.updatedAt &&
+      (!remote ||
+        Date.parse(local.updatedAt) > (Date.parse(remote.updatedAt ?? "") || 0))
+    ) {
+      await profileApi.updateLifeContext(toSyncableLifeContext(local), userId);
+    }
+  } catch (err) {
+    console.warn("[lifeContext] hydrate failed; keeping local week:", err);
+  }
+}
+export function cancelLifeContextHydration(): void {
+  generation++;
+  accountId = null;
 }

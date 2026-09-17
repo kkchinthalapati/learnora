@@ -1,11 +1,28 @@
 import { supabase } from "../lib/supabase";
 import { requireUserId } from "./session";
+import { toSyncableLifeContext, type SyncableLifeContext } from "../lib/lifeContext";
 
 export const AVATAR_BUCKET = "avatars";
 export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 export const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 export const profileApi = {
+  async fetchLifeContext(expectedUserId?: string): Promise<{ lifeContext: SyncableLifeContext | null; updatedAt: string | null }> {
+    const userId = await requireUserId();
+    if (expectedUserId && expectedUserId !== userId) throw new Error("Account changed");
+    const { data, error } = await supabase.from("profiles").select("life_context, life_context_updated_at").eq("id", userId).maybeSingle();
+    if (error) throw new Error(error.message);
+    return { lifeContext: data?.life_context ? { ...toSyncableLifeContext(data.life_context), updatedAt: data.life_context_updated_at ?? data.life_context.updatedAt } : null, updatedAt: data?.life_context_updated_at ?? null };
+  },
+  async updateLifeContext(ctx: SyncableLifeContext, expectedUserId?: string): Promise<void> {
+    const userId = await requireUserId();
+    if (expectedUserId && expectedUserId !== userId) throw new Error("Account changed");
+    const safe = toSyncableLifeContext(ctx);
+    const at = safe.updatedAt ?? new Date().toISOString();
+    const { error } = await supabase.from("profiles").update({ life_context: { ...safe, updatedAt: at }, life_context_updated_at: at }).eq("id", userId)
+      .or(`life_context_updated_at.is.null,life_context_updated_at.lt.${at}`);
+    if (error) throw new Error(error.message);
+  },
   async fetchRegion(userId: string): Promise<{
     region?: string | null;
     framework_id?: string | null;

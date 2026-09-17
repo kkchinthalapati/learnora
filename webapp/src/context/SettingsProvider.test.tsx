@@ -14,7 +14,15 @@ import { profileApi } from "../api/profile";
 import { getFramework, getRegion } from "../lib/region";
 import { loadSettings } from "../lib/settings";
 
-vi.mock("../api/profile", () => ({ profileApi: { fetchRegion: vi.fn() } }));
+vi.mock("../api/profile", () => ({
+  profileApi: {
+    fetchRegion: vi.fn(),
+    fetchLifeContext: vi
+      .fn()
+      .mockResolvedValue({ lifeContext: null, updatedAt: null }),
+    updateLifeContext: vi.fn().mockResolvedValue(undefined),
+  },
+}));
 
 function Probe() {
   const { settings, setSettings } = useSettings();
@@ -45,6 +53,11 @@ function app(id: string | null = "maya") {
 beforeEach(() => {
   localStorage.clear();
   vi.resetAllMocks();
+  vi.mocked(profileApi.fetchLifeContext).mockResolvedValue({
+    lifeContext: null,
+    updatedAt: null,
+  });
+  vi.mocked(profileApi.updateLifeContext).mockResolvedValue(undefined);
 });
 
 describe("curriculum settings across devices", () => {

@@ -112,6 +112,7 @@ export const CHRONOTYPES: {
 ];
 
 export interface LifeContext {
+  updatedAt?: string | null;
   version: 1;
   /** Nothing is ever scheduled outside [wakeTime, sleepTime]. */
   wakeTime: string;
@@ -313,8 +314,25 @@ export function loadLifeContext(): LifeContext {
   return normalizeLifeContext(Storage.get<unknown>(LIFE_CONTEXT_KEY, null));
 }
 
-export function saveLifeContext(ctx: LifeContext): void {
-  Storage.set(LIFE_CONTEXT_KEY, ctx);
+export function saveLifeContext(ctx: LifeContext, stamp = true): void {
+  Storage.set(LIFE_CONTEXT_KEY, { ...ctx, updatedAt: stamp ? new Date().toISOString() : ctx.updatedAt });
+}
+
+export type SyncableLifeContext = Omit<LifeContext, "importedIcs" | "importedLabel" | "importedAt">;
+
+/** Only these fields may leave the device, even if stored data has extra keys. */
+export function toSyncableLifeContext(ctx: LifeContext): SyncableLifeContext {
+  const c = normalizeLifeContext(ctx);
+  return { version: 1, updatedAt: c.updatedAt, wakeTime: c.wakeTime, sleepTime: c.sleepTime,
+    chronotype: c.chronotype, weekdayCapacityMins: c.weekdayCapacityMins, weekendCapacityMins: c.weekendCapacityMins,
+    minBlockMins: c.minBlockMins, maxBlockMins: c.maxBlockMins, breakMins: c.breakMins, bufferMins: c.bufferMins,
+    protectedDays: c.protectedDays, commitments: c.commitments.map(({ id, label, kind, days, start, end }) => ({ id, label, kind, days, start, end })) };
+}
+
+export function mergeRemoteLifeContext(local: LifeContext, remote: SyncableLifeContext | null): LifeContext {
+  if (!remote || (Date.parse(remote.updatedAt ?? "") || 0) <= (Date.parse(local.updatedAt ?? "") || 0)) return local;
+  return normalizeLifeContext({ ...toSyncableLifeContext(remote), importedIcs: local.importedIcs ?? null,
+    importedLabel: local.importedLabel ?? null, importedAt: local.importedAt ?? null });
 }
 
 /** Fired after a write so any mounted surface repaints against the new week.

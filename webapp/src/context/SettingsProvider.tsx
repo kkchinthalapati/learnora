@@ -1,3 +1,4 @@
+import { hydrateLifeContextFromProfile, cancelLifeContextHydration } from "../hooks/useLifeContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { loadSettings, saveSettings, type Settings } from "../lib/settings";
@@ -18,6 +19,10 @@ import { isGradeScaleId } from "../lib/gradeScale";
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const auth = useOptionalAuth();
   const userId = auth?.user?.id;
+  useEffect(() => {
+    void hydrateLifeContextFromProfile(userId ?? null);
+    return cancelLifeContextHydration;
+  }, [userId]);
   const initial = useState<Settings>(loadSettings)[0];
   const [settings, setSettingsState] = useState<Settings>(initial);
 
