@@ -38,3 +38,46 @@ it("offers the completed timer session after navigating home", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Not now" }));
   await waitFor(() => expect(timer.dismissCompletedFocus).toHaveBeenCalled());
 });
+
+/* The quickest way to use the timer is to press start with nothing
+   attached — no task, no note. That session used to finish on "choose a
+   topic next time" and no check at all, which throws away the retrieval
+   evidence the misconception ledger leans on hardest. The deck and the
+   subject folder are already on the session and name the material. */
+it("still offers a quick check when the session was never given a name", async () => {
+  server.use(
+    http.get(`${SUPABASE_URL}/rest/v1/flashcard_decks`, () =>
+      HttpResponse.json([{ id: "d", title: "Photosynthesis", folder_id: "f", user_id: "user-1" }]),
+    ),
+  );
+  timer.completedFocus = {
+    id: 43,
+    timestamp: "Today",
+    task: "General Study",
+    minutes: 25,
+    deckId: "d",
+  };
+  renderWithAuth(<TodayView />, { session: fakeSession() }, { withRouter: true });
+
+  expect(
+    await screen.findByRole("button", { name: "Start quick check" }),
+  ).toBeInTheDocument();
+  /* Named by its material, not by the timer's placeholder. */
+  expect(
+    await screen.findByRole("heading", { name: "Session complete: Photosynthesis" }),
+  ).toBeInTheDocument();
+});
+
+it("asks for a topic only when nothing at all identifies the session", async () => {
+  timer.completedFocus = {
+    id: 44,
+    timestamp: "Today",
+    task: "General Study",
+    minutes: 25,
+    deckId: null as unknown as string,
+  };
+  renderWithAuth(<TodayView />, { session: fakeSession() }, { withRouter: true });
+
+  expect(screen.queryByRole("button", { name: "Start quick check" })).toBeNull();
+  expect(screen.getByText(/Choose a topic or add a session note/)).toBeInTheDocument();
+});
