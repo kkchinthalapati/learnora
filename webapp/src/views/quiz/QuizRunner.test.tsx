@@ -640,3 +640,50 @@ describe("QuizRunner answer integrity", () => {
     expect(answers.find((a) => a.questionId === "q1")?.correct).toBe(true);
   });
 });
+
+/* The results screen named the weak topics and then offered nothing to do
+   about them: "check your weak topics" pointed at a destination that was
+   not on the page. */
+describe("QuizRunner results routing", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mockAuthSession("user-1");
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("offers a route into the Solver carrying the weak topic", async () => {
+    serveQuiz();
+    renderRunner();
+
+    await screen.findByText("Question 1 of 2");
+    /* Wrong on both, so there is something to fix. */
+    await userEvent.click(screen.getByRole("button", { name: "Nucleus" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await screen.findByText("Question 2 of 2");
+    await userEvent.click(screen.getByRole("button", { name: "Dinitrogen acetate" }));
+    await userEvent.click(screen.getByRole("button", { name: "See results →" }));
+
+    const fix = await screen.findByRole("link", { name: /Work on/ });
+    expect(fix.getAttribute("href")).toContain("/solver?topic=");
+    /* Confetti on a zero reads as sarcasm. */
+    expect(screen.queryByText("Quiz Complete! 🎉")).toBeNull();
+    expect(screen.getByText("Quiz Complete")).toBeInTheDocument();
+  });
+
+  it("keeps the celebration for a clean sweep and offers no fix-up", async () => {
+    serveQuiz();
+    renderRunner();
+
+    await screen.findByText("Question 1 of 2");
+    await userEvent.click(screen.getByRole("button", { name: "Mitochondrion" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await screen.findByText("Question 2 of 2");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Deoxyribonucleic acid" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "See results →" }));
+
+    await screen.findByText("Quiz Complete! 🎉");
+    expect(screen.queryByRole("link", { name: /Work on/ })).toBeNull();
+  });
+});

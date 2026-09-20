@@ -355,10 +355,15 @@ function QuizSession({
       <div className={styles.view}>
         <Card variant="panel" padding="lg" className={styles.panel}>
           <QuizHost
-            message={`Finished! You got ${score} out of ${total}. Check your weak topics and keep studying!`}
+            message={
+              score === total
+                ? `Finished! ${score} out of ${total}. Nothing to fix here.`
+                : `Finished! You got ${score} out of ${total}. Let's fix what slipped.`
+            }
           />
           <ExitLink />
-          <h2>Quiz Complete! 🎉</h2>
+          {/* Confetti on a zero read as sarcasm. */}
+          <h2>{score === total ? "Quiz Complete! 🎉" : "Quiz Complete"}</h2>
           <p className={styles.score}>
             {score} / {total} correct
           </p>
@@ -368,9 +373,25 @@ function QuizSession({
             </p>
           ) : null}
           <div className={styles.actions}>
+            {/* The screen named the weak topics and then offered no way to
+                act on them — "check your weak topics" pointed at a
+                destination that was not on the page. The Solver is the
+                tool built for "I got this wrong and don't know why", and
+                it takes the topic straight from here. */}
+            {weakTopics.length > 0 ? (
+              <Link
+                to={`/solver?topic=${encodeURIComponent(weakTopics[0])}`}
+                className={`${styles.actionLink} ${styles.actionLinkPrimary}`}
+              >
+                <Icon name="target" size={16} />
+                Work on {weakTopics[0]}
+              </Link>
+            ) : null}
             <Link
               to={`/quiz/${quizId}/review`}
-              className={`${styles.actionLink} ${styles.actionLinkPrimary}`}
+              className={`${styles.actionLink} ${
+                weakTopics.length > 0 ? "" : styles.actionLinkPrimary
+              }`}
             >
               <Icon name="list-checks" size={16} />
               Review answers

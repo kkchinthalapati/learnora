@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import {
   clearTraceHistory,
   deleteTrace,
@@ -58,6 +59,7 @@ const SUBJECT_OPTIONS = [
 ];
 
 export function CognitiveDebuggerView() {
+  const [searchParams] = useSearchParams();
   const [subject, setSubject] = useState(SUBJECT_OPTIONS[0]);
   const [mistakeDescription, setMistakeDescription] = useState("");
   const [context, setContext] = useState("");
@@ -88,6 +90,16 @@ export function CognitiveDebuggerView() {
         // Fallback silently if offline or unauthenticated
         setWeakTopics([]);
       });
+
+    /* Arriving from a quiz result: "Work on Photosynthesis" carries the
+       weak topic here rather than dropping the student on an empty form
+       and asking them to retype what the app already knew. Checked before
+       the bridge so an explicit link wins over a stale hand-off. */
+    const linkedTopic = searchParams.get("topic")?.trim();
+    if (linkedTopic) {
+      setMistakeDescription(`I keep getting ${linkedTopic} questions wrong`);
+      return;
+    }
 
     const bridged = CognitiveBridge.getPayload();
     if (bridged && bridged.sourceTool !== "debugger") {
@@ -240,7 +252,7 @@ export function CognitiveDebuggerView() {
         <div className={styles.headerTitleGroup}>
           <h1 className={styles.title}>
             <Icon name="brain" size={28} />
-            <span>Step-by-Step Solver</span>
+            <span>Step-by-step solver</span>
           </h1>
           <p className={styles.subtitle}>
             Work backwards from the mistake you made to find where you got stuck and repair the gap.
