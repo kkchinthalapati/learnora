@@ -235,13 +235,12 @@ const BUILTIN_PROVIDERS: AIProvider[] = [
     id: "groq",
     keyEnv: "GROQ_API_KEY",
     modelEnv: "GROQ_MODEL",
-    // Failing as of 2026-09-20 with "The model `llama-3.3-70b-versatile`
-    // does not exist or you do not have access to it." Left as-is
-    // deliberately: that 404 cannot distinguish a retired model from a key
-    // without access to it, and guessing a replacement risks swapping one
-    // dead default for another. Check the catalogue against this project's
-    // own key and set GROQ_MODEL — no redeploy needed.
-    defaultModel: "llama-3.3-70b-versatile",
+    // `llama-3.3-70b-versatile` started returning "does not exist or you do
+    // not have access to it" on 2026-09-20. That 404 cannot tell a retired
+    // model from a key without access, so the replacement below is the one
+    // this project's own key is known to reach rather than a guess from a
+    // catalogue. GROQ_MODEL overrides it without a redeploy.
+    defaultModel: "gpt-oss-120b",
     url: "https://api.groq.com/openai/v1/chat/completions",
     jsonMode: true,
     cost: "free",
