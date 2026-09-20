@@ -586,3 +586,57 @@ describe("QuizRunner draft autosave", () => {
   });
 
 });
+
+/* A resumed draft can land the student back on a question its answers
+   array already covers — Back, Forward, Resume is the ordinary way there.
+   The answer store used to append blindly, so that question went in
+   twice: a two-question quiz submitted three rows. The score looked
+   right, because it counts correct entries, but `answers_json` is what
+   the evidence layer reads for per-topic accuracy, so the duplicate
+   quietly weighted one question twice in the misconception ledger. */
+describe("QuizRunner answer integrity", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mockAuthSession("user-1");
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("stores one row per question when a resumed run re-answers one", async () => {
+    /* Resumed sitting on question 1 while already holding an answer for
+       it — exactly what Back/Forward/Resume produces. */
+    Storage.set("learnora_quiz_draft_quiz-1", {
+      index: 0,
+      answers: [
+        { questionId: "q1", chosenIndex: 0, correct: false, topic: "Cell biology" },
+      ],
+    });
+    let submitted: Record<string, unknown> | undefined;
+    serveQuiz();
+    server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/quiz_attempts`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>[];
+        submitted = body[0];
+        return HttpResponse.json([{ id: "attempt-1" }]);
+      }),
+    );
+    renderRunner();
+
+    await screen.findByText("Question 1 of 2");
+    /* Answer question 1 again, this time correctly. */
+    await userEvent.click(screen.getByRole("button", { name: "Mitochondrion" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await screen.findByText("Question 2 of 2");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Deoxyribonucleic acid" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "See results →" }));
+    await screen.findByText("Quiz Complete! 🎉");
+
+    await waitFor(() => expect(submitted).toBeDefined());
+    const answers = submitted!.answers_json as Array<Record<string, unknown>>;
+    expect(answers).toHaveLength(2);
+    expect(answers.filter((a) => a.questionId === "q1")).toHaveLength(1);
+    /* The later answer wins — it is what the student actually chose. */
+    expect(answers.find((a) => a.questionId === "q1")?.correct).toBe(true);
+  });
+});

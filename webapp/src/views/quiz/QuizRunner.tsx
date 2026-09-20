@@ -289,19 +289,35 @@ function QuizSession({
     if (answered) return;
     const correct = chosenIndex === question.correctIndex;
     setAnswered({ chosenIndex, correct });
-    setAnswers((prev) => [
-      ...prev,
-      {
-        questionId: question.id ?? index,
-        chosenIndex,
-        correct,
-        topic: question.topic,
-        secondsSpent: Math.max(
-          0,
-          Math.round((Date.now() - questionShownAt.current) / 1000),
-        ),
-      },
-    ]);
+
+    const entry = {
+      questionId: question.id ?? index,
+      chosenIndex,
+      correct,
+      topic: question.topic,
+      secondsSpent: Math.max(
+        0,
+        Math.round((Date.now() - questionShownAt.current) / 1000),
+      ),
+    };
+
+    /* One row per question, replacing rather than appending.
+     *
+     * This was a blind append, so a question answered twice in one run was
+     * stored twice: leave mid-quiz, come back, take Resume, and the draft
+     * restores an index that can sit on a question the answers array
+     * already covers. A two-question quiz came back with three rows. The
+     * displayed score was right — it counts correct entries — which is why
+     * it went unnoticed, but `answers_json` is what the evidence layer
+     * reads for per-topic accuracy, so the duplicate quietly weighted one
+     * question twice in the misconception ledger. */
+    setAnswers((prev) => {
+      const at = prev.findIndex((a) => a.questionId === entry.questionId);
+      if (at === -1) return [...prev, entry];
+      const merged = [...prev];
+      merged[at] = entry;
+      return merged;
+    });
   };
 
   const next = () => {

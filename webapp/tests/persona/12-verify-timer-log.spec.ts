@@ -73,7 +73,15 @@ test("a single stopwatch run logs exactly one session, keeping its note", async 
     `Rows: ${JSON.stringify(sessions.map((s) => ({ minutes: s.minutes, notes: s.notes })))}`,
   );
   await log.shot("after-stop-and-log");
-  log.saw(`The completion screen:\n${await log.visibleText(600)}`);
+  /* The panel itself, not the whole page — the sidebar alone ate the
+     previous 600-character capture, so "no quick check here" could not be
+     told apart from "the capture stopped before it". */
+  const panel = await page
+    .getByRole("region", { name: "Session complete" })
+    .innerText({ timeout: 8000 })
+    .catch(() => "(panel not found)");
+  log.saw(`The completion panel:\n${panel}`);
+  log.saw(`Offers a quick check: ${/quick check/i.test(panel)}`);
 
   log.write({ sessionCount: sessions.length, sessions });
 
