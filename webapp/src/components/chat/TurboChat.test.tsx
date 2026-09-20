@@ -64,6 +64,20 @@ function serveEdgeByMode(byMode: Record<string, () => Response>) {
   );
 }
 
+/** Records every prompt the chat sends to the edge function, so a test can
+ *  assert on the system context rather than only on the rendered reply. */
+function capturePrompts(text = "Sure.") {
+  const sent: string[] = [];
+  server.use(
+    http.post(EDGE_URL, async ({ request }) => {
+      const body = (await request.json()) as { history: { content: string }[] };
+      sent.push(body.history[body.history.length - 1]?.content ?? "");
+      return HttpResponse.json({ text });
+    }),
+  );
+  return sent;
+}
+
 function renderChat(initialPath = "/") {
   return renderWithAuth(
     <MemoryRouter initialEntries={[initialPath]}>
@@ -104,6 +118,42 @@ describe("TurboChat", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  /* Auto-Adapt promises to "adjust its next reply when your follow-up shows
+     confusion". It computed that adjustment and then sent only its sentence:
+     a stuck student on the detailed setting was told to slow down and to
+     "err on the side of covering more" in the same breath. */
+  it("shortens the reply it asks for once the student is plainly stuck", async () => {
+    Storage.set(SETTINGS_KEY, { aiConciseness: "detailed", aiAutoAdapt: true });
+    const sent = capturePrompts();
+    renderChat();
+    await openChat();
+
+    await ask("what is a mole");
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0]).toContain("Give comprehensive, detailed responses");
+
+    await ask("i still dont understand");
+    await waitFor(() => expect(sent).toHaveLength(2));
+    await ask("i still dont understand");
+    await waitFor(() => expect(sent).toHaveLength(3));
+
+    expect(sent[2]).toContain("ADAPTIVE NUDGE: The student appears stuck");
+    expect(sent[2]).toContain("Keep replies short and to the point");
+    expect(sent[2]).not.toContain("Give comprehensive, detailed responses");
+  });
+
+  it("leaves the student's own length preference alone while nothing is wrong", async () => {
+    Storage.set(SETTINGS_KEY, { aiConciseness: "detailed", aiAutoAdapt: true });
+    const sent = capturePrompts();
+    renderChat();
+    await openChat();
+
+    await ask("what is a mole");
+    await waitFor(() => expect(sent).toHaveLength(1));
+    expect(sent[0]).toContain("Give comprehensive, detailed responses");
+    expect(sent[0]).not.toContain("ADAPTIVE NUDGE");
   });
 
   it("is closed until something opens it", () => {
