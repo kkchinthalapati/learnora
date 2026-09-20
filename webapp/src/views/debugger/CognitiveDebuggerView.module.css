@@ -133,11 +133,18 @@
   gap: 0.4rem;
 }
 
+/* 44px is the WCAG 2.5.5 / Apple HIG floor for anything a finger has to
+   hit. These measured 26px tall on a phone, and they sit right under the
+   field a student is aiming for, so a near-miss types into the wrong
+   place. Height rather than padding, so the text keeps its size. */
 .presetPill {
+  min-height: var(--touch-target-min, 44px);
+  display: inline-flex;
+  align-items: center;
   background: var(--surface-hover);
   border: 1px solid var(--glass-border-subtle);
   border-radius: 9999px;
-  padding: 0.3rem 0.65rem;
+  padding: 0.3rem 0.85rem;
   font-size: var(--fs-xs);
   color: var(--text-muted);
   cursor: pointer;
