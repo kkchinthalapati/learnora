@@ -518,3 +518,11 @@
   justify-content: center;
   max-width: 600px;
 }
+
+/* Says why a disabled action is disabled. A control that is simply dead
+   with no explanation is what made the first press here feel broken. */
+.helperText {
+  margin: var(--s-2) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}

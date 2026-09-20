@@ -336,7 +336,9 @@ export function ExamDetectiveHubView() {
               <Button
                 variant="primary"
                 onClick={handleDeconstruct}
-                disabled={isDeconstructing}
+                /* Same reason as Start practice: refused-on-press with
+                   only a toast to explain it. */
+                disabled={isDeconstructing || !subject.trim()}
               >
                 {isDeconstructing
                   ? "Scanning for Traps…"
@@ -405,10 +407,21 @@ export function ExamDetectiveHubView() {
               <Button
                 variant="primary"
                 onClick={handleStartSprint}
-                disabled={isLoadingSprint}
+                /* Unavailable until there is a subject, rather than
+                   pressable-then-refused. The picker's only option on a new
+                   account reads "Type a subject…", which looks like an
+                   instruction that has already been followed, so the first
+                   press went nowhere and answered with a toast that is easy
+                   to miss. */
+                disabled={isLoadingSprint || !subject.trim()}
               >
                 {isLoadingSprint ? "Preparing questions…" : "Start practice"}
               </Button>
+              {!subject.trim() ? (
+                <p className={styles.helperText}>
+                  Pick or type a subject above to start.
+                </p>
+              ) : null}
             </div>
           </div>
         </section>
