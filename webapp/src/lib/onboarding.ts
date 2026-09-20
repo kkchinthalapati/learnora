@@ -67,8 +67,10 @@ export type ExamTypeId =
 /** Mirrors the `profiles_study_pace_check` constraint. */
 export type StudyPaceId = "light" | "balanced" | "intensive";
 export type CurriculumPresetId =
+  | "cbse-9"
   | "cbse-10"
   | "icse-10"
+  | "gcse-10"
   | "gcse-11"
   | "a-level-13"
   | "ap-12"
@@ -149,6 +151,51 @@ export const CURRICULUM_PRESETS: readonly CurriculumPreset[] = [
     milestones: [
       { name: "Year 11 Mock Exam", monthsFromNow: 2 },
       { name: "GCSE / IGCSE Exam", monthsFromNow: 6 },
+    ],
+  },
+  /* The year below the exam year, which had no preset at all: every option
+   * here started at Class 10 / Year 11 / Year 13, so a Grade 9 student —
+   * squarely in the age range this app is written for — met a setup screen
+   * built to save them typing and had to type it all anyway.
+   *
+   * Milestones are school assessments rather than a board exam, because
+   * that is what this year actually has: end-of-year exams that decide set
+   * placement and option choices, not a certificate. */
+  {
+    id: "gcse-10",
+    label: "Year 10 / Grade 9",
+    hint: "The year before GCSEs — core subjects and end-of-year exams",
+    examType: "gcse",
+    regions: ["GB", "INTL"],
+    folders: [
+      "Maths",
+      "Combined Science",
+      "English Language",
+      "History",
+      "Geography",
+    ],
+    milestones: [
+      { name: "End-of-term Assessment", monthsFromNow: 2 },
+      { name: "End-of-Year Exam", monthsFromNow: 7 },
+    ],
+  },
+  {
+    id: "cbse-9",
+    label: "CBSE / ICSE Class 9",
+    hint: "The year before the board year — same subjects, school exams",
+    examType: "other",
+    regions: ["IN"],
+    folders: [
+      "Mathematics",
+      "Science · Physics",
+      "Science · Chemistry",
+      "Science · Biology",
+      "Social Science",
+      "English",
+    ],
+    milestones: [
+      { name: "Half-Yearly Exam", monthsFromNow: 2 },
+      { name: "Annual Exam", monthsFromNow: 6 },
     ],
   },
   {
