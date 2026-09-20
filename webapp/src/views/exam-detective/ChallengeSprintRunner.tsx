@@ -73,7 +73,10 @@ export function ChallengeSprintRunner({
       candidatesFromTrapSprint(
         questionResults.map((r) => r.question),
         questionResults.map((r) => r.selectedOption),
-        { subject },
+        /* sprintId links this ledger write back to the per-question
+         * `detective:${runId}:${index}` learning events recorded above, so
+         * the two systems stay traceable to the same sprint. */
+        { subject, sprintId: runId.current },
       ),
     );
   }, [isFinished, questionResults, subject, recordMisconceptions]);

@@ -13,6 +13,7 @@ import { learningEventsApi } from "./learningEvents";
 import { normaliseTopicKey } from "../lib/topicKey";
 import { extractJSON } from "../lib/aiJson";
 import { getFramework } from "../lib/region";
+import { candidatesFromSparring } from "../lib/misconceptions";
 import type { GroundedCitation } from "../types/notebooks";
 
 export type { GroundedCitation };
@@ -817,9 +818,18 @@ Respond ONLY with valid JSON in this exact schema:
   };
 
   saveSparringSession(updatedSession);
+  /* One call for both writes: the ledger candidates below are diagnosed from
+   * the exact same round's feedback that produces this learning event, so
+   * they belong together rather than as two independent calls a few lines
+   * apart in the view (which is where this used to live). */
+  const candidates = candidatesFromSparring(feedback, {
+    subject: session.topic,
+    topic: session.topic,
+    sessionId: session.id,
+  });
   void learningEventsApi.record({ source: "viva", topicKey: normaliseTopicKey(session.topic),
     score: Math.max(0, Math.min(1, feedback.overallScore / 100)), clientId: `viva:${session.id}:${session.currentRound}`,
-    payload: { sessionId: session.id, round: session.currentRound } }).catch(err => console.warn("[viva] evidence:", err));
+    payload: { sessionId: session.id, round: session.currentRound } }, candidates).catch(err => console.warn("[viva] evidence:", err));
 
   return {
     session: updatedSession,

@@ -3,6 +3,8 @@ import { buildTopicStates, scoreOf } from "../../lib/trajectory";
 import { getGradeScale, normaliseScore, renderGrade } from "../../lib/gradeScale";
 import { useQuizAttempts } from "../../hooks/useQuizzes";
 import { useLearningEvents } from "../../hooks/useLearningEvents";
+import { useFolders } from "../../hooks/useFolders";
+import { candidatesFromQuizAnswers } from "../../lib/misconceptions";
 import type { LearningEvent } from "../../api/types";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -42,6 +44,7 @@ export function QuickCheck({
   const finished = useRef(false);
   const attempts = useQuizAttempts();
   const events = useLearningEvents();
+  const folders = useFolders();
   const [grounded, setGrounded] = useState(false);
   const [saving, setSaving] = useState(false);
   const { settings } = useSettings();
@@ -123,6 +126,21 @@ export function QuickCheck({
       const grade = (n: number) => renderGrade(normaliseScore(n), getGradeScale());
       result.change = `${grade(scoreOf(before))} → ${grade(scoreOf(after))}`;
     }
+    /* Feed the misconception ledger from the same result that produces the
+     * learning event, through the one call — this is the same
+     * candidatesFromQuizAnswers path the Quiz screens use (see
+     * recordQuizMisconceptions in useQuizzes.ts). Quick Check runs after
+     * nearly every study session, so leaving it out was the single biggest
+     * gap in the ledger's coverage. */
+    const subject = folders.data?.find((f) => f.id === folderId)?.name ?? "";
+    const answerRecords = questions.map((question, i) => ({
+      topic: question.topic || topic,
+      correct: answers[i] === question.correctIndex,
+      question: question.question,
+      chosen: answers[i] != null ? question.choices[answers[i]!] : undefined,
+    }));
+    const candidates = candidatesFromQuizAnswers(answerRecords, { subject, attemptId: eventId.current });
+
     try {
       const recorded = await learningEventsApi.record({
         topicKey: normaliseTopicKey(topic),
@@ -133,13 +151,14 @@ export function QuickCheck({
         clientId: eventId.current,
         occurredAt: event.occurred_at,
         payload: { questions, answers },
-      });
+      }, candidates);
       result.saved = !recorded?.queued;
       void qc.invalidateQueries({ queryKey: learningEventsKeys.all });
     } catch (err) {
       result.saved = false;
       console.warn("[quickCheck] result not recorded:", err);
     }
+
     onDone(result);
   };
 

@@ -41,6 +41,38 @@ describe("QuickCheck", () => {
     await waitFor(() => expect(onDone).toHaveBeenCalledWith(expect.objectContaining({ correct: 1, total: 2, score: 0.5 })));
     expect(record).toHaveBeenCalledWith(
       expect.objectContaining({ source: "quick_check", score: 0.5, topicKey: "enzymes", deckId: "d1" }),
+      expect.any(Array),
+    );
+  });
+
+  /* Quick Check used to write only to the learning-events forecast, never
+   * to the misconception ledger — the one thing the product's tools are
+   * meant to share. This pins the same finish() flow to also pass ledger
+   * candidates (the same candidatesFromQuizAnswers path Quiz uses) through
+   * to learningEventsApi.record's second argument, so one call writes both. */
+  it("also passes the missed question to the misconception ledger via the event write", async () => {
+    const onDone = vi.fn();
+    renderWithProviders(
+      <QuickCheck topic="Enzymes" deckId="d1" onDone={onDone} onSkip={() => {}} />,
+      authValue({ session: fakeSession() }),
+    );
+    await screen.findByText("What is Km?");
+    await userEvent.click(screen.getByRole("button", { name: "B" }));
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await screen.findByText("Inhibitor?");
+    await userEvent.click(screen.getByRole("button", { name: "C" }));
+    await userEvent.click(screen.getByRole("button", { name: /finish/i }));
+
+    await waitFor(() => expect(record).toHaveBeenCalled());
+    const candidates = record.mock.calls[0][1];
+    expect(candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          concept: "Enzymes",
+          kind: "evidence",
+          summary: "Missed: Inhibitor?",
+        }),
+      ]),
     );
   });
 

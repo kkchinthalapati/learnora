@@ -18,14 +18,8 @@ import {
   type SparringPersona,
   type GroundedCitation,
 } from "../../api/aiSparring";
-import {
-  useMisconceptions,
-  useRecordMisconceptions,
-} from "../../hooks/useMisconceptions";
-import {
-  candidatesFromSparring,
-  formatMisconceptionsForPrompt,
-} from "../../lib/misconceptions";
+import { useMisconceptions } from "../../hooks/useMisconceptions";
+import { formatMisconceptionsForPrompt } from "../../lib/misconceptions";
 import { SparringStage } from "./SparringStage";
 import { MessageBubble } from "../../components/conversation/ConversationShell";
 import styles from "./sparring.module.css";
@@ -41,7 +35,6 @@ const QUICK_STARTER_TOPICS = [
 export function SocraticSparringView() {
   const [searchParams] = useSearchParams();
   const { showToast } = useToast();
-  const recordMisconceptions = useRecordMisconceptions();
 
   const queryTopic = searchParams.get("topic") || "";
   const queryNotebookId = searchParams.get("notebookId") || "";
@@ -293,14 +286,6 @@ export function SocraticSparringView() {
 
       const result = await submitStudentAnswer(session, answer, notesContext);
       setSession(result.session);
-
-      recordMisconceptions(
-        candidatesFromSparring(result.feedback, {
-          subject: result.session.topic,
-          topic: result.session.topic,
-          sessionId: result.session.id,
-        }),
-      );
 
       // AI articulates critique and probes with next challenge
       const spokenResponse = `${result.feedback.shortCritique} ${result.nextRound.speechText}`;

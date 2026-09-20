@@ -205,7 +205,15 @@ describe("aiSparring API", () => {
       );
 
       expect(result.feedback.clarityScore).toBe(88);
-      expect(learningEventsApi.record).toHaveBeenCalledWith(expect.objectContaining({ source: "viva", score: result.feedback.overallScore / 100 }));
+      // The learning event and the misconception-ledger candidates diagnosed
+      // from this same round's feedback are now written through one call,
+      // linked to the same session via sourceId.
+      expect(learningEventsApi.record).toHaveBeenCalledWith(
+        expect.objectContaining({ source: "viva", score: result.feedback.overallScore / 100 }),
+        expect.arrayContaining([
+          expect.objectContaining({ tool: "sparring", sourceId: "test-session-1", kind: "correction" }),
+        ]),
+      );
       expect(result.feedback.rigourScore).toBe(82);
       expect(result.feedback.reactionTone).toBe("enthusiastic");
       expect(result.nextRound.speaker).toBe("jordan");
