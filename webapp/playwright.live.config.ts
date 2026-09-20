@@ -36,11 +36,12 @@ export default defineConfig({
 
   use: {
     baseURL: BASE_URL,
-    /* Kept for every run, not just failures: the recording *is* the result
-       of this suite, and a trace is the only way to see what the student
-       saw around an answer that read badly. */
-    trace: "on",
-    screenshot: "on",
+    /* Failures only. `trace: "on"` against a live page added minutes of
+       teardown to every run — long enough that a passing journey looked
+       like a hang — and the recording this suite actually exists for is
+       the transcript, which the journeys write themselves. */
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
     video: "off",
     ...devices["Desktop Chrome"],
     viewport: { width: 1280, height: 800 },

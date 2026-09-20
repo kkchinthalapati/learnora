@@ -154,7 +154,7 @@ export async function dismissActionPrompt(page: Page): Promise<string | null> {
   const dialog = page.getByRole("alertdialog").or(page.getByRole("dialog")).first();
   if (!(await dialog.isVisible({ timeout: 1500 }).catch(() => false))) return null;
 
-  const text = (await dialog.innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const text = (await dialog.innerText({ timeout: 2000 }).catch(() => "")).replace(/\s+/g, " ").trim();
   const decline = dialog.getByRole("button", { name: /cancel|no|not now|dismiss/i }).first();
   if (await decline.isVisible({ timeout: 1000 }).catch(() => false)) {
     await decline.click().catch(() => {});
@@ -227,7 +227,7 @@ export async function ask(
 
   const answer = await aiBubbles
     .last()
-    .innerText()
+    .innerText({ timeout: 5000 })
     .catch(() => "");
 
   return { answer: answer.trim(), waitedMs: Date.now() - started };
