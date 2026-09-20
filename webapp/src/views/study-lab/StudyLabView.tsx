@@ -154,9 +154,22 @@ export function StudyLabView() {
         </p>
       ) : null}
 
+      {/* The banner named the topic and then every card below it dropped it:
+          the student picked a method and landed on an empty form, or on the
+          Feynman default "Photosynthesis", having just been told this page
+          knew what they were working on. All three destinations read a
+          `topic` param, so carrying it is the whole fix. */}
       <section className={styles.routeGrid} aria-label="Choose a study method">
         {STUDY_ROUTES.map((route) => (
-          <Link key={route.to} to={route.to} className={styles.routeCard}>
+          <Link
+            key={route.to}
+            to={
+              activeTopic
+                ? `${route.to}?topic=${encodeURIComponent(activeTopic)}`
+                : route.to
+            }
+            className={styles.routeCard}
+          >
             <span className={styles.icon} aria-hidden="true">
               <Icon name={route.icon} size={20} />
             </span>

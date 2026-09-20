@@ -71,6 +71,23 @@ describe("FeynmanHubView Component", () => {
     expect(screen.getByTestId("start-arena-btn")).toBeInTheDocument();
   });
 
+  /* The Solver and Viva have always read `?topic=`; this one read only the
+     CognitiveBridge, so any caller that could only put the topic in a link —
+     Today's next step, Study Lab's method grid — landed the student on the
+     default topic and let them start explaining the wrong thing. */
+  it("loads the topic named in the link rather than the default", () => {
+    renderWithProviders(<FeynmanHubView />, undefined, {
+      withRouter: true,
+      initialEntries: ["/feynman?topic=Acids%20%26%20Bases"],
+    });
+    expect(screen.getByLabelText("Topic")).toHaveValue("Acids & Bases");
+  });
+
+  it("keeps its default topic when the link names none", () => {
+    renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
+    expect(screen.getByLabelText("Topic")).toHaveValue("Photosynthesis");
+  });
+
   it("allows selecting personas and popular topic chips", async () => {
     const user = userEvent.setup();
     renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
