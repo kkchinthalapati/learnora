@@ -1,7 +1,9 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router";
+import { useOptionalAuth } from "./auth";
+import { loadTranscript, saveTranscript } from "../lib/chatTranscript";
 import {
   AiError,
   callEdge,
@@ -146,6 +148,13 @@ function findByName<T>(
 }
 
 export function ChatProvider({ children }: { children: ReactNode }) {
+  /* Scoped to the signed-in account, because the transcript below is
+     restored from this machine's storage and a shared laptop must not hand
+     one student's conversation to the next. Optional so the provider can
+     still mount in tests and previews that have no auth around it. */
+  const auth = useOptionalAuth();
+  const userId = auth?.user?.id ?? null;
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   /* Read by saveCards, which needs the current message's cards but must not
      itself change identity on every new message the way depending on
@@ -164,6 +173,49 @@ export function ChatProvider({ children }: { children: ReactNode }) {
      `AI.chatHistory`, not the widgets or the injected system context. */
   const historyRef = useRef<HistoryMessage[]>([]);
   const personaDriftRef = useRef<PersonaDriftState>(EMPTY_PERSONA_DRIFT);
+
+  /* Bring back the conversation this account left behind, and put the
+     model-facing thread back with it — restoring only the bubbles would
+     show the student a transcript the tutor could no longer see, which is
+     worse than an honest blank panel.
+
+     Keyed on `userId` so signing in as someone else swaps transcripts
+     rather than inheriting one. */
+  /* State, not a ref, and that distinction is the whole fix. With a ref,
+     the hydrate effect marked itself done and the save effect below then
+     ran *in the same commit* — still holding the empty `messages` from
+     before hydration — and wrote that emptiness straight over the stored
+     transcript. Every reload cleared the conversation it had just loaded.
+     As state, the flag and the restored messages land in one batch, so the
+     save effect first sees them together.
+
+     `undefined` rather than `null` as the initial value, so the very first
+     run still counts as "not yet hydrated" for a signed-out visitor. */
+  const [hydratedFor, setHydratedFor] = useState<string | null | undefined>(
+    undefined,
+  );
+  useEffect(() => {
+    if (hydratedFor === userId) return;
+
+    if (!userId) {
+      setMessages([]);
+      historyRef.current = [];
+      setHydratedFor(userId);
+      return;
+    }
+    const restored = loadTranscript(userId);
+    setMessages(restored.messages);
+    historyRef.current = restored.history as HistoryMessage[];
+    setHydratedFor(userId);
+  }, [userId, hydratedFor]);
+
+  /* Persist after every change. Cheap: the transcript is capped at a few
+     dozen short objects, and writing on change is what makes a reload
+     mid-answer keep everything up to the last completed turn. */
+  useEffect(() => {
+    if (!userId || hydratedFor !== userId) return;
+    saveTranscript(userId, { messages, history: historyRef.current });
+  }, [messages, userId, hydratedFor]);
 
   /* Whichever flashcard is currently on screen in the review view, if any.
      A ref rather than state: registering it must never itself trigger a
