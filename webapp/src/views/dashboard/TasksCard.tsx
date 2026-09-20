@@ -30,7 +30,12 @@ export function TasksCard({ taskInputRef, dueOnly }: TasksCardProps = {}) {
   return (
     <Card variant="elevated" className={styles.tasksCard}>
       <DashboardCardHeader
-        eyebrow="Today's tasks"
+        /* One card, two filters, and it used to claim the same thing under
+           both: Today renders it with `dueOnly`, the full dashboard without,
+           so "Today's tasks" on the dashboard sat above tasks due tomorrow
+           and later. Two screens one click apart, same heading, different
+           rule. The label now says which list this is. */
+        eyebrow={dueOnly ? "Today's tasks" : "All tasks"}
         action={{ to: "/tasks", label: "View all" }}
       />
       <DashboardTasksWidget inputRef={taskInputRef} dueOnly={dueOnly} />
