@@ -963,3 +963,50 @@ describe("TurboChat", () => {
     expect(await screen.findByText("✓ Added to Notebook")).toBeInTheDocument();
   });
 });
+
+/* "I still don't get it" is the commonest next move for a stuck student,
+   and it cost a full typed sentence every time. The live pass showed the
+   tutor adapts well when asked — the typing was the only thing in the way. */
+describe("follow-up chips", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mockAuthSession("user-1");
+    serveWorkspace();
+  });
+
+  it("appear only once an answer has arrived, then send on one tap", async () => {
+    serveReply("Induction is a changing magnetic field pushing electrons.");
+    renderChat();
+    await openChat();
+
+    /* An empty panel shows the starters instead. */
+    expect(screen.queryByRole("button", { name: "Explain simpler" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /What are my tasks/ }),
+    ).toBeInTheDocument();
+
+    await ask("explain induction");
+    await screen.findByText(/changing magnetic field/);
+
+    const simpler = await screen.findByRole("button", {
+      name: "Explain simpler",
+    });
+    expect(
+      screen.getByRole("button", { name: "Give an example" }),
+    ).toBeInTheDocument();
+
+    let asked: string | undefined;
+    server.use(
+      http.post(EDGE_URL, async ({ request }) => {
+        const body = (await request.json()) as { history?: { content?: string }[] };
+        asked = body.history?.at(-1)?.content ?? "";
+        return HttpResponse.json({ text: "Simpler version." });
+      }),
+    );
+
+    await userEvent.click(simpler);
+    await screen.findByText("Simpler version.");
+    /* Sent as a complete instruction rather than dropped in the box. */
+    expect(asked).toContain("more simply");
+  });
+});

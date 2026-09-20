@@ -53,6 +53,27 @@ const SUGGESTIONS = [
   },
 ] as const;
 
+/* Offered after an answer, not before one.
+ *
+ * "I still don't get it" is the most common thing a stuck student does
+ * next, and it cost a full typed sentence every time — the live pass
+ * showed the tutor adapts well when asked, so the only thing standing
+ * between a confused student and a better explanation was the typing.
+ * These send immediately: each is already a complete instruction, and
+ * dropping an unfinished prompt in the box would just be more typing. */
+const FOLLOW_UPS = [
+  {
+    icon: "help-circle",
+    label: "Explain simpler",
+    prompt: "I still don't get it. Can you explain that more simply?",
+  },
+  {
+    icon: "book-open",
+    label: "Give an example",
+    prompt: "Can you give me a worked example of that?",
+  },
+] as const;
+
 interface Position {
   left: number;
 }
@@ -199,6 +220,13 @@ export function TurboChat() {
     void send(value || "Analyse this.", { sourceMode });
   };
 
+  /* Only against a finished answer. Offering "explain simpler" while one
+     is still arriving invites a second request the student did not need,
+     and offering it on an error would re-ask instead of retrying. */
+  const lastMessage = messages[messages.length - 1];
+  const showFollowUps =
+    lastMessage?.role === "ai" && !lastMessage.pending && !lastMessage.error;
+
   const chipClicked = (suggestion: (typeof SUGGESTIONS)[number]) => {
     if (suggestion.autoSend) {
       submit(suggestion.prompt);
@@ -301,18 +329,34 @@ export function TurboChat() {
         )}
       </div>
 
+      {/* Follow-ups replace the starters once there is something to follow
+          up on: the starters are for an empty panel, and showing both
+          would put six chips under every answer. */}
       <div className={styles.suggestions}>
-        {SUGGESTIONS.map((suggestion) => (
-          <button
-            key={suggestion.label}
-            type="button"
-            className={styles.chip}
-            onClick={() => chipClicked(suggestion)}
-          >
-            <Icon name={suggestion.icon} size={14} />
-            {suggestion.label}
-          </button>
-        ))}
+        {showFollowUps
+          ? FOLLOW_UPS.map((followUp) => (
+              <button
+                key={followUp.label}
+                type="button"
+                className={styles.chip}
+                disabled={isSending}
+                onClick={() => submit(followUp.prompt)}
+              >
+                <Icon name={followUp.icon} size={14} />
+                {followUp.label}
+              </button>
+            ))
+          : SUGGESTIONS.map((suggestion) => (
+              <button
+                key={suggestion.label}
+                type="button"
+                className={styles.chip}
+                onClick={() => chipClicked(suggestion)}
+              >
+                <Icon name={suggestion.icon} size={14} />
+                {suggestion.label}
+              </button>
+            ))}
       </div>
 
       {file ? (
