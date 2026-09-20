@@ -132,7 +132,10 @@ export function CognitiveDebuggerView() {
       /* The trace already names the broken prerequisite; without this it died
          with the component. Recorded so the next quiz, plan and chat know
          about it — and so a second trace onto the same concept reads as a
-         recurrence rather than a fresh discovery. */
+         recurrence rather than a fresh discovery.
+
+         A stand-in trace returns no candidates (see candidatesFromStackTrace),
+         so a tutor outage cannot write invented rows into that record. */
       recordMisconceptions(candidatesFromStackTrace(trace));
     } finally {
       setIsLoading(false);
@@ -434,6 +437,34 @@ export function CognitiveDebuggerView() {
 
           {!isLoading && activeTrace && (
             <>
+              {/* The tutor could not be reached, or said nothing usable. What
+                  follows is a generic checklist built from the words the
+                  student typed — saying so is the difference between a
+                  fallback and a fabrication, and it is why the ledger
+                  refuses this trace (candidatesFromStackTrace). */}
+              {activeTrace.degraded && (
+                <div className={styles.degradedNotice} role="alert">
+                  <Icon name="alert-triangle" size={16} />
+                  <div>
+                    <strong>This isn&rsquo;t a real diagnosis.</strong>
+                    <p>
+                      {activeTrace.degraded.message} The steps below are a
+                      general checklist built from what you typed, not
+                      something worked out about your answer &mdash; and
+                      nothing here has been added to what Learnora remembers
+                      about you.
+                    </p>
+                    <button
+                      type="button"
+                      className={styles.degradedRetry}
+                      onClick={() => void handleDiagnose()}
+                    >
+                      Try again
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Summary card */}
               <div
                 className={`${styles.rootCauseCard} ${

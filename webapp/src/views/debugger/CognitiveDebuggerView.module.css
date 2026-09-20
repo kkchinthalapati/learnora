@@ -470,3 +470,43 @@
     min-height: var(--touch-target-min);
   }
 }
+
+/* Shown above a stand-in trace, when the tutor could not be reached or said
+   nothing usable. Deliberately louder than the diagnosis card it sits on
+   top of: the failure mode this exists to prevent is a student reading a
+   template as if it were worked out about them. */
+.degradedNotice {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  background: var(--warning-soft, var(--danger-soft));
+  border: 1px solid var(--warning, var(--danger));
+  border-left-width: 4px;
+  border-radius: var(--r-sm);
+  padding: 1rem 1.25rem;
+  color: var(--text);
+}
+
+.degradedNotice p {
+  margin: 0.35rem 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.degradedRetry {
+  margin-top: 0.75rem;
+  padding: 0.4rem 0.9rem;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs, 6px);
+  cursor: pointer;
+}
+
+.degradedRetry:hover {
+  background: var(--surface-hover, var(--surface));
+}

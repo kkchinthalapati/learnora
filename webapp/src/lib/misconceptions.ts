@@ -387,6 +387,9 @@ interface StackTraceLike {
     status?: string;
     explanation?: string;
   }>;
+  /** Set by `diagnoseCognitiveGap` when the trace is a template stand-in
+   *  rather than something the model actually said. */
+  degraded?: { reason: string; message: string };
 }
 
 /**
@@ -401,6 +404,14 @@ interface StackTraceLike {
 export function candidatesFromStackTrace(
   trace: StackTraceLike,
 ): MisconceptionCandidate[] {
+  /* A stand-in trace is a template with the student's own sentence pasted
+     into it — it is not evidence of anything they believe. Writing it would
+     put invented rows, two of them at `critical`, into the one record the
+     quizzes, the plan, exam readiness and the review queue all read from.
+     Refused here rather than at each call site so a future caller cannot
+     reintroduce it by forgetting. */
+  if (trace.degraded) return [];
+
   const subject = trace.subject ?? "";
   const context = trace.failedQuestionOrTopic ?? "";
 

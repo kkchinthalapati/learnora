@@ -290,6 +290,39 @@ describe("extractors", () => {
     );
   });
 
+  /* The other half of the same rule as the Feynman test below: the ledger
+     only ever holds things the student actually got wrong. A stand-in trace
+     is a template with their own sentence pasted into it, produced when the
+     tutor is unreachable or out of allowance — recording it would invent
+     two `critical` rows out of an outage, and those rows go on to steer
+     quiz generation, the weekly plan, exam readiness and review order. */
+  it("records nothing from a stand-in trace produced while the tutor was down", () => {
+    const layers = [
+      { concept: "What stays the same, and why", status: "severed", explanation: "x" },
+      { concept: "Linking the quantities", status: "shaky", explanation: "y" },
+    ];
+
+    const real = candidatesFromStackTrace({
+      id: "t-real",
+      subject: "Physics",
+      failedQuestionOrTopic: "momentum question",
+      layers,
+    });
+    expect(real.length).toBeGreaterThan(0);
+
+    const standIn = candidatesFromStackTrace({
+      id: "t-standin",
+      subject: "Physics",
+      failedQuestionOrTopic: "momentum question",
+      layers,
+      degraded: {
+        reason: "unavailable",
+        message: "You've used today's allowance for this tool on the free plan.",
+      },
+    });
+    expect(standIn).toEqual([]);
+  });
+
   it("never records the misconceptions Feynman planted", () => {
     /* The draft's hiddenMisconceptions are errors the app wrote for the
        student to find. Recording them would fill the ledger with beliefs the

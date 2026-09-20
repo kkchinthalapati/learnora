@@ -1,4 +1,4 @@
-import { callEdge } from "./ai";
+import { AiError, callEdge } from "./ai";
 import { learningEventsApi } from "./learningEvents";
 import { normaliseTopicKey } from "../lib/topicKey";
 import { extractJSON } from "../lib/aiJson";
@@ -20,6 +20,18 @@ export interface CognitiveLayer {
   prerequisiteOf?: string;
 }
 
+/** Why a trace is a stand-in rather than a real diagnosis.
+ *
+ *  `unavailable` — the tutor could not be reached at all (network, 5xx, or
+ *  the student's daily allowance is spent).
+ *  `unreadable`  — the tutor answered, but not with a usable diagnosis. */
+export interface DegradedDiagnosis {
+  reason: "unavailable" | "unreadable";
+  /** The real failure, in the server's own words where it had any. Shown to
+   *  the student, so it has to be a sentence and not a stack trace. */
+  message: string;
+}
+
 export interface CognitiveStackTrace {
   id: string;
   failedQuestionOrTopic: string;
@@ -27,6 +39,11 @@ export interface CognitiveStackTrace {
   layers: CognitiveLayer[];
   rootCauseSummary: string;
   timestamp: string;
+  /* Present only on a stand-in. Everything downstream keys off this: the
+     view labels it instead of passing it off as a diagnosis, and the
+     misconception ledger refuses it. A trace without this field was
+     produced by the model and can be trusted as far as the model goes. */
+  degraded?: DegradedDiagnosis;
 }
 
 export interface InteractiveExercise {
@@ -185,6 +202,23 @@ You MUST reply with ONLY valid raw JSON conforming to this exact schema (no pros
 }
 
 /** Fallback generator for diagnostic stack traces when offline or in test environments */
+/** Turn a thrown error into one sentence a 14-year-old can act on.
+ *
+ *  `AiError.retryable` is the useful split, and it already exists: it is
+ *  false for the 4xx family, which is where the deliberate refusals live —
+ *  a spent daily allowance, a timeout, a content refusal. Those messages are
+ *  written for a student and say when they can try again, so they are shown
+ *  as they are. A retryable error is a 5xx or a dropped connection, where
+ *  the message is whatever the server happened to put in the body ("server
+ *  exploded" is a real example) and belongs in the console, not on a
+ *  revision screen. */
+function studentFacingReason(err: unknown): string {
+  if (err instanceof AiError && !err.retryable && err.message.trim()) {
+    return err.message.trim();
+  }
+  return "We couldn't reach the tutor just now.";
+}
+
 function createFallbackDiagnosis(
   subject: string,
   mistakeDescription: string,
@@ -274,6 +308,9 @@ export async function diagnoseCognitiveGap(
   );
 
   let diagnosisData: { rootCauseSummary: string; layers: CognitiveLayer[] };
+  /* Set whenever the trace below is a template rather than a diagnosis. It
+     travels with the trace so no caller has to guess. */
+  let degraded: DegradedDiagnosis | undefined;
 
   try {
     const result = await callEdge({
@@ -308,10 +345,15 @@ export async function diagnoseCognitiveGap(
       };
     } else {
       diagnosisData = createFallbackDiagnosis(subject, mistakeDescription);
+      degraded = {
+        reason: "unreadable",
+        message: "The tutor replied, but not with a diagnosis we could read.",
+      };
     }
   } catch (err) {
     console.warn("Mistake analysis fallback activated:", err);
     diagnosisData = createFallbackDiagnosis(subject, mistakeDescription);
+    degraded = { reason: "unavailable", message: studentFacingReason(err) };
   }
 
   const trace: CognitiveStackTrace = {
@@ -321,6 +363,7 @@ export async function diagnoseCognitiveGap(
     layers: diagnosisData.layers,
     rootCauseSummary: diagnosisData.rootCauseSummary,
     timestamp: new Date().toISOString(),
+    ...(degraded ? { degraded } : {}),
   };
 
   saveTrace(trace);

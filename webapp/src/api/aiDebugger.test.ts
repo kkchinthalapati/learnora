@@ -167,6 +167,73 @@ describe("aiDebugger API", () => {
       expect(trace.layers[2].level).toBe(1);
       expect(trace.layers[2].status).toBe("severed");
     });
+
+    /* The stand-in has to announce itself. Without this flag the view shows
+       a template in the same clothes as a real diagnosis, and the ledger
+       writes two `critical` rows invented out of an outage. */
+    it("marks a fallback trace as degraded when the tutor cannot be reached", async () => {
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({ error: "Internal Server Error" }, { status: 500 }),
+        ),
+      );
+
+      const trace = await diagnoseCognitiveGap("Physics", "Momentum in inelastic collision");
+      expect(trace.degraded?.reason).toBe("unavailable");
+      expect(trace.degraded?.message).toBeTruthy();
+    });
+
+    /* A 5xx body is whatever the server happened to say. It must not reach
+       a revision screen: the first run of this fix printed the stub's own
+       "server exploded" to the student. */
+    it("does not show the raw body of a server fault to the student", async () => {
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({ error: "server exploded: ECONNRESET at pool.js:22" }, { status: 500 }),
+        ),
+      );
+
+      const trace = await diagnoseCognitiveGap("Physics", "Momentum question");
+      expect(trace.degraded?.message).not.toContain("ECONNRESET");
+      expect(trace.degraded?.message).toBe("We couldn't reach the tutor just now.");
+    });
+
+    /* A 429 is the common case, not a rare one: two Solver runs spend the
+       free plan's daily allowance. The server's own sentence says when it
+       comes back, so it is the one shown rather than a generic apology. */
+    it("carries the daily-allowance message through to the student", async () => {
+      const refusal =
+        "You've used today's allowance for this tool on the free plan. It resets at midnight — or Learnora Plus/Pro raises the limit.";
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({ error: refusal, text: refusal }, { status: 429 }),
+        ),
+      );
+
+      const trace = await diagnoseCognitiveGap("Physics", "Momentum question");
+      expect(trace.degraded?.reason).toBe("unavailable");
+      expect(trace.degraded?.message).toContain("allowance");
+    });
+
+    it("leaves a real diagnosis unmarked", async () => {
+      server.use(
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({
+            text: JSON.stringify({
+              rootCauseSummary: "Momentum is not conserved in the student's model.",
+              layers: [
+                { level: 3, concept: "Inelastic collisions", status: "severed", explanation: "a" },
+                { level: 2, concept: "Momentum conservation", status: "shaky", explanation: "b" },
+                { level: 1, concept: "Vector addition", status: "healthy", explanation: "c" },
+              ],
+            }),
+          }),
+        ),
+      );
+
+      const trace = await diagnoseCognitiveGap("Physics", "Momentum question");
+      expect(trace.degraded).toBeUndefined();
+    });
   });
 
   describe("generateMicroRepair", () => {
