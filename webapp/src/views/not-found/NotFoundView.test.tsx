@@ -21,10 +21,10 @@ describe("NotFoundView", () => {
     expect(screen.getByText("404")).toBeInTheDocument();
   });
 
-  it("renders navigation links to Dashboard and Library", () => {
+  it("renders navigation links to Today and Library", () => {
     renderNotFound();
 
-    expect(screen.getByRole("link", { name: /Dashboard/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Today/i })).toHaveAttribute(
       "href",
       "/",
     );
