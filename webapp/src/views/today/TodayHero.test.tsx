@@ -24,6 +24,30 @@ describe("TodayHero", () => {
     await userEvent.click(screen.getByRole("button", { name: /start 45 min/i }));
     expect(onStart).toHaveBeenCalledWith("d1", "Enzymes");
   });
+  it("routes a measured-but-wrong topic into the Solver, keeping the timer as the fallback", () => {
+    render(<MemoryRouter><TodayHero exam={exam} forecast={forecast} needsMaterial={false} isPending={false} onStart={() => {}} /></MemoryRouter>);
+    /* mastery 0.3 on 0.6 evidence: they are getting it wrong, not forgetting
+       it, so the hero leads with the tool that traces the missing step. */
+    expect(screen.getByRole("link", { name: /find what's missing in enzymes/i })).toHaveAttribute("href", "/solver?topic=Enzymes");
+    expect(screen.getByText(/rehearse the same mistake/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /start 45 min instead/i })).toBeInTheDocument();
+  });
+
+  it("offers due-card review when the topic is understood and slipping", async () => {
+    const known = { ...forecast, interventions: [{ ...forecast.interventions[0], mastery: 0.55 }] } as TrajectoryForecast;
+    render(<MemoryRouter><TodayHero exam={exam} forecast={known} needsMaterial={false} isPending={false} dueCards={12} onStart={() => {}} /></MemoryRouter>);
+    expect(screen.getByRole("link", { name: /review 12 due cards in enzymes/i })).toHaveAttribute("href", "/review/d1");
+  });
+
+  it("keeps the timed block as the whole action while nothing has measured the topic", async () => {
+    const unmeasured = { ...forecast, confidence: { ...forecast.confidence, evidence: 0.2 } } as TrajectoryForecast;
+    const onStart = vi.fn();
+    render(<MemoryRouter><TodayHero exam={exam} forecast={unmeasured} needsMaterial={false} isPending={false} onStart={onStart} /></MemoryRouter>);
+    expect(screen.queryByRole("link", { name: /find what's missing/i })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /start 45 min on enzymes/i }));
+    expect(onStart).toHaveBeenCalledWith("d1", "Enzymes");
+  });
+
   it("asks for material when there is an exam but nothing to project", () => {
     render(<MemoryRouter><TodayHero exam={exam} forecast={null} needsMaterial isPending={false} onStart={() => {}} /></MemoryRouter>);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/add material for AP Chem Unit 3/i);
