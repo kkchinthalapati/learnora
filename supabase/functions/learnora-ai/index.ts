@@ -235,6 +235,12 @@ const BUILTIN_PROVIDERS: AIProvider[] = [
     id: "groq",
     keyEnv: "GROQ_API_KEY",
     modelEnv: "GROQ_MODEL",
+    // Failing as of 2026-09-20 with "The model `llama-3.3-70b-versatile`
+    // does not exist or you do not have access to it." Left as-is
+    // deliberately: that 404 cannot distinguish a retired model from a key
+    // without access to it, and guessing a replacement risks swapping one
+    // dead default for another. Check the catalogue against this project's
+    // own key and set GROQ_MODEL — no redeploy needed.
     defaultModel: "llama-3.3-70b-versatile",
     url: "https://api.groq.com/openai/v1/chat/completions",
     jsonMode: true,
@@ -279,10 +285,17 @@ const BUILTIN_PROVIDERS: AIProvider[] = [
     id: "openrouter",
     keyEnv: "OPENROUTER_API_KEY",
     modelEnv: "OPENROUTER_MODEL",
-    // `meta-llama/llama-3-8b-instruct:free` was retired from OpenRouter's
-    // catalog (404 "No endpoints found") — replaced with a model confirmed
-    // live against https://openrouter.ai/api/v1/models on 2026-08-01.
-    defaultModel: "openai/gpt-oss-20b:free",
+    // Two retirements so far: `meta-llama/llama-3-8b-instruct:free` (404 "No
+    // endpoints found"), then on 2026-09-20 the `:free` variant of the model
+    // below — "This model is unavailable for free. The paid version is
+    // available now - use this slug instead: openai/gpt-oss-20b". The slug
+    // here is the one that 404 named.
+    //
+    // Note what dropping `:free` means: this stop now bills. It sits last
+    // among the free tier and is only reached when every genuinely free
+    // channel above it has failed, which is the trade for the chain having
+    // an answer at all.
+    defaultModel: "openai/gpt-oss-20b",
     url: "https://openrouter.ai/api/v1/chat/completions",
     extraHeaders: { "HTTP-Referer": "https://learnora.app", "X-Title": "Learnora" },
     jsonMode: false,
@@ -1017,11 +1030,18 @@ Deno.serve(async (req) => {
         // =========================================================================
         const geminiKey = Deno.env.get('GEMINI_API_KEY');
         if (geminiKey) {
-            // gemini-1.5-flash is retired (404 "not found for API version
-            // v1beta") — dropped from the default rather than guessed at a
-            // replacement; GEMINI_MODELS overrides this list without a
-            // redeploy if a second model is wanted.
-            const geminiModels = (Deno.env.get('GEMINI_MODELS') || "gemini-2.0-flash")
+            // Retired models are dropped rather than guessed at: 1.5-flash
+            // went first ("not found for API version v1beta"), and on
+            // 2026-09-20 gemini-2.0-flash followed, with the API's own 404
+            // naming gemini-3.6-flash as the replacement — which is where
+            // this value comes from rather than from a release note.
+            //
+            // That outage was total, not partial. Every other channel was
+            // down at the same moment (spent credits, retired models, a
+            // provider brownout), so the chain had nothing left to fall back
+            // to and every student request failed for two weeks.
+            // GEMINI_MODELS overrides this without a redeploy.
+            const geminiModels = (Deno.env.get('GEMINI_MODELS') || "gemini-3.6-flash")
                 .split(",").map((m) => m.trim()).filter(Boolean);
             const genAI = new GoogleGenerativeAI(geminiKey);
 
