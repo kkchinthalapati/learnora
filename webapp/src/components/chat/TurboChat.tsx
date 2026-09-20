@@ -63,6 +63,8 @@ export function TurboChat() {
     isOpen,
     isFullscreen,
     isSending,
+    sendPhase,
+    cancel,
     file,
     draft,
     clearDraft,
@@ -292,6 +294,8 @@ export function TurboChat() {
               message={message}
               onSaveCards={saveCards}
               onAddToNotebook={handleAddToNotebook}
+              sendPhase={sendPhase}
+              onCancel={cancel}
             />
           ))
         )}
@@ -375,7 +379,9 @@ export function TurboChat() {
           type="submit"
           className={styles.sendBtn}
           aria-label="Send message"
-          disabled={isSending}
+          /* Also disabled on an empty box. It used to look pressable with
+             nothing typed, do nothing at all, and say nothing about why. */
+          disabled={isSending || input.trim().length === 0}
         >
           <Icon name="send" size={18} />
         </button>

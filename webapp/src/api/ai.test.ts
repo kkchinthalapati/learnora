@@ -286,3 +286,81 @@ describe("trimHistory", () => {
     expect(trimmed.at(-1)?.content).toBe(String(MAX_HISTORY + 4));
   });
 });
+
+/* Cancellation.
+ *
+ * A first answer takes about thirty seconds against the live provider
+ * chain, so "give up and ask something else" is an ordinary thing for a
+ * student to want, and it has to actually end the request rather than
+ * hide it and let the reply land later. */
+describe("callEdge cancellation", () => {
+  beforeEach(() => {
+    mockAuthSession("user-1");
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("stops a request in flight and says it was stopped, not that it failed", async () => {
+    let aborted = false;
+    server.use(
+      http.post(EDGE_URL, async ({ request }) => {
+        request.signal.addEventListener("abort", () => {
+          aborted = true;
+        });
+        /* Never resolves on its own — only the abort ends this. */
+        await new Promise((resolve) => setTimeout(resolve, 10_000));
+        return HttpResponse.json({ text: "too late" });
+      }),
+    );
+
+    const controller = new AbortController();
+    const pending = callEdge({ history: [] } as never, undefined, 0, controller.signal);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    controller.abort();
+
+    await expect(pending).rejects.toThrow(/stopped/i);
+    expect(aborted, "the HTTP request was left running").toBe(true);
+  });
+
+  /* The same AbortError arrives whether the deadline or the student ended
+     it. Telling someone their own Stop press "timed out" reads as a fault
+     they should retry. */
+  it("does not report a cancel as a timeout", async () => {
+    server.use(
+      http.post(EDGE_URL, async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10_000));
+        return HttpResponse.json({ text: "too late" });
+      }),
+    );
+
+    const controller = new AbortController();
+    const pending = callEdge({ history: [] } as never, undefined, 0, controller.signal);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    controller.abort();
+
+    await expect(pending).rejects.toThrow(/stopped/i);
+    await expect(pending).rejects.not.toThrow(/timed out/i);
+  });
+
+  it("refuses to start when the signal is already aborted", async () => {
+    let calls = 0;
+    server.use(
+      http.post(EDGE_URL, () => {
+        calls += 1;
+        return HttpResponse.json({ text: "should not happen" });
+      }),
+    );
+
+    await expect(
+      callEdge({ history: [] } as never, undefined, 0, AbortSignal.abort()),
+    ).rejects.toThrow(/stopped/i);
+    expect(calls).toBe(0);
+  });
+
+  it("leaves an uncancelled request alone", async () => {
+    server.use(http.post(EDGE_URL, () => HttpResponse.json({ text: "fine" })));
+    const controller = new AbortController();
+    await expect(
+      callEdge({ history: [] } as never, undefined, 0, controller.signal),
+    ).resolves.toEqual({ text: "fine" });
+  });
+});

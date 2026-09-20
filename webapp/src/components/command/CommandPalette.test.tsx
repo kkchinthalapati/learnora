@@ -22,6 +22,8 @@ describe("CommandPalette", () => {
     isOpen: false,
     isFullscreen: false,
     isSending: false,
+    sendPhase: null,
+    cancel: vi.fn(),
     file: null,
     draft: "",
     open: vi.fn(),

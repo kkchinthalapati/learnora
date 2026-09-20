@@ -104,6 +104,9 @@ const GENERIC_FAILURE =
   "AI is temporarily unavailable. Please try again in a moment.";
 const TIMEOUT_MESSAGE =
   "That took longer than expected and timed out. Please try again in a moment.";
+/** Not a failure: the student pressed Stop. Non-retryable so no caller
+ *  quietly starts the request again on their behalf. */
+export const CANCELLED_MESSAGE = "Stopped.";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -118,6 +121,11 @@ export async function callEdge(
   payload: EdgePayload,
   onText?: (text: string) => void | Promise<void>,
   retries = MAX_RETRIES,
+  /** Lets the caller give up before the deadline does. A first answer takes
+   *  around thirty seconds against the live chain, most of it invisible, so
+   *  a student who has changed their mind needs a way out that actually
+   *  stops the request rather than hiding it. */
+  externalSignal?: AbortSignal,
 ): Promise<EdgeResult> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
@@ -126,20 +134,43 @@ export async function callEdge(
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
+    /* A cancelled request must not start another attempt. Checked before
+       each one rather than only at the fetch, so pressing Stop during the
+       backoff between retries ends it there. */
+    if (externalSignal?.aborted) throw new AiError(CANCELLED_MESSAGE, { retryable: false });
+
     try {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      // Without a deadline a stalled connection leaves the UI on its loading
-      // spinner indefinitely, with no error and no way back.
-      const response = await fetch(EDGE_URL, {
-        method: "POST",
-        headers,
-        body,
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
+      /* Two ways to end this call: the deadline, without which a stalled
+         connection leaves the UI spinning forever with no error and no way
+         back, and the caller. Combined by hand rather than with
+         AbortSignal.any, which jsdom does not implement in the versions
+         this suite runs under. */
+      const attemptController = new AbortController();
+      const onExternalAbort = () => attemptController.abort();
+      const deadline = setTimeout(() => attemptController.abort(), REQUEST_TIMEOUT_MS);
+      externalSignal?.addEventListener("abort", onExternalAbort, { once: true });
+
+      let response: Response;
+      try {
+        response = await fetch(EDGE_URL, {
+          method: "POST",
+          headers,
+          body,
+          signal: attemptController.signal,
+        });
+      } finally {
+        clearTimeout(deadline);
+        externalSignal?.removeEventListener("abort", onExternalAbort);
+      }
+
+      if (externalSignal?.aborted) {
+        throw new AiError(CANCELLED_MESSAGE, { retryable: false });
+      }
 
       /* The server has just ruled on this user's daily allowance, so whatever
          the usage meter is showing is now behind: a 2xx spent one generation,
@@ -206,9 +237,16 @@ export async function callEdge(
       // Hitting our own deadline means the server already spent its whole
       // budget walking the provider chain. Replaying that costs another
       // minute of spinner to almost certainly time out again.
+      //
+      // A cancel aborts the same controller and so arrives here as the same
+      // AbortError. The signal is what tells them apart, and it matters:
+      // telling a student their own Stop press "timed out" reads as a
+      // failure they should retry.
       const name = (err as Error)?.name;
       if (name === "TimeoutError" || name === "AbortError") {
-        throw new AiError(TIMEOUT_MESSAGE, { retryable: false });
+        throw externalSignal?.aborted
+          ? new AiError(CANCELLED_MESSAGE, { retryable: false })
+          : new AiError(TIMEOUT_MESSAGE, { retryable: false });
       }
 
       lastError = err;

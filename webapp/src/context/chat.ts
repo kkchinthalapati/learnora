@@ -83,6 +83,13 @@ export interface ChatApi {
   isFullscreen: boolean;
   /** True while a reply is in flight. */
   isSending: boolean;
+  /** What the app is actually doing while `isSending`, so the wait can say
+   *  so instead of showing an unexplained spinner. A first answer takes
+   *  around thirty seconds against the live provider chain, roughly a third
+   *  of it web research, which is far too long to leave unlabelled. */
+  sendPhase: "searching" | "thinking" | null;
+  /** Abandon the answer in flight. Ends the request rather than hiding it. */
+  cancel: () => void;
   file: AttachedFile | null;
 
   open: () => void;

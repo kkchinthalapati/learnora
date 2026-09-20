@@ -165,6 +165,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [sendPhase, setSendPhase] = useState<"searching" | "thinking" | null>(
+    null,
+  );
+  /** The request in flight, so Stop can actually end it. */
+  const abortRef = useRef<AbortController | null>(null);
+  const cancel = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
   const [file, setFile] = useState<AttachedFile | null>(null);
   const [draft, setDraft] = useState("");
 
@@ -472,6 +480,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         { id: pendingId, role: "ai", text: "", pending: true },
       ]);
       setIsSending(true);
+      /* Web research runs first and takes about a third of the wait, so the
+         phase starts there and moves to `thinking` once the model call
+         begins. Naming the step is the difference between "it's stuck" and
+         "it's looking things up". */
+      setSendPhase(options?.sourceMode === "notebook" ? "thinking" : "searching");
+      const controller = new AbortController();
+      abortRef.current = controller;
       /* Cleared on send, like the vanilla's `finally { this.setFile(null) }` —
          an attachment belongs to the message it was sent with. */
       setFile(null);
@@ -602,12 +617,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         });
 
         const priorHistory = trimHistory(historyRef.current);
-        const { text } = await callEdge({
-          history: [...priorHistory, { role: "user", content: systemContext }],
-          file: filePayload,
-          tool: "chat",
-          settings,
-        });
+        /* Research is done by this point — everything above awaited it. */
+        setSendPhase("thinking");
+        const { text } = await callEdge(
+          {
+            history: [...priorHistory, { role: "user", content: systemContext }],
+            file: filePayload,
+            tool: "chat",
+            settings,
+          },
+          undefined,
+          undefined,
+          controller.signal,
+        );
 
         /* Show the answer before asking about its actions — the student reads
            it while the confirmation is up. */
@@ -662,15 +684,22 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         /* The failed exchange is not written to history: replaying it would
            make the model answer a question the student never saw answered. */
+        const stopped = controller.signal.aborted;
         finish({
-          error: true,
-          text:
-            err instanceof Error
+          /* A cancel is not an error. Flagging it as one paints the bubble
+             red and tells a student something broke, when what happened is
+             that they pressed Stop. */
+          error: stopped ? undefined : true,
+          text: stopped
+            ? "Stopped. Ask again whenever you're ready."
+            : err instanceof Error
               ? err.message
               : "Something went wrong. Please try again.",
         });
       } finally {
         setIsSending(false);
+        setSendPhase(null);
+        if (abortRef.current === controller) abortRef.current = null;
       }
     },
     [file, handlers, settings],
@@ -726,6 +755,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       isOpen,
       isFullscreen,
       isSending,
+      sendPhase,
+      cancel,
       file,
       draft,
       open,
@@ -744,6 +775,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       isOpen,
       isFullscreen,
       isSending,
+      sendPhase,
+      cancel,
       file,
       draft,
       open,

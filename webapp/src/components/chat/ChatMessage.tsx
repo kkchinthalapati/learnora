@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "../Icon";
 import { Button } from "../Button";
 import {
@@ -43,15 +43,56 @@ function ActionWidgetChip({ widget }: { widget: ActionWidget }) {
   );
 }
 
-function ThinkingDots() {
+/* Measured against the live provider chain on 2026-09-20: a first answer
+   takes about thirty seconds, roughly ten of it web research, and follow-ups
+   land in eight to eleven. Three unexplained dots for half a minute is what
+   made students think the app had hung, so the wait says what it is doing
+   and, once it is genuinely long, offers a way out. */
+const SLOW_AFTER_MS = 10_000;
+
+function ThinkingDots({
+  phase,
+  onCancel,
+}: {
+  phase?: "searching" | "thinking" | null;
+  onCancel?: () => void;
+}) {
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  useEffect(() => {
+    const started = Date.now();
+    const id = setInterval(() => setElapsedMs(Date.now() - started), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const slow = elapsedMs >= SLOW_AFTER_MS;
+  const label =
+    phase === "searching"
+      ? "Looking things up…"
+      : slow
+        ? "Still writing your answer…"
+        : "Writing your answer…";
+
   /* The edge function returns one complete response, not a token stream, so
      this is an honest "thinking" state rather than a typing cursor implying
      text is arriving gradually (js/ai.js:1074-1078). */
   return (
-    <span className={styles.thinking} aria-label="Learnora AI is thinking">
-      <span className={styles.dot} />
-      <span className={styles.dot} />
-      <span className={styles.dot} />
+    <span className={styles.thinkingRow}>
+      <span className={styles.thinking} aria-label="Learnora AI is thinking">
+        <span className={styles.dot} />
+        <span className={styles.dot} />
+        <span className={styles.dot} />
+      </span>
+      {/* polite, not assertive: this updates while the student reads, and
+          should not interrupt whatever their screen reader is saying. */}
+      <span className={styles.thinkingLabel} aria-live="polite">
+        {label}
+      </span>
+      {slow && onCancel ? (
+        <button type="button" className={styles.stopBtn} onClick={onCancel}>
+          Stop
+        </button>
+      ) : null}
     </span>
   );
 }
@@ -69,6 +110,8 @@ export function ChatMessageBubble({
   message,
   onSaveCards,
   onAddToNotebook,
+  sendPhase,
+  onCancel,
 }: {
   message: Message;
   /** Persists `message.cards` as a real deck. Omitted where a cards-shaped
@@ -81,6 +124,10 @@ export function ChatMessageBubble({
     url?: string;
     snippet?: string;
   }) => void | Promise<void>;
+  /** Which half of the wait this is, for the pending bubble only. */
+  sendPhase?: "searching" | "thinking" | null;
+  /** Abandons the answer in flight. Offered once the wait turns long. */
+  onCancel?: () => void;
 }) {
   const [addedCitations, setAddedCitations] = useState<Set<string>>(new Set());
 
@@ -120,7 +167,7 @@ export function ChatMessageBubble({
 
   let body;
   if (message.pending) {
-    body = <ThinkingDots />;
+    body = <ThinkingDots phase={sendPhase} onCancel={onCancel} />;
   } else if (message.cards) {
     body = (
       <div>
