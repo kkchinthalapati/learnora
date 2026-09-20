@@ -48,8 +48,20 @@ export function SocraticSparringView() {
     ? undefined
     : formatEvidenceForPrompt(studentEvidence);
   const { all: ledger } = useMisconceptions();
-  const ledgerBlock =
-    ledger.length > 0 ? formatMisconceptionsForPrompt(ledger) : undefined;
+  /* Built during render, so anything thrown in here takes the whole route
+     to an error boundary — which is exactly what happened once a
+     malformed ledger row reached it. The Solver has always wrapped the
+     same call; this brings Viva in line. Losing the prompt's ledger
+     section costs some grounding, and is strictly better than losing the
+     screen. */
+  let ledgerBlock: string | undefined;
+  try {
+    ledgerBlock =
+      ledger.length > 0 ? formatMisconceptionsForPrompt(ledger) : undefined;
+  } catch (err) {
+    console.warn("[viva] Could not format the misconception ledger:", err);
+    ledgerBlock = undefined;
+  }
 
   // Setup / Configuration State
   const [topicInput, setTopicInput] = useState(queryTopic || "");
@@ -400,7 +412,7 @@ export function SocraticSparringView() {
           <div className={styles.titleArea}>
             <span className={styles.eyebrow}>
               <Icon name="mic" size={14} />
-              <span>Viva / Test Practice</span>
+              <span>Viva practice</span>
             </span>
             <h1 className={styles.pageTitle}>Oral Exam & Viva Practice</h1>
             <p className={styles.pageSubtitle}>

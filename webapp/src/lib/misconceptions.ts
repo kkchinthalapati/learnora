@@ -242,16 +242,33 @@ const RECENCY_HALF_LIFE_DAYS = 28;
  * model's guess; a moderate one seen four times across two tools is a fact
  * about the student, and it should outrank the guess.
  */
+/** The day part of `lastSeenAt`, tolerating a row that does not have one.
+ *
+ *  The column is NOT NULL with a `now()` default, so a real row always
+ *  carries it — but this string is built during render, and the unguarded
+ *  `.slice` here took the whole Viva route down to an error boundary the
+ *  one time a malformed row reached it. A prompt line is not worth a blank
+ *  screen, so a missing date degrades to "an earlier session" instead. */
+function lastSeenDay(m: Misconception): string {
+  const raw = typeof m.lastSeenAt === "string" ? m.lastSeenAt.slice(0, 10) : "";
+  return raw || "an earlier session";
+}
+
 export function misconceptionPriority(
   m: Misconception,
   now: Date = new Date(),
 ): number {
   if (m.status === "resolved") return 0;
 
-  const ageDays = Math.max(
-    0,
-    (now.getTime() - new Date(m.lastSeenAt).getTime()) / 86_400_000,
-  );
+  /* An unparseable date would make this NaN, and NaN propagates through
+     recency into the score — every comparison against it is false, so the
+     row sorts arbitrarily rather than loudly. Treated as seen just now,
+     which is the cautious end: it keeps the row visible instead of
+     quietly burying it. */
+  const lastSeen = new Date(m.lastSeenAt ?? "").getTime();
+  const ageDays = Number.isFinite(lastSeen)
+    ? Math.max(0, (now.getTime() - lastSeen) / 86_400_000)
+    : 0;
   const recency = Math.pow(0.5, ageDays / RECENCY_HALF_LIFE_DAYS);
 
   /* Corrections earn real credit but cannot zero the score: the row is still
@@ -346,7 +363,7 @@ export function formatMisconceptionsForPrompt(
       `  · [${m.severity}] ${fenceUntrusted(m.concept)}` +
         (m.subject ? ` (${fenceUntrusted(m.subject)})` : "") +
         `: ${fenceUntrusted(m.summary)}` +
-        ` — ${seen}${fixed}${state}, last on ${m.lastSeenAt.slice(0, 10)}, first found by ${m.originTool}.`,
+        ` — ${seen}${fixed}${state}, last on ${lastSeenDay(m)}, first found by ${m.originTool}.`,
     );
   }
 

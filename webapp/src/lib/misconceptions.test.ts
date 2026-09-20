@@ -577,3 +577,57 @@ describe("candidatesFromTrapSprint", () => {
     expect(candidatesFromTrapSprint([q, q], [null, null], {})).toEqual([]);
   });
 });
+
+/* A prompt line is not worth a blank screen. A malformed row once took the
+   whole Viva route to an error boundary through this formatter's unguarded
+   `.slice`, and while the column is NOT NULL so no real row can do it, the
+   formatter runs during render and must not be the thing that fails. */
+describe("formatMisconceptionsForPrompt resilience", () => {
+  it("formats a row with no lastSeenAt instead of throwing", () => {
+    const broken = [
+      {
+        id: "m1",
+        subject: "Biology",
+        concept: "Osmosis direction",
+        conceptKey: "osmosis direction",
+        summary: "Thinks water moves toward low concentration",
+        status: "open",
+        severity: "moderate",
+        originTool: "quiz",
+        timesObserved: 2,
+        timesCorrected: 0,
+        firstSeenAt: "2026-09-10T00:00:00Z",
+        resolvedAt: null,
+      },
+    ] as unknown as Misconception[];
+
+    expect(() => formatMisconceptionsForPrompt(broken)).not.toThrow();
+    const out = formatMisconceptionsForPrompt(broken);
+    expect(out).toContain("Osmosis direction");
+    expect(out).not.toContain("undefined");
+  });
+
+  it("ranks a row with no lastSeenAt rather than scoring it NaN", () => {
+    const broken = {
+      id: "m1",
+      subject: "Biology",
+      concept: "Osmosis",
+      conceptKey: "osmosis",
+      summary: "x",
+      status: "open",
+      severity: "moderate",
+      originTool: "quiz",
+      timesObserved: 1,
+      timesCorrected: 0,
+      firstSeenAt: "2026-09-10T00:00:00Z",
+      resolvedAt: null,
+    } as unknown as Misconception;
+
+    const score = misconceptionPriority(broken, NOW);
+    /* NaN would sort arbitrarily rather than loudly — every comparison
+       against it is false — so the row would go missing from the ranking
+       without anything reporting a problem. */
+    expect(Number.isFinite(score)).toBe(true);
+    expect(score).toBeGreaterThan(0);
+  });
+});
