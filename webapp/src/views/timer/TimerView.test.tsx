@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { StrictMode } from "react";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
@@ -22,6 +23,22 @@ function renderTimer(path = "/timer") {
     <MemoryRouter initialEntries={[path]}>
       <TimerView />
     </MemoryRouter>,
+    { session: fakeSession() },
+    { withTimer: true },
+  );
+}
+
+/** The same tree the real app mounts: `main.tsx` wraps the whole app in
+ *  StrictMode, which double-invokes state updaters. Every path that logs a
+ *  session schedules the write from inside one, so a plain render cannot
+ *  reproduce what a student actually gets. */
+function renderTimerStrict(path = "/timer") {
+  return renderWithAuth(
+    <StrictMode>
+      <MemoryRouter initialEntries={[path]}>
+        <TimerView />
+      </MemoryRouter>
+    </StrictMode>,
     { session: fakeSession() },
     { withTimer: true },
   );
@@ -320,6 +337,46 @@ describe("TimerView", () => {
     expect(Storage.get<unknown[]>("sessions", [])).toHaveLength(1);
     expect(screen.getByText("General Study")).toBeInTheDocument();
     expect(screen.getByText(/3 min/)).toBeInTheDocument();
+  });
+
+  /* One finished session, one logged session, with the app's own
+     StrictMode around it.
+
+     Honest caveat, so this is not trusted further than it goes: it passes
+     with the duplicate guard removed too. jsdom under StrictMode did not
+     reproduce the double write a real browser produces, so the guard is
+     proved by the browser check in tests/persona/12-verify-timer-log.spec.ts,
+     not here. What this does hold is the expected shape — one local row,
+     one POST — so a future change that starts duplicating sessions in this
+     environment is still caught. */
+  it("logs one session and one server write for one stopwatch run", async () => {
+    const user = userEvent.setup();
+    const posts: Record<string, unknown>[][] = [];
+    server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/learning_events`, () => new HttpResponse(null, { status: 201 })),
+      http.post(`${SUPABASE_URL}/rest/v1/study_sessions`, async ({ request }) => {
+        posts.push((await request.json()) as Record<string, unknown>[]);
+        return new HttpResponse(null, { status: 201 });
+      }),
+    );
+    Storage.set(TIMER_STATE_KEY, {
+      type: "stopwatch",
+      mode: "Focus",
+      isRunning: false,
+      elapsed: 180,
+      countUpBase: 180,
+      config: {},
+    });
+    renderTimerStrict();
+
+    await user.click(screen.getAllByRole("button", { name: "Stop & log" })[0]);
+
+    await waitFor(() => expect(posts.length).toBeGreaterThan(0));
+    /* Give a duplicate every chance to arrive before counting. */
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(Storage.get<unknown[]>("sessions", [])).toHaveLength(1);
+    expect(posts).toHaveLength(1);
   });
 
   it("keeps the local session log even when the Supabase write fails", async () => {

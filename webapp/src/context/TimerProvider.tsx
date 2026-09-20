@@ -93,6 +93,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     settings.timerFocusWatchdog,
   );
 
+  /** The last session written, so a re-run of the updater that scheduled it
+   *  cannot write it a second time. See the guard in `applyEffects`. */
+  const lastLoggedRef = useRef<{ key: string; at: number } | null>(null);
+
   /* Effects are applied outside the state updater — running them inside would
      fire them twice under StrictMode's double-invoked reducers. */
   const applyEffects = useCallback(
@@ -101,6 +105,31 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         const minutes = effects.logMinutes;
         const task = activeTask !== "None" ? activeTask : "General Study";
         const folderId = activeFolderId || null;
+
+        /* One finished session must produce exactly one logged session.
+         *
+         * Every path that can produce `logMinutes` schedules this from
+         * inside a `setState` updater (`reset`, the tick's end-of-timer
+         * branch). React is free to run an updater more than once — it
+         * does so on every render under StrictMode — and each run queues
+         * another microtask, so a single "Stop & log" was writing the
+         * session twice: once with the student's note, then again with
+         * `notes: null` after the line below clears the ref. The duplicate
+         * double-counted the minutes and, because the completion panel
+         * reads the newest row, replaced the finished-session screen with
+         * the note-less one that offers no quick check.
+         *
+         * Guarding here rather than restructuring all nine dispatch sites:
+         * this is the only effect that writes anything, and the guard holds
+         * whichever path fired it — including a count-down that expires in
+         * a background tab at the same moment the tick handler notices. */
+        const logKey = `${minutes}|${task}|${folderId}|${state.type}`;
+        const now = Date.now();
+        const previous = lastLoggedRef.current;
+        if (previous && previous.key === logKey && now - previous.at < 2_000) {
+          return;
+        }
+        lastLoggedRef.current = { key: logKey, at: now };
 
         /* Local history first, synchronously — see the note above. */
         const notes = sessionNoteRef.current.trim() || null;
