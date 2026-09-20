@@ -270,7 +270,12 @@ export function DashboardView({
               {sections.priorities && <DailyDrillCard />}
               {sections.sessionsCommunity && <StudyCircleCard />}
               {sections.sessionsCommunity && <SessionHistoryCard />}
-              {sections.sessionsCommunity && <AIActionsCard />}
+              {/* Not behind `sessionsCommunity`, unlike its neighbours. That
+                  section ships off by default, and gating this card on it
+                  meant "What next?" and "Quiz me" existed nowhere a student
+                  could see until they opened Customize — the AI actions are
+                  a way into the tutor, not a community widget. */}
+              <AIActionsCard />
             </div>
           </section>
         </div>

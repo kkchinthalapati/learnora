@@ -4,6 +4,7 @@ import { IconButton } from "./IconButton";
 import { useAuth } from "../context/auth";
 import { useAppearance } from "../context/appearance";
 import { useOptionalCommandPalette } from "../context/commandPalette";
+import { useOptionalChat } from "../context/chat";
 import { useLiveClock } from "../hooks/useLiveClock";
 import { useTranslation } from "../hooks/useTranslation";
 import { getGreeting } from "../lib/greeting";
@@ -18,6 +19,7 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
   const { user, signOut } = useAuth();
   const { appearance, setAppearance } = useAppearance();
   const commandPalette = useOptionalCommandPalette();
+  const chat = useOptionalChat();
   const time = useLiveClock();
   const t = useTranslation();
 
@@ -61,6 +63,23 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
 
       <div className={styles.headerRight}>
         <HelpCenter />
+        {/* The only always-visible way into the tutor. Everything else that
+            opened it was conditional: the dashboard's AI actions card sits
+            behind a layout section that ships off, and the command palette
+            needs you to know it exists and to type `ai:`. A student who
+            wants to ask a question should not have to learn a shortcut. */}
+        {chat ? (
+          <button
+            type="button"
+            className={styles.askTrigger}
+            onClick={() => chat.open()}
+            aria-label="Ask Learnora AI"
+            title="Ask Learnora AI"
+          >
+            <Icon name="sparkles" size={16} />
+            <span className={styles.askTriggerLabel}>Ask AI</span>
+          </button>
+        ) : null}
         <button
           type="button"
           className={styles.searchTrigger}

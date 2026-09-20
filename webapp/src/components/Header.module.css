@@ -118,11 +118,13 @@
   .subtitle,
   .clock,
   .searchTriggerLabel,
+  .askTriggerLabel,
   .searchKbd {
     display: none;
   }
 
-  .searchTrigger {
+  .searchTrigger,
+  .askTrigger {
     width: var(--touch-target-min);
     padding: 0;
     justify-content: center;
@@ -196,3 +198,33 @@
   }
 }
 
+
+/* The tutor's permanent front door, beside Search.
+   Given the accent rather than the search field's neutral treatment: it is
+   the one action on this bar a student comes to the app wanting, and it
+   previously had no visible entry point at all. */
+.askTrigger {
+  min-height: var(--touch-target-min);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--accent-ring, var(--line));
+  border-radius: var(--r-md);
+  background: var(--accent-soft, var(--surface));
+  color: var(--accent-strong, var(--text));
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--t-fast) ease,
+    border-color var(--t-fast) ease,
+    color var(--t-fast) ease;
+}
+
+.askTrigger:hover {
+  background: var(--surface-2);
+  border-color: var(--accent);
+  color: var(--text);
+}
