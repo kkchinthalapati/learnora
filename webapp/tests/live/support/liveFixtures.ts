@@ -146,41 +146,89 @@ export async function signIn(page: Page, live: LiveConfig): Promise<void> {
   });
 }
 
+/** Close any action-confirmation dialog the tutor has left on screen.
+ *
+ *  Returns what it dismissed, so a journey can report that the tutor chose
+ *  to interrupt rather than answer — which is itself worth knowing. */
+export async function dismissActionPrompt(page: Page): Promise<string | null> {
+  const dialog = page.getByRole("alertdialog").or(page.getByRole("dialog")).first();
+  if (!(await dialog.isVisible({ timeout: 1500 }).catch(() => false))) return null;
+
+  const text = (await dialog.innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const decline = dialog.getByRole("button", { name: /cancel|no|not now|dismiss/i }).first();
+  if (await decline.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await decline.click().catch(() => {});
+  } else {
+    await page.keyboard.press("Escape").catch(() => {});
+  }
+  await page.waitForTimeout(600);
+  return text;
+}
+
 /** Ask the tutor and wait for a real answer to finish arriving.
  *
- *  "Finished" is judged by the reply text going quiet rather than by a
- *  spinner: the panel renders one complete response, but a live call takes
- *  seconds and the DOM settles in stages. */
+ *  Completion is the pending bubble's spinner going away, not the text
+ *  settling. The first version watched for the transcript text to stop
+ *  changing, which failed on the very first live question: the spinner
+ *  carries its label in `aria-label` and contributes no text, so a model
+ *  still generating after ninety seconds looked exactly like a finished
+ *  answer of zero characters — and the call was spent either way.
+ *
+ *  The answer is then read from the last AI bubble rather than by slicing
+ *  the feed around the question, which cannot tell the student's own echoed
+ *  words from the reply. */
 export async function ask(
   page: Page,
   question: string,
   opts: { timeoutMs?: number } = {},
 ): Promise<{ answer: string; waitedMs: number }> {
-  const timeoutMs = opts.timeoutMs ?? 90_000;
+  const timeoutMs = opts.timeoutMs ?? 180_000;
   const started = Date.now();
+
+  const aiBubbles = page.locator("[class*=aiBubble]");
+
+  /* The tutor can end a turn by proposing an action — "AI wants to generate
+     a formal interactive quiz on …" — which opens a confirmation dialog
+     over the whole page. Left standing it swallows the next question: the
+     first live run typed turns two and three into an input the modal was
+     covering, sent neither, and read the first answer back three times,
+     which looked exactly like a tutor repeating itself.
+
+     Declined rather than accepted. The student asked a question and did
+     not ask for a quiz, and accepting would spend a quiz generation out of
+     a separate daily allowance. */
+  await dismissActionPrompt(page);
+
+  const before = await aiBubbles.count().catch(() => 0);
 
   const box = page.getByLabel("AI chat input");
   await box.fill(question);
   await box.press("Enter");
 
-  const transcript = page.locator("[class*=messageList], [role=log]").first();
-  let previous = "";
-  let stableFor = 0;
+  /* A new bubble appears almost at once, pending. Wait for one more than
+     there were, then for its spinner to clear. */
+  await page
+    .waitForFunction(
+      ([count]) => document.querySelectorAll("[class*=aiBubble]").length > (count as number),
+      [before] as const,
+      { timeout: 30_000 },
+    )
+    .catch(() => {});
 
-  while (Date.now() - started < timeoutMs) {
-    await page.waitForTimeout(1000);
-    const now = await transcript.innerText().catch(() => "");
-    if (now === previous && now.length > 0) {
-      stableFor += 1;
-      /* Three quiet seconds after something arrived. */
-      if (stableFor >= 3 && now.includes(question)) break;
-    } else {
-      stableFor = 0;
-      previous = now;
-    }
-  }
+  const thinking = page.locator('[aria-label="Learnora AI is thinking"]');
+  await thinking
+    .last()
+    .waitFor({ state: "detached", timeout: timeoutMs })
+    .catch(() => {
+      /* Still generating when we gave up. The bubble is read anyway, and
+         the wait recorded, because "it never finished" is a finding. */
+    });
+  await page.waitForTimeout(500);
 
-  const full = await transcript.innerText().catch(() => "");
-  const afterQuestion = full.split(question).pop() ?? full;
-  return { answer: afterQuestion.trim(), waitedMs: Date.now() - started };
+  const answer = await aiBubbles
+    .last()
+    .innerText()
+    .catch(() => "");
+
+  return { answer: answer.trim(), waitedMs: Date.now() - started };
 }

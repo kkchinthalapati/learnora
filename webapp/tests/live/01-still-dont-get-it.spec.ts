@@ -42,9 +42,20 @@ test("the tutor is asked the same thing three times, getting more lost", async (
     },
   ];
 
+  const previous: string[] = [];
   for (const turn of turns) {
     const { answer, waitedMs } = await ask(page, turn.question);
     transcript.record({ step: turn.step, asked: turn.question, answered: answer, waitedMs });
+
+    /* Guard against reading a stale bubble, which is how the first live run
+       "found" a tutor that repeats itself verbatim: an unnoticed modal had
+       swallowed the send. An identical answer is now a harness failure
+       until proven otherwise, not a finding. */
+    expect(
+      previous.includes(answer),
+      "identical to an earlier answer — the question probably never sent",
+    ).toBe(false);
+    previous.push(answer);
 
     /* The only real assertion: something came back. A refusal counts — if
        the daily allowance is spent, that is worth knowing and the recorded
