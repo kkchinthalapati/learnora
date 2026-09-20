@@ -40,9 +40,12 @@ function quizRow(): Row {
 }
 
 test.describe("Mobile", () => {
-  test("every tap target on the dashboard is at least 44x44", async ({ page }) => {
+  test("every tap target on the landing screen is at least 44x44", async ({ page }) => {
     await loginAs(page);
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Today" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
 
     const offenders = await undersizedTapTargets(page, MIN_TAP_TARGET);
 
@@ -54,9 +57,12 @@ test.describe("Mobile", () => {
     ).toEqual([]);
   });
 
-  test("the dashboard does not scroll sideways", async ({ page }) => {
+  test("the landing screen does not scroll sideways", async ({ page }) => {
     await loginAs(page);
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Today" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
 
     expect(await hasHorizontalOverflow(page)).toBe(false);
   });

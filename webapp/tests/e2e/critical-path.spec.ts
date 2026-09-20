@@ -129,16 +129,23 @@ test.describe("Auth", () => {
     });
   });
 
-  test("login with valid credentials lands on the dashboard", async ({ page }) => {
+  test("login with valid credentials lands on Today", async ({ page }) => {
     await page.goto("login");
     await page.getByLabel("Email").fill("free@test.com");
     await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD);
     await page.getByRole("button", { name: /Log In/ }).click();
 
     await expect(page).toHaveURL(/\/app\/?$/, { timeout: 20_000 });
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({
-      timeout: 20_000,
-    });
+    /* Today owns the root route; the full dashboard kept /dashboard. This
+       asserted a "Dashboard" heading that the landing page stopped having,
+       so it failed on the product working as intended. The rail's own
+       current-page marker is the stable landmark — it says which view the
+       shell thinks it is showing. */
+    await expect(page.getByRole("link", { name: "Today" })).toHaveAttribute(
+      "aria-current",
+      "page",
+      { timeout: 20_000 },
+    );
     /* A workspace destination in the rail, to prove the signed-in shell and
        not just the heading rendered. "Plan" rather than "Tasks": Tasks is a
        child of Plan now, revealed only once Plan is the active section. */
@@ -337,7 +344,9 @@ test.describe("Quizzes", () => {
     const wizard = page.getByRole("dialog");
     await wizard.getByRole("tab", { name: "Topic" }).click();
     await wizard.getByLabel("Topic").fill("Photosynthesis");
-    await wizard.getByRole("button", { name: "Create my study kit" }).click();
+    /* The panel's submit was renamed to "Generate Study Resources"; the unit
+       suite moved with it and this one did not. */
+    await wizard.getByRole("button", { name: "Generate Study Resources" }).click();
 
     await expect
       .poll(() => backend.table("quizzes").length, { timeout: 30_000 })
@@ -722,7 +731,11 @@ test.describe("Data safety", () => {
     backend,
   }) => {
     await loginAs(page);
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    /* Same stale landmark as the login test: the root route is Today now. */
+    await expect(page.getByRole("link", { name: "Today" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
 
     /* The refresh token is revoked server-side — the case where someone comes
        back to a tab left open overnight. The app must not sit there rendering

@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright run artefacts. The persona suite writes a log, a JSON record and
+# a screenshot per step — ~34MB per full run — which is evidence for a report,
+# not source. The specs are tracked; what they emit is not.
+test-results/
+playwright-report/
+tests/persona/out/

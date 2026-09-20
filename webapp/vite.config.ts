@@ -39,12 +39,18 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
-    /* The Playwright suite in tests/e2e also names its files `*.spec.ts`, so
-     * vitest's default include glob picks them up, imports `@playwright/test`
-     * outside a Playwright runner, and fails collection on the first
-     * `test.describe`. The two runners are separate: vitest owns `src/`,
-     * Playwright owns `tests/e2e/` and is invoked by `npm run test:e2e`. */
-    exclude: [...configDefaults.exclude, "tests/e2e/**"],
+    /* The Playwright suites under tests/ also name their files `*.spec.ts`,
+     * so vitest's default include glob picks them up, imports
+     * `@playwright/test` outside a Playwright runner, and fails collection on
+     * the first `test.describe`. The two runners are separate: vitest owns
+     * `src/`, Playwright owns `tests/` and is invoked by `npm run test:e2e`.
+     *
+     * Excluding all of `tests/` rather than naming each directory: listing
+     * `tests/e2e/**` alone meant a second Playwright suite added beside it
+     * (tests/persona) turned up as twelve failed files with zero failed
+     * tests, which reads like a broken build and is a confusing way to
+     * learn you put a file in the wrong place. */
+    exclude: [...configDefaults.exclude, "tests/**"],
     // The fork pool can hang on Windows when the suite mounts many jsdom
     // environments. Threads keep the same isolation contract while making
     // `npm test` deterministic in local and CI runs.

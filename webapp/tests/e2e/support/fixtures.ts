@@ -72,6 +72,12 @@ export async function loginAs(
  * waits out its timeout against a button that is not rendered, which says
  * nothing about whether the assistant works. */
 export async function openDashboardAiActions(page: Page): Promise<void> {
+  /* Navigate first. Signing in used to land on the tabbed dashboard, so this
+     helper could assume it was already there; since Today took the root
+     route it lands somewhere with no tabs at all, and every test that came
+     through here failed on the tab click rather than on anything it meant
+     to assert. */
+  await page.goto("dashboard");
   await page.getByRole("tab", { name: "Activity & Peers" }).click();
   await expect(page.getByRole("button", { name: "What next?" })).toBeVisible();
 }
