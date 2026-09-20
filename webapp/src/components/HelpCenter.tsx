@@ -84,7 +84,7 @@ const HELP_BY_ROUTE: ReadonlyArray<{
     summary:
       "Choose the exercise that matches your goal: explain, challenge, diagnose, or practise.",
     suggestions: [
-      "Use Explain It Simply for understanding",
+      "Use Explain it simply for understanding",
       "Use Sparring to defend an argument",
       "Use Find My Mistake to diagnose an error",
     ],

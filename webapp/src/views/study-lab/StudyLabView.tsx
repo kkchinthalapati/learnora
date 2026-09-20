@@ -18,7 +18,7 @@ interface StudyRoute {
 const STUDY_ROUTES: StudyRoute[] = [
   {
     prompt: "I got something wrong",
-    title: "Step-by-Step Solver",
+    title: "Step-by-step solver",
     description:
       "Bring one wrong answer or a tricky topic. Learnora works backwards to solve where you got stuck.",
     outcome: "Leave with the exact missing step fixed",
@@ -27,7 +27,7 @@ const STUDY_ROUTES: StudyRoute[] = [
   },
   {
     prompt: "I think I understand it",
-    title: "Prove it by teaching",
+    title: "Explain it simply",
     description:
       "Explain the topic in your own words to a deliberately confused student. Their questions expose what you skipped.",
     outcome: "Leave with the gaps in your explanation",
@@ -36,7 +36,7 @@ const STUDY_ROUTES: StudyRoute[] = [
   },
   {
     prompt: "I want oral test practice",
-    title: "Viva / Test Practice",
+    title: "Viva practice",
     description:
       "Practise viva questions and defend your answers out loud or by typing.",
     outcome: "Leave confident for your oral exam or viva",

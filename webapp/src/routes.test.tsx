@@ -55,8 +55,8 @@ describe("route skeleton", () => {
     ["/friends", "Friends"],
     ["/analytics", "Progress"],
     ["/study", "What do you need help with?"],
-    ["/feynman", "Explain It Simply"],
-    ["/solver", "Step-by-Step Solver"],
+    ["/feynman", "Explain it simply"],
+    ["/solver", "Step-by-step solver"],
     ["/settings", "Settings"],
   ])("%s renders the %s view for a signed-in user", async (path, heading) => {
     renderAt(path);

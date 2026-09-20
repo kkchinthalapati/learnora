@@ -94,7 +94,7 @@ describe("CommandPalette", () => {
 
     expect(screen.getByText("Start 25m Timer")).toBeInTheDocument();
     expect(screen.getByText("Start 50m Timer")).toBeInTheDocument();
-    expect(screen.getByText("Step-by-Step Solver")).toBeInTheDocument();
+    expect(screen.getByText("Step-by-step solver")).toBeInTheDocument();
   });
 
   it("does not render when isOpen is false", () => {

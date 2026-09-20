@@ -272,7 +272,7 @@ export function FeynmanStudioView() {
             variant="secondary"
             size="sm"
             onClick={() => navigate("/feynman")}
-            aria-label="Back to Explain It Simply"
+            aria-label="Back to Explain it simply"
           >
             <Icon name="x" size={14} /> Back
           </Button>

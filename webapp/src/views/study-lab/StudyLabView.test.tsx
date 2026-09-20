@@ -51,9 +51,9 @@ describe("StudyLabView", () => {
 
   it("offers the three core routes", () => {
     renderLab();
-    expect(screen.getByText("Step-by-Step Solver")).toBeInTheDocument();
-    expect(screen.getByText("Prove it by teaching")).toBeInTheDocument();
-    expect(screen.getByText("Viva / Test Practice")).toBeInTheDocument();
+    expect(screen.getByText("Step-by-step solver")).toBeInTheDocument();
+    expect(screen.getByText("Explain it simply")).toBeInTheDocument();
+    expect(screen.getByText("Viva practice")).toBeInTheDocument();
     expect(screen.queryByText("Common Exam Traps")).not.toBeInTheDocument();
   });
 

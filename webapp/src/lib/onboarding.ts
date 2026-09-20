@@ -769,7 +769,7 @@ const NEXT_STEP_BY_FOCUS: Record<FocusAreaId, Omit<NextStep, "id">> = {
     icon: "calendar-week",
   },
   understanding: {
-    label: "Explain It Simply",
+    label: "Explain it simply",
     blurb:
       "Teach a topic back in your own words and get told exactly where it fell apart.",
     to: "/feynman",

@@ -128,7 +128,7 @@ export function FeynmanDebriefView() {
     setExportMessage(null);
 
     try {
-      const deckTitle = `${session.topic} (from Explain It Simply)`;
+      const deckTitle = `${session.topic} (from Explain it simply)`;
       const deck = await decksApi.add(null, deckTitle);
       const cardsToAdd = report.generatedFlashcards.map((c) => ({
         front: c.front,

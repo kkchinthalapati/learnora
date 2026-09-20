@@ -44,7 +44,7 @@ describe("CognitiveCrossLinkBar", () => {
       "Inner Derivative Multiplier",
     );
     expect(screen.getByTestId("cross-link-subject-badge")).toHaveTextContent("Calculus");
-    expect(screen.getByTestId("cross-link-source-badge")).toHaveTextContent("From: Step-by-Step Solver");
+    expect(screen.getByTestId("cross-link-source-badge")).toHaveTextContent("From: Step-by-step solver");
     expect(screen.getByTestId("cross-link-severity-badge")).toHaveTextContent("Needs work");
     expect(screen.getByTestId("cross-link-misconceptions-count")).toHaveTextContent(
       "1 thing to sort out",
@@ -75,7 +75,7 @@ describe("CognitiveCrossLinkBar", () => {
       "Velocity vs Acceleration",
     );
     expect(screen.getByTestId("cross-link-source-badge")).toHaveTextContent(
-      "From: Explain It Simply",
+      "From: Explain it simply",
     );
     expect(screen.getByTestId("cross-link-severity-badge")).toHaveTextContent("Worth a look");
   });

@@ -285,7 +285,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-ai-debugger",
       category: "Study Lab",
-      title: "Step-by-Step Solver",
+      title: "Step-by-step solver",
       subtitle:
         "Work backwards from a mistake to find where you got stuck and repair the gap",
       icon: "brain",
@@ -310,7 +310,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-ai-feynman",
       category: "Study Lab",
-      title: "Explain It Simply",
+      title: "Explain it simply",
       subtitle: "Explain a topic out loud and find out what you really know",
       icon: "award",
       badge: "AI Tool",
@@ -331,7 +331,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-ai-sparring",
       category: "Study Lab",
-      title: "Viva / Test Practice",
+      title: "Viva practice",
       subtitle: "Defend an idea against questions and viva counterexamples",
       icon: "mic",
       badge: "Viva Coach",

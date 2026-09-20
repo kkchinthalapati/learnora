@@ -56,8 +56,8 @@ const TOOL_CONFIGS: {
 ];
 
 const SOURCE_TOOL_LABELS: Record<CognitiveSourceTool, string> = {
-  debugger: "Step-by-Step Solver",
-  feynman: "Explain It Simply",
+  debugger: "Step-by-step solver",
+  feynman: "Explain it simply",
   sparring: "Oral Exam & Viva",
   exam_detective: "Exam Detective",
   /* Retained because CognitiveSourceTool still admits it: a payload written

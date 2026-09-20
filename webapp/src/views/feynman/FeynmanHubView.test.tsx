@@ -52,7 +52,7 @@ describe("FeynmanHubView Component", () => {
   it("renders page header, persona choices, and topic setup form", () => {
     renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
 
-    expect(screen.getByText("Explain It Simply")).toBeInTheDocument();
+    expect(screen.getByText("Explain it simply")).toBeInTheDocument();
     expect(screen.getByText(/Study Lab/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Subject")).toBeInTheDocument();
     expect(screen.getByLabelText("Topic")).toBeInTheDocument();

@@ -33,10 +33,10 @@ const SEVERITY_LABEL: Record<Misconception["severity"], string> = {
 };
 
 const TOOL_LABEL: Record<Misconception["originTool"], string> = {
-  debugger: "the Step-by-Step Solver",
+  debugger: "the Step-by-step solver",
   feynman: "Feynman",
   premortem: "Common Exam Traps",
-  sparring: "Viva / Test Practice",
+  sparring: "Viva practice",
   quiz: "your quizzes",
   notes: "your notes",
   review: "review",
@@ -112,7 +112,7 @@ export function MisconceptionLedgerCard() {
         <div className={styles.empty}>
           <p className={styles.emptyLead}>Nothing on record yet.</p>
           <p className={styles.emptyBody}>
-            When the Step-by-Step Solver, Feynman, Common Exam Traps, or a quiz finds a
+            When the Step-by-step solver, Feynman, Common Exam Traps, or a quiz finds a
             mistake, it gets written down here — so you can easily review and conquer it.
           </p>
           <Button variant="secondary" onClick={() => navigate("/solver")}>

@@ -157,7 +157,7 @@ export function FeynmanHubView() {
             <span className={styles.eyebrowBadge}>
               <Icon name="brain" size={14} /> Study Lab • Creative Studio
             </span>
-            <h1 className={styles.heroTitle}>Explain It Simply</h1>
+            <h1 className={styles.heroTitle}>Explain it simply</h1>
             <p className={styles.heroSubtitle}>
               Feynman Teaching Studio: If you can explain something simply, you understand it.
               Pick your target audience, analogy style, and depth — spot where they've gone wrong,

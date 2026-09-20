@@ -100,7 +100,7 @@ export function LandingView() {
             <div className={styles.featureIcon}>
               <Icon name="layers" size={24} />
             </div>
-            <h3 className={styles.featureTitle}>Step-by-Step Solver</h3>
+            <h3 className={styles.featureTitle}>Step-by-step solver</h3>
             <p className={styles.featureDesc}>
               Identify exactly where reasoning broke down and test your repair before moving forward.
             </p>

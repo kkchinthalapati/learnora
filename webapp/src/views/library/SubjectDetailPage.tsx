@@ -263,7 +263,7 @@ export function SubjectDetailPage() {
             title="Diagnose foundational mistakes and repair missing steps"
           >
             <Icon name="zap" size={13} />
-            <span>Step-by-Step Solver</span>
+            <span>Step-by-step solver</span>
           </button>
           <button
             type="button"

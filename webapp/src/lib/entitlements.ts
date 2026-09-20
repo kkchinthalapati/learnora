@@ -229,7 +229,7 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
   },
   debugger: {
     id: "debugger",
-    name: "Step-by-Step Solver",
+    name: "Step-by-step solver",
     description: "Root-cause tracing and gap solver for a concept you got wrong.",
   },
   preMortem: {
@@ -249,7 +249,7 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
   },
   sparring: {
     id: "sparring",
-    name: "Viva / Test Practice",
+    name: "Viva practice",
     description: "Live viva and oral test practice with an AI study partner.",
   },
   notebookStudio: {
