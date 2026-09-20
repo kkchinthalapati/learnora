@@ -4,12 +4,26 @@ import { server } from "../test/mocks/server";
 import { SUPABASE_URL } from "../lib/supabase";
 import { mockAuthSession, mockNoAuthSession } from "../test/mockSession";
 import { learningEventsApi } from "./learningEvents";
-import { clearOfflineQueue, flushOfflineQueue, getOfflineQueue } from "../lib/offlineSync";
+import {
+  clearOfflineQueue,
+  enqueueOfflineAction,
+  flushOfflineQueue,
+  getOfflineQueue,
+} from "../lib/offlineSync";
+
+const recordMisconceptions = vi.fn();
+vi.mock("./misconceptions", () => ({
+  misconceptionsApi: { record: (...a: unknown[]) => recordMisconceptions(...a) },
+}));
 
 const url = `${SUPABASE_URL}/rest/v1/learning_events`;
 
 describe("learningEventsApi", () => {
-  beforeEach(() => { mockAuthSession("user-1"); clearOfflineQueue(); });
+  beforeEach(() => {
+    mockAuthSession("user-1");
+    clearOfflineQueue();
+    recordMisconceptions.mockReset().mockResolvedValue([]);
+  });
   afterEach(() => vi.restoreAllMocks());
 
   it("records an event scoped to the user with defaults filled", async () => {
@@ -91,6 +105,24 @@ describe("learningEventsApi", () => {
     await expect(learningEventsApi.fetchSince()).rejects.toThrow("Not authenticated");
   });
 
+  it("still throws a real fetch error even when a pending offline event exists", async () => {
+    // Queue a pending event first...
+    server.use(http.post(url, () => HttpResponse.error()));
+    await learningEventsApi.record({ topicKey: "enzymes", source: "timer", clientId: "pending-1" });
+    expect(getOfflineQueue()).toHaveLength(1);
+
+    // ...then make the GET fail for a real reason (not a missing table).
+    server.use(
+      http.get(url, () =>
+        HttpResponse.json({ code: "42501", message: "permission denied" }, { status: 403 }),
+      ),
+    );
+    // Previously the presence of the pending item silently swallowed this
+    // error and returned only the unsynced local item instead of throwing,
+    // hiding every already-committed row with no error surfaced anywhere.
+    await expect(learningEventsApi.fetchSince()).rejects.toThrow("permission denied");
+  });
+
   it("retains a failed event, feeds the local forecast, and replays with its original timestamp and id", async () => {
     server.use(http.post(url, () => HttpResponse.json({ message: "temporarily unavailable" }, { status: 503 })));
     const at = new Date().toISOString();
@@ -113,5 +145,76 @@ describe("learningEventsApi", () => {
     expect(send).not.toHaveBeenCalled();
     expect(await learningEventsApi.fetchSince()).toEqual([]);
     expect(getOfflineQueue()).toHaveLength(1);
+  });
+
+  it("writes optional misconception candidates through the same call, linked to the event's clientId", async () => {
+    server.use(http.post(url, () => HttpResponse.json(null, { status: 201 })));
+    await learningEventsApi.record(
+      { topicKey: "enzymes", source: "quick_check", score: 0, clientId: "qc-1" },
+      [{ subject: "Biology", concept: "enzymes", summary: "Missed it", severity: "moderate", tool: "quiz", kind: "evidence", detail: "" }],
+    );
+    expect(recordMisconceptions).toHaveBeenCalledWith([
+      expect.objectContaining({ concept: "enzymes", sourceId: "qc-1" }),
+    ]);
+  });
+
+  it("does not overwrite a candidate's own sourceId when it already has one", async () => {
+    server.use(http.post(url, () => HttpResponse.json(null, { status: 201 })));
+    await learningEventsApi.record(
+      { topicKey: "enzymes", source: "quick_check", score: 0, clientId: "qc-2" },
+      [{ subject: "Biology", concept: "enzymes", summary: "x", severity: "moderate", tool: "quiz", kind: "evidence", detail: "", sourceId: "explicit-id" }],
+    );
+    expect(recordMisconceptions).toHaveBeenCalledWith([
+      expect.objectContaining({ sourceId: "explicit-id" }),
+    ]);
+  });
+
+  it("does not skip the misconceptions call when no candidates are given", async () => {
+    server.use(http.post(url, () => HttpResponse.json(null, { status: 201 })));
+    await learningEventsApi.record({ topicKey: "enzymes", source: "timer", clientId: "no-candidates" });
+    expect(recordMisconceptions).not.toHaveBeenCalled();
+  });
+
+  it("still records the learning event even if the ledger write fails", async () => {
+    recordMisconceptions.mockRejectedValueOnce(new Error("ledger down"));
+    let body: Record<string, unknown>[] | undefined;
+    server.use(
+      http.post(url, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>[];
+        return HttpResponse.json(null, { status: 201 });
+      }),
+    );
+    await learningEventsApi.record(
+      { topicKey: "enzymes", source: "quick_check", clientId: "qc-3" },
+      [{ subject: "Biology", concept: "enzymes", summary: "x", severity: "moderate", tool: "quiz", kind: "evidence", detail: "" }],
+    );
+    expect(body?.[0]).toMatchObject({ client_id: "qc-3" });
+  });
+
+  it("does not let a foreign account's queued evidence block the current user's own queued actions behind it", async () => {
+    server.use(http.post(url, () => HttpResponse.error()));
+    await learningEventsApi.record({ topicKey: "private topic", source: "timer", clientId: "owned" });
+    mockAuthSession("user-2");
+
+    let toggled = false;
+    server.use(
+      http.patch(`${SUPABASE_URL}/rest/v1/tasks`, () => {
+        toggled = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    enqueueOfflineAction("toggleTask", { id: 42, currentStatus: false });
+
+    const send = vi.spyOn(learningEventsApi, "send");
+    const result = await flushOfflineQueue();
+
+    expect(send).not.toHaveBeenCalled();
+    expect(toggled).toBe(true);
+    expect(result.processed).toBe(1);
+    // The foreign-account event stays queued, untouched, for its own
+    // account to flush later — it must not still be blocking the head.
+    expect(getOfflineQueue()).toEqual([
+      expect.objectContaining({ type: "recordLearningEvent" }),
+    ]);
   });
 });

@@ -234,16 +234,27 @@ export async function flushOfflineQueue(): Promise<FlushResult> {
     let processed = 0;
     let failed = 0;
 
+    const skippedIds = new Set<string>();
+
     try {
       while (true) {
         const currentQueue = getOfflineQueue();
         if (currentQueue.length === 0) break;
 
-        const action = currentQueue[0];
+        // Skip past (never remove) actions already identified as belonging
+        // to a different account, instead of always looking at index 0 — a
+        // stray item left behind by a previous account on a shared device
+        // must not block every action the *current* user queues afterward.
+        const action = currentQueue.find((a) => !skippedIds.has(a.id));
+        if (!action) break; // everything left belongs to another account
+
         // Do not upload another account's evidence or consume its retry budget.
         if (action.type === "recordLearningEvent") {
           const owner = (action.payload as OfflineActionPayloadMap["recordLearningEvent"]).userId;
-          if (await requireUserId().catch(() => null) !== owner) break;
+          if (await requireUserId().catch(() => null) !== owner) {
+            skippedIds.add(action.id);
+            continue;
+          }
         }
         try {
           if (action.type === "submitSrsReview") {
@@ -271,10 +282,13 @@ export async function flushOfflineQueue(): Promise<FlushResult> {
             queryClient.invalidateQueries({ queryKey: ["tasks"] });
           }
 
-          // Successful execution: remove head item
+          // Successful execution: remove this item. Not necessarily index 0
+          // any more — a skipped foreign-account item may still sit ahead of
+          // it in the queue.
           const updated = getOfflineQueue();
-          if (updated.length > 0 && updated[0].id === action.id) {
-            updated.shift();
+          const doneIdx = updated.findIndex((a) => a.id === action.id);
+          if (doneIdx !== -1) {
+            updated.splice(doneIdx, 1);
             saveOfflineQueue(updated);
           }
           processed++;
@@ -295,14 +309,16 @@ export async function flushOfflineQueue(): Promise<FlushResult> {
               `[offlineSync] Action ${action.id} exceeded max retries (${MAX_RETRIES}). Dropping.`,
             );
             const updated = getOfflineQueue();
-            if (updated.length > 0 && updated[0].id === action.id) {
-              updated.shift();
+            const dropIdx = updated.findIndex((a) => a.id === action.id);
+            if (dropIdx !== -1) {
+              updated.splice(dropIdx, 1);
               saveOfflineQueue(updated);
             }
           } else {
             const updated = getOfflineQueue();
-            if (updated.length > 0 && updated[0].id === action.id) {
-              updated[0] = {
+            const retryIdx = updated.findIndex((a) => a.id === action.id);
+            if (retryIdx !== -1) {
+              updated[retryIdx] = {
                 ...action,
                 retryCount: nextRetry,
                 lastError: errorMessage,
