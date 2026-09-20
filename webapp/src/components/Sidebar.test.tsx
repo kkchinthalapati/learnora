@@ -155,6 +155,22 @@ describe("Sidebar", () => {
     },
   );
 
+  /* The full Dashboard (as opposed to Today, the rail's "/" link) has no rail
+     entry of its own — it's reached via the command palette or a direct
+     link. It used to fall back to matching Today's shared "dashboard"
+     destination, wrongly marking Today as the current page while Dashboard
+     was the page actually on screen. */
+  it("does not mark Today (or anything else) current while viewing the full Dashboard", () => {
+    renderSidebar({ initialPath: "/dashboard" });
+    const current = screen
+      .getAllByRole("link")
+      .filter((link) => link.getAttribute("aria-current") === "page");
+    expect(current).toHaveLength(0);
+    expect(screen.getByRole("link", { name: "Today" })).not.toHaveAttribute(
+      "aria-current",
+    );
+  });
+
   it("shows due reviews on Library", () => {
     renderSidebar({ dueCount: 5 });
     expect(screen.getByText("5")).toBeInTheDocument();

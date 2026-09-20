@@ -42,7 +42,15 @@ export type PrimaryDestination =
 export function primaryDestinationForPath(
   pathname: string,
 ): PrimaryDestination | null {
-  if (pathname === "/" || pathname.startsWith("/dashboard")) return "dashboard";
+  /* "/dashboard" deliberately does NOT fold in here even though it shares
+   * the "dashboard" destination name: the rail's only item pointing at that
+   * destination is Today (`to: "/"`), and Today and the full Dashboard are
+   * different pages since the Today/Dashboard split. Matching "/dashboard"
+   * to Today's destination used to light up "Today" as the active link
+   * while actually viewing Dashboard (reachable via the command palette's
+   * "Full dashboard" entry or a direct link) — a real link with no sibling
+   * beats a wrong one, same as an unclaimed route gets no highlight at all. */
+  if (pathname === "/") return "dashboard";
   if (isNotebooksSection(pathname)) return "library";
   if (isLibrarySection(pathname)) return "library";
   if (
