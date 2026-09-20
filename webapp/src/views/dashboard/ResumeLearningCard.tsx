@@ -3,11 +3,30 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
 import { useContinuity } from "../../hooks/useContinuity";
+import { useMaterials } from "../../hooks/useMaterials";
 import styles from "./ResumeLearningCard.module.css";
 
 export function ResumeLearningCard() {
   const navigate = useNavigate();
   const { resumeAction, recentItems } = useContinuity();
+
+  /* `useContinuity` reads a localStorage snapshot and nothing else, so a
+     student who signs in on a second device — or clears site data, or uses
+     a school machine — is told they have done nothing, however much work
+     the account holds. The account's own most recent material is the
+     honest fallback: it is real, it is theirs, and it is openable.
+
+     Deliberately not dressed up as a resume point. There is no stored
+     position to resume to, so this offers to open the thing rather than
+     inventing a progress percentage — the card's own progress bar is
+     reserved for a real local snapshot. */
+  const materials = useMaterials();
+  const lastMaterial =
+    resumeAction || !materials.data?.length
+      ? null
+      : [...materials.data].sort((a, b) =>
+          String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")),
+        )[0];
 
   const getActionIcon = (type: string) => {
     switch (type) {
@@ -111,6 +130,23 @@ export function ResumeLearningCard() {
             </div>
           )}
         </>
+      ) : lastMaterial ? (
+        <div className={styles.mainResumeBlock}>
+          <div className={styles.resumeInfo}>
+            <h3 className={styles.resumeTitle}>{lastMaterial.title}</h3>
+            <div className={styles.resumeSubtitle}>
+              <span>The last thing you added to your library</span>
+            </div>
+          </div>
+          <Button
+            variant="primary"
+            className={styles.resumeCtaBtn}
+            onClick={() => navigate(`/notes/${lastMaterial.id}`)}
+          >
+            <Icon name="file-text" size={16} />
+            <span>Open</span>
+          </Button>
+        </div>
       ) : (
         <div className={styles.emptyState}>
           <p className={styles.emptyText}>
