@@ -17,12 +17,21 @@ import { useAllDecks } from "../../hooks/useDecks";
 import { useFlashcards } from "../../hooks/useFlashcards";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useSettings } from "../../context/settings";
-import { buildQuickCheckSource, scoreQuickCheck, QUICK_CHECK_QUESTIONS } from "../../lib/quickCheck";
+import { buildQuickCheckSource, missedTopics, scoreQuickCheck, QUICK_CHECK_QUESTIONS } from "../../lib/quickCheck";
 import { normaliseTopicKey } from "../../lib/topicKey";
 import type { QuizQuestion } from "../../lib/aiJson";
 import styles from "./QuickCheck.module.css";
 
-export interface QuickCheckResult { correct: number; total: number; score: number; change?: string; saved?: boolean }
+export interface QuickCheckResult {
+  correct: number;
+  total: number;
+  score: number;
+  change?: string;
+  saved?: boolean;
+  /** What they got wrong, most-missed first, so the panel that shows this
+   *  result can offer a way into fixing it instead of a bare score. */
+  missed: string[];
+}
 
 export function QuickCheck({
   topic,
@@ -117,7 +126,10 @@ export function QuickCheck({
     if (finished.current) return;
     finished.current = true;
     setSaving(true);
-    const result: QuickCheckResult = scoreQuickCheck(questions, answers);
+    const result: QuickCheckResult = {
+      ...scoreQuickCheck(questions, answers),
+      missed: missedTopics(questions, answers, topic),
+    };
     const event = { id: eventId.current, user_id: "", topic_key: normaliseTopicKey(topic), source: "quick_check", score: result.score, minutes: 0, deck_id: resolvedDeckId, folder_id: folderId, occurred_at: new Date().toISOString(), payload: {}, client_id: eventId.current } as LearningEvent;
     const sources = { decks: decks.data ?? [], cards: cards.data ?? [], attempts: attempts.data ?? [], events: events.data ?? [], now: new Date() };
     const before = buildTopicStates(sources).filter(t => t.id === resolvedDeckId);

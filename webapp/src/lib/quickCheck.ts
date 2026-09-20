@@ -29,3 +29,30 @@ export function scoreQuickCheck(questions: Pick<QuizQuestion, "correctIndex">[],
   const correct = questions.reduce((n, q, i) => n + (answers[i] != null && answers[i] === q.correctIndex ? 1 : 0), 0);
   return { correct, total, score: total ? correct / total : 0 };
 }
+
+/* Which topics the student actually got wrong, most-missed first.
+ *
+ * The result panel knew the score and nothing else, so a 1/4 ended on a
+ * number and a "Done" button — the same dead end the quiz results screen had
+ * before it learned to lead with "Work on <topic>". The score is the part the
+ * student can do least with; the name of the thing they missed is the part
+ * that routes them somewhere.
+ *
+ * A question carries its own `topic` when the generator split the check
+ * across subtopics; when it does not, the session's topic is the honest
+ * label. Ties keep the order the questions came in, so the list reads as the
+ * check did. */
+export function missedTopics(
+  questions: Pick<QuizQuestion, "correctIndex" | "topic">[],
+  answers: Array<number | null>,
+  fallback: string,
+): string[] {
+  const counts = new Map<string, number>();
+  questions.forEach((q, i) => {
+    if (answers[i] != null && answers[i] === q.correctIndex) return;
+    const label = q.topic?.trim() || fallback.trim();
+    if (!label) return;
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  });
+  return [...counts.keys()].sort((a, b) => counts.get(b)! - counts.get(a)!);
+}

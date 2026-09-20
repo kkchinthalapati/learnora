@@ -44,7 +44,21 @@ export function SessionCompletePanel({ session, onClose }: { session: LocalSessi
     <h2 className={styles.regionTitle}>Session complete{topic ? `: ${topic}` : ""}</h2>
     {result ? <>
       <p role="status">{result.correct}/{result.total} correct. {result.change ? `${topic ?? session.task}: ${result.change}. ` : ""}{result.saved ? "Your next step is updated from this check." : "Your result is shown locally; account sync is pending."}</p>
-      <Button onClick={onClose}>Done</Button>
+      {/* The score on its own is the part the student can do least with. What
+          they missed is the part that leads somewhere, so the panel ends on
+          a route into fixing it rather than on "Done" — the same move the
+          quiz results screen makes. A clean sheet has nothing to repair, so
+          it gets the other honest next step: say it back in your own words,
+          which is what actually tests a topic you can already recall. */}
+      <p>{result.missed.length
+        ? `${result.missed[0]} is where it slipped.`
+        : "Nothing slipped. The test of a topic you can recall is whether you can explain it."}</p>
+      <div className={styles.heroActions}>
+        {result.missed.length
+          ? <Link to={`/solver?topic=${encodeURIComponent(result.missed[0])}`} className={styles.stepLink}>Work on {result.missed[0]}</Link>
+          : topic ? <Link to={`/feynman?topic=${encodeURIComponent(topic)}`} className={styles.stepLink}>Explain {topic} in your own words</Link> : null}
+        <Button variant="secondary" onClick={onClose}>Done</Button>
+      </div>
     </> : checking && topic ? <QuickCheck key={session.id} topic={topic} deckId={session.deckId} folderId={session.folderId} clientId={`quick-check:${session.id}`} onDone={setResult} onSkip={onClose} /> : <>
       <p>{!signedIn ? "Create a free account to unlock AI session checks and quizzes." : topic ? "A four-question check reveals what stuck while the material is fresh." : "Choose a topic or add a session note next time to check what you learned."}</p>
       <div className={styles.heroActions}>
