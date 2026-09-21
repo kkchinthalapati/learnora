@@ -1,6 +1,8 @@
 import { Link, useNavigate } from "react-router";
 import { useTimer } from "../../context/timer";
 import { useTrajectory } from "../../hooks/useTrajectory";
+import { useFlashcards } from "../../hooks/useFlashcards";
+import { dueCardsFrom } from "../review/srs";
 import { INTERVENTION_BLOCK_MINS } from "../../lib/trajectory";
 import { TodayHero } from "./TodayHero";
 import { SessionCompletePanel } from "./SessionCompletePanel";
@@ -10,12 +12,27 @@ import { RecentNotebooksShelf } from "../dashboard/RecentNotebooksShelf";
 import { ResumeLearningCard } from "../dashboard/ResumeLearningCard";
 import styles from "./today.module.css";
 import { useCreateModal } from "../../context/createModal";
+import { useMemo } from "react";
 
 export function TodayView() {
   const navigate = useNavigate();
   const { openCreateModal } = useCreateModal();
   const { prepareFocus, completedFocus: completed, dismissCompletedFocus } = useTimer();
   const { exam, forecast, needsMaterial, isPending } = useTrajectory();
+
+  /* How many cards the top topic's deck actually owes the student right now.
+     The hero needs it to tell "keep this from fading" apart from "there is
+     nothing to review"; `useTrajectory` has already fetched the same query,
+     so this is a cache read rather than a second round trip. */
+  const cards = useFlashcards();
+  const topDeckId = forecast?.interventions[0]?.topicId;
+  const dueCards = useMemo(
+    () =>
+      topDeckId
+        ? dueCardsFrom((cards.data ?? []).filter((c) => c.deck_id === topDeckId)).length
+        : 0,
+    [cards.data, topDeckId],
+  );
 
   return (
     <div className={styles.view}>
@@ -24,6 +41,7 @@ export function TodayView() {
         forecast={forecast}
         needsMaterial={needsMaterial}
         isPending={isPending}
+        dueCards={dueCards}
         onCreate={() => openCreateModal({ type: "material", outputs: { flashcards: true } })}
         onStart={(deckId, label) => {
           prepareFocus(INTERVENTION_BLOCK_MINS, label, undefined, deckId);

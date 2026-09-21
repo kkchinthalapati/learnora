@@ -31,9 +31,9 @@ function row(patch: Partial<Misconception> = {}): Misconception {
   };
 }
 
-function renderLab() {
+function renderLab(entry = "/study-lab") {
   return render(
-    <MemoryRouter initialEntries={["/study-lab"]}>
+    <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/study-lab" element={<StudyLabView />} />
         <Route path="/solver" element={<h1>Debugger Page</h1>} />
@@ -55,6 +55,29 @@ describe("StudyLabView", () => {
     expect(screen.getByText("Explain it simply")).toBeInTheDocument();
     expect(screen.getByText("Viva practice")).toBeInTheDocument();
     expect(screen.queryByText("Common Exam Traps")).not.toBeInTheDocument();
+  });
+
+  /* The banner named the topic and the cards under it went to bare routes,
+     so picking a method threw away what the page had just said it knew. */
+  it("carries the active topic into whichever method is picked", () => {
+    renderLab("/study-lab?topic=Acids%20%26%20Bases");
+    expect(screen.getByText("Acids & Bases")).toBeInTheDocument();
+    const href = (name: string) =>
+      screen.getByRole("link", { name: new RegExp(name) }).getAttribute("href");
+    expect(href("Step-by-step solver")).toBe(
+      "/solver?topic=Acids%20%26%20Bases",
+    );
+    expect(href("Explain it simply")).toBe(
+      "/feynman?topic=Acids%20%26%20Bases",
+    );
+    expect(href("Viva practice")).toBe("/viva?topic=Acids%20%26%20Bases");
+  });
+
+  it("leaves the routes bare when no topic came with the student", () => {
+    renderLab();
+    expect(
+      screen.getByRole("link", { name: /Step-by-step solver/ }),
+    ).toHaveAttribute("href", "/solver");
   });
 
   /* A new account has no diagnosis, and inventing one would be worse than the

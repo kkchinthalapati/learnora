@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import {
@@ -38,8 +38,20 @@ const QUICK_TOPICS = [
 export function FeynmanHubView() {
   const navigate = useNavigate();
 
+  const [searchParams] = useSearchParams();
+  /* Arriving from a link that already names the topic — Today's next step, or
+     Study Lab's method grid. The Solver and Viva have always read this param;
+     this screen read only the bridge, so those callers had to stash a payload
+     to reach it and a plain `?topic=` link landed the student on the default
+     "Photosynthesis", ready to start explaining the wrong thing.
+
+     Seeded into the initial state rather than set from the effect below, so
+     there is no frame where the default shows. Held in a ref for the effect,
+     which runs once on mount and is asking what the link said then. */
+  const linkedTopic = searchParams.get("topic")?.trim();
+  const linkedTopicRef = useRef(linkedTopic);
   const [subject, setSubject] = useState("Biology");
-  const [topic, setTopic] = useState("Photosynthesis");
+  const [topic, setTopic] = useState(linkedTopic || "Photosynthesis");
   const [selectedPersona, setSelectedPersona] =
     useState<ApprenticePersona>("eli10");
   const [customAudience, setCustomAudience] = useState("");
@@ -67,6 +79,9 @@ export function FeynmanHubView() {
 
   useEffect(() => {
     refreshSessions();
+
+    /* An explicit link wins over a stale hand-off, matching the Solver. */
+    if (linkedTopicRef.current) return;
 
     const bridged = CognitiveBridge.getPayload();
     if (bridged && bridged.sourceTool !== "feynman") {

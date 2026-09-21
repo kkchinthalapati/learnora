@@ -340,12 +340,35 @@
             font-size: 0.85rem;
         }
 
-        /* Plans Section */
+        /* Plans Section
+           Six tracks rather than three, so the two annual cards can sit on
+           the boundary between the monthly tiers they discount instead of
+           lining up under them. The monthly row takes two tracks each (Free
+           1-2, Plus 3-4, Pro 5-6); Plus Annual straddles 2-3, under the gap
+           between Free and Plus, and Pro Annual straddles 4-5, under the gap
+           between Plus and Pro. */
         .plans-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(6, 1fr);
             gap: 2rem;
             margin-top: 2rem;
+        }
+
+        .plans-grid > .plan-card {
+            grid-column: span 2;
+        }
+
+        /* Rows are pinned rather than left to auto-placement: an offset card
+           whose column is taken would otherwise slide down a row on its own
+           and reopen the stagger this layout exists to fix. */
+        .plan-card.annual-plus {
+            grid-column: 2 / span 2;
+            grid-row: 2;
+        }
+
+        .plan-card.annual-pro {
+            grid-column: 4 / span 2;
+            grid-row: 2;
         }
 
         .plan-card {
@@ -356,6 +379,13 @@
             display: flex;
             flex-direction: column;
             transition: all 0.3s;
+        }
+
+        /* Before .pro on purpose: Pro Annual carries both classes and should
+           keep the stronger tint that .pro gives it. */
+        .plan-card.annual {
+            border-color: var(--primary);
+            background: rgba(124, 58, 237, 0.05);
         }
 
         .plan-card.pro {
@@ -503,6 +533,24 @@
         }
 
         /* Responsive */
+        /* Six narrow tracks stop being readable well before the phone
+           breakpoint — 1136px of content divided six ways is a 163px track,
+           and a two-track card under 340px starts wrapping its price line. So
+           the offsets are dropped for one card per row here rather than at
+           768px, and every span is reset so nothing keeps a stale position. */
+        @media (max-width: 900px) {
+            .plans-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .plans-grid > .plan-card,
+            .plan-card.annual-plus,
+            .plan-card.annual-pro {
+                grid-column: 1 / -1;
+                grid-row: auto;
+            }
+        }
+
         @media (max-width: 768px) {
             .hero h1 {
                 font-size: 2.5rem;
@@ -707,7 +755,7 @@
                 <a href="/app/settings/billing" class="btn btn-primary">Upgrade to Pro</a>
             </div>
 
-            <div class="plan-card" style="background: rgba(124, 58, 237, 0.05); border-color: var(--primary); grid-column: 1 / -1; max-width: 350px; margin: 0 auto;">
+            <div class="plan-card annual annual-plus">
                 <span class="plan-badge">Save 33%</span>
                 <h3 class="plan-name">Plus Annual</h3>
                 <div class="plan-price">£24.00</div>
@@ -721,7 +769,7 @@
                 <a href="/app/settings/billing" class="btn btn-primary">Get Plus Annual</a>
             </div>
 
-            <div class="plan-card pro">
+            <div class="plan-card pro annual annual-pro">
                 <span class="plan-badge">Best Value</span>
                 <h3 class="plan-name">Pro Annual</h3>
                 <div class="plan-price">£49.00</div>

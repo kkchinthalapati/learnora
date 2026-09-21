@@ -606,8 +606,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           activeContext: activeContextForPath(pathname, notesMarkdown),
           appendedFileContext,
           query,
-          persona: settings.aiPersona,
-          conciseness: settings.aiConciseness,
+          /* The nudge's own persona/conciseness, not just its sentence.
+             Only the instruction was being passed, so a stuck student on the
+             "detailed" setting got "Slow down, use a simpler concrete
+             example" bolted underneath "Give comprehensive, detailed
+             responses. Err on the side of covering more rather than less" —
+             two orders, and the one they needed was the weaker of the two.
+             Nothing is written back to settings: this lasts the one reply,
+             which is what the Auto-Adapt toggle promises ("adjust its next
+             reply when your follow-up shows confusion") and why the whole
+             block is already behind `settings.aiAutoAdapt`. */
+          persona: adaptiveNudge?.persona ?? settings.aiPersona,
+          conciseness: adaptiveNudge?.conciseness ?? settings.aiConciseness,
           adaptiveNudge: adaptiveNudge?.instruction,
           performanceEvidence,
           misconceptionLedger,

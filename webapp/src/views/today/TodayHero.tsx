@@ -5,13 +5,16 @@ import { Skeleton } from "../../components/Skeleton";
 import type { Exam } from "../../api/types";
 import { INTERVENTION_BLOCK_MINS, masteryLevel, type TrajectoryForecast } from "../../lib/trajectory";
 import { getGradeScale, normaliseScore, renderGrade } from "../../lib/gradeScale";
+import { chooseNextStep } from "../../lib/nextStep";
 import styles from "./today.module.css";
 
-export function TodayHero({ exam, forecast, needsMaterial, isPending, onStart, onCreate }: {
+export function TodayHero({ exam, forecast, needsMaterial, isPending, dueCards = 0, onStart, onCreate }: {
   exam: Exam | null;
   forecast: TrajectoryForecast | null;
   needsMaterial: boolean;
   isPending: boolean;
+  /** Cards due right now in the top topic's deck, counted by the caller. */
+  dueCards?: number;
   onStart: (deckId: string, label: string) => void;
   onCreate?: () => void;
 }) {
@@ -47,6 +50,18 @@ export function TodayHero({ exam, forecast, needsMaterial, isPending, onStart, o
   const lower = grade(forecast.confidence.lower);
   const upper = grade(forecast.confidence.upper);
   const level = masteryLevel(top.mastery);
+  /* Which topic is worth the hour is `forecast`'s answer; what to *do* with
+     the hour is this one. Today used to stop at the topic and hand over a
+     stopwatch, which leaves the student who did not know how to revise it
+     exactly where they started. Topic-level evidence when we have it, the
+     forecast's overall figure when the topic is not in the set — and when
+     there is no set at all, which a forecast assembled by something other
+     than `buildForecast` can still hand us. This is the root route; it does
+     not get to white-screen over a missing array. */
+  const evidence =
+    forecast.topics?.find((t) => t.id === top.topicId)?.evidence ??
+    forecast.confidence.evidence;
+  const step = chooseNextStep({ label: top.label, topicId: top.topicId, mastery: top.mastery, evidence, dueCards });
   return (
     <section className={styles.hero} aria-labelledby="today-hero">
       <span className={styles.eyebrow}><Icon name="zap" size={13} /> Your next hour</span>
@@ -59,10 +74,22 @@ export function TodayHero({ exam, forecast, needsMaterial, isPending, onStart, o
         {lower === upper ? `around ${lower}` : `${lower}–${upper}`}.
         {forecast.confidence.evidence < 0.5 ? " This estimate has limited evidence; a quick check will help refine it." : null}
       </p>
+      <p className={styles.reason}>{step.why}</p>
       <div className={styles.heroActions}>
-        <Button variant="primary" size="md" onClick={() => onStart(top.topicId, top.label)}>
-          Start {INTERVENTION_BLOCK_MINS} min on {top.label}
-        </Button>
+        {step.to ? (
+          <Link to={step.to} className={styles.stepLink}>{step.action}</Link>
+        ) : (
+          <Button variant="primary" size="md" onClick={() => onStart(top.topicId, top.label)}>{step.action}</Button>
+        )}
+        {/* The timed block stays one click away whatever the matched method
+            is: it is the only route that ends in a quick check, so a student
+            who would rather just sit with the material still feeds the
+            forecast by doing it. */}
+        {step.to ? (
+          <Button variant="secondary" size="md" onClick={() => onStart(top.topicId, top.label)}>
+            Start {INTERVENTION_BLOCK_MINS} min instead
+          </Button>
+        ) : null}
         <Link to="/trajectory" className={styles.whyLink}>Why this?</Link>
       </div>
     </section>

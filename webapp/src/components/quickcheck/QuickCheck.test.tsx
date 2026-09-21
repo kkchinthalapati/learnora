@@ -76,6 +76,29 @@ describe("QuickCheck", () => {
     );
   });
 
+  /* The result used to be a score and nothing else, so the panel showing it
+   * could only offer "Done". `missed` is what lets it offer a way in. */
+  it("reports which topics were missed so the result can route somewhere", async () => {
+    generate.mockResolvedValue([
+      { question: "What is Km?", choices: ["A", "B", "C", "D"], correctIndex: 1, topic: "Kinetics" },
+      { question: "Inhibitor?", choices: ["A", "B", "C", "D"], correctIndex: 0 },
+    ]);
+    const onDone = vi.fn();
+    renderWithProviders(
+      <QuickCheck topic="Enzymes" deckId="d1" onDone={onDone} onSkip={() => {}} />,
+      authValue({ session: fakeSession() }),
+    );
+    await screen.findByText("What is Km?");
+    await userEvent.click(screen.getByRole("button", { name: "A" }));
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    await screen.findByText("Inhibitor?");
+    await userEvent.click(screen.getByRole("button", { name: "B" }));
+    await userEvent.click(screen.getByRole("button", { name: /finish/i }));
+    /* The first question carried its own subtopic; the second did not, so it
+       falls back to the session's topic. */
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith(expect.objectContaining({ missed: ["Kinetics", "Enzymes"] })));
+  });
+
   it("shows an error with retry when generation fails", async () => {
     generate.mockRejectedValueOnce(new Error("quota"));
     renderWithProviders(<QuickCheck topic="Enzymes" onDone={() => {}} onSkip={() => {}} />, authValue({ session: fakeSession() }));
