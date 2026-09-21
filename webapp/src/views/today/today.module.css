@@ -4,13 +4,21 @@
 .headline { font-family: var(--font-display); font-size: var(--fs-3xl); line-height: 1.15; margin: 16px 0; }
 .reason { line-height: 1.6; max-width: 64ch; color: var(--text-muted); }
 .heroActions { display: flex; align-items: center; gap: 20px; margin-top: 24px; flex-wrap: wrap; }
-.primaryLink { display: inline-block; padding: 12px 18px; margin-top: 16px; border-radius: 10px; background: var(--accent); color: white; }
+/* --accent-on, not white, on both of these: the dark ramp's accent is light
+   enough that a white label lands at 2.48:1 on it. --accent-on is ink in dark
+   mode and white in light, so the label follows the fill instead of fighting
+   it. */
+.primaryLink { display: inline-block; padding: 12px 18px; margin-top: 16px; border-radius: 10px; background: var(--accent); color: var(--accent-on); }
 /* The matched next step is a link, not a button, so it needs the primary
    button's weight without .primaryLink's stacking margin — that one sits
    alone under a paragraph, this one sits in a row of actions. */
-.stepLink { display: inline-block; padding: 12px 18px; border-radius: 10px; background: var(--accent); color: white; }
+.stepLink { display: inline-block; padding: 12px 18px; border-radius: 10px; background: var(--accent); color: var(--accent-on); }
 .whyLink { color: var(--accent); }
 .region { display: grid; gap: var(--s-4); min-width: 0; }
 .regionTitle { font-size: var(--fs-lg); margin: 0; }
 .footer { color: var(--text-muted); padding-bottom: 24px; }
+/* These two inline links carry no class of their own, so without this they
+   render in the UA's default #0000ee — 2.08:1 on the dark page, and visibly
+   foreign to the palette in both themes. */
+.footer a { color: var(--accent-text); text-decoration: underline; }
 @media (max-width: 640px) { .heroActions > button, .heroActions > .stepLink { width: 100%; white-space: normal; text-align: center; } }

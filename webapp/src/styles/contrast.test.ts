@@ -84,10 +84,14 @@ function declarationsFor(selector: string): Map<string, string> {
  * the same rules in the same specificity order the browser would.
  */
 function tokensFor(preset: string, dark: boolean): Map<string, string> {
-  // Ordered by the specificity the browser resolves these at, weakest first:
-  // (0,0,1) → (0,1,1) → (0,2,1) → (0,3,1).
+  // Ordered the way the browser arrives at a value on <body>, weakest first.
+  // ":root" comes first because body only *inherits* it; a declaration on
+  // `body` itself (the theme-derived aliases at the foot of tokens.css) beats
+  // that inherited value whatever the selectors' relative specificity, and the
+  // body.* rules then out-specify plain `body`.
   const layers = [
     ":root",
+    "body",
     ...(dark ? ["body.dark-theme"] : []),
     "body[data-theme-color]",
     `body[data-theme-color="${preset}"]`,
@@ -129,7 +133,7 @@ function resolve(tokens: Map<string, string>, name: string): string {
  */
 function baseTokensFor(dark: boolean): Map<string, string> {
   const merged = new Map<string, string>();
-  for (const layer of [":root", ...(dark ? ["body.dark-theme"] : [])]) {
+  for (const layer of [":root", "body", ...(dark ? ["body.dark-theme"] : [])]) {
     for (const [k, v] of declarationsFor(layer)) merged.set(k, v);
   }
   return merged;

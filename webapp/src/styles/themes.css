@@ -99,7 +99,9 @@ body.dark-theme {
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.7);
-  --shadow-accent: 0 0 0 1px var(--accent-ring);
+  /* --shadow-accent was repeated here verbatim, which is what it took to beat
+     the :root copy that had already frozen --accent-ring at the light value.
+     It now derives once from `body` in tokens.css and needs no dark twin. */
 }
 
 /* Theme schemes.
