@@ -17,6 +17,13 @@ export interface Exam {
   exam_date: string;
   difficulty: string | null;
   status: string | null;
+  /** Optional subject folder. When set, readiness and the forecast scope to
+   *  it instead of guessing the subject from `exam_name`.
+   *
+   *  Optional rather than required-and-nullable, matching how `notebook_id`
+   *  was added to materials, decks and quizzes: rows written before the
+   *  column existed, and fixtures that predate it, are still valid exams. */
+  folder_id?: string | null;
 }
 
 export interface Folder {

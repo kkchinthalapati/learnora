@@ -4,6 +4,7 @@ import { Modal } from "../../components/Modal";
 import { useDialog } from "../../context/dialog";
 import { useToast } from "../../context/toast";
 import { useDeleteExam, useSaveExam } from "../../hooks/useExams";
+import { useFolders } from "../../hooks/useFolders";
 import { localDateStr } from "../../lib/date";
 import type { Exam } from "../../api/types";
 import { DIFFICULTIES, STATUSES } from "./examMeta";
@@ -36,16 +37,21 @@ export function ExamModal({
   const deleteExam = useDeleteExam();
   const { confirm } = useDialog();
   const { showToast } = useToast();
+  /* Folders are only needed to populate the optional subject picker, so a
+     slow or failed fetch simply hides it rather than blocking the dialog. */
+  const folders = useFolders().data ?? [];
 
   const nameId = useId();
   const dateId = useId();
   const statusId = useId();
+  const folderId = useId();
 
   const editing = exam !== null;
   const [name, setName] = useState(exam?.exam_name ?? "");
   const [date, setDate] = useState(exam?.exam_date ?? initialDate ?? "");
   const [difficulty, setDifficulty] = useState(exam?.difficulty ?? "Medium");
   const [status, setStatus] = useState(exam?.status ?? "Scheduled");
+  const [folder, setFolder] = useState(exam?.folder_id ?? "");
   const [dateInvalid, setDateInvalid] = useState(false);
   const [nameInvalid, setNameInvalid] = useState(false);
 
@@ -83,6 +89,7 @@ export function ExamModal({
           exam_date: date,
           difficulty,
           status: editing ? status : "Scheduled",
+          folder_id: folder || null,
         },
         id: exam?.id ?? null,
       });
@@ -157,6 +164,32 @@ export function ExamModal({
             onChange={(e) => setDate(e.target.value)}
           />
         </div>
+
+        {/* Optional, and last, because it is the only field a student can
+            safely ignore. It is also the one that makes readiness and the
+            forecast about *this* exam rather than about everything: without
+            it both fall back to guessing the subject from the exam's name,
+            and a miss there means the forecast quietly runs on the whole
+            library. Hidden entirely when there are no folders to choose. */}
+        {folders.length > 0 && (
+          <div className={styles.inputGroup}>
+            <label htmlFor={folderId}>
+              Subject (optional)
+            </label>
+            <select
+              id={folderId}
+              value={folder}
+              onChange={(e) => setFolder(e.target.value)}
+            >
+              <option value="">No subject</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className={styles.inputGroup}>
           <span>How tough is it?</span>

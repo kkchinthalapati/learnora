@@ -18,6 +18,7 @@ import {
   generateExamStudyMilestones,
   recommendRevisionSchedule,
   MAX_MISCONCEPTION_PENALTY,
+  matchExamFolder,
 } from "./examReadiness";
 
 describe("examReadiness", () => {
@@ -550,6 +551,43 @@ describe("examReadiness", () => {
       const risk = calculateCramRisk(e, sessions, now);
       expect(risk.isCramming).toBe(true);
       expect(["medium", "high"]).toContain(risk.severity);
+    });
+  });
+
+  /* An exam can name its subject outright now. The name heuristic stays for
+     exams that predate the field, but it is a guess and must never overrule
+     what the student actually picked — a miss there is what let a Biology
+     exam be forecast from maths decks. */
+  describe("matchExamFolder", () => {
+    const bio: Folder = { ...folder, id: "f-bio", name: "Biology" };
+    const maths: Folder = { ...folder, id: "f-maths", name: "Maths" };
+
+    it("uses the chosen folder even when the name points elsewhere", () => {
+      const exam: Exam = {
+        ...baseExam,
+        exam_name: "Maths Paper 2",
+        folder_id: "f-bio",
+      };
+      expect(matchExamFolder(exam, [bio, maths])?.id).toBe("f-bio");
+    });
+
+    it("falls back to the name when no folder was chosen", () => {
+      const exam: Exam = { ...baseExam, exam_name: "Biology Paper 1" };
+      expect(matchExamFolder(exam, [bio, maths])?.id).toBe("f-bio");
+    });
+
+    it("falls back to the name when the chosen folder no longer exists", () => {
+      const exam: Exam = {
+        ...baseExam,
+        exam_name: "Biology Paper 1",
+        folder_id: "f-deleted",
+      };
+      expect(matchExamFolder(exam, [bio, maths])?.id).toBe("f-bio");
+    });
+
+    it("matches nothing when neither the folder nor the name resolves", () => {
+      const exam: Exam = { ...baseExam, exam_name: "Grade 9 End of Term" };
+      expect(matchExamFolder(exam, [bio, maths])).toBeNull();
     });
   });
 
