@@ -22,6 +22,7 @@ import { RecentNotebooksShelf } from "./RecentNotebooksShelf";
 import { ResumeLearningCard } from "./ResumeLearningCard";
 import { SessionHistoryCard } from "./SessionHistoryCard";
 import { StreakCard } from "./StreakCard";
+import { StudyThisNowCard } from "./StudyThisNowCard";
 import { TodayTimelineCard } from "./TodayTimelineCard";
 import { StudyCircleCard } from "./StudyCircleCard";
 import { TasksCard } from "./TasksCard";
@@ -151,6 +152,11 @@ export function DashboardView({
       <OnboardingBanner
         onFocusTaskInput={() => taskInputRef.current?.focus()}
       />
+
+      {/* Above the tabs and every stat tile: the one thing to do next, before
+          the screen starts reporting numbers. Renders nothing when there is no
+          upcoming exam or nothing open for its subject. */}
+      <StudyThisNowCard />
 
       {/* Tab 1: Focus & Tasks (Elevated Focus + Next Exam) */}
       {activeTab === "focus" && (
