@@ -63,6 +63,16 @@ export interface ForecastJoin {
    *  from. A different and much more fixable problem than having no exams,
    *  and worth saying differently. */
   needsMaterial: boolean;
+  /** The subject this forecast was actually built from, or null when the exam
+   *  matched no folder and it therefore ran across everything the student has.
+   *
+   *  `buildTopicStates` has always taken that fallback deliberately — a rough
+   *  forecast beats no forecast — on the stated condition that the view says
+   *  which of the two happened. It could not: the match was computed here and
+   *  thrown away, so a Biology exam with no Biology folder presented a
+   *  confident number built from maths decks with nothing marking it as
+   *  unscoped. */
+  scopedToSubject: string | null;
 }
 
 /** Upcoming, unfinished exams, soonest first. */
@@ -112,7 +122,7 @@ export function buildForecast(src: ForecastSources): ForecastJoin {
       : (candidates[0] ?? null);
 
   if (!exam) {
-    return { exam: null, candidates, forecast: null, needsMaterial: false };
+    return { exam: null, candidates, forecast: null, needsMaterial: false, scopedToSubject: null };
   }
 
   const folder = matchExamFolder(exam, src.folders);
@@ -129,13 +139,14 @@ export function buildForecast(src: ForecastSources): ForecastJoin {
   });
 
   if (topics.length === 0) {
-    return { exam, candidates, forecast: null, needsMaterial: true };
+    return { exam, candidates, forecast: null, needsMaterial: true, scopedToSubject: folder?.name ?? null };
   }
 
   return {
     exam,
     candidates,
     needsMaterial: false,
+    scopedToSubject: folder?.name ?? null,
     forecast: forecast({
       topics,
       examName: exam.exam_name,

@@ -26,6 +26,7 @@ export function FeynmanDebriefView() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportedDeckId, setExportedDeckId] = useState<string | null>(null);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -126,6 +127,7 @@ export function FeynmanDebriefView() {
     if (isExporting || report.generatedFlashcards.length === 0) return;
     setIsExporting(true);
     setExportMessage(null);
+    setExportError(null);
 
     try {
       const deckTitle = `${session.topic} (from Explain it simply)`;
@@ -140,12 +142,18 @@ export function FeynmanDebriefView() {
       setExportMessage(
         `Added ${cardsToAdd.length} flashcards to "${deckTitle}".`
       );
-    } catch (err: any) {
-      console.warn("Deck save fell back to a local confirmation", err);
-      // Graceful fallback for demo or test environments
-      setExportedDeckId("local-exported");
-      setExportMessage(
-        `Made ${report.generatedFlashcards.length} flashcards for you.`
+    } catch (err) {
+      /* This used to `setExportMessage("Made N flashcards for you.")` from
+         inside the catch — a "graceful fallback for demo or test
+         environments". In practice the write fails against the real database,
+         so that reassuring sentence was the *only* message a student ever saw,
+         rendered under a ✓ in the success banner, while nothing was saved.
+         A save that did not happen has to look like one that did not happen. */
+      console.error("Could not save the Feynman deck", err);
+      setExportError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Something went wrong saving the deck.",
       );
     } finally {
       setIsExporting(false);
@@ -321,7 +329,7 @@ export function FeynmanDebriefView() {
         {exportMessage && (
           <div className={styles.exportSuccessBanner} data-testid="export-success-banner">
             <span>✓ {exportMessage}</span>
-            {exportedDeckId && exportedDeckId !== "local-exported" && (
+            {exportedDeckId && (
               <Button
                 variant="secondary"
                 size="sm"
@@ -330,6 +338,18 @@ export function FeynmanDebriefView() {
                 Revise them now →
               </Button>
             )}
+          </div>
+        )}
+
+        {exportError && (
+          <div className={styles.exportErrorBanner} data-testid="export-error-banner" role="alert">
+            <span>
+              Couldn’t save these as a deck — nothing was added to your library.
+              The cards are still listed below. ({exportError})
+            </span>
+            <Button variant="secondary" size="sm" onClick={handleExportFlashcards}>
+              Try again
+            </Button>
           </div>
         )}
 

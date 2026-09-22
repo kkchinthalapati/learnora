@@ -315,6 +315,39 @@ describe("TrajectoryView", () => {
     expect(screen.getByText(/are not in this arithmetic/)).toBeInTheDocument();
   });
 
+  /* The forecast falls back to the whole library when an exam matches no
+     subject folder. That is deliberate, but it produced a confident grade for
+     a "Grade 9 Biology" exam off maths decks with nothing saying so. */
+  it("names the subject it forecast from when the exam matches one", async () => {
+    serve();
+    render();
+
+    expect(await screen.findByText(/Where this is heading/)).toBeInTheDocument();
+    expect(screen.getByText(/in Chemistry/)).toBeInTheDocument();
+    expect(screen.queryByTestId("forecast-unscoped-note")).toBeNull();
+  });
+
+  it("says the forecast is unscoped when the exam matches no subject", async () => {
+    serve({
+      exams: [
+        {
+          id: 1,
+          user_id: "user-1",
+          exam_name: "Grade 9 Biology End of Term",
+          exam_date: EXAM_DATE,
+          difficulty: "Medium",
+          status: "Upcoming",
+        },
+      ],
+    });
+    render();
+
+    expect(await screen.findByText(/Where this is heading/)).toBeInTheDocument();
+    expect(
+      screen.getByTestId("forecast-unscoped-note"),
+    ).toHaveTextContent(/isn’t matched to one of your subjects/);
+  });
+
   it("offers a picker when there is more than one exam", async () => {
     serve({
       exams: [

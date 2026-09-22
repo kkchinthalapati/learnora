@@ -180,6 +180,85 @@ describe("ExamModal", () => {
     });
   });
 
+  /* The subject is what lets readiness and the forecast be about this exam
+     rather than about the whole library. Without it both fall back to
+     guessing the subject from the exam's name. */
+  describe("subject", () => {
+    const folders = [
+      { id: "f-bio", user_id: "user-1", name: "Biology", color: "#fff", created_at: "" },
+      { id: "f-maths", user_id: "user-1", name: "Maths", color: "#fff", created_at: "" },
+    ];
+
+    function serveFolders() {
+      server.use(
+        http.get(`${SUPABASE_URL}/rest/v1/folders`, () =>
+          HttpResponse.json(folders),
+        ),
+      );
+    }
+
+    it("saves the chosen subject with the exam", async () => {
+      const user = userEvent.setup();
+      serveFolders();
+      let body: Record<string, unknown>[] | undefined;
+      server.use(
+        http.post(REST, async ({ request }) => {
+          body = (await request.json()) as Record<string, unknown>[];
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      renderModal({ initialDate: FUTURE });
+
+      await user.type(
+        screen.getByLabelText("What's the exam?"),
+        "End of Term",
+      );
+      const picker = await screen.findByLabelText(/Subject/);
+      await user.selectOptions(picker, "f-bio");
+      await user.click(screen.getByRole("button", { name: "Add exam" }));
+
+      await waitFor(() => expect(body).toBeDefined());
+      expect(body![0]).toMatchObject({ folder_id: "f-bio" });
+    });
+
+    it("sends null when no subject is chosen", async () => {
+      const user = userEvent.setup();
+      serveFolders();
+      let body: Record<string, unknown>[] | undefined;
+      server.use(
+        http.post(REST, async ({ request }) => {
+          body = (await request.json()) as Record<string, unknown>[];
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      renderModal({ initialDate: FUTURE });
+
+      await user.type(screen.getByLabelText("What's the exam?"), "End of Term");
+      await screen.findByLabelText(/Subject/);
+      await user.click(screen.getByRole("button", { name: "Add exam" }));
+
+      await waitFor(() => expect(body).toBeDefined());
+      expect(body![0].folder_id).toBeNull();
+    });
+
+    it("hides the picker when there are no subjects to choose", async () => {
+      server.use(
+        http.get(`${SUPABASE_URL}/rest/v1/folders`, () => HttpResponse.json([])),
+      );
+      renderModal({ initialDate: FUTURE });
+
+      await screen.findByLabelText("What's the exam?");
+      expect(screen.queryByLabelText(/Subject/)).toBeNull();
+    });
+
+    it("prefills the subject when editing", async () => {
+      serveFolders();
+      renderModal({ exam: existingExam({ folder_id: "f-maths" }) });
+
+      expect(await screen.findByLabelText(/Subject/)).toHaveValue("f-maths");
+    });
+  });
+
   it("reports a save failure and stays open", async () => {
     const user = userEvent.setup();
     server.use(

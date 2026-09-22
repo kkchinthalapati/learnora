@@ -280,6 +280,23 @@
   font-weight: 600;
 }
 
+/* Same shape as .exportSuccessBanner, in the danger palette — a failed save
+   has to be visibly a failure, not a paler version of the success state. */
+.exportErrorBanner {
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-md);
+  padding: var(--s-3) var(--s-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  color: var(--danger-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
 /* Actions Footer */
 .actionsFooter {
   display: flex;

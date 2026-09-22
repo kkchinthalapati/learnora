@@ -282,6 +282,51 @@ describe("FeynmanStudioView Component", () => {
     );
   });
 
+  /* The pane the student is told to read must show the question they are
+     actually being asked, not the one they answered a turn ago. */
+  it("shows the latest follow-up question, not the opening one", () => {
+    const sessionWithFollowUp: FeynmanSessionState = {
+      ...sampleSession,
+      turns: [
+        {
+          id: "t-1",
+          userExplanation: "Chlorophyll reflects green light.",
+          apprenticeReaction: "Ohh!",
+          understandingScore: 45,
+          delta: 25,
+          emotion: "lightbulb",
+          solvedPoints: [],
+          confusionPoints: [],
+          timestamp: "2026-03-01T00:00:00Z",
+          quality: "substantive",
+          feedback: {
+            whatMadeSense: [],
+            followUpQuestion: "So what happens when it is pitch dark?",
+            remainingGaps: [],
+          },
+        },
+      ],
+    };
+    saveFeynmanSession(sessionWithFollowUp);
+    setActiveFeynmanSessionId(sessionWithFollowUp.id);
+
+    renderWithProviders(<FeynmanStudioView />, undefined, { withRouter: true });
+
+    const card = screen.getByTestId("challenge-question-card");
+    expect(card).toHaveTextContent("So what happens when it is pitch dark?");
+    expect(card).not.toHaveTextContent(
+      "Do plants need oxygen at night to survive?",
+    );
+  });
+
+  it("falls back to the opening question before the first turn", () => {
+    renderWithProviders(<FeynmanStudioView />, undefined, { withRouter: true });
+
+    expect(screen.getByTestId("challenge-question-card")).toHaveTextContent(
+      "Do plants need oxygen at night to survive?",
+    );
+  });
+
   it("adapts analogy starter phrase shortcut based on session analogyStyle", async () => {
     const cricketSession: FeynmanSessionState = {
       ...sampleSession,

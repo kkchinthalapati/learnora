@@ -3,7 +3,7 @@ import { requireUserId } from "./session";
 import type { Exam } from "./types";
 
 export type ExamPayload = Partial<
-  Pick<Exam, "exam_name" | "exam_date" | "difficulty" | "status">
+  Pick<Exam, "exam_name" | "exam_date" | "difficulty" | "status" | "folder_id">
 >;
 
 /* Direct port of js/api.js's `Exams` object (:873-914). */

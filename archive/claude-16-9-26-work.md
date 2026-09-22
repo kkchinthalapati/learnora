@@ -2,6 +2,16 @@
 
 Resume file for the close-the-loop work. Branch `feat/close-the-loop` merged as PR #100.
 
+## Current handoff — Codex, 20 Sep 2026
+
+On `main` at `fea0369` (tracking `origin/main`), a separate, uncommitted UX fix addresses two continuity gaps. The nine modified files are under `webapp/src/`; the pre-existing untracked `.claude/settings.local.json` was left untouched. No commit or push was made.
+
+- Solver now retains the current form and selected saved diagnosis in tab session storage, scoped to the signed-in account. A short note tells students that drafts survive leaving the page and diagnoses live under Past mistakes. An explicit topic link opens its new topic instead of the old diagnosis; clearing history also clears the active diagnosis.
+- Completing a quiz clears its matching continuity entry as well as its answer draft. Today and the full dashboard share `ResumeLearningCard`, which now offers quiz Resume only when a valid answer draft exists; old completed quizzes with stale continuity entries fall back to another available study item.
+- Verification: four focused Vitest files passed (61 tests); `npm run build`, `npm run lint` (with existing repository warnings), `npx tsc -b --pretty false`, and `git diff --check` passed. No browser walkthrough was run. A targeted Prettier check fails on all nine touched files; at least `continuity.ts` also fails the same check at `HEAD`, so formatting was not applied wholesale.
+
+The 17 Sep handoff below records the earlier close-the-loop continuation and is historical; its branch and worktree instructions do not describe the current checkout.
+
 ## Current handoff — Codex, 17 Sep 2026 (paused at owner's request)
 
 **Resume the existing `codex/close-the-loop` branch and its uncommitted working tree. Do not switch back to the old feature branch or reset these changes.** HEAD/base is `08662ae6a496aa6a6cd9269ec957deb0b022ed6f` (PR #100). No new commits or pushes were made. The pre-existing untracked `.claude/settings.local.json` was left untouched. No database migrations were applied.

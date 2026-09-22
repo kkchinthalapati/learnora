@@ -31,7 +31,7 @@ import { useStudyClock } from "../../hooks/useStudyClock";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useOverlayBehavior } from "../../context/overlayStack";
 import { dateInDays } from "../../lib/date";
-import { fenceUntrusted } from "../../lib/actionTags";
+import { fenceUntrusted, stripActionTagBlocks } from "../../lib/actionTags";
 import { candidatesFromReviewLapses } from "../../lib/misconceptions";
 import { executeActions, type ActionHandlers } from "../../lib/chatActions";
 import { renderMarkdownNodes, renderMathText } from "../../lib/markdownToReact";
@@ -460,6 +460,11 @@ function cardFace(text: string): ReactNode[] {
  * `<ADD_TASK>…</ADD_TASK>` sequence in its `front`/`back` must not be able
  * to steer the reply. Same class of concern `lib/chatPrompt.ts` already
  * fences note bodies for. */
+/* Longer than the 6s default: this one carries the mark *and* the reason, it
+   is the only place either is shown, and the card has already moved on by the
+   time it appears. */
+const AI_GRADE_FEEDBACK_DURATION = 10000;
+
 const AI_GRADE_PROMPT = (
   card: Flashcard,
   answer: string,
@@ -1160,7 +1165,30 @@ function ReviewSession({
       /* Leaving the route does not cancel fetch, so a late reply must not
          grade a card or write SRS state after this session is gone. */
       if (!mountedRef.current) return;
-      await executeActions(text, gradeOnlyHandlers(scoreCard));
+      /* AI_GRADE_PROMPT asks for the tag *and* "a short 1-sentence feedback",
+         and the feedback was being thrown away: `executeActions` consumes the
+         tag, `scoreCard` advanced the card, and the student never saw what
+         they had been marked or why. A button labelled "Grade" that shows no
+         grade is worse than no button — a vague answer gets silently recorded
+         as Good and the student moves on believing they knew it.
+
+         Captured around `scoreCard` rather than read back from state, because
+         `scoreCard` has already advanced `index` by the time it returns. */
+      let gradedQuality: number | null = null;
+      await executeActions(
+        text,
+        gradeOnlyHandlers((quality) => {
+          gradedQuality = quality;
+          scoreCard(quality);
+        }),
+      );
+      if (gradedQuality !== null) {
+        const { label } = getGradeInfo(gradedQuality);
+        const feedback = stripActionTagBlocks(text).trim();
+        showToast(feedback ? `Marked ${label} — ${feedback}` : `Marked ${label}.`, {
+          duration: AI_GRADE_FEEDBACK_DURATION,
+        });
+      }
     } catch {
       /* Falls through to the same "couldn't grade" recovery below as a reply
          with no usable tag — a transport failure and a model that ignored
@@ -1755,21 +1783,24 @@ function ReviewRecap({
               <Icon name="clock" size={16} />
               <span>25 minutes on the tricky ones</span>
             </Button>
-            {recap.weakTopics.length > 0 && (
-              <Button
-                variant="secondary"
-                onClick={handleAddRevisionTask}
-                disabled={taskAdded || addTask.isPending}
-                className={styles.recapActionBtn}
-              >
-                <Icon name="list-checks" size={16} />
-                <span>
-                  {taskAdded
-                    ? "Added to tomorrow ✓"
-                    : "Revise this again tomorrow"}
-                </span>
-              </Button>
-            )}
+            {/* Not gated on weakTopics any more. `handleAddRevisionTask`
+                already names the task "Review cards again: <deck>" when there
+                are no topics to name, and "put this deck in front of me again
+                tomorrow" is worth offering for every session — it used to
+                vanish precisely when the recap had least else to offer. */}
+            <Button
+              variant="secondary"
+              onClick={handleAddRevisionTask}
+              disabled={taskAdded || addTask.isPending}
+              className={styles.recapActionBtn}
+            >
+              <Icon name="list-checks" size={16} />
+              <span>
+                {taskAdded
+                  ? "Added to tomorrow ✓"
+                  : "Revise this again tomorrow"}
+              </span>
+            </Button>
             {onRepeatDifficult ? (
               <Button
                 variant="secondary"

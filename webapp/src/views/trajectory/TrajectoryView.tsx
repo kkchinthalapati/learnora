@@ -54,7 +54,7 @@ const VERDICT_COPY: Record<Verdict, { tone: string; headline: string }> = {
 
 function TrajectoryBody() {
   const [examId, setExamId] = useState<number | null>(null);
-  const { exam, candidates, forecast, needsMaterial, isPending } =
+  const { exam, candidates, forecast, needsMaterial, scopedToSubject, isPending } =
     useTrajectory(examId);
   const { prepareFocus } = useTimer();
   const navigate = useNavigate();
@@ -166,10 +166,24 @@ function TrajectoryBody() {
             <h2 className={styles.sectionTitle}>Where this is heading</h2>
             <p className={styles.sectionCopy}>
               Built from {forecast.topics.length}{" "}
-              {forecast.topics.length === 1 ? "topic" : "topics"} and the{" "}
+              {forecast.topics.length === 1 ? "topic" : "topics"}
+              {scopedToSubject ? ` in ${scopedToSubject}` : ""} and the{" "}
               {formatDuration(forecast.availableMins)} you actually have free
               before the exam.
             </p>
+            {/* The forecast falls back to every deck the student owns when the
+                exam matches no subject folder — deliberately, since a rough
+                number beats none, but it has to say so. Without this a
+                "Grade 9 Biology" exam reports a confident grade built from
+                maths decks and reads as though it knows the syllabus. */}
+            {!scopedToSubject ? (
+              <p className={styles.sectionCopy} data-testid="forecast-unscoped-note">
+                This exam isn’t matched to one of your subjects, so it is based
+                on everything in your library — including material that may
+                have nothing to do with it. Name the exam after a subject
+                folder to narrow it.
+              </p>
+            ) : null}
           </div>
         </div>
 

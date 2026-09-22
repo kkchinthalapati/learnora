@@ -5,6 +5,7 @@ import {
   deleteTrace,
   diagnoseCognitiveGap,
   generateMicroRepair,
+  getSavedTraceById,
   getSavedTraces,
   recordRepairSuccess,
   type CognitiveStackTrace,
@@ -22,6 +23,7 @@ import { CognitiveCrossLinkBar } from "../../components/ai/CognitiveCrossLinkBar
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import { useRecordMisconceptions } from "../../hooks/useMisconceptions";
 import { candidatesFromStackTrace } from "../../lib/misconceptions";
+import { useAuth } from "../../context/auth";
 import styles from "./CognitiveDebuggerView.module.css";
 
 const PRESETS = [
@@ -58,14 +60,44 @@ const SUBJECT_OPTIONS = [
   "Other",
 ];
 
+interface SolverWork {
+  subject: string;
+  mistakeDescription: string;
+  context: string;
+  traceId: string | null;
+}
+
+function readSolverWork(key: string): SolverWork | null {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(key) || "null");
+    if (
+      value &&
+      typeof value.subject === "string" &&
+      typeof value.mistakeDescription === "string" &&
+      typeof value.context === "string" &&
+      (typeof value.traceId === "string" || value.traceId === null)
+    ) {
+      return value as SolverWork;
+    }
+  } catch {
+    // Ignore unavailable or malformed session storage.
+  }
+  return null;
+}
+
 export function CognitiveDebuggerView() {
   const [searchParams] = useSearchParams();
-  const [subject, setSubject] = useState(SUBJECT_OPTIONS[0]);
-  const [mistakeDescription, setMistakeDescription] = useState("");
-  const [context, setContext] = useState("");
+  const { user } = useAuth();
+  const workKey = `learnora:solver_work:${user?.id ?? "guest"}`;
+  const [restoredWork] = useState(() => readSolverWork(workKey));
+  const [subject, setSubject] = useState(restoredWork?.subject ?? SUBJECT_OPTIONS[0]);
+  const [mistakeDescription, setMistakeDescription] = useState(restoredWork?.mistakeDescription ?? "");
+  const [context, setContext] = useState(restoredWork?.context ?? "");
 
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTrace, setActiveTrace] = useState<CognitiveStackTrace | null>(null);
+  const [activeTrace, setActiveTrace] = useState<CognitiveStackTrace | null>(() =>
+    restoredWork?.traceId ? getSavedTraceById(restoredWork.traceId) : null,
+  );
   const [selectedLevel, setSelectedLevel] = useState<number | undefined>(undefined);
 
   // History & Weak topics
@@ -97,12 +129,15 @@ export function CognitiveDebuggerView() {
        the bridge so an explicit link wins over a stale hand-off. */
     const linkedTopic = searchParams.get("topic")?.trim();
     if (linkedTopic) {
+      setActiveTrace(null);
       setMistakeDescription(`I keep getting ${linkedTopic} questions wrong`);
+      setContext("");
       return;
     }
 
     const bridged = CognitiveBridge.getPayload();
     if (bridged && bridged.sourceTool !== "debugger") {
+      setActiveTrace(null);
       if (bridged.subject) {
         setSubject(bridged.subject);
       }
@@ -117,6 +152,16 @@ export function CognitiveDebuggerView() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(workKey, JSON.stringify({
+        subject, mistakeDescription, context, traceId: activeTrace?.id ?? null,
+      } satisfies SolverWork));
+    } catch {
+      // Storage can be unavailable; saved diagnoses remain in Past mistakes.
+    }
+  }, [workKey, subject, mistakeDescription, context, activeTrace]);
 
   const handleApplyPreset = (preset: (typeof PRESETS)[0]) => {
     setSubject(preset.subject);
@@ -232,6 +277,7 @@ export function CognitiveDebuggerView() {
   const handleClearHistory = () => {
     clearTraceHistory();
     setSavedTraces([]);
+    setActiveTrace(null);
     setHistoryOpen(false);
   };
 
@@ -256,6 +302,9 @@ export function CognitiveDebuggerView() {
           </h1>
           <p className={styles.subtitle}>
             Work backwards from the mistake you made to find where you got stuck and repair the gap.
+          </p>
+          <p className={styles.saveHint}>
+            Your draft stays here if you leave this page. Diagnoses are saved in Past mistakes.
           </p>
         </div>
 

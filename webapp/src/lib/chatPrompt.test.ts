@@ -103,6 +103,22 @@ describe("buildSystemContext", () => {
     );
   });
 
+  /* The grounding rule used to tell the model to "offer to generate a quiz
+     (<ADD_QUIZ>Topic Name</ADD_QUIZ>)" while CAPABILITIES said emitting that
+     tag generates the quiz. The model followed both and wrote an offer with a
+     command inside it — "Would you like me to create a quiz on
+     <ADD_QUIZ>Photosynthesis</ADD_QUIZ>?" — which the app executed, and which
+     rendered as "Would you like me to create a quiz on ?" once the tag block
+     was stripped for display. */
+  it("does not tell the model to emit ADD_QUIZ while it is still offering", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).not.toContain(
+      "offer to generate a quiz (<ADD_QUIZ>Topic Name</ADD_QUIZ>)",
+    );
+    expect(prompt).toContain("do NOT emit the ADD_QUIZ tag while you are still asking");
+    expect(prompt).toContain("Emitting the tag *is* the action");
+  });
+
   /* GRADE_FLASHCARD is real, wired capability (ReviewView registers a grader
      via ChatProvider) that was never once described to the model in either
      app — so it could never actually fire from ordinary conversation. Gated

@@ -980,6 +980,16 @@ export function matchExamFolder<T extends { id: string; name: string }>(
   folders: T[] | null | undefined,
 ): T | null {
   if (!exam || !folders || folders.length === 0) return null;
+
+  /* An exam can now name its subject outright. When it does, that is the
+     answer — the name heuristic below is a guess, and a guess must never
+     overrule what the student actually chose. It stays for the exams that
+     predate the field, and for anyone who leaves it unset. */
+  if (exam.folder_id) {
+    const chosen = folders.find((f) => f.id === exam.folder_id);
+    if (chosen) return chosen;
+  }
+
   const name = exam.exam_name.toLowerCase().trim();
   return (
     folders.find((f) => {

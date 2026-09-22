@@ -162,7 +162,7 @@ describe("route skeleton", () => {
     renderAt("/quiz/q-1");
 
     expect(
-      await screen.findByRole("heading", { level: 2, name: "Quiz not found." }),
+      await screen.findByText("Quiz not found"),
     ).toBeInTheDocument();
   });
 
@@ -171,7 +171,7 @@ describe("route skeleton", () => {
     renderAt("/quiz/q-1/review");
 
     expect(
-      await screen.findByRole("heading", { level: 2, name: "Quiz not found." }),
+      await screen.findByText("Quiz not found"),
     ).toBeInTheDocument();
   });
 

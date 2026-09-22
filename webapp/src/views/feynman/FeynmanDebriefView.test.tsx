@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
+import { server } from "../../test/mocks/server";
+import { mockAuthSession } from "../../test/mockSession";
+import { SUPABASE_URL } from "../../lib/supabase";
 import { renderWithProviders } from "../../test/render";
 import { FeynmanDebriefView } from "./FeynmanDebriefView";
 import {
@@ -144,6 +148,15 @@ describe("FeynmanDebriefView Component", () => {
 
   it("exports generated flashcards to library on click", async () => {
     const user = userEvent.setup();
+    mockAuthSession();
+    server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/flashcard_decks`, () =>
+        HttpResponse.json({ id: "deck-99", title: "Photosynthesis" }),
+      ),
+      http.post(`${SUPABASE_URL}/rest/v1/flashcards`, () =>
+        HttpResponse.json([]),
+      ),
+    );
     renderWithProviders(<FeynmanDebriefView />, undefined, { withRouter: true });
 
     const exportBtn = screen.getByTestId("export-flashcards-btn");
@@ -152,6 +165,30 @@ describe("FeynmanDebriefView Component", () => {
     await waitFor(() => {
       expect(screen.getByTestId("export-success-banner")).toBeInTheDocument();
     });
+    expect(screen.queryByTestId("export-error-banner")).toBeNull();
+  });
+
+  /* The whole point of C1: this used to render the *success* banner saying
+     "Made 3 flashcards for you", because the catch block set the success
+     message. A save that 403s must not be reported as a save. */
+  it("reports a failed save as a failure, not a success", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/flashcard_decks`, () =>
+        HttpResponse.json(
+          { message: 'new row violates row-level security policy' },
+          { status: 403 },
+        ),
+      ),
+    );
+    renderWithProviders(<FeynmanDebriefView />, undefined, { withRouter: true });
+
+    await user.click(screen.getByTestId("export-flashcards-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("export-error-banner")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("export-success-banner")).toBeNull();
   });
 
   it("navigates to hub when Teach Another Topic is clicked", async () => {
