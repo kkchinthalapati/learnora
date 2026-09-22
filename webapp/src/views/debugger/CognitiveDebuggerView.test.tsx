@@ -126,7 +126,7 @@ describe("CognitiveDebuggerView", () => {
     });
   });
 
-  it("launches 60s micro repair modal and restores the circuit upon success", async () => {
+  it("launches the quick check modal and restores the circuit upon success", async () => {
     const user = userEvent.setup();
 
     server.use(
@@ -194,7 +194,7 @@ describe("CognitiveDebuggerView", () => {
 
     // Modal should open
     await waitFor(() => {
-      expect(screen.getByText("60-second fix")).toBeInTheDocument();
+      expect(screen.getByText("Quick check")).toBeInTheDocument();
       expect(screen.getByText("Energy in a closed system cannot vanish.")).toBeInTheDocument();
     }, { timeout: 5000 });
 
