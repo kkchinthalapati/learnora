@@ -23,16 +23,19 @@ Working log so any session can resume from the last verified checkpoint.
 | # | ID | Title | Status |
 |---|----|-------|--------|
 | 1 | B1 | Today quick-add drops `due_date` | **VERIFIED** `651cfba` |
-| 2 | C1 | Folderless insert 42501 + catch-block reports success | **C1a VERIFIED** `caf1db7` · **C1b migration written, NOT APPLIED** `d24e1f1` |
-| 3 | C3 | Feynman `solvedPoints` exact-match; planted misconceptions into ledger | **RETRACTED — mostly not a bug.** See below |
-| 4 | C2 | Studio Tools output never surfaced | TODO |
+| 2 | C1 | Folderless insert 42501 + catch-block reports success | **DONE** — `caf1db7` (reporting) + `d24e1f1` migration, **APPLIED to production** in session 2 |
+| 3 | C3 | Feynman `solvedPoints` exact-match; planted misconceptions into ledger | **RETRACTED — not a bug.** See below |
+| 4 | C2 | Studio Tools output never surfaced | **RETRACTED — not a bug.** See below |
 | 5 | B2 | Chat follow-up chips stuck disabled | **NOT REPRODUCIBLE** — see below |
 | 6 | B4 | Review recap "weak topics" word salad | **VERIFIED** `fa4ef85` |
 | 7 | B5 | Feynman left pane shows stale first question | **VERIFIED** `d131875` |
 | 8 | B3 | AI flashcard grading shows no verdict | **VERIFIED** `d8c9ac5` |
 | 9 | B8 | "Quiz not found" dead end | **VERIFIED** `7f457e9` |
-| 10 | B7 | Phantom "Canceled quiz generation" | DIAGNOSED, not fixed — see below |
-| 11 | C4 | Exam forecast ignores subject | **PARTIALLY FIXED** `f162f55` — disclosure added; true subject scoping still deferred |
+| 10 | B7 | Phantom "Canceled quiz generation" | **VERIFIED** `094bd85` — real cause was a self-contradicting prompt, see session 2 |
+| 11 | C4 | Exam forecast ignores subject | **VERIFIED** `f162f55` (disclosure) + `1ab22da` (real subject link, migration applied) |
+
+**Nothing in this table is outstanding.** Sections below marked "deferred" or
+"not fixed" describe session 1 only; session 2 closed them out.
 
 ## C4 — what was fixed and what was not
 
@@ -136,30 +139,71 @@ Affected client call sites (both pass `folderId = null`):
   the deck insert. **Live production DB — do NOT apply unilaterally.** Author
   the migration, verify in a rolled-back transaction, hand to the user to apply.
 
+## SESSION 2 — the deferred items, now done
+
+The user authorised applying the migration and doing the deferred work.
+
+### C1b — migration APPLIED to production ✅
+`ensure_unfiled_notebook_exists` applied to `mlvgqwqiynpwpwzqufdf`.
+Before: 33 profiles, 2 unfiled notebooks, **31 accounts unable to create any
+unfiled note/deck/quiz**. After: 33 unfiled notebooks, 0 missing, trigger and
+function present, notebooks 27 → 58.
+
+Verified as the real user (rolled back): `flashcard_decks`, `quizzes`,
+`materials` all SUCCESS where all three were 42501 before.
+Verified in the live app: the Feynman debrief's "Save these as a deck" now
+renders **"✓ Added 3 flashcards to "Photosynthesis (from Explain it simply)""**
+— the success-path wording the code could never previously reach — and the deck
+is in the database with 3 cards, filed under the `unfiled_sources` notebook.
+
+### B7 — FIXED `094bd85` (root cause was not what I logged)
+Not an empty payload. The **prompt contradicted itself**: GROUNDING RULES told
+the model to "offer to generate a quiz (`<ADD_QUIZ>Topic Name</ADD_QUIZ>`)"
+while CAPABILITIES said emitting that tag *generates* the quiz. The model wrote
+the offer with the command inside it:
+
+> Would you like me to create a quiz on `<ADD_QUIZ>Photosynthesis</ADD_QUIZ>`?
+
+Two symptoms from one sentence: the tag was executed without consent (the stray
+"Canceled quiz generation"), and `stripActionTagBlocks` removes tag *and
+payload* for display, so the student read **"Would you like me to create a quiz
+on ?"**.
+
+Verified live. After: no tag in the reply, sentence intact; replying "yes please
+make that quiz" emits the tag and raises the confirm dialog as intended.
+
+### C4 — FULLY FIXED `1ab22da` (was deferred)
+`exams.folder_id` added (migration applied), subject picker in the dialog,
+`matchExamFolder` prefers the explicit link over the name guess.
+Verified live: an exam filed under "maths" moved readiness 0% → 60% and the
+forecast from "Built from 6 topics" + unscoped warning to **"Built from 1 topic
+in maths"**, warning gone.
+
+Gates after session 2: **224 files / 2856 tests pass**, `tsc -b` clean,
+0 lint errors.
+
+Test data left on the account: exam "QA Subject Scoping Test" (1 Oct, subject
+maths) and the Feynman-exported deck.
+
 ## Where this stands
 
-**Everything reported has been either fixed, retracted with evidence, or
-deferred with a stated reason. Nothing is left half-done.**
+**Everything reported is now fixed or retracted with evidence. Nothing is
+deferred and nothing is left half-done.** (Session 2 closed out the three items
+that session 1 had deferred — see above.)
 
 Gate state at the last checkpoint (`f162f55`):
 - `npm test --prefix webapp` → **224 files / 2847 tests pass** (baseline 2838, +9 new)
 - `npx tsc -b` → clean
 - `npm run lint` → 0 errors (pre-existing warnings only, none in changed lines)
 
-### The one thing a human still has to do
-Apply `supabase/migrations/20260922000000_ensure_unfiled_notebook_exists.sql`
-to the live project (`supabase db push`, or via the dashboard). Until then,
-folderless notes/decks/quizzes still fail — now with an honest error instead of
-a fake success. I did not apply it: it is a live production database and
-applying migrations to it is the user's call.
+### Nothing is outstanding
+Both migrations have been applied to the live project with the user's
+authorisation, and both were verified against it afterwards.
 
-### Deliberately not changed
+### Deliberately not changed (still true)
 - **B2, C2, C3, C1-chat** — retracted; the code was correct. See the sections
   above for the evidence. Changing them would have been speculative.
-- **B7** — diagnosed (`chatActions.ts:358-366`, empty `ADD_QUIZ` payload) but
-  the exact trigger is unconfirmed and severity is low.
-- **C4 (true subject scoping)** — needs an `exams` schema change, a field in the
-  Add-exam dialog and a backfill. A feature, not a bug fix.
+
 
 ## Checkpoint log
 

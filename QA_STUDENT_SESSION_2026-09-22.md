@@ -28,10 +28,11 @@
 > | **C2** | **WRONG** — the toast fires with a Review action; artifacts list is by design |
 > | **C3** | **WRONG** — the tracker works; nothing is written to the ledger |
 > | **B2** | **NOT REPRODUCIBLE** |
-> | **C4** | Real, but the scoping mechanism already existed; only the disclosure was missing |
+> | **C4** | Real. The scoping mechanism already existed and only the disclosure was missing; exams have since gained a real subject link too |
+> | **B7** | Real, but the cause was a self-contradicting prompt, not an empty payload |
 >
-> Findings that never depended on toasts — **B1, B4, B5, B7, B8** and the
-> Feynman half of **C1** — were confirmed and are fixed.
+> Findings that never depended on toasts — **B1, B3, B4, B5, B7, B8**, **C4** and
+> the Feynman half of **C1** — were confirmed and are all fixed and verified.
 
 ## Executive Verdict
 
@@ -39,28 +40,27 @@
 C1's cause was understood and before C2/C3/B2 were retracted, overstated the
 damage.)*
 
-**One blocker remains, and it is a real one.** The AI pedagogy is the best part
-of this product and the misconception ledger genuinely threads across features —
-both confirmed, repeatedly.
+**One real blocker was found, and it is now fixed.** The AI pedagogy is the best
+part of this product and the misconception ledger genuinely threads across
+features — both confirmed, repeatedly.
 
-The blocker is that **no account can create an unfiled note, deck or quiz**. A
-BEFORE INSERT trigger creates the parent "Unfiled sources" notebook in the same
-command as the row whose RLS check then has to see it, which it cannot, so the
-write is refused with 42501. It is permanent per account, because the only thing
-that would create that notebook is the trigger that fails. On top of that, the
-Feynman debrief reported the resulting failure as a **success** from inside its
-catch block — a save that never happened, announced with a ✓.
+The blocker was that **no account could create an unfiled note, deck or quiz**.
+A BEFORE INSERT trigger creates the parent "Unfiled sources" notebook in the
+same command as the row whose RLS check then has to see it, which it cannot, so
+the write was refused with 42501 — permanently per account, because the only
+thing that would create that notebook was the trigger that failed. 31 of 33
+accounts were affected. On top of that, the Feynman debrief reported the
+resulting failure as a **success** from inside its catch block — a save that
+never happened, announced with a ✓.
 
-The reporting half is fixed; the database half has a written, verified migration
-that is **deliberately not applied** — it touches a live production database and
-needs a human to run it.
+**Blocking for release: nothing outstanding.** The migration has since been
+applied to the live project with the user's authorisation and verified against
+it: the Feynman save now reports the real success wording and the deck reaches
+the database.
 
-**Blocking for release:** C1 (specifically: apply the migration).
-Everything else found here is fixed, retracted, or deferred with a reason.
-
-**Fixed and verified in the follow-up session:** B1, B3, B4, B5, B8, the Feynman
-half of C1, and the disclosure half of C4. Full suite green throughout
-(224 files / 2847 tests, +9 new), typecheck and lint clean.
+**Fixed and verified:** B1, B3, B4, B5, B7, B8, C1 (both halves) and C4 (both
+the disclosure and a real `exams.folder_id` subject link). Full suite green
+throughout — 224 files / 2856 tests, +11 new — typecheck and lint clean.
 
 ---
 
@@ -69,8 +69,10 @@ half of C1, and the disclosure half of C4. Full suite green throughout
 ### C1 — Folderless decks cannot be created, and the Feynman screen lies about it
 
 **Severity: BLOCKER** · Reproducibility: 100% (5/5)
-**Status: Feynman half FIXED (`caf1db7`). Database half diagnosed, migration
-written but NOT applied (`d24e1f1`). Chat half was a false alarm.**
+**Status: FULLY FIXED. Reporting `caf1db7`; migration `d24e1f1`, since APPLIED
+to the live project and verified against it — the Feynman save now renders the
+real success wording and the deck reaches the database with its cards. 31 of 33
+accounts were affected. The chat half was a false alarm.**
 
 > **CORRECTION — the cause below is wrong.** Both the old and current policy
 > versions, and the live policy, explicitly allow `folder_id is null`. The real
@@ -256,7 +258,7 @@ Notably the codebase already knows this distinction matters — `FeynmanStudioVi
 
 ### C4 — Exam readiness and the grade forecast ignore subject entirely
 
-**Status: PARTIALLY FIXED (`f162f55`) — the unscoped case now says so. True subject scoping needs a schema change and is deferred.**
+**Status: FULLY FIXED — `f162f55` (the unscoped case now says so) and `1ab22da` (exams gained a real `folder_id` subject link; migration applied). Verified live: an exam filed under "maths" moved readiness 0% -> 60% and the forecast to "Built from 1 topic in maths".**
 
 **Severity: HIGH** · Reproducibility: 100%
 
