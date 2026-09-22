@@ -22,9 +22,9 @@ Working log so any session can resume from the last verified checkpoint.
 
 | # | ID | Title | Status |
 |---|----|-------|--------|
-| 1 | B1 | Today quick-add drops `due_date` | TODO |
-| 2 | C1 | Folderless deck RLS 403 + catch-block reports success | TODO |
-| 3 | C3 | Feynman `solvedPoints` exact-match; planted misconceptions into ledger | TODO |
+| 1 | B1 | Today quick-add drops `due_date` | **VERIFIED** `651cfba` |
+| 2 | C1 | Folderless insert 42501 + catch-block reports success | **C1a VERIFIED** `caf1db7` · **C1b migration written, NOT APPLIED** `d24e1f1` |
+| 3 | C3 | Feynman `solvedPoints` exact-match; planted misconceptions into ledger | **RETRACTED — mostly not a bug.** See below |
 | 4 | C2 | Studio Tools output never surfaced | TODO |
 | 5 | B2 | Chat follow-up chips stuck disabled | TODO |
 | 6 | B4 | Review recap "weak topics" word salad | TODO |
@@ -128,6 +128,40 @@ from my probe's dummy value). Before it, all three were 42501.
 **ACTION REQUIRED BY A HUMAN:** this touches a live production database.
 Apply with `supabase db push` (or the dashboard) after review. Nothing in this
 session has been applied to production.
+
+## C3 — RETRACTED. My QA report was wrong on both counts.
+
+I re-ran a full Feynman session with `window.fetch` patched to capture the raw
+edge-function reply, and taught one turn that fixed both planted misconceptions.
+
+**Claim 1 — "exact string match never fires, counter hard-wired to 0": FALSE.**
+The model returned exactly:
+```json
+"solvedConcepts": ["Main product versus byproduct", "Gas exchange location"]
+```
+verbatim concept labels, because the prompt already instructs it to
+(`aiFeynman.ts` rule 5: "Copy the concept names exactly as written above").
+`toKnownConcepts` matched both and the UI showed **`2/2 sorted`, both ✅ Sorted**.
+The mechanism works.
+
+**Claim 2 — "planted misconceptions are written into the misconception ledger":
+FALSE.** The ledger is the `public.misconceptions` table. Queried directly for
+my account: it holds `origin_tool` values `quiz` and `sparring` only — **zero
+feynman rows**. `FeynmanDebriefView` never calls `useRecordMisconceptions`.
+What I mistook for a ledger entry was the `CognitiveCrossLinkBar` at the top of
+the debrief — an in-page "take this to another tool" widget reading the current
+session, which looks like the solver's "Past mistakes" card.
+
+**What is actually true:** in my original session the model did *not* echo the
+labels (it put the credit in prose in `whatMadeSense` and left `solvedConcepts`
+unusable), so credit was silently dropped and the debrief then listed all three
+as still shaky. That is model-compliance brittleness with no fallback and no
+signal — real, but **observed once and not reproducible**, and severity is far
+below "critical".
+
+**No code change made.** Fixing matching on one unreproducible observation would
+be exactly the speculative change this task forbids. Logged for a future session
+with the evidence above.
 
 ### B1 — VERIFIED, committed `651cfba`
 - Added a failing `dueOnly` test, confirmed red (`due_date: null`), fixed the

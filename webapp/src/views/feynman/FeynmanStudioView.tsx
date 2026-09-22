@@ -93,6 +93,17 @@ export function FeynmanStudioView() {
   const currentEmotion = lastTurn?.emotion ?? "confused";
   const currentScore = session.currentScore;
 
+  /* The apprentice asks a fresh question on every turn, but this pane used to
+     render `draft.challengeQuestion` — their *opening* question — forever. So
+     after a reply the left pane, which is where the instructions point the
+     student ("Read what they wrote on the left, then explain it below"), still
+     showed a question they had already answered, while the conversation pane
+     right next to it showed the new one. Two panes, one screen, disagreeing
+     about what is being asked. Falls back to the opening question before the
+     first turn, and for a turn that produced no follow-up. */
+  const currentChallengeQuestion =
+    lastTurn?.feedback?.followUpQuestion ?? session.draft.challengeQuestion;
+
   // Track which misconceptions have been addressed across all turns
   const allSolvedConcepts = new Set<string>();
   session.turns.forEach((t) => {
@@ -407,7 +418,7 @@ export function FeynmanStudioView() {
               <Icon name="help-circle" size={16} /> {persona.shortName} asks:
             </div>
             <div className={styles.challengeText}>
-              &quot;{session.draft.challengeQuestion}&quot;
+              &quot;{currentChallengeQuestion}&quot;
             </div>
           </div>
 
