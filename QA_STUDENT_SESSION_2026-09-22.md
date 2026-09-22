@@ -8,23 +8,85 @@
 
 ---
 
+> ## ⚠️ CORRECTIONS — read before acting on this report
+>
+> A follow-up session re-tested every finding against the running app and the
+> live database. **Three findings in this report were wrong**, one was wrong
+> about its cause, and one was overstated. They are corrected inline below and
+> the reasoning is in `QA_FIX_PROGRESS.md`.
+>
+> **The systematic error:** I inspected `document.querySelector('main').innerText`
+> and sampled it only after long waits. Toasts render in a portal *outside*
+> `main` and auto-dismiss after **6 seconds**, while the AI actions I was
+> testing take 20–40s. I was structurally blind to the app's main feedback
+> channel and repeatedly concluded "no feedback at all".
+>
+> | Finding | Status after re-test |
+> |---|---|
+> | **C1** (chat half) | **WRONG** — chat's "Save as deck" does show an error toast |
+> | **C1** (cause) | **WRONG CAUSE** — not "RLS rejects null folder_id"; see below |
+> | **C2** | **WRONG** — the toast fires with a Review action; artifacts list is by design |
+> | **C3** | **WRONG** — the tracker works; nothing is written to the ledger |
+> | **B2** | **NOT REPRODUCIBLE** |
+> | **C4** | Real, but the scoping mechanism already existed; only the disclosure was missing |
+>
+> Findings that never depended on toasts — **B1, B4, B5, B7, B8** and the
+> Feynman half of **C1** — were confirmed and are fixed.
+
 ## Executive Verdict
 
-**Not production-ready.** The *thinking* is excellent — the AI pedagogy is genuinely the best part of this product, and the misconception ledger really does thread across features. But the *plumbing around the AI* leaks.
+*(Revised after the correction pass. The original wording, written before
+C1's cause was understood and before C2/C3/B2 were retracted, overstated the
+damage.)*
 
-Three independent flows that say "saved" either save nothing or say nothing, and one of them (`Save these as a deck`) **prints a success message from inside its own catch block**. A student who uses Learnora the way it invites them to will lose work without ever being told.
+**One blocker remains, and it is a real one.** The AI pedagogy is the best part
+of this product and the misconception ledger genuinely threads across features —
+both confirmed, repeatedly.
 
-What I verified works, works well. What I verified is broken is broken reliably — every confirmed bug below reproduced at least twice, and most are root-caused to a specific line.
+The blocker is that **no account can create an unfiled note, deck or quiz**. A
+BEFORE INSERT trigger creates the parent "Unfiled sources" notebook in the same
+command as the row whose RLS check then has to see it, which it cannot, so the
+write is refused with 42501. It is permanent per account, because the only thing
+that would create that notebook is the trigger that fails. On top of that, the
+Feynman debrief reported the resulting failure as a **success** from inside its
+catch block — a save that never happened, announced with a ✓.
 
-**Blocking for release:** C1, C2, C3, C4. Everything else is fixable after launch; those four are not.
+The reporting half is fixed; the database half has a written, verified migration
+that is **deliberately not applied** — it touches a live production database and
+needs a human to run it.
+
+**Blocking for release:** C1 (specifically: apply the migration).
+Everything else found here is fixed, retracted, or deferred with a reason.
+
+**Fixed and verified in the follow-up session:** B1, B3, B4, B5, B8, the Feynman
+half of C1, and the disclosure half of C4. Full suite green throughout
+(224 files / 2847 tests, +9 new), typecheck and lint clean.
 
 ---
 
 ## Critical Findings
 
-### C1 — Flashcard decks with no folder are rejected by RLS, and the app lies about it
+### C1 — Folderless decks cannot be created, and the Feynman screen lies about it
 
 **Severity: BLOCKER** · Reproducibility: 100% (5/5)
+**Status: Feynman half FIXED (`caf1db7`). Database half diagnosed, migration
+written but NOT applied (`d24e1f1`). Chat half was a false alarm.**
+
+> **CORRECTION — the cause below is wrong.** Both the old and current policy
+> versions, and the live policy, explicitly allow `folder_id is null`. The real
+> cause is same-command visibility: `flashcard_decks` has a BEFORE INSERT
+> trigger that *creates* the account's "Unfiled sources" notebook and sets
+> `notebook_id` to it, inside the same command as the row being checked. The
+> policy then verifies that parent with an `EXISTS` evaluated against the
+> command's snapshot, which cannot see a row that same command just inserted.
+> Foldered rows are fine because `folders` has an AFTER INSERT trigger that
+> creates their notebook in an *earlier* statement.
+>
+> It also affects **materials and quizzes**, not just decks — any unfiled note,
+> quiz or deck. Full proof in `QA_FIX_PROGRESS.md`.
+>
+> **CORRECTION — the chat half is wrong.** Chat's "Save as deck" *does* report
+> the failure with an error toast. I measured after the 6s toast expired.
 
 A Supabase row-level-security policy, `decks_parent_owner_guard`, rejects any `flashcard_decks` insert where `folder_id` is `null`. I verified this directly against the API:
 
@@ -80,9 +142,28 @@ The success path says *"Added N flashcards to …"*. The **failure** path says *
 
 ---
 
-### C2 — Notebook Studio Tools generate real content but the UI never shows it
+### C2 — ~~Notebook Studio Tools generate real content but the UI never shows it~~ RETRACTED
 
-**Severity: CRITICAL** · Reproducibility: 100% (4/4)
+**Status: NOT A BUG. No change made.**
+
+> **CORRECTION.** The toast *does* fire — `"Flashcard deck created from your
+> sources."` with a **Review** action that opens the new deck. I read `main`,
+> which excludes the toast portal, and sampled ~28s after clicking.
+>
+> `GENERATED ARTIFACTS (0)` not listing decks and quizzes is **deliberate**:
+> `NotebookStudioView.tsx:426-433` records that those artifact rows used to
+> describe a deck *that was never created*, and were removed for that reason.
+> Decks and quizzes are real library objects, surfaced by the toast action and
+> the Library.
+>
+> The two duplicate decks were mine: I wrongly concluded it had failed and
+> clicked again 31s later. Not a double-submit defect.
+>
+> Residual UX nit only: after a 20–30s generation there is no persistent trace
+> in the notebook for a student who looked away.
+
+~~**Severity: CRITICAL** · Reproducibility: 100% (4/4)~~ — original text follows
+for the record.
 
 In a notebook, `Studio Tools -> Flashcard Deck` and `-> Practice Quiz` both complete successfully server-side. I captured the network traffic:
 
@@ -109,9 +190,29 @@ The content is real and good — it does show up under `/app/library/quizzes` an
 
 ---
 
-### C3 — Feynman never credits a misconception you fixed, then blames you for it in the ledger
+### C3 — ~~Feynman never credits a misconception you fixed, then blames you for it in the ledger~~ RETRACTED
 
-**Severity: CRITICAL** · Reproducibility: 100% (2 sessions, 4 turns)
+**Status: BOTH CLAIMS WRONG. No change made.**
+
+> **CORRECTION 1 — the tracker works.** I re-ran a session with `window.fetch`
+> patched to capture the raw reply. The model returned
+> `"solvedConcepts": ["Main product versus byproduct", "Gas exchange location"]`
+> — verbatim labels, because the prompt already tells it to. Both matched and
+> the UI showed **`2/2 sorted`, both ✅ Sorted**.
+>
+> **CORRECTION 2 — nothing is written to the ledger.** The ledger is the
+> `public.misconceptions` table. Queried directly for this account: it holds
+> `origin_tool` of `quiz` and `sparring` only — **zero feynman rows**.
+> `FeynmanDebriefView` never calls `useRecordMisconceptions`. What I took for a
+> ledger entry was the `CognitiveCrossLinkBar`, an in-page "take this to another
+> tool" widget that resembles the solver's Past-mistakes card.
+>
+> What is genuinely true: in the original session the model did not echo the
+> labels, so credit was dropped silently and the debrief then listed all three
+> as shaky. That is model-compliance brittleness with no fallback — real, but
+> **observed once and not reproducible**, and nowhere near critical.
+
+~~**Severity: CRITICAL**~~ — original text follows for the record.
 
 The Feynman studio plants 3 misconceptions in the apprentice's draft and tracks `n/3 sorted`. I corrected **all three explicitly** over two turns. The AI itself confirmed it in the conversation pane:
 
@@ -155,6 +256,8 @@ Notably the codebase already knows this distinction matters — `FeynmanStudioVi
 
 ### C4 — Exam readiness and the grade forecast ignore subject entirely
 
+**Status: PARTIALLY FIXED (`f162f55`) — the unscoped case now says so. True subject scoping needs a schema change and is deferred.**
+
 **Severity: HIGH** · Reproducibility: 100%
 
 I added one exam: **"Grade 9 Biology End of Term"**, 15 Oct, Medium.
@@ -180,6 +283,8 @@ Worse, I scored **3/10 on a Biology quiz** minutes earlier in the same session. 
 
 ### B1 — Today's "Due today" quick-add creates a task with no due date, which then vanishes
 
+**Status: FIXED and verified (`651cfba`).**
+
 **Severity: HIGH** · Reproducibility: 100% (2/2)
 
 On `/app` the card is headed **"Due today" / "TODAY'S TASKS"**. I typed `finish bio hw on photosynthesiss`, clicked **Add** — the input cleared, and the list still said *"Nothing due today."* The task looked like it failed.
@@ -204,9 +309,21 @@ mutationFn: ({ text, dueDate }) => tasksApi.add(text, dueDate ?? null)
 
 ---
 
-### B2 — "Explain simpler" / "Give an example" chips are dead after every answer
+### B2 — ~~"Explain simpler" / "Give an example" chips are dead after every answer~~ NOT REPRODUCIBLE
 
-**Severity: HIGH** · Reproducibility: 100% (4/4)
+**Status: could not reproduce. No change made.**
+
+> **CORRECTION.** Re-tested by sampling the chip's `disabled` every 700ms from
+> the moment of sending. It first appears at ~13.3s **already enabled** and
+> stays enabled. `isSending` *is* in the context `useMemo` deps, so consumers
+> do re-render when it clears.
+>
+> My original observation was real (chip `disabled === true`, zero AI calls on
+> click) but followed a sequence that also produced the phantom "Canceled quiz
+> generation" line, i.e. an aborted request was involved. Trigger unknown.
+> Fixing it on one unreproducible observation would be guesswork.
+
+~~**Severity: HIGH**~~ — original text follows for the record.
 
 Under every finished AI answer sit two follow-up chips. Clicking either does **nothing** — no message, no spinner, no error. I instrumented `window.fetch`: zero AI requests are issued. Confirmed with both synthetic and real clicks.
 
@@ -219,6 +336,8 @@ The chips are rendered with `disabled={isSending}` (`webapp/src/components/chat/
 ---
 
 ### B3 — "Grade" in flashcard review never shows you the grade
+
+**Status: FIXED and verified (`d8c9ac5`) — now shows "Marked <grade> — <reason>".**
 
 **Severity: MEDIUM-HIGH** · Reproducibility: 100% (2/2)
 
@@ -233,6 +352,8 @@ I only learned how I'd been graded at the end-of-session recap ("Hard 1, Good 4"
 ---
 
 ### B4 — "Weak Topics Identified" in the review recap is word salad
+
+**Status: FIXED and verified (`fa4ef85`).**
 
 **Severity: MEDIUM** · Reproducibility: 100%
 
@@ -259,6 +380,8 @@ Every word >= 3 chars becomes a "topic". The explicit-topic prefix match above i
 
 ### B5 — Feynman's left pane keeps showing the apprentice's *first* question forever
 
+**Status: FIXED and verified (`d131875`).**
+
 **Severity: MEDIUM** · Reproducibility: 100%
 
 After two exchanges, the conversation pane correctly showed Leo's newest question, while the prominent **"Leo (10yo) asks:"** panel in the left column still displayed the opening question from turn 0. Two panels on one screen give contradictory answers to "what am I being asked right now?"
@@ -284,6 +407,8 @@ A system line reading **"Canceled quiz generation"** appeared in the chat transc
 ---
 
 ### B8 — "Quiz not found" is a dead end
+
+**Status: FIXED and verified (`7f457e9`).**
 
 **Severity: LOW** · Reproducibility: 100%
 

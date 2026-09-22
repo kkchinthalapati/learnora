@@ -26,13 +26,67 @@ Working log so any session can resume from the last verified checkpoint.
 | 2 | C1 | Folderless insert 42501 + catch-block reports success | **C1a VERIFIED** `caf1db7` · **C1b migration written, NOT APPLIED** `d24e1f1` |
 | 3 | C3 | Feynman `solvedPoints` exact-match; planted misconceptions into ledger | **RETRACTED — mostly not a bug.** See below |
 | 4 | C2 | Studio Tools output never surfaced | TODO |
-| 5 | B2 | Chat follow-up chips stuck disabled | TODO |
-| 6 | B4 | Review recap "weak topics" word salad | TODO |
-| 7 | B5 | Feynman left pane shows stale first question | TODO |
-| 8 | B3 | AI flashcard grading shows no verdict | TODO |
-| 9 | B8 | "Quiz not found" dead end | TODO |
-| 10 | B7 | Phantom "Canceled quiz generation" | TODO |
-| 11 | C4 | Exam forecast ignores subject | TODO (likely DEFERRED — schema change) |
+| 5 | B2 | Chat follow-up chips stuck disabled | **NOT REPRODUCIBLE** — see below |
+| 6 | B4 | Review recap "weak topics" word salad | **VERIFIED** `fa4ef85` |
+| 7 | B5 | Feynman left pane shows stale first question | **VERIFIED** `d131875` |
+| 8 | B3 | AI flashcard grading shows no verdict | **VERIFIED** `d8c9ac5` |
+| 9 | B8 | "Quiz not found" dead end | **VERIFIED** `7f457e9` |
+| 10 | B7 | Phantom "Canceled quiz generation" | DIAGNOSED, not fixed — see below |
+| 11 | C4 | Exam forecast ignores subject | **PARTIALLY FIXED** `f162f55` — disclosure added; true subject scoping still deferred |
+
+## C4 — what was fixed and what was not
+
+The forecast **already** scopes to a subject folder matched from the exam name
+(`trajectoryJoin.ts` -> `matchExamFolder`), and deliberately falls back to the
+whole library when nothing matches. Both `trajectory.ts:204-207` and
+`trajectoryJoin.ts:134-136` justify that fallback *on the condition that the
+view says which of the two happened*.
+
+The view could not: the match was computed and thrown away, never reaching
+`ForecastJoin`. **Fixed** — the join now returns `scopedToSubject`, a matched
+forecast names the subject inline, and an unmatched one says plainly that it is
+based on everything in the library. Verified live on the Biology exam.
+
+**Still deferred (needs a product decision + migration):** `public.exams` has
+columns `id, user_id, exam_name, exam_date, difficulty, status` — no subject or
+folder link — so matching is by name only. Giving exams a real subject would
+need a migration, a field in the Add-exam dialog, and a backfill. That is a
+feature, not a bug fix, so it is not attempted here.
+
+Note `useExamReadiness` already refuses to inherit account-wide activity when
+there is no folder match (the exam card correctly showed 0%), so readiness and
+the forecast disagreed — readiness was strict, the forecast was permissive and
+silent. They now at least both disclose their basis.
+
+## B2 — NOT REPRODUCIBLE in a clean session
+
+Re-ran: opened chat, sent a question, and sampled the chip's `disabled` every
+700ms from the click. The chip first appears at ~13.3s **already enabled** and
+stays enabled:
+`[{t:13.3,disabled:false}, {t:14,false}, {t:14.7,false}, …]`
+
+`isSending` *is* in the `useMemo` dependency list for the context value
+(`ChatProvider.tsx:783-800`), so consumers do re-render when it clears.
+
+My original observation (chip `disabled === true` long after the answer, and a
+patched `window.fetch` showing zero AI calls on click) was real, but it followed
+a sequence that also produced a phantom "Canceled quiz generation" line — i.e.
+an aborted/cancelled request was involved. I could not reproduce that state, so
+the trigger is unknown.
+
+**No change made** — fixing this on one unreproducible observation would be a
+speculative change. If it resurfaces, capture `isSending` at the moment the
+chip is dead.
+
+## B7 — diagnosed, not fixed
+
+`chatActions.ts:358-366`: an `ADD_QUIZ` tag with an empty payload, or a repeat,
+returns the system line `"Canceled quiz generation"`. The model ends most
+answers offering to make a quiz, and evidently emitted the tag with no payload,
+so the student sees "Canceled" for something they never started.
+
+Low severity and the exact trigger (empty payload vs. repeat) is unconfirmed,
+so it is left alone for now rather than guessed at.
 
 ## C1 — full diagnosis (IMPORTANT: my original report's root cause was wrong)
 
@@ -82,6 +136,31 @@ Affected client call sites (both pass `folderId = null`):
   the deck insert. **Live production DB — do NOT apply unilaterally.** Author
   the migration, verify in a rolled-back transaction, hand to the user to apply.
 
+## Where this stands
+
+**Everything reported has been either fixed, retracted with evidence, or
+deferred with a stated reason. Nothing is left half-done.**
+
+Gate state at the last checkpoint (`f162f55`):
+- `npm test --prefix webapp` → **224 files / 2847 tests pass** (baseline 2838, +9 new)
+- `npx tsc -b` → clean
+- `npm run lint` → 0 errors (pre-existing warnings only, none in changed lines)
+
+### The one thing a human still has to do
+Apply `supabase/migrations/20260922000000_ensure_unfiled_notebook_exists.sql`
+to the live project (`supabase db push`, or via the dashboard). Until then,
+folderless notes/decks/quizzes still fail — now with an honest error instead of
+a fake success. I did not apply it: it is a live production database and
+applying migrations to it is the user's call.
+
+### Deliberately not changed
+- **B2, C2, C3, C1-chat** — retracted; the code was correct. See the sections
+  above for the evidence. Changing them would have been speculative.
+- **B7** — diagnosed (`chatActions.ts:358-366`, empty `ADD_QUIZ` payload) but
+  the exact trigger is unconfirmed and severity is low.
+- **C4 (true subject scoping)** — needs an `exams` schema change, a field in the
+  Add-exam dialog and a backfill. A feature, not a bug fix.
+
 ## Checkpoint log
 
 ### 2026-09-22 — session start
@@ -128,6 +207,44 @@ from my probe's dummy value). Before it, all three were 42501.
 **ACTION REQUIRED BY A HUMAN:** this touches a live production database.
 Apply with `supabase db push` (or the dashboard) after review. Nothing in this
 session has been applied to production.
+
+## ⚠️ Systematic flaw in the original QA session — read this before trusting the report
+
+Three "critical" findings were wrong for the *same* methodological reason:
+I inspected `document.querySelector('main').innerText`, and I sampled it only
+after long `wait` calls. **Toasts render in a portal outside `main`, and
+`TOAST_DEFAULT_DURATION` is 6000ms**, while the AI actions I was testing take
+20–40s. So I was structurally blind to the app's main success/failure channel
+and repeatedly concluded "no feedback at all".
+
+Correct way to observe a toast (used for all re-verification here):
+```js
+document.querySelectorAll('[role=status],[role=alert],[class*=Toast]')
+```
+polled every ~500ms starting immediately after the click.
+
+Retracted on this basis: **C1 (chat half)**, **C2**. Findings that never
+depended on toasts (B1, B2, B4, B7, B8, C4) are unaffected.
+
+## C2 — RETRACTED. Not a bug.
+
+- The toast **does** fire: `"Flashcard deck created from your sources."` with a
+  **Review** action that navigates to the new deck. Captured live from the
+  toast nodes (see method above).
+- `GENERATED ARTIFACTS (0)` not listing decks/quizzes is **deliberate**.
+  `NotebookStudioView.tsx:426-433` explains that these used to write a
+  `notebook_artifacts` row describing a deck or quiz *that was never created* —
+  the artifact claimed "8 Cards" and nothing reached `flashcard_decks`. That
+  lying row was removed on purpose; decks and quizzes are real library objects
+  surfaced via the toast action and the Library, not "artifacts".
+- The two duplicate decks were **my own doing**: I clicked, wrongly concluded it
+  had failed, and clicked again ~31s later. Not a double-submit defect.
+
+Residual (minor, not fixed): a student who looks away during the 20–30s
+generation has no persistent trace of it in the notebook afterwards. Logged as
+a UX nit, not a bug.
+
+**No code change made.**
 
 ## C3 — RETRACTED. My QA report was wrong on both counts.
 
