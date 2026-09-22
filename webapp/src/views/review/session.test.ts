@@ -252,5 +252,33 @@ describe("review session helpers", () => {
     );
     expect(ribosomeTopic).toBeUndefined();
   });
+
+  /* The signal this heuristic actually has is recurrence: a word that shows up
+     across several cards the student struggled with is probably the topic. A
+     word that shows up once is just a word from that card. Listing those too
+     turned a single Hard card into "Algae 1 · Bacteria 1 · Chemical 1 ·
+     Convert 1 · Energy 1 · Glucose 1 · Green 1 · Light 1 · Plants 1" under a
+     heading that says "Weak Topics Identified". */
+  it("does not turn a single difficult card into a bag of words", () => {
+    const only = card("c1", {
+      front: "What is the primary purpose of photosynthesis?",
+      back: "Green plants, algae and some bacteria convert light energy into chemical energy stored as glucose.",
+    });
+
+    const recap = recapFrom([{ card: only, quality: 2 }]);
+
+    expect(recap.weakTopics).toEqual([]);
+  });
+
+  it("still keeps an explicitly labelled topic seen only once", () => {
+    const labelled = card("c1", {
+      front: "[Osmosis] Which way does water move?",
+      back: "From high water potential to low.",
+    });
+
+    const recap = recapFrom([{ card: labelled, quality: 1 }]);
+
+    expect(recap.weakTopics.map((t) => t.topic)).toContain("Osmosis");
+  });
 });
 

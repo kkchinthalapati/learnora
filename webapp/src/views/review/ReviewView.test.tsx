@@ -571,6 +571,10 @@ describe("ReviewView", () => {
     expect(await screen.findByText("Timer view")).toBeInTheDocument();
   });
 
+  /* Two cards, both graded down, both about photosynthesis. A weak topic is
+     something that recurs across the cards the student struggled with — a
+     single card no longer contributes its whole text as "topics", so naming
+     one in the task text needs a topic that actually recurs. */
   it("adds a revision task for tomorrow when the revise-tomorrow button is clicked in the recap", async () => {
     serve({
       cards: [
@@ -578,6 +582,11 @@ describe("ReviewView", () => {
           id: "c-1",
           front: "What is Photosynthesis in plant cells?",
           back: "Converts light to chemical energy.",
+        }),
+        card({
+          id: "c-2",
+          front: "Where does Photosynthesis happen?",
+          back: "In the chloroplasts.",
         }),
       ],
     });
@@ -595,6 +604,12 @@ describe("ReviewView", () => {
     await screen.findByText("What is Photosynthesis in plant cells?");
 
     const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: "Flip card to see the answer" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Hard (2)" }));
+
+    await screen.findByText("Where does Photosynthesis happen?");
     await user.click(
       screen.getByRole("button", { name: "Flip card to see the answer" }),
     );

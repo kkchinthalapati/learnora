@@ -162,10 +162,18 @@ function capitalize(word: string): string {
 
 export function extractWeakTopics(cards: Flashcard[]): WeakTopic[] {
   const topicCounts = new Map<string, number>();
+  /* Topics that came from an explicit `[Label]` / `Label:` prefix rather than
+     from splitting the card text. Those are a real label the card carries, so
+     one sighting is enough; a bare word needs corroboration (see below). */
+  const explicitTopics = new Set<string>();
 
   for (const card of cards) {
     const cardTopics = new Set<string>();
-    const textToAnalyze = `${card.front} ${card.back}`;
+    /* The question, not the answer. The back is explanatory prose, and mining
+       it for "topics" is what surfaced words like "Gives" and "Inside" — they
+       recur across answers in a deck without naming anything. The front is
+       what the student failed to answer, and it is where the topic is named. */
+    const textToAnalyze = card.front;
 
     const prefixMatch = card.front.match(
       /^(?:\[(.*?)\]|([^:]+):|(?:topic|subject)\s*[-:]\s*([^,\n]+))/i,
@@ -188,6 +196,7 @@ export function extractWeakTopics(cards: Flashcard[]): WeakTopic[] {
         );
         if (cleaned && !STOP_WORDS.has(cleaned.toLowerCase())) {
           cardTopics.add(cleaned);
+          explicitTopics.add(cleaned);
         }
       }
     }
@@ -207,9 +216,21 @@ export function extractWeakTopics(cards: Flashcard[]): WeakTopic[] {
     }
   }
 
-  const topicsArray: WeakTopic[] = Array.from(topicCounts.entries()).map(
-    ([topic, count]) => ({ topic, count }),
-  );
+  /* Every word of every difficult card used to be reported as a "weak topic",
+     so one Hard card produced "Algae 1 · Bacteria 1 · Chemical 1 · Convert 1 ·
+     Energy 1 · Glucose 1 · Green 1 · Light 1 · Plants 1" — the answer text,
+     shredded, under a heading claiming to have identified what the student is
+     weak at.
+
+     The only signal a bag of words carries here is recurrence: a word that
+     turns up across several cards the student got wrong is plausibly the
+     topic they are missing, which is what makes the existing "Photosynthesis
+     in two cards" case work. A word seen once is just a word from that card,
+     so it is dropped. An explicitly labelled topic is exempt — the card
+     stated it, it is not an inference. */
+  const topicsArray: WeakTopic[] = Array.from(topicCounts.entries())
+    .filter(([topic, count]) => count >= 2 || explicitTopics.has(topic))
+    .map(([topic, count]) => ({ topic, count }));
 
   topicsArray.sort((a, b) => {
     if (b.count !== a.count) {

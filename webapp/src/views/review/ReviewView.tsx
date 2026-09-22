@@ -1783,21 +1783,24 @@ function ReviewRecap({
               <Icon name="clock" size={16} />
               <span>25 minutes on the tricky ones</span>
             </Button>
-            {recap.weakTopics.length > 0 && (
-              <Button
-                variant="secondary"
-                onClick={handleAddRevisionTask}
-                disabled={taskAdded || addTask.isPending}
-                className={styles.recapActionBtn}
-              >
-                <Icon name="list-checks" size={16} />
-                <span>
-                  {taskAdded
-                    ? "Added to tomorrow ✓"
-                    : "Revise this again tomorrow"}
-                </span>
-              </Button>
-            )}
+            {/* Not gated on weakTopics any more. `handleAddRevisionTask`
+                already names the task "Review cards again: <deck>" when there
+                are no topics to name, and "put this deck in front of me again
+                tomorrow" is worth offering for every session — it used to
+                vanish precisely when the recap had least else to offer. */}
+            <Button
+              variant="secondary"
+              onClick={handleAddRevisionTask}
+              disabled={taskAdded || addTask.isPending}
+              className={styles.recapActionBtn}
+            >
+              <Icon name="list-checks" size={16} />
+              <span>
+                {taskAdded
+                  ? "Added to tomorrow ✓"
+                  : "Revise this again tomorrow"}
+              </span>
+            </Button>
             {onRepeatDifficult ? (
               <Button
                 variant="secondary"
