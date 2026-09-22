@@ -100,7 +100,10 @@ export function DashboardTasksWidget({
             }
           }}
         />
-        <Button variant="primary" size="sm" onClick={submit}>
+        {/* Secondary: this widget sits on the dashboard beside Resume, which
+            is the screen's one primary action. Enter in the field submits
+            too, so the button is the affordance, not the call to action. */}
+        <Button variant="secondary" size="sm" onClick={submit}>
           Add
         </Button>
       </div>

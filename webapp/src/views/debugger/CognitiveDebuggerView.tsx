@@ -29,21 +29,25 @@ import styles from "./CognitiveDebuggerView.module.css";
 const PRESETS = [
   {
     subject: "Calculus",
+    label: "Chain rule on sin(x²)",
     mistake: "Failed derivative of composite trigonometric function sin(x^2)",
     context: "Calculated cos(x^2) and missed multiplying by the inner derivative.",
   },
   {
     subject: "Physics",
+    label: "2D collision momentum",
     mistake: "Conservation of momentum in 2D inelastic collision problem",
     context: "Mixed scalar kinetic energy conservation with directional vector momentum.",
   },
   {
     subject: "Computer Science",
+    label: "Recursion with no base case",
     mistake: "Stack overflow in recursive tree traversal algorithm",
     context: "Omitted the base case check when child node pointer is null.",
   },
   {
     subject: "Chemistry",
+    label: "Buffer pH calculation",
     mistake: "pH calculation of acetic acid buffer equilibrium solution",
     context: "Applied Henderson-Hasselbalch equation without accounting for weak acid dissociation constant Ka.",
   },
@@ -358,6 +362,25 @@ export function CognitiveDebuggerView() {
             <span>What went wrong?</span>
           </h2>
 
+          {/* Presets sit above the field they fill: below the submit button they read as an afterthought. */}
+          <div className={styles.presetSection}>
+            <span className={styles.presetLabel}>Start from one of these</span>
+            <div className={styles.presetPills}>
+              {PRESETS.map((p, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className={styles.presetPill}
+                  onClick={() => handleApplyPreset(p)}
+                  disabled={isLoading}
+                  data-testid={`preset-btn-${idx}`}
+                >
+                  {p.subject}: {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <form onSubmit={handleDiagnose} className={styles.formGroup}>
             <div className={styles.formGroup}>
               <label htmlFor="subject-select" className={styles.formLabel}>
@@ -430,25 +453,6 @@ export function CognitiveDebuggerView() {
               )}
             </Button>
           </form>
-
-          {/* Quick Presets */}
-          <div className={styles.presetSection}>
-            <span className={styles.presetLabel}>Or try one of these</span>
-            <div className={styles.presetPills}>
-              {PRESETS.map((p, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  className={styles.presetPill}
-                  onClick={() => handleApplyPreset(p)}
-                  disabled={isLoading}
-                  data-testid={`preset-btn-${idx}`}
-                >
-                  {p.subject}: {p.mistake.slice(0, 24)}…
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Recent Quiz Weak Topics Integration */}
           {weakTopics.length > 0 && (

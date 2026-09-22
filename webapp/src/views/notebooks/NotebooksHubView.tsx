@@ -117,8 +117,12 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
             you learn into revision material.
           </p>
         </div>
+        {/* Embedded in Library, this hub is one panel among several and the
+            host screen owns the primary rank — two filled buttons side by side
+            leave the screen with no obvious next step. Standalone it is the
+            page's own main action. */}
         <Button
-          variant="primary"
+          variant={embedded ? "secondary" : "primary"}
           onClick={() => setIsCreateOpen(true)}
           disabled={isLoading || isError}
           style={{

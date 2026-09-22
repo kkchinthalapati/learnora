@@ -274,4 +274,39 @@ describe("public routes", () => {
       screen.getByRole("heading", { level: 1, name: "Terms of Service" }),
     ).toBeInTheDocument();
   });
+  /* T7: a screen gets one primary action. Two buttons of equal weight side by
+     side means the screen has no obvious next step, which was the most common
+     pattern in the redesign audit. data-rank is set by Button from its
+     variant, so this asserts the rendered hierarchy rather than the source. */
+  it.each([
+    ["/"],
+    ["/tasks"],
+    ["/exams"],
+    ["/library"],
+    ["/plan"],
+    ["/analytics"],
+    ["/study"],
+    ["/feynman"],
+    ["/solver"],
+    ["/exam-detective"],
+    ["/settings"],
+  ])("%s shows at most one primary action", async (path) => {
+    const { container } = renderAt(path);
+
+    await waitFor(
+      () => {
+        expect(container.querySelector("h1")).toBeTruthy();
+      },
+      { timeout: 10000 },
+    );
+
+    const primaries = Array.from(
+      container.querySelectorAll('[data-rank="primary"]'),
+    ).filter((el) => !el.hasAttribute("hidden"));
+
+    /* Name them in the failure: "expected 2 to be <= 1" does not say which
+       two buttons are competing. */
+    const labels = primaries.map((el) => el.textContent?.trim());
+    expect(labels.length, `competing primaries: ${labels.join(" | ")}`).toBeLessThanOrEqual(1);
+  });
 });

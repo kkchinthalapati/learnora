@@ -722,17 +722,15 @@ export function PlanView() {
           )}
         </div>
         <div className={styles.summaryActions}>
-          <Button
-            onClick={() => void runGenerate()}
-            disabled={generate.isPending}
-          >
-            <Icon name={hasPlan ? "refresh-cw" : "bot"} size={15} />
-            {generate.isPending
-              ? "Generating…"
-              : hasPlan
-                ? "Regenerate"
-                : "Generate Plan"}
-          </Button>
+          {hasPlan && (
+            <Button
+              onClick={() => void runGenerate()}
+              disabled={generate.isPending}
+            >
+              <Icon name="refresh-cw" size={15} />
+              {generate.isPending ? "Generating…" : "Regenerate"}
+            </Button>
+          )}
           {isTriageAvailable && (
             <Button
               onClick={() => void runTriage()}
@@ -872,7 +870,7 @@ export function PlanView() {
               disabled={generate.isPending}
             >
               <Icon name="bot" size={17} />
-              Generate Weekly Plan with AI
+              Generate my week
             </Button>
           </Card>
         </div>

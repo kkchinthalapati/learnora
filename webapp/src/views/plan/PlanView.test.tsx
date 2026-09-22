@@ -175,7 +175,7 @@ describe("PlanView", () => {
   });
 
   describe("with no plan yet", () => {
-    it('offers the empty state and labels the button "Generate Plan"', async () => {
+    it("offers the empty state with one generate button, and no duplicate in the header", async () => {
       servePlan(null);
       renderPlan();
 
@@ -183,11 +183,16 @@ describe("PlanView", () => {
         await screen.findByText("No plan yet for this week"),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: /Generate Weekly Plan with AI/ }),
+        screen.getByRole("button", { name: /Generate my week/ }),
       ).toBeInTheDocument();
+      /* The header used to repeat this action under a second name. While the
+         week is empty the centred call to action is the only way in. */
       expect(
-        screen.getByRole("button", { name: "Generate Plan" }),
-      ).toBeInTheDocument();
+        screen.queryByRole("button", { name: "Generate Plan" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getAllByRole("button", { name: /Generate my week/ }),
+      ).toHaveLength(1);
     });
 
     /* Generating the first plan of the week overwrites nothing, so it must not
@@ -208,7 +213,7 @@ describe("PlanView", () => {
 
       await userEvent.click(
         await screen.findByRole("button", {
-          name: /Generate Weekly Plan with AI/,
+          name: /Generate my week/,
         }),
       );
 
@@ -230,7 +235,7 @@ describe("PlanView", () => {
 
       await userEvent.click(
         await screen.findByRole("button", {
-          name: /Generate Weekly Plan with AI/,
+          name: /Generate my week/,
         }),
       );
 
@@ -251,7 +256,7 @@ describe("PlanView", () => {
 
       await userEvent.click(
         await screen.findByRole("button", {
-          name: /Generate Weekly Plan with AI/,
+          name: /Generate my week/,
         }),
       );
 
@@ -276,7 +281,7 @@ describe("PlanView", () => {
 
       await userEvent.click(
         await screen.findByRole("button", {
-          name: /Generate Weekly Plan with AI/,
+          name: /Generate my week/,
         }),
       );
 
