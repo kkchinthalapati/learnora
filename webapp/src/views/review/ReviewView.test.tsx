@@ -726,6 +726,43 @@ describe("ReviewView", () => {
       expect(capturedBody).toMatchObject({ srs_interval: 16, ease_factor: 2.96 });
     });
 
+    /* AI_GRADE_PROMPT asks for a mark *and* "a short 1-sentence feedback".
+       Both used to be discarded: the card just advanced, so a student who
+       typed a vague answer was silently recorded as Good and never found
+       out. A button called "Grade" has to show the grade. */
+    it("tells the student what they were marked, and why", async () => {
+      serve({
+        cards: [
+          card({ id: "c-1", front: "Q1", back: "A1" }),
+          card({ id: "c-2", front: "Q2", back: "A2" }),
+        ],
+      });
+      server.use(
+        http.patch(rest("flashcards"), () => new HttpResponse(null, { status: 204 })),
+        http.post(EDGE_URL, () =>
+          HttpResponse.json({
+            text: "<GRADE_FLASHCARD>2</GRADE_FLASHCARD>You named the organelle but not what it does.",
+          }),
+        ),
+      );
+      renderReview();
+      await screen.findByText("Q1");
+
+      const user = userEvent.setup();
+      await user.type(
+        screen.getByRole("textbox", { name: "Your answer, for AI to grade" }),
+        "the powerhouse",
+      );
+      await user.click(screen.getByRole("button", { name: "Grade" }));
+
+      expect(await screen.findByText(/Marked Hard/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/You named the organelle but not what it does\./),
+      ).toBeInTheDocument();
+      /* The tag itself must not leak into the message. */
+      expect(screen.queryByText(/GRADE_FLASHCARD/)).toBeNull();
+    });
+
     it("shows a loading status while the reply is in flight, and reveals the back", async () => {
       serve();
       let resolveEdge!: (response: Response) => void;
