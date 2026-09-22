@@ -1,5 +1,6 @@
 import { screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Link } from "react-router";
 import { beforeEach, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/mocks/server";
@@ -63,6 +64,21 @@ describe("CognitiveDebuggerView", () => {
     renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
     expect(screen.getByTestId("mistake-input")).toHaveValue("Missed the chain rule");
     expect(screen.getByPlaceholderText(/I put the numbers/)).toHaveValue("Forgot 2x");
+  });
+
+  it("prefills from a new ?topic= while the solver is already open", async () => {
+    renderWithAuth(
+      <>
+        <CognitiveDebuggerView />
+        <Link to="/solver?topic=Mitosis">Look at Mitosis</Link>
+      </>,
+      { session: fakeSession() },
+      { withRouter: true, initialEntries: ["/solver?topic=Cells"] },
+    );
+    expect(screen.getByTestId("mistake-input")).toHaveValue("I keep getting Cells questions wrong");
+
+    await userEvent.click(screen.getByText("Look at Mitosis"));
+    expect(screen.getByTestId("mistake-input")).toHaveValue("I keep getting Mitosis questions wrong");
   });
 
   it("executes diagnosis and displays 3-layer stack trace and Knowledge Circuit", async () => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import {
   clearTraceHistory,
@@ -111,7 +111,7 @@ export function CognitiveDebuggerView() {
   const [activeRepair, setActiveRepair] = useState<MicroRepairChallenge | null>(null);
   const [isRepairingCelebration, setIsRepairingCelebration] = useState(false);
 
-  // Load initial history, weak topics, and check for bridged cognitive context
+  // Load initial history and weak topics
   useEffect(() => {
     setSavedTraces(getSavedTraces());
 
@@ -122,18 +122,30 @@ export function CognitiveDebuggerView() {
         // Fallback silently if offline or unauthenticated
         setWeakTopics([]);
       });
+  }, []);
 
-    /* Arriving from a quiz result: "Work on Photosynthesis" carries the
-       weak topic here rather than dropping the student on an empty form
-       and asking them to retype what the app already knew. Checked before
-       the bridge so an explicit link wins over a stale hand-off. */
-    const linkedTopic = searchParams.get("topic")?.trim();
+  /* Arriving from a quiz result: "Work on Photosynthesis" carries the
+     weak topic here rather than dropping the student on an empty form
+     and asking them to retype what the app already knew. Checked before
+     the bridge so an explicit link wins over a stale hand-off.
+
+     Keyed on the topic rather than run once: the command palette can send
+     a new ?topic= while this page is already open, and the view stays
+     mounted across that navigation. The bridge is only read on the first
+     pass — it is never cleared, so re-reading it later would overwrite
+     whatever the student has typed since. */
+  const linkedTopic = searchParams.get("topic")?.trim() ?? "";
+  const bridgeCheckedRef = useRef(false);
+  useEffect(() => {
     if (linkedTopic) {
+      bridgeCheckedRef.current = true;
       setActiveTrace(null);
       setMistakeDescription(`I keep getting ${linkedTopic} questions wrong`);
       setContext("");
       return;
     }
+    if (bridgeCheckedRef.current) return;
+    bridgeCheckedRef.current = true;
 
     const bridged = CognitiveBridge.getPayload();
     if (bridged && bridged.sourceTool !== "debugger") {
@@ -151,7 +163,7 @@ export function CognitiveDebuggerView() {
         }
       }
     }
-  }, []);
+  }, [linkedTopic]);
 
   useEffect(() => {
     try {
