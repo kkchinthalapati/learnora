@@ -5,6 +5,7 @@ import {
   recordMaterialVisit,
   recordDeckReview,
   recordQuizProgress,
+  clearQuizProgress,
   recordFocusGoal,
   clearStudySnapshot,
   subscribeContinuity,
@@ -133,6 +134,14 @@ describe("continuity", () => {
           totalQuestions: 10,
         }),
       );
+    });
+
+    it("clears only the quiz that just finished", () => {
+      recordQuizProgress({ id: "q-2", title: "Current", questionIndex: 1, totalQuestions: 3 });
+      clearQuizProgress("q-1");
+      expect(getStudySnapshot().lastQuizDraft?.id).toBe("q-2");
+      clearQuizProgress("q-2");
+      expect(getStudySnapshot().lastQuizDraft).toBeNull();
     });
 
     it("records focus goal", () => {

@@ -8,6 +8,8 @@ import { SUPABASE_URL } from "../../lib/supabase";
 import { renderWithAuth, fakeSession } from "../../test/auth";
 import { mockAuthSession } from "../../test/mockSession";
 import { ResumeLearningCard } from "./ResumeLearningCard";
+import { Storage } from "../../lib/storage";
+import { quizDraftKey } from "../../lib/draftKeys";
 import {
   saveStudySnapshot,
   clearStudySnapshot,
@@ -160,6 +162,7 @@ describe("ResumeLearningCard", () => {
 
   it("renders active quiz draft resume card and navigates to quiz runner", async () => {
     const user = userEvent.setup();
+    Storage.set(quizDraftKey("quiz-12"), { index: 2, answers: [] });
     recordQuizProgress({
       id: "quiz-12",
       title: "Molecular Genetics Exam Drill",
@@ -181,6 +184,21 @@ describe("ResumeLearningCard", () => {
     expect(
       await screen.findByRole("heading", { name: "Quiz Page" }),
     ).toBeInTheDocument();
+  });
+
+  it("does not offer Resume for a finished quiz whose draft was cleared", () => {
+    recordMaterialVisit({ id: "mat-available", title: "Available notes" });
+    recordQuizProgress({
+      id: "quiz-finished",
+      title: "Completed exam drill",
+      questionIndex: 9,
+      totalQuestions: 10,
+    });
+    renderCard();
+
+    expect(screen.queryByText("Completed exam drill")).not.toBeInTheDocument();
+    expect(screen.queryByText("In Progress")).not.toBeInTheDocument();
+    expect(screen.getByText("Available notes")).toBeInTheDocument();
   });
 
   it("renders active focus goal resume card and navigates to timer", async () => {

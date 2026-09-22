@@ -190,6 +190,13 @@ export function recordQuizProgress(quiz: {
   });
 }
 
+/** Remove a completed quiz from resume without clearing another quiz's draft. */
+export function clearQuizProgress(quizId: string): void {
+  if (getStudySnapshot().lastQuizDraft?.id === quizId) {
+    saveStudySnapshot({ lastQuizDraft: null });
+  }
+}
+
 /**
  * Convenience helper to record an active focus goal.
  */

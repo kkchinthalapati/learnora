@@ -13,6 +13,8 @@ import {
   type StudySnapshot,
   type ResumeAction,
 } from "../lib/continuity";
+import { quizDraftKey } from "../lib/draftKeys";
+import { Storage } from "../lib/storage";
 
 /**
  * React hook providing real-time synchronized study continuity snapshot,
@@ -27,13 +29,32 @@ export function useContinuity() {
     () => EMPTY_SNAPSHOT_REF,
   );
 
-  const resumeAction: ResumeAction | null = useMemo(() => {
-    return getResumeAction(snapshot);
+  // Older completed attempts can leave a continuity pointer behind. Only a
+  // stored, in-range quiz draft is something the student can actually resume.
+  const resumableSnapshot = useMemo(() => {
+    const quiz = snapshot.lastQuizDraft;
+    if (!quiz) return snapshot;
+    const draft = Storage.get<{ index?: unknown; answers?: unknown }>(quizDraftKey(quiz.id));
+    if (
+      draft &&
+      typeof draft.index === "number" &&
+      Number.isInteger(draft.index) &&
+      draft.index >= 0 &&
+      draft.index < quiz.totalQuestions &&
+      Array.isArray(draft.answers)
+    ) {
+      return snapshot;
+    }
+    return { ...snapshot, lastQuizDraft: null };
   }, [snapshot]);
 
+  const resumeAction: ResumeAction | null = useMemo(() => {
+    return getResumeAction(resumableSnapshot);
+  }, [resumableSnapshot]);
+
   const recentItems: ResumeAction[] = useMemo(() => {
-    return getRecentContinuityItems(snapshot);
-  }, [snapshot]);
+    return getRecentContinuityItems(resumableSnapshot);
+  }, [resumableSnapshot]);
 
   const recordMaterial = useCallback(
     (material: {
