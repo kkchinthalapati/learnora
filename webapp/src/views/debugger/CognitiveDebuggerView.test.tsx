@@ -18,6 +18,7 @@ const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 describe("CognitiveDebuggerView", () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     mockAuthSession("user-1");
     server.use(
       http.get(rest("quiz_attempts"), () =>
@@ -50,6 +51,18 @@ describe("CognitiveDebuggerView", () => {
 
     const textarea = screen.getByTestId("mistake-input") as HTMLTextAreaElement;
     expect(textarea.value).toContain("Failed derivative of composite");
+  });
+
+  it("restores an unfinished solver draft after leaving the page", async () => {
+    const view = renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+    fireEvent.change(screen.getByTestId("mistake-input"), { target: { value: "Missed the chain rule" } });
+    fireEvent.change(screen.getByPlaceholderText(/I put the numbers/), { target: { value: "Forgot 2x" } });
+    expect(screen.getByText(/Your draft stays here/)).toBeInTheDocument();
+    view.unmount();
+
+    renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+    expect(screen.getByTestId("mistake-input")).toHaveValue("Missed the chain rule");
+    expect(screen.getByPlaceholderText(/I put the numbers/)).toHaveValue("Forgot 2x");
   });
 
   it("executes diagnosis and displays 3-layer stack trace and Knowledge Circuit", async () => {
@@ -235,7 +248,7 @@ describe("CognitiveDebuggerView", () => {
 
     saveTrace(existingTrace);
 
-    renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+    const view = renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
 
     // History button should show count
     const historyBtn = screen.getByTestId("open-history-btn");
@@ -255,8 +268,15 @@ describe("CognitiveDebuggerView", () => {
       expect(screen.getByTestId("new-debug-btn")).toBeInTheDocument();
     });
 
+    view.unmount();
+    const returnView = renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+    expect(screen.getByText("Vector vs Scalar confusion")).toBeInTheDocument();
+
     // Reset button clears active view
     fireEvent.click(screen.getByTestId("new-debug-btn"));
+    expect(screen.getByText("Nothing to look at yet")).toBeInTheDocument();
+    returnView.unmount();
+    renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
     expect(screen.getByText("Nothing to look at yet")).toBeInTheDocument();
   });
 });

@@ -39,6 +39,12 @@
   margin: 0;
 }
 
+.saveHint {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
 .headerActions {
   display: flex;
   align-items: center;
