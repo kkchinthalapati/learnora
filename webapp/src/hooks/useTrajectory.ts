@@ -33,6 +33,10 @@ export interface UseTrajectoryResult {
   /** True when the student has a life context but no decks to project from —
    *  a different, more fixable problem than having no exams. */
   needsMaterial: boolean;
+  /** The subject the forecast was scoped to, or null when the exam matched no
+   *  folder and it ran across the student's whole library. See
+   *  `ForecastJoin.scopedToSubject`. */
+  scopedToSubject: string | null;
   isPending: boolean;
 }
 
