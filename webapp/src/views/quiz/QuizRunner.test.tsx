@@ -8,6 +8,7 @@ import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { Storage } from "../../lib/storage";
+import { getStudySnapshot } from "../../lib/continuity";
 import { QuizRunner } from "./QuizRunner";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -351,8 +352,13 @@ describe("QuizRunner", () => {
       renderRunner();
 
       expect(
-        await screen.findByRole("heading", { name: "Quiz not found." }),
+        await screen.findByText("Quiz not found"),
       ).toBeInTheDocument();
+      /* It used to be a bare line of text with nowhere to go but the browser's
+         back button. */
+      expect(
+        screen.getByRole("link", { name: "Back to Quizzes" }),
+      ).toHaveAttribute("href", "/library/quizzes");
     });
 
     /* A stored question whose correctIndex is out of range would grade every
@@ -460,6 +466,7 @@ describe("QuizRunner draft autosave", () => {
 
     await screen.findByText("Quiz Complete! 🎉");
     expect(Storage.get(draftKey)).toBeNull();
+    expect(getStudySnapshot().lastQuizDraft).toBeNull();
   });
 
   it("offers to resume on a saved question, landing there with prior answers counted", async () => {

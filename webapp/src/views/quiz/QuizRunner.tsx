@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useToast } from "../../context/toast";
@@ -23,6 +24,7 @@ import { useStudyClock } from "../../hooks/useStudyClock";
 import styles from "./quiz.module.css";
 import { newAttemptKey } from "../../lib/attemptKey";
 import { quizDraftKey } from "../../lib/draftKeys";
+import { clearQuizProgress } from "../../lib/continuity";
 
 /* The quiz runner — ports js/router.js's `startQuiz` (:827-945).
  *
@@ -73,10 +75,23 @@ export function QuizRunner() {
   }
 
   if (!quiz) {
+    /* Was a bare "Quiz not found." with no way forward but the browser's back
+       button. A stale link or a quiz deleted on another device is an ordinary
+       thing to hit, and the rest of the app already answers it properly — the
+       notebook and the deck screens both say what probably happened and offer
+       the list to go back to. */
     return (
       <div className={styles.view}>
         <ExitLink />
-        <h2>Quiz not found.</h2>
+        <EmptyState
+          icon="alert-circle"
+          title="Quiz not found"
+          message="It may have been deleted, or the link is out of date."
+        >
+          <Link to={QUIZZES_PATH}>
+            <Button variant="primary">Back to Quizzes</Button>
+          </Link>
+        </EmptyState>
       </div>
     );
   }
@@ -255,6 +270,7 @@ function QuizSession({
   useEffect(() => {
     if (!finished) return;
     draft.clear();
+    clearQuizProgress(quizId);
     record(
       {
         quizId,

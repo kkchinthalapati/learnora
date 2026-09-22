@@ -1,5 +1,7 @@
 import { Link, useParams } from "react-router";
+import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { EmptyState } from "../../components/EmptyState";
 import { Skeleton } from "../../components/Skeleton";
 import { useLatestQuizAttempt, useQuiz } from "../../hooks/useQuizzes";
 import {
@@ -57,10 +59,20 @@ export function QuizReview() {
 
   const quiz = quizQuery.data;
   if (!quiz) {
+    /* Same dead end as QuizRunner had: a bare line of text with nowhere to go.
+       See the note there. */
     return (
       <div className={styles.view}>
         <ExitLink />
-        <h2>Quiz not found.</h2>
+        <EmptyState
+          icon="alert-circle"
+          title="Quiz not found"
+          message="It may have been deleted, or the link is out of date."
+        >
+          <Link to={QUIZZES_PATH}>
+            <Button variant="primary">Back to Quizzes</Button>
+          </Link>
+        </EmptyState>
       </div>
     );
   }
