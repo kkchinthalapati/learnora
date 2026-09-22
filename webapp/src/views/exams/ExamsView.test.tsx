@@ -175,7 +175,7 @@ describe("ExamsView", () => {
     expect(within(cell).getByText("One")).toBeInTheDocument();
     expect(within(cell).getByText("Two")).toBeInTheDocument();
     expect(within(cell).queryByText("Three")).toBeNull();
-    expect(within(cell).getByText("+2 more")).toBeInTheDocument();
+    expect(within(cell).getByText(/^\+2$/)).toHaveTextContent("+2 more");
   });
 
   it("gives each difficulty its own bar styling", async () => {

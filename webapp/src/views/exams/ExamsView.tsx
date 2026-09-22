@@ -356,7 +356,8 @@ export function ExamsView() {
 
                     {overflow > 0 && (
                       <div className={styles.overflowBadge}>
-                        +{overflow} more
+                        +{overflow}
+                        <span className={styles.overflowMore}> more</span>
                       </div>
                     )}
                   </div>
