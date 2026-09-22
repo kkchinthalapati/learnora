@@ -7,7 +7,12 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
-import { createNextWeeklyDate, dateInDays, formatDueDate } from "../../lib/date";
+import {
+  createNextWeeklyDate,
+  dateInDays,
+  formatDueDate,
+  localDateStr,
+} from "../../lib/date";
 import type { Task } from "../../api/types";
 import { DashboardTasksWidget } from "./DashboardTasksWidget";
 import { TasksView } from "./TasksView";
@@ -115,6 +120,38 @@ describe("DashboardTasksWidget", () => {
     await waitFor(() => expect(body).toBeDefined());
     expect(body![0]).toMatchObject({ text: "Quick one", due_date: null });
     expect(input).toHaveValue("");
+  });
+
+  /* Today renders this widget with `dueOnly`, under a "Due today" heading and
+     a "Nothing due today" empty state. A quick-add there has to land *in that
+     list*, which means the insert must carry today's date — otherwise the row
+     is filtered straight back out and the add looks like it silently failed. */
+  it("quick-adds with today's due date when dueOnly is set", async () => {
+    const user = userEvent.setup();
+    let body: Record<string, unknown>[] | undefined;
+    serveTasks([]);
+    server.use(
+      http.post(REST, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>[];
+        return HttpResponse.json(null, { status: 201 });
+      }),
+    );
+    renderWithAuth(
+      <DashboardTasksWidget dueOnly />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
+
+    const input = await screen.findByRole("textbox", {
+      name: "Quick add task",
+    });
+    await user.type(input, "Bio homework{Enter}");
+
+    await waitFor(() => expect(body).toBeDefined());
+    expect(body![0]).toMatchObject({
+      text: "Bio homework",
+      due_date: localDateStr(),
+    });
   });
 
   it("ignores an empty quick-add", async () => {

@@ -57,8 +57,14 @@ export function DashboardTasksWidget({
     }
     setText("");
     /* The quick-add deliberately has no due-date field, matching the vanilla. */
+    /* `dueDate`, not `due_date`: the mutation takes the camelCase name and
+       maps it to the column itself. It used to spread in `due_date`, which a
+       spread hides from TypeScript's excess-property check — so the key was
+       silently dropped and every Today quick-add landed with no due date,
+       i.e. filtered straight back out of the list that created it. Passing
+       the field directly keeps that check switched on. */
     addTask.mutate(
-      { text: trimmed, ...(dueOnly ? { due_date: localDateStr() } : {}) },
+      { text: trimmed, dueDate: dueOnly ? localDateStr() : null },
       {
         onError: (err) =>
           showToast(`Could not add task. ${err.message}`, { error: true }),
