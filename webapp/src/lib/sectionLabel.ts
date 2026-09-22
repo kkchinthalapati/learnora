@@ -96,13 +96,13 @@ export function sectionLabel(
      destination had two names depending on where you read it. */
   if (pathname.startsWith("/analytics")) return "Progress";
   if (pathname.startsWith("/trajectory")) return "Trajectory";
-  if (pathname.startsWith("/study")) return "Study Lab";
+  if (pathname.startsWith("/study")) return "Study tools";
   if (pathname.startsWith("/feynman")) return "Explain it simply";
   if (pathname.startsWith("/solver")) return "Step-by-step solver";
   if (pathname.startsWith("/exam-detective")) return "Exam trap practice";
   if (pathname.startsWith("/viva")) return "Viva practice";
   if (pathname.startsWith("/my-week")) return "My week";
-  if (pathname.startsWith("/plan")) return "This week's plan";
+  if (pathname.startsWith("/plan")) return "Plan";
   if (pathname.startsWith("/exams")) return "Exams";
   if (pathname.startsWith("/room")) return "Study Room";
   /* Covers /friends/add/:code too, so an invite link keeps the sidebar's

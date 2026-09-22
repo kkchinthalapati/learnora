@@ -109,7 +109,7 @@ export function StudyLabView() {
   return (
     <div className={styles.view}>
       <header className={styles.hero}>
-        <span className={styles.eyebrow}>Study Lab</span>
+        <span className={styles.eyebrow}>Study tools</span>
         <h1>What do you need help with?</h1>
         <p>
           Start with the problem you have, not the name of a tool. Each route

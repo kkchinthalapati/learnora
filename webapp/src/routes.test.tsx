@@ -51,7 +51,7 @@ describe("route skeleton", () => {
        LIBRARY_TABS — LibraryView bounced it to /library and rendered the same
        heading, so the assertion passed whether or not tab routing worked. */
     ["/library/quizzes", "Your learning"],
-    ["/plan", "This week's plan"],
+    ["/plan", "Plan"],
     ["/friends", "Friends"],
     ["/analytics", "Progress"],
     ["/study", "What do you need help with?"],

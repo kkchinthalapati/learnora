@@ -173,7 +173,7 @@ export function ExamDetectiveHubView() {
     <div className={styles.container}>
       {/* Hero Header */}
       <div className={styles.hero}>
-        <span className={styles.heroEyebrow}>Study Lab</span>
+        <span className={styles.heroEyebrow}>Study tools</span>
         <h1 className={styles.heroTitle}>Exam trap practice</h1>
         <p className={styles.heroSubtitle}>
           Learn the common patterns, analyse a past paper, then practise the

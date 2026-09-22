@@ -266,10 +266,10 @@ export function CommandPalette(props: CommandPaletteProps) {
       },
     });
 
-    // --- Study Lab tools ---
+    // --- Study tools ---
     items.push({
       id: "nav-study-lab",
-      category: "Study Lab",
+      category: "Study tools",
       title: "Choose a study exercise",
       subtitle:
         "Start from the problem you have and pick the right kind of practice",
@@ -284,7 +284,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     items.push({
       id: "nav-ai-debugger",
-      category: "Study Lab",
+      category: "Study tools",
       title: "Step-by-step solver",
       subtitle:
         "Work backwards from a mistake to find where you got stuck and repair the gap",
@@ -309,7 +309,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     items.push({
       id: "nav-ai-feynman",
-      category: "Study Lab",
+      category: "Study tools",
       title: "Explain it simply",
       subtitle: "Explain a topic out loud and find out what you really know",
       icon: "award",
@@ -330,7 +330,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     items.push({
       id: "nav-ai-sparring",
-      category: "Study Lab",
+      category: "Study tools",
       title: "Viva practice",
       subtitle: "Defend an idea against questions and viva counterexamples",
       icon: "mic",
@@ -353,7 +353,7 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     items.push({
       id: "nav-ai-exam-traps",
-      category: "Study Lab",
+      category: "Study tools",
       title: "Exam trap practice",
       subtitle: "Analyse a past paper and practise common exam traps",
       icon: "search",

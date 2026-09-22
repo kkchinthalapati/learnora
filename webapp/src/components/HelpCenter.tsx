@@ -80,7 +80,7 @@ const HELP_BY_ROUTE: ReadonlyArray<{
         "/debugger",
         "/sparring",
       ].some((route) => path === route || path.startsWith(`${route}/`)),
-    title: "Study Lab",
+    title: "Study tools",
     summary:
       "Choose the exercise that matches your goal: explain, challenge, diagnose, or practise.",
     suggestions: [

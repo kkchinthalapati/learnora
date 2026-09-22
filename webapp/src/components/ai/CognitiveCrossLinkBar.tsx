@@ -170,7 +170,7 @@ export function CognitiveCrossLinkBar({
   return (
     <nav
       className={`${styles.container} ${compact ? styles.compact : ""} ${className}`}
-      aria-label="Carry this topic into another Study Lab tool"
+      aria-label="Carry this topic into another study tool"
       data-testid="cognitive-cross-link-bar"
     >
       {/* Top row: topic, subject, where it came from, how bad */}
