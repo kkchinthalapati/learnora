@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "../test/mocks/server";
 import { mockAuthSession, mockNoAuthSession } from "../test/mockSession";
 import { SUPABASE_URL } from "../lib/supabase";
-import { extractWebContent, searchWebSources } from "./aiWebSearch";
+import { extractWebContent, searchWebSources, clipWebQuery, MAX_WEB_QUERY_LENGTH } from "./aiWebSearch";
 
 const ENDPOINT = `${SUPABASE_URL}/functions/v1/web-research`;
 
@@ -135,5 +135,24 @@ describe("web research API", () => {
     await expect(extractWebContent("https://example.edu/x")).rejects.toThrow(
       "No readable text was found on that page.",
     );
+  });
+});
+
+describe("clipWebQuery", () => {
+  it("leaves a query that already fits alone", () => {
+    expect(clipWebQuery("  why is the sky blue  ")).toBe("why is the sky blue");
+  });
+
+  it("fits a long chat message under the endpoint limit, on a word boundary", () => {
+    const ramble = "so basically i dont get photosynthesis at all ".repeat(20);
+    const q = clipWebQuery(ramble);
+    expect(q.length).toBeLessThanOrEqual(MAX_WEB_QUERY_LENGTH);
+    expect(q.startsWith("so basically i dont get photosynthesis")).toBe(true);
+    expect(ramble).toContain(q);
+    expect(q.endsWith(" ")).toBe(false);
+  });
+
+  it("still cuts a single unbroken run of characters", () => {
+    expect(clipWebQuery("x".repeat(900)).length).toBe(MAX_WEB_QUERY_LENGTH);
   });
 });

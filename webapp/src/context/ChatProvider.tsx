@@ -41,7 +41,15 @@ import { loadStudentEvidence } from "../api/studentEvidence";
 import { formatEvidenceForPrompt } from "../lib/studentEvidence";
 import { misconceptionsApi } from "../api/misconceptions";
 import { formatMisconceptionsForPrompt } from "../lib/misconceptions";
-import { searchWebSources, type WebSearchResult } from "../api/aiWebSearch";
+import {
+  clipWebQuery,
+  MAX_WEB_QUERY_LENGTH,
+  searchWebSources,
+  type WebSearchResult,
+} from "../api/aiWebSearch";
+
+/** Appended to a video request; reserved out of the query budget. */
+const VIDEO_SUFFIX = " educational video";
 import {
   EMPTY_PERSONA_DRIFT,
   getPersonaDriftNudge,
@@ -536,7 +544,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const webPromise =
           wantsWeb || wantsVideo
             ? searchWebSources(
-                wantsVideo ? `${query} educational video` : query,
+                wantsVideo
+                  ? `${clipWebQuery(query, MAX_WEB_QUERY_LENGTH - VIDEO_SUFFIX.length)}${VIDEO_SUFFIX}`
+                  : clipWebQuery(query),
                 wantsVideo ? { domain: "youtube.com", depth: 4 } : undefined,
               ).catch((cause) => {
                 if (sourceMode === "web") throw cause;

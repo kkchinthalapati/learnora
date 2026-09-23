@@ -58,14 +58,38 @@ async function callWebResearch<T>(
   return payload;
 }
 
+/** Longest query the research endpoint accepts. */
+export const MAX_WEB_QUERY_LENGTH = 400;
+
+/**
+ * Fit free text into a search query.
+ *
+ * The limit is right for a search box, where a student types a query and can
+ * be told to shorten it. The chat is different: it searches on the student's
+ * whole message, and a long question is a normal thing to send. Rejecting it
+ * dropped web research silently in Hybrid mode and failed the entire reply in
+ * Web mode. The start of a message is where the question usually is, so keep
+ * that, cut on a word boundary.
+ */
+export function clipWebQuery(
+  text: string,
+  max: number = MAX_WEB_QUERY_LENGTH,
+): string {
+  const trimmed = text.trim().replace(/\s+/g, " ");
+  if (trimmed.length <= max) return trimmed;
+  const cut = trimmed.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trim();
+}
+
 export async function searchWebSources(
   query: string,
   options: WebSearchOptions = {},
 ): Promise<WebSearchResponse> {
   const trimmed = query.trim();
   if (!trimmed) throw new Error("Enter a topic or question to search.");
-  if (trimmed.length > 400)
-    throw new Error("Keep the search under 400 characters.");
+  if (trimmed.length > MAX_WEB_QUERY_LENGTH)
+    throw new Error(`Keep the search under ${MAX_WEB_QUERY_LENGTH} characters.`);
 
   const payload = await callWebResearch<Partial<WebSearchResponse>>(
     {
