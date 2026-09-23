@@ -351,7 +351,7 @@
 
 .scoreGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--s-2);
   margin: 0 0 var(--s-6);
 }
@@ -775,7 +775,7 @@
   }
 
   .scoreGrid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1042,7 +1042,7 @@
 .socraticModeTabs {
   flex: 0 0 auto;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--s-2);
 }
 
