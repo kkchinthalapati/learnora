@@ -11,17 +11,26 @@
  * rule is the part worth testing, and it should be testable without a
  * database double.
  *
- * A note on the rule. The original design called for "the concept the most
- * other topics on the paper depend on". This app has no concept dependency
- * graph — there is no prerequisite edge anywhere in the schema — so that
- * number cannot be computed and must not be invented: a fabricated "4 other
- * topics depend on this" reads as certainty the app has not earned. The
- * ledger's own signal is used instead, and it is arguably the better one:
- * `timesObserved` is how many separate times this misconception has actually
- * resurfaced in this student's work. That is evidence, not inference.
+ * The rule, as specified: of the concepts the nearest exam depends on, take
+ * those still open; choose the one with the most dependents; break ties by
+ * how often it has resurfaced (the ledger's evidence that it is weak), then
+ * severity, then age.
+ *
+ * "Dependents" come from the student's own Debugger traces. Each trace is a
+ * chain — root prerequisite at level 1, the surface mistake at the top — and
+ * every layer above another sits on top of it. That is a real prerequisite
+ * edge, observed in this student's work, not inferred from a syllabus.
+ * Stand-in traces are excluded for the same reason the ledger refuses them:
+ * a template is not evidence of anything the student believes. Traces are
+ * stored per device, so on a device with none the rule falls through to the
+ * evidence tie-breaks rather than inventing a count.
  */
 
-import { misconceptionsForSubject, type Misconception } from "./misconceptions";
+import {
+  conceptKey,
+  misconceptionsForSubject,
+  type Misconception,
+} from "./misconceptions";
 
 /** Minimum shape needed from an exam row. */
 export interface StudyNowExam {
@@ -34,6 +43,45 @@ export interface StudyNowExam {
 export interface StudyNowFolder {
   id: string;
   name: string;
+}
+
+/** Minimum shape needed from a saved Debugger trace. */
+export interface StudyNowTrace {
+  subject: string;
+  layers: { level: number; concept: string }[];
+  degraded?: unknown;
+}
+
+/**
+ * For each concept, the set of other concepts that sit on top of it in any of
+ * this subject's traces. Keyed by conceptKey so "Chain rule" and "the chain
+ * rule" are one node, matching how the ledger dedupes.
+ */
+export function dependentsBySubject(
+  traces: StudyNowTrace[] | null | undefined,
+  subject: string,
+): Map<string, Set<string>> {
+  const target = subject.trim().toLowerCase();
+  const graph = new Map<string, Set<string>>();
+
+  for (const trace of traces ?? []) {
+    if (trace.degraded) continue;
+    if ((trace.subject ?? "").trim().toLowerCase() !== target) continue;
+
+    const layers = (trace.layers ?? [])
+      .filter((l) => l.concept && l.concept.trim())
+      .map((l) => ({ level: l.level, key: conceptKey(l.concept) }));
+
+    for (const below of layers) {
+      for (const above of layers) {
+        if (above.level <= below.level || above.key === below.key) continue;
+        let set = graph.get(below.key);
+        if (!set) graph.set(below.key, (set = new Set()));
+        set.add(above.key);
+      }
+    }
+  }
+  return graph;
 }
 
 export interface StudyNowPick {
@@ -51,6 +99,9 @@ export interface StudyNowPick {
   timesObserved: number;
   /** Other still-open concepts on the same paper. */
   otherOpenOnPaper: number;
+  /** Distinct concepts on this paper that sit on top of this one, from the
+   *  student's own traces. 0 when no trace links it to anything. */
+  dependents: number;
   estimatedMinutes: number;
 }
 
@@ -143,6 +194,7 @@ export function pickStudyNow(input: {
   exams: StudyNowExam[] | null | undefined;
   folders: StudyNowFolder[] | null | undefined;
   misconceptions: Misconception[] | null | undefined;
+  traces?: StudyNowTrace[] | null;
   now?: Date;
 }): StudyNowPick | null {
   const now = input.now ?? new Date();
@@ -158,9 +210,20 @@ export function pickStudyNow(input: {
   );
   if (open.length === 0) return null;
 
+  const graph = dependentsBySubject(input.traces, subject);
+  /* Recomputed from the name rather than read from the row: a stored key was
+     written by whatever version of conceptKey() was current at the time, and
+     the graph is keyed by today's. Both sides must use the same function. */
+  const dependentsOf = (m: Misconception) =>
+    graph.get(conceptKey(m.concept))?.size ?? 0;
+
   const [best] = [...open].sort((a, b) => {
-    /* Most-repeated first: a belief that has resurfaced four times is costing
-       more marks than one seen once, whatever a model rated its severity. */
+    /* Most dependents first: fixing a root that three other topics sit on
+       moves more marks than fixing a leaf. */
+    const deps = dependentsOf(b) - dependentsOf(a);
+    if (deps !== 0) return deps;
+    /* Then most-repeated: a belief that has resurfaced four times is weaker
+       than one seen once, whatever a model rated its severity. */
     if (b.timesObserved !== a.timesObserved) {
       return b.timesObserved - a.timesObserved;
     }
@@ -183,6 +246,7 @@ export function pickStudyNow(input: {
     daysUntilExam: daysBetween(now, new Date(exam.exam_date)),
     timesObserved: best.timesObserved,
     otherOpenOnPaper: open.length - 1,
+    dependents: dependentsOf(best),
     estimatedMinutes: STUDY_NOW_MINUTES,
   };
 }

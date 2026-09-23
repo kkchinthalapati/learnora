@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   daysBetween,
+  dependentsBySubject,
   nextUpcomingExam,
   pickStudyNow,
   STUDY_NOW_MINUTES,
@@ -246,5 +247,83 @@ describe("pickStudyNow", () => {
         now: NOW,
       }),
     ).toBeNull();
+  });
+});
+
+const trace = (
+  layers: [number, string][],
+  over: { subject?: string; degraded?: unknown } = {},
+) => ({
+  subject: over.subject ?? "Physics",
+  degraded: over.degraded,
+  layers: layers.map(([level, concept]) => ({ level, concept })),
+});
+
+describe("dependentsBySubject", () => {
+  it("links every layer to the layers that sit above it", () => {
+    const g = dependentsBySubject(
+      [trace([[1, "Vectors"], [2, "Momentum"], [3, "2D collisions"]])],
+      "Physics",
+    );
+    expect(g.get("vectors")?.size).toBe(2);
+    expect(g.get("momentum")?.size).toBe(1);
+    expect(g.get("2d collisions")).toBeUndefined();
+  });
+
+  it("merges traces and counts each dependent once", () => {
+    const g = dependentsBySubject(
+      [
+        trace([[1, "Vectors"], [2, "Momentum"]]),
+        trace([[1, "Vectors"], [2, "Momentum"], [3, "Projectiles"]]),
+        trace([[1, "the vectors"], [2, "Forces"]]),
+      ],
+      "physics",
+    );
+    // Momentum, Projectiles, Forces — "the vectors" keys to the same node.
+    expect(g.get("vectors")?.size).toBe(3);
+  });
+
+  it("ignores stand-in traces and other subjects", () => {
+    const g = dependentsBySubject(
+      [
+        trace([[1, "Vectors"], [2, "Momentum"]], { degraded: { reason: "x" } }),
+        trace([[1, "Vectors"], [2, "Buffers"]], { subject: "Chemistry" }),
+      ],
+      "Physics",
+    );
+    expect(g.size).toBe(0);
+  });
+});
+
+describe("pickStudyNow with traces", () => {
+  it("puts the concept with the most dependents first, over one seen more often", () => {
+    const pick = pickStudyNow({
+      exams: [physicsExam],
+      folders,
+      misconceptions: [
+        misconception({ id: "leaf", concept: "2D collisions", conceptKey: "2d collisions", timesObserved: 6 }),
+        misconception({ id: "root", concept: "Vectors", conceptKey: "vectors", timesObserved: 1 }),
+      ],
+      traces: [trace([[1, "Vectors"], [2, "Momentum"], [3, "2D collisions"]])],
+      now: NOW,
+    });
+
+    expect(pick?.misconceptionId).toBe("root");
+    expect(pick?.dependents).toBe(2);
+  });
+
+  it("falls back to evidence when no trace links anything", () => {
+    const pick = pickStudyNow({
+      exams: [physicsExam],
+      folders,
+      misconceptions: [
+        misconception({ id: "a", concept: "Units", conceptKey: "units", timesObserved: 1 }),
+        misconception({ id: "b", concept: "Friction", conceptKey: "friction", timesObserved: 4 }),
+      ],
+      traces: [],
+      now: NOW,
+    });
+    expect(pick?.misconceptionId).toBe("b");
+    expect(pick?.dependents).toBe(0);
   });
 });

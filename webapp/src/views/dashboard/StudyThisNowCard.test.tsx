@@ -7,6 +7,7 @@ import { SUPABASE_URL } from "../../lib/supabase";
 import { renderWithAuth, fakeSession } from "../../test/auth";
 import { mockAuthSession } from "../../test/mockSession";
 import { StudyThisNowCard } from "./StudyThisNowCard";
+import { saveTrace, type CognitiveStackTrace } from "../../api/aiDebugger";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 
@@ -157,5 +158,52 @@ describe("StudyThisNowCard", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("study-this-now")).not.toBeInTheDocument();
     });
+  });
+  it("says how many topics sit on top of the concept when a trace shows it", async () => {
+    const t: CognitiveStackTrace = {
+      id: "t-1",
+      failedQuestionOrTopic: "2D collision question",
+      subject: "Physics",
+      rootCauseSummary: "Vectors",
+      timestamp: "2026-09-20T10:00:00Z",
+      layers: [
+        { level: 1, concept: "Vector addition", status: "severed", explanation: "x" },
+        { level: 2, concept: "Momentum", status: "shaky", explanation: "x" },
+        { level: 3, concept: "Momentum in 2D collisions", status: "shaky", explanation: "x" },
+      ],
+    };
+    saveTrace(t);
+    serve({
+      exams: [
+        {
+          id: 1,
+          user_id: "user-1",
+          exam_name: "Physics Paper 1",
+          exam_date: soon(),
+          difficulty: null,
+          status: null,
+          folder_id: "f-physics",
+        },
+      ],
+      folders: [{ id: "f-physics", user_id: "user-1", name: "Physics" }],
+      misconceptions: [
+        ledgerRow(),
+        ledgerRow({
+          id: "m-root",
+          concept: "Vector addition",
+          concept_key: "vector addition",
+          times_observed: 1,
+        }),
+      ],
+    });
+    renderCard();
+
+    /* The root wins despite being seen fewer times: two topics sit on it. */
+    expect(
+      await screen.findByRole("heading", { name: "Vector addition" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/2 other topics on the paper sit on top of it/),
+    ).toBeInTheDocument();
   });
 });

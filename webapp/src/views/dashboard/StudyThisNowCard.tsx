@@ -8,6 +8,7 @@ import { useFolders } from "../../hooks/useFolders";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { useTimer } from "../../context/timer";
 import { pickStudyNow } from "../../lib/studyNow";
+import { getSavedTraces } from "../../api/aiDebugger";
 import styles from "./StudyThisNowCard.module.css";
 
 /**
@@ -36,6 +37,7 @@ export function StudyThisNowCard() {
         exams: exams.data,
         folders: folders.data,
         misconceptions: all,
+        traces: getSavedTraces(),
       }),
     [exams.data, folders.data, all],
   );
@@ -52,30 +54,39 @@ export function StudyThisNowCard() {
         ? `Your ${pick.subject} exam is tomorrow`
         : `Your ${pick.subject} exam is in ${days} days`;
 
-  /* Said plainly, and only about what the ledger actually knows: how many
-     times this has come back, and how much else is still open on the paper.
-     There is no prerequisite graph in this app, so nothing here claims that
-     other topics depend on this one. */
-  const evidencePhrase =
-    pick.timesObserved > 1
-      ? `This has tripped you up ${pick.timesObserved} times`
-      : "This came up in your work";
+  /* Said plainly, and only about what the app actually knows. The dependents
+     count comes from the student's own Debugger traces; when none link this
+     concept to anything, the sentence falls back to the ledger's evidence
+     rather than claiming a structure it has not seen. No mastery percentage:
+     nothing in the app measures mastery per concept, and a made-up one would
+     be the most persuasive number on the card. */
+  const plural = (n: number, one: string, many: string) =>
+    n === 1 ? one : many;
 
-  const restPhrase =
-    pick.otherOpenOnPaper === 0
-      ? "and it is the only thing still open on that paper."
-      : pick.otherOpenOnPaper === 1
-        ? "and there is one other topic still open on that paper."
-        : `and there are ${pick.otherOpenOnPaper} other topics still open on that paper.`;
+  let reason: string;
+  if (pick.dependents > 0) {
+    const repeat =
+      pick.timesObserved > 1
+        ? `, and it has tripped you up ${pick.timesObserved} times`
+        : "";
+    reason = `${whenPhrase}. This is the weakest thing it depends on — ${pick.dependents} other ${plural(pick.dependents, "topic", "topics")} on the paper ${plural(pick.dependents, "sits", "sit")} on top of it${repeat}. Fixing this one moves the most marks.`;
+  } else {
+    const evidence =
+      pick.timesObserved > 1
+        ? `This has tripped you up ${pick.timesObserved} times`
+        : "This came up in your work";
+    const rest =
+      pick.otherOpenOnPaper === 0
+        ? "and it is the only thing still open on that paper."
+        : `and there ${plural(pick.otherOpenOnPaper, "is one other topic", `are ${pick.otherOpenOnPaper} other topics`)} still open on that paper.`;
+    reason = `${whenPhrase}. ${evidence} ${rest} Fixing this one moves the most marks.`;
+  }
 
   return (
     <Card className={styles.card} data-testid="study-this-now">
       <span className={styles.eyebrow}>Study this now</span>
       <h2 className={styles.concept}>{pick.concept}</h2>
-      <p className={styles.reason}>
-        {whenPhrase}. {evidencePhrase} {restPhrase} Fixing this one moves the
-        most marks.
-      </p>
+      <p className={styles.reason}>{reason}</p>
 
       <div className={styles.actions}>
         <Button
