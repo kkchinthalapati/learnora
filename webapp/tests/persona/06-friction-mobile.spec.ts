@@ -392,8 +392,8 @@ test("friction: out of AI, broken server, no wifi, small screen", async ({
     { name: "Plan", path: "/app/plan" },
     { name: "Focus", path: "/app/timer" },
     { name: "Progress", path: "/app/analytics" },
-    { name: "Study Lab", path: "/app/study" },
-    { name: "Study Lab tool — Step-by-step solver", path: "/app/solver" },
+    { name: "Study tools", path: "/app/study" },
+    { name: "Study tools tool — Step-by-step solver", path: "/app/solver" },
   ];
 
   for (const screen of screens) {
@@ -463,7 +463,7 @@ test("friction: out of AI, broken server, no wifi, small screen", async ({
       await log.shot("phone-drawer-open");
       log.saw(`Drawer contents: ${(await log.affordances()).join(" | ")}`);
 
-      for (const area of ["Today", "Library", "Plan", "Focus", "Progress", "Study Lab", "Settings"]) {
+      for (const area of ["Today", "Library", "Plan", "Focus", "Progress", "Study tools", "Settings"]) {
         const link = page.getByRole("link", { name: area, exact: true }).first();
         const visible = await link.isVisible().catch(() => false);
         const box = visible ? await link.boundingBox() : null;
