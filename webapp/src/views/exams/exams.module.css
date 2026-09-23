@@ -543,9 +543,10 @@
   font-weight: 700;
   font-size: var(--fs-sm);
   color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Wraps rather than truncating: the exam name is the one thing this row
+     exists to show, and "Physics Pap…" at tablet width loses the part that
+     tells two papers in the same subject apart. */
+  overflow-wrap: anywhere;
 }
 
 .upcomingMeta {

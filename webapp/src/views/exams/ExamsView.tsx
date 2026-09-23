@@ -345,6 +345,10 @@ export function ExamsView() {
                           key={exam.id}
                           type="button"
                           className={classes}
+                          /* A calendar cell is a seventh of the width, so the
+                             chip has to truncate; the title keeps the whole
+                             name one hover away. */
+                          title={exam.exam_name}
                           onClick={() =>
                             setOverlay({ kind: "exam", exam, date: dateStr })
                           }
