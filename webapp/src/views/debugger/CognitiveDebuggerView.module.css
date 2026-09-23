@@ -149,7 +149,7 @@
   align-items: center;
   background: var(--surface-hover);
   border: 1px solid var(--glass-border-subtle);
-  border-radius: 9999px;
+  border-radius: var(--r-pill);
   padding: 0.3rem 0.85rem;
   font-size: var(--fs-xs);
   color: var(--text-muted);
@@ -179,7 +179,7 @@
   align-items: center;
   background: var(--surface-active);
   border: 1px solid var(--surface-hover);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   padding: 0.4rem 0.6rem;
   font-size: var(--fs-sm);
   cursor: pointer;
@@ -222,7 +222,7 @@
 .scanningPulse {
   width: 56px;
   height: 56px;
-  border-radius: 9999px;
+  border-radius: var(--r-pill);
   background: var(--accent-ring);
   border: 2px solid var(--accent);
   display: flex;
@@ -293,7 +293,7 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 0.25rem 0.6rem;
-  border-radius: 9999px;
+  border-radius: var(--r-pill);
   background: var(--danger-soft);
   color: var(--danger-text);
   border: 1px solid var(--danger-soft);
@@ -355,7 +355,6 @@
 
 .layerCardSelected {
   border-color: var(--accent) !important;
-  box-shadow: 0 0 16px var(--accent-ring);
 }
 
 .layerHeader {
@@ -371,7 +370,7 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.2rem 0.55rem;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   font-size: var(--fs-xs);
   font-weight: 800;
   letter-spacing: 0.05em;

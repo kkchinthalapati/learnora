@@ -182,7 +182,7 @@
   min-height: 40px;
   padding: 0 10px;
   border: 1px solid var(--glass-border);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--surface);
   color: var(--text-muted);
   font-size: var(--fs-xs);

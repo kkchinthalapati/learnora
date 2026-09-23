@@ -107,7 +107,7 @@
 
 .saving {
   padding: 1px 8px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--success-soft);
   color: var(--success-text);
   font-size: var(--fs-xs);

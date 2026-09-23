@@ -284,7 +284,6 @@
   background: var(--accent);
   color: var(--accent-on);
   border-color: var(--accent);
-  box-shadow: 0 2px 8px var(--accent-glow);
 }
 
 .filterCount {

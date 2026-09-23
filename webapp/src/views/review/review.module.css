@@ -74,7 +74,7 @@
   position: relative;
   padding: 0;
   border: none;
-  border-radius: 20px;
+  border-radius: var(--r-2xl);
   transform-style: preserve-3d;
   transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
   cursor: pointer;
@@ -95,7 +95,7 @@
   justify-content: center;
   padding: 40px;
   font-size: var(--fs-xl);
-  border-radius: 20px;
+  border-radius: var(--r-2xl);
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);
   -webkit-backdrop-filter: blur(var(--glass-blur)) var(--glass-saturate);

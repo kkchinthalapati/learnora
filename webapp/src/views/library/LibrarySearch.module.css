@@ -117,7 +117,7 @@
   padding: 0 6px;
   color: var(--accent-text);
   background: var(--accent-soft);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   font-size: var(--fs-xs);
   letter-spacing: 0;
 }

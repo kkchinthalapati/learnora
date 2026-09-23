@@ -183,7 +183,7 @@
   gap: 16px;
   background: var(--surface-hover);
   padding: 16px;
-  border-radius: 12px;
+  border-radius: var(--r-lg);
   margin-bottom: 24px;
   border: 1px solid var(--glass-border);
   animation: quiz-pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;

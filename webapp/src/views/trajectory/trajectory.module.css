@@ -74,7 +74,7 @@
   min-height: 36px;
   padding: 0 var(--s-4);
   border: 1px solid var(--glass-border);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--surface);
   color: var(--text-muted);
   font-size: var(--fs-sm);
@@ -244,7 +244,7 @@
 .swatch {
   width: 14px;
   height: 3px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
 }
 
 .swatchProjected {
@@ -318,7 +318,7 @@
   margin: 0;
   padding: var(--s-4);
   border-left: 3px solid var(--accent);
-  border-radius: 0 var(--r-md, 8px) var(--r-md, 8px) 0;
+  border-radius: 0 var(--r-md) var(--r-md) 0;
   background: var(--accent-soft);
   color: var(--text);
   font-size: var(--fs-md);
@@ -365,7 +365,7 @@
   align-items: center;
   gap: 3px;
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--warning-soft);
   color: var(--warning-text);
   font-size: var(--fs-xs);
@@ -380,7 +380,7 @@
 .bar {
   position: relative;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--surface-hover);
   overflow: hidden;
 }
@@ -390,7 +390,7 @@
   position: absolute;
   inset: 0 auto 0 0;
   width: var(--fill, 0%);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--accent);
 }
 
