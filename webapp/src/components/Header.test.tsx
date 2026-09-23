@@ -107,7 +107,7 @@ describe("Header", () => {
   });
 
   it.each(["/study", "/solver", "/feynman", "/viva", "/exam-detective"])(
-    "shows Study Lab help on canonical study route %s",
+    "shows Study tools help on canonical study route %s",
     async (path) => {
       renderHeader({ path });
 
@@ -116,7 +116,7 @@ describe("Header", () => {
       );
 
       expect(
-        screen.getByRole("heading", { level: 2, name: "Study Lab" }),
+        screen.getByRole("heading", { level: 2, name: "Study tools" }),
       ).toBeInTheDocument();
       expect(
         screen.getByText(/Choose the exercise that matches your goal/i),

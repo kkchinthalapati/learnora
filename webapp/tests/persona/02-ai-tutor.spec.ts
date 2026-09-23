@@ -218,7 +218,12 @@ test("ai tutor: find it, ask badly, follow up, break it", async ({
     const callsBeforeEmptyClick = backend.calls.filter((c) =>
       c.path.includes("learnora-ai"),
     ).length;
-    await sendButton.click().catch(() => {});
+    /* force: the button is (correctly) disabled while the box is empty, and a
+       plain click() on a disabled element does not fail — it waits for the
+       button to become enabled, which here never happens, until the whole
+       test times out. A student's click on a disabled button simply does
+       nothing, which is what force + a short timeout reproduce. */
+    await sendButton.click({ force: true, timeout: 2_000 }).catch(() => {});
     await page.waitForTimeout(1200);
     const callsAfterEmptyClick = backend.calls.filter((c) =>
       c.path.includes("learnora-ai"),

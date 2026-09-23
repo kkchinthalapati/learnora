@@ -102,7 +102,7 @@ describe("FeynmanStudioView Component", () => {
     const user = userEvent.setup();
     renderWithProviders(<FeynmanStudioView />, undefined, { withRouter: true });
 
-    const analogyBtn = screen.getByText(/💡 Use a comparison/i);
+    const analogyBtn = screen.getByText(/Use a comparison/i);
     await user.click(analogyBtn);
 
     const textarea = screen.getByTestId(

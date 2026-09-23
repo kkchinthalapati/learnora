@@ -47,9 +47,9 @@ describe("sectionLabel", () => {
     expect(sectionLabel("/timer", t)).toBe("Timer");
     expect(sectionLabel("/analytics", t)).toBe("Progress");
     expect(sectionLabel("/tasks", t)).toBe("Task Manager");
-    expect(sectionLabel("/plan", t)).toBe("This week's plan");
+    expect(sectionLabel("/plan", t)).toBe("Plan");
     expect(sectionLabel("/exams", t)).toBe("Exams");
-    expect(sectionLabel("/study-lab", t)).toBe("Study Lab");
+    expect(sectionLabel("/study-lab", t)).toBe("Study tools");
     expect(sectionLabel("/settings", t)).toBe("Settings");
   });
 
@@ -71,7 +71,7 @@ describe("primaryDestinationForPath", () => {
     expect(primaryDestinationForPath("/notes/material-1")).toBe("library");
   });
 
-  it("groups study tools under Study Lab", () => {
+  it("groups study tools under Study tools", () => {
     expect(primaryDestinationForPath("/study")).toBe("study_lab");
     expect(primaryDestinationForPath("/solver")).toBe("study_lab");
     expect(primaryDestinationForPath("/viva")).toBe("study_lab");

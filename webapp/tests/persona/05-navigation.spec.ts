@@ -274,7 +274,7 @@ test("coming back after a week: can I find my way around and find my stuff?", as
     { label: "Plan", expect: "my timetable / homework list" },
     { label: "Focus", expect: "a timer to stop me getting distracted" },
     { label: "Progress", expect: "my scores and how I'm doing" },
-    { label: "Study Lab", expect: "AI stuff that tests me" },
+    { label: "Study tools", expect: "AI stuff that tests me" },
   ];
 
   for (const area of areas) {

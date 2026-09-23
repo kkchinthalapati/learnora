@@ -243,32 +243,32 @@ export function FeynmanStudioView() {
     switch (session.analogyStyle) {
       case "sports_cricket":
         return {
-          label: "🏏 Cricket comparison",
+          label: "Cricket comparison",
           text: "Think of it like a cricket pitch: imagine the bowler delivers a ball where...",
         };
       case "cooking_kitchen":
         return {
-          label: "🍳 Kitchen comparison",
+          label: "Kitchen comparison",
           text: "Think of it like cooking a recipe: imagine when ingredients react in a pan and...",
         };
       case "gaming_tech":
         return {
-          label: "🎮 Gaming/tech comparison",
+          label: "Gaming or tech comparison",
           text: "Think of it like a game engine loop: imagine when player input updates and...",
         };
       case "physical_machinery":
         return {
-          label: "⚙️ Machinery comparison",
+          label: "Machinery comparison",
           text: "Think of it like interlocking gears and valves: imagine a mechanism where...",
         };
       case "storytelling":
         return {
-          label: "📖 Story metaphor",
+          label: "Story metaphor",
           text: "Picture a royal courier carrying an urgent scroll through castles: imagine...",
         };
       default:
         return {
-          label: "💡 Use a comparison",
+          label: "Use a comparison",
           text: "Think of it like this analogy: imagine...",
         };
     }
@@ -594,7 +594,9 @@ export function FeynmanStudioView() {
 
           {/* Where you type */}
           <div className={styles.consoleCard}>
-            {/* Starter phrases */}
+            {/* Starter phrases. Labelled because unlabelled chips above a
+                textarea read as filters rather than as text they insert. */}
+            <span className={styles.shortcutsLabel}>Insert a prompt</span>
             <div className={styles.shortcutsRow}>
               <button
                 type="button"
@@ -605,7 +607,7 @@ export function FeynmanStudioView() {
                   )
                 }
               >
-                {analogyShortcut.label}
+                <Icon name="sparkles" size={13} /> {analogyShortcut.label}
               </button>
               <button
                 type="button"
@@ -616,7 +618,7 @@ export function FeynmanStudioView() {
                   )
                 }
               >
-                ⚠️ Point out the mistake
+                <Icon name="alert-triangle" size={13} /> Point out the mistake
               </button>
               <button
                 type="button"
@@ -627,7 +629,7 @@ export function FeynmanStudioView() {
                   )
                 }
               >
-                🪜 Go step by step
+                <Icon name="list-checks" size={13} /> Go step by step
               </button>
               <button
                 type="button"
@@ -638,7 +640,7 @@ export function FeynmanStudioView() {
                   )
                 }
               >
-                🔬 Give an example that breaks it
+                <Icon name="bug" size={13} /> Give an example that breaks it
               </button>
             </div>
 

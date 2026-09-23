@@ -170,7 +170,7 @@ export function FeynmanHubView() {
         <div className={styles.heroHeader}>
           <div className={styles.heroTitleGroup}>
             <span className={styles.eyebrowBadge}>
-              <Icon name="brain" size={14} /> Study Lab • Creative Studio
+              <Icon name="brain" size={14} /> Study tools • Creative Studio
             </span>
             <h1 className={styles.heroTitle}>Explain it simply</h1>
             <p className={styles.heroSubtitle}>

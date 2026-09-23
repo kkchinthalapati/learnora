@@ -641,7 +641,7 @@
   height: 8px;
   overflow: hidden;
   background: var(--line);
-  border-radius: 999px;
+  border-radius: var(--r-pill);
 }
 
 .meterFill {

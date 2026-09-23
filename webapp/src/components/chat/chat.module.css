@@ -232,7 +232,7 @@
   padding: 12px 16px;
   background: var(--accent-soft);
   border: 1px solid var(--accent-ring);
-  border-radius: 8px;
+  border-radius: var(--r-md);
   display: flex;
   align-items: center;
   gap: 12px;

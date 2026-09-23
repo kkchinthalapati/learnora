@@ -352,12 +352,10 @@
 
 .smartReviewBtn {
   width: 100%;
-  box-shadow: 0 4px 14px var(--accent-glow);
   font-weight: 700;
 }
 
 .smartReviewBtn:hover {
-  box-shadow: 0 6px 20px var(--accent-glow);
 }
 
 .emptyPrompt {

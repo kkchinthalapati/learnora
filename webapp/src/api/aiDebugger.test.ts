@@ -51,7 +51,8 @@ describe("aiDebugger API", () => {
     it("builds a micro-repair prompt for a root concept", () => {
       const prompt = buildMicroRepairPrompt("Chain Rule Functional Composition");
       expect(prompt).toContain("Chain Rule Functional Composition");
-      expect(prompt).toContain("60-second");
+      expect(prompt).not.toContain("60-second");
+      expect(prompt).toContain("under 40 characters");
       expect(prompt).toContain("intuitionSummary");
     });
   });

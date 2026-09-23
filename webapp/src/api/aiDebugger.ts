@@ -179,9 +179,11 @@ You MUST reply with ONLY valid raw JSON conforming to this exact schema (no pros
 
 /** Build the prompt for generating a 60-second micro-repair */
 export function buildMicroRepairPrompt(rootConcept: string): string {
-  return `You are the Learnora Micro-Repair Engine. Generate a rapid 60-second first-principles interactive mental repair for the following broken foundational concept: "${rootConcept}".
+  return `You are the Learnora Micro-Repair Engine. Generate a short first-principles interactive mental repair for the following broken foundational concept: "${rootConcept}".
 
-Strip out the jargon. Explain it the way you would to a friend who has never seen it before, in plain British English, so it clicks in under a minute.
+Strip out the jargon. Explain it the way you would to a friend who has never seen it before, in plain British English, so it clicks quickly.
+
+The four answer options MUST each be a short clause under 40 characters — "A rate of change", "The final numeric answer" — never a full sentence.
 
 You MUST reply with ONLY valid raw JSON conforming to this exact schema (no prose outside JSON):
 {
@@ -190,10 +192,10 @@ You MUST reply with ONLY valid raw JSON conforming to this exact schema (no pros
   "interactiveExercise": {
     "prompt": "A single targeted conceptual question with 4 options testing this fundamental intuition directly.",
     "options": [
-      "Option A",
-      "Option B",
-      "Option C",
-      "Option D"
+      "Short clause, under 40 characters",
+      "Short clause, under 40 characters",
+      "Short clause, under 40 characters",
+      "Short clause, under 40 characters"
     ],
     "correctIndex": 0,
     "firstPrinciplesExplanation": "A plain explanation of why this answer is right, so the idea sticks."
@@ -263,10 +265,10 @@ function createFallbackMicroRepair(rootConcept: string): MicroRepairChallenge {
     interactiveExercise: {
       prompt: `When you use "${rootConcept}", what is the one thing that has to stay true at every step?`,
       options: [
-        "The units and the logic have to balance the whole way through.",
-        "Only the final number matters, however you got there.",
-        "You can flip a sign whenever the outside terms look right.",
-        "You can skip the basics as long as you remember the shortcut.",
+        "The units and logic must balance.",
+        "Only the final number matters.",
+        "Signs can flip when it looks right.",
+        "Shortcuts can replace the basics.",
       ],
       correctIndex: 0,
       firstPrinciplesExplanation: `If the thing that has to stay the same really does stay the same at every step, the mistake never gets a chance to creep in.`,

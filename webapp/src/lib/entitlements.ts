@@ -239,7 +239,7 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
   },
   feynman: {
     id: "feynman",
-    name: "Feynman Apprentice",
+    name: "Explain it simply",
     description: "Teaching a concept to an AI apprentice to prove you know it.",
   },
   examDeconstructor: {

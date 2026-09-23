@@ -92,7 +92,7 @@ const SECTIONS: NavSection[] = [
       {
         to: "/study",
         icon: "target",
-        label: "Study Lab",
+        label: "Study tools",
         destination: "study_lab",
         children: [
           { to: "/solver", label: "Step-by-step solver" },

@@ -202,6 +202,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   /* Newsreader's optical-size axis: tighter fitting and finer detail as the
      type grows, which is the whole point of using a text face at display size. */
   font-optical-sizing: auto;
+  /* Long headings break at a sensible point rather than dropping one orphan
+     word onto a line of its own. :where() keeps specificity at zero, so any
+     module that needs a different wrap still wins. */
+  text-wrap: balance;
+}
+
+/* Body copy: avoid orphans without the line-length levelling that balance
+   applies, which is wrong for paragraphs. */
+:where(p, li) {
+  text-wrap: pretty;
 }
 
 /* Figures that update in place — timers, stat tiles, counts — must not reflow

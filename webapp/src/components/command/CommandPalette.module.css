@@ -349,7 +349,7 @@
   font-family: ui-monospace, SFMono-Regular, monospace;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  border-radius: 3px;
+  border-radius: var(--r-xs);
   padding: 1px 4px;
   color: var(--text-muted);
 }

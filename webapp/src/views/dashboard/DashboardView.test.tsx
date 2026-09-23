@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Route, Routes } from "react-router";
@@ -718,6 +718,77 @@ describe("DashboardView", () => {
       expect(
         screen.getByRole("heading", { name: "Daily Goals & Study Peers" }),
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("Study this now", () => {
+    const soon = () => {
+      const d = new Date();
+      d.setDate(d.getDate() + 3);
+      return d.toISOString().slice(0, 10);
+    };
+
+    it("sits above every stat tile, and is absent without an upcoming exam", async () => {
+      /* Default fixtures carry no upcoming exam, so the block must not be
+         there at all — not an empty placeholder. */
+      renderDashboard();
+      await screen.findByRole("tab", { name: /All/ });
+      expect(screen.queryByTestId("study-this-now")).not.toBeInTheDocument();
+
+      cleanup();
+      localStorage.clear();
+
+      server.use(
+        http.get(rest("exams"), () =>
+          HttpResponse.json([
+            {
+              id: 1,
+              user_id: "user-1",
+              exam_name: "Physics Paper 1",
+              exam_date: soon(),
+              difficulty: null,
+              status: null,
+              folder_id: "f-physics",
+            },
+          ]),
+        ),
+        http.get(rest("folders"), () =>
+          HttpResponse.json([
+            { id: "f-physics", user_id: "user-1", name: "Physics" },
+          ]),
+        ),
+        http.get(rest("misconceptions"), () =>
+          HttpResponse.json([
+            {
+              id: "m-1",
+              subject: "Physics",
+              concept: "Momentum in 2D collisions",
+              concept_key: "momentum 2d collisions",
+              summary: "Treats momentum as a scalar.",
+              status: "open",
+              severity: "critical",
+              origin_tool: "quiz",
+              times_observed: 3,
+              times_corrected: 0,
+              first_seen_at: "2026-09-01T10:00:00Z",
+              last_seen_at: "2026-09-20T10:00:00Z",
+              resolved_at: null,
+            },
+          ]),
+        ),
+      );
+
+      const second = renderDashboard();
+      const card = await screen.findByTestId("study-this-now");
+
+      /* DOM order, not visual order: the block must precede the tab panel
+         that holds every stat tile. */
+      const panel = second.container.querySelector('[role="tabpanel"]');
+      expect(panel).toBeTruthy();
+      expect(
+        card.compareDocumentPosition(panel as Node) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
     });
   });
 });

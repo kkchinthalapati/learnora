@@ -1,5 +1,5 @@
 .view { display: grid; gap: var(--s-6); max-width: 1000px; margin: 0 auto; }
-.hero { padding: clamp(20px, 4vw, 40px); border: 1px solid var(--glass-border); border-radius: 20px; background: var(--glass-bg); }
+.hero { padding: clamp(20px, 4vw, 40px); border: 1px solid var(--glass-border); border-radius: var(--r-2xl); background: var(--glass-bg); }
 .eyebrow { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: var(--fs-sm); }
 .headline { font-family: var(--font-display); font-size: var(--fs-3xl); line-height: 1.15; margin: 16px 0; }
 .reason { line-height: 1.6; max-width: 64ch; color: var(--text-muted); }
@@ -8,11 +8,11 @@
    enough that a white label lands at 2.48:1 on it. --accent-on is ink in dark
    mode and white in light, so the label follows the fill instead of fighting
    it. */
-.primaryLink { display: inline-block; padding: 12px 18px; margin-top: 16px; border-radius: 10px; background: var(--accent); color: var(--accent-on); }
+.primaryLink { display: inline-block; padding: 12px 18px; margin-top: 16px; border-radius: var(--r-md); background: var(--accent); color: var(--accent-on); }
 /* The matched next step is a link, not a button, so it needs the primary
    button's weight without .primaryLink's stacking margin — that one sits
    alone under a paragraph, this one sits in a row of actions. */
-.stepLink { display: inline-block; padding: 12px 18px; border-radius: 10px; background: var(--accent); color: var(--accent-on); }
+.stepLink { display: inline-block; padding: 12px 18px; border-radius: var(--r-md); background: var(--accent); color: var(--accent-on); }
 .whyLink { color: var(--accent); }
 .region { display: grid; gap: var(--s-4); min-width: 0; }
 .regionTitle { font-size: var(--fs-lg); margin: 0; }

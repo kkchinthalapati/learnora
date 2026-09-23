@@ -79,7 +79,7 @@
 
 .weekdays {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   /* Matches .daysGrid below. Both sit inside .calendarScroll, but only the
      grid carried a min-width — so on any phone (the grid needs 520px, the
      viewport gives 360-390) the header row stayed viewport-width while the day
@@ -266,7 +266,7 @@
 
 .segmented {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--s-1);
   padding: var(--s-1);
   background: var(--surface-2);
@@ -543,9 +543,10 @@
   font-weight: 700;
   font-size: var(--fs-sm);
   color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Wraps rather than truncating: the exam name is the one thing this row
+     exists to show, and "Physics Pap…" at tablet width loses the part that
+     tells two papers in the same subject apart. */
+  overflow-wrap: anywhere;
 }
 
 .upcomingMeta {

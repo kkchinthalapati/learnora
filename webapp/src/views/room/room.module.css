@@ -250,7 +250,6 @@
   background: linear-gradient(135deg, var(--accent), var(--accent-glow));
   color: var(--accent-on);
   border-color: var(--accent);
-  box-shadow: 0 2px 12px var(--accent-ring);
 }
 
 .ambianceVolumeRow {
@@ -267,7 +266,7 @@
   accent-color: var(--accent);
   cursor: pointer;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--r-xs);
 }
 
 /* ---- Room Broadcaster Cheer Bar ----------------------------------------- */

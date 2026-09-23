@@ -202,7 +202,7 @@
 .activeBadge {
   font-size: var(--fs-xs);
   padding: 1px 5px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--accent);
   color: var(--text);
   font-weight: 800;

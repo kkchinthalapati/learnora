@@ -47,7 +47,7 @@ test("first minutes: land, look around, try the most obvious thing", async ({
 
   /* A 14-year-old clicks the thing that sounds most like what they want,
      which is not necessarily the thing the product wants them to click. */
-  const tempting = ["Study Lab", "Quiz me", "What next?", "Start", "Create"];
+  const tempting = ["Study tools", "Quiz me", "What next?", "Start", "Create"];
   for (const label of tempting) {
     const button = page.getByRole("button", { name: label }).first();
     const link = page.getByRole("link", { name: label }).first();
@@ -58,18 +58,18 @@ test("first minutes: land, look around, try the most obvious thing", async ({
     }
   }
 
-  log.did("Clicked Study Lab in the sidebar because 'lab' sounded interesting");
-  const studyLab = page.getByRole("link", { name: "Study Lab" }).first();
+  log.did("Clicked Study tools in the sidebar because 'lab' sounded interesting");
+  const studyLab = page.getByRole("link", { name: "Study tools" }).first();
   if (await studyLab.isVisible().catch(() => false)) {
     await log.timed("open study lab", async () => {
       await studyLab.click();
       await page.waitForLoadState("networkidle").catch(() => {});
     });
     await log.shot("study-lab");
-    log.saw(`Study Lab screen:\n${await log.visibleText(1600)}`);
-    log.saw(`Study Lab options: ${(await log.affordances()).join(" | ")}`);
+    log.saw(`Study tools screen:\n${await log.visibleText(1600)}`);
+    log.saw(`Study tools options: ${(await log.affordances()).join(" | ")}`);
   } else {
-    log.saw("Could not find a Study Lab link at all");
+    log.saw("Could not find a Study tools link at all");
   }
 
   log.did("Hit the browser back button because I changed my mind");

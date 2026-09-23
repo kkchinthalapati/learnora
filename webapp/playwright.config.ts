@@ -71,7 +71,11 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: `npm run dev -- --port ${PORT} --strictPort`,
+    /* --host pins vite to the address BASE_URL names. Without it vite binds
+       `localhost`, which resolves to ::1 on some machines (Windows, recent
+       Node) — the server comes up but 127.0.0.1 never answers, and the suite
+       fails with a webServer timeout rather than anything pointing here. */
+    command: `npm run dev -- --port ${PORT} --strictPort --host 127.0.0.1`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

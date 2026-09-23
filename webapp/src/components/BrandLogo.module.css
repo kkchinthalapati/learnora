@@ -6,7 +6,7 @@
 
 .image {
   /* Handle white background in the JPG by rendering on light backing */
-  border-radius: 0.25rem;
+  border-radius: var(--r-sm);
   flex-shrink: 0;
 }
 

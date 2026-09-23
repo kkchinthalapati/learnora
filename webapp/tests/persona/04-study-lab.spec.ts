@@ -1,7 +1,7 @@
 import { test, expect, loginAs } from "../e2e/support/fixtures";
 import { StudentLog } from "./support/record";
 
-/* Journey 4 — the four Study Lab tools, driven by a distracted 14-year-old.
+/* Journey 4 — the four Study tools, driven by a distracted 14-year-old.
  *
  * Nothing here judges what the AI *says* (the model is stubbed). It records
  * whether a student can get in, what the screen asks of them before it does
@@ -44,7 +44,7 @@ test("study lab: try all four tools like a kid who does not read", async ({
 
   /* ------------------------------------------------------- 1. the hub */
 
-  log.did("Went to Study Lab");
+  log.did("Went to Study tools");
   await log.timed("open /study", async () => {
     await page.goto("study");
     await settle();
@@ -104,7 +104,7 @@ test("study lab: try all four tools like a kid who does not read", async ({
   );
 
   /* 6. Abandon halfway and come back — does the solver remember? */
-  log.did("Got bored, clicked away to Study Lab, then came back to the Solver");
+  log.did("Got bored, clicked away to Study tools, then came back to the Solver");
   await safe("solver-abandon", async () => {
     await page.goto("study");
     await settle();

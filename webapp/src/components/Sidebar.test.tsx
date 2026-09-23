@@ -92,7 +92,7 @@ describe("Sidebar", () => {
       "href",
       "/analytics",
     );
-    expect(screen.getByRole("link", { name: "Study Lab" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Study tools" })).toHaveAttribute(
       "href",
       "/study",
     );

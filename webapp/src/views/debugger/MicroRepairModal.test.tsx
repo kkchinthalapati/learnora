@@ -36,10 +36,10 @@ describe("MicroRepairModal Component", () => {
       />,
     );
 
-    expect(screen.queryByText("60-second fix")).not.toBeInTheDocument();
+    expect(screen.queryByText("Quick check")).not.toBeInTheDocument();
   });
 
-  it("renders the 60s timer, intuition summary, and interactive options", () => {
+  it("renders the intuition summary and interactive options, with no timer", () => {
     renderWithAuth(
       <MicroRepairModal
         open={true}
@@ -50,8 +50,9 @@ describe("MicroRepairModal Component", () => {
       />,
     );
 
-    expect(screen.getByText("60-second fix")).toBeInTheDocument();
-    expect(screen.getByTestId("repair-timer-display")).toHaveTextContent(/60s remaining/i);
+    expect(screen.getByText("Quick check")).toBeInTheDocument();
+    expect(screen.queryByTestId("repair-timer-display")).not.toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     expect(screen.getByTestId("repair-intuition-text")).toHaveTextContent(
       /Zooming in by dx stretches g by g'\(x\)/i,
     );
@@ -136,5 +137,40 @@ describe("MicroRepairModal Component", () => {
     const cancelBtn = screen.getByRole("button", { name: /cancel/i });
     fireEvent.click(cancelBtn);
     expect(handleClose).toHaveBeenCalled();
+  });
+  it("shows the explanation when the student skips, without claiming they got it right", () => {
+    renderWithAuth(
+      <MicroRepairModal
+        open={true}
+        onClose={vi.fn()}
+        challenge={mockChallenge}
+        traceId="trace-123"
+        onRepairSuccess={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("skip-to-explanation-btn"));
+
+    expect(screen.getByText(/Sequential rates of change multiply/i)).toBeInTheDocument();
+    expect(screen.queryByText(/you.ve got it/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("skip-to-explanation-btn")).not.toBeInTheDocument();
+  });
+
+  it("titles the modal Quick check and offers no countdown at any point", () => {
+    renderWithAuth(
+      <MicroRepairModal
+        open={true}
+        onClose={vi.fn()}
+        challenge={mockChallenge}
+        traceId="trace-123"
+        onRepairSuccess={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Quick check" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/remaining/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Time left")).not.toBeInTheDocument();
   });
 });

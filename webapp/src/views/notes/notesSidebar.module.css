@@ -31,7 +31,7 @@
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   flex-shrink: 0;
 }
@@ -74,7 +74,7 @@
   justify-content: center;
   width: 34px;
   height: 34px;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--accent-soft);
   color: var(--accent-text);
 }
@@ -109,7 +109,7 @@
   color: var(--success-on);
   font-size: var(--fs-xs);
   padding: 2px 6px;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   font-weight: 600;
 }
 
@@ -214,7 +214,7 @@
   align-items: flex-end;
   gap: var(--s-2);
   padding: 6px 8px;
-  border-radius: 22px;
+  border-radius: var(--r-2xl);
   background: var(--surface-2);
   border: 1px solid var(--glass-border-subtle);
 }
