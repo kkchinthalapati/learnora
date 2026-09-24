@@ -667,7 +667,7 @@ describe("PlanView", () => {
       );
       renderPlan();
 
-      expect(await screen.findByText(/Optimal Focus:/i)).toBeInTheDocument();
+      expect(await screen.findByText(/You usually focus best:/i)).toBeInTheDocument();
     });
 
     it("omits the peak focus window badge for a student with no session history", async () => {
@@ -675,7 +675,7 @@ describe("PlanView", () => {
       renderPlan();
 
       await screen.findByText(SAMPLE_PLAN.summary);
-      expect(screen.queryByText(/Optimal Focus:/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/You usually focus best:/i)).not.toBeInTheDocument();
     });
 
     it("displays the catch-up banner and redistributes blocks on click when the user is behind", async () => {

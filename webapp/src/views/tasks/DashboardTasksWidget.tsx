@@ -129,8 +129,14 @@ export function DashboardTasksWidget({
               const isRecurring = isRecurringWeekly(task.text);
               const displayText =
                 formatRecurrenceCleanText(task.text) || task.text;
+              /* A task left from days ago is not "due today" — it is late, and a
+                 returning student should see that at a glance rather than
+                 work it out from a date. */
+              const overdue = !!task.due_date && task.due_date < localDateStr();
               const dueLabel = task.due_date
-                ? formatDueDate(task.due_date)
+                ? overdue
+                  ? `Overdue since ${formatDueDate(task.due_date)}`
+                  : formatDueDate(task.due_date)
                 : null;
 
               /* A negative id is the optimistic placeholder useAddTask shows
@@ -139,28 +145,30 @@ export function DashboardTasksWidget({
               const pending = task.id < 0;
 
               return (
+                /* A plain list item holding a real checkbox — see TaskItem
+                   for why the row itself is not the checkbox. */
                 <li
                   key={task.id}
                   className={styles.dashTask}
-                  role="checkbox"
-                  aria-checked={false}
-                  aria-label={task.text}
-                  aria-disabled={pending || undefined}
-                  tabIndex={0}
                   onClick={(e) => {
                     const target = e.target as HTMLElement;
                     if (pending || target.closest("button")) return;
                     toggle(task);
                   }}
-                  onKeyDown={(e) => {
-                    if (pending) return;
-                    if (e.key === " " || e.key === "Enter") {
-                      e.preventDefault();
-                      toggle(task);
-                    }
-                  }}
                 >
-                  <span className={styles.dashCheck} aria-hidden="true" />
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={false}
+                    aria-label={task.text}
+                    aria-disabled={pending || undefined}
+                    className={styles.checkBtn}
+                    onClick={() => {
+                      if (!pending) toggle(task);
+                    }}
+                  >
+                    <span className={styles.dashCheck} aria-hidden="true" />
+                  </button>
                   <div className={styles.dashContent}>
                     <span className={styles.dashLabel}>{displayText}</span>
                     <div className={styles.dashMeta}>
@@ -174,7 +182,9 @@ export function DashboardTasksWidget({
                         </span>
                       )}
                       {dueLabel && (
-                        <span className={styles.dashDue}>{dueLabel}</span>
+                        <span className={overdue ? styles.dashOverdue : styles.dashDue}>
+                          {dueLabel}
+                        </span>
                       )}
                     </div>
                   </div>

@@ -804,8 +804,14 @@ export function useStudyRoom(
         isRunning: true,
         cycleIndex: 0,
       });
+      /* The host is studying too. Without this their own desk said "Idle"
+         and the room counted nobody focusing, straight after they pressed
+         Start. A timer they already have running is left alone. */
+      if (!timer.state.isRunning) {
+        timer.startPreset({ focus: clamped }, "pomodoro");
+      }
     },
-    [userId, fullName],
+    [userId, fullName, timer],
   );
 
   const pauseGroupTimer = useCallback(() => {

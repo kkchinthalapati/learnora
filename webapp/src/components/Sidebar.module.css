@@ -310,8 +310,20 @@ body[data-sidebar-style="transparent"] .sidebar {
     box-shadow: var(--shadow-lg);
   }
 
+  /* Closed, the drawer was only slid off-screen: its links stayed in the
+     tab order and the accessibility tree, so keyboard and screen-reader users
+     landed on invisible links. Hidden when closed; the delay lets the slide
+     out finish before it disappears. */
+  .sidebar:not(.drawerOpen) {
+    visibility: hidden;
+    transition:
+      left var(--t) var(--ease),
+      visibility 0s linear var(--t);
+  }
+
   .sidebar.drawerOpen {
     left: 0;
+    visibility: visible;
   }
 
   .collapseToggle {

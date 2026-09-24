@@ -638,6 +638,14 @@
   color: var(--text-muted);
 }
 
+/* Late, not alarming: warning colour plus the word "Overdue", so the state
+   does not rely on colour alone. */
+.dashOverdue {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--warning-text);
+}
+
 .dashActions {
   display: flex;
   align-items: center;
@@ -740,4 +748,25 @@
     align-items: center;
     justify-content: center;
   }
+}
+
+/* The tick is the task's checkbox: a 44px touch area around the small
+   visual circle, pulled in by negative margin so row spacing is unchanged. */
+.checkBtn {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  margin: -11px -6px -11px -11px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.checkBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -4px;
 }

@@ -711,7 +711,7 @@ export function PlanView() {
             >
               <Icon name="zap" size={13} />
               <span>
-                Optimal Focus: <strong>{peakFocusWindow.label}</strong>
+                You usually focus best: <strong>{peakFocusWindow.label}</strong>
               </span>
             </div>
           )}

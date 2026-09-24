@@ -92,19 +92,11 @@ test("brand new student signs up and meets onboarding", async ({
     .fill("correct-horse-battery")
     .catch(() => {});
 
-  log.did("Tried to submit without ticking the AI data consent box");
-  await submit.click().catch(() => {});
-  await page.waitForTimeout(800);
-  log.saw(`Consent still unticked — landed on: ${new URL(page.url()).pathname}`);
-  const consentComplaint = await page.evaluate(() => {
-    const box = document.querySelector<HTMLInputElement>('input[type="checkbox"]');
-    return box ? { valid: box.checkValidity(), message: box.validationMessage } : null;
-  });
-  log.saw(`Consent checkbox validity: ${JSON.stringify(consentComplaint)}`);
-  await log.shot("no-consent");
-
-  log.did("Ticked the consent box and submitted properly");
-  await page.locator('input[type="checkbox"]').first().check().catch(() => {});
+  /* AI consent moved out of sign-up (it is asked at first AI use), so there
+     is no box to tick here any more. Record that, then submit once. */
+  const consentBoxes = await page.locator('form input[type="checkbox"]').count();
+  log.saw(`Consent checkboxes on the sign-up form: ${consentBoxes}`);
+  log.did("Submitted the form");
   await log.timed("submit signup", async () => {
     await submit.click().catch(() => {});
     await page.waitForTimeout(3000);

@@ -30,7 +30,10 @@ function readPermission(): PermissionState {
 const PERMISSION_COPY: Record<PermissionState, string> = {
   unsupported: "Your browser does not support notifications.",
   granted: "✓ Enabled",
-  denied: "Denied. Please enable in your browser settings.",
+  /* Says how, not just that: "enable in your browser settings" left a
+     student hunting through menus they have never opened. */
+  denied:
+    "Blocked by your browser. To allow them, click the lock or settings icon next to the web address, set Notifications to Allow, then reload.",
   default: "Not enabled yet.",
 };
 

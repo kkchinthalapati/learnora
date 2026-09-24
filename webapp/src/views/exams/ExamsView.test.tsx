@@ -60,8 +60,11 @@ function renderExams() {
   );
 }
 
+/* The day number is the cell's keyboard control; the cell itself (which
+   also holds the exam bars) is its parent. */
 const cellFor = (day: number, month = M, year = Y) =>
-  screen.getByRole("button", { name: `${MONTH_NAMES[month]} ${day}, ${year}` });
+  screen.getByRole("button", { name: `${MONTH_NAMES[month]} ${day}, ${year}` })
+    .parentElement as HTMLElement;
 
 /* The month heading paints before the exams query resolves, so awaiting it
  * proves nothing. The weekday strip renders only once the grid does. */
@@ -268,7 +271,8 @@ describe("ExamsView", () => {
     renderExams();
     await gridReady();
 
-    cellFor(20).focus();
+    /* The day number is a real button, so it is what the keyboard reaches. */
+    screen.getByRole("button", { name: `${MONTH_NAMES[M]} 20, ${Y}` }).focus();
     await user.keyboard("{Enter}");
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();

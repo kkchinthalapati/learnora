@@ -305,27 +305,29 @@ export function ExamsView() {
                 const overflow = forDate.length - MAX_EXAM_BARS_PER_DAY;
 
                 return (
+                  /* The cell is not itself a button: it holds exam buttons,
+                     and a button inside a button is unreadable to a screen
+                     reader (axe: nested-interactive). The day number is the
+                     keyboard control; a click anywhere on the cell still
+                     works for the mouse. */
                   <div
                     key={dateStr}
                     className={`${styles.cell}${dateStr === today ? ` ${styles.today}` : ""}`}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`${MONTH_NAMES[viewMonth.month]} ${day}, ${viewMonth.year}`}
                     onClick={(e) => {
                       /* An exam bar handles its own click; without this the
                          cell would also fire and open the day list on top. */
                       if ((e.target as HTMLElement).closest("button")) return;
                       onCellActivate(dateStr);
                     }}
-                    onKeyDown={(e) => {
-                      if (e.target !== e.currentTarget) return;
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        onCellActivate(dateStr);
-                      }
-                    }}
                   >
-                    <span className={styles.dayNumber}>{day}</span>
+                    <button
+                      type="button"
+                      className={styles.dayNumber}
+                      aria-label={`${MONTH_NAMES[viewMonth.month]} ${day}, ${viewMonth.year}`}
+                      onClick={() => onCellActivate(dateStr)}
+                    >
+                      {day}
+                    </button>
 
                     {forDate.slice(0, MAX_EXAM_BARS_PER_DAY).map((exam) => {
                       const completed =

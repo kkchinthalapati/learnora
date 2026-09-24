@@ -59,7 +59,7 @@ describe("NotificationsTab", () => {
     renderWithProviders(<NotificationsTab />);
 
     expect(
-      screen.getByText("Denied. Please enable in your browser settings."),
+      screen.getByText(/^Blocked by your browser. To allow them/),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Enable Browser Notifications" }),

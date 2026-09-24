@@ -1,9 +1,34 @@
+/* Subjects first and by default: "one folder per class" is how students
+   already organise school. Notebooks — several sources you can ask cited
+   questions across — is the advanced idea, and opening on it left new
+   students guessing how Subjects, Notebooks and Library related. Each tab
+   says, in one line, what it holds. */
 export const LIBRARY_TABS = [
-  { id: "notebooks", label: "Notebooks" },
-  { id: "folders", label: "Subjects" },
-  { id: "materials", label: "Files & notes" },
-  { id: "flashcards", label: "Flashcards" },
-  { id: "quizzes", label: "Quizzes" },
+  {
+    id: "folders",
+    label: "Subjects",
+    blurb: "One folder per class. Notes, flashcards and quizzes for Biology all live in Biology.",
+  },
+  {
+    id: "materials",
+    label: "Files & notes",
+    blurb: "Everything you've uploaded or pasted, and the notes made from it — from every subject.",
+  },
+  {
+    id: "flashcards",
+    label: "Flashcards",
+    blurb: "All your flashcard decks, from every subject.",
+  },
+  {
+    id: "quizzes",
+    label: "Quizzes",
+    blurb: "All your practice quizzes, from every subject.",
+  },
+  {
+    id: "notebooks",
+    label: "Notebooks",
+    blurb: "Put several sources side by side and ask questions that answer with quotes from them.",
+  },
 ] as const;
 
 export type LibraryTabId = (typeof LIBRARY_TABS)[number]["id"];
@@ -13,7 +38,7 @@ export function isLibraryTab(value: string | undefined): value is LibraryTabId {
 }
 
 export function pathForTab(tab: LibraryTabId): string {
-  return tab === "notebooks" ? "/library" : `/library/${tab}`;
+  return tab === "folders" ? "/library" : `/library/${tab}`;
 }
 
 // Folder colors come from a free-text database column, so inline styles accept

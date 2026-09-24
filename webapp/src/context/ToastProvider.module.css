@@ -3,7 +3,7 @@
 
 .container {
   position: fixed;
-  bottom: 24px;
+  bottom: calc(24px + var(--mobile-tabbar-clearance, 0px));
   right: 24px;
   /* Anchored on the right, but bounded on the left so a long message wraps
      inside the viewport instead of growing off the edge of it. Toasts carry

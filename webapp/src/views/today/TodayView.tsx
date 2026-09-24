@@ -53,8 +53,23 @@ export function TodayView() {
         }}
       />
       {completed ? <SessionCompletePanel session={completed} onClose={dismissCompletedFocus} /> : null}
-      <section className={styles.region} aria-labelledby="today-due"><h2 id="today-due" className={styles.regionTitle}>Due today</h2><TasksCard dueOnly /></section>
-      <section className={styles.region} aria-labelledby="today-exam"><h2 id="today-exam" className={styles.regionTitle}>Next exam</h2><NextExamCard /></section>
+      {/* Each heading carries its card's link, and the cards leave out their
+          own header row: two headings saying the same thing ("Due today" over
+          "TODAY'S TASKS") was the problem, and hiding the second left a gap. */}
+      <section className={styles.region} aria-labelledby="today-due">
+        <div className={styles.regionHead}>
+          <h2 id="today-due" className={styles.regionTitle}>Due today</h2>
+          <Link to="/tasks" className={styles.regionLink}>View all tasks</Link>
+        </div>
+        <TasksCard dueOnly headless />
+      </section>
+      <section className={styles.region} aria-labelledby="today-exam">
+        <div className={styles.regionHead}>
+          <h2 id="today-exam" className={styles.regionTitle}>Next exam</h2>
+          <Link to="/exams" className={styles.regionLink}>Open calendar</Link>
+        </div>
+        <NextExamCard headless />
+      </section>
       <section className={styles.region} aria-labelledby="today-continue"><h2 id="today-continue" className={styles.regionTitle}>Continue</h2><RecentNotebooksShelf /><ResumeLearningCard /></section>
       <p className={styles.footer}>Your mistakes, streaks and study history are in <Link to="/analytics">Progress</Link> and on the <Link to="/dashboard">Dashboard</Link>.</p>
     </div>

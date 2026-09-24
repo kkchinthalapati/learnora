@@ -1,0 +1,51 @@
+/* Phone-only bottom navigation. Its height is shared as
+   --mobile-tabbar-clearance (index.css) so the page, the docked focus timer
+   and toasts all sit above it rather than under it. */
+.bar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  .tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 52px;
+    min-width: 44px;
+    padding: 4px 2px;
+    border: 0;
+    border-radius: var(--r-md);
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .tab:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .active {
+    color: var(--accent-text);
+    background: var(--accent-soft);
+  }
+}

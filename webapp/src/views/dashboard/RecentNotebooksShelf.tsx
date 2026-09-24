@@ -31,7 +31,7 @@ export function RecentNotebooksShelf() {
           </span>
         </div>
         <Link
-          to="/library"
+          to="/library/notebooks"
           className={styles.link}
           style={{ fontSize: "var(--fs-xs)" }}
         >

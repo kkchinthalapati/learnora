@@ -67,6 +67,9 @@ export interface TimerApi {
   applyFav: (fav: FavPreset) => void;
 
   quote: string;
+  /** Minutes the focus length was set to from the student's usual session
+   *  length, or null if it is still the default. */
+  adaptedFocusMins?: number | null;
   newQuote: () => void;
 }
 

@@ -200,7 +200,7 @@ export function AppRoutes() {
             <Route path="/dashboard" element={<DashboardView />} />
             <Route
               path="/notebooks"
-              element={<Navigate to="/library" replace />}
+              element={<Navigate to="/library/notebooks" replace />}
             />
             <Route
               path="/notebooks/:notebookId"

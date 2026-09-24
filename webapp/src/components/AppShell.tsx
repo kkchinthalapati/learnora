@@ -3,6 +3,7 @@ import { Outlet } from "react-router";
 import { Header } from "./Header";
 import { OfflineBanner } from "./OfflineBanner";
 import { Sidebar } from "./Sidebar";
+import { MobileTabBar } from "./MobileTabBar";
 import { useBlockReminders } from "../hooks/useBlockReminders";
 import styles from "./AppShell.module.css";
 
@@ -68,6 +69,8 @@ export function AppShell() {
           onClick={() => setMobileOpen(false)}
         />
       ) : null}
+
+      {isMobile ? <MobileTabBar onMore={() => setMobileOpen(true)} /> : null}
 
       <main className={styles.mainContent}>
         <div className={styles.contentFrame}>

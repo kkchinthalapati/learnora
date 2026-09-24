@@ -135,7 +135,8 @@ export function DashboardView({
           <span className={styles.dashboardDate}>{dashboardDate()}</span>
           <p className={styles.dashboardPrompt}>
             How you&apos;re doing: mistakes, memory, streaks and study history.
-            What to do next is on <Link to="/">Today</Link>.
+            What to do next is on{" "}
+            <Link to="/" className={styles.leadLink}>Today</Link>.
           </p>
         </div>
         <div className={styles.leadActions}>

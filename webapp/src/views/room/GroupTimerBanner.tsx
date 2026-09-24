@@ -147,10 +147,10 @@ export function GroupTimerBanner({
           onClick={() =>
             onSyncMyTimer(Math.max(1, Math.ceil(secondsRemaining / 60)))
           }
-          title="Align your personal focus timer HUD with this room"
+          title="Set your own timer to the time left in this session"
         >
           <Icon name="refresh-cw" size={14} />
-          <span>Sync My HUD</span>
+          <span>Match my timer</span>
         </Button>
 
         {isHost && (

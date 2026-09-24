@@ -72,6 +72,9 @@
 
   .mainContent {
     padding: var(--s-4);
-    padding-bottom: calc(var(--s-6) + var(--focus-hud-clearance, 0px));
+    padding-bottom: calc(
+      var(--s-6) + var(--focus-hud-clearance, 0px) +
+        var(--mobile-tabbar-clearance, 0px)
+    );
   }
 }

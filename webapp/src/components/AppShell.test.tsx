@@ -328,13 +328,12 @@ describe("AppShell", () => {
     renderShell("/");
     const user = userEvent.setup();
 
+    /* On a phone the menu opens from the bottom tab bar's More. */
     const sidebar = screen.getByRole("navigation", { name: "Main navigation" });
-    await user.click(
-      screen.getByRole("button", { name: "Toggle Sidebar Menu" }),
-    );
+    await user.click(screen.getByRole("button", { name: /^More/ }));
     expect(sidebar.className).toMatch(/drawerOpen/);
 
-    await user.click(screen.getByRole("link", { name: /Library/ }));
+    await user.click(within(sidebar).getByRole("link", { name: /Library/ }));
     await waitFor(() => expect(sidebar.className).not.toMatch(/drawerOpen/));
 
     Object.defineProperty(window, "innerWidth", {

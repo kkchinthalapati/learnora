@@ -106,7 +106,7 @@
 
 .tabDescription {
   overflow: hidden;
-  color: var(--text-faint);
+  color: var(--text-muted);
   font-size: var(--fs-xs);
   line-height: 1.35;
   text-overflow: ellipsis;

@@ -152,9 +152,22 @@
 
 .dayNumber {
   align-self: flex-end;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font: inherit;
   font-size: var(--fs-sm);
   font-weight: 600;
-  color: var(--text-faint);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.dayNumber:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .today .dayNumber {

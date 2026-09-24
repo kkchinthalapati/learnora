@@ -153,7 +153,8 @@ export function StudyRoomView() {
       <header className={styles.roomHeader}>
         <div className={styles.roomHeaderLeft}>
           <div className={styles.roomTitleRow}>
-            <h1 className={styles.roomTitle}>Virtual Study Circle</h1>
+            {/* Same name as the sidebar row and the header ("Study Room"). */}
+            <h1 className={styles.roomTitle}>Study Room</h1>
             <div className={styles.roomStats} aria-label="Active participants">
               <span className={styles.liveDot} />
               <span>

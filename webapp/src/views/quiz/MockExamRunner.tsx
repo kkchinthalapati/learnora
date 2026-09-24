@@ -85,7 +85,14 @@ export function MockExamRunner() {
       return;
     }
     containerRef.current.requestFullscreen().catch(() => {
-      showToast("Failed to enter fullscreen.", { error: true });
+      /* The API exists but the browser said no (a setting, an embedded
+         view). This used to leave the student on the start screen with
+         "Failed to enter fullscreen" and no way to sit the exam at all. Same
+         fallback as a device without the API. */
+      showToast(
+        "Your browser wouldn't go fullscreen — starting without it. Switching tabs will still end the exam.",
+      );
+      setIsFullscreen(true);
     });
   };
 
@@ -118,9 +125,15 @@ export function MockExamRunner() {
       <div className={styles.view} ref={containerRef}>
         <Card variant="panel" padding="lg">
           <h2>Mock Exam: {quiz.title}</h2>
-          <p>This is a strict mock exam. You must remain in fullscreen mode. If you exit fullscreen, your exam will be terminated.</p>
+          <p>
+            {typeof document !== "undefined" && document.fullscreenEnabled
+              ? "This is a strict mock exam. It runs fullscreen; leaving fullscreen or switching tabs ends it."
+              : "This is a strict mock exam. Your device can't go fullscreen, so it runs in this tab; switching tabs or apps ends it."}
+          </p>
           <Button variant="danger" onClick={enterFullscreen}>
-            Begin Mock Exam (Fullscreen)
+            {typeof document !== "undefined" && document.fullscreenEnabled
+              ? "Begin Mock Exam (Fullscreen)"
+              : "Begin Mock Exam"}
           </Button>
           <div style={{ marginTop: 16 }}>
             <Link to={QUIZZES_PATH} className={styles.exit}>Cancel</Link>

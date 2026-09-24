@@ -213,22 +213,25 @@ export const quizzes = [
     material_id: "m-1",
     folder_id: "f-bio",
     title: "Enzymes quick check",
+    /* Same shape the app stores (lib/aiJson QuizQuestion): choices and
+       correctIndex. It used options/answer, so the harness quiz, the mock
+       exam and every screen built on this fixture showed "no questions". */
     questions_json: [
       {
         question: "Enzymes are best described as…",
-        options: ["Catalysts", "Substrates", "Hormones", "Lipids"],
-        answer: 0,
+        choices: ["Catalysts", "Substrates", "Hormones", "Lipids"],
+        correctIndex: 0,
         topic: "Enzymes",
       },
       {
         question: "Raising temperature past the optimum will…",
-        options: [
+        choices: [
           "Speed it up forever",
           "Denature the enzyme",
           "Change the substrate",
           "Do nothing",
         ],
-        answer: 1,
+        correctIndex: 1,
         topic: "Rates",
       },
     ],

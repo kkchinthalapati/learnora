@@ -247,8 +247,8 @@ describe("buildDemands — weak topics", () => {
       ],
     });
     expect(demands.map((d) => d.label)).toEqual([
-      "Rebuild: Titration",
-      "Rebuild: Moles",
+      "Go over Titration again",
+      "Go over Moles again",
     ]);
     expect(demands.every((d) => d.load === 3 && !d.dueDate)).toBe(true);
   });

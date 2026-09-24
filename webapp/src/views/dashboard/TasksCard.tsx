@@ -14,10 +14,14 @@ import styles from "./dashboard.module.css";
 
 type TasksCardProps = {
   dueOnly?: boolean;
+  /** The page titles this card itself (Today's "Due today" heading, with
+   *  the View all link beside it), so the card's own header row is left
+   *  out rather than hidden — hiding it left an empty band at the top. */
+  headless?: boolean;
   taskInputRef?: Ref<HTMLInputElement>;
 };
 
-export function TasksCard({ taskInputRef, dueOnly }: TasksCardProps = {}) {
+export function TasksCard({ taskInputRef, dueOnly, headless }: TasksCardProps = {}) {
   const { data: dueCount, isPending } = useFlashcardsDueCount();
   const { settings } = useSettings();
 
@@ -29,6 +33,7 @@ export function TasksCard({ taskInputRef, dueOnly }: TasksCardProps = {}) {
 
   return (
     <Card variant="elevated" className={styles.tasksCard}>
+      {headless ? null : (
       <DashboardCardHeader
         /* One card, two filters, and it used to claim the same thing under
            both: Today renders it with `dueOnly`, the full dashboard without,
@@ -38,6 +43,7 @@ export function TasksCard({ taskInputRef, dueOnly }: TasksCardProps = {}) {
         eyebrow={dueOnly ? "Today's tasks" : "All tasks"}
         action={{ to: "/tasks", label: "View all" }}
       />
+      )}
       <DashboardTasksWidget inputRef={taskInputRef} dueOnly={dueOnly} />
       {/* Suppress during the initial fetch rather than defaulting to 0 —
           otherwise every dashboard load flashes "no cards due" for a beat

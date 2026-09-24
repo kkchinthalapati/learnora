@@ -163,7 +163,9 @@ export function buildDemands(src: DemandSources): StudyDemand[] {
   for (const weak of (src.weakTopics ?? []).slice(0, 2)) {
     demands.push({
       id: `weak:${weak.topic}`,
-      label: `Rebuild: ${weak.topic}`,
+      /* Plain words on the student's schedule: this is a topic their quizzes
+         keep getting wrong. "Rebuild: Rates" read like a build step. */
+      label: `Go over ${weak.topic} again`,
       kind: "subject",
       estMins: 30,
       load: 3,

@@ -37,12 +37,22 @@ import styles from "./timer.module.css";
  * only the screen. That split is what replaces `Timer.updateUI()`, which
  * hand-wrote nine elements and toggled five `.hidden` classes on every tick. */
 
+/* Named for what they do. "Pomodoro" and "Flowtime" are study-hack jargon a
+   lot of students have never met; the one-line description under the
+   selector (TYPE_SUMMARY) says what the chosen one will actually do. */
 const TYPE_LABELS: ReadonlyArray<{ id: TimerType; label: string }> = [
-  { id: "pomodoro", label: "Pomodoro" },
+  { id: "pomodoro", label: "Focus & breaks" },
   { id: "countdown", label: "Countdown" },
   { id: "stopwatch", label: "Stopwatch" },
-  { id: "flowtime", label: "Flowtime" },
+  { id: "flowtime", label: "Flow" },
 ];
+
+const TYPE_SUMMARY: Record<TimerType, string> = {
+  pomodoro: "Focus, short break, repeat — a long break every few rounds (the Pomodoro method).",
+  countdown: "One block of focus that ends when the time runs out.",
+  stopwatch: "Counts up until you stop. Good when you don't know how long it'll take.",
+  flowtime: "Focus as long as you like; your break is about a fifth of that time.",
+};
 
 const TYPE_NOTES: Partial<
   Record<TimerType, { heading: string; note: string }>
@@ -56,7 +66,7 @@ const TYPE_NOTES: Partial<
     note: 'Open-ended count-up for flow sessions. Start it and focus — "Stop & log" records the minutes you studied.',
   },
   flowtime: {
-    heading: "Flowtime",
+    heading: "Flow",
     note: 'Focus as long as you like, then hit "Take a break". You\'ll get a break about a fifth as long, then it loops back to focus.',
   },
 };
@@ -66,10 +76,12 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 const RECENT_SESSION_LIMIT = 5;
 const FOCUS_SOUNDS: ReadonlyArray<{ id: AmbiancePreset; label: string }> = [
   { id: "rain", label: "Rain" },
-  { id: "white_noise", label: "Brown noise" },
+  { id: "white_noise", label: "Soft static" },
   { id: "cafe", label: "Café" },
   { id: "waves", label: "Waves" },
-  { id: "binaural", label: "Alpha waves" },
+  /* "Alpha waves" promised a brain effect the sound can't deliver; it is a
+     low steady hum, so it says so. */
+  { id: "binaural", label: "Low hum" },
 ];
 
 interface RecentFocusSession {
@@ -114,6 +126,7 @@ export function TimerView() {
     deleteFav,
     applyFav,
     quote,
+    adaptedFocusMins,
   } = useTimer();
   const setActiveTask = (task: string) => { bindTask(task); setActiveDeckId(null); };
   const auth = useOptionalAuth();
@@ -275,6 +288,20 @@ export function TimerView() {
               </label>
             ))}
           </div>
+          <p className={styles.typeSummary}>{TYPE_SUMMARY[panelType]}</p>
+          {panelType === "pomodoro" && adaptedFocusMins && draftConfig.focus === adaptedFocusMins ? (
+            <p className={styles.typeSummary}>
+              Focus is set to {adaptedFocusMins} min — about how long your
+              sessions usually last.{" "}
+              <button
+                type="button"
+                className={styles.inlineLink}
+                onClick={() => setDraftConfig({ focus: 25 })}
+              >
+                Use 25 min
+              </button>
+            </p>
+          ) : null}
 
           {/* Staging a type mid-run needs saying out loud, or the timer looks
               like it ignored the click. role=status announces it. */}

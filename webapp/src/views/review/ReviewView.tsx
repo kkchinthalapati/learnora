@@ -228,6 +228,31 @@ function ReviewLauncher({
   );
 }
 
+const SMALL_DECK = 20;
+
+/** Wraps optional settings in a closed <details> with a one-line summary, or
+ *  renders them as-is when they are worth seeing up front. */
+function OptionalFold({
+  fold,
+  summary,
+  children,
+}: {
+  fold: boolean;
+  summary: string;
+  children: React.ReactNode;
+}) {
+  if (!fold) return <>{children}</>;
+  return (
+    <details className={styles.setupFold}>
+      <summary>
+        <span>{summary}</span>
+        <span className={styles.setupFoldChange}>Change</span>
+      </summary>
+      {children}
+    </details>
+  );
+}
+
 function ReviewSetup({
   deckTitle,
   dueCards,
@@ -244,6 +269,12 @@ function ReviewSetup({
   );
   const [order, setOrder] = useState<ReviewOrder>("due");
   const lengths = availableReviewLengths(dueCards.length);
+  /* A short deck needs no planning: the choices fold behind one line that
+     states the defaults, and Start review is the next thing on screen. Past
+     this size, how many to do is a real decision and stays in view. */
+  const small = dueCards.length <= SMALL_DECK;
+  const orderName =
+    order === "due" ? "Oldest first" : order === "difficult" ? "Hardest first" : "Quiz weak spots first";
 
   return (
     <div className={styles.view}>
@@ -253,9 +284,13 @@ function ReviewSetup({
         <h2 className={styles.title}>{deckTitle}</h2>
         <p className={styles.setupIntro}>
           {dueCards.length} {dueCards.length === 1 ? "card is" : "cards are"}{" "}
-          due. Choose a focused session that fits the time you have.
+          due.{small ? "" : " Choose a focused session that fits the time you have."}
         </p>
 
+        <OptionalFold
+          fold={small}
+          summary={`${length === "all" ? `All ${dueCards.length} cards` : `${length} cards`} · ${orderName}`}
+        >
         <fieldset className={styles.optionGroup}>
           <legend>Session length</legend>
           <div className={styles.choiceGrid}>
@@ -327,6 +362,7 @@ function ReviewSetup({
             ) : null}
           </div>
         </fieldset>
+        </OptionalFold>
 
         <Button variant="primary" onClick={() => onStart(length, order)}>
           Start review

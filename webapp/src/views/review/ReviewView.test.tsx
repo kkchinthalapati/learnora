@@ -339,6 +339,36 @@ describe("ReviewView", () => {
     ).toBeInTheDocument();
   });
 
+  /* A few cards need no planning: the options fold behind one line and the
+     next thing on screen is Start review. A big pile keeps them in view. */
+  it("folds the options away for a short deck, and states the defaults", async () => {
+    serve({
+      cards: [
+        card({ id: "c-1", front: "Q1", back: "A1" }),
+        card({ id: "c-2", front: "Q2", back: "A2" }),
+        card({ id: "c-3", front: "Q3", back: "A3" }),
+      ],
+    });
+    renderReview("d-1", false);
+
+    expect(await screen.findByText(/3 cards · Oldest first/)).toBeInTheDocument();
+    const fold = screen.getByText(/3 cards · Oldest first/).closest("details");
+    expect(fold).not.toHaveAttribute("open");
+    expect(screen.queryByText(/Choose a focused session/)).toBeNull();
+  });
+
+  it("keeps the options in view for a big pile", async () => {
+    serve({
+      cards: Array.from({ length: 30 }, (_, index) =>
+        card({ id: "c-" + index, front: "Q" + index, back: "A" + index }),
+      ),
+    });
+    renderReview("d-1", false);
+
+    expect(await screen.findByText(/Choose a focused session/)).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Due order/ }).closest("details")).toBeNull();
+  });
+
   it("lets the student choose a session length and difficult-first order", async () => {
     serve({
       cards: Array.from({ length: 12 }, (_, index) =>
