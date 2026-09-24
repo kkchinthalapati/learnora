@@ -55,7 +55,7 @@ describe("GroupTimerBanner", () => {
     expect(screen.getByText(/Hosted by Alice/)).toBeInTheDocument();
     expect(screen.getByText(/Focus · Block #1/)).toBeInTheDocument();
 
-    const syncBtn = screen.getByRole("button", { name: /Sync My HUD/i });
+    const syncBtn = screen.getByRole("button", { name: /Match my timer/i });
     const user = userEvent.setup();
     await user.click(syncBtn);
     expect(onSync).toHaveBeenCalled();

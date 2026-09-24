@@ -333,7 +333,7 @@ describe("StudyRoomView", () => {
         screen.queryByRole("button", { name: /Pause/i }),
       ).not.toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: /Sync My HUD/i }),
+        screen.getByRole("button", { name: /Match my timer/i }),
       ).toBeInTheDocument();
     });
   });

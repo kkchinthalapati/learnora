@@ -804,6 +804,35 @@ describe("useStudyRoom", () => {
       );
     });
 
+    it("starting one also starts the host's own timer, so their desk is not idle", () => {
+      const timerApi = createTimerApi();
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState, timerApi),
+      });
+
+      act(() => {
+        result.current.startGroupFocus(30);
+      });
+
+      expect(timerApi.startPreset).toHaveBeenCalledWith({ focus: 30 }, "pomodoro");
+    });
+
+    it("leaves a timer the host already has running alone", () => {
+      const timerApi = createTimerApi({
+        state: { ...initialTimerState(), isRunning: true },
+      });
+      const { result } = renderHook(() => useStudyRoom("global"), {
+        wrapper: createWrapper(fakeAuthState, timerApi),
+      });
+
+      act(() => {
+        result.current.startGroupFocus(30);
+      });
+
+      expect(timerApi.startPreset).not.toHaveBeenCalled();
+      expect(result.current.isGroupTimerHost).toBe(true);
+    });
+
     it("syncs a personal timer to the group's remaining minutes", () => {
       const timerApi = createTimerApi();
       const { result } = renderHook(() => useStudyRoom("global"), {
