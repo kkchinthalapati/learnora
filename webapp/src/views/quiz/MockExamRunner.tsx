@@ -131,7 +131,9 @@ export function MockExamRunner() {
               : "This is a strict mock exam. Your device can't go fullscreen, so it runs in this tab; switching tabs or apps ends it."}
           </p>
           <Button variant="danger" onClick={enterFullscreen}>
-            Begin Mock Exam (Fullscreen)
+            {typeof document !== "undefined" && document.fullscreenEnabled
+              ? "Begin Mock Exam (Fullscreen)"
+              : "Begin Mock Exam"}
           </Button>
           <div style={{ marginTop: 16 }}>
             <Link to={QUIZZES_PATH} className={styles.exit}>Cancel</Link>
