@@ -24,7 +24,7 @@
 .region { display: grid; gap: var(--s-4); min-width: 0; }
 .regionTitle { font-size: var(--fs-lg); margin: 0; }
 .regionHead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; }
-.regionLink { color: var(--accent-text); font-size: var(--fs-sm); font-weight: 600; min-height: 32px; display: inline-flex; align-items: center; }
+.regionLink { color: var(--accent-text); font-size: var(--fs-sm); font-weight: 600; min-height: var(--touch-target-min); display: inline-flex; align-items: center; }
 .footer { color: var(--text-muted); padding-bottom: 24px; }
 /* These two inline links carry no class of their own, so without this they
    render in the UA's default #0000ee — 2.08:1 on the dark page, and visibly

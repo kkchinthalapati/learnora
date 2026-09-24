@@ -82,24 +82,21 @@ test.describe("Mobile", () => {
   test("navigation is reachable on a small screen", async ({ page }) => {
     await loginAs(page);
 
-    /* The sidebar collapses on a phone; whatever replaces it has to actually
-       open and take the student somewhere. */
-    const menu = page
-      .getByRole("button", { name: /menu|navigation|open sidebar/i })
-      .first();
-    await menu.click();
-
-    /* "Plan" rather than "Tasks": the rail lists sections now, and Tasks is a
-       child revealed only once Plan is the active one — so Plan is the link a
-       student on a phone actually reaches for to get there. */
-    const plan = page.getByRole("link", { name: "Plan" });
+    /* The main places are a bottom tab bar, one thumb-tap away — not behind
+       a hamburger in the top corner. */
+    const tabs = page.getByRole("navigation", { name: "Quick navigation" });
+    const plan = tabs.getByRole("link", { name: "Plan" });
     await expect(plan).toBeVisible();
-
     const box = await plan.boundingBox();
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(MIN_TAP_TARGET);
-
     await plan.click();
     await expect(page).toHaveURL(/\/plan/);
+    await expect(plan).toHaveAttribute("aria-current", "page");
+
+    /* Everything else is under More, which opens the full menu. */
+    await tabs.getByRole("button", { name: /^More/ }).click();
+    await page.getByRole("link", { name: "Progress" }).click();
+    await expect(page).toHaveURL(/\/analytics/);
   });
 
   test("quiz answers are tappable and on screen", async ({ page, backend }) => {

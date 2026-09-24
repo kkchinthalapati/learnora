@@ -2,7 +2,7 @@
 
 .hudContainer {
   position: fixed;
-  bottom: clamp(20px, 4vw, 36px);
+  bottom: calc(clamp(20px, 4vw, 36px) + var(--mobile-tabbar-clearance, 0px));
   left: clamp(20px, 4vw, 36px);
   z-index: 985;
   display: flex;

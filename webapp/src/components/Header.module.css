@@ -102,8 +102,10 @@
     margin-bottom: var(--s-5);
   }
 
+  /* No hamburger on phones: the bottom tab bar's "More" opens the same
+     drawer, where a thumb can reach it. */
   .menuToggle.menuToggle {
-    display: flex;
+    display: none;
   }
 
   .headerLeft {

@@ -134,6 +134,19 @@ textarea:focus {
   background-color: var(--surface);
 }
 
+/* Height of the phone bottom tab bar (MobileTabBar), shared so fixed
+   elements that dock to the bottom — the focus timer HUD, toasts — sit above
+   it. Zero on wider screens, where there is no bar. */
+:root {
+  --mobile-tabbar-clearance: 0px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --mobile-tabbar-clearance: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 select {
   cursor: pointer;
   appearance: none;
