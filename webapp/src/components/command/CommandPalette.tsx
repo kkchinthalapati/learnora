@@ -13,6 +13,7 @@ import { useToast } from "../../context/toast";
 import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useAllDecks } from "../../hooks/useDecks";
+import { useQuizzes } from "../../hooks/useQuizzes";
 import { tasksApi } from "../../api/tasks";
 import { tasksKeys } from "../../hooks/useTasks";
 import { resolveDark, THEME_KEY } from "../../lib/appearance";
@@ -70,6 +71,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   const { data: folders = [] } = useFolders();
   const { data: materials = [] } = useMaterials();
   const { data: decks = [] } = useAllDecks();
+  const { data: quizzes = [] } = useQuizzes();
 
   // Overlay Stack & Focus Trap behavior
   useOverlayBehavior({
@@ -532,6 +534,37 @@ export function CommandPalette(props: CommandPaletteProps) {
       });
     });
 
+    /* Quizzes were not searchable at all: "quiz" returned "No matching
+       results", and a quiz's own title never matched. Practice questions
+       are one of the most common things a student comes looking for. */
+    items.push({
+      id: "nav-quizzes",
+      category: "Navigation",
+      title: "Quizzes",
+      subtitle: "Your practice quizzes, or make a new one",
+      icon: "help-circle",
+      keywords: ["quiz", "quizzes", "practice questions", "test me", "mock"],
+      onSelect: () => {
+        navigate("/library/quizzes");
+        handleClose();
+      },
+    });
+    quizzes.forEach((quiz) => {
+      items.push({
+        id: `quiz-${quiz.id}`,
+        category: "Quizzes",
+        title: quiz.title,
+        subtitle: "Take this quiz",
+        icon: "help-circle",
+        badge: "Quiz",
+        keywords: ["quiz", "practice", "test", quiz.title],
+        onSelect: () => {
+          navigate(`/quiz/${quiz.id}`);
+          handleClose();
+        },
+      });
+    });
+
     // --- Dynamic: Flashcard Decks ---
     decks.forEach((deck) => {
       items.push({
@@ -557,6 +590,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     folders,
     materials,
     decks,
+    quizzes,
     navigate,
     handleClose,
     timer,

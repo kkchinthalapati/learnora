@@ -525,13 +525,21 @@
 }
 
 /* Action Footer */
+/* Pinned to the bottom of the dialog's scroll area. At laptop height
+   (1280×800) the form ran past the fold and the Generate button sat half
+   clipped at the dialog's edge, with nothing saying to scroll. */
 .actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: var(--s-3);
   padding-top: var(--s-4);
+  padding-bottom: var(--s-2);
   border-top: 1px solid var(--line);
+  background: var(--surface);
 }
 
 .submitButton {

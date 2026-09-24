@@ -149,8 +149,13 @@ export function MaterialPanel({
   const [wantQuiz, setWantQuiz] = useState(
     outputs?.quiz !== undefined ? outputs.quiz : false,
   );
+  /* One output ticked by default, not two. Each one is a separate
+     generation run back to back, so a student who came for a quiz and also
+     ticked it waited through flashcards and notes first — and spent three
+     of the day's AI allowance on one request. Callers that know what the
+     student wants still pass `outputs`. */
   const [wantNotes, setWantNotes] = useState(
-    outputs?.notes !== undefined ? outputs.notes : true,
+    outputs?.notes !== undefined ? outputs.notes : false,
   );
 
   const [folderId, setFolderId] = useState(initialFolderId ?? "");
@@ -1034,7 +1039,11 @@ export function MaterialPanel({
         <div className={styles.progress} role="status" aria-live="polite">
           <span className={styles.spinner} aria-hidden="true" />
           <div className={styles.progressCopy}>
-            <strong>Building from your source</strong>
+            <strong>
+              {source === "topic"
+                ? "Building from your topic"
+                : "Building from your source"}
+            </strong>
             <span>{progress}</span>
           </div>
         </div>

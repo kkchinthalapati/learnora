@@ -25,7 +25,27 @@ export function useAddTask() {
       text: string;
       dueDate?: string | null;
     }) => tasksApi.add(text, dueDate ?? null),
-    onSuccess: () => qc.invalidateQueries({ queryKey: tasksKeys.all }),
+    /* Optimistic, like the toggle below. Offline, React Query pauses this
+       mutation until the connection returns, so without a placeholder row the
+       task a student just typed vanished from the list — and was then added
+       twice when they typed it again. The temporary negative id is replaced
+       by the real row on the refetch after it lands. */
+    onMutate: async ({ text, dueDate }) => {
+      await qc.cancelQueries({ queryKey: tasksKeys.all });
+      const previous = qc.getQueryData<Task[]>(tasksKeys.all);
+      const placeholder = {
+        id: -Date.now(),
+        text,
+        is_done: false,
+        due_date: dueDate ?? null,
+      } as Task;
+      qc.setQueryData<Task[]>(tasksKeys.all, (old) => [...(old ?? []), placeholder]);
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(tasksKeys.all, context.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: tasksKeys.all }),
   });
 }
 
