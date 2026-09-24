@@ -158,25 +158,26 @@ describe("LibraryView shell", () => {
     vi.restoreAllMocks();
   });
 
-  it("opens one workspace with Notebooks first on /library", async () => {
+  /* Subjects first: "one folder per class" is how students already sort
+     school. Each tab says what it holds. */
+  it("opens on Subjects, with Notebooks last, and says what the tab holds", async () => {
     serveLibrary({ folders: [folder()] });
     renderLibrary("/library");
 
     const tabs = await screen.findAllByRole("tab");
     expect(tabs.map((t) => t.textContent)).toEqual([
-      "Notebooks",
       "Subjects",
       "Files & notes",
       "Flashcards",
       "Quizzes",
+      "Notebooks",
     ]);
-    expect(tab("Notebooks")).toHaveAttribute("aria-selected", "true");
+    expect(tab("Subjects")).toHaveAttribute("aria-selected", "true");
     expect(
       screen.getByRole("heading", { name: "Your learning" }),
     ).toBeInTheDocument();
-    expect(
-      await screen.findByText("No study notebooks yet"),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/One folder per class/)).toBeInTheDocument();
+    expect(await screen.findByText("Biology")).toBeInTheDocument();
   });
 
   it("searches every library type and opens the matching destination", async () => {
@@ -253,7 +254,7 @@ describe("LibraryView shell", () => {
     expect(tab("Subjects")).toHaveAttribute("aria-selected", "false");
   });
 
-  it("redirects an unknown tab back to Notebooks", async () => {
+  it("redirects an unknown tab back to Subjects", async () => {
     serveLibrary({ folders: [folder()] });
     renderLibrary("/library/not-a-tab");
 
@@ -261,7 +262,7 @@ describe("LibraryView shell", () => {
       expect(screen.getByTestId("path")).toHaveTextContent("/library"),
     );
     expect(screen.getByTestId("path").textContent).toBe("/library");
-    expect(tab("Notebooks")).toHaveAttribute("aria-selected", "true");
+    expect(tab("Subjects")).toHaveAttribute("aria-selected", "true");
   });
 
   it("switches tab and URL on click, mounting only that tab's panel", async () => {
@@ -303,13 +304,13 @@ describe("LibraryView shell", () => {
 
     tab("Subjects").focus();
     await user.keyboard("{End}");
-    expect(tab("Quizzes")).toHaveAttribute("aria-selected", "true");
-
-    await user.keyboard("{Home}");
     expect(
       await screen.findByText("No study notebooks yet"),
     ).toBeInTheDocument();
     expect(tab("Notebooks")).toHaveAttribute("aria-selected", "true");
+
+    await user.keyboard("{Home}");
+    expect(tab("Subjects")).toHaveAttribute("aria-selected", "true");
   });
 
   it("names the panel from its tab", async () => {

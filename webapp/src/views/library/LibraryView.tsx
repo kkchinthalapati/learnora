@@ -35,7 +35,7 @@ export function LibraryView() {
   if (tab !== undefined && !isLibraryTab(tab)) {
     return <Navigate to="/library" replace />;
   }
-  const active: LibraryTabId = tab ?? "notebooks";
+  const active: LibraryTabId = tab ?? "folders";
 
   function onTabKeyDown(e: KeyboardEvent<HTMLButtonElement>, index: number) {
     const count = LIBRARY_TABS.length;
@@ -60,7 +60,7 @@ export function LibraryView() {
       <header className={styles.lead}>
         <span className={styles.eyebrow}>Your study workspace</span>
         <h1>Your learning</h1>
-        <p>Sources, notebooks and revision tools that stay connected.</p>
+        <p>Everything you study from, sorted by subject.</p>
       </header>
       <LibrarySearch
         onActiveChange={setIsSearching}
@@ -106,6 +106,9 @@ export function LibraryView() {
             tabIndex={0}
             className={styles.panel}
           >
+            <p className={styles.tabBlurb}>
+              {LIBRARY_TABS.find((t) => t.id === active)?.blurb}
+            </p>
             <Panel />
           </div>
         </>

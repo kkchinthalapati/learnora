@@ -736,3 +736,11 @@
   color: var(--warning-text);
   font-weight: 600;
 }
+
+/* One line under the tabs saying what the open tab holds. */
+.tabBlurb {
+  margin: 0 0 var(--s-4);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
