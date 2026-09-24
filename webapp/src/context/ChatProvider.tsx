@@ -710,6 +710,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
              red and tells a student something broke, when what happened is
              that they pressed Stop. */
           error: stopped ? undefined : true,
+          retryQuery: stopped ? undefined : query,
+          retryOptions: stopped ? undefined : options,
           text: stopped
             ? "Stopped. Ask again whenever you're ready."
             : err instanceof Error

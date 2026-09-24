@@ -4,12 +4,15 @@ import styles from "./personaOffset.module.css";
 
 export type PersonaDepth = 1 | 2 | 3 | 4 | 5;
 
+/* Plain words a Grade 9 student can pick between without a legend. The
+   old "Lvl 3: Standard" pill read like a game setting, not a choice about
+   how long the answer would be. */
 export const DEPTH_LABELS: Record<PersonaDepth, string> = {
-  1: "Quick Intuition",
-  2: "Conceptual Foundations",
+  1: "Just the gist",
+  2: "Simple",
   3: "Standard",
-  4: "Advanced Analysis",
-  5: "Deep Academic",
+  4: "Detailed",
+  5: "In depth",
 };
 
 export type StudyStyle = "visual" | "rigorous" | "exam_trap" | "concise";
@@ -23,23 +26,23 @@ export interface StudyStyleOption {
 export const STUDY_STYLES: ReadonlyArray<StudyStyleOption> = [
   {
     id: "visual",
-    label: "Visual 🎨",
-    description: "Diagrams, mental models, and visual analogies",
+    label: "Visual",
+    description: "Diagrams, pictures in words, and analogies",
   },
   {
     id: "rigorous",
-    label: "Rigorous 📐",
-    description: "Formal proofs, mathematical precision, and edge cases",
+    label: "Step by step",
+    description: "Every step shown, with the working and the edge cases",
   },
   {
     id: "exam_trap",
-    label: "Exam Trap 🎯",
-    description: "Common pitfalls, marking criteria, and high-yield traps",
+    label: "Exam focus",
+    description: "What examiners look for and the mistakes that lose marks",
   },
   {
     id: "concise",
-    label: "Concise ⚡",
-    description: "High-density takeaways with zero fluff",
+    label: "Short",
+    description: "The key points, nothing extra",
   },
 ];
 
@@ -52,16 +55,16 @@ export interface SourceModeOption {
 }
 
 export const SOURCE_MODES: ReadonlyArray<SourceModeOption> = [
-  { id: "web", label: "🌐 Web", description: "Live web intelligence" },
+  { id: "web", label: "The web", description: "Searches the web for the answer" },
   {
     id: "notebook",
-    label: "📚 Notebook",
-    description: "Grounded strictly in your notes",
+    label: "My notes only",
+    description: "Answers only from what's in your notebooks",
   },
   {
     id: "hybrid",
-    label: "🔀 Hybrid",
-    description: "Notebook notes + live web search",
+    label: "My notes + web",
+    description: "Uses your notebooks first, then the web",
   },
 ];
 
@@ -161,64 +164,30 @@ export function PersonaOffsetToolbar({
       ref={containerRef}
       className={`${styles.toolbar}${className ? ` ${className}` : ""}`}
       role="region"
-      aria-label="AI Study Persona & Source Settings"
+      aria-label="Answer settings"
     >
-      {/* Compact Quick-Pills Row */}
-      <div className={styles.compactRow} role="toolbar" aria-label="Quick controls">
-        <div className={styles.quickPillGroup}>
-          {/* Depth Quick Pill */}
-          <button
-            type="button"
-            className={`${styles.quickPill} ${styles.quickPillActive}`}
-            onClick={() => setIsDrawerOpen((prev) => !prev)}
-            aria-label={`Depth Level ${depth}: ${DEPTH_LABELS[depth]}. Click to adjust.`}
-            title={`Depth Level ${depth}: ${DEPTH_LABELS[depth]}`}
-          >
-            <span>🎯 Lvl {depth}: {DEPTH_LABELS[depth]}</span>
-          </button>
-
-          {/* Style Quick Pill */}
-          <button
-            type="button"
-            className={styles.quickPill}
-            onClick={() => setIsDrawerOpen((prev) => !prev)}
-            aria-label={`Style: ${activeStyleObj?.label ?? style}. Click to adjust.`}
-            title={`Style: ${activeStyleObj?.label ?? style}`}
-          >
-            <span>{activeStyleObj?.label ?? style}</span>
-          </button>
-
-          {/* Source Mode Toggle Pills */}
-          {SOURCE_MODES.map((mode) => (
-            <button
-              key={mode.id}
-              type="button"
-              className={`${styles.quickPill}${
-                sourceMode === mode.id ? ` ${styles.quickPillActive}` : ""
-              }`}
-              onClick={() => updateSourceMode(mode.id)}
-              aria-pressed={sourceMode === mode.id}
-              aria-label={`Source mode ${mode.label}`}
-              title={mode.description}
-            >
-              <span>{mode.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Adjust Drawer Toggle */}
+      {/* One line that says, in words, where answers come from and how long
+          they'll be. It replaced six pills ("Lvl 3: Standard", "Hybrid", …)
+          that took a quarter of the panel and explained none of it. Where the
+          answer comes from is the trust signal, so it leads. */}
+      <div className={styles.compactRow}>
         <button
           type="button"
-          className={`${styles.adjustBtn}${
-            isDrawerOpen ? ` ${styles.adjustBtnActive}` : ""
-          }`}
+          className={`${styles.summaryBtn}${isDrawerOpen ? ` ${styles.summaryOpen}` : ""}`}
           onClick={() => setIsDrawerOpen((prev) => !prev)}
           aria-expanded={isDrawerOpen}
           aria-controls="persona-offset-drawer"
-          aria-label="Adjust AI study persona"
+          aria-label={`Answer settings: from ${activeSourceObj?.label ?? sourceMode}, ${DEPTH_LABELS[depth]} detail, ${activeStyleObj?.label ?? style}. Change`}
         >
-          <Icon name="sparkles" size={14} />
-          <span>{isDrawerOpen ? "Close" : "Adjust"}</span>
+          <Icon name="settings" size={14} />
+          <span className={styles.summaryText}>
+            Answers from <strong>{activeSourceObj?.label.toLowerCase()}</strong>
+            {" · "}
+            {DEPTH_LABELS[depth]}
+            {" · "}
+            {activeStyleObj?.label}
+          </span>
+          <span className={styles.summaryChange}>{isDrawerOpen ? "Close" : "Change"}</span>
         </button>
       </div>
 
@@ -228,18 +197,18 @@ export function PersonaOffsetToolbar({
           id="persona-offset-drawer"
           className={styles.drawer}
           role="dialog"
-          aria-label="AI Study Persona Settings Drawer"
+          aria-label="Answer settings"
         >
           <div className={styles.drawerHeader}>
             <h3 className={styles.drawerTitle}>
               <Icon name="sparkles" size={16} />
-              AI Study Persona & Intelligence
+              How Learnora answers
             </h3>
             <button
               type="button"
               className={styles.closeBtn}
               onClick={() => setIsDrawerOpen(false)}
-              aria-label="Close persona drawer"
+              aria-label="Close answer settings"
             >
               <Icon name="x" size={16} />
             </button>
@@ -249,10 +218,10 @@ export function PersonaOffsetToolbar({
           <section className={styles.section} aria-labelledby="persona-depth-title">
             <div className={styles.sectionLabelRow}>
               <span id="persona-depth-title" className={styles.sectionTitle}>
-                Depth Level
+                How much detail
               </span>
               <span className={styles.sectionValue}>
-                Level {depth}: {DEPTH_LABELS[depth]}
+                {DEPTH_LABELS[depth]}
               </span>
             </div>
 
@@ -262,7 +231,7 @@ export function PersonaOffsetToolbar({
                 className={styles.stepBtn}
                 onClick={() => updateDepth(Math.max(1, depth - 1) as PersonaDepth)}
                 disabled={depth <= 1}
-                aria-label="Decrease depth level"
+                aria-label="Less detail"
               >
                 -
               </button>
@@ -279,11 +248,11 @@ export function PersonaOffsetToolbar({
                     updateDepth(Number(e.target.value) as PersonaDepth)
                   }
                   className={styles.slider}
-                  aria-label="Depth level slider"
+                  aria-label="How much detail"
                   aria-valuemin={1}
                   aria-valuemax={5}
                   aria-valuenow={depth}
-                  aria-valuetext={`Level ${depth}: ${DEPTH_LABELS[depth]}`}
+                  aria-valuetext={DEPTH_LABELS[depth]}
                 />
               </div>
 
@@ -292,7 +261,7 @@ export function PersonaOffsetToolbar({
                 className={styles.stepBtn}
                 onClick={() => updateDepth(Math.min(5, depth + 1) as PersonaDepth)}
                 disabled={depth >= 5}
-                aria-label="Increase depth level"
+                aria-label="More detail"
               >
                 +
               </button>
@@ -303,11 +272,11 @@ export function PersonaOffsetToolbar({
           <section className={styles.section} aria-labelledby="persona-style-title">
             <div className={styles.sectionLabelRow}>
               <span id="persona-style-title" className={styles.sectionTitle}>
-                Study Style
+                Style
               </span>
               <span className={styles.sectionValue}>{activeStyleObj?.label}</span>
             </div>
-            <div className={styles.chipGroup} role="radiogroup" aria-label="Study style">
+            <div className={styles.chipGroup} role="radiogroup" aria-label="Style">
               {STUDY_STYLES.map((s) => (
                 <button
                   key={s.id}
@@ -330,13 +299,13 @@ export function PersonaOffsetToolbar({
           <section className={styles.section} aria-labelledby="persona-source-title">
             <div className={styles.sectionLabelRow}>
               <span id="persona-source-title" className={styles.sectionTitle}>
-                Source Mode
+                Where answers come from
               </span>
               <span className={styles.sectionValue}>
                 {activeSourceObj?.label}
               </span>
             </div>
-            <div className={styles.chipGroup} role="radiogroup" aria-label="Source mode">
+            <div className={styles.chipGroup} role="radiogroup" aria-label="Where answers come from">
               {SOURCE_MODES.map((m) => (
                 <button
                   key={m.id}

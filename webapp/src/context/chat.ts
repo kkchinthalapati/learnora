@@ -45,6 +45,10 @@ export interface ChatMessage {
   pending?: boolean;
   /** AI message that is a failure notice rather than a reply. */
   error?: boolean;
+  /** On a failure notice: the question that failed, so the bubble can offer
+   *  "Try again" instead of making the student retype it. */
+  retryQuery?: string;
+  retryOptions?: ChatSendOptions;
   /** A reply that was a flashcard set rather than prose. */
   cards?: FlashcardDraft[];
   /** Set once `cards` has been saved as a real deck — the id it saved to,

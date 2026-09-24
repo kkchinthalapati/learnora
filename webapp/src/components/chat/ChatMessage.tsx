@@ -112,6 +112,7 @@ export function ChatMessageBubble({
   onAddToNotebook,
   sendPhase,
   onCancel,
+  onRetry,
 }: {
   message: Message;
   /** Persists `message.cards` as a real deck. Omitted where a cards-shaped
@@ -128,6 +129,8 @@ export function ChatMessageBubble({
   sendPhase?: "searching" | "thinking" | null;
   /** Abandons the answer in flight. Offered once the wait turns long. */
   onCancel?: () => void;
+  /** Re-sends the question behind a failure notice. */
+  onRetry?: (message: Message) => void;
 }) {
   const [addedCitations, setAddedCitations] = useState<Set<string>>(new Set());
 
@@ -236,6 +239,16 @@ export function ChatMessageBubble({
   return (
     <div className={classes} role={message.error ? "alert" : undefined}>
       {body}
+
+      {message.error && message.retryQuery && onRetry ? (
+        <button
+          type="button"
+          className={styles.retryBtn}
+          onClick={() => onRetry(message)}
+        >
+          <Icon name="refresh-cw" size={13} /> Try again
+        </button>
+      ) : null}
 
       {/* Web Citation Cards */}
       {webSources.length > 0 && !message.pending && (

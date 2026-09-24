@@ -21,20 +21,28 @@ import styles from "./chat.module.css";
  * it either. */
 
 const GREETING =
-  "Hi there! I'm Learnora AI. Drop your notes or images here and I'll help you summarise them, or ask me to generate flashcards!";
+  "Hi! I can explain a topic, quiz you, turn your notes into flashcards, or sort out your tasks and timer. I can get things wrong, so check anything important against your notes.";
 
 const SUGGESTIONS = [
+  /* Explaining and quizzing lead: they are what a student opens the panel
+     for most, and neither had a starter — the four chips were all admin. */
+  {
+    icon: "brain",
+    label: "Explain something",
+    prompt: "Explain ",
+    autoSend: false,
+  },
+  {
+    icon: "help-circle",
+    label: "Quiz me",
+    prompt: "Quiz me on ",
+    autoSend: false,
+  },
   {
     icon: "list-checks",
     label: "What are my tasks?",
     prompt: "What are my pending tasks?",
     autoSend: true,
-  },
-  {
-    icon: "calendar-week",
-    label: "Plan my study",
-    prompt: "Create a task to study for my next exam",
-    autoSend: false,
   },
   {
     icon: "layers",
@@ -324,6 +332,9 @@ export function TurboChat() {
               onAddToNotebook={handleAddToNotebook}
               sendPhase={sendPhase}
               onCancel={cancel}
+              onRetry={(m) => {
+                if (m.retryQuery && !isSending) void send(m.retryQuery, m.retryOptions);
+              }}
             />
           ))
         )}

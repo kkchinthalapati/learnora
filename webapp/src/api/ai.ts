@@ -107,6 +107,13 @@ const TIMEOUT_MESSAGE =
 /** Not a failure: the student pressed Stop. Non-retryable so no caller
  *  quietly starts the request again on their behalf. */
 export const CANCELLED_MESSAGE = "Stopped.";
+/** The fetch never reached the server. Browsers word this as "Failed to
+ *  fetch" / "Load failed" / "NetworkError…", none of which a student should
+ *  have to decode. */
+export const OFFLINE_MESSAGE =
+  "You seem to be offline, so Learnora couldn't reach its AI. Check your connection and try again.";
+export const NETWORK_MESSAGE =
+  "The connection dropped before Learnora's AI could answer. Please try again.";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -197,7 +204,12 @@ export async function callEdge(
            explains it ("They reset at midnight — or Learnora Pro raises the
            limit") never reached anyone. */
         throw new AiError(
-          errorBody.error || errorBody.text || GENERIC_FAILURE,
+          /* A 5xx body is the server talking to itself ("Internal error"),
+             not to the student. Only 4xx bodies — rate limits, refusals,
+             bad input — carry copy written for a person. */
+          response.status >= 500
+            ? GENERIC_FAILURE
+            : errorBody.error || errorBody.text || GENERIC_FAILURE,
           {
             // 4xx means the request itself is wrong (bad/expired token, bad
             // payload) — retrying it just burns another round trip.
@@ -251,7 +263,15 @@ export async function callEdge(
 
       lastError = err;
       const isLast = attempt === retries;
-      if (isLast || (err instanceof AiError && !err.retryable)) throw err;
+      if (err instanceof AiError && !err.retryable) throw err;
+      if (isLast) {
+        if (err instanceof AiError) throw err;
+        throw new AiError(
+          typeof navigator !== "undefined" && navigator.onLine === false
+            ? OFFLINE_MESSAGE
+            : NETWORK_MESSAGE,
+        );
+      }
       console.warn(
         `[AI] Retry ${attempt + 1}/${retries}: ${(err as Error)?.message}`,
       );
