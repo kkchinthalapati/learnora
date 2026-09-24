@@ -6,7 +6,15 @@ subscribed to push (see `PUSH_NOTIFICATIONS.md`), since every account has an
 email address from signup with no separate opt-in gesture beyond a settings
 toggle.
 
-**Everything in this repo is written and tested. Nothing is deployed.** Same
+> **Status 2026-09-24: scheduled, waiting on Resend.** The function is
+> deployed (with `verify_jwt = false`; it checks `x-cron-secret` instead),
+> `CRON_SECRET` is set, and `pg_cron` calls it daily at 13:05 UTC. It
+> answers 500 "RESEND_API_KEY is not configured" until step 1 is done:
+> create the Resend account, then
+> `supabase secrets set RESEND_API_KEY=… EMAIL_FROM="Learnora <…>"`.
+> No redeploy is needed after that.
+
+**Everything in this repo is written and tested.** Same
 posture as `PUSH_NOTIFICATIONS.md`/`FRIENDS_FEATURE.md`/`SUPABASE_SETUP.md`:
 migrations and edge functions are applied by a human running the Supabase
 CLI (or the Supabase dashboard), not by CI. `send-push-reminders` itself is
