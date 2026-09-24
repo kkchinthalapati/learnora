@@ -1349,3 +1349,8 @@
   font: inherit;
 }
 .moreBtn:hover { color: var(--text); border-color: var(--text-muted); }
+
+.leadLink {
+  color: var(--accent-text);
+  text-decoration: underline;
+}

@@ -555,9 +555,11 @@ describe("TasksView", () => {
       );
       renderTasks();
 
-      const row = await screen.findByRole("checkbox", {
+      const row = (
+        await screen.findByRole("checkbox", {
         name: "Math assignment",
-      });
+      })
+      ).closest("li") as HTMLElement;
       const tomorrowBtn = within(row).getByRole("button", {
         name: "Tomorrow",
       });
@@ -578,9 +580,11 @@ describe("TasksView", () => {
       );
       renderTasks();
 
-      const row = await screen.findByRole("checkbox", {
+      const row = (
+        await screen.findByRole("checkbox", {
         name: "Math assignment",
-      });
+      })
+      ).closest("li") as HTMLElement;
       const nextWeekBtn = within(row).getByRole("button", {
         name: "Next week",
       });
@@ -601,9 +605,11 @@ describe("TasksView", () => {
       );
       renderTasks();
 
-      const row = await screen.findByRole("checkbox", {
-        name: "Physics lab",
-      });
+      const row = (
+        await screen.findByRole("checkbox", {
+          name: "Physics lab",
+        })
+      ).closest("li") as HTMLElement;
       const repeatBtn = within(row).getByRole("button", {
         name: "Repeat weekly",
       });
