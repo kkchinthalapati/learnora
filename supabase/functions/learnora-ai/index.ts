@@ -240,7 +240,12 @@ const BUILTIN_PROVIDERS: AIProvider[] = [
     // model from a key without access, so the replacement below is the one
     // this project's own key is known to reach rather than a guess from a
     // catalogue. GROQ_MODEL overrides it without a redeploy.
-    defaultModel: "gpt-oss-120b",
+    //
+    // Groq names it with its publisher prefix: plain `gpt-oss-120b` (the
+    // Cerebras spelling) 404s here as "does not exist", which is what the
+    // live logs showed on 2026-09-24. The prefixed ID is the one Groq's
+    // models page lists.
+    defaultModel: "openai/gpt-oss-120b",
     url: "https://api.groq.com/openai/v1/chat/completions",
     jsonMode: true,
     cost: "free",

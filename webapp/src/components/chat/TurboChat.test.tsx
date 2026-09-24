@@ -635,6 +635,32 @@ describe("TurboChat", () => {
           await screen.findByText("Failed to generate quiz. Please try again."),
         ).toBeInTheDocument();
       });
+
+      /* The toast vanishes in seconds; the chat used to keep saying
+         "Generating quiz:" for good, so the failure has to land there too. */
+      it("posts the failure in the chat, with Try again", async () => {
+        serveEdgeByMode({
+          chat: () =>
+            HttpResponse.json({ text: "<ADD_QUIZ>Cell biology</ADD_QUIZ>" }),
+          quiz: () =>
+            HttpResponse.json({ error: "Bad request" }, { status: 400 }),
+        });
+        renderChat();
+        await openChat();
+        await ask("quiz me");
+
+        const dialog = await screen.findByRole("alertdialog");
+        await userEvent.click(
+          within(dialog).getByRole("button", { name: "Generate Quiz" }),
+        );
+
+        expect(
+          await screen.findByText(/I couldn't make the quiz on "Cell biology"/),
+        ).toBeInTheDocument();
+        expect(
+          screen.getAllByRole("button", { name: /Try again/ }).length,
+        ).toBeGreaterThan(0);
+      });
     });
 
     describe("<ADD_PLAN>", () => {

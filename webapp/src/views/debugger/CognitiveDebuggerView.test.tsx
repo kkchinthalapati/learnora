@@ -129,6 +129,59 @@ describe("CognitiveDebuggerView", () => {
     });
   });
 
+  it("shows a plain checklist, not a made-up diagnosis, when the tutor can't be reached", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post(EDGE_URL, () => HttpResponse.json({ error: "down" }, { status: 400 })),
+    );
+
+    renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+    await user.type(screen.getByTestId("mistake-input"), "I said plants get energy from soil");
+    fireEvent.click(screen.getByTestId("diagnose-submit-btn"));
+
+    expect(await screen.findByText(/This isn.t a real diagnosis/)).toBeInTheDocument();
+    expect(screen.getByTestId("degraded-checklist")).toBeInTheDocument();
+    expect(screen.queryByTestId("knowledge-circuit")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Missing/)).not.toBeInTheDocument();
+  });
+
+  it("fills in the real question and answer when a recent quiz mistake is tapped", async () => {
+    server.use(
+      http.get(rest("folders"), () =>
+        HttpResponse.json([{ id: "f-bio", name: "Biology", user_id: "user-1" }]),
+      ),
+      http.get(rest("quiz_attempts"), ({ request }) =>
+        new URL(request.url).searchParams.get("select")?.includes("answers_json")
+          ? HttpResponse.json([
+              {
+                quiz_id: "q-1",
+                weak_topics: ["Energy Source"],
+                answers_json: [{ questionId: 0, chosenIndex: 1, correct: false, topic: "Energy Source" }],
+              },
+            ])
+          : HttpResponse.json([{ weak_topics: ["Energy Source"] }]),
+      ),
+      http.get(rest("quizzes"), () =>
+        HttpResponse.json({
+          folder_id: "f-bio",
+          questions_json: [
+            { question: "Where does the energy come from?", choices: ["Light", "Soil"], correctIndex: 0, topic: "Energy Source" },
+          ],
+        }),
+      ),
+    );
+
+    renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+    fireEvent.click(await screen.findByText("Energy Source"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("mistake-input")).toHaveValue(
+        'Where does the energy come from?\nI answered "Soil" but the answer was "Light".',
+      ),
+    );
+    expect(screen.getByLabelText("Subject")).toHaveValue("Biology");
+  });
+
   it("launches the quick check modal and restores the circuit upon success", async () => {
     const user = userEvent.setup();
 

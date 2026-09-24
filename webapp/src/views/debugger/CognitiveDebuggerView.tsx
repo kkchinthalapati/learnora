@@ -109,7 +109,11 @@ export function CognitiveDebuggerView() {
   const [subject, setSubject] = useState(restoredWork?.subject ?? "");
   const folderNames = folders.map((f) => f.name).filter(Boolean);
   const effectiveSubject = subject || folderNames[0] || SUBJECT_OPTIONS[0];
-  const subjectOptions = [...new Set([...folderNames, ...SUBJECT_OPTIONS, effectiveSubject])];
+  /* Case-insensitive: a folder called "maths" and the built-in "Maths" were
+     both listed. The folder's spelling wins, since it's the student's. */
+  const subjectOptions = [...folderNames, ...SUBJECT_OPTIONS, effectiveSubject].filter(
+    (s, i, all) => all.findIndex((t) => t.toLowerCase() === s.toLowerCase()) === i,
+  );
   const [mistakeDescription, setMistakeDescription] = useState(restoredWork?.mistakeDescription ?? "");
   const [context, setContext] = useState(restoredWork?.context ?? "");
 
@@ -191,6 +195,23 @@ export function CognitiveDebuggerView() {
   const handleApplyWeakTopic = (topicName: string) => {
     setMistakeDescription(`I keep getting ${topicName} wrong`);
     setContext(`This has come up as a weak spot in my recent quizzes.`);
+    /* Then swap in the real question, their answer and the quiz's subject
+       once they arrive. */
+    quizzesApi
+      .fetchLatestWrongAnswer(topicName)
+      .then((example) => {
+        if (!example) return;
+        setMistakeDescription(
+          `${example.question}
+I answered "${example.chosen}" but the answer was "${example.correct}".`,
+        );
+        setContext(`From a recent quiz on ${topicName}.`);
+        const folder = folders.find((f) => f.id === example.folderId);
+        if (folder?.name) setSubject(folder.name);
+      })
+      .catch(() => {
+        /* Keep the topic-only description already filled in. */
+      });
   };
 
   const recordMisconceptions = useRecordMisconceptions();
@@ -530,11 +551,9 @@ export function CognitiveDebuggerView() {
                   <div>
                     <strong>This isn&rsquo;t a real diagnosis.</strong>
                     <p>
-                      {activeTrace.degraded.message} The steps below are a
-                      general checklist built from what you typed, not
-                      something worked out about your answer &mdash; and
-                      nothing here has been added to what Learnora remembers
-                      about you.
+                      {activeTrace.degraded.message} Nothing has been worked
+                      out about your answer, and nothing here has been added
+                      to what Learnora remembers about you.
                     </p>
                     <button
                       type="button"
@@ -547,6 +566,25 @@ export function CognitiveDebuggerView() {
                 </div>
               )}
 
+              {/* A stand-in shows a plain checklist and nothing else. It used to
+                  render the full three-step chain with "Missing" and "Shaky"
+                  badges and maths wording ("The formula went in…") for any
+                  subject — a diagnosis in all but name, under a notice
+                  saying it wasn't one. */}
+              {activeTrace.degraded ? (
+                <div className={styles.rootCauseCard} data-testid="degraded-checklist">
+                  <p className={styles.rootCauseSummaryText}>
+                    While the tutor is away, these three checks find most
+                    slips:
+                  </p>
+                  <ol className={styles.degradedChecklist}>
+                    <li>Read the question again. What is it actually asking for?</li>
+                    <li>Find the key word in your notes and read that section.</li>
+                    <li>Put your answer next to the right one. What is the one idea that separates them?</li>
+                  </ol>
+                </div>
+              ) : (
+              <>
               {/* Summary card */}
               <div
                 className={`${styles.rootCauseCard} ${
@@ -712,6 +750,8 @@ export function CognitiveDebuggerView() {
                   })}
                 </div>
               </div>
+              </>
+              )}
             </>
           )}
         </div>

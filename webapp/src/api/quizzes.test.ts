@@ -69,6 +69,53 @@ describe("quizzesApi", () => {
     await expect(quizzesApi.fetchWeakTopics()).rejects.toThrow("boom");
   });
 
+  it("finds the latest question answered wrong on a topic, with both answers", async () => {
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/quiz_attempts`, () =>
+        HttpResponse.json([
+          {
+            quiz_id: "q-1",
+            weak_topics: ["Energy Source"],
+            answers_json: [
+              { questionId: 0, chosenIndex: 0, correct: true, topic: "Gas" },
+              { questionId: 1, chosenIndex: 2, correct: false, topic: "Energy Source" },
+            ],
+          },
+        ]),
+      ),
+      http.get(`${SUPABASE_URL}/rest/v1/quizzes`, () =>
+        HttpResponse.json({
+          folder_id: "f-bio",
+          questions_json: [
+            { question: "Which gas is released?", choices: ["O2", "N2"], correctIndex: 0, topic: "Gas" },
+            {
+              question: "Where does the energy come from?",
+              choices: ["Light", "Soil", "Water"],
+              correctIndex: 0,
+              topic: "Energy Source",
+            },
+          ],
+        }),
+      ),
+    );
+
+    expect(await quizzesApi.fetchLatestWrongAnswer("Energy Source")).toEqual({
+      question: "Where does the energy come from?",
+      chosen: "Water",
+      correct: "Light",
+      folderId: "f-bio",
+    });
+  });
+
+  it("returns null when no recent attempt missed that topic", async () => {
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/quiz_attempts`, () =>
+        HttpResponse.json([{ quiz_id: "q-1", weak_topics: ["Other"], answers_json: [] }]),
+      ),
+    );
+    expect(await quizzesApi.fetchLatestWrongAnswer("Energy Source")).toBeNull();
+  });
+
   describe("recordAttempt", () => {
     it("sends the attempt key so a replay can be recognised", async () => {
       let body: Record<string, unknown>[] | undefined;

@@ -533,7 +533,7 @@ export function FeynmanStudioView() {
 
                     {/* What they said back */}
                     <div className={styles.apprenticeReplyBubble} data-testid="apprentice-turn-bubble">
-                      <strong>{persona.name}:</strong>
+                      <strong>{persona.shortName}:</strong>
                       <p>{turn.apprenticeReaction}</p>
 
                       {/* Creative apprentice feedback breakdown */}

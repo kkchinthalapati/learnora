@@ -325,6 +325,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   /* --- action handlers ------------------------------------------------- */
 
+  const postActionFailure = useCallback((text: string, retryQuery: string) => {
+    setMessages((prev) => [
+      ...prev,
+      { id: nextId(), role: "ai", text, error: true, retryQuery },
+    ]);
+  }, []);
+
   const setTheme = useCallback(
     (value: string): boolean => {
       /* The vanilla looked for `.theme-preset-btn[data-theme="dark"]`, which
@@ -412,6 +419,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         void navigate(path);
         return true;
       },
+      /* A quiz or deck is made after the reply has been shown, so a failure
+         can't mark that reply. A toast alone vanished in seconds and left the
+         chat saying "Generating quiz:" for good — the student never learned
+         it had failed. The failure is posted in the chat, with Try again. */
       generateQuiz: (topic) => {
         generateQuizFromTopic(topic, settings)
           .then((quiz) => {
@@ -426,6 +437,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                 ? err.message
                 : "Failed to generate quiz. Please try again.";
             showToast(message, { error: true });
+            postActionFailure(
+              `I couldn't make the quiz on "${topic}". ${message}`,
+              `Quiz me on ${topic}`,
+            );
           });
       },
       generateDeck: (topic) => {
@@ -442,6 +457,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                 ? err.message
                 : "Failed to generate flashcards. Please try again.";
             showToast(message, { error: true });
+            postActionFailure(
+              `I couldn't make the flashcards on "${topic}". ${message}`,
+              `Make flashcards on ${topic}`,
+            );
           });
       },
       generatePlan: () => {
@@ -464,7 +483,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         flashcardGraderRef.current?.(score);
       },
     }),
-    [confirm, navigate, qc, setTheme, settings, showToast, startPreset],
+    [confirm, navigate, postActionFailure, qc, setTheme, settings, showToast, startPreset],
   );
 
   /* --- send ------------------------------------------------------------ */

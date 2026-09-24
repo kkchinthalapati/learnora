@@ -12,6 +12,7 @@ import type {
   ChatMessage as Message,
   WebCitation,
 } from "../../context/chat";
+import { sourceSnippet } from "../../lib/sourceSnippet";
 import styles from "./chat.module.css";
 
 /* One chat bubble — ports `_appendBubble` (js/ai.js:1276-1298) and the action
@@ -291,7 +292,7 @@ export function ChatMessageBubble({
                   </div>
 
                   {citation.snippet && (
-                    <p className={styles.citationSnippet}>{citation.snippet}</p>
+                    <p className={styles.citationSnippet}>{sourceSnippet(citation.snippet)}</p>
                   )}
 
                   <div className={styles.citationAction}>

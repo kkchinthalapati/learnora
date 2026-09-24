@@ -13,6 +13,7 @@ import { learningEventsApi } from "./learningEvents";
 import { normaliseTopicKey } from "../lib/topicKey";
 import { extractJSON } from "../lib/aiJson";
 import { getFramework } from "../lib/region";
+import { levelRules, studentLevel } from "../lib/studentLevel";
 import { candidatesFromSparring } from "../lib/misconceptions";
 import { AI_CONSENT_DECLINED_MESSAGE } from "../lib/aiConsent";
 import type { GroundedCitation } from "../types/notebooks";
@@ -517,7 +518,9 @@ export async function startSparringSession(
   let initialRound: SparringRound;
 
   try {
+    const level = await studentLevel();
     const prompt = `You are designing a Voice Viva / Socratic Audio Sparring opening round for a student on "${cleanTopic}".
+${levelRules(level)}
 You have two personas:
 - Alex (🌱): Curious beginner, asks "why?", intuitive explanations.
 - Jordan (⚡): Overconfident peer, sharp, challenges assumptions, tests edge cases.
@@ -672,7 +675,9 @@ export async function submitStudentAnswer(
   let nextRound: SparringRound;
 
   try {
+    const level = await studentLevel();
     const prompt = `You are evaluating a student's answer in a Voice Viva / Socratic dialogue on "${session.topic}".
+${levelRules(level)}
 CURRENT SPARRING CHALLENGE (from ${currentRound.personaName}):
 "${currentRound.speechText}"
 
@@ -884,7 +889,9 @@ export async function generateNextSparringRound(
   );
 
   try {
+    const level = await studentLevel();
     const prompt = `Generate the next sparring challenge on "${session.topic}" from ${SPARRING_PERSONAS[nextSpeaker].name} (${SPARRING_PERSONAS[nextSpeaker].title}).
+${levelRules(level)}
 ${session.vibe ? `\nMaintain character: "${session.vibe}".` : ""}
 ${session.focusGoal ? `\nTarget focus: "${session.focusGoal}".` : ""}
 ${session.performanceEvidence ? `${session.performanceEvidence}\n\nUse this only to choose where to push — aim at a measured weakness relevant to the topic. Do not quote percentages back at the student, and never imply you have measured a topic listed as NEVER TESTED.\n` : ""}
