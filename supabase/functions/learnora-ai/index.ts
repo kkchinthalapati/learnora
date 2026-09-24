@@ -911,6 +911,20 @@ Deno.serve(async (req) => {
             { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
         );
     }
+    // Consent to send study data to the AI providers. Only an explicit
+    // "false" refuses: accounts created before the flag existed carry no key
+    // and keep the access they have always had. Mirrors webapp/src/lib/
+    // aiConsent.ts, which asks the student before a request gets this far;
+    // this is the half a hand-built request cannot skip.
+    if (user.user_metadata?.consent_given === false) {
+        return new Response(
+            JSON.stringify({
+                error: "Learnora's AI needs your OK before it can use your study data. You can turn it on any time in Settings ▸ Privacy.",
+                consent_required: true,
+            }),
+            { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+    }
     // ── END AUTH GATE ──────────────────────────────────────
 
     const debugErrors: Record<string, string> = {};

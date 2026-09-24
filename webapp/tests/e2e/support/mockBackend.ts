@@ -72,6 +72,9 @@ export interface SeedUser {
   planStatus?: "active" | "trialing" | "past_due" | "canceled" | "none";
   cancelAtPeriodEnd?: boolean;
   renewsAt?: string | null;
+  /** `user_metadata.consent_given`. False models a student who skipped the
+   *  optional sign-up checkbox and has not agreed at first use yet. */
+  aiConsent?: boolean;
 }
 
 interface HandlerContext {
@@ -190,6 +193,7 @@ export class MockBackend {
     planStatus: "none",
     cancelAtPeriodEnd: false,
     renewsAt: null,
+    aiConsent: true,
   };
 
   /** Per-test overrides, consulted before the built-in handlers. Each returns
@@ -247,7 +251,7 @@ export class MockBackend {
       full_name: this.user.fullName,
       avatar_url: null,
       timezone: "UTC",
-      consent_given: true,
+      consent_given: this.user.aiConsent,
       plan: this.user.plan,
       plan_status: this.user.planStatus,
       plan_renews_at: this.user.renewsAt,
@@ -407,10 +411,35 @@ export class MockBackend {
         await this.handleFunctions(ctx);
         return;
       }
+      if (url.pathname.startsWith("/storage/v1/object/")) {
+        await this.handleStorage(ctx);
+        return;
+      }
 
       this.unhandled.push(`${method} ${url.pathname}`);
       await json(route, 200, []);
     });
+  }
+
+  /* ------------------------------------------------------------ storage */
+
+  /** Uploaded objects by "bucket/path", so a test can assert what the app
+   *  actually sent (Create's file upload goes here before the DB row). */
+  readonly storage = new Map<string, { bytes: number; contentType: string }>();
+
+  private async handleStorage(ctx: HandlerContext): Promise<void> {
+    const { url, method, route } = ctx;
+    const key = url.pathname.replace("/storage/v1/object/", "");
+    if (method === "POST" || method === "PUT") {
+      const body = route.request().postDataBuffer();
+      this.storage.set(key, {
+        bytes: body?.length ?? 0,
+        contentType: route.request().headers()["content-type"] ?? "",
+      });
+      await json(route, 200, { Key: key, Id: nextId() });
+      return;
+    }
+    await json(route, this.storage.has(key) ? 200 : 404, {});
   }
 
   /* --------------------------------------------------------------- auth */
@@ -441,7 +470,7 @@ export class MockBackend {
       user_metadata: {
         full_name: this.user.fullName,
         dob: "2000-01-01",
-        consent_given: true,
+        consent_given: this.user.aiConsent,
       },
       identities: [
         {
@@ -530,6 +559,9 @@ export class MockBackend {
       if (method === "PUT") {
         const data = payload.data as Record<string, unknown> | undefined;
         if (data?.full_name) this.user.fullName = String(data.full_name);
+        if (typeof data?.consent_given === "boolean") {
+          this.user.aiConsent = data.consent_given;
+        }
         if (payload.email) this.user.email = String(payload.email);
         this.tables.set("profiles", [this.profileRow()]);
       }
@@ -705,6 +737,14 @@ export class MockBackend {
     const payload = (body ?? {}) as Record<string, unknown>;
 
     if (fn === "learnora-ai") {
+      /* Same rule as the real function: an explicit refusal is a 403. */
+      if (!this.user.aiConsent) {
+        await json(route, 403, {
+          error: "Learnora's AI needs your OK before it can use your study data.",
+          consent_required: true,
+        });
+        return;
+      }
       /* The real function counts this user's rows in `ai_request_log` for the
          tool being billed, since midnight UTC, and answers 429 past that
          tool's allowance. Reproducing that here — rather than hard-coding a

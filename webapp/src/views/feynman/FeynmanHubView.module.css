@@ -417,10 +417,44 @@
   line-height: 1.3;
 }
 
+/* Start sits directly under the topic: left-aligned with the fields it
+   acts on, not stranded at the far corner below four optional sections. */
 .launchRow {
   display: flex;
-  justify-content: flex-end;
-  margin-top: var(--s-2);
+  justify-content: flex-start;
+}
+
+.customise {
+  border-top: 1px solid var(--glass-border-subtle);
+  padding-top: var(--s-4);
+}
+
+.customise[open] {
+  display: grid;
+  gap: var(--s-6);
+}
+
+.customiseSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2) var(--s-3);
+  min-height: var(--touch-target-min);
+  cursor: pointer;
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.customiseSummary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+.customiseCurrent {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: var(--fs-sm);
 }
 
 /* History / Past Sessions */

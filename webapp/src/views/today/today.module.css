@@ -8,14 +8,26 @@
    enough that a white label lands at 2.48:1 on it. --accent-on is ink in dark
    mode and white in light, so the label follows the fill instead of fighting
    it. */
-.primaryLink { display: inline-block; padding: 12px 18px; margin-top: 16px; border-radius: var(--r-md); background: var(--accent); color: var(--accent-on); }
+.primaryLink { display: inline-block; padding: 12px 18px; margin-top: 16px; border-radius: var(--r-md); background: var(--accent); color: var(--accent-on); text-decoration: none; font-weight: 600; }
 /* The matched next step is a link, not a button, so it needs the primary
    button's weight without .primaryLink's stacking margin — that one sits
    alone under a paragraph, this one sits in a row of actions. */
-.stepLink { display: inline-block; padding: 12px 18px; border-radius: var(--r-md); background: var(--accent); color: var(--accent-on); }
-.whyLink { color: var(--accent); }
+.stepLink { display: inline-block; padding: 12px 18px; border-radius: var(--r-md); background: var(--accent); color: var(--accent-on); text-decoration: none; font-weight: 600; }
+.whyLink { color: var(--accent-text); text-decoration: underline; }
+/* The facts line under the reason: exam, days, predicted grade. Set apart
+   from the prose so it survives a skim. */
+.heroMeta { margin: 8px 0; font-weight: 600; color: var(--text); font-size: var(--fs-sm); }
+.why { margin-top: 16px; color: var(--text-muted); font-size: var(--fs-sm); }
+.why > summary { cursor: pointer; color: var(--accent-text); width: fit-content; min-height: 32px; display: flex; align-items: center; }
+.why > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+.why ul { margin: 8px 0 12px; padding-left: 20px; display: grid; gap: 6px; max-width: 64ch; line-height: 1.5; }
 .region { display: grid; gap: var(--s-4); min-width: 0; }
 .regionTitle { font-size: var(--fs-lg); margin: 0; }
+/* Today names each region with its own <h2> ("Due today", "Next exam"), so
+   the shared card's small-caps eyebrow ("TODAY'S TASKS", "NEXT EXAM") said
+   the same thing twice. Hidden here only; the dashboard still needs it. The
+   card's action link ("View all", "Open calendar") stays. */
+.region :global([data-card-eyebrow]) { visibility: hidden; }
 .footer { color: var(--text-muted); padding-bottom: 24px; }
 /* These two inline links carry no class of their own, so without this they
    render in the UA's default #0000ee — 2.08:1 on the dark page, and visibly

@@ -103,22 +103,29 @@ describe("SignupView", () => {
      all, the same way it already does for the empty name/email/dob fields.
      No custom error banner is expected here, only that the request the
      button click would otherwise trigger never goes out. */
-  it("refuses to sign up without checking the AI-provider consent box", async () => {
-    let called = false;
+  /* Consent you cannot refuse is not consent: the box is optional, and
+     Learnora asks again the first time an AI feature is used. */
+  it("creates the account without the AI-provider consent box", async () => {
+    let body: { data?: Record<string, unknown> } | null = null;
     server.use(
-      http.post(SIGNUP_URL, () => {
-        called = true;
-        return HttpResponse.json({});
+      http.post(SIGNUP_URL, async ({ request }) => {
+        body = (await request.json()) as typeof body;
+        return HttpResponse.json({
+          user: { id: "u1", identities: [{ id: "i1" }] },
+          session: null,
+        });
       }),
     );
 
     const user = userEvent.setup();
     renderSignup();
     await fillForm(user, { consent: false });
-    expect(screen.getByRole("checkbox")).toBeRequired();
+    expect(screen.getByRole("checkbox")).not.toBeRequired();
+    expect(screen.getByText(/Optional — you can decide later/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Create Account →" }));
 
-    expect(called).toBe(false);
+    await waitFor(() => expect(body).not.toBeNull());
+    expect(body!.data!.consent_given).toBe(false);
   });
 
   it("shows the check-your-inbox state when confirmation is required", async () => {

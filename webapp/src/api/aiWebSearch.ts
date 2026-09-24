@@ -1,4 +1,5 @@
 import { supabase, SUPABASE_URL } from "../lib/supabase";
+import { AI_CONSENT_DECLINED_MESSAGE, ensureAiConsent } from "../lib/aiConsent";
 
 const WEB_RESEARCH_URL = `${SUPABASE_URL}/functions/v1/web-research`;
 
@@ -36,6 +37,11 @@ async function callWebResearch<T>(
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("Please log in to use web research.");
+  /* In chat this runs before the model call, so it is where the student's
+     question would first leave the app — the consent question comes here. */
+  if (!(await ensureAiConsent(data.session?.user?.user_metadata))) {
+    throw new Error(AI_CONSENT_DECLINED_MESSAGE);
+  }
 
   const response = await fetch(WEB_RESEARCH_URL, {
     method: "POST",

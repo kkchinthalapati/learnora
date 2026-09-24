@@ -369,3 +369,10 @@
     animation-duration: 3s;
   }
 }
+
+.consentHint {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}

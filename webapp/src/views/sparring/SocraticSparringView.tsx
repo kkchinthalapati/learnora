@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Icon } from "../../components/Icon";
 import { Button } from "../../components/Button";
 import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
@@ -24,12 +24,15 @@ import { SparringStage } from "./SparringStage";
 import { MessageBubble } from "../../components/conversation/ConversationShell";
 import styles from "./sparring.module.css";
 
+/* School-level, like the rest of the study tools. "Asynchronous Event Loop
+   in JavaScript" and "Keynesian vs Classical Economics" were suggestions to
+   a Grade 9 student. */
 const QUICK_STARTER_TOPICS = [
-  "Newton's Third Law & Momentum",
-  "Photosynthesis vs Cellular Respiration",
-  "Keynesian vs Classical Economics",
-  "DNA Replication & Polymerase Chain Reaction",
-  "Asynchronous Event Loop in JavaScript",
+  "Newton's third law",
+  "Photosynthesis vs respiration",
+  "How the heart pumps blood",
+  "Acids and alkalis",
+  "Causes of World War One",
 ];
 
 export function SocraticSparringView() {
@@ -412,12 +415,12 @@ export function SocraticSparringView() {
           <div className={styles.titleArea}>
             <span className={styles.eyebrow}>
               <Icon name="mic" size={14} />
-              <span>Viva practice</span>
+              <span>Study tools</span>
             </span>
-            <h1 className={styles.pageTitle}>Oral Exam & Viva Practice</h1>
+            <h1 className={styles.pageTitle}>Oral practice</h1>
             <p className={styles.pageSubtitle}>
-              Defend a topic against oral exam questions and viva
-              counterexamples. Speak or type; voice is optional.
+              Answer questions on a topic out loud, like an oral exam or viva.
+              Prefer typing? That works too.
             </p>
           </div>
 
@@ -480,7 +483,7 @@ export function SocraticSparringView() {
             <input
               type="text"
               className={styles.topicInput}
-              placeholder="e.g. Newton's Third Law, Keynesian Economics, Cell Division…"
+              placeholder="e.g. Newton's third law, cell division, the causes of WW1…"
               value={topicInput}
               onChange={(e) => setTopicInput(e.target.value)}
               onKeyDown={(e) => {
@@ -500,7 +503,7 @@ export function SocraticSparringView() {
                 }}
                 aria-label="Select notebook context"
               >
-                <option value="">Ground in notebook… (optional)</option>
+                <option value="">Use a notebook (optional)</option>
                 {notebooks.map((nb) => (
                   <option key={nb.id} value={nb.id}>
                     📓 {nb.title} ({nb.subject})
@@ -520,7 +523,7 @@ export function SocraticSparringView() {
 
           {/* Suggested Starter Topics */}
           <div className={styles.starterChips}>
-            <span className={styles.chipsLabel}>Suggested:</span>
+            <span className={styles.chipsLabel}>Or start with:</span>
             {QUICK_STARTER_TOPICS.map((topic) => (
               <button
                 key={topic}
@@ -536,11 +539,22 @@ export function SocraticSparringView() {
             ))}
           </div>
 
+          {/* Role, focus and pasted notes all have working defaults, so they
+              are one optional fold rather than three required sections
+              between typing a topic and the first question. */}
+          <details className={styles.customise}>
+            <summary className={styles.customiseSummary}>
+              <span>Customise (optional)</span>
+              <span className={styles.customiseCurrent}>
+                {activeVibeTitle} · {activeFocusGoal}
+              </span>
+            </summary>
+
           {/* How you want the AI to act (Vibe / Role) */}
           <div className={styles.setupSection}>
             <div className={styles.setupHeadingRow}>
               <span className={styles.setupSectionTitle}>
-                How you want it to act (Vibe / Role)
+                Who&rsquo;s asking the questions
               </span>
             </div>
 
@@ -574,10 +588,10 @@ export function SocraticSparringView() {
                 aria-pressed={selectedVibeId === "custom"}
               >
                 <span className={styles.vibeCardIcon}>✨</span>
-                <span className={styles.vibeCardTitle}>Custom Persona</span>
+                <span className={styles.vibeCardTitle}>Someone else</span>
                 <p className={styles.vibeCardDesc}>
-                  Enter any custom role (e.g. Oxford Professor, Tech
-                  Interviewer).
+                  Describe who you want (e.g. your own teacher, a friendly
+                  tutor).
                 </p>
               </button>
             </div>
@@ -598,7 +612,7 @@ export function SocraticSparringView() {
           <div className={styles.setupSection}>
             <div className={styles.setupHeadingRow}>
               <span className={styles.setupSectionTitle}>
-                What you want to focus on (Goals)
+                What to focus on
               </span>
             </div>
 
@@ -660,7 +674,7 @@ export function SocraticSparringView() {
               <span>
                 {showNotesInput
                   ? "Hide pasted notes context"
-                  : "+ Paste syllabus notes or textbook excerpts"}
+                  : "+ Paste your notes so questions stick to them"}
               </span>
             </button>
 
@@ -676,9 +690,32 @@ export function SocraticSparringView() {
               </div>
             )}
           </div>
+          </details>
         </section>
       ) : (
         <>
+          {/* A stand-in must never pass for the AI. When any round came from
+              the built-in question bank, say so, say what it means for the
+              student's answers, and — when it was their own choice — where
+              to change it. */}
+          {session.offline ? (
+            <div className={styles.offlineNotice} role="status">
+              <Icon name="alert-circle" size={16} />
+              <p>
+                {session.offline === "consent"
+                  ? "You haven't allowed Learnora's AI to use your study data, so these are built-in practice questions."
+                  : "Learnora's AI isn't available right now, so these are built-in practice questions."}{" "}
+                Your answers are checked by a simple keyword match, not the AI,
+                and aren't saved to your progress.
+                {session.offline === "consent" ? (
+                  <>
+                    {" "}
+                    <Link to="/settings?tab=privacy">Turn on AI in Settings</Link>
+                  </>
+                ) : null}
+              </p>
+            </div>
+          ) : null}
           {/* Sparring Stage Arena (Call AI Live In-Progress Experience) */}
           <SparringStage
             currentSpeaker={isListening ? "student" : activeAiSpeaker}

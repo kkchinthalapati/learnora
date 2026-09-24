@@ -4,18 +4,15 @@ import userEvent from "@testing-library/user-event";
 import { PersonaOffsetToolbar } from "./PersonaOffsetToolbar";
 
 describe("PersonaOffsetToolbar", () => {
-  it("renders compact quick pills with default values", () => {
+  it("states the current settings in one plain line", () => {
     render(<PersonaOffsetToolbar />);
 
-    expect(screen.getByRole("region", { name: "AI Study Persona & Source Settings" })).toBeInTheDocument();
-    expect(screen.getByText(/Lvl 3: Standard/)).toBeInTheDocument();
-    expect(screen.getByText("Concise ⚡")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Source mode 🌐 Web" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Source mode 📚 Notebook" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Source mode 🔀 Hybrid" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Answer settings" })).toBeInTheDocument();
+    const summary = screen.getByRole("button", { name: /^Answer settings:/ });
+    expect(summary).toHaveTextContent("Answers from my notes + web · Standard · Short");
   });
 
-  it("allows switching source mode directly from compact pills", async () => {
+  it("switches where answers come from inside the drawer", async () => {
     const user = userEvent.setup();
     const onSourceModeChange = vi.fn();
     const onChange = vi.fn();
@@ -27,14 +24,16 @@ describe("PersonaOffsetToolbar", () => {
       />
     );
 
-    const webPill = screen.getByRole("button", { name: "Source mode 🌐 Web" });
-    await user.click(webPill);
+    await user.click(screen.getByRole("button", { name: /^Answer settings:/ }));
+    const web = screen.getByRole("radio", { name: "The web" });
+    await user.click(web);
 
     expect(onSourceModeChange).toHaveBeenCalledWith("web");
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({ sourceMode: "web" })
     );
-    expect(webPill).toHaveAttribute("aria-pressed", "true");
+    expect(web).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("button", { name: /^Answer settings:/ })).toHaveTextContent("Answers from the web");
   });
 
   it("opens and closes the full adjustment drawer", async () => {
@@ -42,30 +41,30 @@ describe("PersonaOffsetToolbar", () => {
     render(<PersonaOffsetToolbar />);
 
     // Initially closed when compact is true
-    expect(screen.queryByRole("dialog", { name: "AI Study Persona Settings Drawer" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Answer settings" })).toBeNull();
 
     // Click Adjust
-    const adjustBtn = screen.getByRole("button", { name: "Adjust AI study persona" });
+    const adjustBtn = screen.getByRole("button", { name: /^Answer settings:/ });
     await user.click(adjustBtn);
 
-    expect(screen.getByRole("dialog", { name: "AI Study Persona Settings Drawer" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Answer settings" })).toBeInTheDocument();
 
     // Click Done to close
     const doneBtn = screen.getByRole("button", { name: "Done" });
     await user.click(doneBtn);
 
-    expect(screen.queryByRole("dialog", { name: "AI Study Persona Settings Drawer" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Answer settings" })).toBeNull();
   });
 
   it("closes drawer with Escape key", async () => {
     const user = userEvent.setup();
     render(<PersonaOffsetToolbar />);
 
-    await user.click(screen.getByRole("button", { name: "Adjust AI study persona" }));
-    expect(screen.getByRole("dialog", { name: "AI Study Persona Settings Drawer" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^Answer settings:/ }));
+    expect(screen.getByRole("dialog", { name: "Answer settings" })).toBeInTheDocument();
 
     await user.keyboard("{Escape}");
-    expect(screen.queryByRole("dialog", { name: "AI Study Persona Settings Drawer" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Answer settings" })).toBeNull();
   });
 
   it("adjusts depth level using stepper buttons", async () => {
@@ -80,8 +79,8 @@ describe("PersonaOffsetToolbar", () => {
       />
     );
 
-    const decBtn = screen.getByRole("button", { name: "Decrease depth level" });
-    const incBtn = screen.getByRole("button", { name: "Increase depth level" });
+    const decBtn = screen.getByRole("button", { name: "Less detail" });
+    const incBtn = screen.getByRole("button", { name: "More detail" });
 
     // Decrease from 3 to 2
     await user.click(decBtn);
@@ -94,12 +93,12 @@ describe("PersonaOffsetToolbar", () => {
 
   it("disables stepper bounds at level 1 and level 5", () => {
     const { rerender } = render(<PersonaOffsetToolbar depth={1} compact={false} />);
-    expect(screen.getByRole("button", { name: "Decrease depth level" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Increase depth level" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Less detail" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "More detail" })).not.toBeDisabled();
 
     rerender(<PersonaOffsetToolbar depth={5} compact={false} />);
-    expect(screen.getByRole("button", { name: "Decrease depth level" })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: "Increase depth level" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Less detail" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "More detail" })).toBeDisabled();
   });
 
   it("selects study style chips", async () => {
@@ -115,7 +114,7 @@ describe("PersonaOffsetToolbar", () => {
       />
     );
 
-    const visualChip = screen.getByRole("radio", { name: "Visual 🎨" });
+    const visualChip = screen.getByRole("radio", { name: "Visual" });
     await user.click(visualChip);
 
     expect(onStyleChange).toHaveBeenCalledWith("visual");
@@ -127,12 +126,12 @@ describe("PersonaOffsetToolbar", () => {
 
   it("displays readable labels correctly for depth levels", () => {
     const { rerender } = render(<PersonaOffsetToolbar depth={1} compact={false} />);
-    expect(screen.getAllByText(/Quick Intuition/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Just the gist/i).length).toBeGreaterThan(0);
 
     rerender(<PersonaOffsetToolbar depth={3} compact={false} />);
     expect(screen.getAllByText(/Standard/i).length).toBeGreaterThan(0);
 
     rerender(<PersonaOffsetToolbar depth={5} compact={false} />);
-    expect(screen.getAllByText(/Deep Academic/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/In depth/i).length).toBeGreaterThan(0);
   });
 });

@@ -193,17 +193,25 @@
   color: var(--text-muted);
 }
 
+/* Label above a full-width control. Side by side, the panel gave the
+   controls 96px, so the bound task read "Finis…" and the subject
+   "Unassigne" — the one piece of context the session is logged against. */
 .taskBinder {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--s-3);
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-2);
   margin-top: var(--s-4);
 }
 
-.taskBinder select {
-  width: 96px;
-  padding: 10px;
+.taskBinder > label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.taskBinder select,
+.taskBinder input {
+  width: 100%;
 }
 
 .fullWidth {
@@ -753,4 +761,36 @@
   .soundButton {
     min-height: var(--touch-target-min);
   }
+}
+
+/* Which preset the clock is on. Before, the three buttons looked identical
+   whatever was set, so a student could not tell what they had chosen. */
+.presetActive {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.customTimes {
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line);
+}
+
+.customTimes > summary {
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.customTimes > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+.customTimes[open] > summary {
+  margin-bottom: var(--s-3);
 }

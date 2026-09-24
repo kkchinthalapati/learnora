@@ -1,6 +1,7 @@
 import { useState, type Ref } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "../../components/Button";
+import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useOptionalTimer } from "../../context/timer";
 import { useAddTask, useTasks } from "../../hooks/useTasks";
@@ -132,6 +133,11 @@ export function DashboardTasksWidget({
                 ? formatDueDate(task.due_date)
                 : null;
 
+              /* A negative id is the optimistic placeholder useAddTask shows
+                 while the save is in flight (or queued offline). It has no
+                 server row yet, so it cannot be ticked or moved. */
+              const pending = task.id < 0;
+
               return (
                 <li
                   key={task.id}
@@ -139,13 +145,15 @@ export function DashboardTasksWidget({
                   role="checkbox"
                   aria-checked={false}
                   aria-label={task.text}
+                  aria-disabled={pending || undefined}
                   tabIndex={0}
                   onClick={(e) => {
                     const target = e.target as HTMLElement;
-                    if (target.closest("button")) return;
+                    if (pending || target.closest("button")) return;
                     toggle(task);
                   }}
                   onKeyDown={(e) => {
+                    if (pending) return;
                     if (e.key === " " || e.key === "Enter") {
                       e.preventDefault();
                       toggle(task);
@@ -170,6 +178,9 @@ export function DashboardTasksWidget({
                       )}
                     </div>
                   </div>
+                  {pending ? (
+                    <span className={styles.dashDue}>Saving…</span>
+                  ) : (
                   <div className={styles.dashActions}>
                     <button
                       type="button"
@@ -182,33 +193,34 @@ export function DashboardTasksWidget({
                         navigate("/timer");
                       }}
                     >
-                      Focus
+                      <Icon name="play" size={11} /> Focus
                     </button>
                     <button
                       type="button"
                       className={styles.dashSnoozeBtn}
-                      aria-label="Tomorrow"
-                      title="Snooze to tomorrow"
+                      aria-label={`Move ${task.text} to tomorrow`}
+                      title="Move to tomorrow"
                       onClick={(e) => {
                         e.stopPropagation();
                         setDueDate(task, dateInDays(1));
                       }}
                     >
-                      Tomorrow
+                      → Tomorrow
                     </button>
                     <button
                       type="button"
                       className={styles.dashSnoozeBtn}
-                      aria-label="Next week"
-                      title="Snooze to next week"
+                      aria-label={`Move ${task.text} to next week`}
+                      title="Move to next week"
                       onClick={(e) => {
                         e.stopPropagation();
                         setDueDate(task, dateInDays(7));
                       }}
                     >
-                      Next week
+                      → Next week
                     </button>
                   </div>
+                  )}
                 </li>
               );
             })

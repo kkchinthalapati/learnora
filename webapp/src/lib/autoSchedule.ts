@@ -41,6 +41,11 @@ export interface StudyDemand {
   load: CognitiveLoad;
   /** Hard deadline. Nothing is ever scheduled after it. */
   dueDate?: string | null;
+  /** Soft start: prefer no day before this one. Exam prep sittings carry one
+   *  per day so "sooner beats better" cannot pull the whole week's revision
+   *  into its first two days and leave the days before the exam empty. Falls
+   *  back to earlier days only when its own day has no room. */
+  notBefore?: string | null;
   subject?: string | null;
   folderId?: string | null;
   /** Where clicking the block should take the student. */
@@ -193,12 +198,13 @@ export function autoSchedule(
        demand without placing it or reporting it. */
     const needed = () => Math.min(remaining, minBlockMins);
 
-    const bestWindow = () => {
+    const bestWindow = (respectNotBefore: boolean) => {
       let best: OpenWindow | null = null;
       let bestScore = -Infinity;
       for (const w of open) {
         if (w.endMin - w.cursorMin < needed()) continue;
         if (demand.dueDate && w.date > demand.dueDate) continue;
+        if (respectNotBefore && demand.notBefore && w.date < demand.notBefore) continue;
         const score =
           fitScore(demand.load, w.energy) - w.dayOffset * dayCost(urgency);
         if (score > bestScore) {
@@ -210,7 +216,7 @@ export function autoSchedule(
     };
 
     while (remaining > 0) {
-      const best = bestWindow();
+      const best = bestWindow(true) ?? bestWindow(false);
       if (!best) break;
 
       const take = Math.min(

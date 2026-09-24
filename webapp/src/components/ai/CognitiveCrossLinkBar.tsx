@@ -58,12 +58,12 @@ const TOOL_CONFIGS: {
 const SOURCE_TOOL_LABELS: Record<CognitiveSourceTool, string> = {
   debugger: "Step-by-step solver",
   feynman: "Explain it simply",
-  sparring: "Oral Exam & Viva",
+  sparring: "Oral practice",
   exam_detective: "Exam Detective",
   /* Retained because CognitiveSourceTool still admits it: a payload written
      before Pre-Mortem was folded into Exam Detective can still be sitting in a
      student's localStorage, and it needs a label when it is read back. */
-  premortem: "Exam trap practice",
+  premortem: "Exam traps",
   quiz: "a quiz",
   notes: "your notes",
 };

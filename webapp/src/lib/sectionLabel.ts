@@ -42,14 +42,10 @@ export type PrimaryDestination =
 export function primaryDestinationForPath(
   pathname: string,
 ): PrimaryDestination | null {
-  /* "/dashboard" deliberately does NOT fold in here even though it shares
-   * the "dashboard" destination name: the rail's only item pointing at that
-   * destination is Today (`to: "/"`), and Today and the full Dashboard are
-   * different pages since the Today/Dashboard split. Matching "/dashboard"
-   * to Today's destination used to light up "Today" as the active link
-   * while actually viewing Dashboard (reachable via the command palette's
-   * "Full dashboard" entry or a direct link) — a real link with no sibling
-   * beats a wrong one, same as an unclaimed route gets no highlight at all. */
+  /* "/dashboard" does NOT map to the "dashboard" destination even though
+   * the names match: that destination is Today (`to: "/"`), and lighting
+   * Today while viewing the Dashboard was wrong. The Dashboard is a child of
+   * Progress now — see the progress branch below. */
   if (pathname === "/") return "dashboard";
   if (isNotebooksSection(pathname)) return "library";
   if (isLibrarySection(pathname)) return "library";
@@ -62,7 +58,13 @@ export function primaryDestinationForPath(
     return "plan";
   }
   if (pathname.startsWith("/timer")) return "focus";
-  if (pathname.startsWith("/analytics") || pathname.startsWith("/trajectory"))
+  /* The Dashboard is "how am I doing" now (DashboardView.tsx), so it sits
+     under Progress with Trajectory rather than floating with no rail item. */
+  if (
+    pathname.startsWith("/analytics") ||
+    pathname.startsWith("/trajectory") ||
+    pathname.startsWith("/dashboard")
+  )
     return "progress";
   if (isStudyLabSection(pathname)) return "study_lab";
   return null;
@@ -88,7 +90,13 @@ export function sectionLabel(
   if (pathname === "/") return "Today";
   if (pathname.startsWith("/dashboard")) return t("nav_dashboard");
   if (isNotebooksSection(pathname)) return "Notebooks";
+  /* A quiz or a review session is an activity, not the Library page; the
+     header saying "Library" mid-quiz told the student they were somewhere
+     else. The sidebar still lights Library via isLibrarySection. */
+  if (pathname.startsWith("/quiz/")) return "Quiz";
+  if (pathname.startsWith("/review/")) return "Flashcard review";
   if (isLibrarySection(pathname)) return t("nav_library");
+  /* Same words as the sidebar row. It said "Focus" there and "Timer" here. */
   if (pathname.startsWith("/timer")) return t("nav_timer");
   if (pathname.startsWith("/tasks")) return t("nav_tasks");
   /* "Progress" everywhere — it is the rail's label and the student's own
@@ -99,9 +107,9 @@ export function sectionLabel(
   if (pathname.startsWith("/study")) return "Study tools";
   if (pathname.startsWith("/feynman")) return "Explain it simply";
   if (pathname.startsWith("/solver")) return "Step-by-step solver";
-  if (pathname.startsWith("/exam-detective")) return "Exam trap practice";
-  if (pathname.startsWith("/viva")) return "Viva practice";
-  if (pathname.startsWith("/my-week")) return "My week";
+  if (pathname.startsWith("/exam-detective")) return "Exam traps";
+  if (pathname.startsWith("/viva")) return "Oral practice";
+  if (pathname.startsWith("/my-week")) return "Availability";
   if (pathname.startsWith("/plan")) return "Plan";
   if (pathname.startsWith("/exams")) return "Exams";
   if (pathname.startsWith("/room")) return "Study Room";

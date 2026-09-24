@@ -17,7 +17,7 @@ import { useMemo } from "react";
 export function TodayView() {
   const navigate = useNavigate();
   const { openCreateModal } = useCreateModal();
-  const { prepareFocus, completedFocus: completed, dismissCompletedFocus } = useTimer();
+  const { prepareFocus, start, state: timerState, completedFocus: completed, dismissCompletedFocus } = useTimer();
   const { exam, forecast, needsMaterial, isPending } = useTrajectory();
 
   /* How many cards the top topic's deck actually owes the student right now.
@@ -43,8 +43,12 @@ export function TodayView() {
         isPending={isPending}
         dueCards={dueCards}
         onCreate={() => openCreateModal({ type: "material", outputs: { flashcards: true } })}
-        onStart={(deckId, label) => {
-          prepareFocus(INTERVENTION_BLOCK_MINS, label, undefined, deckId);
+        onStart={(deckId, label, minutes = INTERVENTION_BLOCK_MINS) => {
+          prepareFocus(minutes, label, undefined, deckId);
+          /* The button says "Start". Landing on a stopped clock and needing a
+             second Start was the gap between intent and action this screen
+             exists to close. A timer already running is left alone. */
+          if (!timerState.isRunning) start();
           void navigate("/timer");
         }}
       />
@@ -52,7 +56,7 @@ export function TodayView() {
       <section className={styles.region} aria-labelledby="today-due"><h2 id="today-due" className={styles.regionTitle}>Due today</h2><TasksCard dueOnly /></section>
       <section className={styles.region} aria-labelledby="today-exam"><h2 id="today-exam" className={styles.regionTitle}>Next exam</h2><NextExamCard /></section>
       <section className={styles.region} aria-labelledby="today-continue"><h2 id="today-continue" className={styles.regionTitle}>Continue</h2><RecentNotebooksShelf /><ResumeLearningCard /></section>
-      <p className={styles.footer}>Everything else — streaks, rings, peers, history — lives in <Link to="/analytics">Progress</Link> and the <Link to="/dashboard">full dashboard</Link>.</p>
+      <p className={styles.footer}>Your mistakes, streaks and study history are in <Link to="/analytics">Progress</Link> and on the <Link to="/dashboard">Dashboard</Link>.</p>
     </div>
   );
 }

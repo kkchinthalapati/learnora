@@ -281,7 +281,7 @@ test("study lab: try all four tools like a kid who does not read", async ({
 
   /* ------------------------------------------------------- 4. Viva */
 
-  log.did("Went to Viva practice");
+  log.did("Went to Oral practice");
   await safe("open-viva", async () => {
     await log.timed("open /viva", async () => {
       await page.goto("viva");

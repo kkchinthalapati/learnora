@@ -114,8 +114,9 @@ describe("MaterialPanel streamlined creation", () => {
     expect(screen.getByRole("tab", { name: /Topic/ })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Web Link/ })).toBeInTheDocument();
 
+    /* One default, so one request, unless the student adds more. */
     expect(outputCheckbox("Flashcards")).toBeChecked();
-    expect(outputCheckbox("Summary Notes")).toBeChecked();
+    expect(outputCheckbox("Summary Notes")).not.toBeChecked();
     expect(outputCheckbox("Practice Quiz")).not.toBeChecked();
 
     // Voice control and screen readers must use the visible button label.
@@ -228,7 +229,6 @@ describe("MaterialPanel streamlined creation", () => {
     const user = await openDialog();
     await chooseText(user);
     await user.click(outputCheckbox("Flashcards"));
-    await user.click(outputCheckbox("Summary Notes"));
     await user.click(
       screen.getByRole("button", { name: "Generate Study Resources" }),
     );
@@ -291,6 +291,7 @@ describe("MaterialPanel streamlined creation", () => {
     );
     const user = await openDialog();
     await chooseText(user);
+    await user.click(outputCheckbox("Summary Notes"));
     await user.click(
       screen.getByRole("button", { name: "Generate Study Resources" }),
     );
@@ -340,6 +341,7 @@ describe("MaterialPanel streamlined creation", () => {
     );
     const user = await openDialog();
     await chooseText(user);
+    await user.click(outputCheckbox("Summary Notes"));
     await user.click(
       screen.getByRole("button", { name: "Generate Study Resources" }),
     );

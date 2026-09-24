@@ -291,7 +291,7 @@ function ReviewSetup({
               />
               <span>
                 <strong>Due order</strong>
-                <small>Oldest due cards first</small>
+                <small>The cards that have waited longest come first</small>
               </span>
             </label>
             <label className={styles.orderChoice}>
@@ -304,7 +304,7 @@ function ReviewSetup({
               />
               <span>
                 <strong>Difficult first</strong>
-                <small>Lower-ease cards get priority</small>
+                <small>Cards you usually find hard come first</small>
               </span>
             </label>
             {/* Offered only when quizzes have actually named a weak topic —
@@ -321,7 +321,7 @@ function ReviewSetup({
                 />
                 <span>
                   <strong>Quiz weak spots first</strong>
-                  <small>Topics you have been missing on quizzes</small>
+                  <small>Topics you got wrong in recent quizzes come first</small>
                 </span>
               </label>
             ) : null}

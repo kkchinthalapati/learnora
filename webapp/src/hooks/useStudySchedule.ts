@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useExams } from "./useExams";
 import { useFlashcardsDueCount } from "./useFlashcards";
 import { useLifeContext } from "./useLifeContext";
@@ -82,6 +82,16 @@ export function useStudySchedule(
     [context.importedIcs, todayDate, horizonDays],
   );
 
+  /* The hour this screen was opened, rounded up to the next quarter. Today's
+     windows start no earlier than it: a plan opened at 21:30 that books
+     "7:30 Biology prep" for this morning is a plan for a day that is already
+     over. Captured once, not ticked, for the same no-reshuffle reason as
+     `todayDate`. */
+  const [nowMin] = useState(() => {
+    const d = new Date();
+    return Math.ceil((d.getHours() * 60 + d.getMinutes()) / 15) * 15;
+  });
+
   const days = useMemo(
     () => availabilityRange(context, todayDate, horizonDays, calendar),
     [context, todayDate, horizonDays, calendar],
@@ -111,7 +121,12 @@ export function useStudySchedule(
     () =>
       autoSchedule(
         demands,
-        days.flatMap((d) => d.windows),
+        days
+          .flatMap((d) => d.windows)
+          .map((w) =>
+            w.date === todayDate ? { ...w, startMin: Math.max(w.startMin, nowMin) } : w,
+          )
+          .filter((w) => w.endMin > w.startMin),
         {
           maxBlockMins: context.maxBlockMins,
           minBlockMins: context.minBlockMins,
@@ -126,6 +141,7 @@ export function useStudySchedule(
       context.minBlockMins,
       context.breakMins,
       todayDate,
+      nowMin,
     ],
   );
 

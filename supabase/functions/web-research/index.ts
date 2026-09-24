@@ -142,6 +142,17 @@ Deno.serve(async (req: Request) => {
   } = await supabase.auth.getUser();
   if (authError || !user)
     return json({ error: "Your session has expired." }, 401, cors);
+  // Same consent rule as learnora-ai: an explicit "false" refuses.
+  if (user.user_metadata?.consent_given === false)
+    return json(
+      {
+        error:
+          "Learnora's AI needs your OK before it can use your study data. You can turn it on any time in Settings ▸ Privacy.",
+        consent_required: true,
+      },
+      403,
+      cors,
+    );
 
   try {
     const body = await req.json();

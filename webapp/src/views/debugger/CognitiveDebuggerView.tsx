@@ -24,43 +24,49 @@ import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import { useRecordMisconceptions } from "../../hooks/useMisconceptions";
 import { candidatesFromStackTrace } from "../../lib/misconceptions";
 import { useAuth } from "../../context/auth";
+import { useFolders } from "../../hooks/useFolders";
 import styles from "./CognitiveDebuggerView.module.css";
 
+/* School-level mistakes students actually make. The previous set (chain
+   rule on sin(x²), buffer pH, recursion base cases) was university work, on
+   an app built for high school and board exams. */
 const PRESETS = [
   {
-    subject: "Calculus",
-    label: "Chain rule on sin(x²)",
-    mistake: "Failed derivative of composite trigonometric function sin(x^2)",
-    context: "Calculated cos(x^2) and missed multiplying by the inner derivative.",
+    subject: "Maths",
+    label: "Expanding (x + 3)²",
+    mistake: "Expanded (x + 3)² as x² + 9",
+    context: "I squared each term separately.",
   },
   {
     subject: "Physics",
-    label: "2D collision momentum",
-    mistake: "Conservation of momentum in 2D inelastic collision problem",
-    context: "Mixed scalar kinetic energy conservation with directional vector momentum.",
-  },
-  {
-    subject: "Computer Science",
-    label: "Recursion with no base case",
-    mistake: "Stack overflow in recursive tree traversal algorithm",
-    context: "Omitted the base case check when child node pointer is null.",
+    label: "Speed vs velocity",
+    mistake: "Said a car going round a bend at a steady speed isn't accelerating",
+    context: "I thought acceleration only means speeding up.",
   },
   {
     subject: "Chemistry",
-    label: "Buffer pH calculation",
-    mistake: "pH calculation of acetic acid buffer equilibrium solution",
-    context: "Applied Henderson-Hasselbalch equation without accounting for weak acid dissociation constant Ka.",
+    label: "Balancing equations",
+    mistake: "Balanced H₂ + O₂ → H₂O by changing it to H₂O₂",
+    context: "I changed the formula instead of the numbers in front.",
+  },
+  {
+    subject: "Biology",
+    label: "Which way osmosis goes",
+    mistake: "Said water moves from a concentrated solution into a dilute one",
+    context: "I mixed up which side has more water.",
   },
 ];
 
 const SUBJECT_OPTIONS = [
-  "Mathematics & Calculus",
+  "Maths",
+  "Biology",
+  "Chemistry",
   "Physics",
   "Computer Science",
-  "Chemistry",
-  "Biology",
+  "Geography",
+  "History",
   "Economics",
-  "Philosophy & Logic",
+  "English",
   "Other",
 ];
 
@@ -94,7 +100,16 @@ export function CognitiveDebuggerView() {
   const { user } = useAuth();
   const workKey = `learnora:solver_work:${user?.id ?? "guest"}`;
   const [restoredWork] = useState(() => readSolverWork(workKey));
-  const [subject, setSubject] = useState(restoredWork?.subject ?? SUBJECT_OPTIONS[0]);
+  /* The student's own subjects first, and the default is one of them: a
+     Biology student opening this used to find "Mathematics & Calculus"
+     preselected. The list also always contains whatever is selected, so a
+     subject that arrives from a hand-off or a saved trace is shown rather
+     than silently rendered as the first option. */
+  const { data: folders = [] } = useFolders();
+  const [subject, setSubject] = useState(restoredWork?.subject ?? "");
+  const folderNames = folders.map((f) => f.name).filter(Boolean);
+  const effectiveSubject = subject || folderNames[0] || SUBJECT_OPTIONS[0];
+  const subjectOptions = [...new Set([...folderNames, ...SUBJECT_OPTIONS, effectiveSubject])];
   const [mistakeDescription, setMistakeDescription] = useState(restoredWork?.mistakeDescription ?? "");
   const [context, setContext] = useState(restoredWork?.context ?? "");
 
@@ -187,7 +202,7 @@ export function CognitiveDebuggerView() {
     setIsLoading(true);
     setSelectedLevel(undefined);
     try {
-      const trace = await diagnoseCognitiveGap(subject, mistakeDescription.trim(), context.trim());
+      const trace = await diagnoseCognitiveGap(effectiveSubject, mistakeDescription.trim(), context.trim());
       setActiveTrace(trace);
       setSavedTraces(getSavedTraces());
       /* The trace already names the broken prerequisite; without this it died
@@ -388,12 +403,12 @@ export function CognitiveDebuggerView() {
               </label>
               <select
                 id="subject-select"
-                value={subject}
+                value={effectiveSubject}
                 onChange={(e) => setSubject(e.target.value)}
                 className={styles.selectInput}
                 disabled={isLoading}
               >
-                {SUBJECT_OPTIONS.map((s) => (
+                {subjectOptions.map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>
@@ -458,7 +473,7 @@ export function CognitiveDebuggerView() {
           {weakTopics.length > 0 && (
             <div className={styles.recentMistakesBox}>
               <span className={styles.presetLabel}>
-                <Icon name="alert-triangle" size={12} /> Topics you keep dropping marks on
+                <Icon name="target" size={12} /> From your recent quizzes — tap one to work through it
               </span>
               {weakTopics.map((wt, idx) => (
                 <button
@@ -469,7 +484,9 @@ export function CognitiveDebuggerView() {
                   disabled={isLoading}
                 >
                   <span>{wt.topic}</span>
-                  <span style={{ opacity: 0.7 }}>missed {wt.count}x</span>
+                  <span className={styles.recentMistakeCount}>
+                    {wt.count === 1 ? "1 wrong answer" : `${wt.count} wrong answers`}
+                  </span>
                 </button>
               ))}
             </div>

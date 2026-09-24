@@ -167,7 +167,7 @@ describe("TurboChat", () => {
     renderChat();
     const panel = await openChat();
     expect(
-      within(panel).getByText(/Hi there! I'm Learnora AI/),
+      within(panel).getByText(/I can explain a topic, quiz you/),
     ).toBeInTheDocument();
   });
 
@@ -274,6 +274,25 @@ describe("TurboChat", () => {
       await ask("hi");
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Bad token");
+    });
+
+    it("offers Try again on a failure, which re-sends the same question", async () => {
+      let failing = true;
+      server.use(
+        http.post(EDGE_URL, () =>
+          failing
+            ? HttpResponse.json({ error: "Internal error" }, { status: 400 })
+            : HttpResponse.json({ text: "recovered answer" }),
+        ),
+      );
+      renderChat();
+      await openChat();
+      await ask("what is osmosis");
+
+      const alert = await screen.findByRole("alert");
+      failing = false;
+      await userEvent.click(within(alert).getByRole("button", { name: /try again/i }));
+      expect(await screen.findByText("recovered answer")).toBeInTheDocument();
     });
 
     it("carries the conversation into the next request", async () => {
@@ -951,13 +970,12 @@ describe("TurboChat", () => {
 
     expect(
       screen.getByRole("region", {
-        name: "AI Study Persona & Source Settings",
+        name: "Answer settings",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Lvl 3: Standard/)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Source mode 🌐 Web" }),
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: /^Answer settings:/ }),
+    ).toHaveTextContent(/Answers from/);
   });
 
   it("renders web citation cards with 1-click Add to Notebook action", async () => {

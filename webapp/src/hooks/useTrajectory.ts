@@ -5,7 +5,7 @@ import { useExams } from "./useExams";
 import { useFlashcards } from "./useFlashcards";
 import { useFolders } from "./useFolders";
 import { useLearningEvents } from "./useLearningEvents";
-import { useLifeContext } from "./useLifeContext";
+import { useLifeContext, useLifeContextHydrating } from "./useLifeContext";
 import { useQuizAttempts } from "./useQuizzes";
 import { localDateStr } from "../lib/date";
 import { anyPending } from "../lib/queryState";
@@ -42,6 +42,7 @@ export interface UseTrajectoryResult {
 
 export function useTrajectory(examId?: number | null): UseTrajectoryResult {
   const { context } = useLifeContext();
+  const lifeHydrating = useLifeContextHydrating();
   const exams = useExams();
   const folders = useFolders();
   const decks = useAllDecks();
@@ -58,6 +59,7 @@ export function useTrajectory(examId?: number | null): UseTrajectoryResult {
     cards.isPending,
     attempts.isPending,
     events.isPending,
+    lifeHydrating,
   );
 
   const join = useMemo(

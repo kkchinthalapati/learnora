@@ -11,11 +11,7 @@ import styles from "./dashboard.module.css";
 
 const DISMISSED_KEY = "onboarding_dismissed";
 
-type OnboardingBannerProps = {
-  onFocusTaskInput: () => void;
-};
-
-export function OnboardingBanner({ onFocusTaskInput }: OnboardingBannerProps) {
+export function OnboardingBanner() {
   const [dismissed, setDismissed] = useState(() =>
     Storage.get(DISMISSED_KEY, false),
   );
@@ -41,7 +37,7 @@ export function OnboardingBanner({ onFocusTaskInput }: OnboardingBannerProps) {
           <p className={styles.sub}>
             Upload your first study material or add a task to get started.
             Learnora AI will build notes, flashcards, and quizzes from it — or
-            press <kbd className={styles.kbd}>⌘K</kbd> anywhere to chat with AI.
+            press Ask AI at the top of any page.
           </p>
         </div>
         <button
@@ -63,7 +59,7 @@ export function OnboardingBanner({ onFocusTaskInput }: OnboardingBannerProps) {
         >
           <Icon name="upload-cloud" size={15} /> Create study material
         </Button>
-        <Button onClick={onFocusTaskInput}>
+        <Button onClick={() => openCreateModal({ type: "task" })}>
           <Icon name="list-checks" size={15} /> Add a task
         </Button>
       </div>

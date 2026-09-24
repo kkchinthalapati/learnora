@@ -434,3 +434,10 @@
   font-size: var(--fs-sm);
   line-height: 1.6;
 }
+
+/* "Ask AI why" under a wrong answer: secondary to Next, but right where the
+   question "why was I wrong?" is being asked. */
+.askWhyRow {
+  display: flex;
+  margin-top: var(--s-4);
+}

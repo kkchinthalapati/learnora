@@ -5,7 +5,6 @@ import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useExams } from "../../hooks/useExams";
 import { useExamReadiness } from "../../hooks/useExamReadiness";
-import { getGradeScale, normaliseScore, renderGrade } from "../../lib/gradeScale";
 import { localDateStr } from "../../lib/date";
 import { Storage } from "../../lib/storage";
 import { ExamPrepModal } from "../exams/ExamPrepModal";
@@ -105,7 +104,7 @@ export function NextExamCard() {
             className={styles.countdownChange}
             onClick={() => setChoosingCountdown(true)}
           >
-            <Icon name="settings" size={13} /> Choose countdown
+            <Icon name="calendar" size={13} /> Count down to a different exam
           </button>
         ) : null}
         {upcoming.length > 1 && choosingCountdown ? (
@@ -146,11 +145,11 @@ export function NextExamCard() {
                 tone={readinessTone}
                 size="sm"
                 onClick={() => setPrepModalOpen(true)}
-                title="View AI Exam Readiness & Prep Roadmap"
-                aria-label={`Exam readiness: ${renderGrade(normaliseScore(readiness.score), getGradeScale())}. Click to open AI Prep Roadmap.`}
+                title="See how ready you are and your prep plan"
+                aria-label={`Readiness ${readiness.score}% (${readiness.tier}). Open your prep plan.`}
               >
                 <Icon name="brain" size={13} />
-                {renderGrade(normaliseScore(readiness.score), getGradeScale())} readiness
+                Readiness {readiness.score}%
               </Chip>
             )}
           </div>

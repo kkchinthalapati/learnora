@@ -1,4 +1,5 @@
 import { learningEventsApi } from "../../api/learningEvents";
+import { useToast } from "../../context/toast";
 import { normaliseTopicKey } from "../../lib/topicKey";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
@@ -39,6 +40,7 @@ export function FeynmanStudioView() {
   /* Above the `if (!session)` early return below — a hook after it changes the
      hook order between renders. */
   const recordMisconceptions = useRecordMisconceptions();
+  const { showToast } = useToast();
 
   const [session, setSession] = useState<FeynmanSessionState | null>(null);
   const [explanationText, setExplanationText] = useState("");
@@ -175,7 +177,13 @@ export function FeynmanStudioView() {
          correction. The draft is passed only to name the subject and topic —
          the extractor deliberately ignores its planted misconceptions, which
          are the app's inventions rather than the student's beliefs. */
-      recordMisconceptions(candidatesFromTeachingTurn(turn, session.draft));
+      if (turn.scoredBy === "local") {
+        showToast(
+          "Learnora's AI couldn't be reached, so a simple built-in checker marked that. It isn't saved to your progress.",
+        );
+      } else {
+        recordMisconceptions(candidatesFromTeachingTurn(turn, session.draft));
+      }
     } catch (err) {
       console.error("Evaluation failed", err);
     } finally {
@@ -227,7 +235,9 @@ export function FeynmanStudioView() {
 
       setSession(completedSession);
       saveFeynmanSession(completedSession);
-      if (session.turns.length) void learningEventsApi.record({ source: "feynman", topicKey: normaliseTopicKey(session.topic),
+      /* Evidence only from AI-marked teaching; a session the built-in checker
+         marked is practice, not a measurement. */
+      if (session.turns.length && !session.turns.some((t) => t.scoredBy === "local")) void learningEventsApi.record({ source: "feynman", topicKey: normaliseTopicKey(session.topic),
         score: Math.max(0, Math.min(1, debrief.overallMastery / 100)), clientId: `feynman:${session.id}`,
         payload: { sessionId: session.id, subject: session.subject } }).catch(err => console.warn("[feynman] evidence:", err));
       navigate(`/feynman/debrief/${completedSession.id}`);

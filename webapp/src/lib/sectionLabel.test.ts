@@ -39,14 +39,16 @@ describe("sectionLabel", () => {
     expect(sectionLabel("/library", t)).toBe("Library");
     expect(sectionLabel("/folders/f-1", t)).toBe("Library");
     expect(sectionLabel("/notes/m-1", t)).toBe("Library");
-    expect(sectionLabel("/quiz/q-1", t)).toBe("Library");
-    expect(sectionLabel("/review/d-1", t)).toBe("Library");
+    /* Activities inside the Library name themselves; the sidebar still
+       lights Library for them (isLibrarySection). */
+    expect(sectionLabel("/quiz/q-1", t)).toBe("Quiz");
+    expect(sectionLabel("/review/d-1", t)).toBe("Flashcard review");
   });
 
   it("labels the remaining top-level sections", () => {
-    expect(sectionLabel("/timer", t)).toBe("Timer");
+    expect(sectionLabel("/timer", t)).toBe("Focus timer");
     expect(sectionLabel("/analytics", t)).toBe("Progress");
-    expect(sectionLabel("/tasks", t)).toBe("Task Manager");
+    expect(sectionLabel("/tasks", t)).toBe("Tasks");
     expect(sectionLabel("/plan", t)).toBe("Plan");
     expect(sectionLabel("/exams", t)).toBe("Exams");
     expect(sectionLabel("/study-lab", t)).toBe("Study tools");

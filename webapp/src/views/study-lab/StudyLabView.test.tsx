@@ -53,7 +53,7 @@ describe("StudyLabView", () => {
     renderLab();
     expect(screen.getByText("Step-by-step solver")).toBeInTheDocument();
     expect(screen.getByText("Explain it simply")).toBeInTheDocument();
-    expect(screen.getByText("Viva practice")).toBeInTheDocument();
+    expect(screen.getByText("Oral practice")).toBeInTheDocument();
     expect(screen.queryByText("Common Exam Traps")).not.toBeInTheDocument();
   });
 
@@ -70,7 +70,7 @@ describe("StudyLabView", () => {
     expect(href("Explain it simply")).toBe(
       "/feynman?topic=Acids%20%26%20Bases",
     );
-    expect(href("Viva practice")).toBe("/viva?topic=Acids%20%26%20Bases");
+    expect(href("Oral practice")).toBe("/viva?topic=Acids%20%26%20Bases");
   });
 
   it("leaves the routes bare when no topic came with the student", () => {

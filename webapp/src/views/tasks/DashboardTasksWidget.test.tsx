@@ -226,7 +226,7 @@ describe("DashboardTasksWidget", () => {
     );
     await screen.findByText("Study history");
 
-    const tomorrowBtn = screen.getByRole("button", { name: "Tomorrow" });
+    const tomorrowBtn = screen.getByRole("button", { name: /to tomorrow$/ });
     await user.click(tomorrowBtn);
 
     await waitFor(() =>
@@ -251,7 +251,7 @@ describe("DashboardTasksWidget", () => {
     );
     await screen.findByText("Study history");
 
-    const nextWeekBtn = screen.getByRole("button", { name: "Next week" });
+    const nextWeekBtn = screen.getByRole("button", { name: /to next week$/ });
     await user.click(nextWeekBtn);
 
     await waitFor(() =>

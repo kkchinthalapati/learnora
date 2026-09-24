@@ -13,6 +13,7 @@ import { useToast } from "../../context/toast";
 import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
 import { useAllDecks } from "../../hooks/useDecks";
+import { useQuizzes } from "../../hooks/useQuizzes";
 import { tasksApi } from "../../api/tasks";
 import { tasksKeys } from "../../hooks/useTasks";
 import { resolveDark, THEME_KEY } from "../../lib/appearance";
@@ -70,6 +71,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   const { data: folders = [] } = useFolders();
   const { data: materials = [] } = useMaterials();
   const { data: decks = [] } = useAllDecks();
+  const { data: quizzes = [] } = useQuizzes();
 
   // Overlay Stack & Focus Trap behavior
   useOverlayBehavior({
@@ -170,13 +172,13 @@ export function CommandPalette(props: CommandPaletteProps) {
         return [
           {
             id: "action-prefix-debug",
-            category: "Find My Mistake",
+            category: "Step-by-step solver",
             title: prefixMatch.text
               ? `Look at: "${prefixMatch.text}"`
               : "Type a topic to look at…",
-            subtitle: "Work out what went wrong in Find My Mistake",
+            subtitle: "Work out what went wrong in the step-by-step solver",
             icon: "brain",
-            badge: "Find My Mistake",
+            badge: "Solver",
             shortcut: "↵",
             onSelect: () => {
               if (!prefixMatch.text) return;
@@ -331,10 +333,10 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-ai-sparring",
       category: "Study tools",
-      title: "Viva practice",
-      subtitle: "Defend an idea against questions and viva counterexamples",
+      title: "Oral practice",
+      subtitle: "Answer spoken or typed questions on a topic, like a viva",
       icon: "mic",
-      badge: "Viva Coach",
+      badge: "Speak or type",
       keywords: [
         "viva",
         "oral",
@@ -354,11 +356,11 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-ai-exam-traps",
       category: "Study tools",
-      title: "Exam trap practice",
-      subtitle: "Analyse a past paper and practise common exam traps",
+      title: "Exam traps",
+      subtitle: "Learn the tricks exam questions use, then practise spotting them",
       icon: "search",
       badge: "Exam practice",
-      keywords: ["exam", "past paper", "traps", "practice", "detective"],
+      keywords: ["exam", "past paper", "traps", "practice", "detective", "stress test", "timed"],
       onSelect: () => {
         navigate("/exam-detective");
         handleClose();
@@ -383,10 +385,10 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-dashboard",
       category: "Navigation",
-      title: "Full dashboard",
-      subtitle: "Study overview, goals, and daily streak",
+      title: "Dashboard",
+      subtitle: "Mistakes, memory, streaks and study history",
       icon: "dashboard",
-      keywords: ["home", "dashboard", "overview"],
+      keywords: ["dashboard", "overview", "streak", "progress", "mistakes"],
       onSelect: () => {
         navigate("/dashboard");
         handleClose();
@@ -396,7 +398,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-tasks",
       category: "Navigation",
-      title: "Task Manager",
+      title: "Tasks",
       subtitle: "Manage tasks, deadlines, and to-do lists",
       icon: "list-checks",
       keywords: ["tasks", "todo", "list", "deadlines", "assignments"],
@@ -532,6 +534,37 @@ export function CommandPalette(props: CommandPaletteProps) {
       });
     });
 
+    /* Quizzes were not searchable at all: "quiz" returned "No matching
+       results", and a quiz's own title never matched. Practice questions
+       are one of the most common things a student comes looking for. */
+    items.push({
+      id: "nav-quizzes",
+      category: "Navigation",
+      title: "Quizzes",
+      subtitle: "Your practice quizzes, or make a new one",
+      icon: "help-circle",
+      keywords: ["quiz", "quizzes", "practice questions", "test me", "mock"],
+      onSelect: () => {
+        navigate("/library/quizzes");
+        handleClose();
+      },
+    });
+    quizzes.forEach((quiz) => {
+      items.push({
+        id: `quiz-${quiz.id}`,
+        category: "Quizzes",
+        title: quiz.title,
+        subtitle: "Take this quiz",
+        icon: "help-circle",
+        badge: "Quiz",
+        keywords: ["quiz", "practice", "test", quiz.title],
+        onSelect: () => {
+          navigate(`/quiz/${quiz.id}`);
+          handleClose();
+        },
+      });
+    });
+
     // --- Dynamic: Flashcard Decks ---
     decks.forEach((deck) => {
       items.push({
@@ -557,6 +590,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     folders,
     materials,
     decks,
+    quizzes,
     navigate,
     handleClose,
     timer,

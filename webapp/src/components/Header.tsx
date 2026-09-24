@@ -14,9 +14,16 @@ import { Storage } from "../lib/storage";
 import styles from "./Header.module.css";
 import { HelpCenter } from "./HelpCenter";
 
+/* The shortcut hint in the platform's own terms: "⌘K" means nothing on the
+   Windows and Chromebook laptops most students use. */
+const IS_MAC =
+  typeof navigator !== "undefined" &&
+  /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
+const SEARCH_SHORTCUT = IS_MAC ? "⌘K" : "Ctrl K";
+
 export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
   const { pathname } = useLocation();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { appearance, setAppearance } = useAppearance();
   const commandPalette = useOptionalCommandPalette();
   const chat = useOptionalChat();
@@ -73,8 +80,8 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
             type="button"
             className={styles.askTrigger}
             onClick={() => chat.open()}
-            aria-label="Ask Learnora AI"
-            title="Ask Learnora AI"
+            aria-label="Ask AI"
+            title="Ask Learnora's AI a question"
           >
             <Icon name="sparkles" size={16} />
             <span className={styles.askTriggerLabel}>Ask AI</span>
@@ -85,22 +92,16 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
           className={styles.searchTrigger}
           onClick={() => commandPalette?.open()}
           aria-label="Search and command palette"
-          title="Search or run commands (Cmd+K / Ctrl+K)"
+          title={`Search or run commands (${SEARCH_SHORTCUT})`}
         >
           <Icon name="search" size={16} />
           <span className={styles.searchTriggerLabel}>Search</span>
-          <kbd className={styles.searchKbd}>⌘K</kbd>
+          <kbd className={styles.searchKbd}>{SEARCH_SHORTCUT}</kbd>
         </button>
         {showClock ? <span className={styles.clock}>{time}</span> : null}
-        {user ? (
-          <IconButton
-            aria-label="Log Out"
-            title="Log Out"
-            onClick={() => void signOut()}
-          >
-            <Icon name="log-out" size={20} />
-          </IconButton>
-        ) : (
+        {/* Log out moved to the sidebar's Account group and Settings; an
+            icon here was one mis-tap from ending the session. */}
+        {user ? null : (
           <div className={styles.guestAuthGroup}>
             <span className={styles.guestBadge}>Guest Mode</span>
             <Link to="/login" className={styles.signInLink}>

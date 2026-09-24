@@ -249,7 +249,7 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
   },
   sparring: {
     id: "sparring",
-    name: "Viva practice",
+    name: "Oral practice",
     description: "Live viva and oral test practice with an AI study partner.",
   },
   notebookStudio: {

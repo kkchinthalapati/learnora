@@ -11,6 +11,7 @@ import {
   useSetLeaderboardOptOut,
 } from "../../hooks/useFriends";
 import { buildDataExport, downloadDataExport } from "../../lib/dataExport";
+import { hasAiConsent, setAiConsent } from "../../lib/aiConsent";
 import styles from "./settings.module.css";
 
 /* Privacy — what other people can see, and getting your own data out.
@@ -25,8 +26,31 @@ export function PrivacyTab() {
   const privacy = usePrivacySettings();
   const setOptOut = useSetLeaderboardOptOut();
   const [exporting, setExporting] = useState(false);
+  const [savingConsent, setSavingConsent] = useState(false);
 
   const boardId = useId();
+  const aiId = useId();
+  const aiConsent = hasAiConsent(user?.user_metadata);
+
+  /* Withdrawing used to mean emailing support (see the Privacy notice).
+     Either direction takes effect on the next AI request: the client asks
+     again before sending anything, and the edge function refuses an
+     account that has said no. */
+  async function onAiConsent(granted: boolean) {
+    setSavingConsent(true);
+    try {
+      await setAiConsent(granted);
+      showToast(
+        granted
+          ? "AI features are on."
+          : "AI features are off. Nothing new is sent to our AI providers, and Learnora will ask before any AI feature runs.",
+      );
+    } catch {
+      showToast("Could not save that. Please try again.", { error: true });
+    } finally {
+      setSavingConsent(false);
+    }
+  }
 
   async function onExport() {
     if (!user) return;
@@ -53,6 +77,49 @@ export function PrivacyTab() {
 
   return (
     <>
+      <Card
+        as="section"
+        variant="panel"
+        padding="lg"
+        className={styles.card}
+        aria-labelledby="settings-ai-consent-heading"
+      >
+        <div className={styles.cardHeader}>
+          <span className={styles.cardIcon}>
+            <Icon name="sparkles" size={18} />
+          </span>
+          <div>
+            <h3 id="settings-ai-consent-heading">AI and your study data</h3>
+            <p>
+              AI features send what you&apos;re working on — your questions,
+              notes and answers — to Learnora&apos;s AI providers, Anthropic
+              (Claude) and Google (Gemini). The timer, tasks, exams and
+              flashcard reviews work without it.
+            </p>
+          </div>
+        </div>
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <span className={styles.labelText} id={aiId}>
+              Let AI features use my study data
+            </span>
+            <p className={styles.fieldDesc}>
+              {aiConsent
+                ? "On. Turn it off and Learnora will ask before any AI feature runs."
+                : "Off. Learnora will ask the next time you use an AI feature."}
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <ToggleSwitch
+              checked={aiConsent}
+              labelledBy={aiId}
+              disabled={savingConsent || !user}
+              onChange={(checked) => void onAiConsent(checked)}
+            />
+          </div>
+        </div>
+      </Card>
+
       <Card
         as="section"
         variant="panel"

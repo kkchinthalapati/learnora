@@ -98,13 +98,12 @@ function UpcomingExamCard({ exam, onOpenPrep, onEdit }: UpcomingExamCardProps) {
     <article className={styles.upcomingCard}>
       <div className={styles.upcomingLeft}>
         <h3 className={styles.upcomingName}>{exam.exam_name}</h3>
-        <div className={styles.upcomingMeta}>
-          <span>{prettyDate}</span>
-          <span>•</span>
-          <span>{exam.difficulty || "Medium"}</span>
-          <span>•</span>
-          <span>{countdownPill}</span>
-        </div>
+        {/* One line of text, not five flex items: the separators were
+            items too, so a narrow card wrapped them onto lines of their own
+            ("• medium • •"). */}
+        <p className={styles.upcomingMeta}>
+          {prettyDate} · {countdownPill} · {(exam.difficulty || "Medium").replace(/^./, (c) => c.toUpperCase())}
+        </p>
       </div>
 
       <div className={styles.upcomingRight}>
@@ -114,7 +113,7 @@ function UpcomingExamCard({ exam, onOpenPrep, onEdit }: UpcomingExamCardProps) {
             title={`Readiness: ${readiness.score}% (${readiness.tier})`}
           >
             <Icon name="brain" size={12} />
-            {readiness.score}%
+            Readiness {readiness.score}%
           </span>
         )}
         <button

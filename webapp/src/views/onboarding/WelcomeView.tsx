@@ -59,7 +59,7 @@ import {
   type OnboardingAnswers,
 } from "../../lib/onboarding";
 import { profileApi } from "../../api/profile";
-import { getRegion } from "../../lib/region";
+import { getRegion, REGIONS } from "../../lib/region";
 import { useProfileDetails } from "../../hooks/useProfileDetails";
 import {
   loadDashboardLayout,
@@ -119,6 +119,15 @@ export function WelcomeView() {
   const [createdSubject, setCreatedSubject] = useState<string | null>(null);
   const [curriculumPreset, setCurriculumPreset] =
     useState<CurriculumPresetId | null>(null);
+  const [showAllPresets, setShowAllPresets] = useState(false);
+  const nativePresetIds = REGIONS[region].presetIds;
+  const visiblePresets =
+    showAllPresets || nativePresetIds.length === 0
+      ? curriculumPresets
+      : curriculumPresets.filter(
+          (p) => nativePresetIds.includes(p.id) || p.id === curriculumPreset,
+        );
+  const hiddenPresetCount = curriculumPresets.length - visiblePresets.length;
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   const firstName = useMemo(() => {
@@ -217,7 +226,9 @@ export function WelcomeView() {
             folders.map((name) => addFolder.mutateAsync({ name })),
           );
           setCreatedSubject(
-            preset ? `${preset.label} subjects` : trimmedSubject,
+            preset
+              ? `${preset.folders.length} ${preset.label} subjects (${preset.folders.join(", ")})`
+              : trimmedSubject,
           );
         } catch {
           showToast(
@@ -617,7 +628,7 @@ export function WelcomeView() {
                 </div>
               </fieldset>
               <p className={styles.footnote}>
-                Rough is fine. My week lets you refine this against your real
+                Rough is fine. Plan ▸ Availability lets you refine this against your real
                 lectures and shifts whenever you like.
               </p>
             </section>
@@ -637,7 +648,7 @@ export function WelcomeView() {
                   Quick curriculum setup
                 </legend>
                 <div className={styles.optionRow}>
-                  {curriculumPresets.map((preset) => (
+                  {visiblePresets.map((preset) => (
                     <button
                       key={preset.id}
                       type="button"
@@ -662,6 +673,18 @@ export function WelcomeView() {
                     </button>
                   ))}
                 </div>
+                {/* Only the student's own region's courses by default. A
+                    GCSE student scrolling past AP, SAT, CBSE and ICSE to find
+                    theirs was left wondering whether the app was for them. */}
+                {hiddenPresetCount > 0 ? (
+                  <button
+                    type="button"
+                    className={styles.showMore}
+                    onClick={() => setShowAllPresets(true)}
+                  >
+                    Show courses from other countries ({hiddenPresetCount})
+                  </button>
+                ) : null}
               </fieldset>
               <Card
                 variant="elevated"
@@ -782,13 +805,13 @@ export function WelcomeView() {
                           ? `Scheduling around a ${formatMins(answers.weekdayCapacityMins)} weekday`
                           : "Scheduling around when you're sharpest"
                       }
-                      where="My week"
+                      where="Plan ▸ Availability"
                     />
                   )}
                   {createdSubject && (
                     <RecapRow
                       icon="folder"
-                      text={`Created your first subject, ${createdSubject}`}
+                      text={`Created ${createdSubject}`}
                       where="Library"
                     />
                   )}
@@ -870,7 +893,7 @@ export function WelcomeView() {
                   variant="primary"
                   onClick={() => navigate("/", { replace: true })}
                 >
-                  Take me to my dashboard
+                  Take me to Today
                   <Icon
                     name="chevron-down"
                     size={16}

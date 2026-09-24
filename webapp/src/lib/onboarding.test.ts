@@ -297,7 +297,7 @@ describe("dashboardLayoutFor", () => {
     const layout = dashboardLayoutFor(answers({ focusAreas: ["deadlines"] }));
     expect(layout.visibleSections.todayTimeline).toBe(true);
     expect(layout.visibleSections.sessionsCommunity).toBe(false);
-    expect(layout.visibleSections.recentNotebooks).toBe(false);
+    expect(layout.visibleSections.activityRings).toBe(false);
   });
 
   it("always keeps the priorities section, whatever was picked", () => {

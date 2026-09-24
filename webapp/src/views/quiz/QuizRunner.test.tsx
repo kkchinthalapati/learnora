@@ -73,7 +73,7 @@ describe("QuizRunner", () => {
     vi.restoreAllMocks();
   });
 
-  it("opens on the first question with the host's welcome", async () => {
+  it("opens straight on the first question", async () => {
     serveQuiz();
     renderRunner();
 
@@ -83,9 +83,7 @@ describe("QuizRunner", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByText("Question 1 of 2")).toBeInTheDocument();
-    expect(
-      screen.getByText("Welcome to the quiz. Let's see what you've got!"),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/Let's see what you've got/)).toBeNull();
     expect(
       screen.getAllByRole("button", { name: /Ribosome|Mitochondrion|Nucleus/ }),
     ).toHaveLength(3);

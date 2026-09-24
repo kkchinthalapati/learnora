@@ -150,6 +150,10 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
 
       {!isLoading && !isError ? (
         <div className={styles.hubControls}>
+          {/* Inside Library, the Library's own search already covers
+              notebooks — two search boxes stacked on one screen left students
+              guessing which one to use. The standalone hub keeps its own. */}
+          {embedded ? null : (
           <div className={styles.searchBar}>
             <Icon
               name="search"
@@ -164,6 +168,7 @@ export function NotebooksHubView({ embedded = false }: { embedded?: boolean }) {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          )}
 
           <div className={styles.subjectFilterList}>
             {subjects.map((subj) => (

@@ -84,7 +84,7 @@ export const ANALOGY_STYLE_PROFILES: Record<AnalogyStyle, AnalogyStyleProfile> =
   sports_cricket: {
     id: "sports_cricket",
     name: "Cricket & Sports Analogies",
-    label: "Cricket & Sports Analogies",
+    label: "Sport",
     icon: "🏏",
     tagline: "Pitches, deliveries, team tactics, and athletic momentum",
     description: "Explain concepts using cricket deliveries, field placements, batting timing, football strikers, or track races.",
@@ -97,7 +97,7 @@ export const ANALOGY_STYLE_PROFILES: Record<AnalogyStyle, AnalogyStyleProfile> =
   cooking_kitchen: {
     id: "cooking_kitchen",
     name: "Everyday Kitchen & Cooking Analogies",
-    label: "Everyday Kitchen & Cooking Analogies",
+    label: "Cooking & everyday life",
     icon: "🍳",
     tagline: "Recipes, baking chemistry, boiling kettles, and chef workflows",
     description: "Break it down using cooking recipes, boiling points, spice balances, dough rising, and kitchen prep.",
@@ -110,7 +110,7 @@ export const ANALOGY_STYLE_PROFILES: Record<AnalogyStyle, AnalogyStyleProfile> =
   gaming_tech: {
     id: "gaming_tech",
     name: "Video Game & Tech Metaphors",
-    label: "Video Game & Tech Metaphors",
+    label: "Games & tech",
     icon: "🎮",
     tagline: "Boss battles, inventory slots, refresh rates, and server packets",
     description: "Map the topic to game physics, cooldown timers, mana pools, rendering buffers, or network routers.",
@@ -123,7 +123,7 @@ export const ANALOGY_STYLE_PROFILES: Record<AnalogyStyle, AnalogyStyleProfile> =
   physical_machinery: {
     id: "physical_machinery",
     name: "Visual & Physical Machinery",
-    label: "Visual & Physical Machinery",
+    label: "Machines & how things move",
     icon: "⚙️",
     tagline: "Gears, hydraulic pumps, conveyor belts, and engine pistons",
     description: "Model the concept with interconnected mechanical parts, levers, pistons, water pipes, and pulleys.",
@@ -136,7 +136,7 @@ export const ANALOGY_STYLE_PROFILES: Record<AnalogyStyle, AnalogyStyleProfile> =
   storytelling: {
     id: "storytelling",
     name: "Real-world Storytelling",
-    label: "Real-world Storytelling",
+    label: "Stories",
     icon: "📖",
     tagline: "Character journeys, historical dramas, and bustling city scenes",
     description: "Weave the explanation into an engaging narrative with relatable characters, quests, and daily drama.",
@@ -152,7 +152,7 @@ export const EXPLANATION_DEPTH_PROFILES: Record<ExplanationDepth, ExplanationDep
   quick_intuition: {
     id: "quick_intuition",
     name: "Quick Intuition (2 mins)",
-    label: "Quick Intuition (2 mins)",
+    label: "The big idea",
     timeEstimate: "2 mins",
     estimatedMinutes: 2,
     tagline: "High-level mental model and the 'aha!' punchline",
@@ -162,7 +162,7 @@ export const EXPLANATION_DEPTH_PROFILES: Record<ExplanationDepth, ExplanationDep
   core_mechanism: {
     id: "core_mechanism",
     name: "Core Working Mechanism (5 mins)",
-    label: "Core Working Mechanism (5 mins)",
+    label: "How it works",
     timeEstimate: "5 mins",
     estimatedMinutes: 5,
     tagline: "Step-by-step causal chain and key interacting parts",
@@ -172,7 +172,7 @@ export const EXPLANATION_DEPTH_PROFILES: Record<ExplanationDepth, ExplanationDep
   deep_dive: {
     id: "deep_dive",
     name: "Deep Dive & Edge Cases (10 mins)",
-    label: "Deep Dive & Edge Cases (10 mins)",
+    label: "Deep dive",
     timeEstimate: "10 mins",
     estimatedMinutes: 10,
     tagline: "Rigorous boundaries, limiting factors, and counter-examples",
@@ -391,6 +391,11 @@ export interface TeachingTurn {
   /** How the submission was classified before scoring. Optional because
    *  sessions saved before the quality gate existed have no value for it. */
   quality?: ExplanationVerdict;
+  /** "local" when the AI could not be reached and the built-in scorer
+   *  marked the turn. The studio says so, and nothing it produced reaches
+   *  the misconception ledger or the learning evidence: a keyword scorer's
+   *  "confusion points" are guesses, not diagnoses. */
+  scoredBy?: "ai" | "local";
   timestamp: string;
   feedback?: TurnFeedback;
 }
@@ -1899,21 +1904,24 @@ export async function evaluateTeachingExplanation(
       depth,
       effectiveAudience,
     );
-    if (marked) return marked;
+    if (marked) return { ...marked, scoredBy: "ai" };
   } catch {
     // Fall back to the local scorer below.
   }
 
-  return scoreLocally(
-    draft,
-    trimmed,
-    persona,
-    previousScore,
-    assessment,
-    analogyStyle,
-    depth,
-    effectiveAudience,
-  );
+  return {
+    ...scoreLocally(
+      draft,
+      trimmed,
+      persona,
+      previousScore,
+      assessment,
+      analogyStyle,
+      depth,
+      effectiveAudience,
+    ),
+    scoredBy: "local",
+  };
 }
 
 export async function generateFeynmanDebrief(

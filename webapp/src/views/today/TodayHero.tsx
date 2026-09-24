@@ -8,6 +8,11 @@ import { getGradeScale, normaliseScore, renderGrade } from "../../lib/gradeScale
 import { chooseNextStep } from "../../lib/nextStep";
 import styles from "./today.module.css";
 
+/** The short block offered beside the full one, for a student who has ten or
+ *  twenty minutes rather than an hour. It still ends in the quick check, so
+ *  the forecast learns from it either way. */
+export const SHORT_BLOCK_MINS = 20;
+
 export function TodayHero({ exam, forecast, needsMaterial, isPending, dueCards = 0, onStart, onCreate }: {
   exam: Exam | null;
   forecast: TrajectoryForecast | null;
@@ -15,7 +20,7 @@ export function TodayHero({ exam, forecast, needsMaterial, isPending, dueCards =
   isPending: boolean;
   /** Cards due right now in the top topic's deck, counted by the caller. */
   dueCards?: number;
-  onStart: (deckId: string, label: string) => void;
+  onStart: (deckId: string, label: string, minutes?: number) => void;
   onCreate?: () => void;
 }) {
   if (isPending) {
@@ -62,17 +67,25 @@ export function TodayHero({ exam, forecast, needsMaterial, isPending, dueCards =
     forecast.topics?.find((t) => t.id === top.topicId)?.evidence ??
     forecast.confidence.evidence;
   const step = chooseNextStep({ label: top.label, topicId: top.topicId, mastery: top.mastery, evidence, dueCards });
+  const rough = forecast.confidence.evidence < 0.5;
+  const runnerUp = forecast.interventions[1];
+  const days = forecast.daysRemaining;
   return (
     <section className={styles.hero} aria-labelledby="today-hero">
       <span className={styles.eyebrow}><Icon name="zap" size={13} /> Your next hour</span>
       <h1 id="today-hero" className={styles.headline}>Study {top.label} next</h1>
       <p className={styles.reason}>
         {top.atRisk
-          ? `${top.label} is fading — revisit it before it costs you on ${exam.exam_name}.`
-          : `Your mastery is ${level}, and an hour here moves ${exam.exam_name} more than anywhere else.`}{" "}
-        {exam.exam_name} is in {forecast.daysRemaining} {forecast.daysRemaining === 1 ? "day" : "days"}; projected{" "}
-        {lower === upper ? `around ${lower}` : `${lower}–${upper}`}.
-        {forecast.confidence.evidence < 0.5 ? " This estimate has limited evidence; a quick check will help refine it." : null}
+          ? `You're starting to forget ${top.label}. Revisit it before it costs you marks in ${exam.exam_name}.`
+          : `Your mastery of ${top.label} is ${level}, and it's the topic most likely to lift your ${exam.exam_name} grade.`}
+      </p>
+      {/* One number, labelled as what it is. The readiness chip further down
+          is a different measure (how prepared you are, in %), so this line
+          has to say "grade" or the two read as contradicting forecasts. */}
+      <p className={styles.heroMeta}>
+        {exam.exam_name} in {days} {days === 1 ? "day" : "days"} · predicted grade{" "}
+        {lower === upper ? lower : `${lower}–${upper}`}
+        {rough ? " (rough estimate so far)" : null}
       </p>
       <p className={styles.reason}>{step.why}</p>
       <div className={styles.heroActions}>
@@ -90,8 +103,30 @@ export function TodayHero({ exam, forecast, needsMaterial, isPending, dueCards =
             Start {INTERVENTION_BLOCK_MINS} min instead
           </Button>
         ) : null}
-        <Link to="/trajectory" className={styles.whyLink}>Why this?</Link>
+        <Button variant="ghost" size="md" onClick={() => onStart(top.topicId, top.label, SHORT_BLOCK_MINS)}>
+          Only have {SHORT_BLOCK_MINS} min?
+        </Button>
       </div>
+      {/* The reasoning is free. It used to be a link to the Trajectory page,
+          which is Pro — so a free student asking "why should I trust this?"
+          got an upgrade card instead of an answer. */}
+      <details className={styles.why}>
+        <summary>Why {top.label}?</summary>
+        <ul>
+          <li>
+            An hour on {top.label} adds about {Math.max(1, Math.round(top.pointsPerHour))}{" "}
+            {Math.round(top.pointsPerHour) === 1 ? "point" : "points"} to your predicted score — more than any other topic right now
+            {runnerUp ? ` (next best: ${runnerUp.label})` : ""}.
+          </li>
+          <li>
+            {rough
+              ? "The prediction is rough because Learnora has only a little quiz and flashcard data from you. The quick check at the end of the block makes it more accurate."
+              : "The prediction comes from your recent quizzes, flashcard reviews and study time."}
+          </li>
+          <li>It updates every time you study, so this suggestion will change as you improve.</li>
+        </ul>
+        <Link to="/trajectory" className={styles.whyLink}>See the full forecast</Link>
+      </details>
     </section>
   );
 }

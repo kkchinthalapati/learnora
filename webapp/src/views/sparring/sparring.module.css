@@ -1381,3 +1381,63 @@
     min-height: var(--touch-target-min);
   }
 }
+
+/* Optional setup fold: role, focus and pasted notes. Closed by default so the
+   first screen is a topic box and a Start button. */
+.customise {
+  border-top: 1px solid var(--glass-border-subtle);
+  padding-top: var(--s-4);
+  margin-top: var(--s-4);
+}
+
+.customise[open] {
+  display: grid;
+  gap: var(--s-5);
+}
+
+.customiseSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2) var(--s-3);
+  min-height: var(--touch-target-min);
+  cursor: pointer;
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.customiseSummary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+.customiseCurrent {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: var(--fs-sm);
+}
+
+/* Shown when the session is running on built-in questions, not the AI. */
+.offlineNotice {
+  display: flex;
+  gap: var(--s-2);
+  align-items: flex-start;
+  margin-bottom: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--warning, var(--line));
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.offlineNotice p {
+  margin: 0;
+}
+
+.offlineNotice a {
+  color: var(--accent-text);
+  text-decoration: underline;
+}

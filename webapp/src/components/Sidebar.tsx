@@ -71,7 +71,7 @@ const SECTIONS: NavSection[] = [
         label: "Plan",
         destination: "plan",
         children: [
-          { to: "/my-week", label: "My week" },
+          { to: "/my-week", label: "Availability" },
           { to: "/tasks", label: "Tasks" },
           { to: "/exams", label: "Exams" },
         ],
@@ -79,7 +79,7 @@ const SECTIONS: NavSection[] = [
       {
         to: "/timer",
         icon: "clock",
-        label: "Focus",
+        label: "Focus timer",
         destination: "focus",
       },
       {
@@ -87,7 +87,10 @@ const SECTIONS: NavSection[] = [
         icon: "activity",
         label: "Progress",
         destination: "progress",
-        children: [{ to: "/trajectory", label: "Trajectory" }],
+        children: [
+          { to: "/dashboard", label: "Dashboard" },
+          { to: "/trajectory", label: "Trajectory" },
+        ],
       },
       {
         to: "/study",
@@ -97,7 +100,7 @@ const SECTIONS: NavSection[] = [
         children: [
           { to: "/solver", label: "Step-by-step solver" },
           { to: "/feynman", label: "Explain it simply" },
-          { to: "/viva", label: "Viva practice" },
+          { to: "/viva", label: "Oral practice" },
           { to: "/exam-detective", label: "Exam traps" },
         ],
       },
@@ -404,6 +407,24 @@ export function Sidebar({
                     </li>
                   );
                 })}
+                {/* Log out lives with the account, one deliberate step away.
+                    It used to be an unlabelled icon between Search and the
+                    theme toggle on every screen, where a missed tap signed a
+                    student out mid-session. */}
+                {section.id === "account" && auth?.session ? (
+                  <li>
+                    <button
+                      type="button"
+                      className={`${styles.navLink} ${styles.navButton}`}
+                      onClick={() => void auth.signOut()}
+                      aria-label="Log out"
+                      title="Log out"
+                    >
+                      <Icon name="log-out" size={18} />
+                      <span className={styles.navLabel}>Log out</span>
+                    </button>
+                  </li>
+                ) : null}
               </ul>
             </div>
           );

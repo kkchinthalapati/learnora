@@ -84,7 +84,7 @@ describe("Sidebar", () => {
       "href",
       "/plan",
     );
-    expect(screen.getByRole("link", { name: "Focus" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Focus timer" })).toHaveAttribute(
       "href",
       "/timer",
     );
@@ -120,7 +120,7 @@ describe("Sidebar", () => {
   it("reveals Plan's child destinations while Plan is the open section", () => {
     renderSidebar({ initialPath: "/tasks" });
 
-    for (const label of ["My week", "Tasks", "Exams"]) {
+    for (const label of ["Availability", "Tasks", "Exams"]) {
       expect(screen.getByRole("link", { name: label })).toBeInTheDocument();
     }
 
@@ -141,7 +141,7 @@ describe("Sidebar", () => {
   it("hides other sections' children", () => {
     renderSidebar({ initialPath: "/tasks" });
     expect(screen.queryByRole("link", { name: "Trajectory" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Viva practice" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Oral practice" })).toBeNull();
   });
 
   it.each(["/", "/plan", "/tasks", "/exams", "/library", "/analytics"])(
@@ -160,12 +160,14 @@ describe("Sidebar", () => {
      link. It used to fall back to matching Today's shared "dashboard"
      destination, wrongly marking Today as the current page while Dashboard
      was the page actually on screen. */
-  it("does not mark Today (or anything else) current while viewing the full Dashboard", () => {
+  /* The Dashboard lives under Progress now: the Dashboard sub-link is the
+     one current page, and Today is not lit while viewing it. */
+  it("marks the Dashboard sub-link current under Progress, not Today", () => {
     renderSidebar({ initialPath: "/dashboard" });
     const current = screen
       .getAllByRole("link")
       .filter((link) => link.getAttribute("aria-current") === "page");
-    expect(current).toHaveLength(0);
+    expect(current.map((l) => l.textContent)).toEqual(["Dashboard"]);
     expect(screen.getByRole("link", { name: "Today" })).not.toHaveAttribute(
       "aria-current",
     );

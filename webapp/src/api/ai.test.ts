@@ -89,15 +89,38 @@ describe("callEdge", () => {
     expect(order).toEqual(["onText", "resolved"]);
   });
 
-  it("surfaces the server's own error message", async () => {
+  /* A 5xx body is written for logs, not students — the platform gateway in
+     front of the function answers crashes with "Internal error" and worker
+     limits with codes. The student gets one plain sentence instead. */
+  it("replaces a 5xx body with a plain message", async () => {
     server.use(
       http.post(EDGE_URL, () =>
-        HttpResponse.json({ error: "All providers are down" }, { status: 503 }),
+        HttpResponse.json({ error: "Internal error" }, { status: 500 }),
       ),
     );
 
     await expect(callEdge({ history: [] }, undefined, 0)).rejects.toThrow(
-      "All providers are down",
+      /temporarily unavailable/,
+    );
+  });
+
+  it("keeps a 4xx body, which is written for the student", async () => {
+    server.use(
+      http.post(EDGE_URL, () =>
+        HttpResponse.json({ error: "You've used today's allowance." }, { status: 429 }),
+      ),
+    );
+
+    await expect(callEdge({ history: [] }, undefined, 0)).rejects.toThrow(
+      "You've used today's allowance.",
+    );
+  });
+
+  it("turns a dropped connection into words a student can act on", async () => {
+    server.use(http.post(EDGE_URL, () => HttpResponse.error()));
+
+    await expect(callEdge({ history: [] }, undefined, 0)).rejects.toThrow(
+      /connection dropped|offline/,
     );
   });
 

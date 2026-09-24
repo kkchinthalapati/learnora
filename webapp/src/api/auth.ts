@@ -138,15 +138,9 @@ export const authApi = {
     if (age < MIN_SIGNUP_AGE) {
       throw new Error(`You must be at least ${MIN_SIGNUP_AGE} years old.`);
     }
-    /* The UI already blocks submission with the checkbox unchecked (see
-     * SignupView) — this is the server-facing half of that same rule, so a
-     * request built by hand (or a future caller) can't skip the checkbox by
-     * skipping the form. */
-    if (!consentGiven) {
-      throw new Error(
-        "You must agree to share your study data with our AI providers to create an account.",
-      );
-    }
+    /* Consent is optional at sign-up and asked for at first use instead
+     * (lib/aiConsent.ts). It is always written explicitly — true or false —
+     * so a new account is never mistaken for a legacy one with no flag. */
 
     /* `consent_given` rides in the same user-metadata bag as `full_name` and
      * `dob`. The `sync_profile_from_auth_user` trigger (see the migration

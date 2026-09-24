@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router";
@@ -7,6 +7,37 @@ import { SUPABASE_URL } from "./lib/supabase";
 import { AppRoutes } from "./routes";
 import { ChatProvider } from "./context/ChatProvider";
 import { fakeSession, renderWithAuth } from "./test/auth";
+
+/* Lazy routes compile the first time they render, and that used to happen
+   inside each test's 10-second wait. Under the full parallel suite the cold
+   transform of the notes editor alone could run past it, failing a test
+   about routing for a reason that has nothing to do with routing. Load them
+   once, up front, with a budget of their own. */
+beforeAll(async () => {
+  await Promise.all([
+    import("./views/analytics/StudyAnalyticsView"),
+    import("./views/decks/DeckCardsView"),
+    import("./views/exam-detective/ExamDetectiveHubView"),
+    import("./views/feynman/FeynmanDebriefView"),
+    import("./views/feynman/FeynmanStudioView"),
+    import("./views/friends/FriendInviteLanding"),
+    import("./views/friends/FriendsView"),
+    import("./views/library/SubjectDetailPage"),
+    import("./views/lifesync/MyWeekView"),
+    import("./views/notebooks/NotebookStudioView"),
+    import("./views/notes/NotesView"),
+    import("./views/onboarding/WelcomeView"),
+    import("./views/pro-welcome/WelcomeToProView"),
+    import("./views/quiz/MockExamRunner"),
+    import("./views/quiz/QuizReview"),
+    import("./views/quiz/QuizRunner"),
+    import("./views/review/ReviewView"),
+    import("./views/room/StudyRoomView"),
+    import("./views/settings/SettingsView"),
+    import("./views/sparring/SocraticSparringView"),
+    import("./views/trajectory/TrajectoryView"),
+  ]);
+}, 120_000);
 import { mockAuthSession } from "./test/mockSession";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -42,10 +73,10 @@ describe("route skeleton", () => {
     /* The app shell's Header now supplies the page's <h1> (the redesign
        audit found Tasks' old page-only "Tasks" heading duplicating the
        shell's own nav-derived label right below it); the shell's label —
-       t("nav_tasks"), "Task Manager" — is the one that survives. */
-    ["/tasks", "Task Manager"],
+       t("nav_tasks"), "Tasks" — is the one that survives. */
+    ["/tasks", "Tasks"],
     ["/exams", "Exams"],
-    ["/timer", "Timer"],
+    ["/timer", "Focus timer"],
     ["/library", "Your learning"],
     /* A real tab. This row used to read "/library/notes", which is not in
        LIBRARY_TABS — LibraryView bounced it to /library and rendered the same
@@ -76,7 +107,7 @@ describe("route skeleton", () => {
     expect(
       await screen.findByRole(
         "heading",
-        { level: 1, name: "Exam trap practice" },
+        { level: 1, name: "Exam traps" },
         { timeout: 10000 },
       ),
     ).toBeInTheDocument();

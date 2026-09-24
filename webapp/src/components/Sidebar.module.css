@@ -193,6 +193,16 @@ body[data-sidebar-style="transparent"] .sidebar {
     border-color var(--t-fast) ease;
 }
 
+/* A button styled as a nav row (Log out): reset the UA button chrome so it
+   lines up with the links above it. */
+.navButton {
+  width: 100%;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .navLink:hover {
   color: var(--text);
   background: var(--surface-2);

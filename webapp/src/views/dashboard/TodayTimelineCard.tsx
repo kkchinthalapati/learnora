@@ -151,7 +151,7 @@ export function TodayTimelineCard() {
               size="sm"
               onClick={() => void navigate("/my-week")}
             >
-              <Icon name="sparkles" size={14} /> Set up my week
+              <Icon name="sparkles" size={14} /> Set my free time
             </Button>
           </div>
         </div>

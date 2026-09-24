@@ -4,16 +4,29 @@ import userEvent from "@testing-library/user-event";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { SettingsView } from "./SettingsView";
 
-function renderSettings(signOut = vi.fn()) {
-  return renderWithAuth(<SettingsView />, {
-    session: fakeSession({ user_metadata: { full_name: "Ada Lovelace" } }),
-    signOut,
-  });
+function renderSettings(signOut = vi.fn(), path = "/settings") {
+  return renderWithAuth(
+    <SettingsView />,
+    {
+      session: fakeSession({ user_metadata: { full_name: "Ada Lovelace" } }),
+      signOut,
+    },
+    { withRouter: true, initialEntries: [path] },
+  );
 }
 
 describe("SettingsView", () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  /* "Turn on AI in Settings" links straight to the right tab. */
+  it("opens the tab named in ?tab=", () => {
+    renderSettings(vi.fn(), "/settings?tab=privacy");
+    expect(screen.getByRole("tab", { name: /Privacy/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
   });
 
   afterEach(() => {

@@ -245,9 +245,6 @@ export function LandingView() {
                 <span className={styles.checkIcon}>✓</span> 60 AI Tutor sessions per day
               </li>
               <li className={styles.planFeatureItem}>
-                <span className={styles.checkIcon}>✓</span> Timetable / Calendar import (.ics)
-              </li>
-              <li className={styles.planFeatureItem}>
                 <span className={styles.checkIcon}>✓</span> Priority query processing
               </li>
             </ul>
@@ -280,6 +277,9 @@ export function LandingView() {
               </li>
               <li className={styles.planFeatureItem}>
                 <span className={styles.checkIcon}>✓</span> Auto-scheduled study blocks
+              </li>
+              <li className={styles.planFeatureItem}>
+                <span className={styles.checkIcon}>✓</span> Timetable / Calendar import (.ics)
               </li>
             </ul>
             <Link to="/signup" className={styles.guestTimerBtn} style={{ textAlign: "center", justifyContent: "center" }}>

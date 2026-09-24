@@ -83,9 +83,12 @@ describe("FeynmanHubView Component", () => {
     expect(screen.getByLabelText("Topic")).toHaveValue("Acids & Bases");
   });
 
-  it("keeps its default topic when the link names none", () => {
+  /* No silent default: a student who pressed Start straight away used to
+     end up teaching photosynthesis whatever they came to revise. */
+  it("starts with an empty topic, and Start waits for one", () => {
     renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
-    expect(screen.getByLabelText("Topic")).toHaveValue("Photosynthesis");
+    expect(screen.getByLabelText("Topic")).toHaveValue("");
+    expect(screen.getByTestId("start-arena-btn")).toBeDisabled();
   });
 
   it("allows selecting personas and popular topic chips", async () => {
@@ -96,12 +99,11 @@ describe("FeynmanHubView Component", () => {
     const jordanCard = screen.getByTestId("persona-overconfident_peer");
     await user.click(jordanCard);
 
-    // Click a popular topic chip (e.g. Quantum Entanglement)
-    const quantumChip = screen.getByText(/Quantum Entanglement/i);
-    await user.click(quantumChip);
+    // Click a school-level topic chip
+    await user.click(screen.getByText(/Newton's third law/i));
 
     const topicInput = screen.getByLabelText("Topic") as HTMLInputElement;
-    expect(topicInput.value).toBe("Quantum Entanglement");
+    expect(topicInput.value).toBe("Newton's third law");
 
     const subjectInput = screen.getByLabelText("Subject") as HTMLInputElement;
     expect(subjectInput.value).toBe("Physics");
@@ -111,6 +113,7 @@ describe("FeynmanHubView Component", () => {
     const user = userEvent.setup();
     renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
 
+    await user.type(screen.getByLabelText("Topic"), "Photosynthesis");
     const startBtn = screen.getByTestId("start-arena-btn");
     await user.click(startBtn);
 
@@ -232,8 +235,12 @@ describe("FeynmanHubView Component", () => {
     const user = userEvent.setup();
     renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
 
+    await user.type(screen.getByLabelText("Topic"), "Photosynthesis");
     // Custom audience input should not be visible initially
     expect(screen.queryByTestId("custom-audience-input")).not.toBeInTheDocument();
+
+    // The options are folded away until asked for
+    await user.click(screen.getByText("Customise (optional)"));
 
     // Select custom audience persona
     const customPersonaCard = screen.getByTestId("persona-custom");

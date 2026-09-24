@@ -9,8 +9,8 @@
 export const translations = {
   en: {
     nav_dashboard: "Dashboard",
-    nav_timer: "Timer",
-    nav_tasks: "Task Manager",
+    nav_timer: "Focus timer",
+    nav_tasks: "Tasks",
     nav_calendar: "Calendar",
     nav_flashcards: "Flashcards",
     nav_library: "Library",
@@ -28,8 +28,8 @@ export const translations = {
     config_short: "Short Break",
     config_long: "Long Break",
     config_cycles: "Cycles",
-    config_task: "Current Task:",
-    config_folder: "Subject (optional):",
+    config_task: "What are you working on?",
+    config_folder: "Subject (optional)",
     btn_apply: "Apply & Reset",
     btn_start: "Start",
     btn_pause: "Pause",
@@ -452,7 +452,7 @@ export const translations = {
   },
   de: {
     nav_dashboard: "Dashboard",
-    nav_timer: "Timer",
+    nav_timer: "Focus timer",
     nav_tasks: "Aufgaben",
     nav_calendar: "Kalender",
     nav_flashcards: "Karteikarten",

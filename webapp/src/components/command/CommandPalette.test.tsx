@@ -97,6 +97,26 @@ describe("CommandPalette", () => {
     expect(screen.getByText("Step-by-step solver")).toBeInTheDocument();
   });
 
+  it("finds quizzes: the Quizzes page and each quiz by its title", async () => {
+    server.use(
+      http.get(rest("quizzes"), () =>
+        HttpResponse.json([
+          { id: "q-9", title: "Enzymes quick check", questions_json: [], created_at: "2026-09-01T00:00:00Z" },
+        ]),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPalette();
+    const input = screen.getByPlaceholderText(/type a command, search, or prefix/i);
+
+    await user.type(input, "quiz");
+    expect(await screen.findByText("Your practice quizzes, or make a new one")).toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, "enzymes");
+    expect(await screen.findByText("Enzymes quick check")).toBeInTheDocument();
+  });
+
   it("does not render when isOpen is false", () => {
     renderPalette({ isOpen: false });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

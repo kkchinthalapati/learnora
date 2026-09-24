@@ -20,7 +20,7 @@ describe("TodayHero", () => {
     const onStart = vi.fn();
     render(<MemoryRouter><TodayHero exam={exam} forecast={forecast} needsMaterial={false} isPending={false} onStart={onStart} /></MemoryRouter>);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Study Enzymes next");
-    expect(screen.getByText(/mastery is low/i)).toBeInTheDocument();
+    expect(screen.getByText(/mastery of Enzymes is low/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /start 45 min/i }));
     expect(onStart).toHaveBeenCalledWith("d1", "Enzymes");
   });
@@ -46,6 +46,16 @@ describe("TodayHero", () => {
     expect(screen.queryByRole("link", { name: /find what's missing/i })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: /start 45 min on enzymes/i }));
     expect(onStart).toHaveBeenCalledWith("d1", "Enzymes");
+  });
+
+  it("explains its pick for free, with the evidence behind it", async () => {
+    const withRunnerUp = { ...forecast, interventions: [...forecast.interventions, { topicId: "d2", label: "Respiration", points: 1, pointsPerHour: 2, mastery: 0.5, atRisk: false }] } as TrajectoryForecast;
+    render(<MemoryRouter><TodayHero exam={exam} forecast={withRunnerUp} needsMaterial={false} isPending={false} onStart={() => {}} /></MemoryRouter>);
+    /* A predicted grade, labelled as one — not a bare range. */
+    expect(screen.getByText(/predicted grade/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByText("Why Enzymes?"));
+    expect(screen.getByText(/adds about 4 points/i)).toHaveTextContent(/next best: Respiration/);
+    expect(screen.getByRole("link", { name: /see the full forecast/i })).toHaveAttribute("href", "/trajectory");
   });
 
   it("asks for material when there is an exam but nothing to project", () => {

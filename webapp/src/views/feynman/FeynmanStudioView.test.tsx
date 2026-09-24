@@ -227,7 +227,7 @@ describe("FeynmanStudioView Component", () => {
       "Skeptical Study Buddy",
     );
     expect(screen.getByTestId("active-analogy-badge")).toHaveTextContent(
-      "Cricket & Sports",
+      "Sport",
     );
     expect(screen.getByTestId("active-depth-badge")).toHaveTextContent("10m");
   });

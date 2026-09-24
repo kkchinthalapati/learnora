@@ -147,6 +147,7 @@ export function buildDemands(src: DemandSources): StudyDemand[] {
         estMins: mins,
         load: 3,
         dueDate: on,
+        notBefore: on,
         subject: exam.exam_name,
         href: "/exams",
         /* The closer the exam, the more a prep sitting outranks everything

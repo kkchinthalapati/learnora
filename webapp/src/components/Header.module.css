@@ -132,9 +132,14 @@
 }
 
 @media (max-width: 420px) {
+  /* Up to two lines at the available width, not a fixed 140px: "Focus
+     timer" and "Step-by-step solver" were cut to "Focus tim…". */
   .title {
-    max-width: 140px;
     font-size: var(--fs-lg);
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 }
 

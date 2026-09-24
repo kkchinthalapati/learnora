@@ -647,6 +647,9 @@
 }
 
 .dashFocusBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-family: inherit;
   font-size: var(--fs-xs);
   font-weight: 600;

@@ -750,15 +750,8 @@ type SectionId = keyof DashboardLayoutPreferences["visibleSections"];
    purpose — it is the dashboard's spine (what's due, what's next) and is
    always shown. */
 const SECTION_INTERESTS: Record<SectionId, FocusAreaId[]> = {
-  /* Earned by every answer except the purely social one. Whatever a student
-     came here for, "this hour is worth more than that hour" is the answer to
-     it — and the card renders nothing until there is an exam and enough
-     memory data to rank topics, so it cannot contribute to the empty-dashboard
-     problem this mapping exists to fix. */
-  nextHour: ["planning", "deadlines", "exams", "recall", "understanding"],
   todayTimeline: ["planning", "deadlines"],
   activityRings: ["recall", "planning"],
-  recentNotebooks: ["understanding", "recall"],
   priorities: ["deadlines", "exams", "planning", "recall", "understanding"],
   continueStudying: ["understanding", "exams"],
   progressStreak: ["recall", "planning"],
@@ -808,11 +801,11 @@ const NEXT_STEP_BY_FOCUS: Record<FocusAreaId, Omit<NextStep, "id">> = {
     icon: "flame",
   },
   planning: {
-    label: "My week",
+    label: "Availability",
     blurb:
       "Tell Learnora when your lectures, shifts and commitments are, and it schedules study around them.",
     to: "/my-week",
-    cta: "Set up my week",
+    cta: "Set my free time",
     icon: "calendar-week",
   },
   understanding: {

@@ -20,13 +20,13 @@ const HELP_BY_ROUTE: ReadonlyArray<{
 }> = [
   {
     matches: (path) => path === "/",
-    title: "Dashboard",
+    title: "Today",
     summary:
-      "Your dashboard prioritises what to study next, not everything Learnora can do.",
+      "Today shows the one thing most worth studying next, plus what's due and your next exam.",
     suggestions: [
-      "Add an exam to start a countdown",
-      "Open your next task",
-      "Continue your latest notebook",
+      "Press Start on the top card to begin a focus block",
+      "Open \"Why…?\" to see why that topic was picked",
+      "Add an exam if the top card asks for one",
     ],
   },
   {
@@ -48,11 +48,11 @@ const HELP_BY_ROUTE: ReadonlyArray<{
       ),
     title: "Planning",
     summary:
-      "Availability describes when you can study; Study plan decides what goes into those hours.",
+      "Availability is when you're free (school, clubs, days off). Study plan fills those hours with what's due.",
     suggestions: [
-      "Set your realistic availability",
-      "Ask AI to plan your week",
+      "Add your school hours under Availability first",
       "Add exam dates before generating a plan",
+      "Generate your week from Study plan",
     ],
   },
   {
@@ -82,11 +82,11 @@ const HELP_BY_ROUTE: ReadonlyArray<{
       ].some((route) => path === route || path.startsWith(`${route}/`)),
     title: "Study tools",
     summary:
-      "Choose the exercise that matches your goal: explain, challenge, diagnose, or practise.",
+      "Pick the exercise that matches your problem. Each one starts with just a topic.",
     suggestions: [
-      "Use Explain it simply for understanding",
-      "Use Sparring to defend an argument",
-      "Use Find My Mistake to diagnose an error",
+      "Got something wrong? Step-by-step solver",
+      "Think you understand it? Explain it simply",
+      "Oral exam coming up? Oral practice",
     ],
   },
 ];
@@ -97,7 +97,7 @@ const FALLBACK_HELP = {
     "Learnora connects planning, source-based learning, active recall, focus sessions, and progress in one workspace.",
   suggestions: [
     "Use Search to jump anywhere",
-    "Ask Learnora AI for a next step",
+    "Ask AI for a next step",
     "Send feedback if something feels unclear",
   ],
 };
