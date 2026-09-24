@@ -50,7 +50,10 @@ describe("CognitiveDebuggerView", () => {
     fireEvent.click(presetBtn);
 
     const textarea = screen.getByTestId("mistake-input") as HTMLTextAreaElement;
-    expect(textarea.value).toContain("Failed derivative of composite");
+    expect(textarea.value).toContain("Expanded (x + 3)²");
+    /* The preset's subject is selected, even though it came from outside the
+       student's own list. */
+    expect(screen.getByLabelText("Subject")).toHaveValue("Maths");
   });
 
   it("restores an unfinished solver draft after leaving the page", async () => {

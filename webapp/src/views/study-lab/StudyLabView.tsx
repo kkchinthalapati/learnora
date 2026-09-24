@@ -36,10 +36,10 @@ const STUDY_ROUTES: StudyRoute[] = [
   },
   {
     prompt: "I want oral test practice",
-    title: "Viva practice",
+    title: "Oral practice",
     description:
-      "Practise viva questions and defend your answers out loud or by typing.",
-    outcome: "Leave confident for your oral exam or viva",
+      "Answer questions out loud (or by typing), the way an oral exam or viva works.",
+    outcome: "Leave confident explaining it on the spot",
     to: "/viva",
     icon: "mic",
   },
@@ -193,7 +193,7 @@ export function StudyLabView() {
           </p>
         </div>
         <Link to="/exam-detective" className={styles.secondaryLink}>
-          Set up a stress test →
+          Practise exam traps →
         </Link>
       </aside>
     </div>

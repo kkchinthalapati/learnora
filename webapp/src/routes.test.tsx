@@ -76,7 +76,7 @@ describe("route skeleton", () => {
     expect(
       await screen.findByRole(
         "heading",
-        { level: 1, name: "Exam trap practice" },
+        { level: 1, name: "Exam traps" },
         { timeout: 10000 },
       ),
     ).toBeInTheDocument();

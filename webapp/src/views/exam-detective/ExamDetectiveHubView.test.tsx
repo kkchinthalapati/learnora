@@ -43,7 +43,7 @@ describe("ExamDetectiveHubView", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "Exam trap practice" }),
+      screen.getByRole("heading", { name: "Exam traps" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Six traps worth recognising")).toBeInTheDocument();
 
@@ -62,11 +62,11 @@ describe("ExamDetectiveHubView", () => {
     ).toBeInTheDocument();
 
     // Archetype cards
-    expect(screen.getByText("Edge Case Hazards")).toBeInTheDocument();
-    expect(screen.getByText("Negative Wording Maze")).toBeInTheDocument();
-    expect(screen.getByText("Hidden Assumptions")).toBeInTheDocument();
+    expect(screen.getByText("Edge cases")).toBeInTheDocument();
+    expect(screen.getByText("NOT and EXCEPT questions")).toBeInTheDocument();
+    expect(screen.getByText("Hidden assumptions")).toBeInTheDocument();
     expect(
-      screen.getByText("Lookalike Terms & False Synonyms"),
+      screen.getByText("Lookalike words"),
     ).toBeInTheDocument();
   });
 

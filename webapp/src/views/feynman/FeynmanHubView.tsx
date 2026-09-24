@@ -26,13 +26,16 @@ import { useMisconceptions } from "../../hooks/useMisconceptions";
 import styles from "./FeynmanHubView.module.css";
 import { EmptyState } from "../../components/EmptyState";
 
+/* School-level on purpose. The old list (Quantum Entanglement, Big O,
+   Bayesian Probability, Neural Networks) told a Grade 9 student this tool was
+   for someone else. */
 const QUICK_TOPICS = [
   { subject: "Biology", topic: "Photosynthesis" },
-  { subject: "Physics", topic: "Quantum Entanglement" },
-  { subject: "Computer Science", topic: "Big O Notation" },
-  { subject: "Economics", topic: "Supply & Demand" },
-  { subject: "Statistics", topic: "Bayesian Probability" },
-  { subject: "AI", topic: "Neural Networks" },
+  { subject: "Biology", topic: "How enzymes work" },
+  { subject: "Physics", topic: "Newton's third law" },
+  { subject: "Chemistry", topic: "Ionic bonding" },
+  { subject: "Maths", topic: "Solving simultaneous equations" },
+  { subject: "History", topic: "Causes of World War One" },
 ];
 
 export function FeynmanHubView() {
@@ -50,13 +53,16 @@ export function FeynmanHubView() {
      which runs once on mount and is asking what the link said then. */
   const linkedTopic = searchParams.get("topic")?.trim();
   const linkedTopicRef = useRef(linkedTopic);
-  const [subject, setSubject] = useState("Biology");
-  const [topic, setTopic] = useState(linkedTopic || "Photosynthesis");
+  /* Empty unless a link or hand-off names a topic. A prefilled
+     "Biology / Photosynthesis" meant a student who pressed Start straight
+     away taught photosynthesis whatever they came to revise. */
+  const [subject, setSubject] = useState("");
+  const [topic, setTopic] = useState(linkedTopic || "");
   const [selectedPersona, setSelectedPersona] =
     useState<ApprenticePersona>("eli10");
   const [customAudience, setCustomAudience] = useState("");
   const [selectedAnalogyStyle, setSelectedAnalogyStyle] =
-    useState<AnalogyStyle>("sports_cricket");
+    useState<AnalogyStyle>("cooking_kitchen");
   const [selectedDepth, setSelectedDepth] =
     useState<ExplanationDepth>("core_mechanism");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -217,7 +223,7 @@ export function FeynmanHubView() {
           {/* Topic Configuration */}
           <div className={styles.fieldGroup}>
             <div className={styles.sectionTitle}>
-              <Icon name="target" size={20} /> 1. What are you explaining?
+              <Icon name="target" size={20} /> What do you want to explain?
             </div>
             <div className={styles.inputRow}>
               <div className={styles.fieldGroup}>
@@ -229,7 +235,7 @@ export function FeynmanHubView() {
                   className={styles.fieldInput}
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  placeholder="e.g. Biology, Physics, CS"
+                  placeholder="e.g. Biology"
                 />
               </div>
               <div className={styles.fieldGroup}>
@@ -241,7 +247,7 @@ export function FeynmanHubView() {
                   className={styles.fieldInput}
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="e.g. Photosynthesis, Bell's Theorem"
+                  placeholder="e.g. How enzymes work"
                 />
               </div>
             </div>
@@ -265,10 +271,43 @@ export function FeynmanHubView() {
             </div>
           </div>
 
+          {/* Start button */}
+          <div className={styles.launchRow}>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handleStartSession}
+              disabled={isGenerating || !topic.trim()}
+              data-testid="start-arena-btn"
+            >
+              {isGenerating ? (
+                <>
+                  <Icon name="refresh-cw" size={18} /> Preparing the apprentice…
+                </>
+              ) : (
+                <>
+                  <Icon name="zap" size={18} /> Start teaching
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Everything below has a sensible default and is stated in the
+              summary line, so it is optional rather than four required
+              steps between the student and the first question. */}
+          <details className={styles.customise}>
+            <summary className={styles.customiseSummary}>
+              <span>Customise (optional)</span>
+              <span className={styles.customiseCurrent}>
+                Teaching {getPersonaProfile(selectedPersona, customAudience).name}
+                {" · "}{ANALOGY_STYLE_PROFILES[selectedAnalogyStyle].label}
+                {" · "}{EXPLANATION_DEPTH_PROFILES[selectedDepth].label}
+              </span>
+            </summary>
           {/* Who you are teaching */}
           <div className={styles.fieldGroup}>
             <div className={styles.sectionTitle}>
-              <Icon name="user" size={20} /> 2. Who is your audience? (Target Persona)
+              <Icon name="user" size={20} /> Who you're teaching
             </div>
             <div className={styles.personaGrid}>
               {PRIMARY_PERSONAS.map((key) => {
@@ -355,7 +394,7 @@ export function FeynmanHubView() {
           {/* 3. Analogy & Metaphor Style Selector */}
           <div className={styles.fieldGroup}>
             <div className={styles.sectionTitle}>
-              <Icon name="sparkles" size={20} /> 3. Preferred Analogy &amp; Metaphor Style
+              <Icon name="sparkles" size={20} /> What kind of examples they like
             </div>
             <div className={styles.analogyGrid}>
               {PRIMARY_ANALOGY_STYLES.map((styleKey) => {
@@ -383,7 +422,7 @@ export function FeynmanHubView() {
           {/* 4. Explanation Depth & Scope Selector */}
           <div className={styles.fieldGroup}>
             <div className={styles.sectionTitle}>
-              <Icon name="award" size={20} /> 4. Explanation Depth &amp; Scope
+              <Icon name="award" size={20} /> How deep to go
             </div>
             <div className={styles.depthRow}>
               {PRIMARY_DEPTHS.map((depthKey) => {
@@ -421,7 +460,7 @@ export function FeynmanHubView() {
                       />
                     )}
                     <span className={styles.depthName}>
-                      {d.label} ({d.estimatedMinutes} min)
+                      {d.label} · {d.estimatedMinutes} min
                     </span>
                     <span className={styles.depthTagline}>{d.description}</span>
                   </button>
@@ -430,26 +469,7 @@ export function FeynmanHubView() {
             </div>
           </div>
 
-          {/* Start button */}
-          <div className={styles.launchRow}>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={handleStartSession}
-              disabled={isGenerating || !topic.trim()}
-              data-testid="start-arena-btn"
-            >
-              {isGenerating ? (
-                <>
-                  <Icon name="refresh-cw" size={18} /> Preparing the apprentice…
-                </>
-              ) : (
-                <>
-                  <Icon name="zap" size={18} /> Start teaching
-                </>
-              )}
-            </Button>
-          </div>
+          </details>
         </div>
       </div>
 

@@ -92,14 +92,14 @@ describe("SocraticSparringView", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "Oral Exam & Viva Practice" }),
+      screen.getByRole("heading", { name: "Oral practice" }),
     ).toBeInTheDocument();
     expect(screen.getByText("What should we challenge?")).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText(/e\.g\. Newton's Third Law/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Newton's Third Law & Momentum/i }),
+      screen.getByRole("button", { name: /^Newton's third law$/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Start challenge" }),
@@ -111,7 +111,7 @@ describe("SocraticSparringView", () => {
 
     vi.spyOn(aiSparringModule, "startSparringSession").mockResolvedValueOnce({
       id: "sess-100",
-      topic: "Newton's Third Law & Momentum",
+      topic: "Newton's third law",
       status: "active",
       currentRound: 1,
       dialogue: [
@@ -146,7 +146,7 @@ describe("SocraticSparringView", () => {
 
     // Click starter topic
     await user.click(
-      screen.getByRole("button", { name: /Newton's Third Law & Momentum/i }),
+      screen.getByRole("button", { name: /^Newton's third law$/i }),
     );
 
     await waitFor(() => {
@@ -406,14 +406,14 @@ describe("SocraticSparringView", () => {
     // Verify vibe options are present
     expect(screen.getByText("Chill Study Buddy")).toBeInTheDocument();
     expect(screen.getByText(/^Tough .+ Examiner$/)).toBeInTheDocument();
-    expect(screen.getByText("Socratic Challenger")).toBeInTheDocument();
-    expect(screen.getByText("Rapid-Fire Viva Quizzer")).toBeInTheDocument();
+    expect(screen.getByText("Keeps asking why")).toBeInTheDocument();
+    expect(screen.getByText("Quick-fire questions")).toBeInTheDocument();
 
     // Select Chill Study Buddy
     await user.click(screen.getByText("Chill Study Buddy"));
 
-    // Select Focus Goal "Test my derivations & formulas"
-    await user.click(screen.getByText("Test my derivations & formulas"));
+    // Select Focus Goal "Formulas and working"
+    await user.click(screen.getByText("Formulas and working"));
 
     const topicInput = screen.getByPlaceholderText(/e\.g\. Newton's Third Law/i);
     await user.type(topicInput, "Special Relativity");
@@ -427,7 +427,7 @@ describe("SocraticSparringView", () => {
     expect(callArgs[0]).toBe("Special Relativity");
     expect(callArgs[5]).toEqual(
       expect.objectContaining({
-        focusGoal: "Test my derivations & formulas",
+        focusGoal: "Formulas and working",
         vibe: expect.stringContaining("study buddy"),
       }),
     );

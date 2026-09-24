@@ -66,7 +66,7 @@ describe("aiExamDeconstructor", () => {
     it("returns 4-step Aha! breakdown for known trap archetype", async () => {
       const walkthrough = await getAhaDisarmWalkthrough("edge-case-hazards");
       expect(walkthrough.trapId).toBe("edge-case-hazards");
-      expect(walkthrough.trapName).toBe("Edge Case Hazards");
+      expect(walkthrough.trapName).toBe("Edge cases");
 
       // Step 1: Bait
       expect(walkthrough.step1Bait).toBeDefined();

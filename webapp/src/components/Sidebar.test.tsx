@@ -141,7 +141,7 @@ describe("Sidebar", () => {
   it("hides other sections' children", () => {
     renderSidebar({ initialPath: "/tasks" });
     expect(screen.queryByRole("link", { name: "Trajectory" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Viva practice" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Oral practice" })).toBeNull();
   });
 
   it.each(["/", "/plan", "/tasks", "/exams", "/library", "/analytics"])(

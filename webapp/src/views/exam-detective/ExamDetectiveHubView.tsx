@@ -22,6 +22,16 @@ import styles from "./examDetective.module.css";
 
 type ActiveTab = "playbook" | "deconstruct" | "sprint" | "radar";
 
+/* How often a trap turns up, in words. The badge used to print the raw scale
+   ("Pervasive", "High", "Frequent", "Common") with no legend, so students
+   could not tell which was worse. */
+const FREQUENCY_LABEL: Record<string, string> = {
+  Pervasive: "In most papers",
+  High: "Very common",
+  Frequent: "Common",
+  Common: "Comes up",
+};
+
 export function ExamDetectiveHubView() {
   const { showToast } = useToast();
   const { settings } = useSettings();
@@ -174,7 +184,7 @@ export function ExamDetectiveHubView() {
       {/* Hero Header */}
       <div className={styles.hero}>
         <span className={styles.heroEyebrow}>Study tools</span>
-        <h1 className={styles.heroTitle}>Exam trap practice</h1>
+        <h1 className={styles.heroTitle}>Exam traps</h1>
         <p className={styles.heroSubtitle}>
           Learn the common patterns, analyse a past paper, then practise the
           ones most likely to cost you marks.
@@ -261,7 +271,7 @@ export function ExamDetectiveHubView() {
                           : styles.badgePillAccent
                       }`}
                     >
-                      {isDisarmed ? "Reviewed" : trap.frequency}
+                      {isDisarmed ? "Reviewed" : FREQUENCY_LABEL[trap.frequency] ?? trap.frequency}
                     </span>
                   </div>
 

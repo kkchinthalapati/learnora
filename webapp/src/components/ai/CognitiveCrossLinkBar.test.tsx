@@ -109,7 +109,7 @@ describe("CognitiveCrossLinkBar", () => {
       { withRouter: true },
     );
     expect(screen.getByTestId("cross-link-source-badge")).toHaveTextContent(
-      "From: Exam trap practice",
+      "From: Exam traps",
     );
   });
 

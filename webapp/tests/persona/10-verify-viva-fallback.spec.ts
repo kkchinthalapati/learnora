@@ -22,7 +22,7 @@ test("viva loads on a clean account and with a well-formed ledger row", async ({
 }) => {
   const log = new StudentLog("10-verify-viva", page);
 
-  log.did("Opened Viva practice on a brand new account with no history");
+  log.did("Opened Oral practice on a brand new account with no history");
   await loginAs(page);
   await page.goto("viva");
   await page.waitForTimeout(2500);

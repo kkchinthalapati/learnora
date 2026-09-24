@@ -99,8 +99,8 @@ export function sectionLabel(
   if (pathname.startsWith("/study")) return "Study tools";
   if (pathname.startsWith("/feynman")) return "Explain it simply";
   if (pathname.startsWith("/solver")) return "Step-by-step solver";
-  if (pathname.startsWith("/exam-detective")) return "Exam trap practice";
-  if (pathname.startsWith("/viva")) return "Viva practice";
+  if (pathname.startsWith("/exam-detective")) return "Exam traps";
+  if (pathname.startsWith("/viva")) return "Oral practice";
   if (pathname.startsWith("/my-week")) return "Availability";
   if (pathname.startsWith("/plan")) return "Plan";
   if (pathname.startsWith("/exams")) return "Exams";

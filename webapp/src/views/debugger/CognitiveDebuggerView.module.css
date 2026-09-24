@@ -163,9 +163,11 @@
   color: var(--accent-text);
 }
 
+/* Neutral, not red: these are leads to work on, and a danger-tinted box
+   after a single missed question read as a verdict. */
 .recentMistakesBox {
-  background: var(--danger-soft);
-  border: 1px dashed var(--danger-soft);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-border-subtle);
   border-radius: var(--r-xs);
   padding: 0.75rem;
   display: flex;
@@ -521,4 +523,9 @@
 
 .degradedRetry:hover {
   background: var(--surface-hover, var(--surface));
+}
+
+.recentMistakeCount {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
 }

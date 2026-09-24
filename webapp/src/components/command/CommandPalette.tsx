@@ -331,10 +331,10 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-ai-sparring",
       category: "Study tools",
-      title: "Viva practice",
-      subtitle: "Defend an idea against questions and viva counterexamples",
+      title: "Oral practice",
+      subtitle: "Answer spoken or typed questions on a topic, like a viva",
       icon: "mic",
-      badge: "Viva Coach",
+      badge: "Speak or type",
       keywords: [
         "viva",
         "oral",
@@ -354,11 +354,11 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-ai-exam-traps",
       category: "Study tools",
-      title: "Exam trap practice",
-      subtitle: "Analyse a past paper and practise common exam traps",
+      title: "Exam traps",
+      subtitle: "Learn the tricks exam questions use, then practise spotting them",
       icon: "search",
       badge: "Exam practice",
-      keywords: ["exam", "past paper", "traps", "practice", "detective"],
+      keywords: ["exam", "past paper", "traps", "practice", "detective", "stress test", "timed"],
       onSelect: () => {
         navigate("/exam-detective");
         handleClose();

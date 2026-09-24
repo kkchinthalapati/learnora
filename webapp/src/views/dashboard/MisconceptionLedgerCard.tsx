@@ -36,7 +36,7 @@ const TOOL_LABEL: Record<Misconception["originTool"], string> = {
   debugger: "the Step-by-step solver",
   feynman: "Feynman",
   premortem: "Common Exam Traps",
-  sparring: "Viva practice",
+  sparring: "Oral practice",
   quiz: "your quizzes",
   notes: "your notes",
   review: "review",

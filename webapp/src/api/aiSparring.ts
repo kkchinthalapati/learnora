@@ -94,7 +94,7 @@ export const VIVA_ROLES: VivaRolePreset[] = [
   },
   {
     id: "socratic",
-    title: "Socratic Challenger",
+    title: "Keeps asking why",
     icon: "🏛️",
     description:
       "Questions every premise. Probes deeper into first principles and foundational causes.",
@@ -104,7 +104,7 @@ export const VIVA_ROLES: VivaRolePreset[] = [
   },
   {
     id: "quizzer",
-    title: "Rapid-Fire Viva Quizzer",
+    title: "Quick-fire questions",
     icon: "⚡",
     description:
       "Punchy, fast-paced questions testing instant recall, unit formulas, and speed.",
@@ -124,25 +124,25 @@ export interface VivaFocusGoalPreset {
 export const VIVA_FOCUS_GOALS: VivaFocusGoalPreset[] = [
   {
     id: "intuition",
-    title: "Check my conceptual intuition",
+    title: "Do I understand why?",
     icon: "💡",
     description: "Core mechanisms, 'why' it works, and real-world analogies",
   },
   {
     id: "derivations",
-    title: "Test my derivations & formulas",
+    title: "Formulas and working",
     icon: "📐",
     description: "Mathematical proofs, equations, conditions, and variables",
   },
   {
     id: "edge-cases",
-    title: "Grill me on edge cases & exceptions",
+    title: "Tricky exceptions",
     icon: "🔍",
     description: "Boundary conditions, counter-examples, and tricky scenarios",
   },
   {
     id: "comprehensive",
-    title: "Comprehensive viva practice",
+    title: "A bit of everything",
     icon: "🎯",
     description:
       "Balanced mix of fundamentals, formulas, and critical thinking",

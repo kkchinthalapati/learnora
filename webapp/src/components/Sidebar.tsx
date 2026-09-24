@@ -97,7 +97,7 @@ const SECTIONS: NavSection[] = [
         children: [
           { to: "/solver", label: "Step-by-step solver" },
           { to: "/feynman", label: "Explain it simply" },
-          { to: "/viva", label: "Viva practice" },
+          { to: "/viva", label: "Oral practice" },
           { to: "/exam-detective", label: "Exam traps" },
         ],
       },

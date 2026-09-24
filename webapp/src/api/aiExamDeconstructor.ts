@@ -80,75 +80,75 @@ export interface ImmunityRadarRecord {
 export const CANONICAL_TRAP_ARCHETYPES: TrapArchetype[] = [
   {
     id: "edge-case-hazards",
-    name: "Edge Case Hazards",
+    name: "Edge cases",
     category: "edge_cases",
     description:
-      "Professors pick extreme or boundary values—zero, empty sets, limits at infinity, or interval endpoints—where standard general formulas silently collapse.",
+      "Examiners pick awkward values — zero, negatives, the very end of a range — where the usual method quietly stops working.",
     examplePattern:
-      "Dividing both sides by (x - 1) without verifying whether x can equal 1, or assuming a function is defined at x = 0.",
+      "Dividing both sides by (x − 1) without checking whether x could be 1.",
     frequency: "Pervasive",
     disarmRule:
-      "Always test boundary triggers: 0, 1, negatives, empty cases, and limits before committing to an answer.",
+      "Before you commit, try 0, 1 and a negative number in your answer.",
   },
   {
     id: "negative-wording-maze",
-    name: "Negative Wording Maze",
+    name: "NOT and EXCEPT questions",
     category: "negative_wording",
     description:
-      "Slips in qualifiers like 'EXCEPT', 'NOT true', 'LEAST likely', or 'CANNOT be inferred', baiting you to select the first statement that is factually true.",
+      "Words like NOT, EXCEPT or LEAST are slipped into the question, so the first true-sounding answer is the wrong one.",
     examplePattern:
-      "Presenting three true statements and one subtle false statement, when the prompt asks: 'Which of the following is NOT valid?'",
+      "Three true statements and one false one, when the question asks 'Which of these is NOT correct?'",
     frequency: "High",
     disarmRule:
-      "Circle the negative operator immediately. Rephrase the question as: 'Find the one false claim among the true ones.'",
+      "Circle the NOT or EXCEPT straight away, then look for the one false statement.",
   },
   {
     id: "hidden-assumptions",
-    name: "Hidden Assumptions",
+    name: "Hidden assumptions",
     category: "hidden_assumptions",
     description:
-      "Implicitly introduces an unverified premise—such as constant temperature, frictionless plane, independent events, or linearity—in the middle of a multi-step problem.",
+      "The question relies on something it never says — no friction, constant temperature, a fair coin — and your answer changes if it isn't true.",
     examplePattern:
-      "Applying Bayes' Theorem or naive probabilities assuming events are independent when joint dependency is subtly implied in the paragraph.",
+      "Treating two events as independent when the question hints that one affects the other.",
     frequency: "Frequent",
     disarmRule:
-      "Audit prerequisites: Does the theorem require continuity? Independence? Conservation? Verify each prerequisite is stated, not assumed.",
+      "Ask what your method needs to be true, and check the question actually says so.",
   },
   {
     id: "lookalike-terms",
-    name: "Lookalike Terms & False Synonyms",
+    name: "Lookalike words",
     category: "lookalike_terms",
     description:
-      "Pairs terms that sound cognate or conceptually related but carry strictly distinct mathematical or scientific definitions.",
+      "Two words sound alike but mean different things, and the question tests whether you know the difference.",
     examplePattern:
-      "Conflating 'permutations' vs 'combinations', 'continuous' vs 'differentiable', or 'precision' vs 'accuracy'.",
+      "Mixing up mass and weight, accuracy and precision, or mitosis and meiosis.",
     frequency: "Common",
     disarmRule:
-      "Ask: Does order matter? Does repetition apply? Pinpoint the single defining criterion distinguishing the twin terms.",
+      "Say the one thing that makes each word different before you answer.",
   },
   {
     id: "units-and-scale-drift",
-    name: "Units & Scale Drift",
+    name: "Unit mix-ups",
     category: "units_scale",
     description:
-      "Mixes metric scales (seconds vs milliseconds, radians vs degrees, meters vs centimeters) so correct algebraic reasoning yields a numeric trap distractor.",
+      "Numbers come in different units — grams and kilograms, minutes and seconds — so the right method gives the wrong number.",
     examplePattern:
-      "Computing kinetic energy with mass in grams rather than kilograms, resulting in an answer exactly 1,000x off.",
+      "Working out kinetic energy with the mass in grams, giving an answer 1,000 times too big.",
     frequency: "High",
     disarmRule:
-      "Standardize all numbers into base SI units right in the margin before writing down the primary formula.",
+      "Convert everything to standard units in the margin before you use a formula.",
   },
   {
     id: "premature-shortcut-traps",
-    name: "Premature Shortcut Traps",
+    name: "Too-easy shortcuts",
     category: "shortcuts",
     description:
-      "Offers an intuitive, greedy heuristic that works on beginner problems but fails to account for asymmetric costs or edge cases in advanced problems.",
+      "A quick shortcut that works on easy questions but breaks on harder ones.",
     examplePattern:
-      "Assuming the highest rate of change at a given point must correspond to the global maximum of the function.",
+      "Assuming the steepest part of a graph must be its highest point.",
     frequency: "Frequent",
     disarmRule:
-      "Treat fast 'too-easy' answers as warning signals. Perform a 10-second sanity check against counterexamples.",
+      "If an answer came too easily, spend ten seconds checking it against an example.",
   },
 ];
 
@@ -166,7 +166,7 @@ const QUESTION_BANK: Record<string, SprintQuestion[]> = {
       ],
       correctAnswerIndex: 1,
       trapArchetypeId: "edge-case-hazards",
-      trapName: "Edge Case Hazards",
+      trapName: "Edge cases",
       baitOptionIndex: 0,
       baitExplanation:
         "Simplifying (x² - 4)/(x - 2) gives x + 2. Setting x + 2 = 4 yields x = 2. It feels like an instant win!",
@@ -188,7 +188,7 @@ const QUESTION_BANK: Record<string, SprintQuestion[]> = {
       ],
       correctAnswerIndex: 2,
       trapArchetypeId: "negative-wording-maze",
-      trapName: "Negative Wording Maze",
+      trapName: "NOT and EXCEPT questions",
       baitOptionIndex: 0,
       baitExplanation:
         "Extreme Value Theorem guarantees max and min on closed intervals, so option 1 looks familiar and tempting to select immediately.",
@@ -205,7 +205,7 @@ const QUESTION_BANK: Record<string, SprintQuestion[]> = {
       options: ["60", "10", "15", "125"],
       correctAnswerIndex: 1,
       trapArchetypeId: "lookalike-terms",
-      trapName: "Lookalike Terms & False Synonyms",
+      trapName: "Lookalike words",
       baitOptionIndex: 0,
       baitExplanation:
         "5 × 4 × 3 = 60 computes permutations (ordered roles), which is the first calculation that springs to mind.",
@@ -227,7 +227,7 @@ const QUESTION_BANK: Record<string, SprintQuestion[]> = {
       ],
       correctAnswerIndex: 1,
       trapArchetypeId: "hidden-assumptions",
-      trapName: "Hidden Assumptions",
+      trapName: "Hidden assumptions",
       baitOptionIndex: 0,
       baitExplanation:
         "P(A) × P(B) = 0.6 × 0.5 = 0.30 is calculated by reflex under the unverified assumption of independence.",
@@ -251,7 +251,7 @@ const QUESTION_BANK: Record<string, SprintQuestion[]> = {
       ],
       correctAnswerIndex: 1,
       trapArchetypeId: "edge-case-hazards",
-      trapName: "Edge Case Hazards",
+      trapName: "Edge cases",
       baitOptionIndex: 0,
       baitExplanation:
         "In pure math, (low + high)/2 is always the midpoint. It is easy to overlook fixed-width register limits.",
@@ -273,7 +273,7 @@ const QUESTION_BANK: Record<string, SprintQuestion[]> = {
       ],
       correctAnswerIndex: 2,
       trapArchetypeId: "negative-wording-maze",
-      trapName: "Negative Wording Maze",
+      trapName: "NOT and EXCEPT questions",
       baitOptionIndex: 0,
       baitExplanation:
         "Option 1 is the canonical textbook property of Dijkstra, prompting an eager click.",
@@ -292,7 +292,7 @@ const QUESTION_BANK: Record<string, SprintQuestion[]> = {
       options: ["1000 m/s", "1 m/s", "10 m/s", "0.5 m/s"],
       correctAnswerIndex: 1,
       trapArchetypeId: "units-and-scale-drift",
-      trapName: "Units & Scale Drift",
+      trapName: "Unit mix-ups",
       baitOptionIndex: 0,
       baitExplanation:
         "Multiplying 2 × 500 gives 1,000 m/s if you forget to convert milliseconds to seconds.",
@@ -314,7 +314,7 @@ const QUESTION_BANK: Record<string, SprintQuestion[]> = {
       ],
       correctAnswerIndex: 1,
       trapArchetypeId: "premature-shortcut-traps",
-      trapName: "Premature Shortcut Traps",
+      trapName: "Too-easy shortcuts",
       baitOptionIndex: 0,
       baitExplanation:
         "Assuming 'more reactant always means faster reaction' is the intuitive shortcut.",
@@ -330,7 +330,7 @@ const QUESTION_BANK: Record<string, SprintQuestion[]> = {
 const AHA_WALKTHROUGHS: Record<string, AhaDisarmWalkthrough> = {
   "edge-case-hazards": {
     trapId: "edge-case-hazards",
-    trapName: "Edge Case Hazards",
+    trapName: "Edge cases",
     step1Bait: {
       title: "The Tempting Illusion",
       description:
@@ -379,7 +379,7 @@ const AHA_WALKTHROUGHS: Record<string, AhaDisarmWalkthrough> = {
   },
   "negative-wording-maze": {
     trapId: "negative-wording-maze",
-    trapName: "Negative Wording Maze",
+    trapName: "NOT and EXCEPT questions",
     step1Bait: {
       title: "The Familiar Fact Trap",
       description:
@@ -427,7 +427,7 @@ const AHA_WALKTHROUGHS: Record<string, AhaDisarmWalkthrough> = {
   },
   "hidden-assumptions": {
     trapId: "hidden-assumptions",
-    trapName: "Hidden Assumptions",
+    trapName: "Hidden assumptions",
     step1Bait: {
       title: "The Formula Reflex",
       description:
@@ -475,7 +475,7 @@ const AHA_WALKTHROUGHS: Record<string, AhaDisarmWalkthrough> = {
   },
   "lookalike-terms": {
     trapId: "lookalike-terms",
-    trapName: "Lookalike Terms & False Synonyms",
+    trapName: "Lookalike words",
     step1Bait: {
       title: "The Linguistic Twin",
       description:
