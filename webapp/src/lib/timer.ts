@@ -76,15 +76,18 @@ export const WORKFLOW_PRESETS: Record<string, Partial<TimerConfig>> = {
   light: { focus: 20, short: 5, long: 15, maxCycles: 4 },
 };
 
+/* Calm and practical. Three of the old lines were hustle-guilt ("Study
+   while they sleep. Work while they play.", "Push yourself, because no one
+   else is going to do it for you", "Don't stop until you're proud") — the
+   wrong thing to show a tired or anxious student at 11pm, which is exactly
+   when this screen is open. */
 export const QUOTES = [
   "Focus on the step in front of you.",
-  "Don't stop until you're proud.",
   "Small progress is still progress.",
-  "The secret of getting ahead is getting started.",
-  "You don't have to be great to start, but you have to start to be great.",
-  "Discipline is choosing between what you want now and what you want most.",
-  "Push yourself, because no one else is going to do it for you.",
-  "Study while they sleep. Work while they play.",
+  "The hardest part is starting. You've started.",
+  "One topic, one block. That's enough for now.",
+  "Getting it wrong while practising is how it sticks.",
+  "Take the break when it comes — it's part of the method.",
 ] as const;
 
 export function initialTimerState(): TimerState {

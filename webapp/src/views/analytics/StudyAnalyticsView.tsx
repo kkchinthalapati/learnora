@@ -29,8 +29,18 @@ const RANGE_OPTIONS: ReadonlyArray<{
   { days: 30, label: "30 Days" },
 ];
 
+/* "Balanced" read as a judgement with no reference point, and it was shown
+   for subjects with no exam at all. Plain words for what each state means. */
+const SUBJECT_STATUS_LABEL: Record<string, string> = {
+  Balanced: "On track",
+  "Needs more time": "Needs more time",
+  "Exam soon": "Exam soon — give it time",
+};
+
 export function StudyAnalyticsView() {
-  const [activeRange, setActiveRange] = useState<365 | 90 | 30>(365);
+  /* 90 days, not a year: a year-long grid is ~95% empty squares for most
+     students, and that empty space was the first thing Progress showed. */
+  const [activeRange, setActiveRange] = useState<365 | 90 | 30>(90);
   const [selectedHour, setSelectedHour] = useState<HourlyStats | null>(null);
 
   // Fetch 365 days of sessions for deep engine calculations
@@ -76,8 +86,29 @@ export function StudyAnalyticsView() {
   // Derived Summary Metrics
   const totalHours = Math.floor(heatData.totalMinutes / 60);
   const remainingMins = heatData.totalMinutes % 60;
+  /* Measured from the student's first session in the range, not from the
+     start of the range. A student three weeks in with a 7-day streak was
+     told "8 / 365d, 2% consistency" — a verdict on months before they
+     joined. */
+  const firstActiveIdx = heatData.cells.findIndex((c) => c.minutes > 0);
+  /* From dates, not cell counts: the grid pads out to whole weeks, so
+     counting cells overshoots the range. */
+  const trackedDays =
+    firstActiveIdx < 0
+      ? activeRange
+      : Math.min(
+          activeRange,
+          Math.max(
+            1,
+            Math.floor(
+              (new Date().setHours(0, 0, 0, 0) -
+                new Date(heatData.cells[firstActiveIdx].date).setHours(0, 0, 0, 0)) /
+                86_400_000,
+            ) + 1,
+          ),
+        );
   const consistencyPercent = Math.round(
-    (heatData.activeDays / activeRange) * 100,
+    (heatData.activeDays / trackedDays) * 100,
   );
 
   const avgQuizScore = useMemo(() => {
@@ -185,11 +216,15 @@ export function StudyAnalyticsView() {
                 color: "var(--text-muted)",
               }}
             >
-              / {activeRange}d
+              / {trackedDays} {trackedDays === 1 ? "day" : "days"}
             </span>
           </p>
           <div className={styles.statSub}>
-            <span>{consistencyPercent}% consistency</span>
+            <span>
+              {firstActiveIdx < 0
+                ? "No sessions yet"
+                : `Studied on ${consistencyPercent}% of days since you started`}
+            </span>
             <span className={styles.statBadge}>
               {heatData.currentStreak}d streak
             </span>
@@ -540,7 +575,7 @@ export function StudyAnalyticsView() {
                       </td>
                       <td className={styles.td}>
                         <span className={`${styles.statusPill} ${statusClass}`}>
-                          {row.status}
+                          {SUBJECT_STATUS_LABEL[row.status] ?? row.status}
                         </span>
                       </td>
                     </tr>

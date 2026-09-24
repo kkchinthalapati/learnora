@@ -62,9 +62,8 @@ describe("Header", () => {
     expect(
       screen.getByRole("button", { name: /toggle theme/i }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /log out/i }),
-    ).toBeInTheDocument();
+    /* Log out is in the sidebar Account group, not one tap away here. */
+    expect(screen.queryByRole("button", { name: /log out/i })).toBeNull();
   });
 
   it("renders page title heading on non-hero routes like /dashboard", () => {
@@ -81,7 +80,8 @@ describe("Header", () => {
       name: /search and command palette/i,
     });
     expect(searchButton).toBeInTheDocument();
-    expect(screen.getByText("⌘K")).toBeInTheDocument();
+    /* jsdom's platform is not a Mac, so the hint is the Windows one. */
+    expect(screen.getByText("Ctrl K")).toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.click(searchButton);

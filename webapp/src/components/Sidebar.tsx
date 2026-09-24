@@ -404,6 +404,24 @@ export function Sidebar({
                     </li>
                   );
                 })}
+                {/* Log out lives with the account, one deliberate step away.
+                    It used to be an unlabelled icon between Search and the
+                    theme toggle on every screen, where a missed tap signed a
+                    student out mid-session. */}
+                {section.id === "account" && auth?.session ? (
+                  <li>
+                    <button
+                      type="button"
+                      className={`${styles.navLink} ${styles.navButton}`}
+                      onClick={() => void auth.signOut()}
+                      aria-label="Log out"
+                      title="Log out"
+                    >
+                      <Icon name="log-out" size={18} />
+                      <span className={styles.navLabel}>Log out</span>
+                    </button>
+                  </li>
+                ) : null}
               </ul>
             </div>
           );

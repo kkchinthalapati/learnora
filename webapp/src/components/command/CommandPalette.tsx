@@ -170,13 +170,13 @@ export function CommandPalette(props: CommandPaletteProps) {
         return [
           {
             id: "action-prefix-debug",
-            category: "Find My Mistake",
+            category: "Step-by-step solver",
             title: prefixMatch.text
               ? `Look at: "${prefixMatch.text}"`
               : "Type a topic to look at…",
-            subtitle: "Work out what went wrong in Find My Mistake",
+            subtitle: "Work out what went wrong in the step-by-step solver",
             icon: "brain",
-            badge: "Find My Mistake",
+            badge: "Solver",
             shortcut: "↵",
             onSelect: () => {
               if (!prefixMatch.text) return;

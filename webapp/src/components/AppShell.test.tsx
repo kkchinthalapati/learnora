@@ -193,7 +193,7 @@ describe("AppShell", () => {
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 
-  it("logs out from the header button", async () => {
+  it("keeps log out out of the header, and offers it under Account", async () => {
     serveDueCount(0);
     const signOut = vi.fn().mockResolvedValue(undefined);
     renderWithAuth(
@@ -207,7 +207,11 @@ describe("AppShell", () => {
     );
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "Log Out" }));
+    expect(
+      within(screen.getByRole("banner")).queryByRole("button", { name: /log out/i }),
+    ).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Expand Account" }));
+    await user.click(screen.getByRole("button", { name: "Log out" }));
 
     expect(signOut).toHaveBeenCalled();
   });
