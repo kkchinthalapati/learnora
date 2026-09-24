@@ -9,8 +9,8 @@
 export const translations = {
   en: {
     nav_dashboard: "Dashboard",
-    nav_timer: "Timer",
-    nav_tasks: "Task Manager",
+    nav_timer: "Focus timer",
+    nav_tasks: "Tasks",
     nav_calendar: "Calendar",
     nav_flashcards: "Flashcards",
     nav_library: "Library",
@@ -452,7 +452,7 @@ export const translations = {
   },
   de: {
     nav_dashboard: "Dashboard",
-    nav_timer: "Timer",
+    nav_timer: "Focus timer",
     nav_tasks: "Aufgaben",
     nav_calendar: "Kalender",
     nav_flashcards: "Karteikarten",

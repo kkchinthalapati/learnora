@@ -84,7 +84,7 @@ describe("Sidebar", () => {
       "href",
       "/plan",
     );
-    expect(screen.getByRole("link", { name: "Focus" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Focus timer" })).toHaveAttribute(
       "href",
       "/timer",
     );

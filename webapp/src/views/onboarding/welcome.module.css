@@ -711,3 +711,18 @@
   border-color: var(--accent-ring);
   background: var(--accent-soft);
 }
+
+/* Reveals the curricula from other regions. A text-weight control: it is a
+   secondary path, and the student's own courses above it are the point. */
+.showMore {
+  margin-top: var(--s-3);
+  min-height: var(--touch-target-min);
+  padding: 0 var(--s-2);
+  border: 0;
+  background: transparent;
+  color: var(--accent-text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}

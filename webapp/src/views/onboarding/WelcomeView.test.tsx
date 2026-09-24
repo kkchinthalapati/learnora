@@ -91,6 +91,9 @@ describe("WelcomeView", () => {
     renderWizard();
     await walkToSubjectStep(user);
 
+    /* Other regions' courses are one tap away, not mixed into the list. */
+    const others = screen.queryByRole("button", { name: /courses from other countries/i });
+    if (others) await user.click(others);
     const cbse = screen.getByRole("button", { name: /cbse class 10/i });
     expect(
       screen.getByRole("button", { name: /icse class 10/i }),

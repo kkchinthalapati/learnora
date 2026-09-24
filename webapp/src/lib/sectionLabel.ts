@@ -88,7 +88,13 @@ export function sectionLabel(
   if (pathname === "/") return "Today";
   if (pathname.startsWith("/dashboard")) return t("nav_dashboard");
   if (isNotebooksSection(pathname)) return "Notebooks";
+  /* A quiz or a review session is an activity, not the Library page; the
+     header saying "Library" mid-quiz told the student they were somewhere
+     else. The sidebar still lights Library via isLibrarySection. */
+  if (pathname.startsWith("/quiz/")) return "Quiz";
+  if (pathname.startsWith("/review/")) return "Flashcard review";
   if (isLibrarySection(pathname)) return t("nav_library");
+  /* Same words as the sidebar row. It said "Focus" there and "Timer" here. */
   if (pathname.startsWith("/timer")) return t("nav_timer");
   if (pathname.startsWith("/tasks")) return t("nav_tasks");
   /* "Progress" everywhere — it is the rail's label and the student's own

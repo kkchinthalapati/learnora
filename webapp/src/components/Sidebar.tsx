@@ -79,7 +79,7 @@ const SECTIONS: NavSection[] = [
       {
         to: "/timer",
         icon: "clock",
-        label: "Focus",
+        label: "Focus timer",
         destination: "focus",
       },
       {

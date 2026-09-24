@@ -42,10 +42,10 @@ describe("route skeleton", () => {
     /* The app shell's Header now supplies the page's <h1> (the redesign
        audit found Tasks' old page-only "Tasks" heading duplicating the
        shell's own nav-derived label right below it); the shell's label —
-       t("nav_tasks"), "Task Manager" — is the one that survives. */
-    ["/tasks", "Task Manager"],
+       t("nav_tasks"), "Tasks" — is the one that survives. */
+    ["/tasks", "Tasks"],
     ["/exams", "Exams"],
-    ["/timer", "Timer"],
+    ["/timer", "Focus timer"],
     ["/library", "Your learning"],
     /* A real tab. This row used to read "/library/notes", which is not in
        LIBRARY_TABS — LibraryView bounced it to /library and rendered the same

@@ -119,7 +119,7 @@ describe("Header", () => {
         screen.getByRole("heading", { level: 2, name: "Study tools" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByText(/Choose the exercise that matches your goal/i),
+        screen.getByText(/Pick the exercise that matches your problem/i),
       ).toBeInTheDocument();
     },
   );

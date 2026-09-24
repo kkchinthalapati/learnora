@@ -7,6 +7,7 @@ import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useToast } from "../../context/toast";
 import { useDialog } from "../../context/dialog";
+import { useOptionalChat } from "../../context/chat";
 import { useContinuity } from "../../hooks/useContinuity";
 import { useQuiz, useRecordQuizAttempt } from "../../hooks/useQuizzes";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
@@ -176,6 +177,7 @@ function QuizSession({
     folderId,
   });
   const { confirm } = useDialog();
+  const chat = useOptionalChat();
   const { recordQuiz } = useContinuity();
 
   const draftKey = quizDraftKey(quizId);
@@ -433,8 +435,6 @@ function QuizSession({
     hostVerdict = verdict;
     hostMessage = detail;
     hostTone = answered.correct ? "correct" : "incorrect";
-  } else if (index === 0) {
-    hostMessage = "Welcome to the quiz. Let's see what you've got!";
   }
 
   return (
@@ -478,6 +478,28 @@ function QuizSession({
             );
           })}
         </div>
+
+        {answered && !answered.correct && chat ? (
+          /* The runner states the right answer; this is for "but why?".
+             Sent with the question, the pick and the answer so the student
+             does not have to retype any of it. */
+          <div className={styles.askWhyRow}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const picked = question.choices[answered.chosenIndex];
+                const right = question.choices[question.correctIndex];
+                chat.open();
+                void chat.send(
+                  `In a quiz I was asked: "${question.question}". I answered "${picked}", but the answer is "${right}". Explain simply why "${right}" is right and where my thinking went wrong.`,
+                );
+              }}
+            >
+              <Icon name="sparkles" size={14} /> Ask AI why
+            </Button>
+          </div>
+        ) : null}
 
         {answered ? (
           <div className={styles.nextRow}>

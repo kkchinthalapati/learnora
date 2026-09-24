@@ -396,7 +396,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-tasks",
       category: "Navigation",
-      title: "Task Manager",
+      title: "Tasks",
       subtitle: "Manage tasks, deadlines, and to-do lists",
       icon: "list-checks",
       keywords: ["tasks", "todo", "list", "deadlines", "assignments"],
