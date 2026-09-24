@@ -13,6 +13,8 @@ interface StudyRoute {
   outcome: string;
   to: string;
   icon: IconName;
+  /** Whether the destination reads a `?topic=` param. */
+  takesTopic?: boolean;
 }
 
 const STUDY_ROUTES: StudyRoute[] = [
@@ -24,6 +26,7 @@ const STUDY_ROUTES: StudyRoute[] = [
     outcome: "Leave with the exact missing step fixed",
     to: "/solver",
     icon: "bug",
+    takesTopic: true,
   },
   {
     prompt: "I think I understand it",
@@ -33,6 +36,7 @@ const STUDY_ROUTES: StudyRoute[] = [
     outcome: "Leave with the gaps in your explanation",
     to: "/feynman",
     icon: "award",
+    takesTopic: true,
   },
   {
     prompt: "I want oral test practice",
@@ -42,6 +46,19 @@ const STUDY_ROUTES: StudyRoute[] = [
     outcome: "Leave confident explaining it on the spot",
     to: "/viva",
     icon: "mic",
+    takesTopic: true,
+  },
+  /* "Test me" is what most students come to a study page for, and it was
+     the one thing this menu did not offer: quizzes and flashcards lived
+     only in the Library, two clicks and a tab away from here. */
+  {
+    prompt: "I want to test myself",
+    title: "Quizzes & flashcards",
+    description:
+      "Take a practice quiz or make a new one from any topic. Recalling answers is what makes them stick.",
+    outcome: "Leave knowing what you can and can't recall",
+    to: "/library/quizzes",
+    icon: "help-circle",
   },
 ];
 
@@ -164,7 +181,7 @@ export function StudyLabView() {
           <Link
             key={route.to}
             to={
-              activeTopic
+              activeTopic && route.takesTopic
                 ? `${route.to}?topic=${encodeURIComponent(activeTopic)}`
                 : route.to
             }

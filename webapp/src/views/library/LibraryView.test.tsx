@@ -254,6 +254,25 @@ describe("LibraryView shell", () => {
     expect(tab("Subjects")).toHaveAttribute("aria-selected", "false");
   });
 
+  it("shows each quiz's latest score, or that it has not been taken", async () => {
+    serveLibrary({
+      quizzes: [quiz(), quiz({ id: "quiz-2", title: "Untouched quiz" })],
+    });
+    server.use(
+      http.get(rest("quiz_attempts"), () =>
+        HttpResponse.json([
+          { id: "a2", quiz_id: quiz().id, score: 4, total: 5, created_at: "2026-03-08T00:00:00Z" },
+          { id: "a1", quiz_id: quiz().id, score: 1, total: 5, created_at: "2026-03-07T00:00:00Z" },
+        ]),
+      ),
+    );
+    renderLibrary("/library/quizzes");
+
+    expect(await screen.findByText("4/5")).toBeInTheDocument();
+    expect(screen.queryByText("1/5")).not.toBeInTheDocument();
+    expect(screen.getByText("Not taken yet")).toBeInTheDocument();
+  });
+
   it("redirects an unknown tab back to Subjects", async () => {
     serveLibrary({ folders: [folder()] });
     renderLibrary("/library/not-a-tab");
@@ -708,6 +727,42 @@ describe("Library — Flashcards tab", () => {
       await screen.findByText(/due for review today/, { selector: "span" }),
     ).toHaveTextContent("7 cards due for review today.");
     expect(screen.getByText("Mitosis basics")).toBeInTheDocument();
+  });
+
+  it("links the banner to a review of every due card", async () => {
+    serveLibrary({ decks: [deck()], dueCount: 3 });
+    renderLibrary("/library/flashcards");
+
+    expect(
+      await screen.findByRole("link", { name: "Review due cards" }),
+    ).toHaveAttribute("href", "/review/daily-drill");
+  });
+
+  it("shows each deck's card and due counts", async () => {
+    serveLibrary({ decks: [deck()], dueCount: 1 });
+    const cardRow = (id: string, next: string | null) => ({
+      id,
+      user_id: "user-1",
+      deck_id: deck().id,
+      front: id,
+      back: id,
+      next_review_date: next,
+      srs_interval: next ? 3 : 0,
+      ease_factor: 2.5,
+    });
+    server.use(
+      http.get(rest("flashcards"), () =>
+        HttpResponse.json([
+          cardRow("a", null),
+          cardRow("b", "2099-01-01T00:00:00.000Z"),
+          cardRow("c", "2099-01-01T00:00:00.000Z"),
+        ]),
+      ),
+    );
+    renderLibrary("/library/flashcards");
+
+    expect(await screen.findByText("1 due")).toBeInTheDocument();
+    expect(screen.getByText(/3 cards/)).toBeInTheDocument();
   });
 
   it("hides the banner when nothing is due", async () => {

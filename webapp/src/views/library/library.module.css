@@ -171,6 +171,18 @@
   margin: 0;
 }
 
+.cardDue {
+  color: var(--accent-text);
+  font-weight: 650;
+}
+
+.dueBannerAction {
+  margin-left: auto;
+  color: var(--accent-text);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
 /* Visual affordance only — the card around it is the link. */
 .cardCta {
   margin-top: var(--s-3);

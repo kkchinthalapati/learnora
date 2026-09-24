@@ -698,6 +698,23 @@ describe("ReviewView", () => {
     expect(screen.getByText("All caught up! 🎉")).toBeInTheDocument();
   });
 
+  it("lets a student practise a deck with nothing due", async () => {
+    serve({
+      cards: [card({ next_review_date: "2099-01-01T00:00:00.000Z" })],
+    });
+    renderReview("d-1", false);
+
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: "Practise all 1 card anyway" }),
+    );
+    expect(screen.getByText(/none are due yet/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Start review" }));
+    expect(
+      await screen.findByText("What is a mitochondrion?"),
+    ).toBeInTheDocument();
+  });
+
   it("shows a not-found state for a deck that no longer exists", async () => {
     serve({ decks: [] });
     renderReview("gone");

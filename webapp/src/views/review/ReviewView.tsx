@@ -97,6 +97,12 @@ export function ReviewView() {
      re-renders from the refetch, and ReviewLauncher sets it synchronously,
      well before that. */
   const sessionActiveRef = useRef(false);
+  /* "Practise anyway": review the whole deck even though nothing is due.
+     FSRS copes with an early review (a card seen before it was due earns a
+     smaller stability gain), so this is honest cramming rather than a
+     scheduler bypass — and the night before an exam is exactly when a
+     student wants it and "All caught up" was a dead end. */
+  const [practiseAll, setPractiseAll] = useState(false);
 
   if (decks.isPending || cardsQuery.isPending) {
     return (
@@ -147,7 +153,9 @@ export function ReviewView() {
      to the front of the session, so the student meets them while fresh rather
      than forty cards in. An empty ledger returns the queue untouched. */
   const due = prioritiseByMisconceptions(
-    isDailyDrill ? cardsQuery.data || [] : dueCardsFrom(cardsQuery.data),
+    isDailyDrill || practiseAll
+      ? cardsQuery.data || []
+      : dueCardsFrom(cardsQuery.data),
     ledger,
   );
 
@@ -164,7 +172,14 @@ export function ReviewView() {
               ? "No cards due across any deck. Take a break!"
               : "No cards due for review in this deck right now."
           }
-        />
+        >
+          {!isDailyDrill && cardsQuery.data.length > 0 ? (
+            <Button variant="secondary" onClick={() => setPractiseAll(true)}>
+              Practise all {cardsQuery.data.length}{" "}
+              {cardsQuery.data.length === 1 ? "card" : "cards"} anyway
+            </Button>
+          ) : null}
+        </EmptyState>
       </div>
     );
   }
@@ -176,6 +191,7 @@ export function ReviewView() {
       deckTitle={deck.title}
       folderId={deck.folder_id ?? null}
       dueCards={due}
+      practising={practiseAll}
       onSessionStart={() => {
         sessionActiveRef.current = true;
       }}
@@ -188,12 +204,14 @@ function ReviewLauncher({
   deckTitle,
   folderId,
   dueCards,
+  practising = false,
   onSessionStart,
 }: {
   deckId: string;
   deckTitle: string;
   folderId?: string | null;
   dueCards: Flashcard[];
+  practising?: boolean;
   onSessionStart: () => void;
 }) {
   const [sessionCards, setSessionCards] = useState<Flashcard[] | null>(null);
@@ -217,6 +235,7 @@ function ReviewLauncher({
     <ReviewSetup
       deckTitle={deckTitle}
       dueCards={dueCards}
+      practising={practising}
       hasQuizEvidence={(weakTopics.data ?? []).length > 0}
       onStart={(length, order) => {
         onSessionStart();
@@ -256,11 +275,13 @@ function OptionalFold({
 function ReviewSetup({
   deckTitle,
   dueCards,
+  practising = false,
   hasQuizEvidence,
   onStart,
 }: {
   deckTitle: string;
   dueCards: Flashcard[];
+  practising?: boolean;
   hasQuizEvidence: boolean;
   onStart: (length: ReviewLength, order: ReviewOrder) => void;
 }) {
@@ -283,8 +304,10 @@ function ReviewSetup({
         <p className={styles.eyebrow}>Ready to review</p>
         <h2 className={styles.title}>{deckTitle}</h2>
         <p className={styles.setupIntro}>
-          {dueCards.length} {dueCards.length === 1 ? "card is" : "cards are"}{" "}
-          due.{small ? "" : " Choose a focused session that fits the time you have."}
+          {practising
+            ? `Practising all ${dueCards.length} ${dueCards.length === 1 ? "card" : "cards"} — none are due yet, so this is extra practice.`
+            : `${dueCards.length} ${dueCards.length === 1 ? "card is" : "cards are"} due.`}
+          {small ? "" : " Choose a focused session that fits the time you have."}
         </p>
 
         <OptionalFold
