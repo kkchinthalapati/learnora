@@ -385,10 +385,10 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-dashboard",
       category: "Navigation",
-      title: "Full dashboard",
-      subtitle: "Study overview, goals, and daily streak",
+      title: "Dashboard",
+      subtitle: "Mistakes, memory, streaks and study history",
       icon: "dashboard",
-      keywords: ["home", "dashboard", "overview"],
+      keywords: ["dashboard", "overview", "streak", "progress", "mistakes"],
       onSelect: () => {
         navigate("/dashboard");
         handleClose();

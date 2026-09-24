@@ -42,14 +42,10 @@ export type PrimaryDestination =
 export function primaryDestinationForPath(
   pathname: string,
 ): PrimaryDestination | null {
-  /* "/dashboard" deliberately does NOT fold in here even though it shares
-   * the "dashboard" destination name: the rail's only item pointing at that
-   * destination is Today (`to: "/"`), and Today and the full Dashboard are
-   * different pages since the Today/Dashboard split. Matching "/dashboard"
-   * to Today's destination used to light up "Today" as the active link
-   * while actually viewing Dashboard (reachable via the command palette's
-   * "Full dashboard" entry or a direct link) — a real link with no sibling
-   * beats a wrong one, same as an unclaimed route gets no highlight at all. */
+  /* "/dashboard" does NOT map to the "dashboard" destination even though
+   * the names match: that destination is Today (`to: "/"`), and lighting
+   * Today while viewing the Dashboard was wrong. The Dashboard is a child of
+   * Progress now — see the progress branch below. */
   if (pathname === "/") return "dashboard";
   if (isNotebooksSection(pathname)) return "library";
   if (isLibrarySection(pathname)) return "library";
@@ -62,7 +58,13 @@ export function primaryDestinationForPath(
     return "plan";
   }
   if (pathname.startsWith("/timer")) return "focus";
-  if (pathname.startsWith("/analytics") || pathname.startsWith("/trajectory"))
+  /* The Dashboard is "how am I doing" now (DashboardView.tsx), so it sits
+     under Progress with Trajectory rather than floating with no rail item. */
+  if (
+    pathname.startsWith("/analytics") ||
+    pathname.startsWith("/trajectory") ||
+    pathname.startsWith("/dashboard")
+  )
     return "progress";
   if (isStudyLabSection(pathname)) return "study_lab";
   return null;

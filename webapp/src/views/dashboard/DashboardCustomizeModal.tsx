@@ -9,10 +9,8 @@ export const DASHBOARD_LAYOUT_KEY = "learnora_dashboard_layout_v2";
 
 export interface DashboardLayoutPreferences {
   visibleSections: {
-    nextHour: boolean;
     todayTimeline: boolean;
     activityRings: boolean;
-    recentNotebooks: boolean;
     priorities: boolean;
     continueStudying: boolean;
     progressStreak: boolean;
@@ -22,16 +20,15 @@ export interface DashboardLayoutPreferences {
 
 export const DEFAULT_DASHBOARD_LAYOUT: DashboardLayoutPreferences = {
   visibleSections: {
-    nextHour: true,
     todayTimeline: true,
-    /* Off by default: the "All" tab is capped at six cards a student can act
-       on before Thursday. Rings, streak widgets and the community feed live
-       behind "More" (this modal) rather than costing scroll time up front. */
-    activityRings: false,
-    recentNotebooks: true,
+    /* On now: with Today holding the next step, memory, streaks and rings are
+       what this page is for. A stored layout that turned them off keeps that
+       choice (loadDashboardLayout merges onto these). The community feed
+       stays behind "More". */
+    activityRings: true,
     priorities: true,
     continueStudying: true,
-    progressStreak: false,
+    progressStreak: true,
     sessionsCommunity: false,
   },
 };
@@ -76,11 +73,6 @@ const SECTION_DESCRIPTIONS: Record<
   keyof DashboardLayoutPreferences["visibleSections"],
   { title: string; desc: string; icon: IconName }
 > = {
-  nextHour: {
-    title: "What your next hour is worth",
-    desc: "The topic worth the most credit per hour before your next exam, and a timer for it",
-    icon: "zap",
-  },
   todayTimeline: {
     title: "Today's Timeline",
     desc: "Your study blocks placed around your real lectures, shifts and commitments",
@@ -91,19 +83,14 @@ const SECTION_DESCRIPTIONS: Record<
     desc: "Focus, flashcard and completed-task goals for today",
     icon: "target",
   },
-  recentNotebooks: {
-    title: "Recent notebooks",
-    desc: "Quick access to your active source-grounded workspaces",
-    icon: "folder",
-  },
   priorities: {
-    title: "Next action",
-    desc: "Your next exam, open tasks and cards ready for review",
+    title: "Daily recall drill",
+    desc: "The flashcards most worth reviewing today",
     icon: "flame",
   },
   continueStudying: {
-    title: "Continue studying",
-    desc: "Resume your last material or start a focus block",
+    title: "Focus time and quick timers",
+    desc: "How long you've focused, and one-tap timer presets",
     icon: "clock",
   },
   progressStreak: {

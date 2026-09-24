@@ -87,7 +87,10 @@ const SECTIONS: NavSection[] = [
         icon: "activity",
         label: "Progress",
         destination: "progress",
-        children: [{ to: "/trajectory", label: "Trajectory" }],
+        children: [
+          { to: "/dashboard", label: "Dashboard" },
+          { to: "/trajectory", label: "Trajectory" },
+        ],
       },
       {
         to: "/study",

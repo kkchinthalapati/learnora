@@ -56,7 +56,7 @@ export function TodayView() {
       <section className={styles.region} aria-labelledby="today-due"><h2 id="today-due" className={styles.regionTitle}>Due today</h2><TasksCard dueOnly /></section>
       <section className={styles.region} aria-labelledby="today-exam"><h2 id="today-exam" className={styles.regionTitle}>Next exam</h2><NextExamCard /></section>
       <section className={styles.region} aria-labelledby="today-continue"><h2 id="today-continue" className={styles.regionTitle}>Continue</h2><RecentNotebooksShelf /><ResumeLearningCard /></section>
-      <p className={styles.footer}>Everything else — streaks, rings, peers, history — lives in <Link to="/analytics">Progress</Link> and the <Link to="/dashboard">full dashboard</Link>.</p>
+      <p className={styles.footer}>Your mistakes, streaks and study history are in <Link to="/analytics">Progress</Link> and on the <Link to="/dashboard">Dashboard</Link>.</p>
     </div>
   );
 }

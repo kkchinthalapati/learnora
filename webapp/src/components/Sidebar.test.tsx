@@ -160,12 +160,14 @@ describe("Sidebar", () => {
      link. It used to fall back to matching Today's shared "dashboard"
      destination, wrongly marking Today as the current page while Dashboard
      was the page actually on screen. */
-  it("does not mark Today (or anything else) current while viewing the full Dashboard", () => {
+  /* The Dashboard lives under Progress now: the Dashboard sub-link is the
+     one current page, and Today is not lit while viewing it. */
+  it("marks the Dashboard sub-link current under Progress, not Today", () => {
     renderSidebar({ initialPath: "/dashboard" });
     const current = screen
       .getAllByRole("link")
       .filter((link) => link.getAttribute("aria-current") === "page");
-    expect(current).toHaveLength(0);
+    expect(current.map((l) => l.textContent)).toEqual(["Dashboard"]);
     expect(screen.getByRole("link", { name: "Today" })).not.toHaveAttribute(
       "aria-current",
     );

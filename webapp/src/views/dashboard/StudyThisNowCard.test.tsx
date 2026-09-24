@@ -91,7 +91,7 @@ describe("StudyThisNowCard", () => {
     expect(
       await screen.findByRole("heading", { name: "Momentum in 2D collisions" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Study this now")).toBeInTheDocument();
+    expect(screen.getByText("Misconception to fix next")).toBeInTheDocument();
     expect(
       screen.getByText(/Your Physics exam is in 4 days/),
     ).toBeInTheDocument();
@@ -134,7 +134,7 @@ describe("StudyThisNowCard", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("study-this-now")).not.toBeInTheDocument();
     });
-    expect(screen.queryByText("Study this now")).not.toBeInTheDocument();
+    expect(screen.queryByText("Misconception to fix next")).not.toBeInTheDocument();
   });
 
   it("renders nothing when the ledger holds nothing for that subject", async () => {

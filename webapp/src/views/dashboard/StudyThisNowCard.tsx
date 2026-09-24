@@ -84,7 +84,7 @@ export function StudyThisNowCard() {
 
   return (
     <Card className={styles.card} data-testid="study-this-now">
-      <span className={styles.eyebrow}>Study this now</span>
+      <span className={styles.eyebrow}>Misconception to fix next</span>
       <h2 className={styles.concept}>{pick.concept}</h2>
       <p className={styles.reason}>{reason}</p>
 
