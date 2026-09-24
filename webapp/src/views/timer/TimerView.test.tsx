@@ -70,6 +70,25 @@ describe("TimerView", () => {
     ).toBeInTheDocument();
   });
 
+  it("says why focus is not 25 minutes when it adapted to past sessions, and offers 25 back", async () => {
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/study_sessions`, () =>
+        HttpResponse.json([
+          { id: 1, minutes: 40, timer_type: "pomodoro", created_at: new Date().toISOString() },
+          { id: 2, minutes: 42, timer_type: "pomodoro", created_at: new Date().toISOString() },
+        ]),
+      ),
+    );
+    const user = userEvent.setup();
+    renderTimer();
+
+    expect(
+      await screen.findByText(/Focus is set to 40 min/),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Use 25 min" }));
+    expect(screen.queryByText(/Focus is set to 40 min/)).not.toBeInTheDocument();
+  });
+
   it("shows the five most recent local sessions", () => {
     Storage.set(
       "sessions",

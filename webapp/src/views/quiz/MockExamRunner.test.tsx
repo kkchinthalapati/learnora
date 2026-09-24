@@ -240,6 +240,24 @@ describe("MockExamRunner", () => {
     expect(screen.getByText("0 / 2 correct")).toBeInTheDocument();
   });
 
+  /* A browser that has the Fullscreen API but refuses the request (a
+     setting, an embedded view) used to strand the student on the start
+     screen. It now starts the exam without fullscreen, and says so. */
+  it("starts without fullscreen when the browser refuses it", async () => {
+    serveQuiz(SAMPLE_QUIZ);
+    const original = HTMLElement.prototype.requestFullscreen;
+    HTMLElement.prototype.requestFullscreen = () => Promise.reject(new Error("denied"));
+    try {
+      renderRunner();
+      await userEvent.click(
+        await screen.findByRole("button", { name: /Begin Mock Exam/ }),
+      );
+      expect(await screen.findByText(/Question 1 of/)).toBeInTheDocument();
+    } finally {
+      HTMLElement.prototype.requestFullscreen = original;
+    }
+  });
+
   it("does not terminate when the tab is switched before the exam has started", async () => {
     serveQuiz(SAMPLE_QUIZ);
     renderRunner();

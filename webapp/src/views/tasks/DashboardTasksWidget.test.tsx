@@ -55,6 +55,22 @@ describe("DashboardTasksWidget", () => {
     vi.restoreAllMocks();
   });
 
+  /* A student back after a few days sees late work called late, not a bare
+     date under "Due today". */
+  it("labels a task from days ago as overdue", async () => {
+    serveTasks([
+      task(1, "Old essay", { due_date: dateInDays(-5) }),
+      task(2, "Today thing", { due_date: dateInDays(0) }),
+    ]);
+    renderWithAuth(
+      <DashboardTasksWidget dueOnly />,
+      { session: fakeSession() },
+      { withRouter: true },
+    );
+    expect(await screen.findByText(/^Overdue since /)).toBeInTheDocument();
+    expect(screen.getAllByText(/^Overdue since /)).toHaveLength(1);
+  });
+
   it("distinguishes 'nothing pending' from 'no tasks at all'", async () => {
     serveTasks([task(1, "Old thing", { is_done: true })]);
     const { unmount } = renderWithAuth(

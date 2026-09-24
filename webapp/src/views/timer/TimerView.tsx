@@ -126,6 +126,7 @@ export function TimerView() {
     deleteFav,
     applyFav,
     quote,
+    adaptedFocusMins,
   } = useTimer();
   const setActiveTask = (task: string) => { bindTask(task); setActiveDeckId(null); };
   const auth = useOptionalAuth();
@@ -288,6 +289,19 @@ export function TimerView() {
             ))}
           </div>
           <p className={styles.typeSummary}>{TYPE_SUMMARY[panelType]}</p>
+          {panelType === "pomodoro" && adaptedFocusMins && draftConfig.focus === adaptedFocusMins ? (
+            <p className={styles.typeSummary}>
+              Focus is set to {adaptedFocusMins} min — about how long your
+              sessions usually last.{" "}
+              <button
+                type="button"
+                className={styles.inlineLink}
+                onClick={() => setDraftConfig({ focus: 25 })}
+              >
+                Use 25 min
+              </button>
+            </p>
+          ) : null}
 
           {/* Staging a type mid-run needs saying out loud, or the timer looks
               like it ignored the click. role=status announces it. */}

@@ -802,3 +802,23 @@
   font-size: var(--fs-sm);
   line-height: 1.5;
 }
+
+/* A text-style action inside a sentence (e.g. "Use 25 min"). Keeps the full
+   touch target without looking like a second primary button. */
+.inlineLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--accent-text);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.inlineLink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

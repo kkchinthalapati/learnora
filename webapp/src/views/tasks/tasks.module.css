@@ -638,6 +638,14 @@
   color: var(--text-muted);
 }
 
+/* Late, not alarming: warning colour plus the word "Overdue", so the state
+   does not rely on colour alone. */
+.dashOverdue {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--warning-text);
+}
+
 .dashActions {
   display: flex;
   align-items: center;

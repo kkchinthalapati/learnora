@@ -129,8 +129,14 @@ export function DashboardTasksWidget({
               const isRecurring = isRecurringWeekly(task.text);
               const displayText =
                 formatRecurrenceCleanText(task.text) || task.text;
+              /* A task left from days ago is not "due today" — it is late, and a
+                 returning student should see that at a glance rather than
+                 work it out from a date. */
+              const overdue = !!task.due_date && task.due_date < localDateStr();
               const dueLabel = task.due_date
-                ? formatDueDate(task.due_date)
+                ? overdue
+                  ? `Overdue since ${formatDueDate(task.due_date)}`
+                  : formatDueDate(task.due_date)
                 : null;
 
               /* A negative id is the optimistic placeholder useAddTask shows
@@ -176,7 +182,9 @@ export function DashboardTasksWidget({
                         </span>
                       )}
                       {dueLabel && (
-                        <span className={styles.dashDue}>{dueLabel}</span>
+                        <span className={overdue ? styles.dashOverdue : styles.dashDue}>
+                          {dueLabel}
+                        </span>
                       )}
                     </div>
                   </div>

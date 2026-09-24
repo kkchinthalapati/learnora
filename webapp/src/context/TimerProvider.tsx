@@ -58,6 +58,9 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const [smartDefaultsFetchedFor, setSmartDefaultsFetchedFor] = useState<
     string | null
   >(null);
+  /* Set when the focus length was changed to match the student's usual
+     session, so the timer can say why it isn't the 25 they expect. */
+  const [adaptedFocusMins, setAdaptedFocusMins] = useState<number | null>(null);
   const { session } = useAuth();
   const { data: folders } = useFolders();
 
@@ -346,7 +349,11 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     sessionsApi
       .fetchAverageSessionLengths(14)
       .then((averages) => {
-        const avgPomo = averages["pomodoro"];
+        /* Rounded to the nearest 5: an average of 41 showed "41:00", which
+           read as a glitch rather than a choice. */
+        const avgPomo = averages["pomodoro"]
+          ? Math.max(5, Math.round(averages["pomodoro"] / 5) * 5)
+          : averages["pomodoro"];
         const avgCount = averages["countdown"];
         let newDraft: Partial<TimerConfig> | null = null;
 
@@ -359,6 +366,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           draftConfig.focus === 25
         ) {
           newDraft = { ...draftConfig, focus: avgPomo };
+          setAdaptedFocusMins(avgPomo);
         }
         if (
           avgCount &&
@@ -547,8 +555,10 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       applyFav,
       quote: QUOTES[quoteIndex],
       newQuote,
+      adaptedFocusMins,
     }),
     [
+      adaptedFocusMins,
       completedFocus, dismissCompletedFocus,
       activeTask,
       activeFolderId,
