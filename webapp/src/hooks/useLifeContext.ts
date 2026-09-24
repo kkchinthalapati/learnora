@@ -100,10 +100,32 @@ export function resetLifeContextCache(): void {
   cached = null;
   accountId = null;
   generation++;
+  hydrating = false;
 }
 
 let accountId: string | null = null;
 let generation = 0;
+/* True while the signed-in account's saved week is being fetched. The exam
+   forecast reads available hours from this context, so drawing it before the
+   fetch lands showed one predicted grade and then silently swapped in another
+   once the real week arrived (30 min/day vs the default 2h30 moves Biology
+   from 6–9 to 4–9). useTrajectory waits on this like its other inputs. */
+let hydrating = false;
+
+function setHydrating(next: boolean): void {
+  if (hydrating === next) return;
+  hydrating = next;
+  window.dispatchEvent(new Event(LIFE_CONTEXT_CHANGED_EVENT));
+}
+
+/** Whether the account's saved week is still on its way. */
+export function useLifeContextHydrating(): boolean {
+  return useSyncExternalStore(
+    subscribe,
+    () => hydrating,
+    () => false,
+  );
+}
 /** SettingsProvider owns the auth lifecycle; a generation prevents late hydration after switching accounts. */
 export async function hydrateLifeContextFromProfile(
   userId: string | null,
@@ -128,7 +150,11 @@ export async function hydrateLifeContextFromProfile(
     window.dispatchEvent(new Event(LIFE_CONTEXT_CHANGED_EVENT));
   }
   accountId = userId;
-  if (!userId) return;
+  if (!userId) {
+    setHydrating(false);
+    return;
+  }
+  setHydrating(true);
   try {
     const { lifeContext: remote } = await profileApi.fetchLifeContext(userId);
     if (token !== generation || accountId !== userId) return;
@@ -148,9 +174,12 @@ export async function hydrateLifeContextFromProfile(
     }
   } catch (err) {
     console.warn("[lifeContext] hydrate failed; keeping local week:", err);
+  } finally {
+    if (token === generation) setHydrating(false);
   }
 }
 export function cancelLifeContextHydration(): void {
   generation++;
   accountId = null;
+  setHydrating(false);
 }
