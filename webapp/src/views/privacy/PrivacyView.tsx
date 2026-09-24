@@ -247,9 +247,11 @@ export function PrivacyView() {
               </li>
               <li>
                 <strong>Withdraw consent</strong> — where we rely on your
-                consent (for example, the AI-provider consent given at
-                sign-up), you can withdraw it at any time by contacting us,
-                though this may limit your access to AI features.
+                consent (for example, the AI-provider consent you give at
+                sign-up or the first time you use an AI feature), you can
+                withdraw it at any time in Settings ▸ Privacy, or by contacting
+                us. AI features then stay off until you allow them again;
+                everything else keeps working.
               </li>
             </ul>
             <p>

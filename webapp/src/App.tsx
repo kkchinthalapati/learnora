@@ -4,6 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { OverlayStackProvider } from "./context/OverlayStackProvider";
 import { ToastProvider } from "./context/ToastProvider";
 import { DialogProvider } from "./context/DialogProvider";
+import { AiConsentBridge } from "./components/AiConsentBridge";
 import { AuthProvider } from "./context/AuthProvider";
 import { CreateModalProvider } from "./context/CreateModalProvider";
 import { AppearanceProvider } from "./context/AppearanceProvider";
@@ -70,6 +71,7 @@ export default function App() {
               <ToastProvider>
                 <AppUpdatePrompt />
                 <DialogProvider>
+                  <AiConsentBridge />
                   <TimerProvider>
                     <BrowserRouter
                       basename={import.meta.env.BASE_URL.replace(/\/$/, "")}

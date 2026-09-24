@@ -1,9 +1,9 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/mocks/server";
-import { SUPABASE_URL } from "../../lib/supabase";
+import { SUPABASE_URL, supabase } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { PrivacyTab } from "./PrivacyTab";
@@ -28,6 +28,29 @@ beforeEach(() => {
 
 describe("PrivacyTab", () => {
   const toggleName = "Appear on friends' leaderboards";
+
+  /* Withdrawing used to mean emailing support. */
+  it("lets the student withdraw AI consent from the switch", async () => {
+    serveProfile(false);
+    const update = vi
+      .spyOn(supabase.auth, "updateUser")
+      .mockResolvedValue({ data: { user: null }, error: null } as never);
+    const user = userEvent.setup();
+    render();
+
+    const ai = await screen.findByRole("switch", {
+      name: "Let AI features use my study data",
+    });
+    /* No flag on the fake account = a legacy account, which has access. */
+    expect(ai).toBeChecked();
+    await user.click(ai);
+
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith({
+        data: expect.objectContaining({ consent_given: false }),
+      }),
+    );
+  });
 
   it("shows the leaderboard toggle on when the user has not opted out", async () => {
     serveProfile(false);
@@ -79,7 +102,8 @@ describe("PrivacyTab", () => {
 
     expect(screen.getByText("Study rooms")).toBeInTheDocument();
     expect(screen.getByText(/Always invite-only/)).toBeInTheDocument();
-    expect(screen.getAllByRole("switch")).toHaveLength(1);
+    /* Two real switches: AI consent and the leaderboard. Rooms has none. */
+    expect(screen.getAllByRole("switch")).toHaveLength(2);
   });
 
   it("offers a data download and says what it does not include", async () => {

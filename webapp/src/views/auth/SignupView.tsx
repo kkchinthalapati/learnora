@@ -57,19 +57,6 @@ export function SignupView() {
       setStatus({ kind: "error", message: invalid.message });
       return;
     }
-    /* Belt-and-suspenders alongside the checkbox's own `required` attribute:
-       a screen reader or browser that doesn't enforce HTML validation still
-       gets a clear reason the submit did nothing, matching how the age and
-       password checks above are handled. */
-    if (!consentGiven) {
-      setStatus({
-        kind: "error",
-        message:
-          "You must agree to share your study data with our AI providers to continue.",
-      });
-      return;
-    }
-
     setStatus(null);
     try {
       const outcome = await signup.mutateAsync({
@@ -192,18 +179,25 @@ export function SignupView() {
               id={consentId}
               type="checkbox"
               className={styles.consentCheckbox}
-              required
               checked={consentGiven}
               onChange={(e) => setConsentGiven(e.target.checked)}
             />
             <label htmlFor={consentId} className={styles.consentLabel}>
-              I agree to share my study data with Learnora's AI providers
-              (Anthropic's Claude and Google's Gemini) to power AI features.
+              Turn on AI features now: I agree to share my study data with
+              Learnora's AI providers (Anthropic's Claude and Google's Gemini).
               See our{" "}
               <Link to="/privacy" target="_blank" rel="noopener noreferrer">
                 Privacy Policy
               </Link>
               .
+              {/* Optional, not a condition of the account: the timer, tasks
+                  and flashcards need no AI, and consent you cannot refuse is
+                  not consent. Learnora asks again the first time an AI
+                  feature is used (lib/aiConsent.ts). */}
+              <span className={styles.consentHint}>
+                Optional — you can decide later. Learnora will ask before
+                any AI feature runs.
+              </span>
             </label>
           </div>
 

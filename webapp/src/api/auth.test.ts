@@ -75,16 +75,22 @@ describe("authApi.signup", () => {
     ).resolves.toBe("verification-sent");
   });
 
-  it("rejects signup when AI-provider consent was not given", async () => {
-    await expect(
-      authApi.signup(
-        "Ada",
-        "ada@example.com",
-        "password123",
-        "2000-01-01",
-        false,
-      ),
-    ).rejects.toThrow("agree to share your study data");
+  /* Consent is optional at sign-up and asked for at first AI use, so an
+     account without it is allowed — but the refusal is written explicitly,
+     so the account is never mistaken for a legacy one with no flag. */
+  it("signs up without AI consent and records consent_given: false", async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post(`${SUPABASE_URL}/auth/v1/signup`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          user: { id: "u1", identities: [{ id: "i1" }] },
+          session: null,
+        });
+      }),
+    );
+    await authApi.signup("Ada", "ada@example.com", "password123", "2000-01-01", false);
+    expect((body as unknown as { data: Record<string, unknown> }).data.consent_given).toBe(false);
   });
 
   it("sends consent_given in the signup metadata", async () => {

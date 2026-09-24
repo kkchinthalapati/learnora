@@ -121,7 +121,7 @@ test.describe("Auth", () => {
 
     /* The account is only real if the request carried what the account needs:
        the credentials, the age check's date of birth, and the AI-provider
-       consent the sign-up form now requires. */
+       consent the student ticked. */
     const signup = backend.callsTo("/auth/v1/signup").at(-1);
     expect(signup?.body).toMatchObject({
       email: "new@test.com",
@@ -774,7 +774,10 @@ test.describe("Data safety", () => {
    promise the product makes that nothing above covers: a legal requirement, a
    security boundary, and the two redirects that decide where a student lands. */
 test.describe("Guardrails", () => {
-  test("sign-up is blocked until AI-provider consent is given", async ({
+  /* AI-provider consent is optional at sign-up — the timer, tasks and
+     flashcards need no AI, and consent that is a condition of the account is
+     not freely given — and asked for at the first AI request instead. */
+  test("sign-up works without AI consent and records the refusal", async ({
     page,
     backend,
   }) => {
@@ -787,8 +790,37 @@ test.describe("Guardrails", () => {
     // Consent deliberately left unchecked.
     await page.getByRole("button", { name: /Create Account/ }).click();
 
-    expect(backend.callsTo("/auth/v1/signup")).toHaveLength(0);
-    await expect(page.getByRole("checkbox")).toBeFocused();
+    await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
+    expect(backend.callsTo("/auth/v1/signup").at(-1)?.body).toMatchObject({
+      data: { consent_given: false },
+    });
+  });
+
+  test("the first AI request asks for consent, and sends nothing until it has it", async ({
+    page,
+    backend,
+  }) => {
+    backend.user.aiConsent = false;
+    await loginAs(page);
+    await page.getByRole("button", { name: "Ask AI" }).click();
+    const input = page.getByLabel("AI chat input");
+
+    // "Not now": nothing reaches the AI, and the chat says why.
+    await input.fill("explain osmosis");
+    await input.press("Enter");
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toContainText("Let Learnora's AI use your study data?");
+    await dialog.getByRole("button", { name: "Not now" }).click();
+    await expect(page.getByText(/needs your OK/).first()).toBeVisible();
+    expect(backend.callsTo("/functions/v1/learnora-ai")).toHaveLength(0);
+
+    // "Allow": consent is saved on the account and the same request goes out.
+    await page.waitForTimeout(3100);
+    await input.fill("explain osmosis");
+    await input.press("Enter");
+    await page.getByRole("alertdialog").getByRole("button", { name: "Allow" }).click();
+    await expect.poll(() => backend.callsTo("/functions/v1/learnora-ai").length).toBe(1);
+    expect(backend.user.aiConsent).toBe(true);
   });
 
   test("a wrong password is rejected and leaves the student signed out", async ({

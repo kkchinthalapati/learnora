@@ -10,6 +10,7 @@
  */
 
 import { supabase, SUPABASE_URL } from "../lib/supabase";
+import { AI_CONSENT_DECLINED_MESSAGE, ensureAiConsent } from "../lib/aiConsent";
 import type { Settings } from "../lib/settings";
 import type { AiToolId } from "../lib/entitlements";
 import { queryClient } from "../lib/queryClient";
@@ -137,6 +138,13 @@ export async function callEdge(
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   const body = JSON.stringify(payload);
+
+  /* Every AI feature funnels through here, so this is the one gate. A student
+     who has not agreed is asked now, and the request carries on if they say
+     yes (lib/aiConsent.ts). */
+  if (!(await ensureAiConsent(data.session?.user?.user_metadata))) {
+    throw new AiError(AI_CONSENT_DECLINED_MESSAGE, { retryable: false });
+  }
 
   let lastError: unknown;
 
