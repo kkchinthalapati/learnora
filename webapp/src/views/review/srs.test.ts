@@ -423,6 +423,43 @@ describe("nextReviewState (FSRS scheduling)", () => {
     expect(recovered.interval).toBeLessThan(60);
   });
 
+  it("keeps a lapsed card's difficulty when it is relearned", () => {
+    const fresh = nextReviewState({ srs_interval: 0, ease_factor: 2.5 }, 3, NOW);
+    const failed = nextReviewState(
+      {
+        srs_interval: fresh.interval,
+        ease_factor: fresh.ease,
+        stability: fresh.stability,
+        difficulty: fresh.difficulty,
+      },
+      1,
+      NOW,
+    );
+    expect(failed.interval).toBe(0);
+
+    /* The relearn step after "Again": interval 0, but memory state present.
+       It must build on that state, not restart as a brand-new card. */
+    const relearned = nextReviewState(
+      {
+        srs_interval: 0,
+        ease_factor: failed.ease,
+        stability: failed.stability,
+        difficulty: failed.difficulty,
+      },
+      3,
+      NOW,
+    );
+    const brandNew = nextReviewState(
+      { srs_interval: 0, ease_factor: 2.5 },
+      3,
+      NOW,
+    );
+    expect(relearned.difficulty!).toBeGreaterThan(brandNew.difficulty!);
+    expect(relearned.ease).toBeLessThan(brandNew.ease);
+    expect(relearned.interval).toBeGreaterThanOrEqual(1);
+    expect(relearned.interval).toBeLessThanOrEqual(fresh.interval);
+  });
+
   it("carries persisted memory state instead of re-deriving it each review", () => {
     const withState = nextReviewState(
       {

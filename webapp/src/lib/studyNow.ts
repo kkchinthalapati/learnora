@@ -123,6 +123,17 @@ export function daysBetween(from: Date, to: Date): number {
   return Math.round((b - a) / 86_400_000);
 }
 
+/** An exam's day as a local date. `exam_date` is a plain YYYY-MM-DD, and a
+ *  bare `new Date("2026-09-30")` is UTC midnight — the evening before
+ *  anywhere west of Greenwich. `daysBetween` reads local fields, so on exam
+ *  day a student in the Americas had their exam counted as already past
+ *  (dropped from "Study this next") and every countdown was a day short. */
+export function examDay(examDate: string): Date {
+  return /^\d{4}-\d{2}-\d{2}$/.test(examDate)
+    ? new Date(`${examDate}T00:00:00`)
+    : new Date(examDate);
+}
+
 /**
  * The exam that is soonest and has not happened yet. An exam dated today
  * still counts — that is the most urgent case there is, not an expired one.
@@ -135,13 +146,13 @@ export function nextUpcomingExam<T extends StudyNowExam>(
 
   const upcoming = exams
     .filter((e) => {
-      const when = new Date(e.exam_date);
+      const when = examDay(e.exam_date);
       if (Number.isNaN(when.getTime())) return false;
       return daysBetween(now, when) >= 0;
     })
     .sort(
       (a, b) =>
-        new Date(a.exam_date).getTime() - new Date(b.exam_date).getTime(),
+        examDay(a.exam_date).getTime() - examDay(b.exam_date).getTime(),
     );
 
   return upcoming[0] ?? null;
@@ -243,7 +254,7 @@ export function pickStudyNow(input: {
     summary: best.summary,
     subject,
     examName: exam.exam_name,
-    daysUntilExam: daysBetween(now, new Date(exam.exam_date)),
+    daysUntilExam: daysBetween(now, examDay(exam.exam_date)),
     timesObserved: best.timesObserved,
     otherOpenOnPaper: open.length - 1,
     dependents: dependentsOf(best),

@@ -19,6 +19,16 @@ export function localDateStr(d: Date = new Date()): string {
   return formatDateStr(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
+/** The student's calendar day for a stored date: a bare YYYY-MM-DD as is,
+ *  and a timestamp as its *local* date. Slicing a timestamp's first ten
+ *  characters reads the UTC date instead, which east of Greenwich is the
+ *  day before for a review scheduled at local midnight. */
+export function calendarDayOf(value: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? value
+    : localDateStr(new Date(value));
+}
+
 /* Port of js/ui.js's `mondayOfWeek` (:45-49). The week starts Monday, so
  * Sunday belongs to the week that has just ended, not the one about to
  * start — `(getDay() + 6) % 7` maps Sun→6 rather than JS's native Sun→0. */

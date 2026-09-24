@@ -39,18 +39,17 @@ export function useAllDueFlashcards(limit = 50) {
   });
 }
 
-/* Card-level mutations. Each invalidates the owning deck's list plus the two
- * due-derived queries, since adding or removing a card changes what the
- * Library banner and the daily drill count. */
+/* Card-level mutations. Each invalidates every flashcard query (a prefix
+ * match on ["flashcards"]): adding, editing or removing a card changes the
+ * deck's list, the Library banner and per-deck counts, the daily drill, and
+ * the all-cards list that readiness and Today's recommendation read. */
 export function useAddFlashcard() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ deckId, card }: { deckId: string; card: CardFields }) =>
       flashcardsApi.add(deckId, card),
-    onSuccess: (_data, { deckId }) => {
-      qc.invalidateQueries({ queryKey: flashcardsKeys.byDeck(deckId) });
-      qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
-      qc.invalidateQueries({ queryKey: ["flashcards", "all-due"] });
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: flashcardsKeys.all });
     },
   });
 }
@@ -66,9 +65,8 @@ export function useUpdateFlashcard() {
       deckId: string;
       fields: CardFields;
     }) => flashcardsApi.update(cardId, fields),
-    onSuccess: (_data, { deckId }) => {
-      qc.invalidateQueries({ queryKey: flashcardsKeys.byDeck(deckId) });
-      qc.invalidateQueries({ queryKey: ["flashcards", "all-due"] });
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: flashcardsKeys.all });
     },
   });
 }
@@ -78,10 +76,8 @@ export function useDeleteFlashcard() {
   return useMutation({
     mutationFn: ({ cardId }: { cardId: string; deckId: string }) =>
       flashcardsApi.delete(cardId),
-    onSuccess: (_data, { deckId }) => {
-      qc.invalidateQueries({ queryKey: flashcardsKeys.byDeck(deckId) });
-      qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
-      qc.invalidateQueries({ queryKey: ["flashcards", "all-due"] });
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: flashcardsKeys.all });
     },
   });
 }
@@ -105,9 +101,12 @@ export function useUpdateFlashcardReview() {
     }) => submitSrsReview(payload),
     onSuccess: ({ queued }) => {
       if (queued) return;
-      qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount });
-      qc.invalidateQueries({ queryKey: ["flashcards", "all-due"] });
-      qc.invalidateQueries({ queryKey: ["flashcards", "deck"] });
+      /* The whole family, including the unscoped all-cards list: Today's
+         recommendation, exam readiness and the forecast all read that one,
+         and invalidating only the due/deck keys left them showing the
+         pre-review mastery for up to a minute after the session ended. The
+         offline replay already did this; the online path now matches it. */
+      qc.invalidateQueries({ queryKey: flashcardsKeys.all });
     },
   });
 }

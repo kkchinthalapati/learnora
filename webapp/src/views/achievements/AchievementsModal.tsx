@@ -22,6 +22,7 @@ import { Skeleton } from "../../components/Skeleton";
 import { anyPending } from "../../lib/queryState";
 import { parseStoredAnswers } from "../quiz/quizMeta";
 import { computeStreak, remoteTotals } from "../dashboard/analytics";
+import { examDay } from "../../lib/studyNow";
 import styles from "./achievementsModal.module.css";
 
 export interface AchievementsModalProps {
@@ -121,12 +122,12 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
       exams
         .filter((e) => {
           if (e.status === "Completed") return false;
-          const date = new Date(e.exam_date);
+          const date = examDay(e.exam_date);
           return !Number.isNaN(date.getTime()) && date >= today;
         })
         .sort(
           (a, b) =>
-            new Date(a.exam_date).getTime() - new Date(b.exam_date).getTime(),
+            examDay(a.exam_date).getTime() - examDay(b.exam_date).getTime(),
         )[0] ?? null
     );
   }, [exams]);

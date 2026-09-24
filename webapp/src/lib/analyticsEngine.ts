@@ -6,7 +6,12 @@ import type {
   Flashcard,
   Material,
 } from "../api/types";
-import { localDateStr, parseLocalDate, formatDateStr } from "./date";
+import {
+  calendarDayOf,
+  localDateStr,
+  parseLocalDate,
+  formatDateStr,
+} from "./date";
 import { STREAK_MIN_MINUTES, computeStudyStreak } from "./streak";
 
 export interface HeatmapCell {
@@ -631,7 +636,7 @@ export function computeUnifiedExamReadiness(params: {
       }
 
       if (card.next_review_date) {
-        const reviewDateStr = card.next_review_date.slice(0, 10);
+        const reviewDateStr = calendarDayOf(card.next_review_date);
         if (reviewDateStr < todayStr) {
           overdueCount++;
           if ((card.ease_factor && card.ease_factor < 2.0) || card.srs_interval <= 1) {
