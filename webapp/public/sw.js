@@ -8,8 +8,8 @@
  *  2. Web Push notifications & notification click routing.
  */
 
-const SHELL_CACHE = "learnora-shell-v2";
-const ASSETS_CACHE = "learnora-assets-v2";
+const SHELL_CACHE = "learnora-shell-v3";
+const ASSETS_CACHE = "learnora-assets-v3";
 const CURRENT_CACHES = [SHELL_CACHE, ASSETS_CACHE];
 
 const PRECACHE_ASSETS = [
@@ -78,6 +78,14 @@ self.addEventListener("fetch", (event) => {
 
   // Only intercept GET requests
   if (request.method !== "GET") return;
+
+  /* Only this site's own files. Google's font files matched the static-asset
+     rule below, so the worker re-fetched them itself — and a worker's fetch()
+     is held to the page CSP's connect-src, which doesn't list
+     fonts.gstatic.com. With nothing cached, respondWith got undefined and
+     every font failed with a network error in production. The browser loads
+     other origins' files better on its own. */
+  if (url.origin !== self.location.origin) return;
 
   // Never cache Supabase API, Edge Functions, or auth endpoints
   if (
