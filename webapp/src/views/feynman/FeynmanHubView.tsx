@@ -176,13 +176,13 @@ export function FeynmanHubView() {
         <div className={styles.heroHeader}>
           <div className={styles.heroTitleGroup}>
             <span className={styles.eyebrowBadge}>
-              <Icon name="brain" size={14} /> Study tools • Creative Studio
+              <Icon name="brain" size={14} /> Study tools
             </span>
             <h1 className={styles.heroTitle}>Explain it simply</h1>
             <p className={styles.heroSubtitle}>
-              Feynman Teaching Studio: If you can explain something simply, you understand it.
-              Pick your target audience, analogy style, and depth — spot where they've gone wrong,
-              and teach them until it clicks.
+              Teach a topic to a curious learner who gets things wrong. If you
+              can put them right in plain words, you understand it — and the
+              bits you can't explain are what to revise.
             </p>
           </div>
         </div>
@@ -299,7 +299,7 @@ export function FeynmanHubView() {
             <summary className={styles.customiseSummary}>
               <span>Customise (optional)</span>
               <span className={styles.customiseCurrent}>
-                Teaching {getPersonaProfile(selectedPersona, customAudience).name}
+                For: {getPersonaProfile(selectedPersona, customAudience).name}
                 {" · "}{ANALOGY_STYLE_PROFILES[selectedAnalogyStyle].label}
                 {" · "}{EXPLANATION_DEPTH_PROFILES[selectedDepth].label}
               </span>

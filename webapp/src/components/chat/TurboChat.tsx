@@ -332,9 +332,15 @@ export function TurboChat() {
               onAddToNotebook={handleAddToNotebook}
               sendPhase={sendPhase}
               onCancel={cancel}
-              onRetry={(m) => {
-                if (m.retryQuery && !isSending) void send(m.retryQuery, m.retryOptions);
-              }}
+              /* Only the latest failure can be retried: once a retry has
+                 been answered, an older "Try again" would ask twice. */
+              onRetry={
+                message.id === messages[messages.length - 1]?.id
+                  ? (m) => {
+                      if (m.retryQuery && !isSending) void send(m.retryQuery, m.retryOptions);
+                    }
+                  : undefined
+              }
             />
           ))
         )}
