@@ -6,7 +6,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
@@ -861,7 +861,9 @@ export function PlanView() {
             </span>
             <h2>No plan yet for this week</h2>
             <p className={styles.emptyMessage}>
-              Learnora AI can build one from your open tasks and upcoming exams.
+              Learnora AI builds one from your open tasks and upcoming exams,
+              around the free time you set in{" "}
+              <Link to="/my-week" className={styles.emptyLink}>Availability</Link>.
             </p>
             <Button
               variant="primary"

@@ -14,7 +14,7 @@ import styles from "./NextHourCard.module.css";
 
 export function NextHourCard() {
   const navigate = useNavigate();
-  const { prepareFocus } = useTimer();
+  const { prepareFocus, start: startTimer, state } = useTimer();
   const { exam, forecast, isPending } = useTrajectory();
 
   if (isPending) {
@@ -38,9 +38,11 @@ export function NextHourCard() {
   const lower = grade(forecast.confidence.lower);
   const upper = grade(forecast.confidence.upper);
   const projected =
-    lower === upper ? `around ${lower}` : `range ${lower}–${upper}`;
+    lower === upper ? lower : `${lower}–${upper}`;
   const start = () => {
     prepareFocus(INTERVENTION_BLOCK_MINS, top.label, undefined, top.topicId);
+    // Same promise as Today's hero: the button says Start, so start.
+    if (!state.isRunning) startTimer();
     void navigate("/timer");
   };
 
@@ -83,7 +85,7 @@ export function NextHourCard() {
         </Button>
         <span className={styles.verdict}>
           {exam.exam_name} in {forecast.daysRemaining}{" "}
-          {forecast.daysRemaining === 1 ? "day" : "days"} · projected{" "}
+          {forecast.daysRemaining === 1 ? "day" : "days"} · predicted grade{" "}
           {projected}
         </span>
       </footer>

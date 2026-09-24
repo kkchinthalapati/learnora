@@ -17,7 +17,7 @@ import { useMemo } from "react";
 export function TodayView() {
   const navigate = useNavigate();
   const { openCreateModal } = useCreateModal();
-  const { prepareFocus, completedFocus: completed, dismissCompletedFocus } = useTimer();
+  const { prepareFocus, start, state: timerState, completedFocus: completed, dismissCompletedFocus } = useTimer();
   const { exam, forecast, needsMaterial, isPending } = useTrajectory();
 
   /* How many cards the top topic's deck actually owes the student right now.
@@ -43,8 +43,12 @@ export function TodayView() {
         isPending={isPending}
         dueCards={dueCards}
         onCreate={() => openCreateModal({ type: "material", outputs: { flashcards: true } })}
-        onStart={(deckId, label) => {
-          prepareFocus(INTERVENTION_BLOCK_MINS, label, undefined, deckId);
+        onStart={(deckId, label, minutes = INTERVENTION_BLOCK_MINS) => {
+          prepareFocus(minutes, label, undefined, deckId);
+          /* The button says "Start". Landing on a stopped clock and needing a
+             second Start was the gap between intent and action this screen
+             exists to close. A timer already running is left alone. */
+          if (!timerState.isRunning) start();
           void navigate("/timer");
         }}
       />

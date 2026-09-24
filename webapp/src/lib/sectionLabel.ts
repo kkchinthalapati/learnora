@@ -101,7 +101,7 @@ export function sectionLabel(
   if (pathname.startsWith("/solver")) return "Step-by-step solver";
   if (pathname.startsWith("/exam-detective")) return "Exam trap practice";
   if (pathname.startsWith("/viva")) return "Viva practice";
-  if (pathname.startsWith("/my-week")) return "My week";
+  if (pathname.startsWith("/my-week")) return "Availability";
   if (pathname.startsWith("/plan")) return "Plan";
   if (pathname.startsWith("/exams")) return "Exams";
   if (pathname.startsWith("/room")) return "Study Room";

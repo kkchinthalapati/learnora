@@ -223,6 +223,25 @@ export function MyWeekView() {
     });
   };
 
+  /* Most students' biggest fixed commitment is the school day, and with
+     nothing entered the preview assumed they were free from wake-up —
+     booking "7:30 Biology prep" into first period. One tap covers the common
+     case; the row it adds is editable like any other. */
+  const addSchoolDay = () => {
+    update({
+      commitments: [
+        ...context.commitments,
+        createCommitment({
+          label: "School",
+          kind: "class",
+          days: [1, 2, 3, 4, 5],
+          start: "08:30",
+          end: "15:30",
+        }),
+      ],
+    });
+  };
+
   const toggleProtectedDay = (day: Weekday) => {
     update({
       protectedDays: context.protectedDays.includes(day)
@@ -284,9 +303,8 @@ export function MyWeekView() {
           lib/sectionLabel.ts. PageHeader's title names what is below it rather
           than repeating the route's name, the same as FriendsView. */}
       <PageHeader
-        eyebrow="Life sync"
-        title="Your availability"
-        sub="Set your free hours once. Learnora uses them to build a realistic study plan."
+        title="When you're free to study"
+        sub="Tell Learnora about your week once. It plans study into the gaps, not over your classes."
       />
 
       {/* --- 1. The shape of a day ------------------------------------ */}
@@ -365,9 +383,9 @@ export function MyWeekView() {
           />
         </div>
 
-        <h3 className={styles.subTitle}>Days that are yours</h3>
+        <h3 className={styles.subTitle}>Days off</h3>
         <p className={styles.sectionCopy}>
-          Learnora will not schedule study on these days.
+          Pick any days you want kept free. Learnora won&rsquo;t schedule study on them.
         </p>
         <div className={styles.dayToggles} role="group" aria-label="Days off">
           {WEEK_ORDER.map((day) => {
@@ -405,10 +423,15 @@ export function MyWeekView() {
         </div>
 
         {context.commitments.length === 0 ? (
-          <p className={styles.empty}>
-            Nothing yet. Add one thing you do every week — the schedule gets
-            better the moment you do.
-          </p>
+          <div className={styles.empty}>
+            <p>
+              Nothing yet, so Learnora thinks you&rsquo;re free all day. Start
+              with your school or class hours.
+            </p>
+            <Button variant="secondary" size="sm" onClick={addSchoolDay}>
+              <Icon name="plus" size={14} /> Add school hours (Mon–Fri, 8:30–15:30)
+            </Button>
+          </div>
         ) : (
           <ul className={styles.commitmentList}>
             {context.commitments.map((c, i) => (
@@ -516,11 +539,20 @@ export function MyWeekView() {
 
       {/* --- 5. Live preview ------------------------------------------ */}
       <Card as="section" variant="panel" className={styles.section}>
-        <h2 className={styles.sectionTitle}>What your next week looks like</h2>
+        <h2 className={styles.sectionTitle}>Your next 7 days, planned around this</h2>
         <p className={styles.sectionCopy}>
           Built from everything above plus what you already have due. It updates
           as you type.
         </p>
+        {!schedule.configured ? (
+          <p className={styles.shortfall} role="note">
+            <Icon name="alert-triangle" size={14} />
+            <span>
+              This assumes you&rsquo;re free all day, every day. Add your school
+              or class hours above and study will move around them.
+            </span>
+          </p>
+        ) : null}
         <ul className={styles.previewList}>
           {preview.map((day) => {
             const blocks = schedule.blocks.filter((b) => b.date === day.date);

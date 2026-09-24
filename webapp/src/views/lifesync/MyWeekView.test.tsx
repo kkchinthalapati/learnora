@@ -71,6 +71,19 @@ describe("MyWeekView", () => {
     expect(loadLifeContext().commitments).toEqual([]);
   });
 
+  it("warns that an empty week is assumed free, and adds school hours in one tap", async () => {
+    const user = userEvent.setup();
+    render();
+
+    expect(await screen.findByText(/assumes you.re free all day/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Add school hours/ }));
+
+    expect(loadLifeContext().commitments).toMatchObject([
+      { label: "School", kind: "class", days: [1, 2, 3, 4, 5], start: "08:30", end: "15:30" },
+    ]);
+    expect(screen.queryByText(/assumes you.re free all day/)).toBeNull();
+  });
+
   it("persists a chronotype choice immediately", async () => {
     const user = userEvent.setup();
     render();
@@ -218,7 +231,7 @@ describe("MyWeekView", () => {
     render();
 
     expect(
-      await screen.findByText(/What your next week looks like/),
+      await screen.findByText(/Your next 7 days, planned around this/),
     ).toBeInTheDocument();
 
     const daysOff = screen.getByRole("group", { name: /days off/i });

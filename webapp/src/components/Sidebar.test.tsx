@@ -120,7 +120,7 @@ describe("Sidebar", () => {
   it("reveals Plan's child destinations while Plan is the open section", () => {
     renderSidebar({ initialPath: "/tasks" });
 
-    for (const label of ["My week", "Tasks", "Exams"]) {
+    for (const label of ["Availability", "Tasks", "Exams"]) {
       expect(screen.getByRole("link", { name: label })).toBeInTheDocument();
     }
 

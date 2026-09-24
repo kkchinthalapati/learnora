@@ -8,7 +8,7 @@ import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { localDateStr } from "../../lib/date";
 import { TodayView } from "./TodayView";
-const timer = vi.hoisted(() => ({ prepareFocus: vi.fn(), completedFocus: null as null | { id: number; timestamp: string; task: string; minutes: number; deckId: string }, dismissCompletedFocus: vi.fn() }));
+const timer = vi.hoisted(() => ({ prepareFocus: vi.fn(), start: vi.fn(), state: { isRunning: false }, completedFocus: null as null | { id: number; timestamp: string; task: string; minutes: number; deckId: string }, dismissCompletedFocus: vi.fn() }));
 vi.mock("../../context/timer", () => ({ useTimer: () => timer, useOptionalTimer: () => timer }));
 vi.mock("../../hooks/useTrajectory", () => ({ useTrajectory: () => ({
   exam: { id: 1, exam_name: "Biology", folder_id: "f" }, needsMaterial: false, isPending: false,
@@ -29,6 +29,16 @@ it("leads with a decision, includes only due tasks, and passes the deck to the t
   expect(screen.queryByText("Undated task")).toBeNull();
   await userEvent.click(screen.getByRole("button", { name: /Start 45 min/ }));
   expect(timer.prepareFocus).toHaveBeenCalledWith(45, "Enzymes", undefined, "d");
+  /* "Start" means start: the student lands on a running clock, not a
+     second Start button. */
+  expect(timer.start).toHaveBeenCalled();
+});
+
+it("offers a short block for a student with less time", async () => {
+  renderWithAuth(<TodayView />, { session: fakeSession() }, { withRouter: true });
+  await userEvent.click(screen.getByRole("button", { name: /Only have 20 min/ }));
+  expect(timer.prepareFocus).toHaveBeenCalledWith(20, "Enzymes", undefined, "d");
+  expect(timer.start).toHaveBeenCalled();
 });
 it("offers the completed timer session after navigating home", async () => {
   timer.completedFocus = { id: 42, timestamp: "Today", task: "Enzymes", minutes: 45, deckId: "d" };

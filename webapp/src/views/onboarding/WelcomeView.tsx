@@ -617,7 +617,7 @@ export function WelcomeView() {
                 </div>
               </fieldset>
               <p className={styles.footnote}>
-                Rough is fine. My week lets you refine this against your real
+                Rough is fine. Plan ▸ Availability lets you refine this against your real
                 lectures and shifts whenever you like.
               </p>
             </section>
@@ -782,7 +782,7 @@ export function WelcomeView() {
                           ? `Scheduling around a ${formatMins(answers.weekdayCapacityMins)} weekday`
                           : "Scheduling around when you're sharpest"
                       }
-                      where="My week"
+                      where="Plan ▸ Availability"
                     />
                   )}
                   {createdSubject && (

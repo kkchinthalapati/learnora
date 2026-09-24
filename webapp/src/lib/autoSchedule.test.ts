@@ -362,3 +362,25 @@ describe("autoSchedule — demands smaller than a block", () => {
     expect(unplaced).toEqual([]);
   });
 });
+
+describe("notBefore", () => {
+  /* One exam sitting per day, each due that day. Without a soft start the
+     urgency rule pulled every sitting into the first free morning, and the
+     preview showed the two days before the exam as "Nothing scheduled". */
+  it("keeps each exam sitting on its own day", () => {
+    const days = ["2026-09-01", "2026-09-02", "2026-09-03"];
+    const sittings = days.map((d, i) =>
+      demand({ id: `exam:${i}`, kind: "exam", load: 3, estMins: 45, dueDate: d, notBefore: d, boost: 10 }),
+    );
+    const windows = days.map((d) => win(d, 16 * 60, 20 * 60));
+    const { blocks } = autoSchedule(sittings, windows, OPTIONS);
+    for (const d of days) expect(blocksOn(blocks, d)).toHaveLength(1);
+  });
+
+  it("falls back to an earlier day when its own day has no room", () => {
+    const sitting = demand({ id: "exam:1", kind: "exam", estMins: 30, dueDate: "2026-09-02", notBefore: "2026-09-02" });
+    const { blocks, unplaced } = autoSchedule([sitting], [win("2026-09-01", 600, 700)], OPTIONS);
+    expect(unplaced).toHaveLength(0);
+    expect(blocks[0].date).toBe("2026-09-01");
+  });
+});

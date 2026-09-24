@@ -71,7 +71,7 @@ const SECTIONS: NavSection[] = [
         label: "Plan",
         destination: "plan",
         children: [
-          { to: "/my-week", label: "My week" },
+          { to: "/my-week", label: "Availability" },
           { to: "/tasks", label: "Tasks" },
           { to: "/exams", label: "Exams" },
         ],

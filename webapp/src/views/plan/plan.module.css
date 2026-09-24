@@ -561,6 +561,11 @@
   margin: 0;
 }
 
+.emptyLink {
+  color: var(--accent-text);
+  text-decoration: underline;
+}
+
 .emptyCta {
   margin-top: var(--s-5);
   padding: 12px 28px;

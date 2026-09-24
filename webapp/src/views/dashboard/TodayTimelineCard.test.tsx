@@ -101,7 +101,7 @@ describe("TodayTimelineCard", () => {
       await screen.findByText(/doesn’t know your week yet/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /set up my week/i }),
+      screen.getByRole("button", { name: /set my free time/i }),
     ).toBeInTheDocument();
   });
 

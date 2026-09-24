@@ -9,7 +9,7 @@ import type { Intervention, TrajectoryForecast } from "../../lib/trajectory";
 const prepareFocus = vi.fn();
 const trajectory = vi.fn();
 
-vi.mock("../../context/timer", () => ({ useTimer: () => ({ prepareFocus }) }));
+vi.mock("../../context/timer", () => ({ useTimer: () => ({ prepareFocus, start: vi.fn(), state: { isRunning: false } }) }));
 vi.mock("../../hooks/useTrajectory", () => ({
   useTrajectory: () => trajectory(),
 }));
@@ -82,7 +82,7 @@ describe("NextHourCard", () => {
       expect(
         screen.getByRole("heading", { name: "Study Titration next" }),
       ).toBeInTheDocument();
-      expect(screen.getByText(/projected range 55%–70%/)).toBeInTheDocument();
+      expect(screen.getByText(/predicted grade 55%–70%/)).toBeInTheDocument();
       expect(screen.queryByText(/marks an hour/)).not.toBeInTheDocument();
     } finally {
       localStorage.removeItem("learnora_settings");
@@ -97,7 +97,7 @@ describe("NextHourCard", () => {
     try {
       renderCard();
       // 55% and 70% are GCSE grades 5 and 7; qualitative mastery for 0.3 is "low".
-      expect(screen.getByText(/projected range 5–7$/)).toBeInTheDocument();
+      expect(screen.getByText(/predicted grade 5–7$/)).toBeInTheDocument();
       expect(
         screen.getByText(/Your mastery here is low\./),
       ).toBeInTheDocument();
