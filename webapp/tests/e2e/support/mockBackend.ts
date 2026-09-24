@@ -411,10 +411,35 @@ export class MockBackend {
         await this.handleFunctions(ctx);
         return;
       }
+      if (url.pathname.startsWith("/storage/v1/object/")) {
+        await this.handleStorage(ctx);
+        return;
+      }
 
       this.unhandled.push(`${method} ${url.pathname}`);
       await json(route, 200, []);
     });
+  }
+
+  /* ------------------------------------------------------------ storage */
+
+  /** Uploaded objects by "bucket/path", so a test can assert what the app
+   *  actually sent (Create's file upload goes here before the DB row). */
+  readonly storage = new Map<string, { bytes: number; contentType: string }>();
+
+  private async handleStorage(ctx: HandlerContext): Promise<void> {
+    const { url, method, route } = ctx;
+    const key = url.pathname.replace("/storage/v1/object/", "");
+    if (method === "POST" || method === "PUT") {
+      const body = route.request().postDataBuffer();
+      this.storage.set(key, {
+        bytes: body?.length ?? 0,
+        contentType: route.request().headers()["content-type"] ?? "",
+      });
+      await json(route, 200, { Key: key, Id: nextId() });
+      return;
+    }
+    await json(route, this.storage.has(key) ? 200 : 404, {});
   }
 
   /* --------------------------------------------------------------- auth */
