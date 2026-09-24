@@ -235,6 +235,12 @@
             justify-content: center;
         }
 
+        .trajectory-preview {
+            width: min(360px, 80%);
+            height: auto;
+            margin-bottom: 1.25rem;
+        }
+
         .hero-demo img {
             width: 100%;
             height: 100%;
@@ -286,9 +292,30 @@
             transform: translateY(-5px);
         }
 
-        .vision-icon {
-            font-size: 2.5rem;
+        /* Icon tiles: line icons stroked with the shared #icon-grad gradient.
+           Emoji rendered differently on every OS and ignored the brand colours. */
+        .vision-icon,
+        .feature-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(236, 72, 153, 0.12));
+            border: 1px solid rgba(167, 139, 250, 0.25);
             margin-bottom: 1rem;
+        }
+
+        .vision-icon svg,
+        .feature-icon svg {
+            width: 26px;
+            height: 26px;
+            fill: none;
+            stroke: url(#icon-grad);
+            stroke-width: 1.75;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
         .vision-card h3 {
@@ -326,8 +353,15 @@
         }
 
         .feature-icon {
-            font-size: 2rem;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
             margin-bottom: 0.75rem;
+        }
+
+        .feature-icon svg {
+            width: 22px;
+            height: 22px;
         }
 
         .feature h4 {
@@ -586,6 +620,14 @@
     </style>
 </head>
 <body>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+        <defs>
+            <linearGradient id="icon-grad" gradientUnits="userSpaceOnUse" x1="2" y1="2" x2="22" y2="22">
+                <stop offset="0" stop-color="#a78bfa"/>
+                <stop offset="1" stop-color="#f472b6"/>
+            </linearGradient>
+        </defs>
+    </svg>
     <div class="bg-gradient"></div>
 
     <!-- Header -->
@@ -614,7 +656,20 @@
         </div>
         <div class="hero-demo">
             <div style="width: 100%; height: 100%; background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(236, 72, 153, 0.1)); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--text-muted); flex-direction: column; text-align: center; padding: 2rem;">
-                📊 Exam Trajectory<br><span style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">See the grade you're heading for. Updated every time you study.</span>
+                <svg class="trajectory-preview" viewBox="0 0 320 120" aria-hidden="true">
+                    <path d="M160 62 L210 42 L260 26 L310 12 L310 48 L260 54 L210 58 Z" fill="url(#band-grad)"/>
+                    <polyline points="10 98 60 88 110 80 160 62" fill="none" stroke="#a78bfa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="160 62 210 50 260 40 310 30" fill="none" stroke="#f472b6" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 8"/>
+                    <circle cx="160" cy="62" r="5" fill="#a78bfa"/>
+                    <circle cx="310" cy="30" r="5" fill="#f472b6"/>
+                    <defs>
+                        <linearGradient id="band-grad" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0" stop-color="#a78bfa" stop-opacity="0.05"/>
+                            <stop offset="1" stop-color="#f472b6" stop-opacity="0.3"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                Exam Trajectory<br><span style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">See the grade you're heading for. Updated every time you study.</span>
             </div>
         </div>
     </section>
@@ -626,37 +681,37 @@
 
         <div class="vision-grid">
             <div class="vision-card">
-                <div class="vision-icon">📈</div>
+                <div class="vision-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
                 <h3>Exam Trajectory</h3>
                 <p>See the grade you're heading for on exam day. Our model reads your actual memory (from spaced repetition) and your real schedule (from Life Sync) to forecast with a confidence band.</p>
             </div>
 
             <div class="vision-card">
-                <div class="vision-icon">⏰</div>
+                <div class="vision-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
                 <h3>Time Worth</h3>
                 <p>"One hour on titration is worth 6× the same hour on bonding." Get told, down to the minute, what your next study block is worth in exam points.</p>
             </div>
 
             <div class="vision-card">
-                <div class="vision-icon">📅</div>
+                <div class="vision-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></div>
                 <h3>Life Sync</h3>
                 <p>Import your real timetable and work schedule. Every study plan builds around the hours you're actually free — not around a fantasy calendar.</p>
             </div>
 
             <div class="vision-card">
-                <div class="vision-icon">🧠</div>
+                <div class="vision-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></div>
                 <h3>Memory Science</h3>
                 <p>Spaced repetition that learns your memory speed. Cards adapt interval and difficulty in real time based on how you actually remember.</p>
             </div>
 
             <div class="vision-card">
-                <div class="vision-icon">🤖</div>
+                <div class="vision-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg></div>
                 <h3>AI Study Partner</h3>
                 <p>Generate flashcards, quizzes, and notes from anything. Ask Learnora AI to explain, quiz you, or build a study plan for tomorrow.</p>
             </div>
 
             <div class="vision-card">
-                <div class="vision-icon">🎯</div>
+                <div class="vision-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
                 <h3>Study Rooms</h3>
                 <p>Study with friends in real time. Share notes, quiz each other, and track progress together across exams.</p>
             </div>
@@ -670,37 +725,37 @@
 
         <div class="features-grid">
             <div class="feature">
-                <div class="feature-icon">📚</div>
+                <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M22 17.65l-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="M22 12.65l-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg></div>
                 <h4>Flashcards & Quizzes</h4>
                 <p>AI-generated from any source. Spaced repetition that adapts to you.</p>
             </div>
 
             <div class="feature">
-                <div class="feature-icon">⏱️</div>
+                <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2h4"/><path d="M12 14l3-3"/><circle cx="12" cy="14" r="8"/></svg></div>
                 <h4>Focus Timer</h4>
                 <p>25-min pomodoro sessions with automatic break tracking.</p>
             </div>
 
             <div class="feature">
-                <div class="feature-icon">📝</div>
+                <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div>
                 <h4>Notes & Notebooks</h4>
                 <p>Unlimited notebooks (Pro). Write, organize, and search your notes.</p>
             </div>
 
             <div class="feature">
-                <div class="feature-icon">📊</div>
+                <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l2 2 4-4"/><path d="M3 7l2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg></div>
                 <h4>Task Manager</h4>
                 <p>Due cards, deadlines, and exam countdowns all in one place.</p>
             </div>
 
             <div class="feature">
-                <div class="feature-icon">👥</div>
+                <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
                 <h4>Study Rooms</h4>
                 <p>Study live with friends. No distance, no limits.</p>
             </div>
 
             <div class="feature">
-                <div class="feature-icon">📱</div>
+                <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></div>
                 <h4>Mobile Ready</h4>
                 <p>Study on your phone, tablet, or desktop. Everything syncs.</p>
             </div>
