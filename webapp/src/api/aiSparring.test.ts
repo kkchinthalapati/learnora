@@ -143,6 +143,35 @@ describe("aiSparring API", () => {
     });
   });
 
+  /* A stand-in must say it is one, and its guesses are not evidence. */
+  describe("when the AI is unavailable", () => {
+    it("marks the session offline, with the reason", async () => {
+      mockedCallEdge.mockRejectedValueOnce(new Error("AI is temporarily unavailable."));
+      const session = await startSparringSession("Photosynthesis");
+      expect(session.offline).toBe("unavailable");
+      expect(session.currentChallenge.offline).toBe(true);
+    });
+
+    it("tells a declined consent apart from an outage", async () => {
+      const { AI_CONSENT_DECLINED_MESSAGE } = await import("../lib/aiConsent");
+      mockedCallEdge.mockRejectedValueOnce(new Error(AI_CONSENT_DECLINED_MESSAGE));
+      const session = await startSparringSession("Photosynthesis");
+      expect(session.offline).toBe("consent");
+    });
+
+    it("keeps the local checker's score out of the evidence and the ledger", async () => {
+      mockedCallEdge.mockRejectedValue(new Error("AI is temporarily unavailable."));
+      const session = await startSparringSession("Photosynthesis");
+      const result = await submitStudentAnswer(
+        session,
+        "Plants make glucose from light, water and carbon dioxide.",
+      );
+      expect(result.session.offline).toBe("unavailable");
+      expect(learningEventsApi.record).not.toHaveBeenCalled();
+      mockedCallEdge.mockReset();
+    });
+  });
+
   describe("submitStudentAnswer", () => {
     it("evaluates student answer and generates Jordan's counter-challenge", async () => {
       mockedCallEdge.mockResolvedValueOnce({

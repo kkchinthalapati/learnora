@@ -101,6 +101,10 @@ describe("aiFeynman API & Simulation Engine", () => {
       expect(["confused", "skeptical", "lightbulb", "convinced"]).toContain(
         turn.emotion
       );
+      /* The AI was unreachable (mocked offline above), so the built-in
+         scorer marked it — and the turn says so, which is what keeps it out
+         of the ledger and the evidence. */
+      expect(turn.scoredBy).toBe("local");
     });
 
     it("handles multi-turn progressive understanding", async () => {

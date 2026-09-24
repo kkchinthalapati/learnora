@@ -14,6 +14,7 @@ import { normaliseTopicKey } from "../lib/topicKey";
 import { extractJSON } from "../lib/aiJson";
 import { getFramework } from "../lib/region";
 import { candidatesFromSparring } from "../lib/misconceptions";
+import { AI_CONSENT_DECLINED_MESSAGE } from "../lib/aiConsent";
 import type { GroundedCitation } from "../types/notebooks";
 
 export type { GroundedCitation };
@@ -170,7 +171,13 @@ export interface SparringRound {
   conceptAnchor: string;
   citations?: GroundedCitation[];
   suggestedHints?: string[];
+  /** Written by the built-in question bank, not the AI. See `offline` on
+   *  SparringSession. */
+  offline?: boolean;
 }
+
+/** Why a session is running on the built-in questions instead of the AI. */
+export type SparringOfflineReason = "consent" | "unavailable";
 
 export interface SparringDialogueEntry {
   id: string;
@@ -195,6 +202,11 @@ export interface SparringSession {
    *  first is aimed with the same evidence the opening was, without the view
    *  having to pass it again. */
   performanceEvidence?: string;
+  /** Set once any round came from the built-in question bank rather than the
+   *  AI. The view must say so — a stand-in must never pass for the AI — and
+   *  nothing marked by the local checker reaches the learning evidence or
+   *  the misconception ledger. */
+  offline?: SparringOfflineReason;
   status: "active" | "completed";
   currentRound: number;
   dialogue: SparringDialogueEntry[];
@@ -253,6 +265,14 @@ function extractCitationsFromNotes(
     sourceTitle: `Notebook Notes: ${topic}`,
     snippet,
   }));
+}
+
+/** A refused consent is the student's own choice and gets its own wording;
+ *  anything else is the AI being unavailable. */
+function offlineReasonFor(err: unknown): SparringOfflineReason {
+  return err instanceof Error && err.message === AI_CONSENT_DECLINED_MESSAGE
+    ? "consent"
+    : "unavailable";
 }
 
 function generateOfflineOpening(
@@ -493,6 +513,7 @@ export async function startSparringSession(
   const vibe = options?.vibe?.trim();
   const focusGoal = options?.focusGoal?.trim();
 
+  let offlineReason: SparringOfflineReason | undefined;
   let initialRound: SparringRound;
 
   try {
@@ -547,14 +568,14 @@ Respond ONLY with valid JSON in this exact schema:
         "Give a concrete example",
       ],
     };
-  } catch {
-    // Graceful offline fallback
-    initialRound = generateOfflineOpening(
-      cleanTopic,
-      notesContext,
-      vibe,
-      focusGoal,
-    );
+  } catch (err) {
+    /* Built-in opening so the student can still practise — flagged, so the
+       view can say plainly that this is not the AI. */
+    offlineReason = offlineReasonFor(err);
+    initialRound = {
+      ...generateOfflineOpening(cleanTopic, notesContext, vibe, focusGoal),
+      offline: true,
+    };
   }
 
   const initialEntry: SparringDialogueEntry = {
@@ -578,6 +599,7 @@ Respond ONLY with valid JSON in this exact schema:
     vibe,
     focusGoal,
     performanceEvidence,
+    ...(offlineReason ? { offline: offlineReason } : {}),
     status: "active",
     currentRound: 1,
     dialogue: [initialEntry],
@@ -607,6 +629,7 @@ export async function submitStudentAnswer(
   feedback: StudentFeedback;
   nextRound: SparringRound;
 }> {
+  let offlineReason: SparringOfflineReason | undefined;
   let session: SparringSession;
   if (typeof sessionIdOrSession === "string") {
     const found = getSparringSession(sessionIdOrSession);
@@ -753,7 +776,7 @@ Respond ONLY with valid JSON in this exact schema:
         "Relate back to the notebook notes",
       ],
     };
-  } catch {
+  } catch (err) {
     const local = evaluateStudentSpeechLocally(
       session.topic,
       studentText,
@@ -761,7 +784,8 @@ Respond ONLY with valid JSON in this exact schema:
       notesContext,
     );
     feedback = local.feedback;
-    nextRound = local.nextRound;
+    nextRound = { ...local.nextRound, offline: true };
+    offlineReason = offlineReasonFor(err);
   }
 
   const studentEntry: SparringDialogueEntry = {
@@ -806,6 +830,7 @@ Respond ONLY with valid JSON in this exact schema:
 
   const updatedSession: SparringSession = {
     ...session,
+    ...(offlineReason ? { offline: offlineReason } : {}),
     currentRound: nextRound.roundNumber,
     dialogue: [...session.dialogue, studentEntry, nextAiEntry],
     currentChallenge: nextRound,
@@ -822,14 +847,19 @@ Respond ONLY with valid JSON in this exact schema:
    * the exact same round's feedback that produces this learning event, so
    * they belong together rather than as two independent calls a few lines
    * apart in the view (which is where this used to live). */
-  const candidates = candidatesFromSparring(feedback, {
-    subject: session.topic,
-    topic: session.topic,
-    sessionId: session.id,
-  });
-  void learningEventsApi.record({ source: "viva", topicKey: normaliseTopicKey(session.topic),
-    score: Math.max(0, Math.min(1, feedback.overallScore / 100)), clientId: `viva:${session.id}:${session.currentRound}`,
-    payload: { sessionId: session.id, round: session.currentRound } }, candidates).catch(err => console.warn("[viva] evidence:", err));
+  /* Only an AI-marked answer is evidence. The local checker counts keywords;
+   * its score and "misconceptions" are a stand-in for practice, and letting
+   * them into the ledger or the forecast would record guesses as diagnoses. */
+  if (!offlineReason) {
+    const candidates = candidatesFromSparring(feedback, {
+      subject: session.topic,
+      topic: session.topic,
+      sessionId: session.id,
+    });
+    void learningEventsApi.record({ source: "viva", topicKey: normaliseTopicKey(session.topic),
+      score: Math.max(0, Math.min(1, feedback.overallScore / 100)), clientId: `viva:${session.id}:${session.currentRound}`,
+      payload: { sessionId: session.id, round: session.currentRound } }, candidates).catch(err => console.warn("[viva] evidence:", err));
+  }
 
   return {
     session: updatedSession,
@@ -903,6 +933,7 @@ Respond ONLY with JSON:
       conceptAnchor: session.topic,
       citations,
       suggestedHints: ["Identify the underlying assumption"],
+      offline: true,
     };
   }
 }

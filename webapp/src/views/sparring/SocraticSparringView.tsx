@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Icon } from "../../components/Icon";
 import { Button } from "../../components/Button";
 import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
@@ -694,6 +694,28 @@ export function SocraticSparringView() {
         </section>
       ) : (
         <>
+          {/* A stand-in must never pass for the AI. When any round came from
+              the built-in question bank, say so, say what it means for the
+              student's answers, and — when it was their own choice — where
+              to change it. */}
+          {session.offline ? (
+            <div className={styles.offlineNotice} role="status">
+              <Icon name="alert-circle" size={16} />
+              <p>
+                {session.offline === "consent"
+                  ? "You haven't allowed Learnora's AI to use your study data, so these are built-in practice questions."
+                  : "Learnora's AI isn't available right now, so these are built-in practice questions."}{" "}
+                Your answers are checked by a simple keyword match, not the AI,
+                and aren't saved to your progress.
+                {session.offline === "consent" ? (
+                  <>
+                    {" "}
+                    <Link to="/settings?tab=privacy">Turn on AI in Settings</Link>
+                  </>
+                ) : null}
+              </p>
+            </div>
+          ) : null}
           {/* Sparring Stage Arena (Call AI Live In-Progress Experience) */}
           <SparringStage
             currentSpeaker={isListening ? "student" : activeAiSpeaker}

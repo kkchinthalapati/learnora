@@ -391,6 +391,11 @@ export interface TeachingTurn {
   /** How the submission was classified before scoring. Optional because
    *  sessions saved before the quality gate existed have no value for it. */
   quality?: ExplanationVerdict;
+  /** "local" when the AI could not be reached and the built-in scorer
+   *  marked the turn. The studio says so, and nothing it produced reaches
+   *  the misconception ledger or the learning evidence: a keyword scorer's
+   *  "confusion points" are guesses, not diagnoses. */
+  scoredBy?: "ai" | "local";
   timestamp: string;
   feedback?: TurnFeedback;
 }
@@ -1899,21 +1904,24 @@ export async function evaluateTeachingExplanation(
       depth,
       effectiveAudience,
     );
-    if (marked) return marked;
+    if (marked) return { ...marked, scoredBy: "ai" };
   } catch {
     // Fall back to the local scorer below.
   }
 
-  return scoreLocally(
-    draft,
-    trimmed,
-    persona,
-    previousScore,
-    assessment,
-    analogyStyle,
-    depth,
-    effectiveAudience,
-  );
+  return {
+    ...scoreLocally(
+      draft,
+      trimmed,
+      persona,
+      previousScore,
+      assessment,
+      analogyStyle,
+      depth,
+      effectiveAudience,
+    ),
+    scoredBy: "local",
+  };
 }
 
 export async function generateFeynmanDebrief(

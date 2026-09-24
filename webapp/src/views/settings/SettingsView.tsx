@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useSearchParams } from "react-router";
 import type { KeyboardEvent } from "react";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
@@ -83,7 +84,16 @@ const PANELS: Record<SettingsTabId, () => React.ReactElement> = {
 };
 
 export function SettingsView() {
-  const [active, setActive] = useState<SettingsTabId>("account");
+  /* `?tab=privacy` opens that tab, so messages elsewhere in the app ("turn
+     on AI in Settings") can send the student to the right place, not to the
+     first tab to hunt from there. */
+  const [searchParams] = useSearchParams();
+  const [active, setActive] = useState<SettingsTabId>(() => {
+    const wanted = searchParams.get("tab");
+    return SETTINGS_TABS.some((t) => t.id === wanted)
+      ? (wanted as SettingsTabId)
+      : "account";
+  });
   const { signOut } = useAuth();
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
