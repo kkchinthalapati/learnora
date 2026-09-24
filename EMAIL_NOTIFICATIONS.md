@@ -6,13 +6,24 @@ subscribed to push (see `PUSH_NOTIFICATIONS.md`), since every account has an
 email address from signup with no separate opt-in gesture beyond a settings
 toggle.
 
-> **Status 2026-09-24: scheduled, waiting on Resend.** The function is
-> deployed (with `verify_jwt = false`; it checks `x-cron-secret` instead),
-> `CRON_SECRET` is set, and `pg_cron` calls it daily at 13:05 UTC. It
-> answers 500 "RESEND_API_KEY is not configured" until step 1 is done:
-> create the Resend account, then
-> `supabase secrets set RESEND_API_KEY=… EMAIL_FROM="Learnora <…>"`.
-> No redeploy is needed after that.
+> **Status 2026-09-24: scheduled; sends once a provider is set.** The
+> function is deployed (`verify_jwt = false`; it checks `x-cron-secret`
+> instead), `CRON_SECRET` is set, and `pg_cron` calls it daily at 13:05
+> UTC. It sends through whichever provider has secrets:
+>
+> - **Now — Gmail (no domain needed).** Turn on 2-Step Verification for the
+>   Google account, create an app password (Google Account ▸ Security ▸
+>   App passwords), then set `SMTP_USER` (the Gmail address) and
+>   `SMTP_PASS` (the 16-character app password). Mail comes from that
+>   address; at most `EMAIL_DAILY_CAP` (default 400) a day, under Gmail's
+>   ~500.
+> - **Later — Resend, once the domain is verified.** Set `RESEND_API_KEY`
+>   and `EMAIL_FROM`. Resend wins whenever its key is set, so the Gmail
+>   secrets can then be removed with `supabase secrets unset`.
+>
+> Optional for either: `EMAIL_REPLY_TO` (where replies go) and `APP_URL`
+> (links in the email; defaults to https://learnora-app.vercel.app).
+> No redeploy is needed after setting secrets.
 
 **Everything in this repo is written and tested.** Same
 posture as `PUSH_NOTIFICATIONS.md`/`FRIENDS_FEATURE.md`/`SUPABASE_SETUP.md`:

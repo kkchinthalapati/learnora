@@ -11,12 +11,17 @@
  * deploy story (Resend API key, secrets, scheduling) — none of that is done
  * by this file or by deploying it.
  *
- * Resend over a client library: its API is one POST with a JSON body and a
- * bearer token, so `fetch` is the whole integration — no SDK, no dependency
- * to pin, no Node-compat shim needed the way send-push-reminders needs one
- * for `npm:web-push`. Swapping providers later means changing sendEmail()
- * and nothing else in this file. */
+ * Two ways to send, picked by which secrets are set (see pickMailer):
+ *  - Resend (RESEND_API_KEY): the long-term route, once Learnora has its own
+ *    verified domain. One POST per email, so `fetch` is the integration.
+ *  - SMTP (SMTP_USER + SMTP_PASS, Gmail by default): the bridge until then.
+ *    Resend can't send "from" an @gmail.com address — nobody can verify
+ *    gmail.com — but Gmail's own server can, with an app password. Port 465,
+ *    because Supabase blocks outbound 25 and 587. Capped per run, since a
+ *    personal Gmail account allows about 500 messages a day.
+ * Setting RESEND_API_KEY later switches over with no code change. */
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 interface EmailPrefRow {
   user_id: string;
@@ -42,23 +47,91 @@ function todayUtcStr(offsetDays = 0): string {
 /* Same known limitation as send-push-reminders: no stored per-user timezone,
  * so "exam tomorrow" and the daily cron time are both computed in UTC. */
 
-async function sendEmail(
-  apiKey: string,
-  from: string,
-  to: string,
-  subject: string,
-  html: string,
-): Promise<boolean> {
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from, to, subject, html }),
-  });
-  return res.ok;
+interface Mailer {
+  name: "resend" | "smtp";
+  /** Most emails one run may send; beyond it the rest wait for tomorrow. */
+  limit: number;
+  send(to: string, subject: string, html: string): Promise<boolean>;
+  close(): Promise<void>;
 }
+
+/* Gmail's limit for a personal account is about 500 a day, and running into
+ * it can get the account restricted. 400 leaves room for the account
+ * owner's own mail. */
+const DEFAULT_SMTP_DAILY_CAP = 400;
+
+function pickMailer(): Mailer | null {
+  const replyTo = Deno.env.get("EMAIL_REPLY_TO") || undefined;
+
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  if (resendApiKey) {
+    const from = Deno.env.get("EMAIL_FROM") || "Learnora <notifications@learnora.app>";
+    return {
+      name: "resend",
+      limit: Number.POSITIVE_INFINITY,
+      async send(to, subject, html) {
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from,
+            to,
+            subject,
+            html,
+            ...(replyTo ? { reply_to: replyTo } : {}),
+          }),
+        });
+        return res.ok;
+      },
+      async close() {},
+    };
+  }
+
+  const user = Deno.env.get("SMTP_USER");
+  const pass = Deno.env.get("SMTP_PASS");
+  if (user && pass) {
+    const client = new SMTPClient({
+      connection: {
+        hostname: Deno.env.get("SMTP_HOST") || "smtp.gmail.com",
+        port: Number(Deno.env.get("SMTP_PORT") || 465),
+        tls: true,
+        auth: { username: user, password: pass },
+      },
+    });
+    // Gmail rewrites any other From address to the account's own.
+    const from = Deno.env.get("EMAIL_FROM") || `Learnora <${user}>`;
+    const cap = Number(Deno.env.get("EMAIL_DAILY_CAP") || DEFAULT_SMTP_DAILY_CAP);
+    return {
+      name: "smtp",
+      limit: Number.isFinite(cap) && cap > 0 ? cap : DEFAULT_SMTP_DAILY_CAP,
+      async send(to, subject, html) {
+        try {
+          await client.send({ from, to, subject, html, ...(replyTo ? { replyTo } : {}) });
+          return true;
+        } catch (err) {
+          console.error("smtp send failed", err instanceof Error ? err.message : err);
+          return false;
+        }
+      },
+      async close() {
+        try {
+          await client.close();
+        } catch {
+          /* Nothing left to send; a failed goodbye is harmless. */
+        }
+      },
+    };
+  }
+
+  return null;
+}
+
+/* Links in the email. learnora.app isn't live yet, so the default is the
+ * address the app is actually served from; APP_URL switches it later. */
+const APP_URL = (Deno.env.get("APP_URL") || "https://learnora-app.vercel.app").replace(/\/$/, "");
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
@@ -73,14 +146,17 @@ Deno.serve(async (req) => {
     });
   }
 
-  const resendApiKey = Deno.env.get("RESEND_API_KEY");
-  const fromAddress = Deno.env.get("EMAIL_FROM") || "Learnora <notifications@learnora.app>";
-  if (!resendApiKey) {
+  const picked = pickMailer();
+  if (!picked) {
     return new Response(
-      JSON.stringify({ error: "RESEND_API_KEY is not configured" }),
+      JSON.stringify({
+        error: "No email provider configured: set RESEND_API_KEY, or SMTP_USER and SMTP_PASS",
+      }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
+  // Named separately so the nested sendToUser keeps the non-null type.
+  const mailer: Mailer = picked;
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -98,6 +174,7 @@ Deno.serve(async (req) => {
   }
   const prefs = (prefRows ?? []) as EmailPrefRow[];
   if (prefs.length === 0) {
+    await mailer.close();
     return new Response(JSON.stringify({ sent: 0, note: "no preferences rows" }), {
       headers: { "Content-Type": "application/json" },
     });
@@ -146,6 +223,7 @@ Deno.serve(async (req) => {
   let sent = 0;
   let skippedAlreadyNotified = 0;
   let skippedNoEmail = 0;
+  let skippedOverCap = 0;
 
   async function sendToUser(
     userId: string,
@@ -163,6 +241,13 @@ Deno.serve(async (req) => {
       return;
     }
 
+    /* Checked before the dedupe row is written, so anyone past the cap is
+       still due and gets tomorrow's run. */
+    if (sent >= mailer.limit) {
+      skippedOverCap += 1;
+      return;
+    }
+
     // Insert-first dedupe, same reasoning as push_notification_log: a
     // unique-violation means this kind was already sent today, so this run
     // skips rather than racing a concurrent one.
@@ -174,7 +259,7 @@ Deno.serve(async (req) => {
       return;
     }
 
-    const ok = await sendEmail(resendApiKey, fromAddress, profile.email, subject, html);
+    const ok = await mailer.send(profile.email, subject, html);
     if (ok) sent += 1;
   }
 
@@ -190,7 +275,7 @@ Deno.serve(async (req) => {
       "exam_soon",
       (p) => p.notify_exams,
       subject,
-      `<p>${body}</p><p><a href="https://learnora.app/app/exams">Open your exams</a></p>`,
+      `<p>${body}</p><p><a href="${APP_URL}/app/exams">Open your exams</a></p>`,
     );
   }
 
@@ -201,12 +286,20 @@ Deno.serve(async (req) => {
       "flashcards_due",
       (p) => p.notify_flashcards_due,
       `${count} flashcard${count > 1 ? "s" : ""} due`,
-      `<p>Time for a quick review round — ${count} card${count > 1 ? "s are" : " is"} due.</p><p><a href="https://learnora.app/app/review">Start reviewing</a></p>`,
+      `<p>Time for a quick review round — ${count} card${count > 1 ? "s are" : " is"} due.</p><p><a href="${APP_URL}/app/review">Start reviewing</a></p>`,
     );
   }
 
+  await mailer.close();
+
   return new Response(
-    JSON.stringify({ sent, skippedAlreadyNotified, skippedNoEmail }),
+    JSON.stringify({
+      provider: mailer.name,
+      sent,
+      skippedAlreadyNotified,
+      skippedNoEmail,
+      skippedOverCap,
+    }),
     { headers: { "Content-Type": "application/json" } },
   );
 });
