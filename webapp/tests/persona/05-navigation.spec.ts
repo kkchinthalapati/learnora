@@ -272,7 +272,7 @@ test("coming back after a week: can I find my way around and find my stuff?", as
     { label: "Today", expect: "what I have to do today" },
     { label: "Library", expect: "all my notes and files" },
     { label: "Plan", expect: "my timetable / homework list" },
-    { label: "Focus", expect: "a timer to stop me getting distracted" },
+    { label: "Focus timer", expect: "a timer to stop me getting distracted" },
     { label: "Progress", expect: "my scores and how I'm doing" },
     { label: "Study tools", expect: "AI stuff that tests me" },
   ];
@@ -482,7 +482,7 @@ test("coming back after a week: can I find my way around and find my stuff?", as
     await page.goto("./");
     await page.getByRole("link", { name: "Library", exact: true }).first().click();
     await page.waitForLoadState("networkidle").catch(() => {});
-    await page.getByRole("link", { name: "Focus", exact: true }).first().click();
+    await page.getByRole("link", { name: "Focus timer", exact: true }).first().click();
     await page.waitForLoadState("networkidle").catch(() => {});
     log.saw(`Before back: ${new URL(page.url()).pathname}`);
     await page.goBack();

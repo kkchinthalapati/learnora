@@ -28,6 +28,17 @@
 > - **Not verifiable here:** the quality of real AI answers (the mock returns
 >   canned text) and live speech recognition (unavailable in headless
 >   browsers).
+>
+> **Second pass (2026-09-24, branch `ux-gaps`)** covered what the first pass
+> skipped: a phone bottom tab bar; Library opens on Subjects with a line under
+> each tab; timer modes renamed ("Focus & breaks", "Flow"); short flashcard
+> reviews start straight away; read-aloud off by default in Oral practice;
+> the friends ranking is by consistency; a WCAG A/AA scan of 24 screens plus a
+> keyboard walk (all fixed, now in e2e); overdue tasks labelled as overdue; the
+> mock exam starts when a browser refuses fullscreen; a study-room host's own
+> timer starts with the group session; an auto-set focus length explains
+> itself. New e2e journeys: a whole review to its recap, a mock exam to its
+> score, and coming back after five days. Sections 18–21 below were added then.
 
 ## How this was tested (read first)
 
@@ -264,3 +275,70 @@ No P0 blockers: a student can sign up, get oriented, study, take a quiz and come
 - **Offline:** a queued task shows immediately with a pending state.
 - **Phone header:** logout isn't one tap away; no field truncation on the timer.
 - **Forecast drift:** load Today three times with fixed fixtures; the projected range must not change.
+
+---
+
+*Sections 18–21 were added on 2026-09-24, in the second pass. They describe
+the app as it was **before** either pass, like the rest of this report; the
+last column of each table says what happened to each finding.*
+
+## 18. Screen by screen
+
+| Screen | What a student gets right away | What got in the way | Now |
+|---|---|---|---|
+| Landing | Clear promise, a no-sign-up timer | Nothing major | — |
+| Sign-up | Short form | AI consent required to make any account | Asked at first AI use instead |
+| Welcome wizard | Skippable, with a summary at the end | Mixed curriculum list; "AP Courses subjects" | Fixed in the first pass |
+| Today | One clear next step | Two different readiness numbers; region names repeated inside cards | One number; each region has one heading with a link to the full page |
+| Dashboard | Streak, memory, history | Repeated Today card for card | Now only "How am I doing"; links back to Today |
+| Library | Everything in one place | Opened on Notebooks; five tabs with no hint of what each holds | Opens on Subjects; each tab has a one-line description |
+| Plan / My week | Week built automatically | Study booked in school hours; four names for one page | School-aware; one name |
+| Exams | Calendar, countdown | Day cells were buttons containing buttons (screen readers) | Day number is the button |
+| Tasks | Quick add, snooze | A task from days ago still read as a plain date | "Overdue since …" |
+| Timer | Survives refresh and navigation | Pomodoro/Flowtime jargon; hustle quotes; a focus length that changed with no reason given | Plain names, neutral quotes, and the auto-set length says why, with "Use 25 min" |
+| Flashcard review | Keyboard shortcuts, good recap | Two setup choices before a three-card deck | Short decks start straight away |
+| Quiz / Mock exam | Clear results | Fixture had no questions; mock exam stuck if fullscreen was refused | Both fixed; covered by e2e |
+| Study tools (Explain it simply, Oral practice, Solver, Exam traps) | Asks what the problem is | 4-step setups, university-level examples; Oral practice read every reply aloud | Topic → Start; examples at school level; read-aloud off by default |
+| Progress | Charts from real history | "2% consistency" for a seven-day streak; "When you focus best" from too few sessions | Consistency since joining; insight removed until there's enough data |
+| Friends | Your circle | Ranked by hours sat | Ranked by consistency, or focus time if chosen |
+| Study Room | Presence, group timer | Host's own desk said "Idle" after starting; "Sync My HUD" | Host's timer starts too; "Match my timer" |
+| Settings | Everything in one place | Blocked notifications said only "Denied" | Says how to re-allow them |
+| Phone (all screens) | No horizontal scroll | Everything behind a hamburger; five icon-only header buttons | Bottom tab bar; logout moved into Account |
+
+## 19. Journey failure map
+
+Where each journey broke, and whether it still does.
+
+| Journey | Step that failed | Why the student stops | Now |
+|---|---|---|---|
+| First visit → first study block | Sign-up (consent wall) → email confirmation | Leaves to check email; sceptics refuse the consent | Consent moved; email step unchanged (needed for security) |
+| Today → 45-min block → quick check | Timer landed stopped; end-of-block check unverified | One more click; unsure anything happens at the end | One-tap start; the end check is covered by e2e |
+| "Explain this to me" | 16 options before anything happens | Gives up before the first AI turn | Topic → Start |
+| Ask AI when it fails | "Internal error", no retry | Thinks the app is broken | Plain message + Try again, prompt kept |
+| Plan my week | Blocks during school; empty days before the exam | Stops trusting the plan | School-aware |
+| Revise flashcards | Setup screen before a tiny deck | Friction on the smallest task | Starts straight away |
+| Sit a mock exam | Fullscreen refused → stuck on the start screen | Can't sit the exam at all | Starts without fullscreen, says so |
+| Come back after a week | Old tasks look current; streak copy shames | Feels behind, closes the app | "Overdue since …"; streak copy neutral |
+| Study with a friend | Host shows as idle | Room feels dead | Host's timer starts with the group |
+| Use it on a phone | Hamburger for everything | Can't find things one-handed | Bottom tab bar |
+
+## 20. Why a student would leave, and why they'd come back
+
+**Leave:**
+- A number they can't trust (two readiness figures, a range that moved between loads). Fixed.
+- Setup before learning: every study tool asked several questions first. Fixed for Explain it simply and Oral practice; Exam traps is still denser than the rest.
+- Guilt: hustle quotes, "2% consistency", red "keep dropping marks" after one miss. Fixed.
+- A plan that ignores school. Fixed.
+- Still true: real AI answer quality is unmeasured here (the tests use canned replies), and a slow or wrong AI answer would undo much of the above.
+
+**Come back:**
+- Today tells them what to do in one line, and the timer never loses their session.
+- The misconception ledger: the app remembers what they got wrong and brings it back. This is the one thing other planners don't do, and it's the strongest reason to return.
+- Flashcard review is fast and the recap is encouraging.
+- The quick check after a block shows progress on something specific, not hours.
+
+## 21. Mental model after the first week and the first month
+
+**After a week:** "Learnora tells me what to study next for my exam, runs the timer, and quizzes me. The AI can explain things when I'm stuck." They use Today, the timer and flashcards daily; Library and Plan weekly. Before the fixes, the likely wrong beliefs were "Dashboard is Today with more cards", "Notebooks, Subjects and Library are all folders" and "the grade prediction is random". The first two are now addressed by the Dashboard/Today split and Library's per-tab descriptions; the third by the single readiness number.
+
+**After a month:** "It knows my weak spots." This depends entirely on the misconception ledger filling up from quizzes, checks and study tools, which is why built-in stand-ins must never write to it. Risks at this stage: the forecast still says "limited evidence" for topics the student hasn't been checked on, which reads as a failure rather than an invitation; and streak-style metrics can still become the goal. Worth measuring with real students: whether they open "Why this topic?", and whether they act on the ledger's suggestions or ignore them.

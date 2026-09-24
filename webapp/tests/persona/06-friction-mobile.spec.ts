@@ -390,7 +390,7 @@ test("friction: out of AI, broken server, no wifi, small screen", async ({
     { name: "Today", path: "/app/" },
     { name: "Library", path: "/app/library" },
     { name: "Plan", path: "/app/plan" },
-    { name: "Focus", path: "/app/timer" },
+    { name: "Focus timer", path: "/app/timer" },
     { name: "Progress", path: "/app/analytics" },
     { name: "Study tools", path: "/app/study" },
     { name: "Study tools tool — Step-by-step solver", path: "/app/solver" },
@@ -448,7 +448,7 @@ test("friction: out of AI, broken server, no wifi, small screen", async ({
         .catch(() => "no")}`,
     );
 
-    const menu = page.getByRole("button", { name: /menu|navigation|open sidebar/i }).first();
+    const menu = page.getByRole("button", { name: /menu|navigation|open sidebar|^More/i }).first();
     const menuVisible = await menu.isVisible().catch(() => false);
     log.saw(`Is there a hamburger/menu button? ${menuVisible ? "yes" : "no"}`);
     if (menuVisible) {
@@ -463,7 +463,7 @@ test("friction: out of AI, broken server, no wifi, small screen", async ({
       await log.shot("phone-drawer-open");
       log.saw(`Drawer contents: ${(await log.affordances()).join(" | ")}`);
 
-      for (const area of ["Today", "Library", "Plan", "Focus", "Progress", "Study tools", "Settings"]) {
+      for (const area of ["Today", "Library", "Plan", "Focus timer", "Progress", "Study tools", "Settings"]) {
         const link = page.getByRole("link", { name: area, exact: true }).first();
         const visible = await link.isVisible().catch(() => false);
         const box = visible ? await link.boundingBox() : null;
