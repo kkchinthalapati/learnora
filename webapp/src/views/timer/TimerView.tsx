@@ -298,6 +298,16 @@ export function TimerView() {
                 ).map(({ key, labelKey }) => (
                   <Button
                     key={key}
+                    aria-pressed={
+                      draftConfig.focus === WORKFLOW_PRESETS[key].focus &&
+                      draftConfig.short === WORKFLOW_PRESETS[key].short
+                    }
+                    className={
+                      draftConfig.focus === WORKFLOW_PRESETS[key].focus &&
+                      draftConfig.short === WORKFLOW_PRESETS[key].short
+                        ? styles.presetActive
+                        : undefined
+                    }
                     onClick={() => setDraftConfig(WORKFLOW_PRESETS[key])}
                   >
                     {t(labelKey)}
@@ -305,8 +315,15 @@ export function TimerView() {
                 ))}
               </div>
 
-              <hr className={styles.divider} />
-
+              {/* The presets cover most sessions; the four numbers are for the
+                  student who wants their own. Folded, with the current values
+                  in the summary, so the panel is not twelve controls deep
+                  before the Start button. */}
+              <details className={styles.customTimes}>
+                <summary>
+                  Custom times: {draftConfig.focus} min focus ·{" "}
+                  {draftConfig.short} min break · {draftConfig.maxCycles} rounds
+                </summary>
               <div className={styles.configRow}>
                 <label htmlFor={focusId}>{t("config_focus")}</label>
                 <input
@@ -362,6 +379,7 @@ export function TimerView() {
                   }
                 />
               </div>
+              </details>
             </div>
           )}
 

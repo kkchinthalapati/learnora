@@ -104,7 +104,7 @@ export function NextExamCard() {
             className={styles.countdownChange}
             onClick={() => setChoosingCountdown(true)}
           >
-            <Icon name="settings" size={13} /> Choose countdown
+            <Icon name="calendar" size={13} /> Count down to a different exam
           </button>
         ) : null}
         {upcoming.length > 1 && choosingCountdown ? (

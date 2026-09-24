@@ -508,6 +508,7 @@
 
 .upcomingCard {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--s-3);
@@ -530,12 +531,14 @@
   border-color: var(--accent);
 }
 
+/* A real basis, so the name gets a line of its own width before the
+   actions squeeze it; the actions wrap underneath on narrow cards. */
 .upcomingLeft {
   display: flex;
   flex-direction: column;
   gap: 3px;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 160px;
 }
 
 .upcomingName {
@@ -550,12 +553,9 @@
 }
 
 .upcomingMeta {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
+  margin: 0;
   font-size: var(--fs-xs);
   color: var(--text-muted);
-  flex-wrap: wrap;
 }
 
 .upcomingRight {

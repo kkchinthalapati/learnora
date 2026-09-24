@@ -608,7 +608,7 @@ describe("PlanView", () => {
       );
 
       expect(
-        await screen.findByRole("combobox", { name: "Current Task:" }),
+        await screen.findByRole("combobox", { name: "What are you working on?" }),
       ).toHaveValue("Biology");
     });
 

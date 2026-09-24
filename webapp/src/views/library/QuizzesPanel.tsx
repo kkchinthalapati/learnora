@@ -72,25 +72,28 @@ export function QuizzesPanel() {
               {formatCreatedShort(quiz.created_at)}
             </p>
 
+            {/* Take it first: it is what the card is for. "Review" used to
+                lead, which on a quiz never taken reads as "review what?" —
+                it opens the questions with their answers. */}
             <div className={styles.cardFooter}>
               <Link
-                to={`/quiz/${quiz.id}/review`}
-                className={styles.footerLink}
+                to={`/quiz/${quiz.id}`}
+                className={`${styles.footerLink} ${styles.footerLinkPrimary}`}
               >
-                Review
+                Take Quiz
               </Link>
               <Link
                 to={`/quiz/${quiz.id}/mock-exam`}
                 className={styles.footerLink}
                 title="Timed fullscreen exam; answers lock when you move forward"
               >
-                Mock Exam
+                Timed mock
               </Link>
               <Link
-                to={`/quiz/${quiz.id}`}
-                className={`${styles.footerLink} ${styles.footerLinkPrimary}`}
+                to={`/quiz/${quiz.id}/review`}
+                className={styles.footerLink}
               >
-                Take Quiz
+                See answers
               </Link>
             </div>
 

@@ -516,7 +516,7 @@ describe("TimerView", () => {
     renderTimer();
 
     const taskPicker = await screen.findByRole("combobox", {
-      name: "Current Task:",
+      name: "What are you working on?",
     });
     await user.click(taskPicker);
     await user.click(
@@ -548,7 +548,7 @@ describe("TimerView", () => {
     const user = userEvent.setup();
     renderTimer("/timer");
 
-    const folderSelect = await screen.findByLabelText("Subject (optional):");
+    const folderSelect = await screen.findByLabelText("Subject (optional)");
     expect(folderSelect).toBeInTheDocument();
     await user.selectOptions(folderSelect, "Biology");
 

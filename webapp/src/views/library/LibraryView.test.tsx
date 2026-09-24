@@ -813,7 +813,7 @@ describe("Library — Quizzes tab", () => {
     serveLibrary({ quizzes: [quiz()] });
     renderLibrary("/library/quizzes");
 
-    await user.click(await screen.findByRole("link", { name: "Review" }));
+    await user.click(await screen.findByRole("link", { name: "See answers" }));
     expect(
       await screen.findByRole("heading", { name: "Quiz review" }),
     ).toBeInTheDocument();

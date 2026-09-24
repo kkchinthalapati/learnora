@@ -6,6 +6,9 @@ import { useContinuity } from "../../hooks/useContinuity";
 import { useMaterials } from "../../hooks/useMaterials";
 import styles from "./ResumeLearningCard.module.css";
 
+/* Secondary, not primary: this card sits under Today's hero, whose Start
+   button is the screen's one recommended action (T7). Two filled buttons of
+   equal weight left a returning student choosing between them. */
 export function ResumeLearningCard() {
   const navigate = useNavigate();
   const { resumeAction, recentItems } = useContinuity();
@@ -93,7 +96,7 @@ export function ResumeLearningCard() {
             </div>
 
             <Button
-              variant="primary"
+              variant="secondary"
               className={styles.resumeCtaBtn}
               onClick={() => navigate(resumeAction.targetUrl)}
             >
@@ -139,7 +142,7 @@ export function ResumeLearningCard() {
             </div>
           </div>
           <Button
-            variant="primary"
+            variant="secondary"
             className={styles.resumeCtaBtn}
             onClick={() => navigate(`/notes/${lastMaterial.id}`)}
           >
