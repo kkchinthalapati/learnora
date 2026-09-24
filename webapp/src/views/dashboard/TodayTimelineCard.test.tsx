@@ -82,13 +82,22 @@ function render() {
 }
 
 describe("TodayTimelineCard", () => {
+  /* The schedule never books time that has already gone today, so these
+     tests pin the clock to 07:00 — otherwise they passed in the morning and
+     failed after the commitments' hours had passed. Only Date is faked;
+     timers stay real so React and user-event run normally. */
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const morning = new Date();
+    morning.setHours(7, 0, 0, 0);
+    vi.setSystemTime(morning);
     localStorage.clear();
     resetLifeContextCache();
     mockAuthSession("user-1");
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     resetLifeContextCache();
   });
@@ -125,6 +134,22 @@ describe("TodayTimelineCard", () => {
     expect(await screen.findByText(/Review 12 due cards/)).toBeInTheDocument();
     expect(screen.getByText(/Chemistry lecture/)).toBeInTheDocument();
     expect(screen.getByText(/placed around 1 commitment/)).toBeInTheDocument();
+  });
+
+  /* A plan opened at 22:40 used to book "7:30 Review" for a morning that
+     was already over. Only the time left before wind-down is used. */
+  it("does not book time that has already gone today", async () => {
+    const late = new Date();
+    late.setHours(22, 40, 0, 0);
+    vi.setSystemTime(late);
+    seedLifeContext();
+    serve({ dueCount: 12 });
+    render();
+
+    expect(await screen.findByText(/Chemistry lecture/)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByText(/Review 12 due cards/)).not.toBeInTheDocument(),
+    );
   });
 
   it("hands a block off to the timer when Start is pressed", async () => {

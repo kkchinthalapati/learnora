@@ -118,7 +118,7 @@ describe("StudyRoomView", () => {
   it("renders room header, active count stats, and subtext", () => {
     renderView("/room");
 
-    expect(screen.getByRole("heading", { level: 1, name: "Virtual Study Circle" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Study Room" })).toBeInTheDocument();
     expect(screen.getByText("2 students focusing together")).toBeInTheDocument();
     expect(screen.getByText(/Quiet co-working room · Live timer sync & cheers/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sound ambiance focus generator" })).toBeInTheDocument();

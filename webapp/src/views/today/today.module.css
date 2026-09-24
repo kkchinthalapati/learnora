@@ -23,11 +23,8 @@
 .why ul { margin: 8px 0 12px; padding-left: 20px; display: grid; gap: 6px; max-width: 64ch; line-height: 1.5; }
 .region { display: grid; gap: var(--s-4); min-width: 0; }
 .regionTitle { font-size: var(--fs-lg); margin: 0; }
-/* Today names each region with its own <h2> ("Due today", "Next exam"), so
-   the shared card's small-caps eyebrow ("TODAY'S TASKS", "NEXT EXAM") said
-   the same thing twice. Hidden here only; the dashboard still needs it. The
-   card's action link ("View all", "Open calendar") stays. */
-.region :global([data-card-eyebrow]) { visibility: hidden; }
+.regionHead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; }
+.regionLink { color: var(--accent-text); font-size: var(--fs-sm); font-weight: 600; min-height: 32px; display: inline-flex; align-items: center; }
 .footer { color: var(--text-muted); padding-bottom: 24px; }
 /* These two inline links carry no class of their own, so without this they
    render in the UA's default #0000ee — 2.08:1 on the dark page, and visibly

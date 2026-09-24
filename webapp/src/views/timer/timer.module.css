@@ -794,3 +794,11 @@
 .customTimes[open] > summary {
   margin-bottom: var(--s-3);
 }
+
+/* What the selected timer type will do, in one line under the selector. */
+.typeSummary {
+  margin: var(--s-2) 0 var(--s-4);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}

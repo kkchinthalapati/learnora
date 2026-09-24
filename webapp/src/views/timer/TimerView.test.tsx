@@ -64,7 +64,7 @@ describe("TimerView", () => {
     expect(screen.getByText("25:00")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Focus" })).toBeInTheDocument();
     expect(screen.getByText("Cycle: 0 / 4")).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "Pomodoro" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Focus & breaks" })).toBeChecked();
     expect(
       screen.getByText("Finished focus sessions will appear here."),
     ).toBeInTheDocument();
@@ -151,7 +151,7 @@ describe("TimerView", () => {
     await user.click(screen.getByRole("radio", { name: "Stopwatch" }));
     expect(screen.getByText(/Open-ended count-up/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("radio", { name: "Flowtime" }));
+    await user.click(screen.getByRole("radio", { name: "Flow" }));
     expect(screen.getByText(/a fifth as long/)).toBeInTheDocument();
   });
 
@@ -171,7 +171,7 @@ describe("TimerView", () => {
     renderTimer();
     expect(screen.queryByRole("button", { name: "Take a break" })).toBeNull();
 
-    await user.click(screen.getByRole("radio", { name: "Flowtime" }));
+    await user.click(screen.getByRole("radio", { name: "Flow" }));
 
     expect(
       screen.getByRole("button", { name: "Take a break" }),

@@ -414,12 +414,13 @@ export function StudyAnalyticsView() {
             <div>
               <h3 className={styles.sectionTitle}>Study patterns</h3>
               <p className={styles.sectionSub}>
-                Generated from session and quiz history
+                Patterns in your sessions and quizzes
               </p>
             </div>
+            {/* Rule-based, from the student's own history. A pulsing
+                "Generated" badge made it read as AI output. */}
             <div className={styles.aiHeaderBadge}>
-              <span className={styles.aiPulseDot} />
-              <span>Generated</span>
+              <span>From your history</span>
             </div>
           </div>
 

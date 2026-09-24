@@ -15,7 +15,9 @@ import styles from "./dashboard.module.css";
 /* "Next exam" spotlight. */
 const COUNTDOWN_EXAM_KEY = "learnora_countdown_exam_id";
 
-export function NextExamCard() {
+/** `headless`: the page names this card and carries its link (Today), so
+ *  the card's own header row is left out. */
+export function NextExamCard({ headless = false }: { headless?: boolean } = {}) {
   const { data: exams = [], isPending, isError, error } = useExams();
   const [prepModalOpen, setPrepModalOpen] = useState(false);
   const [choosingCountdown, setChoosingCountdown] = useState(false);
@@ -46,7 +48,7 @@ export function NextExamCard() {
   if (isError) {
     return (
       <Card variant="elevated" className={styles.examCard}>
-        <DashboardCardHeader eyebrow="Next exam" />
+        {headless ? null : <DashboardCardHeader eyebrow="Next exam" />}
         <p role="alert" className={styles.emptySm}>
           Could not load your exams. {(error as Error).message}
         </p>
@@ -57,10 +59,12 @@ export function NextExamCard() {
   if (!next) {
     return (
       <Card variant="elevated" className={styles.examCard}>
-        <DashboardCardHeader
+        {headless ? null : (
+          <DashboardCardHeader
           eyebrow="Next exam"
           action={{ to: "/exams", label: "Open calendar" }}
         />
+        )}
         <p className={styles.emptySm}>
           No exams scheduled. You&apos;re all clear, or add one to start
           planning.
@@ -94,10 +98,12 @@ export function NextExamCard() {
   return (
     <>
       <Card variant="elevated" className={styles.examCard}>
-        <DashboardCardHeader
+        {headless ? null : (
+          <DashboardCardHeader
           eyebrow="Next exam"
           action={{ to: "/exams", label: "Open calendar" }}
         />
+        )}
         {upcoming.length > 1 && !choosingCountdown ? (
           <button
             type="button"

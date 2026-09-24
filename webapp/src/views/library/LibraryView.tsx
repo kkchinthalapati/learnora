@@ -66,7 +66,7 @@ export function LibraryView() {
         onActiveChange={setIsSearching}
         action={
           <Button variant="primary" onClick={() => openCreateModal()}>
-            Start with a source
+            Add your notes
           </Button>
         }
       />

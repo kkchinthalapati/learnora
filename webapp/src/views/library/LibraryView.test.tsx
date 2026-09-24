@@ -329,7 +329,7 @@ describe("LibraryView shell", () => {
     await screen.findByText("Biology");
 
     await user.click(
-      screen.getByRole("button", { name: "Start with a source" }),
+      screen.getByRole("button", { name: "Add your notes" }),
     );
 
     expect(
@@ -602,7 +602,7 @@ describe("Library — Materials tab", () => {
     // Both the workspace action and this contextual empty-state action open
     // the same source-first flow.
     expect(
-      screen.getByRole("button", { name: "Start with a source" }),
+      screen.getByRole("button", { name: "Add your notes" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Create study resources" }),

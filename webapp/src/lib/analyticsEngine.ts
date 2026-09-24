@@ -330,7 +330,7 @@ export function detectPeakFocusWindow(
   if (bestStartHour >= 5 && bestStartHour <= 9) {
     return {
       hasData: true,
-      label: `Early Bird Focus (${timeLabel})`,
+      label: `Mornings (${timeLabel})`,
       startHour: bestStartHour,
       endHour,
       description:
@@ -341,7 +341,7 @@ export function detectPeakFocusWindow(
   if (bestStartHour >= 10 && bestStartHour <= 13) {
     return {
       hasData: true,
-      label: `Mid-Day Peak (${timeLabel})`,
+      label: `Around midday (${timeLabel})`,
       startHour: bestStartHour,
       endHour,
       description:
@@ -352,7 +352,7 @@ export function detectPeakFocusWindow(
   if (bestStartHour >= 14 && bestStartHour <= 17) {
     return {
       hasData: true,
-      label: `Afternoon Flow (${timeLabel})`,
+      label: `Afternoons (${timeLabel})`,
       startHour: bestStartHour,
       endHour,
       description:
@@ -362,7 +362,7 @@ export function detectPeakFocusWindow(
 
   return {
     hasData: true,
-    label: `Night Owl Prime (${timeLabel})`,
+    label: `Evenings (${timeLabel})`,
     startHour: bestStartHour,
     endHour,
     description:
@@ -485,18 +485,18 @@ export function computeSubjectUrgencyMatrix(
 }
 
 /**
- * AI Study Insights Generator
+ * Study pattern notes, from fixed rules over the student's own history.
  *
- * Synthesizes cross-metric analysis into actionable, intelligent recommendations.
+ * Not AI output, and the page must not present it as such.
  */
 export function generateStudyInsights(
   sessions: StudySession[] = [],
   quizAttempts: QuizAttempt[] = [],
   heatData: HeatmapData,
-  hourly: HourlyStats[],
+  // Kept for callers; the best-time finding is no longer repeated here.
+  _hourly: HourlyStats[],
 ): string[] {
   const insights: string[] = [];
-  const peak = detectPeakFocusWindow(hourly);
 
   // 1. Streak & Consistency insight
   if (heatData.currentStreak >= 3) {
@@ -513,8 +513,9 @@ export function generateStudyInsights(
     );
   }
 
-  // 2. Chronotype & Peak window
-  insights.push(`When you focus best: ${peak.label}. ${peak.description}`);
+  /* The best-time-of-day finding is not repeated here: Progress already
+     shows it in the stat tile and under the hourly chart, and saying it a
+     third time in this list was noise. */
 
   // 3. Focus Volume & Pacing
   const hours = Math.floor(heatData.totalMinutes / 60);

@@ -74,7 +74,7 @@ describe("planRebalancer", () => {
 
   const peakWindow: PeakFocusWindow = {
     hasData: true,
-    label: "Early Bird Focus (6 AM – 9 AM)",
+    label: "Mornings (6 AM – 9 AM)",
     startHour: 6,
     endHour: 9,
     description: "Peak morning focus",
