@@ -8,6 +8,7 @@ import { useNotebooks, useNotebook } from "../../hooks/useNotebooks";
 import { useStudentEvidence } from "../../hooks/useStudentEvidence";
 import { formatEvidenceForPrompt } from "../../lib/studentEvidence";
 import { useToast } from "../../context/toast";
+import { Storage } from "../../lib/storage";
 import {
   startSparringSession,
   submitStudentAnswer,
@@ -27,6 +28,8 @@ import styles from "./sparring.module.css";
 /* School-level, like the rest of the study tools. "Asynchronous Event Loop
    in JavaScript" and "Keynesian vs Classical Economics" were suggestions to
    a Grade 9 student. */
+const VOICE_KEY = "learnora_viva_read_aloud";
+
 const QUICK_STARTER_TOPICS = [
   "Newton's third law",
   "Photosynthesis vs respiration",
@@ -91,7 +94,12 @@ export function SocraticSparringView() {
   // Interaction State
   const [keyboardInput, setKeyboardInput] = useState("");
   const [showTextInput, setShowTextInput] = useState(false);
-  const [autoPlayAudio, setAutoPlayAudio] = useState(true);
+  /* Off until the student turns it on, then remembered. Starting a
+     session used to read the question out loud straight away — in class, on
+     a bus, in a library — with no warning. */
+  const [autoPlayAudio, setAutoPlayAudio] = useState<boolean>(() =>
+    Storage.get<boolean>(VOICE_KEY, false),
+  );
 
   const dialogueEndRef = useRef<HTMLDivElement | null>(null);
   const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -431,19 +439,23 @@ export function SocraticSparringView() {
               onClick={() => {
                 const next = !autoPlayAudio;
                 setAutoPlayAudio(next);
+                Storage.set(VOICE_KEY, next);
                 if (!next) cancelSpeech();
                 showToast(
-                  next ? "Voice playback enabled." : "Voice playback muted.",
+                  next
+                  ? "Questions will be read out loud."
+                  : "Questions won't be read out loud.",
                 );
               }}
+              aria-pressed={autoPlayAudio}
               title={
                 autoPlayAudio
-                  ? "Mute automatic speech output"
-                  : "Unmute speech output"
+                  ? "Stop reading questions out loud"
+                  : "Read questions out loud"
               }
             >
               <Icon name={autoPlayAudio ? "volume-2" : "volume-x"} size={16} />
-              <span>{autoPlayAudio ? "Voice: On" : "Voice: Muted"}</span>
+              <span>{autoPlayAudio ? "Read aloud: On" : "Read aloud: Off"}</span>
             </button>
 
             {session && (

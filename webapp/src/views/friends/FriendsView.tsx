@@ -314,8 +314,30 @@ const PERIODS: { value: LeaderboardPeriod; label: string }[] = [
   { value: "all", label: "All time" },
 ];
 
+/* What the board ranks by. Consistency leads: ranking by hours rewarded
+   sitting at a desk the longest, which is the metric-chasing a study app
+   should not encourage — a streak rewards showing up, even for 20 minutes.
+   Focus time is still one tap away for students who want it. */
+type RankBy = "streak" | "minutes";
+const RANK_BY: { value: RankBy; label: string }[] = [
+  { value: "streak", label: "Most consistent" },
+  { value: "minutes", label: "Most focus time" },
+];
+
+export function rankEntries(
+  entries: readonly LeaderboardEntry[],
+  by: RankBy,
+): LeaderboardEntry[] {
+  const primary = (e: LeaderboardEntry) => (by === "streak" ? e.streak : e.weekly_minutes);
+  const secondary = (e: LeaderboardEntry) => (by === "streak" ? e.weekly_minutes : e.streak);
+  return [...entries]
+    .sort((a, b) => primary(b) - primary(a) || secondary(b) - secondary(a))
+    .map((e, i) => ({ ...e, rank: i + 1 }));
+}
+
 function LeaderboardSection() {
   const [period, setPeriod] = useState<LeaderboardPeriod>("week");
+  const [rankBy, setRankBy] = useState<RankBy>("streak");
   const {
     data: entries,
     isPending,
@@ -331,7 +353,7 @@ function LeaderboardSection() {
     <Card variant="panel" padding="lg" as="section" aria-labelledby="board-h">
       <div className={styles.boardHeader}>
         <h2 className={styles.sectionTitle} id="board-h">
-          Learnora Leaderboard
+          Your circle
         </h2>
         <div
           className={styles.periodTabs}
@@ -352,6 +374,23 @@ function LeaderboardSection() {
           ))}
         </div>
       </div>
+      <div
+        className={styles.periodTabs}
+        role="group"
+        aria-label="Rank by"
+      >
+        {RANK_BY.map((r) => (
+          <button
+            key={r.value}
+            type="button"
+            aria-pressed={rankBy === r.value}
+            className={`${styles.periodTab} ${rankBy === r.value ? styles.periodTabActive : ""}`}
+            onClick={() => setRankBy(r.value)}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
       {isPending ? (
         <Skeleton label="Loading the leaderboard" height={120} />
       ) : isError ? (
@@ -369,7 +408,7 @@ function LeaderboardSection() {
         />
       ) : (
         <ul className={styles.rowList}>
-          {entries.map((entry) => (
+          {rankEntries(entries, rankBy).map((entry) => (
             <li key={entry.user_id}>
               <LeaderboardRow
                 entry={entry}
@@ -388,7 +427,7 @@ export function FriendsView() {
     <div className={styles.view}>
       <PageHeader
         title="Your study circle"
-        sub="Compare focus time with people you actually study with. Only accepted friends can see your minutes and streak."
+        sub="Keep each other going with people you actually study with. Only accepted friends can see your streak and focus time."
       />
       <InviteCard />
       <RequestsSection />

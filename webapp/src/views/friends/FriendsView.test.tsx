@@ -245,11 +245,28 @@ describe("FriendsView", () => {
     expect(screen.getByText("Grace H.")).toBeInTheDocument();
   });
 
+  /* Consistency leads, so the board rewards showing up rather than the
+     longest hours; focus time is one tap away. */
+  it("ranks by consistency by default, and by focus time on request", async () => {
+    const steady = { ...FRIEND, user_id: "steady", full_name: "Steady Sam", weekly_minutes: 60, streak: 9, rank: 2 };
+    const grinder = { ...FRIEND, user_id: "grind", full_name: "Grind Gia", weekly_minutes: 600, streak: 1, rank: 1 };
+    serveLeaderboard([grinder, steady, ME]);
+    renderFriends();
+
+    await screen.findByText("Your circle");
+    const names = () =>
+      screen.getAllByRole("listitem").map((li) => li.textContent ?? "");
+    await waitFor(() => expect(names()[0]).toContain("Steady"));
+
+    await userEvent.click(screen.getByRole("button", { name: "Most focus time" }));
+    expect(names()[0]).toContain("Grind");
+  });
+
   it("names itself and offers the three periods", async () => {
     serveLeaderboard([FRIEND, ME]);
     renderFriends();
 
-    expect(await screen.findByText("Learnora Leaderboard")).toBeInTheDocument();
+    expect(await screen.findByText("Your circle")).toBeInTheDocument();
     const tabs = screen.getAllByRole("tab");
     expect(tabs.map((t) => t.textContent)).toEqual([
       "This week",
@@ -271,7 +288,7 @@ describe("FriendsView", () => {
     renderFriends();
 
     const user = userEvent.setup();
-    await screen.findByText("Learnora Leaderboard");
+    await screen.findByText("Your circle");
     await user.click(screen.getByRole("tab", { name: "All time" }));
 
     await waitFor(() => expect(periods).toContain("all"));

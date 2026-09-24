@@ -106,8 +106,25 @@ describe("SocraticSparringView", () => {
     ).toBeInTheDocument();
   });
 
+  /* Reading questions aloud is opt-in: a session that talked the moment it
+     started was a surprise in a classroom or on a bus. */
+  it("does not read aloud until the student turns it on, then remembers", async () => {
+    const user = userEvent.setup();
+    renderWithAuth(<SocraticSparringView />, { session: fakeSession() }, { withRouter: true });
+
+    const toggle = screen.getByRole("button", { name: /Read aloud: Off/ });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await user.click(toggle);
+    expect(screen.getByRole("button", { name: /Read aloud: On/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(localStorage.getItem("learnora_viva_read_aloud")).toBe("true");
+  });
+
   it("starts sparring session when selecting a starter topic and renders stage & dialogue stream", async () => {
     const user = userEvent.setup();
+    localStorage.setItem("learnora_viva_read_aloud", "true");
 
     vi.spyOn(aiSparringModule, "startSparringSession").mockResolvedValueOnce({
       id: "sess-100",
@@ -166,7 +183,8 @@ describe("SocraticSparringView", () => {
       ),
     ).toBeInTheDocument();
 
-    // Verify speech synthesis played Alex's prompt
+    // Verify speech synthesis played Alex's prompt (read-aloud turned on
+    // below via the stored preference; it is off by default).
     expect(mockSpeak).toHaveBeenCalledWith(
       "Why don't action-reaction pairs cancel each other out?",
       expect.objectContaining({ persona: "alex" }),
