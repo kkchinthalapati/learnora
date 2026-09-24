@@ -107,6 +107,21 @@ export function useQuizDraft<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* A reload or a closed tab never unmounts React, so the flush above does
+     not run then — and an answer given in the last moment before refreshing
+     sat in the debounce and was lost. `pagehide` fires on reload, close and
+     mobile tab discard alike. */
+  useEffect(() => {
+    const flush = () => {
+      if (!dirtyRef.current) return;
+      dirtyRef.current = false;
+      cancelPending();
+      Storage.set(keyRef.current, valueRef.current);
+    };
+    window.addEventListener("pagehide", flush);
+    return () => window.removeEventListener("pagehide", flush);
+  }, [cancelPending]);
+
   useEffect(() => {
     if (!warnOnUnload) return;
     const handler = (e: BeforeUnloadEvent) => {

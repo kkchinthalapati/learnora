@@ -158,7 +158,9 @@
   color: var(--text);
   font-size: var(--fs-sm);
   font-weight: 600;
+  font-family: inherit;
   text-decoration: none;
+  cursor: pointer;
 }
 
 .actionLink:hover {
