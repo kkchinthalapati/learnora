@@ -14,6 +14,15 @@ import {
 void initMonitoring();
 installGlobalErrorHandlers();
 
+/* The web-font stylesheet loads as media="print" so it never blocks the
+ * first paint (see index.html). Switching it here rather than in an inline
+ * onload, which the Content-Security-Policy forbids. */
+for (const link of document.querySelectorAll<HTMLLinkElement>(
+  "link[data-font-swap]",
+)) {
+  link.media = "all";
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />

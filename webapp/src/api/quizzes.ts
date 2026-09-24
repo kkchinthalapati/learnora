@@ -2,6 +2,20 @@ import { supabase } from "../lib/supabase";
 import { requireUserId } from "./session";
 import type { Quiz, QuizAttempt, WeakTopic } from "./types";
 import { isDuplicateAttempt } from "../lib/attemptKey";
+import {
+  answerForIndex,
+  parseStoredAnswers,
+  parseStoredQuestions,
+} from "../views/quiz/quizMeta";
+
+/** The most recent question a student got wrong on a topic, for handing to
+ *  the solver as the actual mistake rather than just the topic's name. */
+export interface WrongAnswerExample {
+  question: string;
+  chosen: string;
+  correct: string;
+  folderId: string | null;
+}
 
 /* Direct port of js/api.js's `Quizzes` object (:1006-1123). */
 export const quizzesApi = {
@@ -142,5 +156,52 @@ export const quizzesApi = {
       .sort((a, b) => b[1] - a[1])
       .slice(0, limit)
       .map(([topic, count]) => ({ topic, count }));
+  },
+
+  /* The solver's "from your recent quizzes" list used to fill in only "I keep
+     getting <topic> wrong", though the attempt holds the question, the answer
+     picked and the right one. A null here just means the solver falls back
+     to that sentence. */
+  async fetchLatestWrongAnswer(topic: string): Promise<WrongAnswerExample | null> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from("quiz_attempts")
+      .select("quiz_id, answers_json, weak_topics")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (error) throw new Error(error.message);
+
+    const attempt = (
+      (data ?? []) as {
+        quiz_id: string;
+        answers_json: unknown;
+        weak_topics: string[] | null;
+      }[]
+    ).find((a) => (a.weak_topics ?? []).includes(topic));
+    if (!attempt) return null;
+
+    const { data: quiz, error: quizError } = await supabase
+      .from("quizzes")
+      .select("questions_json, folder_id")
+      .eq("id", attempt.quiz_id)
+      .maybeSingle();
+    if (quizError || !quiz) return null;
+
+    const questions = parseStoredQuestions(quiz.questions_json);
+    const answers = parseStoredAnswers(attempt.answers_json);
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      const given = answerForIndex(answers, questions, i);
+      if (!given || given.correct) continue;
+      if ((q.topic ?? given.topic) !== topic) continue;
+      return {
+        question: q.question,
+        chosen: q.choices[given.chosenIndex] ?? "",
+        correct: q.choices[q.correctIndex],
+        folderId: (quiz.folder_id as string | null) ?? null,
+      };
+    }
+    return null;
   },
 };

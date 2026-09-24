@@ -1389,7 +1389,7 @@ Difficulty: ${difficulty}
 ${seededBlock}
 Rules:
 1. Write a 3-5 sentence draft representing the apprentice's flawed understanding of ${safeTopic} written in character as ${profile.name}.
-2. Include 2-3 subtle, plausible conceptual misconceptions typical of this persona and topic.
+2. Include 2-3 subtle, plausible conceptual misconceptions typical of this persona and topic. Each one must be wrong by the standard of a school exam syllabus: never flag something a school textbook teaches as correct (for example, that an enzyme has an optimum temperature), even if a university course would add nuance to it.
 3. Include an engaging challenge question the apprentice asks the user.
 4. Write in everyday British English appropriate for ${profile.name}. Short sentences, relatable phrasing.
 5. Output in valid JSON matching this schema:
@@ -1619,6 +1619,15 @@ Output valid JSON only, matching this schema:
     feedback,
   };
 }
+
+/* The rating as a sentence. Dropping it into "you're a …" produced "you're a
+   getting there" for two of the four ratings. */
+const RATING_SENTENCE: Record<FeynmanDebriefReport["pedagogicalRating"], string> = {
+  "Brilliant explainer": "On this showing, you're a brilliant explainer.",
+  "Good explainer": "On this showing, you're a good explainer.",
+  "Getting there": "On this showing, you're getting there.",
+  "Needs a bit more practice": "On this showing, it needs a bit more practice.",
+};
 
 /** Keyword-and-shape scorer, used when the model can't be reached.
  *
@@ -2032,9 +2041,11 @@ export async function generateFeynmanDebrief(
 
   // Targeted Flashcards based on session discoveries
   const generatedFlashcards: FeynmanFlashcardCandidate[] = draft.hiddenMisconceptions.map((m) => ({
-    front: `In ${draft.topic}, what is the common misconception regarding "${m.snippet}"?`,
+    /* A question a student can answer from memory. It used to ask "what is
+       the common misconception regarding …", which only restates the card. */
+    front: `${draft.topic}: what's wrong with saying "${m.snippet}"?`,
     back: `${m.explanation}\n\nAccurate understanding: ${m.correctedSnippet}`,
-    rationale: `From the session where you explained this to ${profile.name}.`,
+    rationale: `From the session where you explained this to ${profile.shortName}.`,
     concept: m.concept,
   }));
 
@@ -2054,8 +2065,8 @@ export async function generateFeynmanDebrief(
 
   const summary =
     totalTurns === 0
-      ? `You didn't actually explain "${draft.topic}" to ${profile.name} — nothing you sent was something they could learn from, so they're still on ${finalScore}%. Start a fresh go and talk them through it in your own words.`
-      : `You explained "${draft.topic}" to ${profile.name}. Over ${totalTurns} message${totalTurns === 1 ? "" : "s"} you took them from 20% to ${finalScore}%. On this showing, you're a ${pedagogicalRating.toLowerCase()}.${ignoredNote}`;
+      ? `You didn't actually explain "${draft.topic}" to ${profile.shortName} — nothing you sent was something they could learn from, so they're still on ${finalScore}%. Start a fresh go and talk them through it in your own words.`
+      : `You explained "${draft.topic}" to ${profile.shortName}. Over ${totalTurns} message${totalTurns === 1 ? "" : "s"} you took them from 20% to ${finalScore}%. ${RATING_SENTENCE[pedagogicalRating]}${ignoredNote}`;
 
   return {
     overallMastery,

@@ -146,7 +146,7 @@ export function NotificationsTab() {
               Timer Alerts
             </span>
             <p className={styles.fieldDesc}>
-              Alert when a focus session, countdown, or flowtime block ends.
+              Alert when a focus session, countdown or Flow session ends.
             </p>
           </div>
           <div className={styles.fieldAction}>
@@ -228,7 +228,7 @@ export function NotificationsTab() {
               {!isPushSupported()
                 ? "Your browser does not support push notifications."
                 : !VAPID_PUBLIC_KEY
-                  ? "Push isn't configured on this deployment yet."
+                  ? "Reminders while Learnora is closed aren't available yet. The reminders above work while it's open."
                   : push.status === "checking"
                     ? "Checking…"
                     : push.status === "subscribed"

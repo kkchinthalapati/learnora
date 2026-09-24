@@ -801,7 +801,7 @@ export function SocraticSparringView() {
           >
             <div className={styles.dialogueSectionHeader}>
               <h2 className={styles.dialogueSectionTitle}>
-                Live Socratic Exchange
+                Conversation
               </h2>
               <div className={styles.headerControls}>
                 <Button
@@ -821,7 +821,7 @@ export function SocraticSparringView() {
                   onClick={handleSkipOrNewAngle}
                   disabled={isSubmitting}
                 >
-                  Next Socratic Angle
+                  Ask me something else
                 </Button>
               </div>
             </div>
@@ -870,7 +870,7 @@ export function SocraticSparringView() {
                           <div className={styles.parsingHeader}>
                             <span className={styles.parsingTitle}>
                               <Icon name="check-circle" size={14} />
-                              <span>Viva Assessment</span>
+                              <span>How you did</span>
                             </span>
 
                             <div className={styles.scoresRow}>

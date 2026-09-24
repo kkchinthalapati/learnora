@@ -529,3 +529,12 @@
   color: var(--text-muted);
   font-size: var(--fs-xs);
 }
+
+.degradedChecklist {
+  margin: var(--s-2) 0 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: var(--s-2);
+  color: var(--text);
+  line-height: 1.5;
+}

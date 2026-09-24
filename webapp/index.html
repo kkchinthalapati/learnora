@@ -42,8 +42,10 @@
          or firewalled.
 
          `media="print"` makes it non-blocking (print styles are not needed to
-         paint the screen); the onload swaps it to `all` the moment it lands,
-         at which point the real faces apply. That trades the block for a brief
+         paint the screen); main.tsx swaps it to `all`, and it applies the
+         moment it lands. (This was an inline onload="this.media='all'" until
+         2026-09-24: the app's Content-Security-Policy has no 'unsafe-inline',
+         so production blocked the handler and never loaded the fonts at all.) That trades the block for a brief
          flash of the fallback stack — which the URL's own `display=swap`
          already opted into for the font *files*, so this only extends the same
          decision to the stylesheet that names them. The <noscript> copy keeps
@@ -52,7 +54,7 @@
       href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap"
       rel="stylesheet"
       media="print"
-      onload="this.media='all'"
+      data-font-swap
     />
     <noscript>
       <link

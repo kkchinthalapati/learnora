@@ -502,7 +502,7 @@ export function FeynmanHubView() {
                         {sess.topic} <span className={styles.sessionSub}>({sess.subject})</span>
                       </div>
                       <div className={styles.sessionSub}>
-                        <span>Taught {persona.name}</span>
+                        <span>Taught {persona.shortName}</span>
                         {analogyProfile && (
                           <>
                             <span>•</span>
