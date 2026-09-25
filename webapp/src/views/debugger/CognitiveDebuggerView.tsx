@@ -24,6 +24,7 @@ import { CognitiveCrossLinkBar } from "../../components/ai/CognitiveCrossLinkBar
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import { useRecordMisconceptions } from "../../hooks/useMisconceptions";
 import { candidatesFromStackTrace } from "../../lib/misconceptions";
+import { displaySubjectName } from "../../lib/subjectName";
 import { useAuth } from "../../context/auth";
 import { useFolders } from "../../hooks/useFolders";
 import styles from "./CognitiveDebuggerView.module.css";
@@ -109,12 +110,19 @@ export function CognitiveDebuggerView() {
   const { data: folders = [] } = useFolders();
   const [subject, setSubject] = useState(restoredWork?.subject ?? "");
   const folderNames = folders.map((f) => f.name).filter(Boolean);
-  const effectiveSubject = subject || folderNames[0] || SUBJECT_OPTIONS[0];
+  const requestedSubject = subject || folderNames[0] || SUBJECT_OPTIONS[0];
   /* Case-insensitive: a folder called "maths" and the built-in "Maths" were
      both listed. The folder's spelling wins, since it's the student's. */
-  const subjectOptions = [...folderNames, ...SUBJECT_OPTIONS, effectiveSubject].filter(
+  const subjectOptions = [...folderNames, ...SUBJECT_OPTIONS, requestedSubject].filter(
     (s, i, all) => all.findIndex((t) => t.toLowerCase() === s.toLowerCase()) === i,
   );
+  /* Resolve to the option that survived the dedupe. The "Maths" preset with a
+     "maths" folder otherwise left the <select> with no exact match, so it
+     displayed its first option (another subject entirely) while the diagnosis
+     ran on Maths — the form and the result named different subjects. */
+  const effectiveSubject =
+    subjectOptions.find((s) => s.toLowerCase() === requestedSubject.toLowerCase()) ??
+    requestedSubject;
   const [mistakeDescription, setMistakeDescription] = useState(restoredWork?.mistakeDescription ?? "");
   const [context, setContext] = useState(restoredWork?.context ?? "");
 
@@ -446,7 +454,7 @@ I answered "${example.chosen}" but the answer was "${example.correct}".`,
               >
                 {subjectOptions.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {displaySubjectName(s)}
                   </option>
                 ))}
               </select>
@@ -617,7 +625,7 @@ I answered "${example.chosen}" but the answer was "${example.correct}".`,
                     <span>{isAllRepaired ? "You've fixed it" : "Here's where it started"}</span>
                   </div>
                   <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                    Subject: {activeTrace.subject}
+                    Subject: {displaySubjectName(activeTrace.subject)}
                   </span>
                 </div>
                 <p className={styles.rootCauseSummaryText}>
@@ -831,7 +839,7 @@ I answered "${example.chosen}" but the answer was "${example.correct}".`,
             >
               <div>
                 <strong style={{ color: "var(--text, #fff)", display: "block" }}>
-                  {t.subject}: {t.failedQuestionOrTopic}
+                  {displaySubjectName(t.subject)}: {t.failedQuestionOrTopic}
                 </strong>
                 <span style={{ fontSize: "0.75rem", color: "var(--text-muted, #9ca3af)" }}>
                   {new Date(t.timestamp).toLocaleString()} • {t.layers.length} steps

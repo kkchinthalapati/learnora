@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef } from "react";
 import { useExams } from "../../hooks/useExams";
 import { useFolders } from "../../hooks/useFolders";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
+import { displaySubjectName } from "../../lib/subjectName";
 import styles from "./examDetective.module.css";
 
 /* Which subject the trap tooling is working on.
@@ -106,7 +107,7 @@ export function SubjectPicker({
             <optgroup label="Your exams">
               {options.examNames.map((name) => (
                 <option key={`exam-${name}`} value={name}>
-                  {name}
+                  {displaySubjectName(name)}
                 </option>
               ))}
             </optgroup>
@@ -115,7 +116,7 @@ export function SubjectPicker({
             <optgroup label="Your subjects">
               {options.folderNames.map((name) => (
                 <option key={`folder-${name}`} value={name}>
-                  {name}
+                  {displaySubjectName(name)}
                 </option>
               ))}
             </optgroup>

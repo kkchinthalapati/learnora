@@ -101,6 +101,9 @@
 
 .hero {
   display: flex;
+  /* Card's elevated variant is a column; this lays out as a row that wraps.
+     Left as a column, the verdict's 16rem flex-basis became its *height*. */
+  flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;

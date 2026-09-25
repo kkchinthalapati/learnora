@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import { formatMonthDay, parseLocalDate } from "../../lib/date";
 import type { TrajectoryForecast } from "../../lib/trajectory";
 import styles from "./trajectory.module.css";
@@ -11,9 +12,15 @@ import styles from "./trajectory.module.css";
  *
  * Inline SVG rather than a charting library: this is two paths, and a
  * dependency would cost more in bundle than the whole feature. Every colour is
- * a token, so it reads correctly in both themes. */
+ * a token, so it reads correctly in both themes.
+ *
+ * The viewBox is sized to the rendered width rather than stretched to it.
+ * A fixed 640-wide viewBox with preserveAspectRatio="none" squashed on phones
+ * and smeared on desktops — labels, dots and dashes all went oval, so the
+ * chart read like a stretched PNG. Drawing in real pixels keeps text and
+ * strokes at their true shape at every width. */
 
-const W = 640;
+const DEFAULT_W = 640;
 const H = 200;
 const PAD = { top: 16, right: 12, bottom: 24, left: 34 };
 
@@ -22,6 +29,23 @@ interface TrajectoryChartProps {
 }
 
 export function TrajectoryChart({ forecast }: TrajectoryChartProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [W, setW] = useState(DEFAULT_W);
+
+  useLayoutEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const measure = () => {
+      const width = Math.round(el.getBoundingClientRect().width);
+      if (width > 0) setW(width);
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const points = forecast.curve;
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
@@ -62,9 +86,9 @@ export function TrajectoryChart({ forecast }: TrajectoryChartProps) {
   return (
     <figure className={styles.chartFigure}>
       <svg
+        ref={svgRef}
         className={styles.chart}
         viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="none"
         role="img"
         aria-label={summary}
       >
