@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef } from "react";
 import { useExams } from "../../hooks/useExams";
 import { useFolders } from "../../hooks/useFolders";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
+import { displaySubjectName } from "../../lib/subjectName";
 import styles from "./examDetective.module.css";
 
 /* Which subject the trap tooling is working on.
@@ -20,14 +21,6 @@ import styles from "./examDetective.module.css";
  */
 
 export const CUSTOM_SUBJECT = "__custom__";
-
-/* Exam and folder names are whatever the student typed, so one list can hold
-   "Biology" next to "maths". Capitalise the first letter for display only —
-   the option value stays the stored name, so matching against folders and
-   exams is unchanged. */
-function displayName(name: string) {
-  return name.charAt(0).toUpperCase() + name.slice(1);
-}
 
 interface SubjectPickerProps {
   /** The resolved subject string the tools should use. */
@@ -114,7 +107,7 @@ export function SubjectPicker({
             <optgroup label="Your exams">
               {options.examNames.map((name) => (
                 <option key={`exam-${name}`} value={name}>
-                  {displayName(name)}
+                  {displaySubjectName(name)}
                 </option>
               ))}
             </optgroup>
@@ -123,7 +116,7 @@ export function SubjectPicker({
             <optgroup label="Your subjects">
               {options.folderNames.map((name) => (
                 <option key={`folder-${name}`} value={name}>
-                  {displayName(name)}
+                  {displaySubjectName(name)}
                 </option>
               ))}
             </optgroup>

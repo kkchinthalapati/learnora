@@ -56,6 +56,28 @@ describe("CognitiveDebuggerView", () => {
     expect(screen.getByLabelText("Subject")).toHaveValue("Maths");
   });
 
+  it("selects the student's own folder when a preset names it in a different case", async () => {
+    /* The QA case: folders "Lol" and "maths", Maths preset tapped. The select
+       showed "Lol" while the diagnosis ran — and was labelled — "Maths". */
+    server.use(
+      http.get(rest("folders"), () =>
+        HttpResponse.json([
+          { id: "f-lol", name: "Lol", user_id: "user-1" },
+          { id: "f-maths", name: "maths", user_id: "user-1" },
+        ]),
+      ),
+    );
+    renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+
+    const select = screen.getByLabelText("Subject") as HTMLSelectElement;
+    await waitFor(() => expect(select).toHaveValue("Lol"));
+
+    fireEvent.click(screen.getByTestId("preset-btn-0"));
+
+    expect(select).toHaveValue("maths");
+    expect(select.selectedOptions[0].textContent).toBe("Maths");
+  });
+
   it("restores an unfinished solver draft after leaving the page", async () => {
     const view = renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
     fireEvent.change(screen.getByTestId("mistake-input"), { target: { value: "Missed the chain rule" } });
