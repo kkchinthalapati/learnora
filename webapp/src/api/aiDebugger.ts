@@ -20,11 +20,12 @@ export interface CognitiveLayer {
   prerequisiteOf?: string;
 }
 
-/** Why a trace is a stand-in rather than a real diagnosis.
+/** Why the tutor's work is missing: a trace that is a stand-in rather than a
+ *  real diagnosis, or a fix-it exercise that could not be made.
  *
  *  `unavailable` — the tutor could not be reached at all (network, 5xx, or
  *  the student's daily allowance is spent).
- *  `unreadable`  — the tutor answered, but not with a usable diagnosis. */
+ *  `unreadable`  — the tutor answered, but not with anything usable. */
 export interface DegradedDiagnosis {
   reason: "unavailable" | "unreadable";
   /** The real failure, in the server's own words where it had any. Shown to
@@ -60,6 +61,12 @@ export interface MicroRepairChallenge {
   interactiveExercise: InteractiveExercise;
   verified: boolean;
 }
+
+/** What "Fix it" produced: an exercise the tutor wrote, or why there isn't
+ *  one. Never a stand-in exercise — see `generateMicroRepair`. */
+export type MicroRepairResult =
+  | { challenge: MicroRepairChallenge; degraded?: undefined }
+  | { challenge?: undefined; degraded: DegradedDiagnosis };
 
 export const STORAGE_KEY_TRACES = "learnora_cognitive_traces_v1";
 export const STORAGE_KEY_REPAIRS = "learnora_micro_repairs_v1";
@@ -256,27 +263,6 @@ function createFallbackDiagnosis(
   };
 }
 
-/** Fallback generator for micro repair when offline or in test environments */
-function createFallbackMicroRepair(rootConcept: string): MicroRepairChallenge {
-  return {
-    id: generateId(),
-    rootConcept,
-    intuitionSummary: `${rootConcept} isn\u2019t a random rule to memorise. It\u2019s a promise that something stays the same. Every step you take has to keep that promise.`,
-    interactiveExercise: {
-      prompt: `When you use "${rootConcept}", what is the one thing that has to stay true at every step?`,
-      options: [
-        "The units and logic must balance.",
-        "Only the final number matters.",
-        "Signs can flip when it looks right.",
-        "Shortcuts can replace the basics.",
-      ],
-      correctIndex: 0,
-      firstPrinciplesExplanation: `If the thing that has to stay the same really does stay the same at every step, the mistake never gets a chance to creep in.`,
-    },
-    verified: false,
-  };
-}
-
 /** Diagnose cognitive root cause and generate a 3-layer Mental Stack Trace */
 export async function diagnoseCognitiveGap(
   subject: string,
@@ -372,55 +358,69 @@ export async function diagnoseCognitiveGap(
   return trace;
 }
 
-/** Generate a 60-second first-principles interactive micro-repair */
-export async function generateMicroRepair(rootConcept: string): Promise<MicroRepairChallenge> {
+/** Generate a 60-second first-principles interactive micro-repair.
+ *
+ *  When the tutor can't write one, this says why and offers nothing else.
+ *  It used to hand back a template instead ("what has to stay true at every
+ *  step?", the answer always A), and passing that did everything a real pass
+ *  does: the view said the gap was closed, the forecast credited the concept,
+ *  and a correction went into the misconception ledger. A row the diagnosis
+ *  wrote once is resolved by two corrections, and the free plan's two
+ *  Debugger calls a day are spent by one diagnosis and one real repair, so
+ *  "Go over it again" was exactly where the template appeared: its pass was
+ *  the second correction, and a 429 closed a real misconception. */
+export async function generateMicroRepair(rootConcept: string): Promise<MicroRepairResult> {
   const prompt = buildMicroRepairPrompt(rootConcept);
 
+  let parsed: any;
   try {
     const result = await callEdge({
       history: [{ role: "user", content: prompt }],
       mode: "solver",
       tool: "debugger",
     });
-
-    const parsed = extractJSON<any>(result.text);
-    if (!parsed) throw new Error("Could not read the AI's answer");
-
-    if (
-      parsed &&
-      typeof parsed.intuitionSummary === "string" &&
-      parsed.interactiveExercise &&
-      Array.isArray(parsed.interactiveExercise.options)
-    ) {
-      const challenge: MicroRepairChallenge = {
-        id: generateId(),
-        rootConcept: parsed.rootConcept || rootConcept,
-        intuitionSummary: parsed.intuitionSummary,
-        interactiveExercise: {
-          prompt: parsed.interactiveExercise.prompt || `What does ${rootConcept} actually mean?`,
-          options: parsed.interactiveExercise.options,
-          correctIndex:
-            typeof parsed.interactiveExercise.correctIndex === "number" &&
-            parsed.interactiveExercise.correctIndex >= 0 &&
-            parsed.interactiveExercise.correctIndex < parsed.interactiveExercise.options.length
-              ? parsed.interactiveExercise.correctIndex
-              : 0,
-          firstPrinciplesExplanation:
-            parsed.interactiveExercise.firstPrinciplesExplanation ||
-            "Nice — that's the idea.",
-        },
-        verified: false,
-      };
-      saveRepair(challenge);
-      return challenge;
-    }
+    parsed = extractJSON<any>(result.text);
   } catch (err) {
-    console.warn("Micro-repair generation fallback activated:", err);
+    console.warn("Micro-repair generation failed:", err);
+    return { degraded: { reason: "unavailable", message: studentFacingReason(err) } };
   }
 
-  const fallback = createFallbackMicroRepair(rootConcept);
-  saveRepair(fallback);
-  return fallback;
+  const exercise = parsed?.interactiveExercise;
+  const options: unknown[] = Array.isArray(exercise?.options) ? exercise.options : [];
+  const correctIndex = exercise?.correctIndex;
+  /* Passing is recorded as evidence, so an exercise has to be passable only
+     by knowing the answer: at least two options, and a right answer the
+     tutor actually named rather than one assumed for it. */
+  if (
+    typeof parsed?.intuitionSummary !== "string" ||
+    options.length < 2 ||
+    !Number.isInteger(correctIndex) ||
+    correctIndex < 0 ||
+    correctIndex >= options.length
+  ) {
+    return {
+      degraded: {
+        reason: "unreadable",
+        message: "The tutor replied, but not with an exercise we could use.",
+      },
+    };
+  }
+
+  const challenge: MicroRepairChallenge = {
+    id: generateId(),
+    rootConcept: parsed.rootConcept || rootConcept,
+    intuitionSummary: parsed.intuitionSummary,
+    interactiveExercise: {
+      prompt: exercise.prompt || `What does ${rootConcept} actually mean?`,
+      options: options.map(String),
+      correctIndex,
+      firstPrinciplesExplanation:
+        exercise.firstPrinciplesExplanation || "Nice — that's the idea.",
+    },
+    verified: false,
+  };
+  saveRepair(challenge);
+  return { challenge };
 }
 
 /** Record that a repair challenge was successfully completed and restore the broken circuit */
