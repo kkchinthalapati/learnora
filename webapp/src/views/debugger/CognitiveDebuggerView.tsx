@@ -9,6 +9,7 @@ import {
   getSavedTraces,
   recordRepairSuccess,
   type CognitiveStackTrace,
+  type DegradedDiagnosis,
   type MicroRepairChallenge,
 } from "../../api/aiDebugger";
 import { quizzesApi } from "../../api/quizzes";
@@ -132,6 +133,11 @@ export function CognitiveDebuggerView() {
   const [repairModalOpen, setRepairModalOpen] = useState(false);
   const [isGeneratingRepair, setIsGeneratingRepair] = useState(false);
   const [activeRepair, setActiveRepair] = useState<MicroRepairChallenge | null>(null);
+  /* Why the last "Fix it" came back without an exercise, and for which trace,
+     so opening another trace can't leave the notice under the wrong one. */
+  const [repairProblem, setRepairProblem] = useState<
+    (DegradedDiagnosis & { traceId: string }) | null
+  >(null);
   const [isRepairingCelebration, setIsRepairingCelebration] = useState(false);
 
   // Load initial history, weak topics, and check for bridged cognitive context
@@ -248,8 +254,15 @@ I answered "${example.chosen}" but the answer was "${example.correct}".`,
 
     setIsGeneratingRepair(true);
     try {
-      const challenge = await generateMicroRepair(rootLayer ? rootLayer.concept : activeTrace.failedQuestionOrTopic);
-      setActiveRepair(challenge);
+      const result = await generateMicroRepair(rootLayer ? rootLayer.concept : activeTrace.failedQuestionOrTopic);
+      /* No exercise, no quick check: the gap stays open and the notice below
+         says why. Only an exercise the tutor wrote can show it has closed. */
+      if (result.degraded) {
+        setRepairProblem({ ...result.degraded, traceId: activeTrace.id });
+        return;
+      }
+      setRepairProblem(null);
+      setActiveRepair(result.challenge);
       setRepairModalOpen(true);
     } finally {
       setIsGeneratingRepair(false);
@@ -330,6 +343,8 @@ I answered "${example.chosen}" but the answer was "${example.correct}".`,
 
   const rootLayer = activeTrace?.layers.find((l) => l.level === 1);
   const isAllRepaired = activeTrace?.layers.every((l) => l.status === "healthy");
+  const shownRepairProblem =
+    repairProblem && repairProblem.traceId === activeTrace?.id ? repairProblem : null;
 
   return (
     <div className={styles.container} data-testid="cognitive-debugger-view">
@@ -663,6 +678,31 @@ I answered "${example.chosen}" but the answer was "${example.correct}".`,
                   </Button>
                 )}
               </div>
+
+              {shownRepairProblem && (
+                <div
+                  className={styles.degradedNotice}
+                  role="alert"
+                  data-testid="repair-unavailable"
+                >
+                  <Icon name="alert-triangle" size={16} />
+                  <div>
+                    <strong>We couldn&rsquo;t set up the exercise.</strong>
+                    <p>
+                      {shownRepairProblem.message} This diagnosis is saved in
+                      Past mistakes, so you can come back to it.
+                    </p>
+                    <button
+                      type="button"
+                      className={styles.degradedRetry}
+                      onClick={() => void handleLaunchMicroRepair()}
+                      disabled={isGeneratingRepair}
+                    >
+                      Try again
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Three-layer breakdown timeline */}
               <div className={styles.stackTraceContainer}>

@@ -1,4 +1,4 @@
-import { screen, fireEvent, waitFor } from "@testing-library/react";
+import { screen, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
@@ -271,6 +271,73 @@ describe("CognitiveDebuggerView", () => {
         "All three steps hold up",
       );
     }, { timeout: 5000 });
+  });
+
+  /* The free plan's two Debugger calls a day are spent by one diagnosis and
+     one repair, so the next "Fix it" is usually a 429. That used to open a
+     template exercise whose pass closed the gap and wrote a correction to
+     the ledger. */
+  it("says why there's no exercise when the tutor can't write one, and leaves the gap open", async () => {
+    const user = userEvent.setup();
+    const refusal =
+      "You've used today's allowance for this tool on the free plan. It resets at midnight — or Learnora Plus/Pro raises the limit.";
+    let tutorBack = false;
+
+    server.use(
+      http.post(EDGE_URL, async ({ request }) => {
+        const body = (await request.json()) as any;
+        const prompt = body.history?.[0]?.content || "";
+
+        if (prompt.includes("Cognitive Root-Cause Debugger")) {
+          return HttpResponse.json({
+            text: JSON.stringify({
+              rootCauseSummary: "Bedrock gap in invariant energy conservation.",
+              layers: [
+                { level: 3, concept: "Pendulum Speed Error", status: "severed", explanation: "a" },
+                { level: 2, concept: "Kinetic-Potential Equivalence", status: "shaky", explanation: "b" },
+                { level: 1, concept: "Total Energy Invariance", status: "severed", explanation: "c" },
+              ],
+            }),
+          });
+        }
+
+        if (!tutorBack) {
+          return HttpResponse.json({ error: refusal, text: refusal }, { status: 429 });
+        }
+        return HttpResponse.json({
+          text: JSON.stringify({
+            rootConcept: "Total Energy Invariance",
+            intuitionSummary: "Energy in a closed system cannot vanish.",
+            interactiveExercise: {
+              prompt: "What is conserved in an isolated mechanical system?",
+              options: ["Total Energy", "Only Speed", "Only Position", "Nothing"],
+              correctIndex: 0,
+              firstPrinciplesExplanation: "Total energy remains invariant.",
+            },
+          }),
+        });
+      }),
+    );
+
+    renderWithAuth(<CognitiveDebuggerView />, { session: fakeSession() }, { withRouter: true });
+    await user.type(screen.getByTestId("mistake-input"), "Pendulum energy breakdown");
+    fireEvent.click(screen.getByTestId("diagnose-submit-btn"));
+    fireEvent.click(await screen.findByTestId("launch-micro-repair-btn", {}, { timeout: 5000 }));
+
+    const notice = await screen.findByTestId("repair-unavailable");
+    expect(notice).toHaveTextContent(/We couldn.t set up the exercise/);
+    expect(notice).toHaveTextContent(/used today's allowance/);
+    expect(screen.queryByTestId("repair-intuition-text")).not.toBeInTheDocument();
+    expect(screen.getByText("Here's where it started")).toBeInTheDocument();
+    expect(screen.queryByText(/You've fixed it/i)).not.toBeInTheDocument();
+
+    /* Once the tutor is back, the retry opens the exercise it wrote. */
+    tutorBack = true;
+    await user.click(within(notice).getByRole("button", { name: "Try again" }));
+    expect(await screen.findByTestId("repair-intuition-text")).toHaveTextContent(
+      "Energy in a closed system cannot vanish.",
+    );
+    expect(screen.queryByTestId("repair-unavailable")).not.toBeInTheDocument();
   });
 
   it("manages trace history and allows switching between traces", async () => {
