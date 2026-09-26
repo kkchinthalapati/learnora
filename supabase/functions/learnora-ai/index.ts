@@ -1162,6 +1162,15 @@ Deno.serve(async (req) => {
                     }
                     if (!text || !text.trim()) throw new Error(`Gemini (${modelName}) returned empty text`);
 
+                    // Gemini's own filters let the formula of methamphetamine
+                    // through, so its output gets the same screen as the
+                    // fallbacks. A hit is a verdict: return the refusal rather
+                    // than trying the next model or provider.
+                    if (screenForUnsafeContent(text)) {
+                        console.warn(`[safety] ${modelName} output refused by screen`, { mode, userId: user.id });
+                        return safetyRefusalResponse(mode, jsonHeaders);
+                    }
+
                     return new Response(JSON.stringify({
                         text: text,
                         modelUsed: modelName

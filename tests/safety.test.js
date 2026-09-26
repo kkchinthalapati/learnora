@@ -198,3 +198,34 @@ test('catches an unsafe recipe asked as a follow-up to an earlier turn', async (
     assert.strictEqual(screenConversation([{ role: 'user' }]), false);
   });
 });
+
+test('screens model output as well as the prompt', async (t) => {
+  // The screen now runs on Gemini's answers too, so a realistic answer is
+  // what it sees — not just a short topic string.
+  await t.test('the answer Learnora AI actually gave', () => {
+    assert.strictEqual(
+      screenForUnsafeContent('I can help you with that. The molecular formula for methamphetamine is $$C_{10}H_{15}N$$.'),
+      true,
+    );
+  });
+
+  await t.test('a synthesis route in an answer', () => {
+    assert.strictEqual(
+      screenForUnsafeContent('Methamphetamine is typically synthesised by reducing pseudoephedrine with red phosphorus.'),
+      true,
+    );
+  });
+
+  const legitimateAnswers = [
+    'Cocaine blocks the dopamine transporter, so dopamine builds up in the synapse.',
+    'Fentanyl is about 50 times more potent than heroin, which is why tiny amounts can cause an overdose.',
+    'In the 1980s the crack cocaine epidemic hit American cities hard, prompting harsher sentencing laws.',
+    'The molecular formula of methane is CH4, and methanol is CH3OH.',
+    'MDMA acts mainly on serotonin, which explains its effects on mood.',
+  ];
+  for (const answer of legitimateAnswers) {
+    await t.test(answer, () => {
+      assert.strictEqual(screenForUnsafeContent(answer), false);
+    });
+  }
+});
