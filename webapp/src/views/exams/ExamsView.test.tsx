@@ -26,6 +26,8 @@ const M = NOW.getMonth();
 const MONTH_LABEL = `${MONTH_NAMES[M]} ${Y}`;
 const DAYS_IN_MONTH = new Date(Y, M + 1, 0).getDate();
 const TODAY = localDateStr();
+/** Today's day of the month — the one cell that is always creatable. */
+const TODAY_DAY = NOW.getDate();
 
 /** A day in the displayed month — 1..28 is safe in every month. */
 const dayStr = (d: number) => formatDateStr(Y, M, d);
@@ -241,13 +243,43 @@ describe("ExamsView", () => {
     renderExams();
     await gridReady();
 
-    await user.click(cellFor(20));
+    await user.click(cellFor(TODAY_DAY));
 
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("New exam")).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("When is it?")).toHaveValue(
-      dayStr(20),
-    );
+    expect(within(dialog).getByLabelText("When is it?")).toHaveValue(TODAY);
+  });
+
+  it("won't start a new exam on an empty past day", async () => {
+    const user = userEvent.setup();
+    serveExams([]);
+    renderExams();
+    await gridReady();
+    await user.click(screen.getByRole("button", { name: "Previous Month" }));
+
+    const day = screen.getByRole("button", {
+      name: `${MONTH_NAMES[PREV.getMonth()]} 10, ${PREV.getFullYear()}`,
+    });
+    expect(day).toBeDisabled();
+    // A raw click on the cell body must not open the dialog either.
+    (day.parentElement as HTMLElement).click();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("still lists a past day's exams, but offers no + Add exam", async () => {
+    const user = userEvent.setup();
+    serveExams([exam({ exam_date: prevDayStr(10), exam_name: "Old Quiz" })]);
+    renderExams();
+    await gridReady();
+    await user.click(screen.getByRole("button", { name: "Previous Month" }));
+
+    await user.click(cellFor(10, PREV.getMonth(), PREV.getFullYear()));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/Exams on/)).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("button", { name: "+ Add exam" }),
+    ).toBeNull();
   });
 
   it("opens the day list instead when the day already has exams", async () => {
@@ -272,7 +304,9 @@ describe("ExamsView", () => {
     await gridReady();
 
     /* The day number is a real button, so it is what the keyboard reaches. */
-    screen.getByRole("button", { name: `${MONTH_NAMES[M]} 20, ${Y}` }).focus();
+    screen
+      .getByRole("button", { name: `${MONTH_NAMES[M]} ${TODAY_DAY}, ${Y}` })
+      .focus();
     await user.keyboard("{Enter}");
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
@@ -319,11 +353,11 @@ describe("ExamsView", () => {
 
   it("adds another exam for the same day from the day list", async () => {
     const user = userEvent.setup();
-    serveExams([exam({ exam_date: dayStr(20), exam_name: "First" })]);
+    serveExams([exam({ exam_date: TODAY, exam_name: "First" })]);
     renderExams();
     await gridReady();
 
-    await user.click(cellFor(20));
+    await user.click(cellFor(TODAY_DAY));
     await user.click(
       within(await screen.findByRole("dialog")).getByRole("button", {
         name: "+ Add exam",
@@ -332,9 +366,7 @@ describe("ExamsView", () => {
 
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("New exam")).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("When is it?")).toHaveValue(
-      dayStr(20),
-    );
+    expect(within(dialog).getByLabelText("When is it?")).toHaveValue(TODAY);
   });
 
   it("starts the toolbar's + Add exam on today", async () => {
@@ -356,7 +388,7 @@ describe("ExamsView", () => {
     renderExams();
     await gridReady();
 
-    await user.click(cellFor(20));
+    await user.click(cellFor(TODAY_DAY));
     await screen.findByRole("dialog");
     await user.keyboard("{Escape}");
 

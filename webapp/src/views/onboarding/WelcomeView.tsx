@@ -28,6 +28,7 @@ import { ToggleSwitch } from "../../components/ToggleSwitch";
 import { useAuth } from "../../context/auth";
 import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
+import { localDateStr } from "../../lib/date";
 import { useUpdateProfile } from "../../hooks/useAuthActions";
 import { useLifeContext } from "../../hooks/useLifeContext";
 import { useAddFolder } from "../../hooks/useFolders";
@@ -270,7 +271,9 @@ export function WelcomeView() {
       }
 
       const trimmedExam = examName.trim();
-      if (trimmedExam && examDate) {
+      /* The date field's `min` greys out past days, but a typed date gets
+         past it — an exam that has already happened is dropped, not saved. */
+      if (trimmedExam && examDate && examDate >= localDateStr()) {
         try {
           await saveExam.mutateAsync({
             payload: { exam_name: trimmedExam, exam_date: examDate },
@@ -743,6 +746,7 @@ export function WelcomeView() {
                       className={styles.input}
                       type="date"
                       value={examDate}
+                      min={localDateStr()}
                       onChange={(e) => setExamDate(e.target.value)}
                     />
                   </label>
@@ -750,6 +754,11 @@ export function WelcomeView() {
                 {examName.trim() && !examDate && (
                   <p className={styles.fieldNote}>
                     Add a date and this exam gets a countdown on your dashboard.
+                  </p>
+                )}
+                {examDate && examDate < localDateStr() && (
+                  <p className={styles.fieldNote} role="alert">
+                    That date has already passed — pick one from today on.
                   </p>
                 )}
               </Card>

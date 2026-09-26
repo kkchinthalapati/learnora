@@ -99,6 +99,11 @@ describe("ExamModal", () => {
     expect(screen.getByLabelText("When is it?")).toHaveAttribute("min", TODAY);
   });
 
+  it("starts a new exam on today rather than a past pre-filled date", () => {
+    renderModal({ initialDate: "2020-01-01" });
+    expect(screen.getByLabelText("When is it?")).toHaveValue(TODAY);
+  });
+
   it("drops the min for an existing exam, which may legitimately be past", () => {
     renderModal({ exam: existingExam() });
     expect(screen.getByLabelText("When is it?")).not.toHaveAttribute("min");
