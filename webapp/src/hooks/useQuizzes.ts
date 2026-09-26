@@ -89,6 +89,11 @@ export function useRecordQuizAttempt() {
     onSuccess: (_data, { quizId, answers, attemptKey }) => {
       qc.invalidateQueries({ queryKey: quizzesKeys.latestAttempt(quizId) });
       qc.invalidateQueries({ queryKey: ["quizzes", "weak-topics"] });
+      /* Every attempt, too: readiness, the forecast, Progress's quiz average
+         and the quiz list's "Last score" all read this list, and without it
+         a student who finished a quiz and went straight to Progress saw the
+         average from before it. */
+      qc.invalidateQueries({ queryKey: quizzesKeys.attempts });
       recordQuizMisconceptions(qc, quizId, answers, attemptKey);
     },
   });

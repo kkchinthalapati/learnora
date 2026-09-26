@@ -116,6 +116,23 @@ describe("useQuizDraft", () => {
     });
   });
 
+  it("flushes a pending write when the page is reloaded or closed", () => {
+    renderHook(() =>
+      useQuizDraft<Draft>("quiz-draft-p", { index: 1, answers: [2] }, {
+        enabled: true,
+      }),
+    );
+
+    // A reload does not unmount React; pagehide is what fires.
+    vi.advanceTimersByTime(100);
+    window.dispatchEvent(new Event("pagehide"));
+
+    expect(Storage.get<Draft>("quiz-draft-p")).toEqual({
+      index: 1,
+      answers: [2],
+    });
+  });
+
   it("registers a beforeunload handler only when warnOnUnload is true", () => {
     const addSpy = vi.spyOn(window, "addEventListener");
     renderHook(() =>

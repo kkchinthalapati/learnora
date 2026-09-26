@@ -49,8 +49,11 @@ describe("StudyLabView", () => {
     ledger.mockReturnValue({ ranked: [] });
   });
 
-  it("offers the three core routes", () => {
+  it("offers the core routes, including testing yourself", () => {
     renderLab();
+    expect(
+      screen.getByRole("link", { name: /Quizzes & flashcards/ }),
+    ).toHaveAttribute("href", "/library/quizzes");
     expect(screen.getByText("Step-by-step solver")).toBeInTheDocument();
     expect(screen.getByText("Explain it simply")).toBeInTheDocument();
     expect(screen.getByText("Oral practice")).toBeInTheDocument();

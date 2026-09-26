@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
+  calendarDayOf,
   formatDateStr,
   localDateStr,
   mondayOfWeek,
@@ -396,3 +397,17 @@ describe("date utils", () => {
   });
 });
 
+
+describe("calendarDayOf", () => {
+  it("keeps a bare date as it is", () => {
+    expect(calendarDayOf("2026-09-25")).toBe("2026-09-25");
+  });
+
+  /* A review scheduled for local midnight is stored as that instant in UTC,
+     which east of Greenwich is the previous UTC date. The day it names must
+     still be the student's own — in any timezone this suite runs in. */
+  it("reads a stored local-midnight instant as that local day", () => {
+    const localMidnight = new Date(2026, 8, 25, 0, 0, 0, 0);
+    expect(calendarDayOf(localMidnight.toISOString())).toBe("2026-09-25");
+  });
+});

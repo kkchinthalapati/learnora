@@ -141,6 +141,38 @@ describe("dataAdminApi.exportHTML", () => {
     }
   });
 
+  /* The report used to compute its own streak — UTC days, no minimum — so it
+     could disagree with the one on the dashboard. It must use the app's. */
+  it("reports the same streak the app shows (5-minute days, local dates)", async () => {
+    const at = (daysAgo: number, minutes: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() - daysAgo);
+      d.setHours(10, 0, 0, 0);
+      return { id: `s-${daysAgo}`, user_id: "user-1", started_at: d.toISOString(), minutes };
+    };
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/study_sessions`, () =>
+        HttpResponse.json([at(0, 30), at(1, 25), at(2, 2), at(3, 40)]),
+      ),
+    );
+    const origCreate = URL.createObjectURL;
+    let blob: Blob | null = null;
+    URL.createObjectURL = vi.fn((b: Blob) => {
+      blob = b;
+      return "blob:mock-url";
+    }) as unknown as typeof URL.createObjectURL;
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    try {
+      await dataAdminApi.exportHTML();
+      const html = await (blob as unknown as Blob).text();
+      /* Two days: the 2-minute day breaks the run before day 3. */
+      expect(html).toMatch(/stat-value">2<\/div>\s*<div class="stat-label">Day Streak/);
+    } finally {
+      URL.createObjectURL = origCreate;
+    }
+  });
+
   it("includes summary statistics in the HTML report", async () => {
     const origCreate = URL.createObjectURL;
     const createObjectURL = vi.fn();

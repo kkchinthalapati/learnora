@@ -20,6 +20,7 @@ describe("isLibrarySection", () => {
     expect(isLibrarySection("/quiz/q-1")).toBe(true);
     expect(isLibrarySection("/quiz/q-1/review")).toBe(true);
     expect(isLibrarySection("/review/d-1")).toBe(true);
+    expect(isLibrarySection("/decks/d-1")).toBe(true);
   });
 
   it("is false for every other section", () => {
@@ -43,6 +44,7 @@ describe("sectionLabel", () => {
        lights Library for them (isLibrarySection). */
     expect(sectionLabel("/quiz/q-1", t)).toBe("Quiz");
     expect(sectionLabel("/review/d-1", t)).toBe("Flashcard review");
+    expect(sectionLabel("/decks/d-1", t)).toBe("Flashcards");
   });
 
   it("labels the remaining top-level sections", () => {

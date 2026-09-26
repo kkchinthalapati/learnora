@@ -202,7 +202,7 @@ export function AccountTab() {
             {avatarUrl ? <img src={avatarUrl} alt="" /> : initialsFor(name)}
           </div>
           <div className={styles.avatarInfo}>
-            <h4>{name}</h4>
+            <h4 title={name}>{name}</h4>
             <p>{email}</p>
           </div>
           <div className={styles.avatarUpload}>

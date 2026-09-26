@@ -3,7 +3,7 @@ import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
-import { useQuizzes } from "../../hooks/useQuizzes";
+import { useQuizAttempts, useQuizzes } from "../../hooks/useQuizzes";
 import { useCreateModal } from "../../context/createModal";
 import { formatCreatedShort } from "./libraryMeta";
 import { useLibraryActions } from "./useLibraryActions";
@@ -11,6 +11,19 @@ import styles from "./library.module.css";
 
 export function QuizzesPanel() {
   const { data: quizzes, isPending, isError, error } = useQuizzes();
+  /* Newest first, so the first attempt seen per quiz is its latest. A card
+     that never said how the student did left them re-opening quizzes to
+     find the one worth retaking. */
+  const { data: attempts } = useQuizAttempts();
+  const latestByQuiz = new Map<string, { score: number; total: number }>();
+  for (const attempt of attempts ?? []) {
+    if (!latestByQuiz.has(attempt.quiz_id)) {
+      latestByQuiz.set(attempt.quiz_id, {
+        score: attempt.score,
+        total: attempt.total,
+      });
+    }
+  }
   const { removeQuiz } = useLibraryActions();
   const { openCreateModal } = useCreateModal();
 
@@ -71,6 +84,24 @@ export function QuizzesPanel() {
               {questions} question{questions === 1 ? "" : "s"} · Created:{" "}
               {formatCreatedShort(quiz.created_at)}
             </p>
+            {(() => {
+              const last = latestByQuiz.get(quiz.id);
+              if (!last || last.total <= 0) {
+                return <p className={styles.cardMeta}>Not taken yet</p>;
+              }
+              return (
+                <p className={styles.cardMeta}>
+                  Last score:{" "}
+                  <strong
+                    className={
+                      last.score / last.total < 0.7 ? styles.cardDue : undefined
+                    }
+                  >
+                    {last.score}/{last.total}
+                  </strong>
+                </p>
+              );
+            })()}
 
             {/* Take it first: it is what the card is for. "Review" used to
                 lead, which on a quiz never taken reads as "review what?" —

@@ -1,8 +1,12 @@
 .nav {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Sized to the labels, not four equal quarters of a fixed 440px: equal
+     columns squeezed "Study plan" onto two lines next to its icon. */
+  grid-auto-flow: column;
+  grid-auto-columns: auto;
   gap: var(--s-1);
-  width: min(100%, 440px);
+  width: fit-content;
+  max-width: 100%;
   margin-bottom: var(--s-5);
   padding: var(--s-1);
   border: 1px solid var(--glass-border-subtle);
@@ -22,6 +26,7 @@
   color: var(--text-muted);
   font-size: var(--fs-sm);
   font-weight: 650;
+  white-space: nowrap;
   text-decoration: none;
   transition:
     color var(--t-fast) ease,
@@ -46,12 +51,15 @@
   box-shadow: var(--shadow-sm);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .nav {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     width: 100%;
   }
 
   .link {
+    white-space: normal;
     gap: var(--s-1);
     padding-inline: var(--s-2);
     font-size: var(--fs-xs);

@@ -105,8 +105,13 @@ export function FeynmanHubView() {
      where they fit the topic — see generateApprenticeDraft. */
   const { all: ledger } = useMisconceptions();
 
+  /* A student who types only a subject ("Enzymes") has still named
+     something to teach; the button sat greyed out with no reason given.
+     The subject stands in as the topic when the topic box is empty. */
+  const effectiveTopic = topic.trim() || subject.trim();
+
   const handleStartSession = async () => {
-    if (!topic.trim()) return;
+    if (!effectiveTopic) return;
     setIsGenerating(true);
     try {
       const difficulty: FeynmanDifficulty =
@@ -118,7 +123,7 @@ export function FeynmanHubView() {
 
       const draft = await generateApprenticeDraft(
         subject.trim() || "General knowledge",
-        topic.trim(),
+        effectiveTopic,
         selectedPersona,
         difficulty,
         ledger,
@@ -130,7 +135,7 @@ export function FeynmanHubView() {
       const newSession: FeynmanSessionState = {
         id: `feynman-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         subject: subject.trim() || "General knowledge",
-        topic: topic.trim(),
+        topic: effectiveTopic,
         persona: selectedPersona,
         difficulty,
         depth: selectedDepth,
@@ -277,7 +282,7 @@ export function FeynmanHubView() {
               variant="primary"
               size="md"
               onClick={handleStartSession}
-              disabled={isGenerating || !topic.trim()}
+              disabled={isGenerating || !effectiveTopic}
               data-testid="start-arena-btn"
             >
               {isGenerating ? (

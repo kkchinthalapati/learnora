@@ -23,7 +23,8 @@ export function isLibrarySection(pathname: string): boolean {
     pathname.startsWith("/folders/") ||
     pathname.startsWith("/notes/") ||
     pathname.startsWith("/quiz/") ||
-    pathname.startsWith("/review/")
+    pathname.startsWith("/review/") ||
+    pathname.startsWith("/decks/")
   );
 }
 
@@ -95,6 +96,10 @@ export function sectionLabel(
      else. The sidebar still lights Library via isLibrarySection. */
   if (pathname.startsWith("/quiz/")) return "Quiz";
   if (pathname.startsWith("/review/")) return "Flashcard review";
+  /* The deck editor was in no section at all: the header read "Learnora"
+     and no sidebar item was lit, so a student editing cards had no idea
+     where in the app they were. */
+  if (pathname.startsWith("/decks/")) return "Flashcards";
   if (isLibrarySection(pathname)) return t("nav_library");
   /* Same words as the sidebar row. It said "Focus" there and "Timer" here. */
   if (pathname.startsWith("/timer")) return t("nav_timer");

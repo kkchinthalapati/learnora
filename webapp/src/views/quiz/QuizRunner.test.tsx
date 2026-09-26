@@ -512,6 +512,17 @@ describe("QuizRunner draft autosave", () => {
     expect(Storage.get(draftKey)).toBeNull();
   });
 
+  it("does not offer to resume a quiz that was opened but never answered", async () => {
+    Storage.set(draftKey, { index: 0, answers: [] });
+    serveQuiz();
+    renderRunner();
+
+    await screen.findByText("Question 1 of 2");
+    expect(
+      screen.queryByText(/Resume where you left off/),
+    ).not.toBeInTheDocument();
+  });
+
   it("ignores a draft whose saved index is out of range for the current quiz", async () => {
     Storage.set(draftKey, { index: 9, answers: [] });
     serveQuiz();
@@ -606,7 +617,7 @@ describe("QuizRunner answer integrity", () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("stores one row per question when a resumed run re-answers one", async () => {
+  it("keeps one row per question, and a revealed answer stands, when resuming", async () => {
     /* Resumed sitting on question 1 while already holding an answer for
        it — exactly what Back/Forward/Resume produces. */
     Storage.set("learnora_quiz_draft_quiz-1", {
@@ -627,22 +638,24 @@ describe("QuizRunner answer integrity", () => {
     renderRunner();
 
     await screen.findByText("Question 1 of 2");
-    /* Answer question 1 again, this time correctly. */
-    await userEvent.click(screen.getByRole("button", { name: "Mitochondrion" }));
+    /* The draft already holds a (revealed) answer for question 1, so the
+       verdict is restored rather than the question being offered fresh: a
+       refresh must not turn a seen wrong answer into a right one. */
+    expect(screen.getByRole("button", { name: "Mitochondrion" })).toBeDisabled();
     await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
     await screen.findByText("Question 2 of 2");
     await userEvent.click(
       screen.getByRole("button", { name: "Deoxyribonucleic acid" }),
     );
     await userEvent.click(screen.getByRole("button", { name: "See results →" }));
-    await screen.findByText("Quiz Complete! 🎉");
+    await screen.findByText("Quiz Complete");
 
     await waitFor(() => expect(submitted).toBeDefined());
     const answers = submitted!.answers_json as Array<Record<string, unknown>>;
     expect(answers).toHaveLength(2);
     expect(answers.filter((a) => a.questionId === "q1")).toHaveLength(1);
-    /* The later answer wins — it is what the student actually chose. */
-    expect(answers.find((a) => a.questionId === "q1")?.correct).toBe(true);
+    /* The first, revealed answer stands. */
+    expect(answers.find((a) => a.questionId === "q1")?.correct).toBe(false);
   });
 });
 
@@ -690,5 +703,41 @@ describe("QuizRunner results routing", () => {
 
     await screen.findByText("Quiz Complete! 🎉");
     expect(screen.queryByRole("link", { name: /Work on/ })).toBeNull();
+  });
+
+  it("retakes the quiz from question 1 as a new attempt", async () => {
+    const keys: unknown[] = [];
+    serveQuiz();
+    server.use(
+      http.post(`${SUPABASE_URL}/rest/v1/quiz_attempts`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>[];
+        keys.push(body[0].attempt_key);
+        return HttpResponse.json([{ id: `attempt-${keys.length}` }]);
+      }),
+    );
+    renderRunner();
+
+    await screen.findByText("Question 1 of 2");
+    await userEvent.click(screen.getByRole("button", { name: "Nucleus" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await screen.findByText("Question 2 of 2");
+    await userEvent.click(screen.getByRole("button", { name: "Dinitrogen acetate" }));
+    await userEvent.click(screen.getByRole("button", { name: "See results →" }));
+    await screen.findByText("0 / 2 correct");
+    await waitFor(() => expect(keys).toHaveLength(1));
+
+    await userEvent.click(screen.getByRole("button", { name: /Retake quiz/ }));
+    await screen.findByText("Question 1 of 2");
+    expect(screen.getByRole("button", { name: "Mitochondrion" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: "Mitochondrion" }));
+    await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Deoxyribonucleic acid" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "See results →" }));
+    await screen.findByText("2 / 2 correct");
+
+    await waitFor(() => expect(keys).toHaveLength(2));
+    expect(keys[0]).not.toEqual(keys[1]);
   });
 });

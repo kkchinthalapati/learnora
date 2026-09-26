@@ -55,6 +55,7 @@ export function ExitLink() {
 export function QuizRunner() {
   const { quizId = "" } = useParams();
   const { data: quiz, isPending, isError, error } = useQuiz(quizId);
+  const [sitting, setSitting] = useState(0);
 
   if (isPending) {
     return (
@@ -122,9 +123,13 @@ export function QuizRunner() {
       quizTitle={quiz.title || "Quiz"}
       folderId={quiz.folder_id}
       questions={questions}
+      onRetake={() => setSitting((n) => n + 1)}
       /* A fresh quiz is a fresh run: keying on the id resets index, answers
-         and the recorded flag when the route changes between two quizzes. */
-      key={quiz.id}
+         and the recorded flag when the route changes between two quizzes.
+         The sitting counter does the same for "Retake quiz" — a remount is
+         what gives the retake its own attempt key and its own study-clock
+         commit, which latches once per mount. */
+      key={`${quiz.id}:${sitting}`}
     />
   );
 }
@@ -152,7 +157,12 @@ function isUsableDraft(
     typeof draft.index === "number" &&
     draft.index >= 0 &&
     draft.index < questionCount &&
-    Array.isArray(draft.answers)
+    Array.isArray(draft.answers) &&
+    /* A draft with nothing answered is not progress. The draft is written
+       the moment the quiz mounts, so opening a quiz and leaving meant the
+       next visit opened on "Resume quiz? (question 1 of 2)" — a dialog
+       about an attempt the student never started. */
+    draft.answers.length > 0
   );
 }
 
@@ -161,11 +171,13 @@ function QuizSession({
   quizTitle,
   folderId,
   questions,
+  onRetake,
 }: {
   quizId: string;
   quizTitle: string;
   folderId: string | null;
   questions: QuizQuestion[];
+  onRetake: () => void;
 }) {
   const recordAttempt = useRecordQuizAttempt();
   const { showToast } = useToast();
@@ -194,7 +206,21 @@ function QuizSession({
   const [answers, setAnswers] = useState<StoredAnswer[]>(
     () => resumedDraft?.answers ?? [],
   );
-  const [answered, setAnswered] = useState<Answered | null>(null);
+  /* Resuming onto a question the draft already holds an answer for (the
+     student answered, saw the verdict, then refreshed before pressing Next)
+     restores that verdict instead of offering the question fresh. Offering
+     it fresh let a refresh turn a revealed wrong answer into a right one,
+     and that inflated score feeds readiness and the grade forecast. */
+  const [answered, setAnswered] = useState<Answered | null>(() => {
+    if (!resumedDraft) return null;
+    const question = questions[resumedDraft.index];
+    const prior = resumedDraft.answers.find(
+      (a) => a.questionId === (question?.id ?? resumedDraft.index),
+    );
+    return prior
+      ? { chosenIndex: prior.chosenIndex, correct: prior.correct }
+      : null;
+  });
 
   /* Minted once per run and carried in the draft, so resuming keeps the same
      key while "Start Over" below mints a fresh one — a genuine second sitting
@@ -238,6 +264,7 @@ function QuizSession({
       if (cancelled || keep) return;
       setIndex(0);
       setAnswers([]);
+      setAnswered(null);
       setAttemptKey(newAttemptKey());
       draft.clear();
     });
@@ -414,6 +441,16 @@ function QuizSession({
               <Icon name="list-checks" size={16} />
               Review answers
             </Link>
+            {/* Retrieval practice works by repetition; a student who just
+                scored 3/10 had to leave and find the quiz again to retry. */}
+            <button
+              type="button"
+              className={styles.actionLink}
+              onClick={onRetake}
+            >
+              <Icon name="refresh-cw" size={16} />
+              Retake quiz
+            </button>
             <Link to={QUIZZES_PATH} className={styles.actionLink}>
               Back to Quizzes
             </Link>

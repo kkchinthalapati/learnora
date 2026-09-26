@@ -91,6 +91,22 @@ describe("FeynmanHubView Component", () => {
     expect(screen.getByTestId("start-arena-btn")).toBeDisabled();
   });
 
+  it("starts from a subject alone, teaching the subject", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });
+
+    await user.type(screen.getByLabelText("Subject"), "Enzymes");
+    const startBtn = screen.getByTestId("start-arena-btn");
+    expect(startBtn).toBeEnabled();
+    await user.click(startBtn);
+
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.stringMatching(/\/feynman\/studio\/feynman-/),
+      ),
+    );
+  });
+
   it("allows selecting personas and popular topic chips", async () => {
     const user = userEvent.setup();
     renderWithProviders(<FeynmanHubView />, undefined, { withRouter: true });

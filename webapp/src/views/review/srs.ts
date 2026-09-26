@@ -257,10 +257,18 @@ export function computeFsrsCardState(params: FsrsCardParams): FsrsCardState {
      they got it but struggled was the most destructive one on the screen. */
   const isLapse = clampedQuality === 1;
 
-  const isNewCard =
-    params.previousInterval === undefined ||
-    params.previousInterval === 0 ||
-    (!params.stability && !params.previousInterval);
+  /* New means "no memory state at all". A lapsed card also has an interval
+     of 0 — "Again" schedules it for right now — but it carries the stability
+     and difficulty the lapse just computed. Treating interval 0 alone as new
+     threw both away on the very next grade: a card failed three times read as
+     average difficulty again after one Good, so the "struggling cards" signal
+     (ease < 2.1, fetchWeakDecks) never survived a relearn. Pre-FSRS rows have
+     no stability, so they still start fresh exactly as before. */
+  const hasStability =
+    typeof params.stability === "number" && params.stability > 0;
+  const hasInterval =
+    typeof params.previousInterval === "number" && params.previousInterval > 0;
+  const isNewCard = !hasStability && !hasInterval;
 
   let stability: number;
   let difficulty: number;
