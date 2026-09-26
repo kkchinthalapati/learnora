@@ -1,4 +1,14 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  isAdultContent,
+  isAdultPage,
+  isAdultUrl,
+  isSelfHarmContent,
+  SAFETY_REFUSAL,
+  screenForUnsafeContent,
+  screenReferenceText,
+  SELF_HARM_REFUSAL,
+} from "../_shared/contentSafety.js";
 
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://learnora.app",
@@ -60,6 +70,27 @@ function safePublicUrl(raw: unknown): URL | null {
   } catch {
     return null;
   }
+}
+
+/* Live search reaches the whole web and Learnora's students start at 13, so
+   the query, every result and every imported page go through the same
+   screen as learnora-ai, plus a pornography check that chat doesn't need. */
+const RESEARCH_REFUSAL =
+  "That search isn't available in Learnora. Try searching for the subject you're studying instead.";
+const PAGE_REFUSAL =
+  "That page can't be imported into Learnora because some of it isn't suitable for students. Try a different source.";
+
+function refusal(trigger: string, cors: Record<string, string>) {
+  const error = isSelfHarmContent(trigger)
+    ? SELF_HARM_REFUSAL
+    : screenForUnsafeContent(trigger)
+    ? SAFETY_REFUSAL
+    : RESEARCH_REFUSAL;
+  return json({ error, refused: true }, 422, cors);
+}
+
+function isUnsuitable(text: string): boolean {
+  return screenForUnsafeContent(text) || isAdultContent(text);
 }
 
 async function enforceResearchLimit(supabase: any, userId: string) {
@@ -167,6 +198,7 @@ Deno.serve(async (req: Request) => {
           cors,
         );
       }
+      if (isUnsuitable(query)) return refusal(query, cors);
       const domain =
         typeof body.domain === "string" && body.domain.trim()
           ? body.domain.trim().toLowerCase()
@@ -184,6 +216,11 @@ Deno.serve(async (req: Request) => {
         .map((item: any, index: number) => {
           const url = safePublicUrl(item.url);
           if (!url) return null;
+          if (
+            isAdultUrl(url.href) ||
+            isUnsuitable(`${item.title || ""}. ${item.content || ""}`)
+          )
+            return null;
           return {
             id: `${index + 1}-${url.href}`,
             title: String(item.title || url.hostname).slice(0, 300),
@@ -201,6 +238,8 @@ Deno.serve(async (req: Request) => {
       const url = safePublicUrl(body.url);
       if (!url)
         return json({ error: "Enter a public HTTPS web address." }, 400, cors);
+      if (isAdultUrl(url.href))
+        return json({ error: PAGE_REFUSAL, refused: true }, 422, cors);
       const result = await tavily("extract", {
         urls: [url.href],
         extract_depth: "advanced",
@@ -213,10 +252,20 @@ Deno.serve(async (req: Request) => {
       ).trim();
       if (!markdown)
         throw new Error("No readable text was found on that page.");
+      const title = String(extracted?.title || "");
+      const finalUrl = safePublicUrl(extracted?.url)?.href;
+      if (
+        (finalUrl && isAdultUrl(finalUrl)) ||
+        isAdultPage(title, markdown) ||
+        screenReferenceText(`${title}\n${markdown}`)
+      ) {
+        console.warn("[safety] web-research import refused", { userId: user.id });
+        return json({ error: PAGE_REFUSAL, refused: true }, 422, cors);
+      }
       return json(
         {
-          title: String(extracted?.title || url.hostname).slice(0, 300),
-          url: safePublicUrl(extracted?.url)?.href || url.href,
+          title: (title || url.hostname).slice(0, 300),
+          url: finalUrl || url.href,
           domain: url.hostname.replace(/^www\./, ""),
           markdown: markdown.slice(0, MAX_EXTRACT_CHARS),
         },
