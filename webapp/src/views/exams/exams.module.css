@@ -136,6 +136,12 @@
   outline-offset: -2px;
 }
 
+/* A past day with nothing on it: no exam to open and no new one allowed,
+   so it shouldn't light up as if it were clickable. */
+.pastEmpty {
+  pointer-events: none;
+}
+
 .empty {
   background: var(--surface-2);
   cursor: default;

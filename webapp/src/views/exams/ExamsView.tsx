@@ -186,6 +186,10 @@ export function ExamsView() {
 
   function onCellActivate(dateStr: string) {
     const forDate = byDate.get(dateStr) ?? [];
+    /* A past day can still show the exams already on it, but it is no place
+       to start a new one — that would open "New exam" pre-filled with a date
+       the dialog is only going to refuse. */
+    if (forDate.length === 0 && dateStr < today) return;
     setOverlay(
       forDate.length > 0
         ? { kind: "day", date: dateStr }
@@ -312,7 +316,7 @@ export function ExamsView() {
                      works for the mouse. */
                   <div
                     key={dateStr}
-                    className={`${styles.cell}${dateStr === today ? ` ${styles.today}` : ""}`}
+                    className={`${styles.cell}${dateStr === today ? ` ${styles.today}` : ""}${isPastDate && forDate.length === 0 ? ` ${styles.pastEmpty}` : ""}`}
                     onClick={(e) => {
                       /* An exam bar handles its own click; without this the
                          cell would also fire and open the day list on top. */
@@ -324,6 +328,7 @@ export function ExamsView() {
                       type="button"
                       className={styles.dayNumber}
                       aria-label={`${MONTH_NAMES[viewMonth.month]} ${day}, ${viewMonth.year}`}
+                      disabled={isPastDate && forDate.length === 0}
                       onClick={() => onCellActivate(dateStr)}
                     >
                       {day}
@@ -394,8 +399,11 @@ export function ExamsView() {
           onEditExam={(exam) =>
             setOverlay({ kind: "exam", exam, date: exam.exam_date })
           }
-          onAddExam={() =>
-            setOverlay({ kind: "exam", exam: null, date: overlay.date })
+          onAddExam={
+            overlay.date < today
+              ? undefined
+              : () =>
+                  setOverlay({ kind: "exam", exam: null, date: overlay.date })
           }
           onOpenPrepRoadmap={(exam) => setOverlay({ kind: "prep", exam })}
         />

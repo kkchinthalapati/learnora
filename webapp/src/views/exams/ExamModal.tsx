@@ -48,14 +48,19 @@ export function ExamModal({
 
   const editing = exam !== null;
   const [name, setName] = useState(exam?.exam_name ?? "");
-  const [date, setDate] = useState(exam?.exam_date ?? initialDate ?? "");
+  const today = localDateStr();
+  /* A past pre-fill (a stale calendar cell) starts a new exam on today
+     instead, so the dialog never opens holding a date it will refuse. */
+  const [date, setDate] = useState(
+    exam?.exam_date ??
+      (initialDate && initialDate < today ? today : (initialDate ?? "")),
+  );
   const [difficulty, setDifficulty] = useState(exam?.difficulty ?? "Medium");
   const [status, setStatus] = useState(exam?.status ?? "Scheduled");
   const [folder, setFolder] = useState(exam?.folder_id ?? "");
   const [dateInvalid, setDateInvalid] = useState(false);
   const [nameInvalid, setNameInvalid] = useState(false);
 
-  const today = localDateStr();
   const maxDate = (() => {
     const d = new Date();
     d.setFullYear(d.getFullYear() + 5);
@@ -69,6 +74,13 @@ export function ExamModal({
       setNameInvalid(false);
       requestAnimationFrame(() => setNameInvalid(true));
       showToast("Give the exam a name.", { error: true });
+      return;
+    }
+
+    if (!date) {
+      setDateInvalid(false);
+      requestAnimationFrame(() => setDateInvalid(true));
+      showToast("Pick a date for the exam.", { error: true });
       return;
     }
 
