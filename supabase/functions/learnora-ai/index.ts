@@ -102,6 +102,14 @@ function cleanJsonResponse(text: string): string {
 const SAFETY_REFUSAL =
   "I can't help with that topic. Learnora is a study assistant — I can't create quizzes or study material about making weapons or explosives, obtaining or producing illegal drugs, or harming yourself or others. Ask me about a subject you're studying and I'll gladly help.";
 
+// Street drugs whose chemistry is off-limits. Kept to recreational drugs
+// with no everyday study use — prescription drugs and alcohol stay out.
+const ILLICIT_DRUGS =
+  "meth|methamphetamines?|crystal\\s*meth|cocaine|crack\\s*cocaine|heroin|fentanyl|carfentanil|mdma|ecstasy|lsd|ghb|pcp|angel\\s*dust|mephedrone|krokodil|desomorphine";
+
+const DRUG_CHEMISTRY_TERMS =
+  "formula[es]?|chemical\\s*structure|molecular\\s*structure|structural\\s*formula|ingredients?|precursors?|reagents?|recipe|chemicals?\\s+(?:(?:are|is)\\s+)?(?:in|used|needed|required|for)|synthesis|synthesi[sz]e|purify";
+
 const UNSAFE_PATTERNS: RegExp[] = [
   // Weapons and explosives — construction/acquisition framing only.
   /\b(?:make|making|build|building|construct|constructing|create|creating|assemble|assembling|manufacture|manufacturing|diy|homemade|improvised)\b[^.?!]{0,40}\b(?:bomb|explosive|ied|grenade|landmine|napalm|thermite|pipe\s*bomb|molotov|detonator|silencer|suppressor|ghost\s*gun|untraceable\s*(?:gun|firearm))/i,
@@ -113,6 +121,19 @@ const UNSAFE_PATTERNS: RegExp[] = [
   /\b(?:synthes\w+|cook|cooking|manufactur\w+|produc\w+|extract\w+|grow\w+|make|making)\b[^.?!]{0,40}\b(?:meth|methamphetamine|crystal\s*meth|cocaine|crack|heroin|fentanyl|mdma|ecstasy|lsd|ghb|psilocybin|magic\s*mushrooms)\b/i,
   /\b(?:how|where)\b[^.?!]{0,30}\b(?:buy|score|obtain|get)\b[^.?!]{0,30}\b(?:meth|cocaine|heroin|fentanyl|mdma|ecstasy|lsd|illegal\s*drugs|drugs\s*online)\b/i,
   /\bdark\s*(?:web|net)\b[^.?!]{0,30}\b(?:drug|gun|weapon)/i,
+  // Chemistry framing of a street drug, with no "make" verb needed — the
+  // formula, structure, ingredients or precursors of meth is the first step
+  // of a recipe, not coursework. (Drug policy, addiction and public health
+  // stay open: none of them name a street drug alongside these words.)
+  new RegExp(`\\b(?:${DRUG_CHEMISTRY_TERMS})\\b[^.?!]{0,40}\\b(?:${ILLICIT_DRUGS})\\b`, "i"),
+  new RegExp(`\\b(?:${ILLICIT_DRUGS})\\b[^.?!]{0,40}\\b(?:${DRUG_CHEMISTRY_TERMS})\\b`, "i"),
+  new RegExp(`\\bwhat(?:'s|\\s+is|\\s+are)?\\b[^.?!]{0,15}\\b(?:${ILLICIT_DRUGS})\\b[^.?!]{0,15}\\b(?:made|cooked|produced)\\s+(?:of|from|with)\\b`, "i"),
+  new RegExp(`\\bwhat(?:'s|\\s+is)\\s+in\\s+(?:${ILLICIT_DRUGS})\\b`, "i"),
+  // Named meth precursors and routes — no study context uses these together.
+  /\b(?:pseudo)?ephedrine\b[^.?!]{0,40}\b(?:reduc\w+|extract\w+|convert\w+|into\s+meth)/i,
+  /\b(?:reduc\w+|extract\w+|convert\w+)\b[^.?!]{0,20}\b(?:pseudo)?ephedrine\b/i,
+  /\b(?:shake\s*(?:and|&|n)\s*bake|one[\s-]?pot)\s*meth\b/i,
+  /\b(?:red\s*phosphorus|p2p|phenyl-?2-?propanone|birch\s*reduction)\b[^.?!]{0,40}\b(?:meth|methamphetamine|amphetamine)\b/i,
 
   // Self-harm and suicide methods.
   /\b(?:how\s*to|best\s*way|method[s]?\s*(?:to|for|of))\b[^.?!]{0,30}\b(?:kill\s*(?:myself|yourself)|commit\s*suicide|suicide|self[\s-]?harm|end\s*my\s*life|overdose)\b/i,
@@ -127,10 +148,40 @@ const UNSAFE_PATTERNS: RegExp[] = [
 ];
 
 function screenForUnsafeContent(text: string): boolean {
-  if (!text) return false;
+  if (!text || typeof text !== "string") return false;
   // Collapse separators used to slip past word matching ("b-o-m-b making").
   const normalized = text.replace(/[_*~`]+/g, "").replace(/\s{2,}/g, " ");
   return UNSAFE_PATTERNS.some((re) => re.test(normalized));
+}
+
+const DRUG_MENTION = new RegExp(`\\b(?:${ILLICIT_DRUGS})\\b`, "i");
+const RECIPE_FOLLOW_UP = new RegExp(
+  `\\b(?:formula[es]?|structure|ingredients?|precursors?|reagents?|recipe|chemicals?\\s+(?:(?:are|is)\\s+)?(?:in|used|needed|required|for)|synthes\\w+|cook\\w*|manufactur\\w+|produc\\w+|extract\\w+|made\\s+(?:of|from|with)|make|buy|obtain|step[\\s-]*by[\\s-]*step)\\b`,
+  "i",
+);
+// The follow-up has to point back at something ("synthesise it", "what's in
+// that") — a fresh question about an unrelated lab is not a follow-up.
+const BACK_REFERENCE = /\b(?:it|its|it's|that|this|them|those|these|the\s+drug|some)\b/i;
+// Workspace context and pasted notes also travel as user turns; those are
+// long, and a drug named in a student's notes shouldn't taint every later
+// question, so only short conversational turns count as the earlier topic.
+const MAX_TOPIC_TURN_CHARS = 400;
+const TOPIC_LOOKBACK_TURNS = 3;
+
+/* Screens the newest turn, plus the case the single-turn screen can't see:
+   a drug named in one message and the recipe asked for in the next ("chemical
+   formula of meth" → "what ingredients are used to synthesise it?"). */
+function screenConversation(history: any[]): boolean {
+  if (!Array.isArray(history) || history.length === 0) return false;
+  const current = history[history.length - 1]?.content;
+  if (typeof current !== "string") return false;
+  if (screenForUnsafeContent(current)) return true;
+  if (!RECIPE_FOLLOW_UP.test(current) || !BACK_REFERENCE.test(current)) return false;
+  return history
+    .slice(0, -1)
+    .filter((m: any) => m?.role === "user" && typeof m.content === "string" && m.content.length <= MAX_TOPIC_TURN_CHARS)
+    .slice(-TOPIC_LOOKBACK_TURNS)
+    .some((m: any) => DRUG_MENTION.test(m.content));
 }
 
 /* True when a Gemini response was withheld by its safety filters rather than
@@ -1007,6 +1058,7 @@ Deno.serve(async (req) => {
     CONTENT POLICY — Learnora is a study tool used by students aged 13 and up. Refuse, in any mode including quiz and flashcard generation, to produce content that:
     - explains how to make, acquire, modify or deploy weapons, explosives, or incendiary devices;
     - explains how to synthesise, cultivate, obtain or conceal illegal drugs, or presents recreational drug use as harmless or aspirational;
+    - gives the chemical formula, structure, ingredients, precursors, reagents or synthesis route of an illegal recreational drug (methamphetamine, cocaine, heroin, fentanyl, MDMA and the like) — including follow-up questions that refer back to one with "it" or "that";
     - describes methods of suicide, self-harm, or harming another person, or how to poison someone;
     - is sexual content, or any sexual content involving minors;
     - promotes hatred or violence against a group, or helps someone evade law enforcement.
@@ -1030,8 +1082,9 @@ Deno.serve(async (req) => {
         }
 
         // Screen before spending a token. `history` carries the workspace
-        // context prelude, so only the newest turn is checked here.
-        if (screenForUnsafeContent(currentMsg)) {
+        // context prelude, so the newest turn is screened on its own and
+        // earlier turns only to catch a follow-up on an unsafe topic.
+        if (screenConversation(history)) {
             console.warn("[safety] Request refused by pre-flight topic screen", { mode, userId: user.id });
             return safetyRefusalResponse(mode, jsonHeaders);
         }
@@ -1108,6 +1161,15 @@ Deno.serve(async (req) => {
                         text = cleanJsonResponse(text);
                     }
                     if (!text || !text.trim()) throw new Error(`Gemini (${modelName}) returned empty text`);
+
+                    // Gemini's own filters let the formula of methamphetamine
+                    // through, so its output gets the same screen as the
+                    // fallbacks. A hit is a verdict: return the refusal rather
+                    // than trying the next model or provider.
+                    if (screenForUnsafeContent(text)) {
+                        console.warn(`[safety] ${modelName} output refused by screen`, { mode, userId: user.id });
+                        return safetyRefusalResponse(mode, jsonHeaders);
+                    }
 
                     return new Response(JSON.stringify({
                         text: text,
