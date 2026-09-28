@@ -89,16 +89,34 @@ function renderInline(text: string): ReactNode[] {
 
 function renderInlineMarkdown(text: string): ReactNode[] {
   const out: ReactNode[] = [];
-  /* One pass, longest-delimiter-first, matching renderMarkdown's ordering. */
+  /* One pass, longest-delimiter-first, matching renderMarkdown's ordering.
+     Links sit after code spans and before emphasis. Only http(s) targets
+     become anchors: a `[x](javascript:…)` in a model reply stays text. */
   const pattern =
-    /(`[^`\n]+`)|(\*\*\*(?!\s).+?\*\*\*)|(\*\*(?!\s).+?\*\*)|(\*(?!\s).+?\*)/g;
+    /(`[^`\n]+`)|(\[[^\]\n]+\]\(https?:\/\/[^\s)]+\))|(\*\*\*(?!\s).+?\*\*\*)|(\*\*(?!\s).+?\*\*)|(\*(?!\s).+?\*)/g;
   let last = 0;
   let match: RegExpExecArray | null;
 
   while ((match = pattern.exec(text)) !== null) {
     if (match.index > last) out.push(text.slice(last, match.index));
     const token = match[0];
-    if (token.startsWith("`")) {
+    if (match[2]) {
+      /* Cited web sources used to reach the student as "[BBC Bitesize](https://…)". */
+      const split = token.indexOf("](");
+      const label = token.slice(1, split);
+      const href = token.slice(split + 2, -1);
+      out.push(
+        <a
+          key={nextKey()}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.link}
+        >
+          {renderInline(label)}
+        </a>,
+      );
+    } else if (token.startsWith("`")) {
       /* Code spans are literal by definition — no recursion. */
       out.push(
         <code key={nextKey()} className={styles.code}>
@@ -197,6 +215,20 @@ function renderTextBlock(markdown: string): ReactNode[] {
   return out;
 }
 
+function isTableSeparator(line: string | undefined): boolean {
+  if (!line) return false;
+  return /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)+\|?\s*$/.test(line);
+}
+
+function splitTableRow(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
+}
+
 function renderProse(prose: string): ReactNode[] {
   const out: ReactNode[] = [];
   const paragraph: string[] = [];
@@ -271,10 +303,50 @@ function renderProse(prose: string): ReactNode[] {
       continue;
     }
 
-    const bullet = /^- (.*)$/.exec(line);
+    /* A pipe table: a header row, a `|---|---|` separator, then body rows.
+       Rendered as a real table in a scroller so a wide one can't push the
+       chat sideways; it used to reach the student as rows of raw pipes. */
+    if (line.trim().startsWith("|") && isTableSeparator(lines[i + 1])) {
+      closeBlocks();
+      const header = splitTableRow(line);
+      const body: string[][] = [];
+      let j = i + 2;
+      while (j < lines.length && lines[j].trim().startsWith("|")) {
+        body.push(splitTableRow(lines[j]));
+        j++;
+      }
+      out.push(
+        <div key={nextKey()} className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                {header.map((cell) => (
+                  <th key={nextKey()}>{renderInline(cell)}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {body.map((row) => (
+                <tr key={nextKey()}>
+                  {header.map((_, c) => (
+                    <td key={nextKey()}>{renderInline(row[c] ?? "")}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
+      i = j - 1;
+      continue;
+    }
+
+    /* Indented items are sub-points; they join the list rather than falling
+       out of it as a stray "- nested" paragraph. */
+    const bullet = /^\s*- (.*)$/.exec(line);
     /* Models number lists both ways — `1.` and `1)`. The second used to
        fall through to a paragraph, so the items lost their list. */
-    const numbered = /^\d+[.)] (.*)$/.exec(line);
+    const numbered = /^\s*\d+[.)] (.*)$/.exec(line);
     if (bullet || numbered) {
       renderParagraph(paragraph, out);
       const ordered = !!numbered;

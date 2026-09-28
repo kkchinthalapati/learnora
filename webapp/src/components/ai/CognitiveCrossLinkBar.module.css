@@ -204,7 +204,9 @@
   padding: 1px 5px;
   border-radius: var(--r-pill);
   background: var(--accent);
-  color: var(--text);
+  /* --text on --accent failed WCAG AA contrast (axe); --text-on-accent is the
+     theme's paired foreground for accent fills. */
+  color: var(--text-on-accent);
   font-weight: 800;
 }
 

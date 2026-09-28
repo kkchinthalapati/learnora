@@ -6,6 +6,7 @@ import {
   screenForUnsafeContent,
   SELF_HARM_REFUSAL,
 } from "../_shared/contentSafety.js";
+import { improveQuiz } from "../_shared/quizQuality.js";
 
 /* Origins allowed to call this function from a browser.
 
@@ -762,7 +763,70 @@ function rateLimitResponse(
  * rate limiter that takes AI outages down with it trades one small risk (a
  * burst slips through while the table is unreachable) for a much worse one
  * (AI goes fully offline because a side-table had a bad moment). */
-type RateLimitVerdict = { allowed: true } | { allowed: false; message: string };
+type RateLimitVerdict =
+  | { allowed: true; logId?: string }
+  | { allowed: false; message: string };
+
+/* A request that reached no provider at all (every channel failed) has not
+   used the student's allowance, so its log row is taken back. A student on
+   the free plan has three quiz generations a day; an outage should not spend
+   them. Done with the service role because students have no DELETE on
+   ai_request_log — deliberately, or deleting rows would reset their quota. */
+async function refundRequest(logId: string | undefined): Promise<void> {
+  if (!logId) return;
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceKey) return;
+  try {
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const admin = createClient(url, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    await admin.from("ai_request_log").delete().eq("id", logId);
+  } catch (err) {
+    console.error("[rate-limit] refund failed", err);
+  }
+}
+
+/* A JSON-mode reply that does not parse is useless to the client, which
+   would show "couldn't generate" after the allowance was already spent.
+   Treated as that provider failing, so the chain moves on. */
+function isParsableJson(text: string): boolean {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/* A JSON-mode reply that is a prose refusal is a verdict, not a malformed
+   answer: moving on to the next, less-filtered provider is how unsafe quizzes
+   were generated before. */
+function looksLikeRefusal(text: string): boolean {
+  return /\b(?:can(?:no|')t|unable to|won't|will not|not able to)\s+(?:help|assist|provide|create|generate|make|write)\b/i
+    .test(text.slice(0, 400));
+}
+
+/* The JSON inside a reply that wrapped it in prose ("Here is your quiz: {…}"),
+   the same salvage the client parsers already attempt. Returns the text
+   unchanged when it already parses, and null when nothing inside it does. */
+function salvageJson(text: string): string | null {
+  if (isParsableJson(text)) return text;
+  for (const [open, close] of [["{", "}"], ["[", "]"]]) {
+    const start = text.indexOf(open);
+    const end = text.lastIndexOf(close);
+    if (start !== -1 && end > start) {
+      const slice = text.slice(start, end + 1);
+      if (isParsableJson(slice)) return slice;
+    }
+  }
+  return null;
+}
+
+/* App-authored context arrives separately from the student's message; this
+   bounds it so a hand-built request can't send a novel. */
+const MAX_APP_CONTEXT_CHARS = 60_000;
 
 /** This caller's plan right now.
  *
@@ -846,14 +910,16 @@ async function checkAndLogRateLimit(
       };
     }
 
-    const { error: insertError } = await supabase
+    const { data: logRow, error: insertError } = await supabase
       .from("ai_request_log")
-      .insert({ user_id: userId, mode: mode ?? null, tool: billedTool });
+      .insert({ user_id: userId, mode: mode ?? null, tool: billedTool })
+      .select("id")
+      .single();
     if (insertError) {
       console.error("[rate-limit] log insert failed (request still allowed)", insertError);
     }
 
-    return { allowed: true };
+    return { allowed: true, logId: logRow?.id };
   } catch (err) {
     console.error("[rate-limit] unexpected failure, failing open", err);
     return { allowed: true };
@@ -907,13 +973,29 @@ Deno.serve(async (req) => {
     // ── END AUTH GATE ──────────────────────────────────────
 
     const debugErrors: Record<string, string> = {};
+    const startedAt = Date.now();
+    let logId: string | undefined;
 
     try {
-        const { history, file, settings, mode, tool } = await req.json();
+        const { history, file, settings, mode, tool, context } = await req.json();
         const s = settings || {};
 
+        /* Instructions and workspace data written by the app, kept out of the
+           student's turn so a student's "ignore the rules above" has no more
+           standing than any other message. Placed before the content policy,
+           which therefore always has the last word. */
+        const appContext = typeof context === "string" && context.trim()
+            ? `
+
+    APP CONTEXT — written by the Learnora app, not by the student. It describes this student's workspace and how to behave on this screen. The student's own words are only in the conversation turns.
+    <<<APP_CONTEXT
+${context.slice(0, MAX_APP_CONTEXT_CHARS)}
+    APP_CONTEXT>>>
+`
+            : "";
+
         const personaMap = {
-            coach: 'a strict, tough-love, demanding academic coach',
+            coach: 'a strict, tough-love, demanding academic coach who is blunt about the work but never belittles the student',
             buddy: 'a casual, friendly, bro-like, relaxed study partner',
             tutor: 'a patient, explanatory, supportive tutor',
             // The client's fourth persona option (webapp/src/lib/settings.ts's
@@ -951,7 +1033,7 @@ Deno.serve(async (req) => {
             // Wrapped in an object rather than a bare array so the request can
             // use response_format:json_object, which only permits an object at
             // the top level. The client accepts either shape.
-            ? `\nYou are generating a high-quality multiple-choice quiz. Ensure every question covers a completely unique concept, logical sub-step, or angle with NO back-to-back repetitive questions. Match the requested difficulty level precisely (Hard = multi-step deduction, error spotting, edge cases, subtle fallacies; Easy = direct recall; Medium = conceptual understanding). Output ONLY raw JSON (no prose, no code fences) matching this shape: {"questions":[{"question":"string","choices":["a","b","c","d"],"correctIndex":0,"topic":"short topic label","feedback":"string"}]}. "correctIndex" is REQUIRED on every question and must be the 0-based index of the correct entry in that question's "choices" array. "feedback" is shown to EVERY student regardless of what they answered, so it must be a neutral explanation of the question: never congratulate ("Nice work!", "Correct!", "Exactly right!") and never state or imply which choice the student picked.`
+            ? `\nYou are generating a high-quality multiple-choice quiz. Ensure every question covers a completely unique concept, logical sub-step, or angle with NO back-to-back repetitive questions. Match the requested difficulty level precisely (Hard = multi-step deduction, error spotting, edge cases, subtle fallacies; Easy = direct recall; Medium = conceptual understanding). Output ONLY raw JSON (no prose, no code fences) matching this shape: {"questions":[{"question":"string","choices":["a","b","c","d"],"correctIndex":0,"topic":"short topic label","feedback":"string"}]}. "correctIndex" is REQUIRED on every question and must be the 0-based index of the correct entry in that question's "choices" array. Before writing each question, solve it yourself and check that exactly one choice is correct and that the key points at it. Every question must be answerable from its own text: never refer to a diagram, figure, table or passage that is not written out in the question. "feedback" is shown to EVERY student regardless of what they answered, so it must be a neutral explanation of the question: never congratulate ("Nice work!", "Correct!", "Exactly right!") and never state or imply which choice the student picked.`
             : mode === "flashcards"
             // Object-wrapped for the same response_format:json_object reason as
             // quiz above. The client unwraps {"cards":[...]} or a bare array.
@@ -982,6 +1064,8 @@ Deno.serve(async (req) => {
     Use ${aiLanguage}.
     DEPTH: ${depthMap[Number(s.aiDepth)] || depthMap[3]}
     STUDY STYLE: ${studyStyleMap[s.aiStyle] || studyStyleMap.concise}
+${appContext}
+    TONE — whatever persona or host personality you are given, the student may be 13. Be warm or be blunt, but never mock, belittle, tease or use sarcasm about the student or their answers: no "Duh", "come on", "seriously?", "math 101", or remarks about them struggling. This applies in every mode, including quiz feedback.
 
     VOICE — refer to yourself in the first person, always. Say "I can help you with that", never "Learnora can help you with that" or "Learnora AI thinks". Use the name "Learnora" only for the product itself (its tabs, features and screens), never as a stand-in for "I", and never describe yourself in the third person. Stay in this voice for the whole conversation, including the first message.
 
@@ -1016,6 +1100,7 @@ Deno.serve(async (req) => {
         if (!rateLimit.allowed) {
             return rateLimitResponse(mode, jsonHeaders, rateLimit.message);
         }
+        logId = rateLimit.logId;
 
         // Screen before spending a token. `history` carries the workspace
         // context prelude, so the newest turn is screened on its own and
@@ -1030,6 +1115,57 @@ Deno.serve(async (req) => {
         // as a dropped connection rather than a usable error.
         const deadline = AbortSignal.timeout(TOTAL_BUDGET_MS);
         const budgetExhausted = () => deadline.aborted;
+
+        /* A second opinion on a generated quiz (see _shared/quizQuality.js):
+           Gemini first, then one fallback provider. Best-effort — skipped when
+           the request is too close to its budget, and any failure returns null
+           so the quiz goes out unverified rather than not at all. */
+        const verifyQuiz = async (system: string, prompt: string): Promise<string | null> => {
+            if (TOTAL_BUDGET_MS - (Date.now() - startedAt) < 12_000) return null;
+            const checkKey = Deno.env.get('GEMINI_API_KEY');
+            if (checkKey) {
+                try {
+                    const modelName = (Deno.env.get('GEMINI_MODELS') || "gemini-3.6-flash")
+                        .split(",")[0].trim();
+                    const checker = new GoogleGenerativeAI(checkKey)
+                        .getGenerativeModel({ model: modelName, systemInstruction: system });
+                    const result: any = await Promise.race([
+                        checker.generateContent(prompt),
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error("quiz check timed out")), 20_000)
+                        ),
+                    ]);
+                    const checked = salvageJson(cleanJsonResponse(result.response.text()));
+                    if (checked) return checked;
+                } catch (err) {
+                    console.warn("[quiz-check] Gemini check failed", err);
+                }
+            }
+            for (const provider of providerChain()) {
+                if (!Deno.env.get(provider.keyEnv) || !resolveProviderUrl(provider)) continue;
+                if (budgetExhausted()) return null;
+                try {
+                    const checked = salvageJson(cleanJsonResponse(await callProvider(provider, {
+                        systemInstruction: system,
+                        history: [{ role: "user", content: prompt }],
+                        userContent: prompt,
+                        mode: "quiz",
+                        signal: deadline,
+                    })));
+                    if (checked) return checked;
+                } catch (err) {
+                    console.warn(`[quiz-check] ${provider.id} check failed`, err);
+                }
+                // One fallback attempt is enough for a best-effort check.
+                return null;
+            }
+            return null;
+        };
+
+        /* Only the quiz generator itself: other tools send mode "quiz" purely
+           for its JSON handling and have their own shapes. */
+        const finishText = async (text: string): Promise<string> =>
+            mode === "quiz" && tool === "quiz" ? await improveQuiz(text, verifyQuiz) : text;
 
         // =========================================================================
         // CHANNEL 1: GEMINI — first because it is the only provider in the chain
@@ -1097,6 +1233,16 @@ Deno.serve(async (req) => {
                         text = cleanJsonResponse(text);
                     }
                     if (!text || !text.trim()) throw new Error(`Gemini (${modelName}) returned empty text`);
+                    if (isJsonMode(mode)) {
+                        const salvaged = salvageJson(text);
+                        if (salvaged === null) {
+                            if (looksLikeRefusal(text)) {
+                                return safetyRefusalResponse(mode, jsonHeaders, currentMsg);
+                            }
+                            throw new Error(`Gemini (${modelName}) returned JSON that does not parse`);
+                        }
+                        text = salvaged;
+                    }
 
                     // Gemini's own filters let the formula of methamphetamine
                     // through, so its output gets the same screen as the
@@ -1106,6 +1252,8 @@ Deno.serve(async (req) => {
                         console.warn(`[safety] ${modelName} output refused by screen`, { mode, userId: user.id });
                         return safetyRefusalResponse(mode, jsonHeaders, `${currentMsg}\n${text}`);
                     }
+
+                    text = await finishText(text);
 
                     return new Response(JSON.stringify({
                         text: text,
@@ -1183,7 +1331,14 @@ Deno.serve(async (req) => {
                 });
 
                 if (isJsonMode(mode)) {
-                    text = cleanJsonResponse(text);
+                    const salvaged = salvageJson(cleanJsonResponse(text));
+                    if (salvaged === null) {
+                        if (looksLikeRefusal(text)) {
+                            return safetyRefusalResponse(mode, jsonHeaders, currentMsg);
+                        }
+                        throw new Error(`${provider.id} returned JSON that does not parse`);
+                    }
+                    text = salvaged;
                 }
 
                 // None of these providers has a safety layer comparable to
@@ -1192,6 +1347,8 @@ Deno.serve(async (req) => {
                     console.warn(`[safety] ${provider.id} output refused by screen`, { mode, userId: user.id });
                     return safetyRefusalResponse(mode, jsonHeaders, `${currentMsg}\n${text}`);
                 }
+
+                text = await finishText(text);
 
                 return new Response(JSON.stringify({
                     text,
@@ -1212,6 +1369,8 @@ Deno.serve(async (req) => {
             debugErrors,
             error: err.message || String(err),
         });
+        // No provider answered, so the allowance this request took is returned.
+        await refundRequest(logId);
 
         return new Response(JSON.stringify({
             error: "AI is temporarily unavailable. Please try again in a moment."

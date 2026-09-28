@@ -393,16 +393,47 @@ export const EXAM_BOARDS: ReadonlyArray<{
 ];
 
 /** The region's own board label is shown for "other", so a CBSE student
- *  sees "CBSE Board" rather than "Something else". */
+ *  sees "CBSE Board" rather than "Something else" — unless that label names
+ *  a board that already has its own chip. A US student was offered both "AP"
+ *  and "AP / College Board" (the latter meaning "other"), and a UK student
+ *  "GCSE", "A-Level" and "GCSE / A-Level". */
 export function examBoardLabel(
   id: ExamTypeId,
   regionId?: RegionId | null,
 ): string {
   if (id === "other") {
     const fw = getFramework(regionId);
-    return fw.id === "generic" ? "Something else" : fw.boardLabel;
+    if (fw.id === "generic") return "Something else";
+    const named = new Set(
+      EXAM_BOARDS.filter((b) => b.id !== "other").map((b) =>
+        b.label.toLowerCase(),
+      ),
+    );
+    const repeatsAChip = fw.boardLabel
+      .split(/[\s/,]+/)
+      .some((token) => named.has(token.toLowerCase()));
+    return repeatsAChip ? "Something else" : fw.boardLabel;
   }
   return EXAM_BOARDS.find((b) => b.id === id)?.label ?? id;
+}
+
+/** The region whose curriculum presets match a chosen exam board, when the
+ *  board implies one. A student who picked GCSE on a US-locale laptop was
+ *  offered AP and SAT presets on the very next screen. */
+export function regionForExamType(
+  examType: ExamTypeId | null,
+): RegionId | null {
+  switch (examType) {
+    case "gcse":
+    case "a_level":
+      return "GB";
+    case "ap":
+    case "sat":
+    case "act":
+      return "US";
+    default:
+      return null;
+  }
 }
 
 /** Goals for which "which board?" is a question worth asking. */

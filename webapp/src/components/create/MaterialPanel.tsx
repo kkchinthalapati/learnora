@@ -47,7 +47,7 @@ const FOLDER_COLORS = ["#4A90E2", "#E24A4A", "#4AE283", "#E2A84A", "#9B4AE2"];
 const PERSONALITY_DESC: Record<string, string> = {
   "Friendly Tutor": "Patient and supportive, with step-by-step explanations.",
   "Strict Coach": "Direct and challenging, with a focus on improvement.",
-  "Sarcastic Buddy": "Casual and playful, with light humour.",
+  "Friendly Study Buddy": "Casual and playful, with light humour.",
   "Academic Professor": "Formal, precise, and textbook-style.",
 };
 

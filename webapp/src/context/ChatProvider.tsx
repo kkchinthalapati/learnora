@@ -365,6 +365,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
            the write landing, and the task list must still refresh. */
         await qc.invalidateQueries({ queryKey: tasksKeys.all });
       },
+      resolveName: async (kind, name) => {
+        if (kind === "task") {
+          const tasks = await tasksApi.fetch();
+          return findByName(tasks, name, (t) => t.text)?.text ?? null;
+        }
+        const exams = await examsApi.fetch();
+        return findByName(exams, name, (e) => e.exam_name)?.exam_name ?? null;
+      },
       completeTask: async (name) => {
         const tasks = await tasksApi.fetch();
         const match = findByName(tasks, name, (t) => t.text);
@@ -653,6 +661,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           webEvidence: webResponse
             ? formatWebEvidence(webResponse.results)
             : "",
+          includeQuery: false,
         });
 
         const priorHistory = trimHistory(historyRef.current);
@@ -660,7 +669,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         setSendPhase("thinking");
         const { text } = await callEdge(
           {
-            history: [...priorHistory, { role: "user", content: systemContext }],
+            /* The student's words alone are the user turn; the app's rules
+               and workspace data go in `context`, which the edge function
+               places in the system instruction. */
+            history: [...priorHistory, { role: "user", content: query }],
+            context: systemContext,
             file: filePayload,
             tool: "chat",
             settings,

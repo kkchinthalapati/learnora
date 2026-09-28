@@ -136,6 +136,39 @@ describe("renderMarkdownNodes", () => {
     );
   });
 
+  /* Cited sources reached the student as "[BBC Bitesize](https://…)". */
+  it("renders http(s) links as safe anchors and leaves other schemes as text", () => {
+    renderMd(
+      "See [Bitesize](https://www.bbc.co.uk/bitesize) and [bad](javascript:alert(1)).",
+    );
+    const link = screen.getByRole("link", { name: "Bitesize" });
+    expect(link).toHaveAttribute("href", "https://www.bbc.co.uk/bitesize");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(screen.queryByRole("link", { name: "bad" })).toBeNull();
+    expect(out()).toHaveTextContent("[bad](javascript:alert(1))");
+  });
+
+  /* A comparison reply arrived as rows of raw pipes. */
+  it("renders a pipe table as a real table", () => {
+    renderMd(
+      "| Stage | Location |\n|---|---|\n| Light-dependent | Thylakoid |\n| Calvin cycle | Stroma |",
+    );
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getAllByRole("columnheader").map((c) => c.textContent)).toEqual([
+      "Stage",
+      "Location",
+    ]);
+    expect(screen.getAllByRole("row")).toHaveLength(3);
+    expect(out()).not.toHaveTextContent("|");
+  });
+
+  it("keeps an indented sub-point inside the list", () => {
+    renderMd("1. first\n2. second\n   - nested");
+    expect(out().querySelectorAll("li")).toHaveLength(3);
+    expect(out()).not.toHaveTextContent("- nested");
+  });
+
   it("renders nothing for empty input", () => {
     renderMd("");
     expect(out()).toBeEmptyDOMElement();

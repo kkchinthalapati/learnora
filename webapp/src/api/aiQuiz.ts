@@ -121,12 +121,15 @@ export function buildQuizPrompt({
    *  to say, which leaves this prompt byte-identical to what it was before. */
   misconceptionFocus?: string;
 }): string {
+  /* A saved Create-dialog choice from before the rename still says
+     "Sarcastic Buddy"; it is sent under its new name. */
+  const host = personality === "Sarcastic Buddy" ? "Friendly Study Buddy" : personality;
   return `Generate a high-quality, non-repetitive multiple-choice quiz based on the provided material or topic.
 
 Configuration:
 - Topic: ${topic}
 - Difficulty Level: ${difficulty}
-- AI Host Personality: ${personality}
+- AI Host Personality: ${host}
 - Total Questions Required: ${count}
 
 ${difficultyGuidance(difficulty)}
@@ -141,11 +144,13 @@ STRICT DIVERSITY & QUALITY RULES:
    - Edge Cases & Counter-examples (Examining failure conditions or special cases)
    - Extensions & Applications (Applying the concept to related contexts or generalizations)
 3. DISTRACTORS: All wrong choices MUST be realistic, meaningful, and carefully crafted. No obvious filler or duplicate choices across options.
-4. FEEDBACK: For EACH question, include a comprehensive "feedback" string. The feedback MUST explain why the correct answer is right and why each incorrect option is wrong, written in the voice of the chosen AI Host Personality (${personality}). Address the student directly and engage them.
+4. FEEDBACK: For EACH question, include a comprehensive "feedback" string. The feedback MUST explain why the correct answer is right and why each incorrect option is wrong, written in the voice of the chosen AI Host Personality (${host}). Address the student directly and engage them.
 5. FEEDBACK NEUTRALITY (CRITICAL): The same "feedback" string is shown to every student, including those who answered INCORRECTLY. It is written before anyone answers, so it CANNOT know what the student chose.
    - NEVER open with or include praise or congratulation: no "Nice work!", "Great job!", "Exactly right!", "Correct!", "You got it", "Well done", or any equivalent.
    - NEVER assert or imply what the student picked: no "you chose", "you correctly identified", "you've got this one", "your answer".
    - Write it as a neutral explanation of the question itself — e.g. "The AAS criterion applies here because…", not "Nice work! You've got AAS here because…".
+6. TONE (CRITICAL): The student may be 13. Whatever the host personality, never mock, belittle, tease or use sarcasm about the student: no "Duh", "come on", "seriously?", "this is basic", or remarks about them struggling.
+7. ONE RIGHT ANSWER, NOTHING MISSING: Solve every question yourself before writing its key. Exactly one choice may be correct, and "correctIndex" must point at it. Every question must be answerable from its own text — never refer to a diagram, figure, graph or table that is not written out in the question.
 
 Material / Topic Content:
 """

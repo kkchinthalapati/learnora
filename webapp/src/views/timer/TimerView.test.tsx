@@ -134,8 +134,23 @@ describe("TimerView", () => {
     expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Start" })).toBeNull();
 
+    /* Past the double-click grace window, a Pause is a real pause. */
+    const later = Date.now() + 1000;
+    const now = vi.spyOn(Date, "now").mockReturnValue(later);
     await user.click(screen.getByRole("button", { name: "Pause" }));
+    now.mockRestore();
     expect(screen.getByRole("button", { name: "Start" })).toBeInTheDocument();
+  });
+
+  /* Start and Pause share a spot: a double-click used to start and then
+     immediately pause, leaving a stopped timer the student thought was running. */
+  it("keeps running when Start is double-clicked", async () => {
+    const user = userEvent.setup();
+    renderTimer();
+
+    await user.dblClick(screen.getByRole("button", { name: "Start" }));
+
+    expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
   });
 
   it("counts down once per second", async () => {

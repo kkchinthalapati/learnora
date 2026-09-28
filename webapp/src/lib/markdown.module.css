@@ -97,6 +97,40 @@
   margin: 24px 0;
 }
 
+.link {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+/* A wide table scrolls inside its own box rather than pushing the chat
+   bubble (or the 480px review drawer) sideways. */
+.tableWrap {
+  margin: 12px 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+  min-width: 100%;
+}
+
+.table th,
+.table td {
+  border: 1px solid var(--glass-border-subtle);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  background: var(--surface-2);
+  font-weight: 600;
+}
+
 /* ── Maths ────────────────────────────────────────────────────────────────
    Rendered as MathML (see Math.tsx for why not KaTeX's HTML output), so the
    browser lays the equation out and there is very little to style here. What

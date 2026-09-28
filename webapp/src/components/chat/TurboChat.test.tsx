@@ -70,8 +70,15 @@ function capturePrompts(text = "Sure.") {
   const sent: string[] = [];
   server.use(
     http.post(EDGE_URL, async ({ request }) => {
-      const body = (await request.json()) as { history: { content: string }[] };
-      sent.push(body.history[body.history.length - 1]?.content ?? "");
+      const body = (await request.json()) as {
+        history: { content: string }[];
+        context?: string;
+      };
+      /* The app's instructions travel in `context`, the student's words as
+         the last history turn; together they are what the model reads. */
+      sent.push(
+        `${body.context ?? ""}\n${body.history[body.history.length - 1]?.content ?? ""}`,
+      );
       return HttpResponse.json({ text });
     }),
   );
@@ -211,7 +218,9 @@ describe("TurboChat", () => {
     });
 
     it("sends the workspace state and the student's message to the model", async () => {
-      let body: { history?: { content: string }[] } | undefined;
+      let body:
+        | { history?: { content: string }[]; context?: string }
+        | undefined;
       server.use(
         http.get(rest("tasks"), () =>
           HttpResponse.json([
@@ -235,9 +244,11 @@ describe("TurboChat", () => {
       await ask("hello");
       await screen.findByText("ok");
 
-      const prompt = body?.history?.at(-1)?.content ?? "";
-      expect(prompt).toContain("Read chapter 4 (due 2026-08-07)");
-      expect(prompt).toContain("User message: hello");
+      /* The app's context and the student's words travel separately, so the
+         student's message can never pose as the app's instructions. */
+      expect(body?.context ?? "").toContain("Read chapter 4 (due 2026-08-07)");
+      expect(body?.context ?? "").not.toContain("User message:");
+      expect(body?.history?.at(-1)?.content).toBe("hello");
     });
 
     it("renders markdown in the reply", async () => {
@@ -827,7 +838,9 @@ describe("TurboChat", () => {
     });
 
     it("inlines a text file into the prompt rather than sending it as a blob", async () => {
-      let body: { history?: { content: string }[]; file?: unknown } | undefined;
+      let body:
+        | { history?: { content: string }[]; file?: unknown; context?: string }
+        | undefined;
       server.use(
         http.post(EDGE_URL, async ({ request }) => {
           body = (await request.json()) as typeof body;
@@ -851,9 +864,7 @@ describe("TurboChat", () => {
       await screen.findByText("read it");
 
       expect(body?.file).toBeFalsy();
-      expect(body?.history?.at(-1)?.content).toContain(
-        "mitosis has four phases",
-      );
+      expect(body?.context).toContain("mitosis has four phases");
     });
 
     it("clears the attachment once it has been sent", async () => {

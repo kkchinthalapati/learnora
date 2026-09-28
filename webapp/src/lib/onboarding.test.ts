@@ -3,7 +3,9 @@ import type { User } from "@supabase/supabase-js";
 import {
   EMPTY_ANSWERS,
   CURRICULUM_PRESETS,
+  examBoardLabel,
   presetsForRegion,
+  regionForExamType,
   ONBOARDING_LOCAL_KEY,
   ONBOARDING_RELEASE_ISO,
   dashboardLayoutFor,
@@ -38,6 +40,24 @@ function fakeUser(overrides: Partial<User> = {}): User {
 
 beforeEach(() => {
   localStorage.clear();
+});
+
+describe("exam boards", () => {
+  /* The "other" chip borrowed the region's board label, which for the US and
+     UK repeated a chip already on screen ("AP" beside "AP / College Board"). */
+  it("never labels 'other' with a board that already has its own chip", () => {
+    expect(examBoardLabel("other", "US")).toBe("Something else");
+    expect(examBoardLabel("other", "GB")).toBe("Something else");
+    expect(examBoardLabel("other", "IN")).toBe("CBSE Board");
+  });
+
+  it("maps a board to the region whose presets fit it", () => {
+    expect(regionForExamType("gcse")).toBe("GB");
+    expect(regionForExamType("a_level")).toBe("GB");
+    expect(regionForExamType("ap")).toBe("US");
+    expect(regionForExamType("ib")).toBeNull();
+    expect(regionForExamType(null)).toBeNull();
+  });
 });
 
 describe("curriculum presets", () => {

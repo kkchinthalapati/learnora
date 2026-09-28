@@ -94,7 +94,10 @@ export const AI_PERSONA_OPTIONS: ReadonlyArray<{
 export const AI_PERSONA_QUIZ_HOST: Record<AiPersona, string> = {
   tutor: "Friendly Tutor",
   coach: "Strict Coach",
-  buddy: "Sarcastic Buddy",
+  /* Was "Sarcastic Buddy". The model only ever sees this name, and it read
+     "sarcastic" literally: production quizzes told students "Duh!" and
+     "Ugh, come on, this is math 101". */
+  buddy: "Friendly Study Buddy",
   professor: "Academic Professor",
 };
 

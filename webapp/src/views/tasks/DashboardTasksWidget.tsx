@@ -15,6 +15,7 @@ import {
   formatRecurrenceCleanText,
   isRecurringWeekly,
 } from "../../lib/date";
+import { TASK_MAX } from "../../lib/fieldLimits";
 import styles from "./tasks.module.css";
 
 /* The dashboard's compact task widget — ports js/main.js:2045-2100 (the list)
@@ -87,6 +88,7 @@ export function DashboardTasksWidget({
           ref={inputRef}
           className={shake ? styles.inputError : undefined}
           placeholder="Add a task..."
+          maxLength={TASK_MAX}
           autoComplete="off"
           aria-label="Quick add task"
           value={text}
