@@ -508,6 +508,12 @@ export function generateStudyInsights(
     insights.push(
       `You're on a ${heatData.currentStreak}-day streak. A short session every day beats one long cram.`,
     );
+  } else if (heatData.currentStreak > 0) {
+    /* A 1–2 day run used to get "…and you'll start a streak", next to a
+       stat card reading "2d streak". */
+    insights.push(
+      `You're ${heatData.currentStreak} ${heatData.currentStreak === 1 ? "day" : "days"} into a streak. Study again tomorrow to keep it going.`,
+    );
   } else if (heatData.activeDays > 0) {
     insights.push(
       `You've studied on ${heatData.activeDays} days this year. Do 25 minutes today and you'll start a streak.`,

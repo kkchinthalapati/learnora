@@ -58,14 +58,33 @@ function toQuestion(value: unknown): QuizQuestion | null {
     return null;
   }
 
+  /* Two options with the same text are one answer shown twice. Grading is by
+     index, so picking the second copy of the right answer was marked wrong —
+     "Not quite, the correct answer is 'E. coli'" under a click on "E. coli".
+     Keep the first copy of each and point the key at the surviving copy. */
+  const normalise = (choice: string) =>
+    choice.trim().replace(/\s+/g, " ").toLowerCase();
+  const firstIndexOf = new Map<string, number>();
+  const uniqueChoices: string[] = [];
+  for (const choice of choices) {
+    const key = normalise(choice);
+    if (firstIndexOf.has(key)) continue;
+    firstIndexOf.set(key, uniqueChoices.length);
+    uniqueChoices.push(choice);
+  }
+  if (uniqueChoices.length < 2) return null;
+  const dedupedCorrectIndex = firstIndexOf.get(
+    normalise(choices[correctIndex]),
+  )!;
+
   return {
     id:
       typeof value.id === "string" || typeof value.id === "number"
         ? value.id
         : undefined,
     question: value.question,
-    choices,
-    correctIndex,
+    choices: uniqueChoices,
+    correctIndex: dedupedCorrectIndex,
     topic: typeof value.topic === "string" ? value.topic : undefined,
     feedback: typeof value.feedback === "string" ? value.feedback : undefined,
   };

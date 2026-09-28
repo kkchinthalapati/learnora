@@ -294,6 +294,9 @@
 .text {
   flex: 1;
   min-width: 0;
+  /* A single unbroken word (a chemical name, a pasted token) otherwise sets
+     the list's min-content width and pushes every row's actions off-screen. */
+  overflow-wrap: anywhere;
 }
 
 .itemControls {

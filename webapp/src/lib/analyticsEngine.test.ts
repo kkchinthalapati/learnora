@@ -249,6 +249,19 @@ describe("analyticsEngine", () => {
       expect(insights.some((i) => i.includes("Time studied"))).toBe(true);
       expect(insights.some((i) => i.includes("Quizzes"))).toBe(true);
     });
+
+    /* Progress showed "2d streak" beside "Do 25 minutes today and you'll
+       start a streak". */
+    it("does not tell a student on a short streak to start one", () => {
+      const heatData = {
+        ...generateActivityHeatmap([], 30),
+        currentStreak: 2,
+        activeDays: 5,
+      };
+      const insights = generateStudyInsights([], [], heatData, []);
+      expect(insights.some((i) => i.includes("start a streak"))).toBe(false);
+      expect(insights[0]).toMatch(/2 days into a streak/);
+    });
   });
 
   describe("formatHour", () => {

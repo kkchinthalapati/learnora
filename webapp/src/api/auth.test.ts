@@ -185,6 +185,59 @@ describe("authApi.signup", () => {
       ),
     ).rejects.toThrow("already exists");
   });
+
+  /* The three answers a real student got from production signup on
+   * 2026-09-27, replayed with GoTrue's actual bodies. */
+  describe("maps the server's refusals to messages a student can act on", () => {
+    const signup = () =>
+      authApi.signup("Ada", "ada@example.com", "sunshine2010", "2000-01-01", true);
+
+    it("explains the password rule instead of listing the alphabet", async () => {
+      server.use(
+        http.post(`${SUPABASE_URL}/auth/v1/signup`, () =>
+          HttpResponse.json(
+            {
+              code: 422,
+              error_code: "weak_password",
+              msg: "Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789.",
+              weak_password: { reasons: ["characters"] },
+            },
+            { status: 422 },
+          ),
+        ),
+      );
+      await expect(signup()).rejects.toThrow(
+        "including an uppercase letter, a lowercase letter and a number",
+      );
+    });
+
+    it("never shows '{}' when the confirmation email times out (504)", async () => {
+      server.use(
+        http.post(`${SUPABASE_URL}/auth/v1/signup`, () =>
+          HttpResponse.json(
+            { code: 504, error_code: "request_timeout", msg: "context deadline exceeded" },
+            { status: 504 },
+          ),
+        ),
+      );
+      const error = await signup().catch((e: Error) => e);
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).not.toBe("{}");
+      expect((error as Error).message).toMatch(/slow to respond/);
+    });
+
+    it("says the email limit is hourly, not a one-minute wait", async () => {
+      server.use(
+        http.post(`${SUPABASE_URL}/auth/v1/signup`, () =>
+          HttpResponse.json(
+            { code: 429, error_code: "over_email_send_rate_limit", msg: "email rate limit exceeded" },
+            { status: 429 },
+          ),
+        ),
+      );
+      await expect(signup()).rejects.toThrow(/last hour/);
+    });
+  });
 });
 
 describe("authApi.login", () => {

@@ -793,7 +793,12 @@ async function checkAndLogRateLimit(
   mode: string | undefined,
   tool: string | undefined,
 ): Promise<RateLimitVerdict> {
-  const billedTool = tool || DEFAULT_TOOL;
+  /* `tool` comes from the request body. The daily count is per tool name, so
+     an unrecognised name must not become a fresh allowance of its own — any
+     client could otherwise send "x1", "x2", … and never reach a daily limit.
+     Unknown or missing names are billed as chat. */
+  const billedTool =
+    tool && Object.hasOwn(AI_TOOL_QUOTAS.free, tool) ? tool : DEFAULT_TOOL;
   try {
     const plan = await getUserPlan(supabase, userId);
     const burstMax = plan === "pro"

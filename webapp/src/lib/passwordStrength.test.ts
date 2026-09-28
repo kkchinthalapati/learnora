@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { scorePassword, validateNewPassword } from "./passwordStrength";
+import {
+  PASSWORD_RULE_MESSAGE,
+  scorePassword,
+  validateNewPassword,
+} from "./passwordStrength";
 
 describe("scorePassword", () => {
   it("calls anything under 8 characters Too Weak, however varied", () => {
@@ -10,7 +14,6 @@ describe("scorePassword", () => {
 
   it("grades by the number of character classes once long enough", () => {
     expect(scorePassword("aaaaaaaa").level).toBe("weak");
-    expect(scorePassword("aaaaAAAA").level).toBe("fair");
     expect(scorePassword("aaaaAAA1").level).toBe("good");
     expect(scorePassword("aaaaAAA1!").level).toBe("strong");
   });
@@ -19,8 +22,16 @@ describe("scorePassword", () => {
     expect(scorePassword("short").label).toBe("Too Weak (Need 8+ chars & mix)");
   });
 
+  it("never rates a password the server would reject above weak", () => {
+    /* Supabase Auth answers 422 weak_password unless there is a lowercase
+       letter, an uppercase letter and a digit. The meter used to call these
+       "Fair" and sign-up then refused them. */
+    for (const pw of ["aaaaAAAA", "sunshine2010", "PASSWORD2026", "aaaaaaa!"]) {
+      expect(scorePassword(pw).level).toBe("weak");
+    }
+  });
+
   it("labels each of the upper grades", () => {
-    expect(scorePassword("aaaaAAAA").label).toBe("Fair");
     expect(scorePassword("aaaaAAA1").label).toBe("Good");
     expect(scorePassword("aaaaAAA1!").label).toBe("Strong");
   });
@@ -33,8 +44,20 @@ describe("validateNewPassword", () => {
     );
   });
 
+  it("rejects a password missing an uppercase letter, lowercase letter or digit", () => {
+    expect(validateNewPassword("sunshine2010", "sunshine2010")?.message).toBe(
+      PASSWORD_RULE_MESSAGE,
+    );
+    expect(validateNewPassword("SUNSHINE2010", "SUNSHINE2010")?.message).toBe(
+      PASSWORD_RULE_MESSAGE,
+    );
+    expect(validateNewPassword("Sunshinesss", "Sunshinesss")?.message).toBe(
+      PASSWORD_RULE_MESSAGE,
+    );
+  });
+
   it("rejects a mismatched confirmation", () => {
-    expect(validateNewPassword("longenough1", "different1")?.message).toBe(
+    expect(validateNewPassword("Longenough1", "Different1")?.message).toBe(
       "Passwords do not match. Please re-enter them.",
     );
   });
@@ -46,6 +69,6 @@ describe("validateNewPassword", () => {
   });
 
   it("passes a long enough, matching pair", () => {
-    expect(validateNewPassword("longenough1", "longenough1")).toBeNull();
+    expect(validateNewPassword("Longenough1", "Longenough1")).toBeNull();
   });
 });
