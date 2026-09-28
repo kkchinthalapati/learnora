@@ -63,7 +63,7 @@ The serious problems are concentrated in five places:
 5. **Silent data loss in notes** when the same note is open in two tabs or
    devices (last write wins, no warning).
 
-Meaningful findings: **38** (1 BLOCKER, 9 HIGH, 15 MEDIUM, 10 LOW, 3
+Meaningful findings: **39** (1 BLOCKER, 9 HIGH, 14 MEDIUM, 12 LOW, 3
 COSMETIC/INFO). **8 were fixed in this branch** with regression tests; the rest
 need infrastructure, product, or design decisions and are queued below.
 
