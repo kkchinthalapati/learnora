@@ -218,6 +218,25 @@ export function MaterialPanel({
   const isNewMaterial =
     source === "file" || source === "text" || source === "link";
 
+  /* What this click will cost. Each output is its own generation against its
+     own daily allowance, and new material also runs a notes pass to read the
+     source even when notes aren't ticked — students were surprised to find
+     their notes allowance gone after asking only for flashcards. */
+  const allowanceUse = [
+    ...(wantNotes || isNewMaterial ? ["notes"] : []),
+    ...(wantFlashcards ? ["flashcards"] : []),
+    ...(wantQuiz ? ["quiz"] : []),
+  ];
+  const allowanceHint = allowanceUse.length
+    ? `Uses from today's AI allowance: ${allowanceUse
+        .map((tool) => `1 ${tool}`)
+        .join(" + ")}${
+        isNewMaterial && !wantNotes
+          ? " (new material always gets a notes pass so the AI can read it)"
+          : ""
+      }.`
+    : "";
+
   const didDefaultFolder = useRef(false);
   useEffect(() => {
     const loaded = foldersQuery.data;
@@ -822,6 +841,9 @@ export function MaterialPanel({
             </div>
           </label>
         </div>
+        {allowanceHint ? (
+          <p className={styles.allowanceHint}>{allowanceHint}</p>
+        ) : null}
       </section>
 
       {/* Destination Subject */}

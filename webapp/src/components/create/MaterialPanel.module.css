@@ -34,6 +34,12 @@
   color: var(--text-muted);
 }
 
+.allowanceHint {
+  margin: var(--s-2) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
 /* Source segmented tabs */
 .sourceTabs {
   display: flex;

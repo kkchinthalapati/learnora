@@ -64,8 +64,67 @@ The serious problems are concentrated in five places:
    devices (last write wins, no warning).
 
 Meaningful findings: **39** (1 BLOCKER, 9 HIGH, 14 MEDIUM, 12 LOW, 3
-COSMETIC/INFO). **8 were fixed in this branch** with regression tests; the rest
-need infrastructure, product, or design decisions and are queued below.
+COSMETIC/INFO). After the fix pass, **36 are fixed in the repository** with
+regression tests. Some of those only take effect once the server side is
+deployed; see "Fix pass" below. **Two need a dashboard change** (AUTH-01, and
+the config half of SEC-07). **PERF-02 is deferred.**
+
+## Fix pass — what changed and what still has to be deployed
+
+Branch `claude/friendly-cannon-osap4b`. Checks run on the final commit:
+
+- `vitest`: 236 files, 3,028 tests, all passing.
+- Playwright critical path + journeys: 35/35 passing.
+- `node --test` (edge helpers): 146/146 passing.
+- `tsc -b`: clean.
+- `deno check` on `learnora-ai`, `delete-account` and `web-research`: clean.
+- Both migrations applied twice to a local Postgres 16 stub schema. The
+  constraints and triggers were exercised there.
+
+**Nothing was deployed or written to production.** Applying the migration and
+deploying the edge functions from this session were blocked by the sandbox's
+production-change guard. Do this, in this order:
+
+1. **Apply both migrations:**
+   - `20260928000000_storage_limits_and_session_guards.sql` covers:
+     - the materials DELETE policy
+     - the 10 MB limit and MIME allowlist on the materials bucket
+     - `study_sessions`: at most 1,440 minutes, and no start time in the future
+     - revoking EXECUTE on three SECURITY DEFINER trigger functions
+   - `20260928010000_notes_version_and_profile_settings.sql` covers:
+     - `notes.updated_at` plus a trigger
+     - `profiles.settings`
+
+   Run `supabase db push`.
+2. **Deploy the edge functions:**
+   `supabase functions deploy learnora-ai delete-account web-research`.
+   Production `learnora-ai` (v63) predates `main`: it has neither the
+   `_shared/contentSafety.js` under-18 hardening nor the `AI_LANGUAGES` check.
+   This deploy ships those along with this branch's changes, which are:
+   - quiz verification and shuffle (`_shared/quizQuality.js`)
+   - the `context` field
+   - quota refund on failure
+   - the `tool` billing allowlist
+3. **Then ship the webapp.** The chat now sends app context in a `context`
+   field. An old `learnora-ai` ignores that field, so chat would still answer
+   but without the student's tasks, exams or actions.
+
+**Deliberately not done:**
+
+- The 5 orphaned files in the `materials` bucket were left in place. Deleting
+  them is irreversible, so it needs your decision. After step 1 a new orphan
+  can't be created, and you can remove the existing ones from the Storage
+  dashboard.
+- The mocking feedback already stored in two production quizzes was not
+  scrubbed. That is a student's data. New quizzes can no longer produce it.
+- AUTH-01 needs custom SMTP and a higher email rate limit in Supabase Auth
+  settings.
+- SEC-07 also needs leaked-password protection turned on in Auth settings.
+- PERF-02: stripping `raw_content` from list queries needs a computed "has
+  content" column, because four screens read it. Production's largest value
+  is 1.2 KB today.
+- DATA-05: the explanation and the single toast are done. Keeping a
+  half-typed input across the forced sign-out is not.
 
 ---
 
@@ -172,45 +231,45 @@ Audit of all 60 stored questions:
 
 | ID | Sev | Area | Bug | Repro | Impact | Root cause | Status |
 |---|---|---|---|---|---|---|---|
-| AUTH-01 | BLOCKER | Auth | Sign-up confirmation email times out (504) then rate-limits (429) | Prod logs | Students cannot create accounts | Supabase default mailer | Open (config) |
+| AUTH-01 | BLOCKER | Auth | Sign-up confirmation email times out (504) then rate-limits (429) | Prod logs | Students cannot create accounts | Supabase default mailer | Open — Supabase dashboard (SMTP + rate limit) |
 | AUTH-02 | HIGH | Auth | Sign-up shows `{}` on 504 | Always | Student has no idea what happened | supabase-js message not mapped | **Fixed** |
 | AUTH-03 | HIGH | Auth | Client accepts passwords the server rejects; raw alphabet error | Always | Failed sign-ups, confusing error | Rule mismatch | **Fixed** |
 | AUTH-04 | MEDIUM | Auth | Email rate limit says "wait a minute" (limit is hourly) | Always | Retry loop | String match on "rate limit" | **Fixed** |
-| SEC-01 | HIGH | Storage | Deleted materials and accounts leave files | Prod data | Privacy/compliance | No DELETE policy; delete-account ignores storage | Open (DB + edge) |
-| SEC-02 | HIGH | Privacy | Previous account's mistakes and quiz draft shown to the next account on the same device | Always | Cross-student data exposure | Unscoped localStorage | Open (design) |
-| SEC-03 | HIGH | AI billing | Daily quota bypass via arbitrary `tool` | Code | Cost abuse, paywall bypass | Client-controlled billing key | **Fixed in repo — deploy needed** |
-| SEC-04 | MEDIUM | Leaderboard | A client can insert any `minutes`/backdated `started_at` in `study_sessions` | Code/schema | Forged leaderboard and streaks | Only `minutes >= 1` checked | Open |
-| SEC-05 | LOW | Storage | `materials` bucket has no size or MIME limit (UI says 10 MB) | Schema | Storage cost abuse | Bucket config | Open |
-| SEC-06 | LOW | Errors | Raw server text shown ("relation "exams" does not exist", "JWT expired") | Always | Leaks internals, confusing | `throw new Error(error.message)` everywhere | Open |
-| SEC-07 | INFO | DB | Leaked-password protection disabled; trigger functions executable via RPC (inert); `pg_net` in public | Advisors | Hygiene | Config | Open |
-| AI-01 | HIGH | Quiz gen | ~10% of production questions have wrong or ambiguous keys | Prod data | Wrong grading and false weak topics | No verification step | Open |
-| AI-02 | HIGH | Quiz | Answer-position bias (D correct 5%); no shuffle | Prod data + browser | Gameable scores | No shuffle | Open |
-| AI-03 | HIGH | Quiz | Demeaning feedback, shown even on correct answers | Prod data + browser | Students insulted | "Sarcastic Buddy" host; feedback shown on correct | Partially mitigated |
+| SEC-01 | HIGH | Storage | Deleted materials and accounts leave files | Prod data | Privacy/compliance | No DELETE policy; delete-account ignores storage | **Fixed in repo — apply migration + deploy `delete-account`** |
+| SEC-02 | HIGH | Privacy | Previous account's mistakes and quiz draft shown to the next account on the same device | Always | Cross-student data exposure | Unscoped localStorage | **Fixed** |
+| SEC-03 | HIGH | AI billing | Daily quota bypass via arbitrary `tool` | Code | Cost abuse, paywall bypass | Client-controlled billing key | **Fixed in repo — deploy `learnora-ai`** |
+| SEC-04 | MEDIUM | Leaderboard | A client can insert any `minutes`/backdated `started_at` in `study_sessions` | Code/schema | Forged leaderboard and streaks | Only `minutes >= 1` checked | **Fixed in repo — apply migration** |
+| SEC-05 | LOW | Storage | `materials` bucket has no size or MIME limit (UI says 10 MB) | Schema | Storage cost abuse | Bucket config | **Fixed in repo — apply migration** |
+| SEC-06 | LOW | Errors | Raw server text shown ("relation "exams" does not exist", "JWT expired") | Always | Leaks internals, confusing | `throw new Error(error.message)` everywhere | **Fixed** |
+| SEC-07 | INFO | DB | Leaked-password protection disabled; trigger functions executable via RPC (inert); `pg_net` in public | Advisors | Hygiene | Config | Triggers: **fixed in repo — apply migration**; leaked-password protection + `pg_net`: dashboard |
+| AI-01 | HIGH | Quiz gen | ~10% of production questions have wrong or ambiguous keys | Prod data | Wrong grading and false weak topics | No verification step | **Fixed in repo — deploy `learnora-ai`** |
+| AI-02 | HIGH | Quiz | Answer-position bias (D correct 5%); no shuffle | Prod data + browser | Gameable scores | No shuffle | **Fixed in repo — deploy `learnora-ai`** |
+| AI-03 | HIGH | Quiz | Demeaning feedback, shown even on correct answers | Prod data + browser | Students insulted | "Sarcastic Buddy" host; feedback shown on correct | **Fixed** (stored old feedback not scrubbed) |
 | AI-04 | MEDIUM | Grading | Duplicate choice texts: picking the 2nd copy of the right answer is marked wrong | Always | Wrong grade → false misconception → tutor told "0%" | Graded by index | **Fixed** |
-| AI-05 | MEDIUM | AI chat | App tutoring instructions sent inside the user turn (~10 KB/message) | Code + payload | Students can override tutor behaviour; token cost | Client-built "[SYSTEM]" block | Open |
-| AI-06 | MEDIUM | AI quota | Failed generations (unparseable reply) still consume the daily quota; Create pre-selects Flashcards so one click spends 2 quotas | Code + browser | Free students burn 3/day quickly | Server logs before client parses | Open |
-| AI-07 | LOW | Quiz | LaTeX not rendered in quiz runner (chat renders KaTeX) | Always (latent) | Raw `$x^2$` | No math renderer in runner | Open |
-| AI-08 | LOW | Chat | Tables, links, nested lists render as raw punctuation | Always (prompt-mitigated) | Unreadable replies | Renderer subset | Open |
-| DATA-01 | HIGH | Notes | Two-tab/device overwrite, silent | Always | Lost notes | No concurrency check | Open |
-| DATA-02 | MEDIUM | Settings | AI persona, language, region are device-local; onboarding choices not re-applied on a new device | Code | Tutor "forgets" preferences on a phone | localStorage only | Open |
-| DATA-03 | MEDIUM | Onboarding | Past exam date: inline error, but Finish proceeds and silently drops the exam | Always | Lost input; summary omits it | Button not gated | Open |
-| DATA-04 | LOW | Onboarding | Refresh mid-wizard loses all answers | Always | Minor friction | State not persisted | Open |
-| DATA-05 | MEDIUM | Session | Session expiry mid-action: input lost, raw "JWT expired" toast ×2, login page doesn't say why | Always | Confusion + small data loss | No expiry UX | Open |
+| AI-05 | MEDIUM | AI chat | App tutoring instructions sent inside the user turn (~10 KB/message) | Code + payload | Students can override tutor behaviour; token cost | Client-built "[SYSTEM]" block | **Fixed in repo — deploy `learnora-ai` before the webapp** |
+| AI-06 | MEDIUM | AI quota | Failed generations (unparseable reply) still consume the daily quota; Create pre-selects Flashcards so one click spends 2 quotas | Code + browser | Free students burn 3/day quickly | Server logs before client parses | **Fixed** (refund needs `learnora-ai` deploy) |
+| AI-07 | LOW | Quiz | LaTeX not rendered in quiz runner (chat renders KaTeX) | Always (latent) | Raw `$x^2$` | No math renderer in runner | **Fixed** |
+| AI-08 | LOW | Chat | Tables, links, nested lists render as raw punctuation | Always (prompt-mitigated) | Unreadable replies | Renderer subset | **Fixed** |
+| DATA-01 | HIGH | Notes | Two-tab/device overwrite, silent | Always | Lost notes | No concurrency check | **Fixed** (active once migration applied) |
+| DATA-02 | MEDIUM | Settings | AI persona, language, region are device-local; onboarding choices not re-applied on a new device | Code | Tutor "forgets" preferences on a phone | localStorage only | **Fixed** (active once migration applied) |
+| DATA-03 | MEDIUM | Onboarding | Past exam date: inline error, but Finish proceeds and silently drops the exam | Always | Lost input; summary omits it | Button not gated | **Fixed** |
+| DATA-04 | LOW | Onboarding | Refresh mid-wizard loses all answers | Always | Minor friction | State not persisted | **Fixed** |
+| DATA-05 | MEDIUM | Session | Session expiry mid-action: input lost, raw "JWT expired" toast ×2, login page doesn't say why | Always | Confusion + small data loss | No expiry UX | **Fixed** (explanation + one toast; typed input still lost) |
 | DATA-06 | MEDIUM | Exams | Double-click "Add exam" creates two exams | Always | Duplicate exams in plan/readiness | Relied on async `isPending` | **Fixed** |
 | DATA-07 | LOW | Exams | Year typos (2206) accepted | Always | Wrong countdown | `noValidate` drops `max` | **Fixed** |
-| UX-01 | MEDIUM | Onboarding | GCSE chosen → presets offer AP/SAT; "other" board chip labelled "AP / College Board" (US) or "GCSE / A-Level" (UK), duplicating real chips | Always | Stated preference ignored | Region from locale; `boardLabel` reuse | Open |
-| UX-02 | MEDIUM | Loading | A stalled request shows a skeleton forever (no timeout, no retry) | Always | "App froze" | No fetch timeout | Open |
+| UX-01 | MEDIUM | Onboarding | GCSE chosen → presets offer AP/SAT; "other" board chip labelled "AP / College Board" (US) or "GCSE / A-Level" (UK), duplicating real chips | Always | Stated preference ignored | Region from locale; `boardLabel` reuse | **Fixed** |
+| UX-02 | MEDIUM | Loading | A stalled request shows a skeleton forever (no timeout, no retry) | Always | "App froze" | No fetch timeout | **Fixed** |
 | UX-03 | MEDIUM | Tasks | One long unbroken word pushed every task's Delete/Focus buttons off-screen | Always | Can't delete tasks | Missing `overflow-wrap` | **Fixed** |
-| UX-04 | LOW | AI actions | Delete-task confirmation shows the raw id ("901") not the title | Always | Uninformed consent | Payload not resolved | Open |
-| UX-05 | LOW | Timer | Start/Pause is one toggle; a double-click leaves the timer stopped | Always | Student thinks it's running | Toggle | Open |
+| UX-04 | LOW | AI actions | Delete-task confirmation shows the raw id ("901") not the title | Always | Uninformed consent | Payload not resolved | **Fixed** |
+| UX-05 | LOW | Timer | Start/Pause is one toggle; a double-click leaves the timer stopped | Always | Student thinks it's running | Toggle | **Fixed** |
 | UX-06 | LOW | Progress | "2d streak" beside "…you'll start a streak" | Always | Contradiction | Insight rule | **Fixed** |
-| UX-07 | LOW | Tasks | 10,000-char task accepted (no max anywhere) | Always | Layout/perf | No limit | Open |
-| PERF-01 | MEDIUM | Bundle | Login downloads 1.64 MB / 25 files (entry JS 862 KB, CSS 249 KB) | Measured | Slow first load on phones | Eager route imports | Open |
-| PERF-02 | MEDIUM | Data | Today loads 19 requests, incl. unbounded `select=*` of flashcards, materials (full `raw_content`) and notebooks+sources | Measured | Grows linearly with uploads | Over-fetching | Open |
-| PERF-03 | LOW | Data | `profiles` fetched 3× per load; logo fetched twice | Measured | Waste | Separate queries | Open |
-| A11Y-01 | LOW | A11y | Solver active badge fails contrast (only serious axe violation in 19 routes) | axe | Low vision | Colour token | Open |
-| A11Y-02 | COSMETIC | A11y | Single-choice onboarding cards use `aria-current`, not radio semantics | Code | SR users | Markup | Open |
-| COS-01 | COSMETIC | Greeting | "Good morning" at 2:34 AM | Always | — | `hour < 12` | Open |
+| UX-07 | LOW | Tasks | 10,000-char task accepted (no max anywhere) | Always | Layout/perf | No limit | **Fixed** |
+| PERF-01 | MEDIUM | Bundle | Login downloads 1.64 MB / 25 files (entry JS 862 KB, CSS 249 KB) | Measured | Slow first load on phones | Eager route imports | **Fixed** (entry JS 870→450 KB) |
+| PERF-02 | MEDIUM | Data | Today loads 19 requests, incl. unbounded `select=*` of flashcards, materials (full `raw_content`) and notebooks+sources | Measured | Grows linearly with uploads | Over-fetching | Open — needs a computed column; small in prod today |
+| PERF-03 | LOW | Data | `profiles` fetched 3× per load; logo fetched twice | Measured | Waste | Separate queries | **Fixed** |
+| A11Y-01 | LOW | A11y | Solver active badge fails contrast (only serious axe violation in 19 routes) | axe | Low vision | Colour token | **Fixed** |
+| A11Y-02 | COSMETIC | A11y | Single-choice onboarding cards use `aria-current`, not radio semantics | Code | SR users | Markup | **Fixed** |
+| COS-01 | COSMETIC | Greeting | "Good morning" at 2:34 AM | Always | — | `hour < 12` | **Fixed** |
 
 Production observations not attributed to a code defect (**UNVERIFIED**):
 recurring PostgREST "Thread killed by timeout manager" bursts on 2026-09-27
@@ -240,7 +299,10 @@ Supabase dashboard; they may be what users experience as UX-02.
 ## Security findings (evidence-backed only)
 
 - **Good:** RLS on all 26 public tables; every parent-owner guard is RESTRICTIVE; billing columns are protected by a BEFORE UPDATE trigger; all user-callable SECURITY DEFINER RPCs check `auth.uid()`; internal helpers (`friend_period_minutes`, `friend_streak`, …) are not executable by `authenticated`. The Stripe webhook verifies signatures and is idempotent. Web extraction goes through Tavily with a public-URL filter (no SSRF from Supabase). AI output HTML/script is inert. The AI `NAVIGATE` action ignores external, protocol-relative, `javascript:` and traversal targets. Logout clears the session across tabs; the back button and deep links are protected.
-- **Open:** SEC-01, SEC-02, SEC-03 (deploy), SEC-04, SEC-05, SEC-06, SEC-07. Also enable leaked-password protection (the advisor flags it).
+- **Status after the fix pass:**
+  - Fixed in the client: SEC-02 and SEC-06.
+  - Fixed in the repo, pending deploy or migration: SEC-01, SEC-03, SEC-04, SEC-05, and the trigger half of SEC-07.
+  - Dashboard only: leaked-password protection and moving `pg_net` out of `public`.
 
 ## Accessibility findings
 
@@ -251,6 +313,11 @@ axe (WCAG 2.1 A/AA) across 19 authenticated routes: **1 serious violation** (Sol
 - Production build, login page: **1,642 KB over 25 requests**; entry `index-*.js` 862 KB (267 KB gzip), CSS 249 KB (43 KB gzip); FCP 340 ms locally (no throttling).
 - Today cold load: 19 backend calls (3 duplicate `profiles`, 2 `quiz_attempts`, 2 `study_sessions`).
 - No idle polling (0 requests in 20 s idle).
+- **After the fix pass:**
+  - Every signed-in screen, the app shell and the marketing pages now load on demand.
+  - Entry JS: 870 KB → 450 KB (270 → 141 KB gzip). Entry CSS: 250 KB → 70 KB.
+  - Start-up `profiles` reads went from 3 to 1, plus the separate billing read.
+  - The logo is fetched once.
 
 ---
 
@@ -309,17 +376,17 @@ axe (WCAG 2.1 A/AA) across 19 authenticated routes: **1 serious violation** (Sol
 | AI-04 | Duplicate choices collapse and the key follows the surviving copy | `webapp/src/views/quiz/quizMeta.test.ts` (**added**) |
 | UX-06 | No "start a streak" copy during a streak | `webapp/src/lib/analyticsEngine.test.ts` (**added**) |
 | UX-03 | Long unbroken task keeps Delete visible at 1280/390/320 | Playwright `tests/e2e/responsive.spec.ts` (to add) |
-| SEC-01 | Own-object delete allowed, other-user delete denied; delete-account empties prefix | SQL/storage test + edge integration |
-| SEC-02 | A's traces/drafts invisible to B after logout | Playwright e2e |
-| SEC-03 | Unknown tool billed as chat | Deno test for `checkAndLogRateLimit` |
-| AI-01 | Verifier rejects the six known-bad questions | unit test with fixtures |
-| AI-02 | Correct-answer position varies across seeded shuffles; Review aligned | unit + component test |
-| AI-03 | Quiz prompt has tone rule, no "Sarcastic" | prompt snapshot |
-| DATA-01 | Second tab's stale save is refused with a conflict prompt | Playwright two-page test |
-| DATA-03 | Finish disabled while the exam date is invalid | `WelcomeView.test.tsx` |
-| DATA-05 | Expired session preserves typed task and explains the redirect | Playwright e2e |
-| UX-02 | A stalled GET shows an error with Retry after N seconds | component test with a never-resolving MSW handler |
-| SEC-04 | Inserting minutes > 720 or future `started_at` is rejected | SQL constraint test |
+| SEC-01 | Own-object delete allowed, other-user delete denied; delete-account empties prefix | **Fixed in repo — apply migration + deploy `delete-account`** |
+| SEC-02 | A's traces/drafts invisible to B after logout | **Fixed** |
+| SEC-03 | Unknown tool billed as chat | **Fixed in repo — deploy `learnora-ai`** |
+| AI-01 | Verifier rejects the six known-bad questions | **Fixed in repo — deploy `learnora-ai`** |
+| AI-02 | Correct-answer position varies across seeded shuffles; Review aligned | **Fixed in repo — deploy `learnora-ai`** |
+| AI-03 | Quiz prompt has tone rule, no "Sarcastic" | **Fixed** (stored old feedback not scrubbed) |
+| DATA-01 | Second tab's stale save is refused with a conflict prompt | **Fixed** (active once migration applied) |
+| DATA-03 | Finish disabled while the exam date is invalid | **Fixed** |
+| DATA-05 | Expired session preserves typed task and explains the redirect | **Fixed** (explanation + one toast; typed input still lost) |
+| UX-02 | A stalled GET shows an error with Retry after N seconds | **Fixed** |
+| SEC-04 | Inserting minutes > 720 or future `started_at` is rejected | **Fixed in repo — apply migration** |
 
 ## Fixes made in this branch
 
@@ -330,7 +397,7 @@ axe (WCAG 2.1 A/AA) across 19 authenticated routes: **1 serious violation** (Sol
 | AI-04 | Duplicate choices collapsed at parse time, key remapped | `webapp/src/views/quiz/quizMeta.ts` |
 | UX-03 | `overflow-wrap: anywhere` on task text | `webapp/src/views/tasks/tasks.module.css` |
 | UX-06 | Short-streak insight | `webapp/src/lib/analyticsEngine.ts` |
-| SEC-03 | Unknown `tool` billed as chat (**deploy required**) | `supabase/functions/learnora-ai/index.ts` |
+| SEC-03 | Unknown `tool` billed as chat (**deploy required**) | **Fixed in repo — deploy `learnora-ai`** |
 
 Verification: every new test was run against `main` first and failed, then
 passed with the fix. Full Vitest suite: 232 files / 2,978 tests passing;

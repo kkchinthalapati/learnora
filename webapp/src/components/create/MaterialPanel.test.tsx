@@ -128,6 +128,25 @@ describe("MaterialPanel streamlined creation", () => {
     expect(submit).not.toHaveAttribute("aria-label");
   });
 
+  /* AI-06: a document with only Flashcards ticked still spent a notes
+     generation reading the file, with nothing on screen saying so. */
+  it("says what a request will take from today's AI allowance", async () => {
+    const user = await openDialog();
+    expect(
+      screen.getByText(
+        "Uses from today's AI allowance: 1 notes + 1 flashcards (new material always gets a notes pass so the AI can read it).",
+      ),
+    ).toBeInTheDocument();
+
+    await user.click(outputCheckbox("Practice Quiz"));
+    await user.click(outputCheckbox("Summary Notes"));
+    expect(
+      screen.getByText(
+        "Uses from today's AI allowance: 1 notes + 1 flashcards + 1 quiz.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("accepts a file and displays its details", async () => {
     vi.spyOn(pdfText, "planPdfUpload").mockResolvedValue({
       kind: "attach",

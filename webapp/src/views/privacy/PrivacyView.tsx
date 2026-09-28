@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import logoUrl from "../../assets/learnora.jpg";
+import { LOGO_URL as logoUrl } from "../../lib/logoUrl";
 import styles from "./privacy.module.css";
 
 /* Privacy Policy — ports privacy.html, expanded to actually cover what the

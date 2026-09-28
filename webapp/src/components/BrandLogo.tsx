@@ -1,4 +1,4 @@
-import logoUrl from "../assets/learnora.jpg";
+import { LOGO_URL as logoUrl } from "../lib/logoUrl";
 import styles from "./BrandLogo.module.css";
 
 interface BrandLogoProps {

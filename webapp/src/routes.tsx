@@ -1,4 +1,3 @@
-import { TodayView } from "./views/today/TodayView";
 import { lazy, Suspense, type ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -6,7 +5,6 @@ import {
   OnboardingGate,
   WELCOME_PATH,
 } from "./views/onboarding/OnboardingGate";
-import { AppShell } from "./components/AppShell";
 import { LoginView } from "./views/auth/LoginView";
 import { SignupView } from "./views/auth/SignupView";
 import { ForgotPasswordView } from "./views/auth/ForgotPasswordView";
@@ -21,21 +19,50 @@ import {
 } from "./views/auth/authPaths";
 import { TermsView } from "./views/terms/TermsView";
 import { PrivacyView } from "./views/privacy/PrivacyView";
-import { LandingView } from "./views/marketing/LandingView";
-import {
-  AboutView,
-  ContactView,
-  DevelopersView,
-} from "./views/marketing/MarketingPages";
-import { TasksView } from "./views/tasks/TasksView";
-import { ExamsView } from "./views/exams/ExamsView";
-import { TimerView } from "./views/timer/TimerView";
-import { LibraryView } from "./views/library/LibraryView";
-import { DashboardView } from "./views/dashboard/DashboardView";
-import { PlanView } from "./views/plan/PlanView";
 import { NotFoundView } from "./views/not-found/NotFoundView";
 import { Skeleton } from "./components/Skeleton";
 import styles from "./routes.module.css";
+
+/* Every signed-in screen and the marketing pages load on demand. The sign-in
+   screen used to download the whole app (862 KB entry script) before a
+   student could type a password; now the entry carries only what the public
+   and auth routes need, and the shell arrives while they sign in. */
+const LazyAppShell = lazy(async () => ({
+  default: (await import("./components/AppShell")).AppShell,
+}));
+const LazyTodayView = lazy(async () => ({
+  default: (await import("./views/today/TodayView")).TodayView,
+}));
+const LazyTasksView = lazy(async () => ({
+  default: (await import("./views/tasks/TasksView")).TasksView,
+}));
+const LazyExamsView = lazy(async () => ({
+  default: (await import("./views/exams/ExamsView")).ExamsView,
+}));
+const LazyTimerView = lazy(async () => ({
+  default: (await import("./views/timer/TimerView")).TimerView,
+}));
+const LazyLibraryView = lazy(async () => ({
+  default: (await import("./views/library/LibraryView")).LibraryView,
+}));
+const LazyDashboardView = lazy(async () => ({
+  default: (await import("./views/dashboard/DashboardView")).DashboardView,
+}));
+const LazyPlanView = lazy(async () => ({
+  default: (await import("./views/plan/PlanView")).PlanView,
+}));
+const LazyLandingView = lazy(async () => ({
+  default: (await import("./views/marketing/LandingView")).LandingView,
+}));
+const LazyAboutView = lazy(async () => ({
+  default: (await import("./views/marketing/MarketingPages")).AboutView,
+}));
+const LazyContactView = lazy(async () => ({
+  default: (await import("./views/marketing/MarketingPages")).ContactView,
+}));
+const LazyDevelopersView = lazy(async () => ({
+  default: (await import("./views/marketing/MarketingPages")).DevelopersView,
+}));
 
 const LazyExamDetectiveHubView = lazy(async () => ({
   default: (await import("./views/exam-detective/ExamDetectiveHubView"))
@@ -147,6 +174,17 @@ function DeferredView({ children }: { children: ReactNode }) {
   );
 }
 
+/* While the sidebar/header chunk loads after sign-in. Full-page and
+   unstyled beyond the skeleton — there is no chrome to keep the shape of. */
+function ShellFallback() {
+  return (
+    <div className={styles.deferredFallback} aria-busy="true">
+      <Skeleton label="Loading Learnora" height={32} width="40%" />
+      <Skeleton height={220} />
+    </div>
+  );
+}
+
 /*
  * Route table mirroring the vanilla app's hash router (js/router.js):
  * dashboard, todo→/tasks, exams, timer, library(+tabs), folder-<id>,
@@ -173,10 +211,26 @@ export function AppRoutes() {
       <Route path={VERIFY_PATH} element={<VerifyView />} />
       <Route path="/terms" element={<TermsView />} />
       <Route path="/privacy" element={<PrivacyView />} />
-      <Route path="/landing" element={<LandingView />} />
-      <Route path="/about" element={<AboutView />} />
-      <Route path="/contact" element={<ContactView />} />
-      <Route path="/developers" element={<DevelopersView />} />
+      <Route path="/landing" element={
+              <DeferredView>
+                <LazyLandingView />
+              </DeferredView>
+            } />
+      <Route path="/about" element={
+              <DeferredView>
+                <LazyAboutView />
+              </DeferredView>
+            } />
+      <Route path="/contact" element={
+              <DeferredView>
+                <LazyContactView />
+              </DeferredView>
+            } />
+      <Route path="/developers" element={
+              <DeferredView>
+                <LazyDevelopersView />
+              </DeferredView>
+            } />
       <Route element={<ProtectedRoute />}>
         {/* Deliberately outside both OnboardingGate and AppShell: a guard
             can't redirect into the screen that satisfies it, and the sidebar
@@ -195,9 +249,23 @@ export function AppRoutes() {
         <Route element={<OnboardingGate />}>
           {/* The sidebar/header chrome — see AppShell's own comment for why
             this sits here rather than inside ProtectedRoute itself. */}
-          <Route element={<AppShell />}>
-            <Route path="/" element={<TodayView />} />
-            <Route path="/dashboard" element={<DashboardView />} />
+          <Route
+            element={
+              <Suspense fallback={<ShellFallback />}>
+                <LazyAppShell />
+              </Suspense>
+            }
+          >
+            <Route path="/" element={
+              <DeferredView>
+                <LazyTodayView />
+              </DeferredView>
+            } />
+            <Route path="/dashboard" element={
+              <DeferredView>
+                <LazyDashboardView />
+              </DeferredView>
+            } />
             <Route
               path="/notebooks"
               element={<Navigate to="/library/notebooks" replace />}
@@ -210,11 +278,31 @@ export function AppRoutes() {
                 </DeferredView>
               }
             />
-            <Route path="/tasks" element={<TasksView />} />
-            <Route path="/exams" element={<ExamsView />} />
-            <Route path="/timer" element={<TimerView />} />
-            <Route path="/library" element={<LibraryView />} />
-            <Route path="/library/:tab" element={<LibraryView />} />
+            <Route path="/tasks" element={
+              <DeferredView>
+                <LazyTasksView />
+              </DeferredView>
+            } />
+            <Route path="/exams" element={
+              <DeferredView>
+                <LazyExamsView />
+              </DeferredView>
+            } />
+            <Route path="/timer" element={
+              <DeferredView>
+                <LazyTimerView />
+              </DeferredView>
+            } />
+            <Route path="/library" element={
+              <DeferredView>
+                <LazyLibraryView />
+              </DeferredView>
+            } />
+            <Route path="/library/:tab" element={
+              <DeferredView>
+                <LazyLibraryView />
+              </DeferredView>
+            } />
             <Route
               path="/folders/:folderId"
               element={
@@ -231,7 +319,11 @@ export function AppRoutes() {
                 </DeferredView>
               }
             />
-            <Route path="/plan" element={<PlanView />} />
+            <Route path="/plan" element={
+              <DeferredView>
+                <LazyPlanView />
+              </DeferredView>
+            } />
             <Route
               path="/study"
               element={
