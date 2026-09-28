@@ -14,6 +14,7 @@ import {
   type Toast,
   type ToastOptions,
 } from "./toast";
+import { friendlyErrorMessage } from "../lib/friendlyError";
 import styles from "./ToastProvider.module.css";
 
 /* Port of UI.showToast from js/ui.js. Same defaults (6s), same live-region
@@ -27,6 +28,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const nextId = useRef(1);
 
   const dismissToast = useCallback((id: number) => {
+    for (const [message, shownId] of visible.current) {
+      if (shownId === id) visible.current.delete(message);
+    }
     const timer = timers.current.get(id);
     if (timer !== undefined) {
       clearTimeout(timer);
@@ -35,10 +39,23 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((current) => current.filter((toast) => toast.id !== id));
   }, []);
 
+  /* What is on screen right now, readable synchronously so two identical
+     errors raised in the same tick (eight queries failing on one expired
+     token) collapse into one toast instead of a stack of repeats. */
+  const visible = useRef(new Map<string, number>());
+
   const showToast = useCallback(
-    (message: string, options: ToastOptions = {}) => {
+    (rawMessage: string, options: ToastOptions = {}) => {
+      /* Failures often carry the server's own words ("JWT expired",
+         `relation "exams" does not exist`); students get plain language. */
+      const message = options.error
+        ? friendlyErrorMessage(rawMessage)
+        : rawMessage;
+      const existing = visible.current.get(message);
+      if (existing !== undefined && !options.onAction) return existing;
       const id = nextId.current++;
       const duration = options.duration ?? TOAST_DEFAULT_DURATION;
+      visible.current.set(message, id);
       setToasts((current) => [...current, { ...options, id, message }]);
       timers.current.set(
         id,

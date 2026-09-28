@@ -6,6 +6,19 @@ export const AVATAR_BUCKET = "avatars";
 export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 export const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
+/* Set once the database says `profiles.settings` does not exist (a build
+ * shipped ahead of its migration), so every later save doesn't repeat a
+ * request that can only fail. */
+let settingsColumnMissing = false;
+
+function isMissingColumn(error: { code?: string; message?: string }): boolean {
+  return (
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    /column .*settings.* does not exist/i.test(error.message ?? "")
+  );
+}
+
 export const profileApi = {
   async fetchLifeContext(expectedUserId?: string): Promise<{ lifeContext: SyncableLifeContext | null; updatedAt: string | null }> {
     const userId = await requireUserId();
@@ -35,6 +48,45 @@ export const profileApi = {
       .maybeSingle();
     if (error) throw new Error(error.message);
     return data;
+  },
+
+  /** The student's app settings as last saved from any device, or null when
+   *  none are stored yet. Column from migration 20260928010000; until that
+   *  is applied this resolves null and stops asking. */
+  async fetchSettings(userId: string): Promise<Record<string, unknown> | null> {
+    if (settingsColumnMissing) return null;
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("settings")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) {
+      if (isMissingColumn(error)) {
+        settingsColumnMissing = true;
+        return null;
+      }
+      throw new Error(error.message);
+    }
+    const settings = (data as { settings?: unknown } | null)?.settings;
+    return settings && typeof settings === "object" && !Array.isArray(settings)
+      ? (settings as Record<string, unknown>)
+      : null;
+  },
+
+  async saveSettings(settings: Record<string, unknown>): Promise<void> {
+    if (settingsColumnMissing) return;
+    const userId = await requireUserId();
+    const { error } = await supabase
+      .from("profiles")
+      .update({ settings })
+      .eq("id", userId);
+    if (error) {
+      if (isMissingColumn(error)) {
+        settingsColumnMissing = true;
+        return;
+      }
+      throw new Error(error.message);
+    }
   },
 
   async updateTimezone(timezone: string): Promise<void> {

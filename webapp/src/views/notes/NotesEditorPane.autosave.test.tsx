@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 import type { Note } from "../../api/types";
+import { NoteConflictError } from "../../api/notes";
 import {
   NotesEditorPane,
   SAVE_DEBOUNCE_MS,
@@ -85,7 +86,8 @@ vi.mock("../../components/RichTextEditor", async () => {
   };
 });
 
-const note: Note = {
+let note: Note;
+const baseNote: Note = {
   id: "note-1",
   user_id: "user-1",
   material_id: "material-1",
@@ -139,6 +141,7 @@ const advance = (ms: number) =>
 describe("NotesEditorPane autosave", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    note = baseNote;
     saveState.isPending = false;
     mutateMock.mockReset();
   });
@@ -166,6 +169,7 @@ describe("NotesEditorPane autosave", () => {
     expect(mutateMock.mock.calls[0][0]).toEqual({
       id: "note-1",
       htmlContent: "<p>edit 1</p>",
+      expectedUpdatedAt: null,
     });
   });
 
@@ -228,7 +232,8 @@ describe("NotesEditorPane autosave", () => {
 
   it("releases the unload guard once the edit is saved", () => {
     mutateMock.mockImplementation(
-      (_vars: unknown, opts: { onSuccess: () => void }) => opts.onSuccess(),
+      (_vars: unknown, opts: { onSuccess: (n: Note) => void }) =>
+        opts.onSuccess(note),
     );
     renderPane();
 
@@ -239,5 +244,58 @@ describe("NotesEditorPane autosave", () => {
     const event = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(false);
+  });
+
+  /* Two tabs on one note used to be last-writer-wins: the second save
+     silently erased the first. Saves are now conditional on the version the
+     editor loaded. */
+  it("saves against the loaded version and carries the new one forward", () => {
+    note = { ...baseNote, updated_at: "2026-09-28T10:00:00.000001+00:00" };
+    mutateMock.mockImplementation(
+      (
+        vars: { htmlContent: string },
+        opts: { onSuccess: (n: Note) => void },
+      ) =>
+        opts.onSuccess({
+          ...note,
+          html_content: vars.htmlContent,
+          updated_at: "2026-09-28T10:05:00.000002+00:00",
+        }),
+    );
+    renderPane();
+
+    type();
+    advance(SAVE_DEBOUNCE_MS);
+    type();
+    advance(SAVE_DEBOUNCE_MS);
+
+    expect(mutateMock.mock.calls[0][0].expectedUpdatedAt).toBe(
+      "2026-09-28T10:00:00.000001+00:00",
+    );
+    expect(mutateMock.mock.calls[1][0].expectedUpdatedAt).toBe(
+      "2026-09-28T10:05:00.000002+00:00",
+    );
+  });
+
+  it("stops on a conflict instead of retrying over the other edit", () => {
+    note = { ...baseNote, updated_at: "2026-09-28T10:00:00+00:00" };
+    mutateMock.mockImplementation(
+      (_vars: unknown, opts: { onError: (e: Error) => void }) =>
+        opts.onError(new NoteConflictError()),
+    );
+    renderPane();
+
+    type();
+    advance(SAVE_DEBOUNCE_MS);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Changed elsewhere — not saved",
+    );
+
+    advance(SAVE_ERROR_RETRY_MS * 5);
+    expect(mutateMock).toHaveBeenCalledTimes(1);
+
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
   });
 });

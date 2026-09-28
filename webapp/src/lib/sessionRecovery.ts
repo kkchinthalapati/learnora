@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { isAuthError } from "./requestErrors";
+import { markSessionExpired } from "./sessionExpiry";
 
 /* What happens to a tab left open overnight.
  *
@@ -59,7 +60,9 @@ export async function recoverSession(): Promise<boolean> {
     if (consecutiveFailures > MAX_CONSECUTIVE_FAILURES) return false;
 
     /* The refresh token is genuinely spent. Clear it so the app stops
-       presenting a signed-in shell backed by credentials the API rejects. */
+       presenting a signed-in shell backed by credentials the API rejects.
+       The flag lets the sign-in screen say why the student is there. */
+    markSessionExpired();
     try {
       await supabase.auth.signOut();
     } catch {

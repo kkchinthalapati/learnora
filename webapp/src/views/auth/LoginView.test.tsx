@@ -7,6 +7,7 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { LoginView } from "./LoginView";
+import { markSessionExpired } from "../../lib/sessionExpiry";
 
 const TOKEN_URL = `${SUPABASE_URL}/auth/v1/token`;
 
@@ -148,5 +149,20 @@ describe("LoginView", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "Dashboard" }),
     ).toBeInTheDocument();
+  });
+
+  /* Landing on a sign-in form with no explanation after a session could not
+     be renewed was DATA-05's "login page doesn't say why". */
+  it("explains a sign-out caused by an expired session, once", () => {
+    markSessionExpired();
+    const { unmount } = renderLogin();
+    expect(screen.getByText(/session expired/i)).toHaveAttribute(
+      "role",
+      "status",
+    );
+    unmount();
+
+    renderLogin();
+    expect(screen.queryByText(/session expired/i)).not.toBeInTheDocument();
   });
 });

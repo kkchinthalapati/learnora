@@ -376,3 +376,12 @@
   color: var(--text-muted);
   font-size: var(--fs-xs);
 }
+
+/* Why the student is on this screen when they didn't choose to be — shown
+   after a session that could not be renewed (lib/sessionRecovery.ts). Stays
+   until they sign in, unlike the 6-second form status above. */
+.statusNotice {
+  background: var(--accent-soft);
+  color: var(--text);
+  border: 1px solid var(--accent-soft);
+}

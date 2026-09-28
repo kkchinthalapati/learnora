@@ -10,6 +10,7 @@ import {
   type RichTextEditorHandle,
 } from "../../components/RichTextEditor";
 import { useUpdateNoteHtml } from "../../hooks/useNotes";
+import { NoteConflictError } from "../../api/notes";
 import { useRetryStudyPackage } from "../../hooks/useStudyPackage";
 import {
   deriveMaterialStatus,
@@ -52,7 +53,13 @@ const COMPLEXITY_LABELS = {
 } as const;
 
 type SaveStatus =
-  "idle" | "unsaved" | "saving" | "saved" | "failed" | "readonly";
+  | "idle"
+  | "unsaved"
+  | "saving"
+  | "saved"
+  | "failed"
+  | "conflict"
+  | "readonly";
 
 interface ActiveSelection {
   range: EditorRange;
@@ -92,6 +99,7 @@ const STATUS_TEXT: Record<SaveStatus, string> = {
   saving: "Saving…",
   saved: "Saved",
   failed: "Failed to save",
+  conflict: "Changed elsewhere — not saved",
   readonly: "Notes aren't ready to edit yet",
 };
 
@@ -101,6 +109,7 @@ const STATUS_CLASS: Record<SaveStatus, string | undefined> = {
   saving: undefined,
   saved: styles.statusSaved,
   failed: styles.statusFailed,
+  conflict: styles.statusFailed,
   readonly: undefined,
 };
 
@@ -145,6 +154,10 @@ export function NotesEditorPane({
      keystroke — enough to ride out a blip, not enough to spin. */
   const retriedRef = useRef(false);
   const mountedRef = useRef(true);
+  /* The version of the note this editor's text is based on. Every save is
+     conditional on the row still being at it, so a second tab or device
+     can't be silently overwritten — the last writer used to win outright. */
+  const baseVersionRef = useRef<string | null>(note?.updated_at ?? null);
 
   const { settings } = useSettings();
   const { showToast } = useToast();
@@ -160,7 +173,22 @@ export function NotesEditorPane({
       material?.processing_status === "skipped") ||
       localProcessingRecord?.notesRequested === false);
 
+  const baseNoteIdRef = useRef(note?.id);
   useEffect(() => {
+    /* A refetch issued after one save can land after the next save has
+       already returned a newer version; adopting its older stamp would make
+       the following save a false conflict. Only move forward, or reset when
+       it's a different note. */
+    const incoming = note?.updated_at ?? null;
+    const base = baseVersionRef.current;
+    if (
+      baseNoteIdRef.current !== note?.id ||
+      !base ||
+      (incoming && Date.parse(incoming) > Date.parse(base))
+    ) {
+      baseVersionRef.current = incoming;
+    }
+    baseNoteIdRef.current = note?.id;
     if (note && editorRef.current) {
       const html =
         note.html_content ||
@@ -295,17 +323,35 @@ ${fenceUntrusted(currentHtml)}
     dirtyHtmlRef.current = null;
     setStatus("saving");
     updateHtml.mutate(
-      { id: note.id, htmlContent: html },
       {
-        onSuccess: () => {
+        id: note.id,
+        htmlContent: html,
+        expectedUpdatedAt: baseVersionRef.current,
+      },
+      {
+        onSuccess: (saved) => {
+          baseVersionRef.current = saved.updated_at ?? null;
           retriedRef.current = false;
           acknowledgeSaved();
         },
-        onError: () => {
+        onError: (error) => {
           /* Put the edit back so it is never dropped on the floor. A newer
              keystroke landing mid-request already owns the ref and wins —
              it's a superset of what this save was carrying. */
           if (dirtyHtmlRef.current === null) dirtyHtmlRef.current = html;
+          if (error instanceof NoteConflictError) {
+            /* Retrying can't succeed and overwriting would erase the other
+               edit. Keep this text in the editor (beforeunload still guards
+               it) and let the student decide. */
+            setStatus("conflict");
+            if (mountedRef.current) {
+              showToast(
+                "This note was changed in another tab or device. Copy anything you want to keep, then reload to see the latest version.",
+                { error: true },
+              );
+            }
+            return;
+          }
           if (retriedRef.current) {
             /* Second failure: stop retrying and say so. The text stays in
                the editor and beforeunload still guards the tab, so the
@@ -319,7 +365,7 @@ ${fenceUntrusted(currentHtml)}
         },
       },
     );
-  }, [note, updateHtml, acknowledgeSaved, scheduleSave]);
+  }, [note, updateHtml, acknowledgeSaved, scheduleSave, showToast]);
   flushRef.current = flush;
 
   const handleUserChange = useCallback(
@@ -340,7 +386,10 @@ ${fenceUntrusted(currentHtml)}
      prompt at all. */
   useEffect(() => {
     const unsaved =
-      status === "unsaved" || status === "saving" || status === "failed";
+      status === "unsaved" ||
+      status === "saving" ||
+      status === "failed" ||
+      status === "conflict";
     if (!unsaved) return;
     const handler = (e: BeforeUnloadEvent) => {
       // Custom message text is ignored by every modern browser — only
@@ -661,7 +710,9 @@ ${fenceUntrusted(currentHtml)}
         <div className={styles.toolbarRight}>
           <span
             className={`${styles.status}${STATUS_CLASS[status] ? ` ${STATUS_CLASS[status]}` : ""}`}
-            role={status === "failed" ? "alert" : "status"}
+            role={
+              status === "failed" || status === "conflict" ? "alert" : "status"
+            }
           >
             {STATUS_TEXT[status]}
           </span>

@@ -12,6 +12,7 @@ import { queryClient } from "../lib/queryClient";
 import { clearAppearance } from "../lib/appearance";
 import { AuthContext } from "./auth";
 import { migrateGuestSessions } from "../lib/guestSessionMigration";
+import { claimLocalStorageFor } from "../lib/userStorage";
 
 /* Port of Auth.getSession / Auth.logout from js/api.js.
  *
@@ -33,6 +34,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearAppearance();
     }
     lastUserId.current = nextUserId;
+    // Before the new session renders anything: a different student signing
+    // in on this browser must not see the last one's drafts or resume card.
+    if (nextUserId) claimLocalStorageFor(nextUserId);
     setSession(nextSession);
     if (nextUserId) {
       void migrateGuestSessions(nextUserId).catch((error) =>
