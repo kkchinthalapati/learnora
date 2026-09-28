@@ -54,13 +54,35 @@ describe("foldersApi", () => {
         async ({ request }) => {
           const body = (await request.json()) as { prefixes: string[] };
           removedPaths = body.prefixes;
-          return HttpResponse.json([]);
+          return HttpResponse.json(body.prefixes.map((name) => ({ name })));
         },
       ),
     );
 
-    await foldersApi.delete("folder-1");
+    const outcome = await foldersApi.delete("folder-1");
     expect(removedPaths).toEqual(["user-1/a.pdf"]);
+    expect(outcome.storageCleanupFailed).toBe(false);
+  });
+
+  /* Storage answers a delete that RLS refused with 200 and an empty list —
+   * reporting that as a clean delete is how files were silently orphaned. */
+  it("reports cleanup as failed when storage removes nothing", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/materials`, () =>
+        HttpResponse.json([{ id: "m1", storage_path: "user-1/a.pdf" }]),
+      ),
+      http.delete(
+        `${SUPABASE_URL}/rest/v1/folders`,
+        () => new HttpResponse(null, { status: 204 }),
+      ),
+      http.delete(`${SUPABASE_URL}/storage/v1/object/materials`, () =>
+        HttpResponse.json([]),
+      ),
+    );
+
+    const outcome = await foldersApi.delete("folder-1");
+    expect(outcome.storageCleanupFailed).toBe(true);
   });
 
   it("throws when the insert fails", async () => {

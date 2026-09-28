@@ -47,9 +47,18 @@ export const foldersApi = {
 
     let storageCleanupFailed = false;
     if (paths.length) {
-      const { error: storageError } = await supabase.storage
+      const { data: removed, error: storageError } = await supabase.storage
         .from("materials")
         .remove(paths);
+      if (!storageError && (removed?.length ?? 0) < paths.length) {
+        // Storage reports a delete it was not allowed to make as an empty
+        // result rather than an error; count what actually went.
+        storageCleanupFailed = true;
+        console.error(
+          "[foldersApi.delete] storage cleanup incomplete",
+          `${removed?.length ?? 0}/${paths.length} removed`,
+        );
+      }
       if (storageError) {
         // The folder is already gone and the DB is consistent — a storage
         // cleanup miss here is recoverable later, not worth failing on.

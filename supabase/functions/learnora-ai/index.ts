@@ -994,7 +994,7 @@ ${context.slice(0, MAX_APP_CONTEXT_CHARS)}
 `
             : "";
 
-        const personaMap = {
+        const personaMap: Record<string, string> = {
             coach: 'a strict, tough-love, demanding academic coach who is blunt about the work but never belittles the student',
             buddy: 'a casual, friendly, bro-like, relaxed study partner',
             tutor: 'a patient, explanatory, supportive tutor',
