@@ -47,7 +47,7 @@ const FOLDER_COLORS = ["#4A90E2", "#E24A4A", "#4AE283", "#E2A84A", "#9B4AE2"];
 const PERSONALITY_DESC: Record<string, string> = {
   "Friendly Tutor": "Patient and supportive, with step-by-step explanations.",
   "Strict Coach": "Direct and challenging, with a focus on improvement.",
-  "Sarcastic Buddy": "Casual and playful, with light humour.",
+  "Friendly Study Buddy": "Casual and playful, with light humour.",
   "Academic Professor": "Formal, precise, and textbook-style.",
 };
 
@@ -217,6 +217,25 @@ export function MaterialPanel({
   const hasSavedMaterials = savedMaterials.length > 0;
   const isNewMaterial =
     source === "file" || source === "text" || source === "link";
+
+  /* What this click will cost. Each output is its own generation against its
+     own daily allowance, and new material also runs a notes pass to read the
+     source even when notes aren't ticked — students were surprised to find
+     their notes allowance gone after asking only for flashcards. */
+  const allowanceUse = [
+    ...(wantNotes || isNewMaterial ? ["notes"] : []),
+    ...(wantFlashcards ? ["flashcards"] : []),
+    ...(wantQuiz ? ["quiz"] : []),
+  ];
+  const allowanceHint = allowanceUse.length
+    ? `Uses from today's AI allowance: ${allowanceUse
+        .map((tool) => `1 ${tool}`)
+        .join(" + ")}${
+        isNewMaterial && !wantNotes
+          ? " (new material always gets a notes pass so the AI can read it)"
+          : ""
+      }.`
+    : "";
 
   const didDefaultFolder = useRef(false);
   useEffect(() => {
@@ -822,6 +841,9 @@ export function MaterialPanel({
             </div>
           </label>
         </div>
+        {allowanceHint ? (
+          <p className={styles.allowanceHint}>{allowanceHint}</p>
+        ) : null}
       </section>
 
       {/* Destination Subject */}

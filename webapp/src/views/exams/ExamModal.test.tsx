@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "../../test/mocks/server";
@@ -158,6 +158,48 @@ describe("ExamModal", () => {
       user_id: "user-1",
     });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  /* A double-click on "Add exam" inserted two identical exams: the second
+     submit arrived before `isPending` had re-rendered the button disabled. */
+  it("saves once when the form is submitted twice in quick succession", async () => {
+    let posts = 0;
+    server.use(
+      http.post(REST, async () => {
+        posts += 1;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return new HttpResponse(null, { status: 201 });
+      }),
+    );
+    const { onClose } = renderModal({ initialDate: FUTURE });
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("What's the exam?"), "Chemistry Paper 1");
+
+    const form = screen.getByRole("button", { name: "Add exam" }).closest("form")!;
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(posts).toBe(1);
+  });
+
+  it("refuses a date past the five-year cap even though the form is noValidate", async () => {
+    let posted = false;
+    server.use(
+      http.post(REST, () => {
+        posted = true;
+        return new HttpResponse(null, { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderModal({ initialDate: "2206-05-01" });
+    await user.type(screen.getByLabelText("What's the exam?"), "Typo year");
+    await user.click(screen.getByRole("button", { name: "Add exam" }));
+
+    expect(
+      await screen.findByText(/more than five years away/),
+    ).toBeInTheDocument();
+    expect(posted).toBe(false);
   });
 
   it("always files a new exam as Scheduled", async () => {

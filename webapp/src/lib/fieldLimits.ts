@@ -16,3 +16,10 @@ export const NAME_MAX = 80;
 
 /** Profile bio. */
 export const BIO_MAX = 280;
+
+/** A task. A 10,000-character task was accepted and stretched the list; 300
+ *  is several sentences, well past any to-do a student writes. */
+export const TASK_MAX = 300;
+
+/** A subject (folder) name, and an exam name. */
+export const SUBJECT_MAX = 80;

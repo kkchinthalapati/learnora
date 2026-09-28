@@ -1,5 +1,6 @@
 import { supabase, SUPABASE_URL } from "../lib/supabase";
 import { appUrl } from "../lib/appUrl";
+import { PASSWORD_RULE_MESSAGE } from "../lib/passwordStrength";
 
 /* Direct port of js/api.js's `Auth` object (:86-348) — minus `getSession` and
  * `logout`, which Step 4 already ported into `AuthProvider`/`useAuth().signOut`
@@ -60,9 +61,42 @@ function calculateAge(dob: string): number {
 function friendlyAuthError(error: AuthErrorLike | null | undefined): string {
   const msg = error?.message?.toLowerCase() || "";
   const code = error?.code ?? error?.status;
+  const status = typeof error?.status === "number" ? error.status : undefined;
 
-  if (code === 429 || msg.includes("rate limit") || msg.includes("too many")) {
+  /* The confirmation-email limit is hourly, not per minute — telling a
+     student to "wait a minute" sends them straight back into the same 429. */
+  if (
+    code === "over_email_send_rate_limit" ||
+    msg.includes("email rate limit")
+  ) {
+    return "We've sent too many emails from Learnora in the last hour. Please try again later — and check your spam folder for an earlier email first.";
+  }
+  if (
+    code === 429 ||
+    status === 429 ||
+    msg.includes("rate limit") ||
+    msg.includes("too many")
+  ) {
     return "Too many requests. Please wait a minute and try again.";
+  }
+  /* GoTrue enforces lowercase + uppercase + digit; its own message lists the
+     whole alphabet three times. */
+  if (
+    code === "weak_password" ||
+    msg.includes("should contain at least one character")
+  ) {
+    return PASSWORD_RULE_MESSAGE;
+  }
+  /* A gateway timeout (the confirmation email taking over 10s to send) reaches
+     supabase-js as an AuthRetryableFetchError whose message is the serialised
+     Response — literally "{}" — which is what students were being shown. */
+  if (
+    (status !== undefined && status >= 500) ||
+    msg === "{}" ||
+    msg.includes("timed out") ||
+    msg.includes("deadline exceeded")
+  ) {
+    return "Learnora's account service is slow to respond right now. Please wait a minute, then try again.";
   }
   if (msg.includes("invalid login") || msg.includes("invalid credentials")) {
     return "Incorrect email or password. Please try again.";

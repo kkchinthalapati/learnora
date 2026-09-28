@@ -23,6 +23,7 @@ import {
 import { QuizHost, type HostTone } from "./QuizHost";
 import { useStudyClock } from "../../hooks/useStudyClock";
 import styles from "./quiz.module.css";
+import { renderMathText } from "../../lib/markdownToReact";
 import { newAttemptKey } from "../../lib/attemptKey";
 import { quizDraftKey } from "../../lib/draftKeys";
 import { clearQuizProgress } from "../../lib/continuity";
@@ -488,7 +489,10 @@ function QuizSession({
         <p className={styles.progress}>
           Question {index + 1} of {questions.length}
         </p>
-        <h2 className={styles.question}>{question.question}</h2>
+        {/* Typeset: a maths question arrived as raw "$x^2$" while the chat
+            beside it rendered the same TeX. Text-only otherwise (see
+            renderMathText), so nothing else in a question becomes markup. */}
+        <h2 className={styles.question}>{renderMathText(question.question)}</h2>
 
         <div className={styles.choices}>
           {question.choices.map((choice, i) => {
@@ -510,7 +514,7 @@ function QuizSession({
                 disabled={!!answered}
                 onClick={() => choose(i)}
               >
-                {choice}
+                {renderMathText(choice)}
               </button>
             );
           })}

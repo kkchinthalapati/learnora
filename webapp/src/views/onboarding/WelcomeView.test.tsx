@@ -29,6 +29,7 @@ function renderWizard() {
 
 beforeEach(() => {
   localStorage.clear();
+  sessionStorage.clear();
   mockAuthSession("user-1");
   /* The wizard's last act is writing its answers to user_metadata. Every test
      here lets that succeed unless it is specifically testing the failure. */
@@ -84,6 +85,65 @@ describe("WelcomeView", () => {
 
     await user.click(screen.getByRole("button", { name: /school exams/i }));
     expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled();
+  });
+
+  /* A reload on step 3 used to restart the wizard with every answer gone. */
+  it("resumes where the student was after a reload", async () => {
+    const user = userEvent.setup();
+    const first = renderWizard();
+    await user.click(screen.getByRole("button", { name: /let's set it up/i }));
+    await user.click(screen.getByRole("button", { name: /school exams/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    first.unmount();
+
+    renderWizard();
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: /what should learnora help with/i,
+      }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /back/i }));
+    expect(screen.getByRole("button", { name: /school exams/i })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  /* The inline "already passed" error showed while Finish stayed enabled, and
+     the exam was then silently dropped. */
+  it("won't finish while the exam date is in the past", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await walkToSubjectStep(user);
+    await user.type(screen.getByRole("textbox", { name: /next exam/i }), "Paper 1");
+    const date = document.querySelector<HTMLInputElement>('input[type="date"]')!;
+    await user.type(date, "2020-01-01");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/already passed/i);
+    expect(screen.getByRole("button", { name: /finish/i })).toBeDisabled();
+  });
+
+  it("leads with the presets for the exam board the student picked", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await user.click(screen.getByRole("button", { name: /let's set it up/i }));
+    await user.click(screen.getByRole("button", { name: /school exams/i }));
+    await user.click(screen.getByRole("button", { name: /^gcse$/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.click(
+      screen.getByRole("button", { name: /stay on top of deadlines/i }),
+    );
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+
+    expect(
+      screen.getByRole("button", { name: /gcse \/ igcse year 11/i }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: /ap courses/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("offers one-tap Class 10 curriculum presets", async () => {

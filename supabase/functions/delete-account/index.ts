@@ -30,7 +30,7 @@
  * delete fails on a foreign-key violation from tasks/exams.
  */
 
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://learnora.app",
@@ -185,6 +185,52 @@ Deno.serve(async (req: Request) => {
     );
   }
 
+  /* Uploaded files. Storage objects have no foreign key to auth.users, so
+     the cascade above leaves every PDF, avatar and card image behind under
+     the user's id. Done after the delete, not before: if the delete had
+     failed the account would still be there with its files gone. A purge
+     failure is logged rather than reported — the account is already erased
+     and the student cannot retry against a user that no longer exists. */
+  for (const bucket of USER_BUCKETS) {
+    const failed = await purgeUserFolder(admin, bucket, user.id);
+    if (failed) {
+      console.error("[delete-account] Storage purge incomplete", {
+        userId: user.id,
+        bucket,
+        message: failed,
+      });
+    }
+  }
+
   console.info("[delete-account] Account deleted", { userId: user.id });
   return json({ message: "Account deleted" }, 200, cors);
 });
+
+/* Every bucket files objects under `<user id>/` — the prefix their RLS
+   policies check (webapp/src/api/materials.ts, profile.ts, flashcards.ts). */
+const USER_BUCKETS = ["materials", "avatars", "card-media"];
+const PAGE = 1000;
+
+/* Removes everything under `<userId>/` in one bucket. Returns an error
+   message, or null when the folder is empty afterwards. Lists from offset 0
+   each round because the previous page has just been removed. */
+async function purgeUserFolder(
+  admin: { storage: SupabaseClient["storage"] },
+  bucket: string,
+  userId: string,
+): Promise<string | null> {
+  for (let round = 0; round < 50; round++) {
+    const { data, error } = await admin.storage
+      .from(bucket)
+      .list(userId, { limit: PAGE });
+    if (error) return error.message;
+    const paths = (data ?? [])
+      .filter((o) => o.id) // folders come back with a null id
+      .map((o) => `${userId}/${o.name}`);
+    if (paths.length === 0) return null;
+    const { error: removeError } = await admin.storage.from(bucket).remove(paths);
+    if (removeError) return removeError.message;
+    if (paths.length < PAGE) return null;
+  }
+  return "gave up after 50 pages";
+}

@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { Button } from "../../components/Button";
 import { PasswordField } from "../../components/PasswordField";
@@ -6,6 +6,10 @@ import { useLogin } from "../../hooks/useAuthActions";
 import { AuthShell } from "./AuthShell";
 import { useAuthStatus } from "./useAuthStatus";
 import { RedirectIfSignedIn } from "./RedirectIfSignedIn";
+import {
+  consumeSessionExpired,
+  peekSessionExpired,
+} from "../../lib/sessionExpiry";
 import styles from "./auth.module.css";
 
 /* Sign-in — ports index.html:77-120 + js/main.js:541-565.
@@ -24,6 +28,12 @@ export function LoginView() {
   const [password, setPassword] = useState("");
   const { setStatus, node: statusNode } = useAuthStatus();
   const login = useLogin();
+  /* Read in the initializer and cleared in an effect (not both at once) so
+     StrictMode's double-invoked initializer can't swallow the flag. */
+  const [sessionExpired] = useState(peekSessionExpired);
+  useEffect(() => {
+    consumeSessionExpired();
+  }, []);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -44,7 +54,18 @@ export function LoginView() {
       <AuthShell
         title="Welcome back"
         subtitle="Sign in to your study workspace."
-        status={statusNode}
+        status={
+          statusNode ??
+          (sessionExpired ? (
+            <div
+              className={`${styles.status} ${styles.statusNotice}`}
+              role="status"
+            >
+              You were signed out because your session expired. Sign in again
+              to pick up where you left off.
+            </div>
+          ) : null)
+        }
       >
         <form className={styles.form} onSubmit={(e) => void onSubmit(e)}>
           <div className={styles.inputGroup}>

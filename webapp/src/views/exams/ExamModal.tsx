@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Button } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { useDialog } from "../../context/dialog";
@@ -60,6 +60,10 @@ export function ExamModal({
   const [folder, setFolder] = useState(exam?.folder_id ?? "");
   const [dateInvalid, setDateInvalid] = useState(false);
   const [nameInvalid, setNameInvalid] = useState(false);
+  /* `saveExam.isPending` only flips after a re-render, so a double-click's
+     second submit lands before the button disables and inserts the exam
+     twice. A ref is set synchronously inside the first submit. */
+  const submittingRef = useRef(false);
 
   const maxDate = (() => {
     const d = new Date();
@@ -94,6 +98,19 @@ export function ExamModal({
       return;
     }
 
+    /* The form is noValidate, so the input's `max` is advisory only — a
+       mistyped year (2206 for 2026) would otherwise be saved as-is. */
+    if (date > maxDate && date !== exam?.exam_date) {
+      setDateInvalid(false);
+      requestAnimationFrame(() => setDateInvalid(true));
+      showToast("That date is more than five years away — check the year.", {
+        error: true,
+      });
+      return;
+    }
+
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     try {
       await saveExam.mutateAsync({
         payload: {
@@ -110,6 +127,8 @@ export function ExamModal({
       showToast(`Could not save the exam. ${(err as Error).message}`, {
         error: true,
       });
+    } finally {
+      submittingRef.current = false;
     }
   }
 

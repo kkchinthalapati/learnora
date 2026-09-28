@@ -60,6 +60,10 @@ export function isTransportError(error: unknown): boolean {
  */
 export function isRetryableRead(error: unknown): boolean {
   if (isTransportError(error)) return true;
+  /* Our own client-side timeout (lib/supabase.ts). Fine to repeat a read;
+     deliberately not in isTransportError, because a write that timed out may
+     still have been committed. */
+  if (/timeouterror|signal timed out/i.test(messageOf(error))) return true;
   const status = statusOf(error);
   return status !== null && GATEWAY_STATUSES.has(status);
 }

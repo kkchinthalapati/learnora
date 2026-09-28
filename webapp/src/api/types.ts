@@ -62,6 +62,9 @@ export interface Note {
   markdown_content: string;
   html_content: string | null;
   created_at: string;
+  /** Bumped by a trigger on every update. Absent until migration
+   *  20260928010000 is applied. */
+  updated_at?: string | null;
 }
 
 export interface FlashcardDeck {

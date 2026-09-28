@@ -11,6 +11,7 @@ import { useTaskActions } from "./useTaskActions";
 import { dateInDays, isRecurringWeekly, localDateStr } from "../../lib/date";
 import type { Task } from "../../api/types";
 import { PlanSectionNav } from "../plan/PlanSectionNav";
+import { TASK_MAX } from "../../lib/fieldLimits";
 import styles from "./tasks.module.css";
 
 type TaskFilter = "all" | "open" | "overdue" | "completed";
@@ -134,6 +135,7 @@ export function TasksView() {
                 className={`${styles.textInput}${shake ? ` ${styles.inputError}` : ""}`}
                 placeholder={t("placeholder_task")}
                 autoComplete="off"
+                maxLength={TASK_MAX}
                 aria-label="New Task Input"
                 value={text}
                 onAnimationEnd={() => setShake(false)}

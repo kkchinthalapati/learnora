@@ -99,6 +99,8 @@ function readRecentFocusSessions(): RecentFocusSession[] {
     : [];
 }
 
+const DOUBLE_CLICK_GRACE_MS = 500;
+
 export function TimerView() {
   const {
     completedFocus: completedSession,
@@ -147,6 +149,19 @@ export function TimerView() {
   const sessionNoteId = useId();
   const recentSessionsTitleId = useId();
   const displayRef = useRef<HTMLDivElement>(null);
+  /* Start and Pause occupy the same spot, so the second click of a
+     double-click on Start landed on Pause and the timer sat stopped while the
+     student assumed it was running. A pause within half a second of starting
+     is treated as that second click and ignored. */
+  const startedAtRef = useRef(0);
+  const startTimer = () => {
+    startedAtRef.current = Date.now();
+    start();
+  };
+  const pauseTimer = () => {
+    if (Date.now() - startedAtRef.current < DOUBLE_CLICK_GRACE_MS) return;
+    pause();
+  };
   const [recentSessions, setRecentSessions] = useState(readRecentFocusSessions);
   const [focusSound, setFocusSound] = useState<AmbiancePreset>("none");
 
@@ -589,11 +604,11 @@ export function TimerView() {
 
             <div className={styles.controls}>
               {state.isRunning ? (
-                <Button variant="primary" onClick={pause}>
+                <Button variant="primary" onClick={pauseTimer}>
                   {t("btn_pause")}
                 </Button>
               ) : (
-                <Button variant="primary" onClick={start}>
+                <Button variant="primary" onClick={startTimer}>
                   {t("btn_start")}
                 </Button>
               )}

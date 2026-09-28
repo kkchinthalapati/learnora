@@ -3,10 +3,11 @@ import { http, HttpResponse } from "msw";
 import { server } from "../test/mocks/server";
 import { SUPABASE_URL } from "../lib/supabase";
 import { mockAuthSession } from "../test/mockSession";
-import { profileApi } from "./profile";
+import { profileApi, resetProfileReadCache } from "./profile";
 
 describe("profileApi", () => {
   beforeEach(() => {
+    resetProfileReadCache();
     mockAuthSession("user-1");
   });
 
@@ -177,5 +178,55 @@ describe("profileApi", () => {
         profileApi.updateLifeContext({} as any, "different-user"),
       ).rejects.toThrow("Account changed");
     });
+  });
+
+  /* Region, synced settings and life context are all read from the same row
+     within milliseconds of sign-in; they used to be three requests. */
+  it("serves overlapping start-up reads from one request", async () => {
+    let requests = 0;
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/profiles`, () => {
+        requests += 1;
+        return HttpResponse.json({
+          region: "UK",
+          framework_id: null,
+          grade_scale_id: null,
+          life_context: null,
+          life_context_updated_at: null,
+          settings: { aiPersona: "coach" },
+        });
+      }),
+    );
+    const [region, settings, life] = await Promise.all([
+      profileApi.fetchRegion("user-1"),
+      profileApi.fetchSettings("user-1"),
+      profileApi.fetchLifeContext("user-1"),
+    ]);
+    expect(requests).toBe(1);
+    expect(region?.region).toBe("UK");
+    expect(settings).toEqual({ aiPersona: "coach" });
+    expect(life.lifeContext).toBeNull();
+  });
+
+  /* A client shipped before migration 20260928010000 must keep hydrating
+     region and life context. */
+  it("falls back without the settings column", async () => {
+    const selects: string[] = [];
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/profiles`, ({ request }) => {
+        const select = new URL(request.url).searchParams.get("select") ?? "";
+        selects.push(select);
+        if (select.includes("settings")) {
+          return HttpResponse.json(
+            { code: "42703", message: "column profiles.settings does not exist" },
+            { status: 400 },
+          );
+        }
+        return HttpResponse.json({ region: "US" });
+      }),
+    );
+    expect((await profileApi.fetchRegion("user-1"))?.region).toBe("US");
+    expect(await profileApi.fetchSettings("user-1")).toBeNull();
+    expect(selects.filter((s) => s.includes("settings"))).toHaveLength(1);
   });
 });

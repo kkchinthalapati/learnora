@@ -107,10 +107,19 @@ export const materialsApi = {
   ): Promise<void> {
     const userId = await requireUserId();
     if (storagePath) {
-      const { error: storageError } = await supabase.storage
+      const { data: removed, error: storageError } = await supabase.storage
         .from("materials")
         .remove([storagePath]);
       if (storageError) throw new Error(storageError.message);
+      /* Storage answers a delete it was not allowed to make (or of a file
+       * that is already gone) with an empty list, not an error. Neither is
+       * worth blocking the row delete on — the student could then never
+       * remove the material — but it is not a clean delete either. */
+      if (!removed?.length) {
+        console.warn("[materialsApi.delete] storage object was not removed", {
+          materialId,
+        });
+      }
     }
 
     const { error } = await supabase

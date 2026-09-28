@@ -42,6 +42,12 @@ export interface ActionHandlers {
   deleteTask: (name: string) => Promise<boolean>;
   rescheduleTask: (name: string, dueDate: string) => Promise<boolean>;
   deleteExam: (name: string) => Promise<boolean>;
+  /** Looks the model's name up among the student's own tasks/exams before a
+   *  confirmation is shown, and returns the stored name (or null). Without
+   *  it, a reply naming something that doesn't exist — the model once sent a
+   *  bare id — asked "delete this task: "901"?" about nothing. Optional so
+   *  handler sets that can't act on tasks (the review screen) needn't supply it. */
+  resolveName?: (kind: "task" | "exam", name: string) => Promise<string | null>;
   /** Applies and starts a countdown of `minutes`. */
   startTimer: (minutes: number) => void;
   /** Returns false when the value names no theme the app has. */
@@ -119,6 +125,23 @@ function parseReschedulePayload(
   const name = payload.slice(0, sep).trim();
   const date = payload.slice(sep + 2).trim();
   return name && DATE_RE.test(date) ? { name, date } : null;
+}
+
+/** The name to show in a confirmation: the stored one when the handler set
+ *  can look it up, the model's own text when it can't, and null when the
+ *  lookup ran and found nothing. */
+async function resolveOrNull(
+  handlers: ActionHandlers,
+  kind: "task" | "exam",
+  name: string,
+): Promise<string | null> {
+  if (!handlers.resolveName) return name;
+  try {
+    return await handlers.resolveName(kind, name);
+  } catch {
+    /* A failed lookup falls back to asking, as before, rather than refusing. */
+    return name;
+  }
 }
 
 const BLOCK_RE = new RegExp(
@@ -245,8 +268,10 @@ async function runTag(
 
     case "COMPLETE_TASK": {
       if (!payload) return null;
+      const shown = await resolveOrNull(handlers, "task", payload);
+      if (shown === null) return cancelled("Couldn't find that task:", payload);
       const allowed = await handlers.confirm(
-        `AI wants to mark this task as done:\n\n"${payload}"\n\nAllow this?`,
+        `AI wants to mark this task as done:\n\n"${shown}"\n\nAllow this?`,
         { title: "AI Task Update", confirmText: "Mark Done" },
       );
       if (!allowed) return cancelled("Canceled completing task:", payload);
@@ -258,8 +283,10 @@ async function runTag(
 
     case "DELETE_TASK": {
       if (!payload) return null;
+      const shown = await resolveOrNull(handlers, "task", payload);
+      if (shown === null) return cancelled("Couldn't find that task:", payload);
       const allowed = await handlers.confirm(
-        `AI wants to delete this task:\n\n"${payload}"\n\nAllow this?`,
+        `AI wants to delete this task:\n\n"${shown}"\n\nAllow this?`,
         { title: "AI Task Deletion", confirmText: "Delete Task", danger: true },
       );
       if (!allowed) return cancelled("Canceled deleting task:", payload);
@@ -276,8 +303,10 @@ async function runTag(
       const parsed = parseReschedulePayload(payload);
       if (!parsed) return cancelled("Canceled rescheduling task");
       const { name, date } = parsed;
+      const shown = await resolveOrNull(handlers, "task", name);
+      if (shown === null) return cancelled("Couldn't find that task:", name);
       const allowed = await handlers.confirm(
-        `AI wants to reschedule this task:\n\n"${name}" — new due date ${date}\n\nAllow this?`,
+        `AI wants to reschedule this task:\n\n"${shown}" — new due date ${date}\n\nAllow this?`,
         { title: "AI Task Update", confirmText: "Reschedule" },
       );
       if (!allowed) return cancelled("Canceled rescheduling task:", name);
@@ -305,8 +334,10 @@ async function runTag(
       if (!payload || ctx.isRepeat) {
         return cancelled("Canceled deleting exam");
       }
+      const shown = await resolveOrNull(handlers, "exam", payload);
+      if (shown === null) return cancelled("Couldn't find that exam:", payload);
       const allowed = await handlers.confirm(
-        `AI wants to remove this exam from your calendar:\n\n"${payload}"\n\nAllow this?`,
+        `AI wants to remove this exam from your calendar:\n\n"${shown}"\n\nAllow this?`,
         { title: "AI Exam Deletion", confirmText: "Delete Exam", danger: true },
       );
       if (!allowed) return cancelled("Canceled deleting exam:", payload);

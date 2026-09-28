@@ -4,6 +4,9 @@
 
 export function getGreeting(name: string, now = new Date()): string {
   const hour = now.getHours();
+  /* Before 5am it is still the student's night: "Good morning" at 2:34am
+     read as though the app didn't know what time it was. */
+  if (hour < 5) return `Still up, ${name}? 🌙`;
   const period =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   return `${period}, ${name}! 👋`;

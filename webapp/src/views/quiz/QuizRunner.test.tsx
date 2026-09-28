@@ -89,6 +89,23 @@ describe("QuizRunner", () => {
     ).toHaveLength(3);
   });
 
+  /* A maths question reached the student as raw "$x^2$" while the chat and
+     flashcards beside it typeset the same TeX. */
+  it("typesets maths in the question and the choices", async () => {
+    serveQuiz([
+      {
+        question: "What is the derivative of $x^2$?",
+        choices: ["$2x$", "$x$", "$2$"],
+        correctIndex: 0,
+      },
+    ]);
+    const { container } = renderRunner();
+
+    await screen.findByText(/What is the derivative of/);
+    expect(container.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(4);
+    expect(screen.queryByText(/\$x\^2\$/)).toBeNull();
+  });
+
   it("hides the Next button until an answer is picked", async () => {
     serveQuiz();
     renderRunner();

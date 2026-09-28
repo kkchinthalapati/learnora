@@ -407,11 +407,26 @@ describe("createStudyPackage", () => {
 
     await request({
       outputs: { quiz: true },
-      options: { difficulty: "Hard", personality: "Sarcastic Buddy" },
+      options: { difficulty: "Hard", personality: "Academic Professor" },
     });
 
     expect(promptFor("quiz")).toContain("Target Difficulty: HARD / ADVANCED");
-    expect(promptFor("quiz")).toContain("AI Host Personality: Sarcastic Buddy");
+    expect(promptFor("quiz")).toContain("AI Host Personality: Academic Professor");
+  });
+
+  /* "Sarcastic Buddy" was read literally: production quizzes told students
+     "Duh!" and "Ugh, come on, this is math 101". */
+  it("never sends a sarcastic host, and always sends the tone rule", async () => {
+    serveEdge({ notes: text(NOTES_MARKDOWN), quiz: json(QUESTIONS) });
+
+    await request({
+      outputs: { quiz: true },
+      options: { personality: "Sarcastic Buddy" },
+    });
+
+    expect(promptFor("quiz")).not.toContain("Sarcastic");
+    expect(promptFor("quiz")).toContain("AI Host Personality: Friendly Study Buddy");
+    expect(promptFor("quiz")).toContain("never mock, belittle");
   });
 
   describe("a link source", () => {

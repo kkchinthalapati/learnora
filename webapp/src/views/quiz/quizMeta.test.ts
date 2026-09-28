@@ -76,6 +76,34 @@ describe("parseStoredQuestions", () => {
     expect(parsed[0]?.choices).toEqual(["a", "b"]);
   });
 
+  /* Graded by index, so the second "E. coli" was marked wrong with the
+     message that the correct answer is "E. coli". */
+  it("collapses repeated choices and keys the answer to the surviving copy", () => {
+    const [q] = parseStoredQuestions([
+      {
+        question: "Which is a prokaryote?",
+        choices: ["E. coli", "Yeast", " e.  coli ", "Amoeba"],
+        correctIndex: 2,
+      },
+    ]);
+    expect(q.choices).toEqual(["E. coli", "Yeast", "Amoeba"]);
+    expect(q.choices[q.correctIndex]).toBe("E. coli");
+  });
+
+  it("keeps the key right when a repeated distractor precedes it", () => {
+    const [q] = parseStoredQuestions([
+      { question: "q", choices: ["x", "x", "y", "z"], correctIndex: 3 },
+    ]);
+    expect(q.choices).toEqual(["x", "y", "z"]);
+    expect(q.choices[q.correctIndex]).toBe("z");
+  });
+
+  it("drops a question whose choices are all the same answer", () => {
+    expect(
+      parseStoredQuestions([{ question: "q", choices: ["a", "A "], correctIndex: 0 }]),
+    ).toEqual([]);
+  });
+
   it("tolerates a question with no id, topic or feedback", () => {
     const parsed = parseStoredQuestions([
       { question: "q", choices: ["a", "b"], correctIndex: 0 },

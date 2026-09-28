@@ -52,6 +52,7 @@ import {
   markOnboardedLocally,
   nextStepsFor,
   presetsForRegion,
+  regionForExamType,
   readOnboarding,
   settingsPatchFor,
   studyProfilePatchFor,
@@ -94,7 +95,6 @@ export function WelcomeView() {
     () => getRegion(settings.region === "auto" ? null : settings.region).id,
     [settings.region],
   );
-  const curriculumPresets = useMemo(() => presetsForRegion(region), [region]);
   const { update: updateLifeContext } = useLifeContext();
   const updateProfile = useUpdateProfile();
   const addFolder = useAddFolder();
@@ -102,26 +102,45 @@ export function WelcomeView() {
 
   const replaying = params.get("replay") === "1";
 
+  /* A reload part-way through used to drop every answer and land back on
+     "Welcome". The in-progress wizard is kept per tab (sessionStorage) and
+     per account, and discarded once it is finished or skipped. */
+  const draftKey = user ? `${ONBOARDING_DRAFT_PREFIX}${user.id}` : null;
+  const [draft] = useState<OnboardingDraft | null>(() =>
+    replaying ? null : readDraft(draftKey),
+  );
+
   /* On a replay the previous answers are the starting point, so someone
      re-running setup is editing rather than starting from blank. */
   const [answers, setAnswers] = useState<OnboardingAnswers>(() => {
+    if (draft) return draft.answers;
     const saved = replaying ? readOnboarding(user) : null;
     return saved
       ? { ...saved, completedAt: null, skipped: false }
       : EMPTY_ANSWERS;
   });
 
-  const [step, setStep] = useState<StepId>("hello");
-  const [subjectName, setSubjectName] = useState("");
-  const [examName, setExamName] = useState("");
-  const [examDate, setExamDate] = useState("");
+  const [step, setStep] = useState<StepId>(() =>
+    draft && draft.step !== "done" ? draft.step : "hello",
+  );
+  const [subjectName, setSubjectName] = useState(draft?.subjectName ?? "");
+  const [examName, setExamName] = useState(draft?.examName ?? "");
+  const [examDate, setExamDate] = useState(draft?.examDate ?? "");
   const [notifyOptIn, setNotifyOptIn] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [createdSubject, setCreatedSubject] = useState<string | null>(null);
+  const [createdExam, setCreatedExam] = useState<string | null>(null);
   const [curriculumPreset, setCurriculumPreset] =
-    useState<CurriculumPresetId | null>(null);
+    useState<CurriculumPresetId | null>(draft?.curriculumPreset ?? null);
+  /* The board picked on the first question outranks the device locale when
+     choosing which curriculum presets to lead with. */
+  const presetRegion = regionForExamType(answers.examType) ?? region;
+  const curriculumPresets = useMemo(
+    () => presetsForRegion(presetRegion),
+    [presetRegion],
+  );
   const [showAllPresets, setShowAllPresets] = useState(false);
-  const nativePresetIds = REGIONS[region].presetIds;
+  const nativePresetIds = REGIONS[presetRegion].presetIds;
   const visiblePresets =
     showAllPresets || nativePresetIds.length === 0
       ? curriculumPresets
@@ -278,6 +297,7 @@ export function WelcomeView() {
           await saveExam.mutateAsync({
             payload: { exam_name: trimmedExam, exam_date: examDate },
           });
+          setCreatedExam(`${trimmedExam} on ${examDate}`);
         } catch {
           showToast("Couldn't save that exam — you can add it from Exams.");
         }
@@ -321,14 +341,16 @@ export function WelcomeView() {
     };
     setAnswers(final);
     await commit(final);
+    clearDraft(draftKey);
     setCommitting(false);
     setStep("done");
-  }, [answers, commit, committing]);
+  }, [answers, commit, committing, draftKey]);
 
   const skip = useCallback(async () => {
     if (committing) return;
     setCommitting(true);
     if (user) markOnboardedLocally(user.id);
+    clearDraft(draftKey);
     try {
       await updateProfile.mutateAsync({
         [ONBOARDING_METADATA_KEY]: {
@@ -342,7 +364,7 @@ export function WelcomeView() {
          through, and there is nothing here worth blocking an exit on. */
     }
     navigate("/", { replace: true });
-  }, [committing, navigate, updateProfile, user]);
+  }, [committing, draftKey, navigate, updateProfile, user]);
 
   const goNext = useCallback(() => {
     const next = STEPS[index + 1];
@@ -358,12 +380,37 @@ export function WelcomeView() {
     if (prev) setStep(prev);
   }, [index]);
 
+  /* A typed past date used to show an inline error while "Create it and
+     finish" stayed enabled — and the exam was then silently dropped. */
+  const examDateInvalid = !!examDate && examDate < localDateStr();
   const canContinue =
     step === "goal"
       ? answers.goal !== null
       : step === "focus"
         ? answers.focusAreas.length > 0
-        : true;
+        : step === "subject"
+          ? !examDateInvalid
+          : true;
+
+  useEffect(() => {
+    if (step === "done") return;
+    writeDraft(draftKey, {
+      answers,
+      step,
+      subjectName,
+      examName,
+      examDate,
+      curriculumPreset,
+    });
+  }, [
+    answers,
+    curriculumPreset,
+    draftKey,
+    examDate,
+    examName,
+    step,
+    subjectName,
+  ]);
 
   /* Enter advances, the way it would in a form. Held back on the subject step
      so it submits the text field's own value rather than racing it, and on
@@ -666,7 +713,7 @@ export function WelcomeView() {
                           patch({
                             goal: "school",
                             examType: preset.examType,
-                            region,
+                            region: presetRegion,
                           });
                         }
                       }}
@@ -756,7 +803,7 @@ export function WelcomeView() {
                     Add a date and this exam gets a countdown on your dashboard.
                   </p>
                 )}
-                {examDate && examDate < localDateStr() && (
+                {examDateInvalid && (
                   <p className={styles.fieldNote} role="alert">
                     That date has already passed — pick one from today on.
                   </p>
@@ -822,6 +869,13 @@ export function WelcomeView() {
                       icon="folder"
                       text={`Created ${createdSubject}`}
                       where="Library"
+                    />
+                  )}
+                  {createdExam && (
+                    <RecapRow
+                      icon="calendar-week"
+                      text={`Added ${createdExam} to your calendar`}
+                      where="Plan ▸ Exams"
                     />
                   )}
                 </ul>
@@ -979,9 +1033,10 @@ interface OptionCardProps {
   onClick: () => void;
 }
 
-/* One tappable answer. `multi` swaps the a11y contract rather than just the
-   tick: a multi-select answer is a toggle (aria-pressed), a single-select one
-   is a radio-ish choice within its group. */
+/* One tappable answer, exposed as a toggle button (aria-pressed) whether the
+   group is single- or multi-select. aria-current, used before for
+   single-select, means "the current item in a set" (a page, a step) and is
+   not announced as a selection. */
 function OptionCard({
   icon,
   label,
@@ -995,8 +1050,8 @@ function OptionCard({
     <button
       type="button"
       className={`${styles.option} ${selected ? styles.optionOn : ""}`}
-      aria-pressed={multi ? selected : undefined}
-      aria-current={!multi && selected ? "true" : undefined}
+      aria-pressed={selected}
+      data-multi={multi ? "true" : undefined}
       onClick={onClick}
     >
       <span className={styles.optionIcon} aria-hidden="true">
@@ -1035,4 +1090,57 @@ function RecapRow({
       <span className={styles.recapWhere}>{where}</span>
     </li>
   );
+}
+
+/* ------------------------------------------------------------------ draft */
+
+const ONBOARDING_DRAFT_PREFIX = "learnora_onboarding_draft:";
+
+interface OnboardingDraft {
+  answers: OnboardingAnswers;
+  step: StepId;
+  subjectName: string;
+  examName: string;
+  examDate: string;
+  curriculumPreset: CurriculumPresetId | null;
+}
+
+function readDraft(key: string | null): OnboardingDraft | null {
+  if (!key) return null;
+  try {
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<OnboardingDraft> | null;
+    if (!parsed || typeof parsed !== "object" || !parsed.answers) return null;
+    return {
+      answers: { ...EMPTY_ANSWERS, ...parsed.answers },
+      step: (STEPS as readonly string[]).includes(String(parsed.step))
+        ? (parsed.step as StepId)
+        : "hello",
+      subjectName: String(parsed.subjectName ?? ""),
+      examName: String(parsed.examName ?? ""),
+      examDate: String(parsed.examDate ?? ""),
+      curriculumPreset: parsed.curriculumPreset ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeDraft(key: string | null, draft: OnboardingDraft): void {
+  if (!key) return;
+  try {
+    window.sessionStorage.setItem(key, JSON.stringify(draft));
+  } catch {
+    /* Storage full or blocked: the wizard still works, just not across a reload. */
+  }
+}
+
+function clearDraft(key: string | null): void {
+  if (!key) return;
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    /* Nothing to clear. */
+  }
 }

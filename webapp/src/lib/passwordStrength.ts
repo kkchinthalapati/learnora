@@ -31,6 +31,14 @@ export function scorePassword(value: string): Strength {
   if (score <= 1 || value.length < 8) {
     return { level: "weak", label: "Too Weak (Need 8+ chars & mix)" };
   }
+  /* "Fair" for a password the server will reject was the meter vouching for
+     something sign-up then refuses. */
+  if (!meetsServerPasswordRule(value)) {
+    return {
+      level: "weak",
+      label: "Add an uppercase letter, a lowercase letter and a number",
+    };
+  }
   if (score === 2) return { level: "fair", label: "Fair" };
   if (score === 3) return { level: "good", label: "Good" };
   return { level: "strong", label: "Strong" };
@@ -45,12 +53,30 @@ export function scorePassword(value: string): Strength {
  * `FeedbackState`: nothing in `lib/` imports from `components/` elsewhere in
  * this codebase, and the caller already has to wrap it in whatever status
  * shape its own screen uses. */
+/** The Supabase Auth project requires a lowercase letter, an uppercase letter
+ *  and a digit (GoTrue answers 422 `weak_password` otherwise). Checking the
+ *  same rule here means a student hears it before submitting, not after. */
+export const PASSWORD_RULE_MESSAGE =
+  "Use at least 8 characters, including an uppercase letter, a lowercase letter and a number.";
+
+export function meetsServerPasswordRule(value: string): boolean {
+  return (
+    value.length >= 8 &&
+    /[a-z]/.test(value) &&
+    /[A-Z]/.test(value) &&
+    /\d/.test(value)
+  );
+}
+
 export function validateNewPassword(
   password: string,
   confirmPassword: string,
 ): { message: string } | null {
   if (password.length < 8) {
     return { message: "Password must be at least 8 characters long." };
+  }
+  if (!meetsServerPasswordRule(password)) {
+    return { message: PASSWORD_RULE_MESSAGE };
   }
   if (password !== confirmPassword) {
     return { message: "Passwords do not match. Please re-enter them." };

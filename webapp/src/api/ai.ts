@@ -64,6 +64,12 @@ export interface EdgePayload {
    *  parsing) but must still be billed as separate tools. Optional only for
    *  callers not yet migrated; the edge function falls back to "chat". */
   tool?: AiToolId;
+  /** App-authored instructions and workspace data for a conversational turn.
+   *  The edge function places this in the system instruction, apart from the
+   *  student's own words in `history`. It used to be prefixed to the student's
+   *  message as "[SYSTEM — …]", which left a student's "ignore the above"
+   *  with exactly the same standing as the app's own rules. */
+  context?: string;
 }
 
 export interface EdgeResult {

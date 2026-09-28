@@ -17,6 +17,7 @@ import {
   type StoredAnswer,
 } from "./quizMeta";
 import styles from "./quiz.module.css";
+import { renderMathText } from "../../lib/markdownToReact";
 import { QUIZZES_PATH } from "./QuizRunner";
 import { newAttemptKey } from "../../lib/attemptKey";
 import { examDraftKey } from "../../lib/draftKeys";
@@ -477,7 +478,7 @@ function MockExamSession({
             Time Left: {minutes}:{seconds.toString().padStart(2, "0")}
           </p>
         </div>
-        <h2 className={styles.question}>{question.question}</h2>
+        <h2 className={styles.question}>{renderMathText(question.question)}</h2>
 
         <div className={styles.choices}>
           {question.choices.map((choice, i) => (
@@ -487,7 +488,7 @@ function MockExamSession({
               className={styles.choice}
               onClick={() => choose(i)}
             >
-              {choice}
+              {renderMathText(choice)}
             </button>
           ))}
         </div>

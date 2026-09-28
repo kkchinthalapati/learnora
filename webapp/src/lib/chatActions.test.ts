@@ -297,6 +297,28 @@ describe("executeActions", () => {
       });
     });
 
+    /* The confirm used to show whatever the model sent — once a bare id,
+       "delete this task: "901"?" — even when nothing matched. */
+    it("doesn't ask about a task that doesn't exist, and names the stored task when it does", async () => {
+      const missing = handlers({ resolveName: vi.fn().mockResolvedValue(null) });
+      const parts = await executeActions("<DELETE_TASK>901</DELETE_TASK>", missing);
+      expect(missing.confirm).not.toHaveBeenCalled();
+      expect(missing.deleteTask).not.toHaveBeenCalled();
+      expect(widgets(parts)[0]).toMatchObject({
+        cancelled: true,
+        text: "Couldn't find that task:",
+      });
+
+      const found = handlers({
+        resolveName: vi.fn().mockResolvedValue("Finish chemistry homework"),
+      });
+      await executeActions("<DELETE_TASK>finish chemistry homework</DELETE_TASK>", found);
+      expect(found.confirm).toHaveBeenCalledWith(
+        expect.stringContaining('"Finish chemistry homework"'),
+        expect.anything(),
+      );
+    });
+
     it("may repeat, like ADD_TASK", async () => {
       const h = handlers();
       await executeActions(

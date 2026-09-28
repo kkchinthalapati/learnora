@@ -6,10 +6,7 @@ import type {
   FeedbackKind,
   FeedbackState,
 } from "../../components/InlineFeedback";
-/* Imported rather than referenced as `/learnora.jpg`: Vite rewrites the URL to
- * include whatever `base` the build uses, so the logo survives being served
- * from the `/app/` path prefix. A root-absolute path would not. */
-import logoUrl from "../../assets/learnora.jpg";
+import { LOGO_URL as logoUrl } from "../../lib/logoUrl";
 import styles from "./auth.module.css";
 
 /* The auth wall's chrome — ports index.html:59-326.

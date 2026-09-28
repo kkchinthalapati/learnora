@@ -36,7 +36,7 @@ async function fillPasswordForm(
   user: ReturnType<typeof userEvent.setup>,
   {
     current = "current-pw",
-    next = "longenough1",
+    next = "Longenough1",
     confirm = next,
   }: { current?: string; next?: string; confirm?: string } = {},
 ) {
@@ -74,7 +74,11 @@ describe("SecurityTab", () => {
     const input = screen.getByLabelText("New Password");
 
     await user.type(input, "aaaaAAAA");
-    expect(screen.getByText("Fair")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Add an uppercase letter, a lowercase letter and a number",
+      ),
+    ).toBeInTheDocument();
 
     await user.type(input, "1!");
     expect(screen.getByText("Strong")).toBeInTheDocument();
@@ -118,7 +122,7 @@ describe("SecurityTab", () => {
     const updateUser = mockUpdateUser();
     renderSecurity();
 
-    await fillPasswordForm(user, { confirm: "different1" });
+    await fillPasswordForm(user, { confirm: "Different1" });
     await user.click(screen.getByRole("button", { name: "Update Password" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -138,7 +142,7 @@ describe("SecurityTab", () => {
     await user.click(screen.getByRole("button", { name: "Update Password" }));
 
     await waitFor(() =>
-      expect(updateUser).toHaveBeenCalledWith({ password: "longenough1" }),
+      expect(updateUser).toHaveBeenCalledWith({ password: "Longenough1" }),
     );
     expect(signIn).toHaveBeenCalledWith({
       email: "student@example.com",

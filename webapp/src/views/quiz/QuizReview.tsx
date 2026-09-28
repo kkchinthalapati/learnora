@@ -12,6 +12,7 @@ import {
   stripPraiseOpener,
 } from "./quizMeta";
 import { ExitLink, QUIZZES_PATH } from "./QuizRunner";
+import { renderMathText } from "../../lib/markdownToReact";
 import styles from "./quiz.module.css";
 
 /* Read-only walkthrough of the last attempt — ports js/router.js's
@@ -154,7 +155,9 @@ export function QuizReview() {
                       : "Not answered"}
                   </span>
                 </header>
-                <h2 className={styles.question}>{question.question}</h2>
+                <h2 className={styles.question}>
+                  {renderMathText(question.question)}
+                </h2>
                 <ul className={styles.reviewChoices}>
                   {question.choices.map((choice, i) => {
                     const isCorrect = i === question.correctIndex;
@@ -174,7 +177,7 @@ export function QuizReview() {
 
                     return (
                       <li key={i} className={classes}>
-                        <span>{choice}</span>
+                        <span>{renderMathText(choice)}</span>
                         {tag ? (
                           <span className={styles.reviewTag}>{tag}</span>
                         ) : null}

@@ -15,6 +15,14 @@ function Harness() {
       </Button>
       <Button onClick={() => notifyFetchError("subjects")}>Fetch error</Button>
       <Button
+        onClick={() => {
+          showToast("JWT expired", { error: true });
+          showToast("JWT expired", { error: true });
+        }}
+      >
+        Expire
+      </Button>
+      <Button
         onClick={() =>
           showToast("Task deleted", {
             actionLabel: "Undo",
@@ -102,5 +110,21 @@ describe("toasts", () => {
     await user.click(screen.getByRole("button", { name: "Fail" }));
 
     expect(screen.getByTestId("toast-container").children).toHaveLength(2);
+  });
+
+  /* Every query on a screen fails together when a token expires; students
+     used to get the raw "JWT expired" text, stacked. */
+  it("shows one plain-language toast for a burst of identical failures", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Harness />);
+
+    await user.click(screen.getByRole("button", { name: "Expire" }));
+
+    const alerts = screen.getAllByRole("alert");
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent(
+      "Your session has expired. Please sign in again.",
+    );
+    expect(screen.queryByText("JWT expired")).not.toBeInTheDocument();
   });
 });

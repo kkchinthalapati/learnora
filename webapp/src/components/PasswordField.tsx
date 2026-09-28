@@ -18,7 +18,7 @@ export function PasswordField({
   value,
   onChange,
   autoComplete,
-  placeholder = "Min 8 characters",
+  placeholder = "8+ characters, A–Z, a–z and 0–9",
   required = false,
   labelSuffix,
 }: {
