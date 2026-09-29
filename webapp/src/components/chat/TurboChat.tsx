@@ -156,11 +156,13 @@ export function TurboChat() {
   const { usageFor, isPending: isUsagePending } = useAiUsage();
 
   /* --- voice ------------------------------------------------------------
-     Browser speech only (Web Speech API): no keys, nothing leaves the
-     browser except the transcript, which is sent exactly like typed text —
-     same send(), same consent gate, same server-side safety screen. Every
-     control is hidden where the browser has no support, and typing is never
-     affected. */
+     Browser speech only (Web Speech API): no keys, no Learnora server
+     involved in recognition. Note the browser may use its vendor's cloud
+     for it — Chrome streams the audio to Google — which is the browser's
+     own behaviour, the same as its dictation elsewhere. The transcript is
+     then sent exactly like typed text: same send(), same consent gate, same
+     server-side safety screen. Every control is hidden where the browser
+     has no support, and typing is never affected. */
   const {
     isListening,
     transcript,
