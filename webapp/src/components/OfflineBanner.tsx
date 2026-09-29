@@ -1,9 +1,22 @@
+import { Link, useLocation } from "react-router";
 import { Icon } from "./Icon";
 import { useOnlineStatus } from "../lib/offlineSync";
 import styles from "./OfflineBanner.module.css";
 
+/** "3 reviews", "1 review and 2 changes", "2 changes". Card reviews are named
+ *  as such — they are what a student grades offline and waits on. */
+function describeQueue(queueSize: number, reviewsQueued: number): string {
+  const others = queueSize - reviewsQueued;
+  const reviews = `${reviewsQueued} review${reviewsQueued === 1 ? "" : "s"}`;
+  const changes = `${others} change${others === 1 ? "" : "s"}`;
+  if (reviewsQueued > 0 && others > 0) return `${reviews} and ${changes}`;
+  return reviewsQueued > 0 ? reviews : changes;
+}
+
 export function OfflineBanner() {
-  const { isOnline, queueSize, isSyncing, syncNow } = useOnlineStatus();
+  const { isOnline, queueSize, reviewsQueued, isSyncing, syncNow } =
+    useOnlineStatus();
+  const { pathname } = useLocation();
 
   // Hide when connected with nothing pending and not currently syncing
   if (isOnline && !isSyncing && queueSize === 0) {
@@ -17,20 +30,25 @@ export function OfflineBanner() {
   let message = "";
   let pillClass = styles.offline;
   let icon: "refresh-cw" | "alert-triangle" | "clock" = "alert-triangle";
+  const waiting = describeQueue(queueSize, reviewsQueued);
 
   if (isSyncing) {
     pillClass = styles.syncing;
     icon = "refresh-cw";
-    message = `Syncing ${queueSize} saved change${queueSize === 1 ? "" : "s"}…`;
+    message = `Syncing ${waiting}…`;
   } else if (!isOnline) {
     pillClass = styles.offline;
     icon = "alert-triangle";
+    /* Short on purpose: the pill is one line on a phone. Flashcard review is
+       the one thing that works offline, so it is the thing named. */
     message =
-      "You're offline. Queued task changes will sync when you reconnect; some other actions may be unavailable.";
+      queueSize > 0
+        ? `Offline · ${waiting} waiting to sync`
+        : "Offline · flashcard review still works";
   } else {
     pillClass = styles.pending;
     icon = "clock";
-    message = `${queueSize} change${queueSize === 1 ? "" : "s"} waiting to sync`;
+    message = `${waiting} waiting to sync`;
   }
 
   return (
@@ -38,6 +56,14 @@ export function OfflineBanner() {
       <div className={`${styles.pill} ${pillClass}`}>
         <Icon name={icon} size={14} aria-hidden />
         <span className={styles.message}>{message}</span>
+        {/* Offline, the deck list can't load, so this is the way in: every
+            card saved on the device (lib/offlineCards.ts). Not shown on a
+            review screen, where it would only restart the session. */}
+        {!isOnline && !pathname.startsWith("/review") ? (
+          <Link to="/review/daily-drill" className={styles.syncBtn}>
+            Review cards
+          </Link>
+        ) : null}
         {/* Offline, syncing is a no-op that fails the moment it is asked —
             the banner already says the work will sync on reconnect, so the
             button only appears when pressing it can do something. */}
@@ -68,5 +94,21 @@ export function OfflineBanner() {
         )}
       </div>
     </div>
+  );
+}
+
+/* The pill says "offline"; this says what that means for the page underneath
+ * it, which otherwise just sits on its loading placeholders. Not shown on a
+ * review screen, the one place that does work offline. */
+export function OfflinePageNotice() {
+  const { isOnline } = useOnlineStatus();
+  const { pathname } = useLocation();
+  if (isOnline || pathname.startsWith("/review")) return null;
+  return (
+    <p className={styles.pageNotice}>
+      You&apos;re offline, so this page can&apos;t load anything new until you reconnect.
+      Flashcard review works offline —{" "}
+      <Link to="/review/daily-drill">review your saved cards</Link>.
+    </p>
   );
 }

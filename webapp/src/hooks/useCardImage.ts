@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { flashcardsApi } from "../api/flashcards";
+import { useOptionalAuth } from "../context/auth";
+import { loadOfflineImage } from "../lib/offlineCards";
 
 /* Resolves a card image's storage key to a signed URL.
  *
@@ -10,6 +12,7 @@ import { flashcardsApi } from "../api/flashcards";
  * isn't just an inline effect at each call site. */
 export function useCardImageUrl(path: string | null | undefined): string | null {
   const [url, setUrl] = useState<string | null>(null);
+  const userId = useOptionalAuth()?.user?.id ?? null;
 
   useEffect(() => {
     if (!path) {
@@ -17,18 +20,37 @@ export function useCardImageUrl(path: string | null | undefined): string | null 
       return;
     }
     let active = true;
-    flashcardsApi
-      .getImageUrl(path)
-      .then((signed) => {
-        if (active) setUrl(signed);
-      })
-      .catch(() => {
-        if (active) setUrl(null);
-      });
+    let objectUrl: string | null = null;
+
+    /* Offline (or the signed URL can't be had): the device's saved copy of
+       this image, if the offline sync kept one (lib/offlineCards.ts). Still
+       nothing at all rather than a broken image when it didn't. */
+    const fromDevice = async () => {
+      const blob = userId ? await loadOfflineImage(userId, path) : null;
+      if (!active) return;
+      if (blob) {
+        objectUrl = URL.createObjectURL(blob);
+        setUrl(objectUrl);
+      } else {
+        setUrl(null);
+      }
+    };
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      void fromDevice();
+    } else {
+      flashcardsApi
+        .getImageUrl(path)
+        .then((signed) => {
+          if (active) setUrl(signed);
+        })
+        .catch(() => void fromDevice());
+    }
     return () => {
       active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [path]);
+  }, [path, userId]);
 
   return url;
 }

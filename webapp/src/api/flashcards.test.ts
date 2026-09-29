@@ -145,4 +145,93 @@ describe("flashcardsApi", () => {
       expect(uploadPath).toContain("/card-media/user-1/");
     });
   });
+
+  describe("updateReview ordering (offline sync)", () => {
+    it("writes the review time and only lands over an older review", async () => {
+      let url: URL | undefined;
+      let body: Record<string, unknown> = {};
+      server.use(
+        http.patch(`${SUPABASE_URL}/rest/v1/flashcards`, async ({ request }) => {
+          url = new URL(request.url);
+          body = (await request.json()) as Record<string, unknown>;
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+
+      await flashcardsApi.updateReview(
+        "card-1",
+        "2026-10-02T00:00:00.000Z",
+        3,
+        2.5,
+        { stability: 3.1, difficulty: 5 },
+        "2026-09-29T08:00:00.000Z",
+      );
+
+      expect(body.last_reviewed_at).toBe("2026-09-29T08:00:00.000Z");
+      expect(url?.searchParams.get("or")).toBe(
+        "(last_reviewed_at.is.null,last_reviewed_at.lt.2026-09-29T08:00:00.000Z)",
+      );
+      expect(url?.searchParams.get("id")).toBe("eq.card-1");
+      expect(url?.searchParams.get("user_id")).toBe("eq.user-1");
+    });
+
+    it("falls back to the old unconditional write until the column is deployed, and remembers", async () => {
+      /* A fresh module, so the "column is missing" memory starts clean and
+         doesn't leak into the other tests — with its own client to sign in. */
+      vi.resetModules();
+      const { flashcardsApi: fresh } = await import("./flashcards");
+      const { mockAuthSession: signIn } = await import("../test/mockSession");
+      signIn("user-1");
+      const requests: Array<{ url: URL; body: Record<string, unknown> }> = [];
+      server.use(
+        http.patch(`${SUPABASE_URL}/rest/v1/flashcards`, async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          requests.push({ url: new URL(request.url), body });
+          if ("last_reviewed_at" in body) {
+            return HttpResponse.json(
+              { code: "PGRST204", message: "Could not find the 'last_reviewed_at' column of 'flashcards' in the schema cache" },
+              { status: 400 },
+            );
+          }
+          return new HttpResponse(null, { status: 204 });
+        }),
+      );
+
+      await fresh.updateReview("card-1", "2026-10-02T00:00:00.000Z", 3, 2.5);
+      expect(requests).toHaveLength(2);
+      expect(requests[1].body).not.toHaveProperty("last_reviewed_at");
+      expect(requests[1].url.searchParams.get("or")).toBeNull();
+
+      await fresh.updateReview("card-2", "2026-10-02T00:00:00.000Z", 3, 2.5);
+      expect(requests).toHaveLength(3); // straight to the old write
+    });
+
+    it("still surfaces a real failure", async () => {
+      server.use(
+        http.patch(`${SUPABASE_URL}/rest/v1/flashcards`, () =>
+          HttpResponse.json({ code: "42501", message: "permission denied" }, { status: 403 }),
+        ),
+      );
+      await expect(
+        flashcardsApi.updateReview("card-1", "2026-10-02T00:00:00.000Z", 3, 2.5),
+      ).rejects.toThrow("permission denied");
+    });
+  });
+
+  it("fetches cards due before a moment, nulls first, for the offline copy", async () => {
+    let url: URL | undefined;
+    server.use(
+      http.get(`${SUPABASE_URL}/rest/v1/flashcards`, ({ request }) => {
+        url = new URL(request.url);
+        return HttpResponse.json([]);
+      }),
+    );
+    await flashcardsApi.fetchDueBefore("2026-10-01T12:00:00.000Z", 300);
+    expect(url?.searchParams.get("or")).toBe(
+      "(next_review_date.is.null,next_review_date.lte.2026-10-01T12:00:00.000Z)",
+    );
+    expect(url?.searchParams.get("order")).toBe("next_review_date.asc.nullsfirst");
+    expect(url?.searchParams.get("limit")).toBe("300");
+    expect(url?.searchParams.get("user_id")).toBe("eq.user-1");
+  });
 });

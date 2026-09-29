@@ -13,6 +13,7 @@ import { clearAppearance } from "../lib/appearance";
 import { AuthContext } from "./auth";
 import { migrateGuestSessions } from "../lib/guestSessionMigration";
 import { claimLocalStorageFor } from "../lib/userStorage";
+import { clearOfflineCards } from "../lib/offlineCards";
 
 /* Port of Auth.getSession / Auth.logout from js/api.js.
  *
@@ -32,6 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (lastUserId.current !== undefined && lastUserId.current !== nextUserId) {
       queryClient.clear();
       clearAppearance();
+      /* Signing out (or in as someone else) wipes the device's offline copy
+         of the last student's cards and images. Their queued, not-yet-synced
+         grades are not in it: those follow userStorage.ts's rule — kept for
+         the same student signing back in, cleared for anyone else. */
+      void clearOfflineCards();
     }
     lastUserId.current = nextUserId;
     // Before the new session renders anything: a different student signing

@@ -27,6 +27,7 @@ import {
   useUpdateFlashcardReview,
 } from "../../hooks/useFlashcards";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { useOfflineReviewDeck } from "../../hooks/useOfflineReview";
 import { useStudyClock } from "../../hooks/useStudyClock";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useOverlayBehavior } from "../../context/overlayStack";
@@ -50,6 +51,7 @@ import {
   prioritiseByMisconceptions,
 } from "./srs";
 import { recordCardReviewedToday } from "../../lib/achievements";
+import { useOnlineStatus } from "../../lib/offlineSync";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import styles from "./review.module.css";
 
@@ -88,6 +90,22 @@ export function ReviewView() {
 
   const cardsQuery = isDailyDrill ? allDueCardsQuery : deckCardsQuery;
 
+  /* Offline: the network queries are paused (or failed), so the deck comes
+     from the device's offline copy instead (lib/offlineCards.ts). Once a
+     deck has been shown from that copy it stays on it for this visit —
+     switching sources when the connection returns would unmount a session
+     the student is halfway through. Grades still go through the replay
+     queue either way. */
+  const { isOnline } = useOnlineStatus();
+  const onlineReady = !!decks.data && !!cardsQuery.data;
+  const offlineLatch = useRef<string | null>(null);
+  const wantOffline =
+    offlineLatch.current === deckId ||
+    (!onlineReady && (!isOnline || decks.isError || cardsQuery.isError));
+  const offlineDeck = useOfflineReviewDeck(deckId, wantOffline);
+  const offlineData = wantOffline ? (offlineDeck.data ?? null) : null;
+  if (offlineData) offlineLatch.current = deckId;
+
   /* Grading the last due card triggers a background refetch that recomputes
      `due` to []. Without this, the `due.length === 0` guard below would
      unmount ReviewLauncher — and with it the just-earned Session Recap —
@@ -104,28 +122,63 @@ export function ReviewView() {
      student wants it and "All caught up" was a dead end. */
   const [practiseAll, setPractiseAll] = useState(false);
 
-  if (decks.isPending || cardsQuery.isPending) {
-    return (
-      <div className={styles.view} aria-busy="true">
-        <Skeleton label="Loading flashcards" height={320} />
-      </div>
-    );
-  }
+  let deck: { title: string; folder_id: string | null } | undefined;
+  let cardList: Flashcard[];
+  if (offlineData) {
+    deck = offlineData.deck;
+    cardList = offlineData.cards;
+  } else {
+    if (wantOffline && offlineDeck.fetchStatus === "fetching") {
+      return (
+        <div className={styles.view} aria-busy="true">
+          <Skeleton label="Loading your offline cards" height={320} />
+        </div>
+      );
+    }
 
-  if (decks.isError || cardsQuery.isError) {
-    return (
-      <div className={styles.view}>
-        <ExitLink />
-        <p role="alert" className={styles.loadError}>
-          Could not load this deck.
-        </p>
-      </div>
-    );
-  }
+    if (!isOnline && !onlineReady) {
+      return (
+        <div className={styles.view}>
+          <ExitLink />
+          <EmptyState
+            icon="layers"
+            title="This deck isn't saved for offline review"
+            message="You're offline. Learnora keeps your due cards on this device while you're connected — once you've been online with this deck, it will be here next time."
+          >
+            {isDailyDrill ? null : (
+              <Link to="/review/daily-drill">
+                <Button variant="primary">Review your saved cards</Button>
+              </Link>
+            )}
+          </EmptyState>
+        </div>
+      );
+    }
 
-  const deck = isDailyDrill
-    ? { title: "Daily 5-Minute Drill", folder_id: null as string | null }
-    : decks.data.find((d) => d.id === deckId);
+    if (decks.isPending || cardsQuery.isPending) {
+      return (
+        <div className={styles.view} aria-busy="true">
+          <Skeleton label="Loading flashcards" height={320} />
+        </div>
+      );
+    }
+
+    if (decks.isError || cardsQuery.isError) {
+      return (
+        <div className={styles.view}>
+          <ExitLink />
+          <p role="alert" className={styles.loadError}>
+            Could not load this deck.
+          </p>
+        </div>
+      );
+    }
+
+    deck = isDailyDrill
+      ? { title: "Daily 5-Minute Drill", folder_id: null as string | null }
+      : decks.data.find((d) => d.id === deckId);
+    cardList = cardsQuery.data;
+  }
 
   /* The vanilla never named the deck at all — `#review-deck-title` is
      static markup nothing ever assigned to (js/router.js has no reference to
@@ -152,10 +205,11 @@ export function ReviewView() {
      not touch FSRS intervals — it moves cards about a still-open diagnosed gap
      to the front of the session, so the student meets them while fresh rather
      than forty cards in. An empty ledger returns the queue untouched. */
+  /* The online drill query already returns only due cards; the offline
+     copy also holds cards due in the next two days, so it is filtered. */
+  const alreadyDue = isDailyDrill && !offlineData;
   const due = prioritiseByMisconceptions(
-    isDailyDrill || practiseAll
-      ? cardsQuery.data || []
-      : dueCardsFrom(cardsQuery.data),
+    alreadyDue || practiseAll ? cardList : dueCardsFrom(cardList),
     ledger,
   );
 
@@ -173,10 +227,10 @@ export function ReviewView() {
               : "No cards due for review in this deck right now."
           }
         >
-          {!isDailyDrill && cardsQuery.data.length > 0 ? (
+          {!isDailyDrill && cardList.length > 0 ? (
             <Button variant="secondary" onClick={() => setPractiseAll(true)}>
-              Practise all {cardsQuery.data.length}{" "}
-              {cardsQuery.data.length === 1 ? "card" : "cards"} anyway
+              Practise all {cardList.length}{" "}
+              {cardList.length === 1 ? "card" : "cards"} anyway
             </Button>
           ) : null}
         </EmptyState>
@@ -1045,6 +1099,10 @@ function ReviewSession({
             ease,
             stability,
             difficulty,
+            /* Stamped at the grade, not at the write: a queued or retried
+               write then carries the moment the student actually answered,
+               which is what the server orders reviews by. */
+            reviewedAt: new Date().toISOString(),
           },
           {
             onError: () =>

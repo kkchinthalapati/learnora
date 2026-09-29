@@ -19,6 +19,11 @@ export interface SrsReviewPayload {
    *  an older build still replays. */
   stability?: number;
   difficulty?: number;
+  /** When the student graded the card (ISO). The server keeps whichever
+   *  review of a card is newest (flashcardsApi.updateReview), so replaying
+   *  this later can neither double-apply it nor clobber a newer review.
+   *  Optional so a queue persisted by an older build still replays. */
+  reviewedAt?: string;
 }
 
 export type LogSessionPayload = LogSessionInput;
@@ -171,6 +176,12 @@ export function enqueueOfflineAction<T extends OfflineActionType>(
         (a.payload as SrsReviewPayload).cardId === srsPayload.cardId,
     );
     if (existingIdx >= 0) {
+      /* One queued review per card, and it is the newest one: a card graded
+         twice offline syncs once, with its latest schedule. */
+      const existing = queue[existingIdx] as OfflineAction<"submitSrsReview">;
+      if (isNewerReview(existing.payload, srsPayload)) {
+        return existing as unknown as OfflineAction<T>;
+      }
       queue[existingIdx] = newAction as OfflineAction;
       saveOfflineQueue(queue);
       return newAction;
@@ -192,6 +203,39 @@ export function enqueueOfflineAction<T extends OfflineActionType>(
   queue.push(newAction as OfflineAction);
   saveOfflineQueue(queue);
   return newAction;
+}
+
+/** True when `a` was graded after `b`. A review with no timestamp (queued by
+ *  an older build) counts as older than one that has one. */
+function isNewerReview(a: SrsReviewPayload, b: SrsReviewPayload): boolean {
+  if (!a.reviewedAt) return false;
+  if (!b.reviewedAt) return true;
+  return a.reviewedAt > b.reviewedAt;
+}
+
+/** Card reviews among the queued actions — what "N reviews waiting to sync"
+ *  counts. */
+export function countQueuedReviews(queue: OfflineAction[]): number {
+  return queue.filter((a) => a.type === "submitSrsReview").length;
+}
+
+/** Thrown when an offline review cannot be written to the device at all
+ *  (storage full, blocked, or private mode). The caller must hear about it:
+ *  pretending it was saved would lose the grade silently. */
+export class OfflineStorageError extends Error {
+  constructor() {
+    super(
+      "You're offline and this browser won't let Learnora save reviews on the device, so this grade couldn't be kept. Reconnect to keep reviewing.",
+    );
+    this.name = "OfflineStorageError";
+  }
+}
+
+function enqueueReviewDurably(payload: SrsReviewPayload): void {
+  const action = enqueueOfflineAction("submitSrsReview", payload);
+  if (!getOfflineQueue().some((a) => a.id === action.id)) {
+    throw new OfflineStorageError();
+  }
 }
 
 /**
@@ -265,6 +309,7 @@ export async function flushOfflineQueue(): Promise<FlushResult> {
               p.interval,
               p.ease,
               { stability: p.stability, difficulty: p.difficulty },
+              p.reviewedAt,
             );
             queryClient.invalidateQueries({ queryKey: ["flashcards"] });
           } else if (action.type === "recordLearningEvent") {
@@ -381,17 +426,22 @@ function isConnectivityFailure(error: unknown): boolean {
 export async function submitSrsReview(
   payload: SrsReviewPayload,
 ): Promise<{ queued: boolean }> {
+  const stamped: SrsReviewPayload = {
+    ...payload,
+    reviewedAt: payload.reviewedAt ?? new Date().toISOString(),
+  };
   if (typeof navigator !== "undefined" && !navigator.onLine) {
-    enqueueOfflineAction("submitSrsReview", payload);
+    enqueueReviewDurably(stamped);
     return { queued: true };
   }
   try {
     await flashcardsApi.updateReview(
-      payload.cardId,
-      payload.nextReviewDate,
-      payload.interval,
-      payload.ease,
-      { stability: payload.stability, difficulty: payload.difficulty },
+      stamped.cardId,
+      stamped.nextReviewDate,
+      stamped.interval,
+      stamped.ease,
+      { stability: stamped.stability, difficulty: stamped.difficulty },
+      stamped.reviewedAt,
     );
     queryClient.invalidateQueries({ queryKey: ["flashcards"] });
     return { queued: false };
@@ -401,7 +451,7 @@ export async function submitSrsReview(
       "[offlineSync] submitSrsReview failed, queuing offline:",
       error,
     );
-    enqueueOfflineAction("submitSrsReview", payload);
+    enqueueReviewDurably(stamped);
     return { queued: true };
   }
 }
@@ -507,7 +557,9 @@ export function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState<boolean>(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true,
   );
-  const queueSize = useOfflineQueueSize();
+  const queue = useOfflineQueueData();
+  const queueSize = queue.length;
+  const reviewsQueued = countQueuedReviews(queue);
   const [isSyncing, setIsSyncing] = useState<boolean>(() =>
     isCurrentlySyncing(),
   );
@@ -544,6 +596,8 @@ export function useOnlineStatus() {
   return {
     isOnline,
     queueSize,
+    /** How many of `queueSize` are card reviews. */
+    reviewsQueued,
     isSyncing,
     syncNow,
   };

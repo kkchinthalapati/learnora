@@ -100,6 +100,9 @@ export interface Flashcard {
   source_material_title?: string | null;
   material_id?: string | null;
   notes?: string | null;
+  /** When the latest applied review was graded. Absent before the
+   *  20260929 migration; see flashcardsApi.updateReview. */
+  last_reviewed_at?: string | null;
 }
 
 /** Shape returned by `Flashcards.fetchAllDue`'s join with the owning deck. */

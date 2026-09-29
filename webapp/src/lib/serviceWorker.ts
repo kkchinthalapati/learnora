@@ -12,6 +12,28 @@ import { urlBase64ToUint8Array } from "./push";
 
 const SW_URL = `${import.meta.env.BASE_URL}sw.js`;
 
+/**
+ * Keep the address bar inside the service worker's scope.
+ *
+ * The router's basename is the base path without its trailing slash, so the
+ * home route renders at `/app` — but the worker's scope is `/app/`, and
+ * `/app` is outside it. Reloading the home screen offline therefore skipped
+ * the worker and failed like any offline page load, even with the whole app
+ * cached. Rewriting `/app` to `/app/` in place (same history entry, same
+ * router state — the router reads both as "/") keeps every reload in scope.
+ * Returns whether it rewrote anything.
+ */
+export function keepUrlInWorkerScope(
+  location: Pick<Location, "pathname" | "search" | "hash"> = window.location,
+  history: Pick<History, "state" | "replaceState"> = window.history,
+  base: string = import.meta.env.BASE_URL,
+): boolean {
+  if (!base.endsWith("/") || base === "/") return false;
+  if (location.pathname !== base.slice(0, -1)) return false;
+  history.replaceState(history.state, "", `${base}${location.search}${location.hash}`);
+  return true;
+}
+
 /** Registers the service worker scoped to this app's base path (`/app/`),
  *  not the origin root — the vanilla app and this one are served
  *  side-by-side, and a root-scoped worker would intercept its requests too. */

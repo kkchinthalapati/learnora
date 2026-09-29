@@ -122,6 +122,36 @@ describe("ErrorBoundary", () => {
     expect(applyAppUpdateMock).toHaveBeenCalledTimes(1);
   });
 
+  it("says the page needs a connection when a chunk is missing because the device is offline", () => {
+    /* Offline, a page this device never loaded has no code to run. That is
+       not a new version, and "Reload Learnora" could fetch nothing either. */
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    Object.defineProperty(navigator, "onLine", { value: false, writable: true, configurable: true });
+
+    function ChunkBomb(): null {
+      throw new TypeError(
+        "Failed to fetch dynamically imported module: /assets/AnalyticsView-a1b2c3.js",
+      );
+    }
+
+    try {
+      renderWithProviders(
+        <ErrorBoundary>
+          <ChunkBomb />
+        </ErrorBoundary>,
+        undefined,
+        { withRouter: true },
+      );
+
+      expect(screen.getByText("You're offline")).toBeInTheDocument();
+      expect(screen.getByText(/Flashcard review still works offline/)).toBeInTheDocument();
+      expect(screen.queryByText("A new version is ready")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    } finally {
+      Object.defineProperty(navigator, "onLine", { value: true, writable: true, configurable: true });
+    }
+  });
+
   it("keeps the generic fallback for errors that are not chunk failures", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
 
