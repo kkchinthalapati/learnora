@@ -7,6 +7,8 @@ import { notebooksApi } from "../../api/notebooks";
 import { PersonaOffsetToolbar } from "../ai/PersonaOffsetToolbar";
 import { ChatMessageBubble } from "./ChatMessage";
 import { useSettings } from "../../context/settings";
+import { useAiUsage } from "../../hooks/useAiUsage";
+import { MAX_IMAGE_DESCRIPTION } from "../../api/aiImage";
 import type { SourceMode } from "../ai/PersonaOffsetToolbar";
 import styles from "./chat.module.css";
 
@@ -103,6 +105,8 @@ export function TurboChat() {
     attachFile,
     clearFile,
     saveCards,
+    generateImage,
+    saveImage,
   } = useChat();
   const { showToast } = useToast();
   const { settings, updateAndSave } = useSettings();
@@ -142,6 +146,11 @@ export function TurboChat() {
   );
 
   const [input, setInput] = useState("");
+  /* Armed by the "Generate image" chip: the next send draws a diagram
+     instead of asking the tutor. Always the student's own click — the model
+     has no way to turn it on. */
+  const [imageMode, setImageMode] = useState(false);
+  const { usageFor, isPending: isUsagePending } = useAiUsage();
   const [position, setPosition] = useState<Position | null>(null);
   const [isDropTarget, setIsDropTarget] = useState(false);
 
@@ -223,10 +232,43 @@ export function TurboChat() {
 
   const submit = (text: string) => {
     const value = text.trim();
+    if (imageMode) {
+      if (!value) return;
+      setImageMode(false);
+      setInput("");
+      void generateImage(value);
+      return;
+    }
     if (!value && !file) return;
     setInput("");
     void send(value || "Analyse this.", { sourceMode });
   };
+
+  const imageUsage = usageFor("image");
+  const imageAllowance =
+    isUsagePending || imageUsage.unlimited
+      ? null
+      : imageUsage.exceeded
+        ? "No images left today — it resets at midnight UTC."
+        : `${imageUsage.remaining} left today`;
+
+  const toggleImageMode = () => {
+    setImageMode((on) => !on);
+    inputRef.current?.focus();
+  };
+
+  const imageChip = (
+    <button
+      type="button"
+      className={`${styles.chip}${imageMode ? ` ${styles.chipActive}` : ""}`}
+      aria-pressed={imageMode}
+      disabled={isSending}
+      onClick={toggleImageMode}
+    >
+      <Icon name="image" size={14} />
+      Generate image
+    </button>
+  );
 
   /* Only against a finished answer. Offering "explain simpler" while one
      is still arriving invites a second request the student did not need,
@@ -329,6 +371,7 @@ export function TurboChat() {
               key={message.id}
               message={message}
               onSaveCards={saveCards}
+              onSaveImage={saveImage}
               onAddToNotebook={handleAddToNotebook}
               sendPhase={sendPhase}
               onCancel={cancel}
@@ -337,7 +380,9 @@ export function TurboChat() {
               onRetry={
                 message.id === messages[messages.length - 1]?.id
                   ? (m) => {
-                      if (m.retryQuery && !isSending) void send(m.retryQuery, m.retryOptions);
+                      if (!m.retryQuery || isSending) return;
+                      if (m.retryAsImage) void generateImage(m.retryQuery);
+                      else void send(m.retryQuery, m.retryOptions);
                     }
                   : undefined
               }
@@ -374,7 +419,27 @@ export function TurboChat() {
                 {suggestion.label}
               </button>
             ))}
+        {/* Offered with both sets: drawing is as useful before a first
+            question as after an answer. */}
+        {imageChip}
       </div>
+
+      {imageMode ? (
+        <div className={styles.imageModeHint} role="status">
+          <Icon name="image" size={14} />
+          <span>
+            <strong>Image mode</strong> — describe a diagram and press send.
+            {imageAllowance ? ` ${imageAllowance}` : ""}
+          </span>
+          <button
+            type="button"
+            className={styles.imageModeCancel}
+            onClick={() => setImageMode(false)}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
 
       {file ? (
         <div className={styles.filePill}>
@@ -431,7 +496,12 @@ export function TurboChat() {
           type="text"
           className={styles.input}
           value={input}
-          placeholder="Ask AI to do anything... (e.g. 'Start a 25m timer')"
+          placeholder={
+            imageMode
+              ? "Describe the diagram, e.g. a labelled plant cell"
+              : "Ask AI to do anything... (e.g. 'Start a 25m timer')"
+          }
+          maxLength={imageMode ? MAX_IMAGE_DESCRIPTION : undefined}
           autoComplete="off"
           aria-label="AI chat input"
           onChange={(e) => setInput(e.target.value)}
@@ -439,11 +509,13 @@ export function TurboChat() {
         <button
           type="submit"
           className={styles.sendBtn}
-          aria-label="Send message"
+          aria-label={imageMode ? "Draw image" : "Send message"}
           /* Also disabled on an empty box. It used to look pressable with
              nothing typed, do nothing at all, and say nothing about why.
              An attachment on its own is enough to send ("Analyse this."). */
-          disabled={isSending || (input.trim().length === 0 && !file)}
+          disabled={
+            isSending || (input.trim().length === 0 && (imageMode || !file))
+          }
         >
           <Icon name="send" size={18} />
         </button>

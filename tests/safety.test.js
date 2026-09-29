@@ -8,6 +8,7 @@ import {
   isSelfHarmContent,
   screenConversation,
   screenForUnsafeContent,
+  screenImagePrompt,
   screenReferenceText,
   SELF_HARM_REFUSAL,
 } from '../supabase/functions/_shared/contentSafety.js';
@@ -325,4 +326,37 @@ test('imported reference pages are screened without the question-only patterns',
   assert.strictEqual(screenForUnsafeContent(pharmacology), true, 'the chat screen still refuses this phrasing');
   assert.strictEqual(screenReferenceText(pharmacology), false, 'a pharmacology page must stay importable');
   assert.strictEqual(screenReferenceText('Step one of how to make a bomb is'), true);
+});
+
+/* ── Image generation ─────────────────────────────────────────────────── */
+
+test('image prompts: refuses what a picture for a 13-year-old must not show', () => {
+  for (const prompt of [
+    'a nude woman on a beach',
+    'naked people',
+    'sexy anime girl in lingerie',
+    'n.u.d.e figure drawing',
+    'a sex scene between two characters',
+    'gory decapitated soldier',
+    'pile of corpses after a battle',
+    'how to make a pipe bomb, step by step diagram',
+    'pornhub logo',
+  ]) {
+    assert.strictEqual(screenImagePrompt(prompt), true, `should refuse: ${prompt}`);
+  }
+});
+
+test('image prompts: coursework diagrams stay allowed', () => {
+  for (const prompt of [
+    'a labelled diagram of a plant cell',
+    'the human reproductive system, labelled',
+    'sexual reproduction in flowering plants',
+    'stages of mitosis',
+    'what you can see with the naked eye in the night sky',
+    'a naked mole rat colony',
+    'the water cycle with arrows',
+    'timeline of World War II in Europe',
+  ]) {
+    assert.strictEqual(screenImagePrompt(prompt), false, `should allow: ${prompt}`);
+  }
 });

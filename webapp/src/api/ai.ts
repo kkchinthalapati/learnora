@@ -50,7 +50,7 @@ export interface FilePayload {
 /** `undefined` means free-form chat; the rest map to the edge function's
  *  `modeInstructions` switch (supabase/functions/learnora-ai/index.ts). */
 export type EdgeMode =
-  "plan" | "quiz" | "flashcards" | "notes" | "rewrite" | "solver";
+  "plan" | "quiz" | "flashcards" | "notes" | "rewrite" | "solver" | "image";
 
 export interface EdgePayload {
   history: ChatMessage[];
@@ -84,6 +84,9 @@ export interface EdgeResult {
    *  to show; anything that treats `text` as data to save (`generateNotes`)
    *  must check it first. */
   refused?: boolean;
+  /** `mode: "image"` only: the storage key of the generated picture in the
+   *  private `chat-media` bucket (see api/aiImage.ts). */
+  imagePath?: string;
 }
 
 /** Error carrying the two flags the vanilla attached to its thrown errors, so
@@ -244,13 +247,16 @@ export async function callEdge(
       const fullText = await response.text();
       let text = fullText;
       let refused = false;
+      let imagePath: string | undefined;
       try {
         const parsed = JSON.parse(fullText) as {
           text?: string;
           refused?: boolean;
+          imagePath?: string;
         };
         if (parsed && typeof parsed.text === "string") text = parsed.text;
         if (parsed?.refused === true) refused = true;
+        if (typeof parsed?.imagePath === "string") imagePath = parsed.imagePath;
       } catch {
         /* Not JSON — the body is already the reply text. */
       }
@@ -258,7 +264,11 @@ export async function callEdge(
       if (onText) await onText(text);
       // Omitted rather than `false` when not refused, so a caller asserting
       // the plain `{ text }` shape isn't broken by an always-present field.
-      return refused ? { text, refused } : { text };
+      return {
+        text,
+        ...(refused ? { refused } : {}),
+        ...(imagePath ? { imagePath } : {}),
+      };
     } catch (err) {
       // Hitting our own deadline means the server already spent its whole
       // budget walking the provider chain. Replaying that costs another

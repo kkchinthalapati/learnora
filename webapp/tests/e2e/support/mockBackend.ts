@@ -40,12 +40,12 @@ export const AI_TOOL_QUOTAS: Record<"free" | "pro", Record<string, number>> = {
   free: {
     chat: 15, notes: 3, flashcards: 3, quiz: 3, plan: 1,
     debugger: 2, preMortem: 2, feynman: 2, examDeconstructor: 2,
-    sparring: 2, notebookStudio: 5,
+    sparring: 2, notebookStudio: 5, image: 2,
   },
   pro: {
     chat: 400, notes: 60, flashcards: 60, quiz: 60, plan: 30,
     debugger: 40, preMortem: 40, feynman: 40, examDeconstructor: 40,
-    sparring: 40, notebookStudio: 80,
+    sparring: 40, notebookStudio: 80, image: 30,
   },
 };
 

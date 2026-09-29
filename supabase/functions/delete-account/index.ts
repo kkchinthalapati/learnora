@@ -207,8 +207,9 @@ Deno.serve(async (req: Request) => {
 });
 
 /* Every bucket files objects under `<user id>/` — the prefix their RLS
-   policies check (webapp/src/api/materials.ts, profile.ts, flashcards.ts). */
-const USER_BUCKETS = ["materials", "avatars", "card-media"];
+   policies check (webapp/src/api/materials.ts, profile.ts, flashcards.ts,
+   and learnora-ai's generated chat images). */
+const USER_BUCKETS = ["materials", "avatars", "card-media", "chat-media"];
 const PAGE = 1000;
 
 /* Removes everything under `<userId>/` in one bucket. Returns an error

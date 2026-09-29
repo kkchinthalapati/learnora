@@ -184,6 +184,39 @@ Practical consequences:
 
 ---
 
+## Image generation (chat "Generate image")
+
+A separate path — `mode: "image"` — with its own three-stop provider list. It
+is **not** part of the text chain above, and nothing in the text chain can
+reach it: it only runs when a student presses "Generate image" in the chat.
+It reuses keys you may already have; no new secret is required.
+
+| # | Provider | Secrets | Model secret | Default |
+|---|---|---|---|---|
+| 1 | Google Gemini | `GEMINI_API_KEY` | `GEMINI_IMAGE_MODEL` | `gemini-2.5-flash-image` |
+| 2 | Cloudflare Workers AI | `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` | `CLOUDFLARE_IMAGE_MODEL` | `@cf/black-forest-labs/flux-1-schnell` |
+| 3 | OpenAI (paid floor) | `OPENAI_API_KEY` | `OPENAI_IMAGE_MODEL` | `gpt-image-1-mini`, `quality: "low"` |
+
+- **Cost.** Check your Gemini tier: image output may bill even where text is
+  free. Cloudflare's daily allowance covers a small volume. OpenAI bills from
+  the first image (about $0.005 each at the settings used).
+- **Safety.** The description is screened by `screenImagePrompt` in
+  `_shared/contentSafety.js` (stricter than the chat screen: no nudity,
+  sexualised framing or gore), then wrapped in an educational-diagram style
+  prefix. A provider's own safety refusal ends the chain instead of retrying
+  a less filtered model. There is no text output to screen afterwards, so
+  that prompt screen is the main line of defence; Cloudflare's model has the
+  weakest built-in filter of the three.
+- **Storage.** The picture is saved to the private `chat-media` bucket under
+  the student's id (migration `20260929010000_add_chat_media_bucket.sql`),
+  and only the storage key is returned. The app reads it back through a
+  signed URL. Only real PNG/JPEG/WebP bytes are stored.
+- **Allowance.** Its own daily quota, `image` (free 2, Plus 10, Pro 30), and
+  always billed as `image` whatever `tool` the request names. A request that
+  no provider answered is refunded.
+
+---
+
 ## Two things to decide before adding providers
 
 ### 1. Free tiers usually train on your data

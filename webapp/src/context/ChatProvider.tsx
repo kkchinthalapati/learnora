@@ -21,6 +21,7 @@ import { examsApi } from "../api/exams";
 import { flashcardsApi } from "../api/flashcards";
 import { notesApi } from "../api/notes";
 import { generateDeckFromTopic, DeckShapeError } from "../api/studyPackage";
+import { generateImage as drawImage, saveImageAsFlashcard } from "../api/aiImage";
 import { tasksApi } from "../api/tasks";
 import { decksKeys } from "../hooks/useDecks";
 import { examsKeys } from "../hooks/useExams";
@@ -174,9 +175,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [sendPhase, setSendPhase] = useState<"searching" | "thinking" | null>(
-    null,
-  );
+  const [sendPhase, setSendPhase] = useState<
+    "searching" | "thinking" | "drawing" | null
+  >(null);
   /** The request in flight, so Stop can actually end it. */
   const abortRef = useRef<AbortController | null>(null);
   const cancel = useCallback(() => {
@@ -778,6 +779,101 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     [file, handlers, settings],
   );
 
+  const generateImage = useCallback(
+    async (description: string) => {
+      const prompt = description.trim();
+      if (!prompt) return;
+      const pendingId = nextId();
+      setMessages((prev) => [
+        ...prev,
+        { id: nextId(), role: "user", text: `Generate image: ${prompt}` },
+        { id: pendingId, role: "ai", text: "", pending: true },
+      ]);
+      setIsSending(true);
+      setSendPhase("drawing");
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      const finish = (patch: Partial<ChatMessage>) =>
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === pendingId ? { ...m, pending: false, ...patch } : m,
+          ),
+        );
+
+      try {
+        const image = await drawImage(prompt, settings, controller.signal);
+        /* The tutor is told a picture was drawn, so "explain the diagram"
+           next has something to refer to; the picture itself is not sent
+           back to it. */
+        historyRef.current = [
+          ...historyRef.current,
+          { role: "user", content: `Draw a diagram: ${prompt}` },
+          { role: "model", content: `[Drew a labelled diagram of: ${prompt}]` },
+        ];
+        finish({ text: "", image });
+      } catch (err) {
+        const stopped = controller.signal.aborted;
+        /* A refusal is the answer, not a failure: shown as the reply, with
+           nothing to retry. */
+        if (!stopped && err instanceof AiError && err.refused) {
+          finish({ text: err.message });
+          return;
+        }
+        finish({
+          error: stopped ? undefined : true,
+          retryQuery: stopped ? undefined : prompt,
+          retryAsImage: stopped ? undefined : true,
+          text: stopped
+            ? "Stopped. Ask again whenever you're ready."
+            : err instanceof Error
+              ? err.message
+              : "Couldn't draw that. Please try again.",
+        });
+      } finally {
+        setIsSending(false);
+        setSendPhase(null);
+        if (abortRef.current === controller) abortRef.current = null;
+      }
+    },
+    [settings],
+  );
+
+  const saveImage = useCallback(
+    async (messageId: string) => {
+      const message = messagesRef.current.find((m) => m.id === messageId);
+      const image = message?.image;
+      if (!image || image.savedDeckId || image.saving) return;
+
+      const patchImage = (patch: Partial<NonNullable<ChatMessage["image"]>>) =>
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId && m.image
+              ? { ...m, image: { ...m.image, ...patch } }
+              : m,
+          ),
+        );
+
+      patchImage({ saving: true });
+      try {
+        const deckId = await saveImageAsFlashcard(image);
+        await Promise.all([
+          qc.invalidateQueries({ queryKey: decksKeys.all }),
+          qc.invalidateQueries({ queryKey: flashcardsKeys.dueCount }),
+        ]);
+        patchImage({ saving: false, savedDeckId: deckId });
+        showToast("Saved as a flashcard.");
+      } catch (err) {
+        patchImage({ saving: false });
+        showToast(
+          err instanceof Error ? err.message : "Couldn't save that picture.",
+          { error: true },
+        );
+      }
+    },
+    [qc, showToast],
+  );
+
   const saveCards = useCallback(
     async (messageId: string) => {
       const message = messagesRef.current.find((m) => m.id === messageId);
@@ -838,6 +934,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       compose,
       clearDraft,
       send,
+      generateImage,
+      saveImage,
       attachFile,
       clearFile,
       saveCards,
@@ -858,6 +956,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       compose,
       clearDraft,
       send,
+      generateImage,
+      saveImage,
       attachFile,
       clearFile,
       saveCards,

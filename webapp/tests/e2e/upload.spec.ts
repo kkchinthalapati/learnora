@@ -1,5 +1,5 @@
-import { crc32, deflateSync } from "node:zlib";
 import { test, expect, loginAs } from "./support/fixtures";
+import { makePng } from "./support/images";
 
 /* Create ▸ Upload — the path a student takes with their own notes, and the
  * one the audit never exercised. Covers the file reaching storage, the row
@@ -39,41 +39,6 @@ function makePdf(lines: string[]): Buffer {
   for (const o of offsets) out += `${String(o).padStart(10, "0")} 00000 n \n`;
   out += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
   return Buffer.from(out, "latin1");
-}
-
-/** A real PNG, larger than the 2048px ceiling on both edges, so the browser
- *  has to decode and re-encode it — the part jsdom can only pretend to do. */
-function makePng(width: number, height: number): Buffer {
-  const row = Buffer.alloc(1 + width * 3);
-  const raw = Buffer.alloc(row.length * height);
-  for (let y = 0; y < height; y++) {
-    row[0] = 0;
-    for (let x = 0; x < width; x++) {
-      row[1 + x * 3] = x % 256;
-      row[2 + x * 3] = y % 256;
-      row[3 + x * 3] = (x + y) % 256;
-    }
-    row.copy(raw, y * row.length);
-  }
-  const chunk = (type: string, data: Buffer) => {
-    const len = Buffer.alloc(4);
-    len.writeUInt32BE(data.length);
-    const body = Buffer.concat([Buffer.from(type, "latin1"), data]);
-    const crc = Buffer.alloc(4);
-    crc.writeUInt32BE(crc32(body));
-    return Buffer.concat([len, body, crc]);
-  };
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(width, 0);
-  ihdr.writeUInt32BE(height, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 2; // truecolour RGB
-  return Buffer.concat([
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    chunk("IHDR", ihdr),
-    chunk("IDAT", deflateSync(raw)),
-    chunk("IEND", Buffer.alloc(0)),
-  ]);
 }
 
 /** Width and height from a JPEG's start-of-frame marker. */

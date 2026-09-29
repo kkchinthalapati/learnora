@@ -9,9 +9,11 @@ import {
 } from "../../lib/markdownToReact";
 import type {
   ActionWidget,
+  ChatImage,
   ChatMessage as Message,
   WebCitation,
 } from "../../context/chat";
+import { getChatImageUrl } from "../../api/aiImage";
 import { sourceSnippet } from "../../lib/sourceSnippet";
 import styles from "./chat.module.css";
 
@@ -55,7 +57,7 @@ function ThinkingDots({
   phase,
   onCancel,
 }: {
-  phase?: "searching" | "thinking" | null;
+  phase?: "searching" | "thinking" | "drawing" | null;
   onCancel?: () => void;
 }) {
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -70,7 +72,9 @@ function ThinkingDots({
   const label =
     phase === "searching"
       ? "Looking things up…"
-      : slow
+      : phase === "drawing"
+        ? "Drawing your diagram…"
+        : slow
         ? "Still writing your answer…"
         : "Writing your answer…";
 
@@ -98,6 +102,75 @@ function ThinkingDots({
   );
 }
 
+/* A generated picture, from its storage key. The bucket is private, so the
+   URLs are signed per render — one to show it, one that downloads it. */
+function GeneratedImage({
+  image,
+  onSave,
+}: {
+  image: ChatImage;
+  onSave?: () => void;
+}) {
+  const [urls, setUrls] = useState<{ view: string; download: string } | null>(
+    null,
+  );
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const ext = image.path.split(".").pop() || "png";
+    Promise.all([
+      getChatImageUrl(image.path),
+      getChatImageUrl(image.path, { download: `learnora-diagram.${ext}` }),
+    ])
+      .then(([view, download]) => {
+        if (active) setUrls({ view, download });
+      })
+      .catch(() => {
+        if (active) setFailed(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [image.path]);
+
+  if (failed) {
+    return <em>This picture is no longer available.</em>;
+  }
+  if (!urls) {
+    return <span className={styles.imageLoading}>Loading your diagram…</span>;
+  }
+  return (
+    <figure className={styles.generatedImage}>
+      <img src={urls.view} alt={image.alt} loading="lazy" />
+      <figcaption className={styles.imageActions}>
+        <a href={urls.download} className={styles.imageAction} download>
+          <Icon name="download" size={14} />
+          Download
+        </a>
+        {onSave ? (
+          image.savedDeckId ? (
+            <span className={styles.cardsSaved}>
+              <Icon name="check" size={14} />
+              Saved as a flashcard
+            </span>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              disabled={image.saving}
+              onClick={onSave}
+            >
+              <Icon name="layers" size={14} />
+              {image.saving ? "Saving…" : "Save as flashcard"}
+            </Button>
+          )
+        ) : null}
+      </figcaption>
+    </figure>
+  );
+}
+
 function extractDomain(url?: string): string {
   if (!url) return "web";
   try {
@@ -110,6 +183,7 @@ function extractDomain(url?: string): string {
 export function ChatMessageBubble({
   message,
   onSaveCards,
+  onSaveImage,
   onAddToNotebook,
   sendPhase,
   onCancel,
@@ -121,13 +195,15 @@ export function ChatMessageBubble({
    *  see NotesAiSidebar's header comment), so the button silently isn't
    *  offered rather than wired to nothing. */
   onSaveCards?: (messageId: string) => void;
+  /** Saves `message.image` as a flashcard; omitted where that isn't offered. */
+  onSaveImage?: (messageId: string) => void;
   onAddToNotebook?: (citation: {
     title: string;
     url?: string;
     snippet?: string;
   }) => void | Promise<void>;
-  /** Which half of the wait this is, for the pending bubble only. */
-  sendPhase?: "searching" | "thinking" | null;
+  /** Which part of the wait this is, for the pending bubble only. */
+  sendPhase?: "searching" | "thinking" | "drawing" | null;
   /** Abandons the answer in flight. Offered once the wait turns long. */
   onCancel?: () => void;
   /** Re-sends the question behind a failure notice. */
@@ -172,6 +248,13 @@ export function ChatMessageBubble({
   let body;
   if (message.pending) {
     body = <ThinkingDots phase={sendPhase} onCancel={onCancel} />;
+  } else if (message.image) {
+    body = (
+      <GeneratedImage
+        image={message.image}
+        onSave={onSaveImage ? () => onSaveImage(message.id) : undefined}
+      />
+    );
   } else if (message.cards) {
     body = (
       <div>

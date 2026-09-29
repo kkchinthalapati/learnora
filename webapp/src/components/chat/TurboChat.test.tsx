@@ -940,6 +940,128 @@ describe("TurboChat", () => {
     });
   });
 
+  describe("Generate image", () => {
+    function serveImage(reply: () => Response) {
+      const bodies: Record<string, unknown>[] = [];
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          bodies.push((await request.json()) as Record<string, unknown>);
+          return reply();
+        }),
+        http.post(`${SUPABASE_URL}/storage/v1/object/sign/chat-media/*`, () =>
+          HttpResponse.json({ signedURL: "/object/sign/chat-media/user-1/cell.png?token=t" }),
+        ),
+      );
+      return bodies;
+    }
+
+    it("is offered beside the starters and the follow-ups", async () => {
+      serveReply("Mitosis has four phases.");
+      renderChat();
+      await openChat();
+      expect(screen.getByRole("button", { name: "Generate image" })).toBeInTheDocument();
+      await ask("what is mitosis");
+      await screen.findByText("Mitosis has four phases.");
+      expect(screen.getByRole("button", { name: "Explain simpler" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Generate image" })).toBeInTheDocument();
+    });
+
+    it("draws only after the student arms it and sends, showing what is left today", async () => {
+      const bodies = serveImage(() =>
+        HttpResponse.json({
+          text: "Diagram: a labelled plant cell",
+          alt: "Diagram: a labelled plant cell",
+          imagePath: "user-1/cell.png",
+        }),
+      );
+      renderChat();
+      await openChat();
+
+      const chip = screen.getByRole("button", { name: "Generate image" });
+      await userEvent.click(chip);
+      expect(chip).toHaveAttribute("aria-pressed", "true");
+      /* Free plan, nothing used yet: the image allowance is 2. */
+      expect(await screen.findByText(/2 left today/)).toBeInTheDocument();
+      expect(bodies).toHaveLength(0);
+
+      await userEvent.type(
+        screen.getByRole("textbox", { name: "AI chat input" }),
+        "a labelled plant cell",
+      );
+      /* The send button's name changes with the mode, so it is clear what
+         pressing it will do. */
+      await userEvent.click(screen.getByRole("button", { name: "Draw image" }));
+
+      const img = await screen.findByRole("img", { name: "Diagram: a labelled plant cell" });
+      expect(img.getAttribute("src")).toMatch(/\/object\/sign\/chat-media\/user-1\/cell\.png/);
+      expect(screen.getByRole("link", { name: /Download/ }).getAttribute("href")).toMatch(
+        /download=learnora-diagram\.png/,
+      );
+      expect(bodies[0]).toMatchObject({
+        mode: "image",
+        tool: "image",
+        history: [{ role: "user", content: "a labelled plant cell" }],
+      });
+      /* One-shot: the next send is an ordinary question again. */
+      expect(screen.getByRole("button", { name: "Generate image" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+    });
+
+    it("saves a drawn diagram as a flashcard", async () => {
+      serveImage(() =>
+        HttpResponse.json({ text: "Diagram: the heart", imagePath: "user-1/heart.png" }),
+      );
+      const cards: Record<string, unknown>[] = [];
+      server.use(
+        http.get(`${SUPABASE_URL}/storage/v1/object/chat-media/*`, () =>
+          new HttpResponse(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+            headers: { "Content-Type": "image/png" },
+          }),
+        ),
+        http.post(`${SUPABASE_URL}/storage/v1/object/card-media/*`, () =>
+          HttpResponse.json({ Key: "card-media/user-1/h.png" }),
+        ),
+        http.get(rest("flashcard_decks"), () => HttpResponse.json([])),
+        http.post(rest("flashcard_decks"), () => HttpResponse.json({ id: "deck-9" })),
+        http.post(rest("flashcards"), async ({ request }) => {
+          const rows = (await request.json()) as Record<string, unknown>[];
+          cards.push(...rows);
+          return HttpResponse.json({ id: "card-1", ...rows[0] });
+        }),
+      );
+      renderChat();
+      await openChat();
+      await userEvent.click(screen.getByRole("button", { name: "Generate image" }));
+      await userEvent.type(screen.getByRole("textbox", { name: "AI chat input" }), "the heart");
+      await userEvent.click(screen.getByRole("button", { name: "Draw image" }));
+      await screen.findByRole("img", { name: "Diagram: the heart" });
+
+      await userEvent.click(screen.getByRole("button", { name: "Save as flashcard" }));
+      expect(await screen.findByText("Saved as a flashcard")).toBeInTheDocument();
+      expect(cards[0]).toMatchObject({ deck_id: "deck-9", back: "the heart" });
+    });
+
+    it("shows a refusal as the reply, with nothing to retry", async () => {
+      serveImage(() =>
+        HttpResponse.json({ text: "I can't help with that topic.", refused: true }),
+      );
+      renderChat();
+      await openChat();
+      await userEvent.click(screen.getByRole("button", { name: "Generate image" }));
+      await userEvent.type(
+        screen.getByRole("textbox", { name: "AI chat input" }),
+        "something it should not draw",
+      );
+      await userEvent.keyboard("{Enter}");
+
+      expect(await screen.findByText("I can't help with that topic.")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Try again/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("img", { name: /Diagram/ })).not.toBeInTheDocument();
+    });
+  });
+
   describe("flashcard replies", () => {
     it("lists the cards instead of dumping raw JSON", async () => {
       serveReply(

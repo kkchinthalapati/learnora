@@ -354,6 +354,83 @@
   border-color: var(--accent-ring);
 }
 
+.chip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* "Generate image" while armed: the next send draws instead of answering. */
+.chipActive,
+.chipActive:hover {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.imageModeHint {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0 16px 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.imageModeHint strong {
+  color: var(--text);
+}
+
+.imageModeCancel {
+  margin-left: auto;
+  padding: 2px 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* --- generated image --- */
+
+.generatedImage {
+  margin: 0;
+}
+
+/* Diagrams are drawn on white by design (see IMAGE_STYLE_PREFIX in the edge
+   function); the hairline border keeps that white block framed in dark mode
+   rather than floating. */
+.generatedImage img {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+}
+
+.imageActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+
+.imageAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.imageLoading {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
 /* --- file pill --- */
 
 .filePill {

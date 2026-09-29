@@ -381,3 +381,75 @@ test('an image request Gemini did not answer stops before the text-only chain, a
   const { VISION_UNAVAILABLE_MESSAGE } = loadVisionGuard();
   assert.match(VISION_UNAVAILABLE_MESSAGE, /photo/i);
 });
+
+/* ---- Image generation: its own chain, never the text one ------------- */
+
+function loadImageHelpers() {
+  const src = slice('const IMAGE_PROVIDERS', 'async function requestImage')
+    .replace('const IMAGE_PROVIDERS: ImageProvider[]', 'const IMAGE_PROVIDERS')
+    .replace('function buildImagePrompt(description: string): string', 'function buildImagePrompt(description)')
+    .replace('type GeneratedImage = { bytes: Uint8Array<ArrayBuffer>; mimeType: string };', '')
+    .replace('function base64ToBytes(b64: string): Uint8Array<ArrayBuffer>', 'function base64ToBytes(b64)')
+    .replace('function sniffImageType(bytes: Uint8Array): string | null', 'function sniffImageType(bytes)');
+  assert.ok(!/:\s*(?:string|Uint8Array|ImageProvider)\b/.test(src), 'an unstripped annotation is left in the image helpers');
+  const context = { module: { exports: {} }, String, Uint8Array, atob, Error };
+  vm.createContext(context);
+  vm.runInContext(
+    `${src}\nmodule.exports = { IMAGE_PROVIDERS, buildImagePrompt, sniffImageType, base64ToBytes, MAX_IMAGE_PROMPT_CHARS };`,
+    context,
+  );
+  return context.module.exports;
+}
+
+test('image providers run Gemini, then Cloudflare, then the paid OpenAI floor', () => {
+  const { IMAGE_PROVIDERS } = loadImageHelpers();
+  assert.deepStrictEqual(plain(IMAGE_PROVIDERS.map((p) => p.id)), ['gemini', 'cloudflare', 'openai']);
+  // Model names come from the environment, with a default to fall back on.
+  for (const p of IMAGE_PROVIDERS) {
+    assert.match(p.modelEnv, /_IMAGE_MODEL$/, `${p.id} model must be overridable by env`);
+    assert.ok(p.defaultModel, `${p.id} needs a default model`);
+  }
+  // Reuses the keys the text chain already has — no new secret needed.
+  assert.deepStrictEqual(plain(IMAGE_PROVIDERS.map((p) => p.keyEnv)), [
+    'GEMINI_API_KEY', 'CLOUDFLARE_API_TOKEN', 'OPENAI_API_KEY',
+  ]);
+});
+
+test('the text chain holds no image provider, and image mode never reaches it', () => {
+  const { BUILTIN_PROVIDERS } = load();
+  assert.ok(!BUILTIN_PROVIDERS.some((p) => /image/i.test(p.modelEnv)));
+  const imageBranch = SOURCE.indexOf('if (mode === "image") {\n            const description');
+  const textChain = SOURCE.indexOf('CHANNEL 1: GEMINI');
+  assert.ok(imageBranch !== -1 && imageBranch < textChain, 'the image branch must return before the text chain');
+  const branch = SOURCE.slice(imageBranch, textChain);
+  assert.match(branch, /screenImagePrompt\(description\)/, 'the description is screened');
+  assert.match(branch, /instanceof ImageSafetyBlock/, 'a provider safety verdict ends the chain');
+  assert.match(branch, /\.from\(CHAT_MEDIA_BUCKET\)/, 'the image is stored, not returned inline');
+  assert.ok(!/b64|base64/i.test(branch.slice(branch.indexOf('return new Response'))), 'no image bytes in the response');
+});
+
+test('an image is always billed as an image, whatever tool the request claims', () => {
+  assert.match(SOURCE, /checkAndLogRateLimit\(\s*supabase, user\.id, mode, mode === "image" \? "image" : tool,?\s*\)/);
+});
+
+test('the image prompt is wrapped in the educational style and capped', () => {
+  const { buildImagePrompt, MAX_IMAGE_PROMPT_CHARS } = loadImageHelpers();
+  const prompt = buildImagePrompt('a plant cell');
+  assert.match(prompt, /labelled diagram/);
+  assert.match(prompt, /white background/);
+  assert.match(prompt, /no text-heavy layouts/i);
+  assert.ok(prompt.endsWith('a plant cell'));
+  assert.ok(buildImagePrompt('x'.repeat(2000)).length < MAX_IMAGE_PROMPT_CHARS + 600);
+});
+
+test('only real PNG, JPEG and WebP bytes are accepted as an image', () => {
+  const { sniffImageType } = loadImageHelpers();
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0]);
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0]);
+  const webp = new Uint8Array([...'RIFF'].map((c) => c.charCodeAt(0)).concat([0, 0, 0, 0], [...'WEBP'].map((c) => c.charCodeAt(0)), [0]));
+  const svg = new Uint8Array([...'<svg xmlns="http://www.w3.org/2000/svg">'].map((c) => c.charCodeAt(0)));
+  assert.strictEqual(sniffImageType(png), 'image/png');
+  assert.strictEqual(sniffImageType(jpeg), 'image/jpeg');
+  assert.strictEqual(sniffImageType(webp), 'image/webp');
+  assert.strictEqual(sniffImageType(svg), null);
+});
