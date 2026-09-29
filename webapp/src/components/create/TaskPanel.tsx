@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { useAddTask } from "../../hooks/useTasks";
 import { useToast } from "../../context/toast";
 import { Button } from "../Button";
+import { TASK_MAX } from "../../lib/fieldLimits";
 import shared from "./formShared.module.css";
 
 interface TaskPanelProps {
@@ -21,6 +22,9 @@ export function TaskPanel({ onClose, onDone }: TaskPanelProps) {
   const textRef = useRef<HTMLInputElement>(null);
   const addTask = useAddTask();
   const { showToast } = useToast();
+  /* `isPending` disables the button only after a re-render; a double-click
+     or a double Enter added the task twice. */
+  const submittingRef = useRef(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -30,6 +34,8 @@ export function TaskPanel({ onClose, onDone }: TaskPanelProps) {
       textRef.current?.focus();
       return;
     }
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setError(null);
     try {
       await addTask.mutateAsync({ text: trimmed, dueDate: dueDate || null });
@@ -38,6 +44,8 @@ export function TaskPanel({ onClose, onDone }: TaskPanelProps) {
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      submittingRef.current = false;
     }
   };
 
@@ -56,6 +64,7 @@ export function TaskPanel({ onClose, onDone }: TaskPanelProps) {
             if (error) setError(null);
           }}
           placeholder="e.g. Finish reading chapter 4"
+          maxLength={TASK_MAX}
           autoFocus
         />
       </div>

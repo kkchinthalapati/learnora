@@ -214,7 +214,7 @@ describe("StudyAnalyticsView", () => {
       name: "Hourly study distribution bar chart",
     });
     const studiedHour = within(chart).getByRole("button", {
-      name: /50 minutes, 1 sessions/,
+      name: /50 minutes, 1 session\b/,
     });
     await user.click(studiedHour);
     expect(studiedHour).toHaveAttribute("aria-pressed", "true");

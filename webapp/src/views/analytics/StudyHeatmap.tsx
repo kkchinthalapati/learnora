@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { HeatmapData, HeatmapCell } from "../../lib/analyticsEngine";
 import styles from "./analytics.module.css";
+import { plural } from "../../lib/plural";
 
 interface StudyHeatmapProps {
   data: HeatmapData;
@@ -223,11 +224,11 @@ export function StudyHeatmap({ data, className }: StudyHeatmapProps) {
         <div className={styles.heatmapStreakStats}>
           <div className={styles.streakItem}>
             <span>Current Streak:</span>
-            <span className={styles.streakVal}>{data.currentStreak} days</span>
+            <span className={styles.streakVal}>{plural(data.currentStreak, "day")}</span>
           </div>
           <div className={styles.streakItem}>
             <span>Longest Streak:</span>
-            <span className={styles.streakVal}>{data.longestStreak} days</span>
+            <span className={styles.streakVal}>{plural(data.longestStreak, "day")}</span>
           </div>
           <div className={styles.streakItem}>
             <span>Active Days:</span>

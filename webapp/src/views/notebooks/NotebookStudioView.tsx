@@ -22,6 +22,7 @@ import { formatMisconceptionsForPrompt } from "../../lib/misconceptions";
 import { useSettings } from "../../context/settings";
 import { fenceUntrusted } from "../../lib/actionTags";
 import { useAiUsage } from "../../hooks/useAiUsage";
+import { plural } from "../../lib/plural";
 
 const MAX_NOTEBOOK_SOURCE_CHARS = 12_000;
 
@@ -155,7 +156,7 @@ export function NotebookStudioView() {
         notebook.id,
       );
       await flashcardsApi.addBatch(deck.id, cards);
-      showToast(`Created a flashcard deck with ${cards.length} cards.`);
+      showToast(`Created a flashcard deck with ${plural(cards.length, "card")}.`);
       setActiveArtifactPreview(null);
       void navigate(`/review/${deck.id}`);
     } catch {
