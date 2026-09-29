@@ -36,6 +36,17 @@ describe("buildSystemContext", () => {
 
   /* Without these the model invents chapters and deadlines a student would
      then act on. */
+  it("offers mermaid diagrams, only of the four types the renderer is asked for", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).toContain("DIAGRAMS:");
+    expect(prompt).toMatch(/language is mermaid/);
+    expect(prompt).toMatch(/flowchart .*sequenceDiagram, timeline, mindmap/);
+    expect(prompt).toMatch(/No styling, classDef, click, links, HTML or %%\{init\}%% lines/);
+    // Never a replacement for the explanation, and never for maths.
+    expect(prompt).toMatch(/still explain in words/);
+    expect(prompt).toMatch(/maths working \(write TeX instead\)/);
+  });
+
   it("keeps the grounding rules", () => {
     const prompt = buildSystemContext(base);
     expect(prompt).toContain("GROUNDING RULES");

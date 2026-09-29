@@ -308,9 +308,10 @@ export function ChatMessageBubble({
             node: <ActionWidgetChip key={`w-${i}`} widget={part.widget} />,
           },
     );
-    body = renderMarkdownSegments(segments);
+    body = renderMarkdownSegments(segments, { diagrams: true });
   } else if (cleanDisplayContent) {
-    body = renderMarkdownNodes(cleanDisplayContent);
+    /* The tutor may answer with a ```mermaid diagram (lib/chatPrompt.ts). */
+    body = renderMarkdownNodes(cleanDisplayContent, { diagrams: true });
   } else {
     /* Every visible word was an action tag — the vanilla said the same
        (js/ai.js:1256). */
