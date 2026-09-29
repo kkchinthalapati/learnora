@@ -18,6 +18,7 @@ import { Skeleton } from "../../components/Skeleton";
 import { anyPending } from "../../lib/queryState";
 import { StudyHeatmap } from "./StudyHeatmap";
 import { ProgressSectionNav } from "./ProgressSectionNav";
+import { RetentionInsights } from "./RetentionInsights";
 import styles from "./analytics.module.css";
 
 const RANGE_OPTIONS: ReadonlyArray<{
@@ -301,6 +302,9 @@ export function StudyAnalyticsView() {
 
         <StudyHeatmap data={heatData} />
       </Card>
+
+      {/* ---- Memory & retention (flashcard scheduler forecast) ----------- */}
+      <RetentionInsights />
 
       {/* ---- 3. Two-Column Grid: Peak Hours & AI Insights ----------------- */}
       <div className={styles.twoColGrid}>
