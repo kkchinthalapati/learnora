@@ -36,6 +36,7 @@ import {
 } from "../lib/chatActions";
 import { stripActionTagBlocks, fenceUntrusted } from "../lib/actionTags";
 import { isPdf, planPdfUpload, truncationNote } from "../lib/pdfText";
+import { isImageFile, prepareStudyImage, StudyImageError } from "../lib/studyImage";
 import { activeContextForPath, buildSystemContext } from "../lib/chatPrompt";
 import { loadStudentEvidence } from "../api/studentEvidence";
 import { formatEvidenceForPrompt } from "../lib/studentEvidence";
@@ -284,7 +285,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const attachFile = useCallback(
     (picked: File) => {
-      if (picked.size > MAX_FILE_BYTES) {
+      /* Photos have their own, larger raw ceiling: they are shrunk below
+         this one before they are read. */
+      if (picked.size > MAX_FILE_BYTES && !isImageFile(picked)) {
         showToast("File too large. Maximum size is 10MB.", { error: true });
         return;
       }
@@ -315,6 +318,22 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             readAsAttachment(picked);
           })
           .catch(() => readAsAttachment(picked));
+        return;
+      }
+
+      /* A photo is checked and shrunk first (lib/studyImage.ts): a phone
+         picture is several megabytes more than a model needs to read it. */
+      if (isImageFile(picked)) {
+        prepareStudyImage(picked, MAX_FILE_BYTES)
+          .then((prepared) => readAsAttachment(prepared.file))
+          .catch((err: unknown) => {
+            showToast(
+              err instanceof StudyImageError
+                ? err.message
+                : "That photo couldn't be prepared. Try another one.",
+              { error: true },
+            );
+          });
         return;
       }
 

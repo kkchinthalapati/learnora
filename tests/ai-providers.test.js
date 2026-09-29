@@ -343,3 +343,41 @@ test('JSON mode is only requested from providers that support it', () => {
     'sending response_format to a provider that rejects it fails the whole call',
   );
 });
+
+/* ---- Photos need the one provider that can see them ------------------ */
+
+/* An uploaded photo reaches only Gemini. When Gemini did not answer, the
+   text-only chain used to be asked to write notes from a file it could not
+   see. The guard must sit between the Gemini channel and the fallback loop,
+   hand the allowance back, and recognise images and nothing else. */
+function loadVisionGuard() {
+  const src = slice('const VISION_UNAVAILABLE_MESSAGE', 'function visionUnavailableResponse')
+    .replace(/function isImageAttachment\(file: any\): boolean/, 'function isImageAttachment(file)');
+  assert.ok(!/:\s*(?:any|boolean)\b/.test(src), 'an unstripped annotation is left in the guard');
+  const context = { module: { exports: {} }, String, Boolean };
+  vm.createContext(context);
+  vm.runInContext(`${src}\nmodule.exports = { isImageAttachment, VISION_UNAVAILABLE_MESSAGE };`, context);
+  return context.module.exports;
+}
+
+test('an image attachment is recognised; documents and empty payloads are not', () => {
+  const { isImageAttachment } = loadVisionGuard();
+  assert.strictEqual(isImageAttachment({ data: 'x', mimeType: 'image/jpeg' }), true);
+  assert.strictEqual(isImageAttachment({ data: 'x', mimeType: 'image/png' }), true);
+  assert.strictEqual(isImageAttachment({ data: 'x', mimeType: 'application/pdf' }), false);
+  assert.strictEqual(isImageAttachment({ data: '', mimeType: 'image/jpeg' }), false);
+  assert.strictEqual(isImageAttachment(null), false);
+});
+
+test('an image request Gemini did not answer stops before the text-only chain, and is refunded', () => {
+  const gemini = SOURCE.indexOf('CHANNEL 1: GEMINI');
+  const guard = SOURCE.indexOf('if (isImageAttachment(file))');
+  const fallback = SOURCE.indexOf('CHANNELS 2..N');
+  assert.ok(gemini !== -1 && guard !== -1 && fallback !== -1);
+  assert.ok(gemini < guard && guard < fallback, 'the guard must run after Gemini and before the fallback loop');
+  const body = SOURCE.slice(guard, SOURCE.indexOf('\n        }\n', guard));
+  assert.match(body, /await refundRequest\(logId\)/);
+  assert.match(body, /return visionUnavailableResponse\(/);
+  const { VISION_UNAVAILABLE_MESSAGE } = loadVisionGuard();
+  assert.match(VISION_UNAVAILABLE_MESSAGE, /photo/i);
+});

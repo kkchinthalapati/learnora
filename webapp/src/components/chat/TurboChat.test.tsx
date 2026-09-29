@@ -867,6 +867,55 @@ describe("TurboChat", () => {
       expect(body?.context).toContain("mitosis has four phases");
     });
 
+    it("sends a photo as an image attachment, with nothing typed", async () => {
+      let body:
+        | { history?: { content: string }[]; file?: { mimeType: string } | null }
+        | undefined;
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          body = (await request.json()) as typeof body;
+          return HttpResponse.json({ text: "That's the Krebs cycle." });
+        }),
+      );
+      renderChat();
+      const panel = await openChat();
+      const input = panel.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      await userEvent.upload(
+        input,
+        new File(["jpeg"], "whiteboard.jpg", { type: "image/jpeg" }),
+      );
+      await screen.findByText("whiteboard.jpg");
+      /* An attachment on its own is enough to send. */
+      const sendButton = screen.getByRole("button", { name: "Send message" });
+      expect(sendButton).toBeEnabled();
+      await userEvent.click(sendButton);
+      await screen.findByText("That's the Krebs cycle.");
+
+      expect(body?.file?.mimeType).toBe("image/jpeg");
+      expect(body?.history?.at(-1)?.content).toBe("Analyse this.");
+    });
+
+    it("refuses a photo format it cannot read, with a reason", async () => {
+      renderChat();
+      const panel = await openChat();
+      const input = panel.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      await userEvent.upload(
+        input,
+        new File(["gif"], "diagram.gif", { type: "image/gif" }),
+        { applyAccept: false },
+      );
+      expect(
+        await screen.findByText("That image format can't be read. Use a JPEG, PNG or WebP photo."),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("diagram.gif")).not.toBeInTheDocument();
+    });
+
     it("clears the attachment once it has been sent", async () => {
       serveReply("done");
       renderChat();

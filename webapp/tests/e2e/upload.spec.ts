@@ -1,3 +1,4 @@
+import { crc32, deflateSync } from "node:zlib";
 import { test, expect, loginAs } from "./support/fixtures";
 
 /* Create ▸ Upload — the path a student takes with their own notes, and the
@@ -38,6 +39,55 @@ function makePdf(lines: string[]): Buffer {
   for (const o of offsets) out += `${String(o).padStart(10, "0")} 00000 n \n`;
   out += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
   return Buffer.from(out, "latin1");
+}
+
+/** A real PNG, larger than the 2048px ceiling on both edges, so the browser
+ *  has to decode and re-encode it — the part jsdom can only pretend to do. */
+function makePng(width: number, height: number): Buffer {
+  const row = Buffer.alloc(1 + width * 3);
+  const raw = Buffer.alloc(row.length * height);
+  for (let y = 0; y < height; y++) {
+    row[0] = 0;
+    for (let x = 0; x < width; x++) {
+      row[1 + x * 3] = x % 256;
+      row[2 + x * 3] = y % 256;
+      row[3 + x * 3] = (x + y) % 256;
+    }
+    row.copy(raw, y * row.length);
+  }
+  const chunk = (type: string, data: Buffer) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const body = Buffer.concat([Buffer.from(type, "latin1"), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(body));
+    return Buffer.concat([len, body, crc]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 2; // truecolour RGB
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", deflateSync(raw)),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
+/** Width and height from a JPEG's start-of-frame marker. */
+function jpegSize(jpeg: Buffer): { width: number; height: number } {
+  let i = 2;
+  while (i < jpeg.length) {
+    const marker = jpeg[i + 1];
+    const length = jpeg.readUInt16BE(i + 2);
+    if (marker >= 0xc0 && marker <= 0xc3) {
+      return { height: jpeg.readUInt16BE(i + 5), width: jpeg.readUInt16BE(i + 7) };
+    }
+    i += 2 + length;
+  }
+  throw new Error("no SOF marker found");
 }
 
 async function openUpload(page: import("@playwright/test").Page) {
@@ -123,4 +173,40 @@ test("refuses a file over 10MB before uploading anything", async ({ page, backen
 
   await expect(dialog.getByRole("alert")).toContainText("The limit is 10MB");
   expect(backend.storage.size).toBe(0);
+});
+
+test("shrinks a photo in the browser and sends it to the image model for notes", async ({ page, backend }) => {
+  await loginAs(page);
+  const dialog = await openUpload(page);
+
+  await dialog.getByLabel("Take a photo").setInputFiles({
+    name: "whiteboard.png",
+    mimeType: "image/png",
+    buffer: makePng(3200, 2400),
+  });
+  await expect(dialog.getByText("Resized so it uploads faster.")).toBeVisible();
+  await expect(dialog.getByText("whiteboard.jpg")).toBeVisible();
+  await chooseBiology(dialog);
+  await dialog.getByRole("button", { name: "Generate Study Resources" }).click();
+
+  /* The shrunk JPEG, not the original PNG, is what reached storage. */
+  await expect.poll(() => backend.storage.size).toBe(1);
+  const [key] = [...backend.storage.keys()];
+  expect(key).toMatch(/^materials\/.+\.jpg$/);
+
+  /* And the notes request carried it as an image the model can read, at the
+     2048px ceiling with the aspect ratio kept. */
+  await expect
+    .poll(() => backend.callsTo("/functions/v1/learnora-ai").length)
+    .toBeGreaterThan(0);
+  const notesCall = backend
+    .callsTo("/functions/v1/learnora-ai")
+    .map((c) => c.body as { mode?: string; file?: { mimeType: string; data: string } })
+    .find((b) => b.mode === "notes");
+  expect(notesCall?.file?.mimeType).toBe("image/jpeg");
+  expect(jpegSize(Buffer.from(notesCall!.file!.data, "base64"))).toEqual({
+    width: 2048,
+    height: 1536,
+  });
+  await expect.poll(() => backend.table("flashcard_decks").length).toBe(1);
 });

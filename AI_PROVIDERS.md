@@ -166,10 +166,18 @@ What still uses the attachment path:
   page, the original file is sent so Gemini can OCR it, and the student is told
   the answer may be less precise.
 
+Photos (a whiteboard, worksheet or textbook page) are shrunk in the browser
+to a JPEG of at most 2048px (`webapp/src/lib/studyImage.ts`) before upload.
+**An image request is never handed to the text-only chain.** If Gemini does
+not answer it — no key, a retired model, an outage — the function returns a
+422 saying photo reading is unavailable and refunds the allowance, rather
+than asking a model that cannot see the photo to write notes from it.
+
 Practical consequences:
 
 - **You want `GEMINI_API_KEY` set** if students upload photos or scans. For
-  text PDFs it is no longer load-bearing.
+  text PDFs it is no longer load-bearing. Without it, photo uploads fail with
+  a clear message instead of producing notes.
 - Extracted text is capped (40 pages / 60k characters). Past that the model is
   told the document was cut short, rather than left to summarise a fraction of
   it as though it were the whole thing.

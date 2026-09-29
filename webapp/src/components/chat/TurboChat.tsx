@@ -416,7 +416,7 @@ export function TurboChat() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,.txt,.docx,.png,.jpg,.jpeg"
+            accept=".pdf,.txt,.docx,.png,.jpg,.jpeg,.webp"
             hidden
             onChange={(e) => {
               const picked = e.target.files?.[0];
@@ -441,8 +441,9 @@ export function TurboChat() {
           className={styles.sendBtn}
           aria-label="Send message"
           /* Also disabled on an empty box. It used to look pressable with
-             nothing typed, do nothing at all, and say nothing about why. */
-          disabled={isSending || input.trim().length === 0}
+             nothing typed, do nothing at all, and say nothing about why.
+             An attachment on its own is enough to send ("Analyse this."). */
+          disabled={isSending || (input.trim().length === 0 && !file)}
         >
           <Icon name="send" size={18} />
         </button>

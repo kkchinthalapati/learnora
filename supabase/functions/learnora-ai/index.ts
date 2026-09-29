@@ -664,6 +664,27 @@ function safetyRefusalResponse(
   );
 }
 
+/* A photo (a whiteboard, worksheet, textbook page) can only be read by
+   Gemini. The text-only chain used to be handed it anyway, with a note that a
+   file existed it could not see, and was still asked to write study notes
+   from it — which produced confident notes about nothing. An image request
+   Gemini did not answer now ends here, with a message that says why. */
+const VISION_UNAVAILABLE_MESSAGE =
+  "Reading photos needs Learnora's image model, and it isn't available right now. Try again in a few minutes, or paste or type the text instead.";
+
+function isImageAttachment(file: any): boolean {
+  return Boolean(file && file.data && /^image\//i.test(String(file.mimeType || "")));
+}
+
+/* 4xx rather than 503 so the client shows this sentence as written — a 5xx
+   body is flattened into the generic "temporarily unavailable" line. */
+function visionUnavailableResponse(headers: Record<string, string>): Response {
+  return new Response(
+    JSON.stringify({ error: VISION_UNAVAILABLE_MESSAGE, visionUnavailable: true }),
+    { status: 422, headers },
+  );
+}
+
 /* =========================================================================
    RATE LIMITING
 
@@ -1274,6 +1295,14 @@ ${appContext}
             }
         } else {
             debugErrors["gemini"] = "GEMINI_API_KEY secret is not set in Supabase.";
+        }
+
+        // Nothing below this line can see an image — see isImageAttachment.
+        // The allowance is handed back: no provider read the photo.
+        if (isImageAttachment(file)) {
+            console.warn("[vision] no image-capable provider answered", { mode, debugErrors });
+            await refundRequest(logId);
+            return visionUnavailableResponse(jsonHeaders);
         }
 
         // Text-only providers can't take the attachment inline. Only actual

@@ -228,6 +228,17 @@
   border-color: var(--accent-ring);
 }
 
+.fileButtons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-2);
+}
+
+.fileButtons .fileButton {
+  gap: var(--s-1);
+}
+
 /* Info note */
 .infoNote {
   display: flex;

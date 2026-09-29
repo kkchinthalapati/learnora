@@ -12,6 +12,7 @@ import {
   generateDeck,
   loadSourceText,
   MAX_UPLOAD_BYTES,
+  PHOTO_NOTES_INSTRUCTIONS,
   studyPackageDestination,
   summarizeStudyPackage,
   type StudyPackageResult,
@@ -495,6 +496,47 @@ describe("createStudyPackage", () => {
         outputs: {},
       });
       expect(inserted.materials[0].type).toBe("pdf");
+    });
+
+    it("reads a photo through the attachment path with photo-specific instructions", async () => {
+      serveEdge({ notes: text(NOTES_MARKDOWN) });
+      const result = await request({
+        source: {
+          kind: "file",
+          file: new File(["jpeg"], "worksheet.jpg", { type: "image/jpeg" }),
+        },
+        outputs: { notes: true },
+      });
+      expect(result.notes).toBe(NOTES_MARKDOWN);
+      expect(callFor("notes")?.file?.mimeType).toBe("image/jpeg");
+      expect(promptFor("notes")).toContain(PHOTO_NOTES_INSTRUCTIONS);
+    });
+
+    it("saves nothing, and says why, when no provider can read the photo", async () => {
+      const unavailable =
+        "Reading photos needs Learnora's image model, and it isn't available right now. Try again in a few minutes, or paste or type the text instead.";
+      serveEdge({
+        notes: () =>
+          HttpResponse.json(
+            { error: unavailable, visionUnavailable: true },
+            { status: 422 },
+          ),
+      });
+      const result = await request({
+        source: {
+          kind: "file",
+          file: new File(["jpeg"], "board.jpg", { type: "image/jpeg" }),
+        },
+        outputs: { notes: true, flashcards: true },
+      });
+      expect(result.notes).toBeNull();
+      expect(result.deck).toBeNull();
+      expect(result.failures).toEqual([
+        { stage: "notes", message: unavailable, refused: false },
+      ]);
+      expect(inserted.notes).toBeUndefined();
+      // No deck call is attempted from notes that were never written.
+      expect(callFor("flashcards")).toBeUndefined();
     });
 
     it("rejects an oversized file before uploading a byte of it", async () => {
