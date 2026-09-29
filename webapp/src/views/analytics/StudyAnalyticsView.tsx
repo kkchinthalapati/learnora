@@ -16,9 +16,11 @@ import {
 } from "../../lib/analyticsEngine";
 import { Skeleton } from "../../components/Skeleton";
 import { anyPending } from "../../lib/queryState";
+import { daysBetween } from "../../lib/studyNow";
 import { StudyHeatmap } from "./StudyHeatmap";
 import { ProgressSectionNav } from "./ProgressSectionNav";
 import styles from "./analytics.module.css";
+import { plural } from "../../lib/plural";
 
 const RANGE_OPTIONS: ReadonlyArray<{
   days: 365 | 90 | 30;
@@ -100,11 +102,10 @@ export function StudyAnalyticsView() {
           activeRange,
           Math.max(
             1,
-            Math.floor(
-              (new Date().setHours(0, 0, 0, 0) -
-                new Date(heatData.cells[firstActiveIdx].date).setHours(0, 0, 0, 0)) /
-                86_400_000,
-            ) + 1,
+            /* Calendar days, not a floor of elapsed ms: a range that spans
+               the spring clock change is an hour short and floored a day
+               off, overstating consistency. */
+            daysBetween(heatData.cells[firstActiveIdx].date, new Date()) + 1,
           ),
         );
   const consistencyPercent = Math.round(
@@ -347,12 +348,12 @@ export function StudyAnalyticsView() {
                       type="button"
                       key={`hour-${h.hour}`}
                       className={styles.barCol}
-                      title={`${formatHour(h.hour)}: ${h.totalMinutes} mins (${h.sessionCount} sessions)${
+                      title={`${formatHour(h.hour)}: ${h.totalMinutes} min (${plural(h.sessionCount, "session")})${
                         h.avgQuizScore !== null
                           ? `, Quiz avg: ${h.avgQuizScore}%`
                           : ""
                       }`}
-                      aria-label={`${formatHour(h.hour)}: ${h.totalMinutes} minutes, ${h.sessionCount} sessions${
+                      aria-label={`${formatHour(h.hour)}: ${plural(h.totalMinutes, "minute")}, ${plural(h.sessionCount, "session")}${
                         h.avgQuizScore !== null
                           ? `, quiz average ${h.avgQuizScore}%`
                           : ""
@@ -384,9 +385,8 @@ export function StudyAnalyticsView() {
             {selectedHour && (
               <p className={styles.hourDetail} role="status">
                 <strong>{formatHour(selectedHour.hour)}</strong>:{" "}
-                {selectedHour.totalMinutes} minutes across{" "}
-                {selectedHour.sessionCount} session
-                {selectedHour.sessionCount === 1 ? "" : "s"}
+                {plural(selectedHour.totalMinutes, "minute")} across{" "}
+                {plural(selectedHour.sessionCount, "session")}
                 {selectedHour.avgQuizScore !== null
                   ? `, with a ${selectedHour.avgQuizScore}% quiz average.`
                   : "."}

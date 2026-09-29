@@ -13,6 +13,7 @@ import { useQuizDraft } from "../../hooks/useQuizDraft";
 import { Storage } from "../../lib/storage";
 import { isPdf, planPdfUpload } from "../../lib/pdfText";
 import { MATERIAL_DRAFT_KEY } from "../../lib/draftKeys";
+import { SUBJECT_MAX } from "../../lib/fieldLimits";
 import { useCreateStudyPackage } from "../../hooks/useStudyPackage";
 import { useDialog } from "../../context/dialog";
 import { useSettings } from "../../context/settings";
@@ -271,6 +272,7 @@ export function MaterialPanel({
         title: "New subject",
         placeholder: "e.g. CS101, Biology",
         confirmText: "Create subject",
+        maxLength: SUBJECT_MAX,
       },
     );
     if (!name) return;

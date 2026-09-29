@@ -111,6 +111,19 @@ describe("tasksApi", () => {
     expect(capturedBody).toEqual({ text: "Updated text" });
   });
 
+  it("caps a renamed task at the same length as a new one", async () => {
+    let capturedBody: Record<string, unknown> | undefined;
+    server.use(
+      http.patch(`${SUPABASE_URL}/rest/v1/tasks`, async ({ request }) => {
+        capturedBody = (await request.json()) as Record<string, unknown>;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    await tasksApi.updateText(1, "x".repeat(5000));
+    expect((capturedBody?.text as string).length).toBe(300);
+  });
+
   it("clears the due date when passed an empty string", async () => {
     let capturedBody: Record<string, unknown> | undefined;
     server.use(

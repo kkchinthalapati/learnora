@@ -24,6 +24,7 @@ import { parseStoredAnswers } from "../quiz/quizMeta";
 import { computeStreak, remoteTotals } from "../dashboard/analytics";
 import { examDay } from "../../lib/studyNow";
 import styles from "./achievementsModal.module.css";
+import { plural } from "../../lib/plural";
 
 export interface AchievementsModalProps {
   open: boolean;
@@ -381,7 +382,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
               </div>
               <div className={styles.goalCardStatus}>
                 <span>Reviewed:</span>
-                <span>{cardsReviewed} cards</span>
+                <span>{plural(cardsReviewed, "card")}</span>
               </div>
             </div>
 
@@ -429,7 +430,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
               </div>
               <div className={styles.goalCardStatus}>
                 <span>Done:</span>
-                <span>{tasksCompleted} tasks</span>
+                <span>{plural(tasksCompleted, "task")}</span>
               </div>
             </div>
           </div>
