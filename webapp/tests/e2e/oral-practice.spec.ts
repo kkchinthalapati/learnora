@@ -24,7 +24,7 @@ async function startOn(page: Page, topic: string) {
   await page.getByRole("button", { name: "Start challenge" }).click();
 }
 
-test("works with no speech recognition: the mic explains, typing answers", async ({
+test("works with no speech recognition: no mic control, typing answers", async ({
   page,
   backend,
 }) => {
@@ -32,11 +32,12 @@ test("works with no speech recognition: the mic explains, typing answers", async
   await loginAs(page);
   await startOn(page, "Photosynthesis");
 
+  /* Without the API the mic is not offered at all (rather than offered and
+     then refused), and the typed answer box is already open. */
   await expect(page.getByLabel("Type response")).toBeVisible();
-  await page.getByRole("button", { name: "Start speaking response" }).click();
   await expect(
-    page.getByText(/Speech recognition is not supported in this browser/),
-  ).toBeVisible();
+    page.getByRole("button", { name: "Start speaking response" }),
+  ).toHaveCount(0);
 
   await page.getByLabel("Type response").fill(
     "Plants use light energy to turn carbon dioxide and water into glucose and oxygen.",
