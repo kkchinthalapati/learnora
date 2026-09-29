@@ -678,64 +678,207 @@ describe("PlanView", () => {
       expect(screen.queryByText(/You usually focus best:/i)).not.toBeInTheDocument();
     });
 
-    it("displays the catch-up banner and redistributes blocks on click when the user is behind", async () => {
-      /* Dated relative to TODAY, not to the week's Monday.
-         `detectPlanDeficit` partitions the plan's own days by today — a day
-         counts as missed only when `date < today` — so a plan whose loaded
-         days start at dayOffset(0) has no past days at all when the suite runs
-         on a Monday, no deficit is possible, and the banner correctly never
-         renders. This test used to do exactly that, and so failed every
-         Monday for reasons that had nothing to do with the code under test.
-         Anchoring the missed days at today-3..today-1 and the free days at
-         today..today+3 makes it hold on any weekday. */
-      const planWithPastDeficit = {
-        summary: "Original full schedule",
-        days: [
-          {
-            date: todayOffset(-3),
-            blocks: [{ subject: "Biology", durationMins: 60 }],
-          },
-          {
-            date: todayOffset(-2),
-            blocks: [{ subject: "Math", durationMins: 45 }],
-          },
-          {
-            date: todayOffset(-1),
-            blocks: [{ subject: "Chemistry", durationMins: 30 }],
-          },
-          { date: todayOffset(0), blocks: [] },
-          { date: todayOffset(1), blocks: [] },
-          { date: todayOffset(2), blocks: [] },
-          { date: todayOffset(3), blocks: [] },
-        ],
-      };
+    /* Dated relative to TODAY, not to the week's Monday. `detectPlanDeficit`
+       partitions the plan's own days by today — a day counts as missed only
+       when `date < today` — so a plan whose days start at dayOffset(0) has no
+       past days at all when the suite runs on a Monday. Anchoring the missed
+       days at today-3..today-1 makes these hold on any weekday.
 
-      servePlan(planRow(planWithPastDeficit));
-      let patchedPlanJson: unknown;
+       How much of the 135 missed minutes *fits* depends on the weekday and
+       the hour (today only has what is left before bedtime), so these
+       assertions stick to what is true on every run; the placement rules
+       themselves are pinned in lib/planRebalancer.test.ts. */
+    const planWithPastDeficit = {
+      summary: "Original full schedule",
+      days: [
+        {
+          date: todayOffset(-3),
+          blocks: [{ subject: "Biology", durationMins: 60 }],
+        },
+        {
+          date: todayOffset(-2),
+          blocks: [{ subject: "Math", durationMins: 45 }],
+        },
+        {
+          date: todayOffset(-1),
+          blocks: [{ subject: "Chemistry", durationMins: 30 }],
+        },
+        { date: todayOffset(0), blocks: [] },
+        { date: todayOffset(1), blocks: [] },
+        { date: todayOffset(2), blocks: [] },
+        { date: todayOffset(3), blocks: [] },
+      ],
+    };
+    const APPLY = /Apply changes|Apply what fits|Let it go/;
+
+    type StoredBlock = {
+      subject: string;
+      durationMins: number;
+      rebalanced?: boolean;
+      catchUpFrom?: string;
+    };
+    type StoredPlan = { days: { date: string; blocks: StoredBlock[] }[] };
+
+    function capturePatches() {
+      const patches: StoredPlan[] = [];
       server.use(
         http.patch(rest("weekly_plans"), async ({ request }) => {
-          const body = (await request.json()) as { plan_json: unknown };
-          patchedPlanJson = body.plan_json;
+          const body = (await request.json()) as { plan_json: StoredPlan };
+          patches.push(body.plan_json);
           return HttpResponse.json(planRow(body.plan_json));
         }),
       );
+      return patches;
+    }
 
+    it("asks before rebalancing and changes nothing until the student confirms", async () => {
+      servePlan(planRow(planWithPastDeficit));
+      const patches = capturePatches();
       renderPlan();
 
-      // Only show banner if there are past days with deficit and remaining days in the week
-      const rebalanceBtn = await screen.findByRole("button", {
-        name: /Fit it back in/i,
-      });
-      expect(rebalanceBtn).toBeInTheDocument();
       expect(
-        screen.getByText(/You're \d+m behind this week/i),
+        await screen.findByText("You're behind. Rebalance?"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/You're 2h 15m behind this week's plan\./),
       ).toBeInTheDocument();
 
-      await userEvent.click(rebalanceBtn);
+      await userEvent.click(
+        screen.getByRole("button", { name: /Preview changes/ }),
+      );
+      const dialog = await screen.findByRole("dialog", {
+        name: "Rebalance your week",
+      });
+      expect(within(dialog).getByText(/Missed blocks stay on their day/)).toBeInTheDocument();
 
-      await waitFor(() => expect(patchedPlanJson).toBeDefined());
-      const summary = await screen.findByText(/Original full schedule/i);
-      expect(summary).toHaveTextContent("Moved");
+      await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+      );
+      expect(patches).toHaveLength(0);
+    });
+
+    it("applies exactly the previewed rebalance, then undoes it", async () => {
+      servePlan(planRow(planWithPastDeficit));
+      const patches = capturePatches();
+      renderPlan();
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: /Preview changes/ }),
+      );
+      const dialog = await screen.findByRole("dialog", {
+        name: "Rebalance your week",
+      });
+      await userEvent.click(within(dialog).getByRole("button", { name: APPLY }));
+
+      await waitFor(() => expect(patches).toHaveLength(1));
+      const applied = patches[0];
+      const past = applied.days
+        .filter((d) => d.date < TODAY)
+        .flatMap((d) => d.blocks);
+      // Every missed block is kept, and flagged as handled.
+      expect(past.map((b) => b.subject)).toEqual(["Biology", "Math", "Chemistry"]);
+      expect(past.every((b) => b.rebalanced === true)).toBe(true);
+      // Catch-up only ever lands today or later, and never adds up to more
+      // than was missed.
+      const catchUps = applied.days.flatMap((d) =>
+        d.blocks.filter((b) => b.catchUpFrom).map((b) => ({ ...b, date: d.date })),
+      );
+      expect(catchUps.every((b) => b.date >= TODAY)).toBe(true);
+      expect(
+        catchUps.reduce((sum, b) => sum + b.durationMins, 0),
+      ).toBeLessThanOrEqual(135);
+
+      // The banner is gone (nothing is owed twice) and Undo is offered.
+      await waitFor(() =>
+        expect(
+          screen.queryByText("You're behind. Rebalance?"),
+        ).not.toBeInTheDocument(),
+      );
+      const undoButtons = await screen.findAllByRole("button", { name: "Undo" });
+      await userEvent.click(undoButtons[undoButtons.length - 1]);
+
+      await waitFor(() => expect(patches).toHaveLength(2));
+      expect(patches[1]).toEqual(planWithPastDeficit);
+      expect(await screen.findByText("Rebalance undone.")).toBeInTheDocument();
+    });
+
+    it("opens the preview straight from the dashboard's ?rebalance=1 link", async () => {
+      servePlan(planRow(planWithPastDeficit));
+      renderWithAuth(
+        <MemoryRouter initialEntries={["/plan?rebalance=1"]}>
+          <Routes>
+            <Route path="/plan" element={<PlanView />} />
+          </Routes>
+        </MemoryRouter>,
+        { session: fakeSession() },
+        { withTimer: true },
+      );
+
+      expect(
+        await screen.findByRole("dialog", { name: "Rebalance your week" }),
+      ).toBeInTheDocument();
+    });
+
+    it("shows no rebalance prompt when the plan's past blocks were done", async () => {
+      servePlan(planRow(planWithPastDeficit));
+      server.use(
+        http.get(rest("study_sessions"), () =>
+          HttpResponse.json(
+            [
+              ["Biology", -3, 60],
+              ["Math", -2, 45],
+              ["Chemistry", -1, 30],
+            ].map(([task, offset, minutes], i) => ({
+              id: `s${i}`,
+              user_id: "user-1",
+              folder_id: null,
+              task,
+              minutes,
+              timer_type: "focus",
+              started_at: `${todayOffset(offset as number)}T12:00:00`,
+              created_at: `${todayOffset(offset as number)}T12:00:00`,
+            })),
+          ),
+        ),
+      );
+      renderPlan();
+
+      await screen.findByText("Original full schedule");
+      expect(
+        screen.queryByText("You're behind. Rebalance?"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("marks a rebalanced block as rescheduled in the grid", async () => {
+      servePlan(
+        planRow({
+          days: [
+            {
+              date: todayOffset(-1),
+              blocks: [{ subject: "Biology", durationMins: 60, rebalanced: true }],
+            },
+            {
+              date: todayOffset(0),
+              blocks: [
+                {
+                  subject: "Biology",
+                  durationMins: 60,
+                  catchUpFrom: todayOffset(-1),
+                  reason: "Catch-up from yesterday",
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      renderPlan();
+
+      expect(await screen.findByText(/60m · Rescheduled/)).toBeInTheDocument();
+      expect(screen.getByText("Catch-up from yesterday")).toBeInTheDocument();
+      expect(
+        screen.queryByText("You're behind. Rebalance?"),
+      ).not.toBeInTheDocument();
     });
   });
 

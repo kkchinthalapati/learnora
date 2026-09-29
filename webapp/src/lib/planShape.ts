@@ -35,6 +35,9 @@ function toBlock(value: unknown): PlanBlock | null {
     startHint:
       typeof value.startHint === "string" ? value.startHint : undefined,
     reason: typeof value.reason === "string" ? value.reason : undefined,
+    rebalanced: value.rebalanced === true ? true : undefined,
+    catchUpFrom:
+      typeof value.catchUpFrom === "string" ? value.catchUpFrom : undefined,
   };
 }
 

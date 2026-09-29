@@ -395,6 +395,30 @@
   color: var(--text);
 }
 
+/* "You're behind. Rebalance?" — a link to the plan's preview, never an apply. */
+.behindPrompt {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: var(--touch-target-min);
+  margin-top: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--warning);
+  background: var(--warning-soft);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+}
+
+.behindPrompt:hover {
+  background: var(--surface-hover);
+}
+
+.behindPrompt strong {
+  color: var(--accent-text);
+}
+
 .countdownPicker {
   display: flex;
   align-items: center;

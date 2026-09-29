@@ -251,6 +251,65 @@ describe("DashboardView", () => {
       expect(await screen.findByText(/No exams scheduled/)).toBeInTheDocument();
     });
 
+    /* Dated from today rather than the week's Monday, so the missed day is
+       in the past whichever weekday the suite runs on. */
+    function serveThisWeekPlan(days: unknown[]) {
+      const weekStart = localDateStr(mondayOfWeek());
+      server.use(
+        http.get(rest("weekly_plans"), ({ request }) =>
+          new URL(request.url).searchParams.get("week_start") === `eq.${weekStart}`
+            ? HttpResponse.json([
+                {
+                  id: "plan-1",
+                  user_id: "user-1",
+                  week_start: weekStart,
+                  plan_json: { days },
+                  created_at: new Date().toISOString(),
+                },
+              ])
+            : HttpResponse.json([]),
+        ),
+      );
+    }
+
+    it("prompts a rebalance, as a link to the plan's preview, when behind", async () => {
+      serveDashboard({ exams: [exam({ exam_date: daysFromNow(3) })] });
+      serveThisWeekPlan([
+        { date: daysFromNow(-1), blocks: [{ subject: "Biology", durationMins: 90 }] },
+        { date: daysFromNow(0), blocks: [] },
+      ]);
+      renderCard(<NextExamCard />);
+
+      const link = await screen.findByRole("link", {
+        name: /You're 1h 30m behind this week's plan\. Rebalance\?/,
+      });
+      expect(link).toHaveAttribute("href", "/plan?rebalance=1");
+    });
+
+    it("prompts even with no exam scheduled", async () => {
+      serveDashboard({ exams: [] });
+      serveThisWeekPlan([
+        { date: daysFromNow(-1), blocks: [{ subject: "Biology", durationMins: 45 }] },
+      ]);
+      renderCard(<NextExamCard />);
+
+      expect(await screen.findByText(/No exams scheduled/)).toBeInTheDocument();
+      expect(
+        await screen.findByRole("link", { name: /Rebalance\?/ }),
+      ).toBeInTheDocument();
+    });
+
+    it("stays quiet when the plan is on track", async () => {
+      serveDashboard({ exams: [exam()] });
+      serveThisWeekPlan([
+        { date: daysFromNow(1), blocks: [{ subject: "Biology", durationMins: 90 }] },
+      ]);
+      renderCard(<NextExamCard />);
+
+      await screen.findByText("Midterm");
+      await waitFor(() => expect(screen.queryByText(/behind this week/)).not.toBeInTheDocument());
+    });
+
     it("links to the calendar", async () => {
       const user = userEvent.setup();
       serveDashboard({ exams: [exam()] });
