@@ -941,6 +941,22 @@ describe("TurboChat", () => {
   });
 
   describe("Generate image", () => {
+    /* The CSP admits blob: images but not the Supabase host, so the bubble
+       fetches the signed URL and shows an object URL. jsdom has no
+       createObjectURL; this stands in for it and records what was shown. */
+    const objectUrls: Blob[] = [];
+    beforeEach(() => {
+      objectUrls.length = 0;
+      Object.defineProperty(URL, "createObjectURL", {
+        configurable: true,
+        value: (blob: Blob) => {
+          objectUrls.push(blob);
+          return `blob:learnora/diagram-${objectUrls.length}`;
+        },
+      });
+      Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: () => {} });
+    });
+
     function serveImage(reply: () => Response) {
       const bodies: Record<string, unknown>[] = [];
       server.use(
@@ -950,6 +966,13 @@ describe("TurboChat", () => {
         }),
         http.post(`${SUPABASE_URL}/storage/v1/object/sign/chat-media/*`, () =>
           HttpResponse.json({ signedURL: "/object/sign/chat-media/user-1/cell.png?token=t" }),
+        ),
+        http.get(`${SUPABASE_URL}/storage/v1/object/sign/chat-media/*`, ({ request }) =>
+          new URL(request.url).searchParams.get("token") === "t"
+            ? new HttpResponse(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+                headers: { "Content-Type": "image/png" },
+              })
+            : new HttpResponse(null, { status: 403 }),
         ),
       );
       return bodies;
@@ -993,10 +1016,12 @@ describe("TurboChat", () => {
       await userEvent.click(screen.getByRole("button", { name: "Draw image" }));
 
       const img = await screen.findByRole("img", { name: "Diagram: a labelled plant cell" });
-      expect(img.getAttribute("src")).toMatch(/\/object\/sign\/chat-media\/user-1\/cell\.png/);
-      expect(screen.getByRole("link", { name: /Download/ }).getAttribute("href")).toMatch(
-        /download=learnora-diagram\.png/,
-      );
+      /* Read through the signed URL, shown as a same-origin object URL. */
+      expect(img.getAttribute("src")).toBe("blob:learnora/diagram-1");
+      expect(objectUrls[0].type).toBe("image/png");
+      const download = screen.getByRole("link", { name: /Download/ });
+      expect(download.getAttribute("href")).toBe("blob:learnora/diagram-1");
+      expect(download.getAttribute("download")).toBe("learnora-diagram.png");
       expect(bodies[0]).toMatchObject({
         mode: "image",
         tool: "image",

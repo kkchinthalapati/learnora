@@ -7,6 +7,7 @@ import { DEFAULT_SETTINGS } from "../lib/settings";
 import { AiError } from "./ai";
 import {
   chatDiagramDeckTitle,
+  fetchChatImage,
   generateImage,
   getChatImageUrl,
   saveImageAsFlashcard,
@@ -102,6 +103,24 @@ describe("getChatImageUrl", () => {
     expect(
       await getChatImageUrl("user-1/abc.png", { download: "diagram.png" }),
     ).toMatch(/&download=diagram\.png$/);
+  });
+});
+
+describe("fetchChatImage", () => {
+  it("reads the picture through a signed URL, as bytes the page can show", async () => {
+    server.use(
+      http.post(`${STORAGE}/sign/chat-media/*`, () =>
+        HttpResponse.json({ signedURL: "/object/sign/chat-media/user-1/abc.png?token=t" }),
+      ),
+      http.get(`${STORAGE}/sign/chat-media/*`, () =>
+        new HttpResponse(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+          headers: { "Content-Type": "image/png" },
+        }),
+      ),
+    );
+    const blob = await fetchChatImage("user-1/abc.png");
+    expect(blob.type).toBe("image/png");
+    expect(blob.size).toBe(4);
   });
 });
 

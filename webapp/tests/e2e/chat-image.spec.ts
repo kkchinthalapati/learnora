@@ -51,9 +51,12 @@ test("draws a diagram on request and shows it from the private bucket", async ({
   /* Loaded, not just present: the browser decoded the bytes behind the
      signed URL. */
   await expect.poll(() => img.evaluate((el) => (el as HTMLImageElement).naturalWidth)).toBe(320);
+  /* Shown from a blob: URL — the production CSP's img-src does not admit
+     the Supabase host, so a signed URL in `src` would be blocked. */
+  await expect(img).toHaveAttribute("src", /^blob:/);
   await expect(panel.getByRole("link", { name: /Download/ })).toHaveAttribute(
-    "href",
-    /download=learnora-diagram\.png/,
+    "download",
+    "learnora-diagram.png",
   );
   expect(edgeBodies).toHaveLength(1);
   expect(edgeBodies[0]).toMatchObject({ mode: "image", tool: "image" });

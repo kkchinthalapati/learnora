@@ -13,7 +13,7 @@ import type {
   ChatMessage as Message,
   WebCitation,
 } from "../../context/chat";
-import { getChatImageUrl } from "../../api/aiImage";
+import { fetchChatImage } from "../../api/aiImage";
 import { sourceSnippet } from "../../lib/sourceSnippet";
 import styles from "./chat.module.css";
 
@@ -102,8 +102,11 @@ function ThinkingDots({
   );
 }
 
-/* A generated picture, from its storage key. The bucket is private, so the
-   URLs are signed per render — one to show it, one that downloads it. */
+/* A generated picture, from its storage key. The bucket is private, so it
+   is read through a signed URL — fetched rather than put in `src`, because
+   the CSP's img-src admits blob: but not the Supabase host. The same object
+   URL serves the Download link, which a same-origin blob: URL makes a real
+   download rather than a navigation. */
 function GeneratedImage({
   image,
   onSave,
@@ -111,40 +114,43 @@ function GeneratedImage({
   image: ChatImage;
   onSave?: () => void;
 }) {
-  const [urls, setUrls] = useState<{ view: string; download: string } | null>(
-    null,
-  );
+  const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
-    const ext = image.path.split(".").pop() || "png";
-    Promise.all([
-      getChatImageUrl(image.path),
-      getChatImageUrl(image.path, { download: `learnora-diagram.${ext}` }),
-    ])
-      .then(([view, download]) => {
-        if (active) setUrls({ view, download });
+    let objectUrl: string | null = null;
+    fetchChatImage(image.path)
+      .then((blob) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        setUrl(objectUrl);
       })
       .catch(() => {
         if (active) setFailed(true);
       });
     return () => {
       active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [image.path]);
 
   if (failed) {
     return <em>This picture is no longer available.</em>;
   }
-  if (!urls) {
+  if (!url) {
     return <span className={styles.imageLoading}>Loading your diagram…</span>;
   }
+  const ext = image.path.split(".").pop() || "png";
   return (
     <figure className={styles.generatedImage}>
-      <img src={urls.view} alt={image.alt} loading="lazy" />
+      <img src={url} alt={image.alt} loading="lazy" />
       <figcaption className={styles.imageActions}>
-        <a href={urls.download} className={styles.imageAction} download>
+        <a
+          href={url}
+          className={styles.imageAction}
+          download={`learnora-diagram.${ext}`}
+        >
           <Icon name="download" size={14} />
           Download
         </a>

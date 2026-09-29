@@ -81,6 +81,16 @@ export async function getChatImageUrl(
   return data.signedUrl;
 }
 
+/** The picture as bytes the page can show. The app's CSP allows images only
+ *  from 'self', data: and blob: — not the Supabase host — so a signed URL
+ *  cannot go straight into an <img>. It is fetched instead (connect-src does
+ *  allow Supabase) and handed back as a Blob for an object URL. */
+export async function fetchChatImage(path: string): Promise<Blob> {
+  const response = await fetch(await getChatImageUrl(path));
+  if (!response.ok) throw new Error(`Image request failed: ${response.status}`);
+  return response.blob();
+}
+
 /** Title of the deck saved diagrams go into — one per day, so a session of
  *  diagrams lands together instead of as a deck each. */
 export function chatDiagramDeckTitle(now: Date = new Date()): string {
