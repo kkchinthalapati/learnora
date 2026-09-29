@@ -25,6 +25,7 @@ const SYNCED_KEYS = [
   "aiStyle",
   "aiAutoAdapt",
   "webAccess",
+  "aiSpokenReplies",
 ] as const satisfies readonly (keyof Settings)[];
 
 const REMOTE_SAVE_DEBOUNCE_MS = 1000;

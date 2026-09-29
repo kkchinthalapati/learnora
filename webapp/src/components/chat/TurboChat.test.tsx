@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
@@ -12,6 +12,11 @@ import { fakeSession, renderWithAuth } from "../../test/auth";
 import { ChatProvider } from "../../context/ChatProvider";
 import { useChat } from "../../context/chat";
 import { TurboChat } from "./TurboChat";
+import {
+  FakeRecognition,
+  installFakeSpeech,
+  uninstallFakeSpeech,
+} from "../../test/fakeSpeech";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
@@ -1084,6 +1089,139 @@ describe("TurboChat", () => {
       expect(await screen.findByText("I can't help with that topic.")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /Try again/ })).not.toBeInTheDocument();
       expect(screen.queryByRole("img", { name: /Diagram/ })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("voice", () => {
+    afterEach(() => {
+      uninstallFakeSpeech();
+      vi.useRealTimers();
+    });
+
+    function captureEdge(reply = "Osmosis is water moving across a membrane.") {
+      const bodies: { history: { content: string }[] }[] = [];
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          bodies.push((await request.json()) as (typeof bodies)[number]);
+          return HttpResponse.json({ text: reply });
+        }),
+      );
+      return bodies;
+    }
+
+    it("shows no voice controls where the browser has no speech support", async () => {
+      renderChat();
+      await openChat();
+      expect(screen.queryByRole("button", { name: "Speak your question" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Read replies aloud" })).not.toBeInTheDocument();
+      // Typing is untouched.
+      expect(screen.getByRole("textbox", { name: "AI chat input" })).toBeEnabled();
+    });
+
+    it("sends what was said through the normal chat path once the student pauses", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      installFakeSpeech();
+      const bodies = captureEdge();
+      renderChat();
+      await openChat();
+
+      await userEvent.click(screen.getByRole("button", { name: "Speak your question" }));
+      expect(await screen.findByText(/Listening — pause when you're done/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Stop listening" })).toBeInTheDocument();
+
+      act(() => FakeRecognition.latest().say("what is osmosis"));
+      expect(screen.getByRole("textbox", { name: "AI chat input" })).toHaveValue("what is osmosis");
+
+      // Three seconds of silence ends the turn and sends it.
+      act(() => {
+        vi.advanceTimersByTime(3100);
+      });
+      expect(
+        await screen.findByText("Osmosis is water moving across a membrane."),
+      ).toBeInTheDocument();
+      expect(bodies[0].history.at(-1)?.content).toBe("what is osmosis");
+    });
+
+    it("keeps the words in the box, unsent, when the student presses Stop", async () => {
+      installFakeSpeech();
+      const bodies = captureEdge();
+      renderChat();
+      await openChat();
+
+      await userEvent.click(screen.getByRole("button", { name: "Speak your question" }));
+      await screen.findByText(/Listening/);
+      act(() => FakeRecognition.latest().say("explain mitosis"));
+      await userEvent.click(screen.getByRole("button", { name: "Stop" }));
+
+      expect(screen.getByRole("textbox", { name: "AI chat input" })).toHaveValue("explain mitosis");
+      expect(screen.queryByText(/Listening/)).not.toBeInTheDocument();
+      expect(bodies).toHaveLength(0);
+    });
+
+    it("says so when the microphone is blocked, and leaves typing working", async () => {
+      installFakeSpeech();
+      renderChat();
+      await openChat();
+
+      await userEvent.click(screen.getByRole("button", { name: "Speak your question" }));
+      await screen.findByText(/Listening/);
+      act(() => FakeRecognition.latest().deny());
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        /Microphone permission was denied.*You can still type your question/,
+      );
+      expect(screen.getByRole("button", { name: "Speak your question" })).toBeInTheDocument();
+    });
+
+    it("reads replies aloud only when the student has turned it on", async () => {
+      const synth = installFakeSpeech();
+      captureEdge("**Osmosis** is water moving across a membrane.");
+      renderChat();
+      await openChat();
+
+      await ask("what is osmosis");
+      await screen.findByText(/is water moving across a membrane/);
+      expect(synth.spoken).toEqual([]);
+
+      const toggle = screen.getByRole("button", { name: "Read replies aloud" });
+      expect(toggle).toHaveAttribute("aria-pressed", "false");
+      await userEvent.click(toggle);
+      expect(toggle).toHaveAttribute("aria-pressed", "true");
+
+      await ask("and again");
+      await waitFor(() =>
+        expect(synth.spoken).toEqual(["Osmosis is water moving across a membrane."]),
+      );
+    });
+
+    it("keeps a spoken conversation going hands-free until Stop", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      Storage.set(SETTINGS_KEY, { aiSpokenReplies: true });
+      const synth = installFakeSpeech();
+      captureEdge("Water moves to the saltier side.");
+      renderChat();
+      await openChat();
+
+      await userEvent.click(screen.getByRole("button", { name: "Speak your question" }));
+      await screen.findByText(/Listening/);
+      const recognition = FakeRecognition.latest();
+      act(() => recognition.say("which way does water move"));
+      act(() => {
+        vi.advanceTimersByTime(3100);
+      });
+      await waitFor(() => expect(synth.spoken).toEqual(["Water moves to the saltier side."]));
+      expect(screen.getByText("Reading the reply aloud…")).toBeInTheDocument();
+
+      // When the reply finishes, the mic reopens for the next question.
+      const startsBefore = FakeRecognition.instances.reduce((n, r) => n + r.started, 0);
+      act(() => synth.finish());
+      await waitFor(() =>
+        expect(FakeRecognition.instances.reduce((n, r) => n + r.started, 0)).toBe(startsBefore + 1),
+      );
+      expect(await screen.findByText(/Listening/)).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: "Stop" }));
+      expect(screen.queryByText(/Listening|Voice conversation on/)).not.toBeInTheDocument();
     });
   });
 

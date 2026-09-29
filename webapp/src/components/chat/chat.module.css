@@ -498,6 +498,71 @@
   color: var(--accent-text);
 }
 
+/* --- voice --- */
+
+.micBtn {
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.micBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.micBtnActive,
+.micBtnActive:hover {
+  color: var(--danger-on);
+  background: var(--danger);
+}
+
+.voiceStatus,
+.voiceError {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0 16px 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.voiceError {
+  color: var(--danger);
+}
+
+.recordingDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+  animation: recording-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes recording-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recordingDot {
+    animation: none;
+  }
+}
+
+.voiceStop {
+  margin-left: auto;
+  padding: 2px 10px;
+  border: 1px solid var(--danger);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--danger);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .sendBtn {
   flex-shrink: 0;
   width: 40px;

@@ -8,6 +8,9 @@ import { PersonaOffsetToolbar } from "../ai/PersonaOffsetToolbar";
 import { ChatMessageBubble } from "./ChatMessage";
 import { useSettings } from "../../context/settings";
 import { useAiUsage } from "../../hooks/useAiUsage";
+import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
+import { useSpeechSynthesis } from "../../hooks/useSpeechSynthesis";
+import { toSpeakableText } from "../../lib/speechText";
 import { MAX_IMAGE_DESCRIPTION } from "../../api/aiImage";
 import type { SourceMode } from "../ai/PersonaOffsetToolbar";
 import styles from "./chat.module.css";
@@ -151,6 +154,122 @@ export function TurboChat() {
      has no way to turn it on. */
   const [imageMode, setImageMode] = useState(false);
   const { usageFor, isPending: isUsagePending } = useAiUsage();
+
+  /* --- voice ------------------------------------------------------------
+     Browser speech only (Web Speech API): no keys, nothing leaves the
+     browser except the transcript, which is sent exactly like typed text —
+     same send(), same consent gate, same server-side safety screen. Every
+     control is hidden where the browser has no support, and typing is never
+     affected. */
+  const {
+    isListening,
+    transcript,
+    fullTranscript,
+    isSupported: canListen,
+    error: micError,
+    startListening,
+    stopListening,
+    resetTranscript,
+  } = useSpeechRecognition({ silenceTimeoutMs: 3000 });
+  const {
+    speak,
+    cancel: cancelSpeech,
+    isSpeaking,
+    isSupported: canSpeak,
+  } = useSpeechSynthesis();
+  /* Hands-free: after a spoken turn, the reply is read out and the mic
+     reopens, until the student presses Stop. Only while spoken replies are
+     on — without them there is no cue for when to talk again. */
+  const [handsFree, setHandsFree] = useState(false);
+  const handsFreeRef = useRef(false);
+  const stoppedByStudentRef = useRef(false);
+  const wasListeningRef = useRef(false);
+  const lastSpokenIdRef = useRef<string | null | undefined>(undefined);
+
+  const startVoice = () => {
+    cancelSpeech();
+    setImageMode(false);
+    stoppedByStudentRef.current = false;
+    resetTranscript();
+    setInput("");
+    handsFreeRef.current = true;
+    setHandsFree(true);
+    startListening();
+  };
+
+  const stopVoice = useCallback(() => {
+    stoppedByStudentRef.current = true;
+    handsFreeRef.current = false;
+    setHandsFree(false);
+    stopListening();
+    cancelSpeech();
+  }, [cancelSpeech, stopListening]);
+
+  /* The words appear in the box as they are recognised. */
+  useEffect(() => {
+    if (isListening) setInput(fullTranscript);
+  }, [isListening, fullTranscript]);
+
+  /* Listening ended. On silence, what was said is sent; on Stop it stays in
+     the box to edit or send by hand; on an error nothing is sent. */
+  useEffect(() => {
+    if (wasListeningRef.current && !isListening) {
+      const said = transcript.trim();
+      if (said && !stoppedByStudentRef.current && !micError) {
+        setInput("");
+        resetTranscript();
+        void send(said, { sourceMode });
+      } else if (!said || micError) {
+        handsFreeRef.current = false;
+        setHandsFree(false);
+      }
+    }
+    wasListeningRef.current = isListening;
+    // Only the transition matters; the rest is read at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isListening]);
+
+  /* Read each new reply aloud when that is switched on. Replies restored
+     from an earlier visit are not: only ones that arrive while this panel
+     is mounted. */
+  const spokenReplies = settings.aiSpokenReplies && canSpeak;
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (lastSpokenIdRef.current === undefined) {
+      lastSpokenIdRef.current = last?.id ?? null;
+      return;
+    }
+    if (!last || last.role !== "ai" || last.pending || last.id === lastSpokenIdRef.current) {
+      return;
+    }
+    lastSpokenIdRef.current = last.id;
+    if (!spokenReplies || last.error) {
+      if (handsFreeRef.current && !spokenReplies) {
+        handsFreeRef.current = false;
+        setHandsFree(false);
+      }
+      return;
+    }
+    const words = last.image
+      ? "Here's the picture you asked for."
+      : last.cards
+        ? `I've made ${last.cards.length} flashcards for you.`
+        : toSpeakableText(last.text);
+    if (!words) return;
+    speak(words, {
+      onEnd: () => {
+        if (handsFreeRef.current) {
+          resetTranscript();
+          startListening();
+        }
+      },
+    });
+  }, [messages, spokenReplies, speak, resetTranscript, startListening]);
+
+  /* Closing the panel ends any listening or speaking. */
+  useEffect(() => {
+    if (!isOpen) stopVoice();
+  }, [isOpen, stopVoice]);
   const [position, setPosition] = useState<Position | null>(null);
   const [isDropTarget, setIsDropTarget] = useState(false);
 
@@ -338,6 +457,33 @@ export function TurboChat() {
           Learnora AI
         </h2>
         <div className={styles.headerControls}>
+          {canSpeak ? (
+            <button
+              type="button"
+              className={styles.iconBtn}
+              aria-label="Read replies aloud"
+              aria-pressed={settings.aiSpokenReplies}
+              title={
+                settings.aiSpokenReplies
+                  ? "Replies are read aloud — click to stop"
+                  : "Read replies aloud"
+              }
+              onClick={() => {
+                const next = !settings.aiSpokenReplies;
+                if (!next) {
+                  cancelSpeech();
+                  handsFreeRef.current = false;
+                  setHandsFree(false);
+                }
+                updateAndSave({ aiSpokenReplies: next });
+              }}
+            >
+              <Icon
+                name={settings.aiSpokenReplies ? "volume-2" : "volume-x"}
+                size={16}
+              />
+            </button>
+          ) : null}
           <button
             type="button"
             className={styles.iconBtn}
@@ -455,6 +601,39 @@ export function TurboChat() {
         </div>
       ) : null}
 
+      {micError ? (
+        <p className={styles.voiceError} role="alert">
+          <Icon name="alert-circle" size={14} />
+          {micError} You can still type your question.
+        </p>
+      ) : isListening || isSpeaking || handsFree ? (
+        <div className={styles.voiceStatus} role="status">
+          {isListening ? (
+            <>
+              <span className={styles.recordingDot} aria-hidden="true" />
+              <span>Listening — pause when you're done and I'll send it.</span>
+            </>
+          ) : isSpeaking ? (
+            <>
+              <Icon name="volume-2" size={14} />
+              <span>Reading the reply aloud…</span>
+            </>
+          ) : (
+            <>
+              <Icon name="mic" size={14} />
+              <span>Voice conversation on.</span>
+            </>
+          )}
+          <button
+            type="button"
+            className={styles.voiceStop}
+            onClick={stopVoice}
+          >
+            Stop
+          </button>
+        </div>
+      ) : null}
+
       <div className={styles.toolbarWrapper}>
         <PersonaOffsetToolbar
           depth={settings.aiDepth}
@@ -491,6 +670,20 @@ export function TurboChat() {
             }}
           />
         </label>
+        {canListen ? (
+          <button
+            type="button"
+            className={`${styles.uploadBtn} ${styles.micBtn}${
+              isListening ? ` ${styles.micBtnActive}` : ""
+            }`}
+            aria-label={isListening ? "Stop listening" : "Speak your question"}
+            aria-pressed={isListening}
+            disabled={isSending && !isListening}
+            onClick={isListening ? stopVoice : startVoice}
+          >
+            <Icon name={isListening ? "mic-off" : "mic"} size={20} />
+          </button>
+        ) : null}
         <input
           ref={inputRef}
           type="text"

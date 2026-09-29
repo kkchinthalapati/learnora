@@ -9,7 +9,8 @@ export interface SparringStageProps {
   isListening: boolean;
   isSpeaking: boolean;
   conceptAnchor?: string;
-  onToggleMic: () => void;
+  /** Omitted where the browser has no speech recognition: no mic control. */
+  onToggleMic?: () => void;
   micDisabled?: boolean;
   vibeTitle?: string;
   focusGoal?: string;
@@ -226,32 +227,34 @@ export function SparringStage({
         {/* In-Call Controls Bar */}
         <div className={styles.callControlsBar}>
           {/* Main Mic Push-to-Talk Button (Preserving original accessible attributes) */}
-          <button
-            type="button"
-            className={`${styles.centerMicBtn} ${
-              isListening ? styles.centerMicBtnRecording : ""
-            }`}
-            onClick={onToggleMic}
-            disabled={micDisabled || isCallPaused}
-            aria-label={
-              isListening
-                ? "Stop recording speech"
-                : "Start speaking response"
-            }
-            title={
-              isListening
-                ? "Stop recording"
-                : "Push to speak (or press Space)"
-            }
-          >
-            <span className={styles.centerMicIconWrapper}>
-              <Icon name={isListening ? "mic-off" : "mic"} size={22} />
-            </span>
-            <span className={styles.centerMicText}>
-              {isListening ? "Listening (Tap to stop)" : "Push to Speak"}
-            </span>
-            {isListening && <span className={styles.micAura} />}
-          </button>
+          {onToggleMic && (
+            <button
+              type="button"
+              className={`${styles.centerMicBtn} ${
+                isListening ? styles.centerMicBtnRecording : ""
+              }`}
+              onClick={onToggleMic}
+              disabled={micDisabled || isCallPaused}
+              aria-label={
+                isListening
+                  ? "Stop recording speech"
+                  : "Start speaking response"
+              }
+              title={
+                isListening
+                  ? "Stop recording"
+                  : "Push to speak (or press Space)"
+              }
+            >
+              <span className={styles.centerMicIconWrapper}>
+                <Icon name={isListening ? "mic-off" : "mic"} size={22} />
+              </span>
+              <span className={styles.centerMicText}>
+                {isListening ? "Listening (Tap to stop)" : "Push to Speak"}
+              </span>
+              {isListening && <span className={styles.micAura} />}
+            </button>
+          )}
 
           {/* Quick Submit button if student finished speaking */}
           {isListening && onDoneSpeaking && (
