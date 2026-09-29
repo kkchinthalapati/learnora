@@ -80,6 +80,11 @@ export interface MisconceptionCandidate {
   kind: ObservationKind;
   /** Verbatim quote of what happened, for showing back to the student. */
   detail: string;
+  /** Write no observation when this source already has one of this kind on
+   *  the row. For a second look at an event the ledger has already counted —
+   *  asking "why was I wrong?" about a quiz answer is not a second mistake,
+   *  so it must not inflate `times_observed`. */
+  skipIfSourceRecorded?: boolean;
 }
 
 /** Below this, a concept name is noise rather than a diagnosis — a stray
@@ -689,6 +694,54 @@ export function candidatesFromQuizAnswers(
   });
 
   return prepareCandidates(out);
+}
+
+/** The stand-in summaries `candidatesFromQuizAnswers` writes when all it
+ *  knows is that an answer was wrong. Not a diagnosis, so a real one
+ *  arriving later (see `api/misconceptions.ts`'s `record`) may replace it. */
+export function isPlaceholderSummary(summary: string | null | undefined): boolean {
+  return /^(Missed: |Answered incorrectly on )/.test((summary ?? "").trim());
+}
+
+/**
+ * "Why was I wrong?" → ledger.
+ *
+ * Filed under the question's topic when it has one — the concept the attempt
+ * itself was recorded under — so the diagnosis sharpens the row the quiz
+ * already opened (replacing its "Missed: …" placeholder) instead of starting a
+ * parallel one. Only when the question has no topic does the tutor's own
+ * concept name stand in.
+ *
+ * Keyed to the attempt and flagged `skipIfSourceRecorded`, so neither the
+ * explanation nor asking again adds a second observation for a mistake the
+ * attempt already counted.
+ */
+export function candidatesFromMistakeExplanation(
+  diagnosis: { concept: string; misconception: string },
+  context: {
+    subject?: string;
+    topic?: string;
+    attemptId: string;
+    chosen?: string;
+    correct?: string;
+  },
+): MisconceptionCandidate[] {
+  const detail = context.chosen
+    ? `Chose "${context.chosen}"${context.correct ? ` instead of "${context.correct}"` : ""}.`
+    : diagnosis.misconception;
+  return prepareCandidates([
+    {
+      subject: context.subject ?? "",
+      concept: context.topic?.trim() || diagnosis.concept,
+      summary: diagnosis.misconception,
+      severity: "moderate",
+      tool: "quiz",
+      sourceId: context.attemptId,
+      kind: "evidence",
+      detail,
+      skipIfSourceRecorded: true,
+    },
+  ]);
 }
 
 /* ── Review ──────────────────────────────────────────────────────────────── */

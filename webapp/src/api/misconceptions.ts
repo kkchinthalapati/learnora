@@ -2,6 +2,7 @@ import { supabase } from "../lib/supabase";
 import { requireUserId } from "./session";
 import {
   conceptKey,
+  isPlaceholderSummary,
   prepareCandidates,
   type Misconception,
   type MisconceptionCandidate,
@@ -178,6 +179,15 @@ export const misconceptionsApi = {
            which is the opposite of what it is for. */
         if (!existing && candidate.kind === "correction") continue;
 
+        /* A quiz's "Missed: …" is a stand-in, not a diagnosis, so the first
+           real one to arrive takes its place. A real summary is never
+           replaced. */
+        const upgradesPlaceholder =
+          !!existing &&
+          isPlaceholderSummary(existing.summary) &&
+          !!candidate.summary &&
+          !isPlaceholderSummary(candidate.summary);
+
         const { data: upserted, error: upsertError } = await supabase
           .from("misconceptions")
           .upsert(
@@ -189,9 +199,10 @@ export const misconceptionsApi = {
               concept_key: key,
               /* Keep the first real diagnosis. Later tools tend to paraphrase
                  more vaguely, and the summary is what gets quoted back. */
-              summary: existing?.summary?.trim()
-                ? existing.summary
-                : candidate.summary,
+              summary:
+                existing?.summary?.trim() && !upgradesPlaceholder
+                  ? existing.summary
+                  : candidate.summary,
               severity,
               origin_tool: existing?.origin_tool ?? candidate.tool,
             },
@@ -202,6 +213,20 @@ export const misconceptionsApi = {
 
         if (upsertError) throw upsertError;
         const row = upserted as MisconceptionRow;
+
+        if (candidate.skipIfSourceRecorded && candidate.sourceId) {
+          const { data: prior } = await supabase
+            .from("misconception_observations")
+            .select("id")
+            .eq("misconception_id", row.id)
+            .eq("source_id", candidate.sourceId)
+            .eq("kind", candidate.kind)
+            .limit(1);
+          if (prior && prior.length > 0) {
+            written.push(toMisconception(row));
+            continue;
+          }
+        }
 
         const { error: obsError } = await supabase
           .from("misconception_observations")

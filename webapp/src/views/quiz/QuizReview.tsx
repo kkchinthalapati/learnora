@@ -3,6 +3,7 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { EmptyState } from "../../components/EmptyState";
 import { Skeleton } from "../../components/Skeleton";
+import { useFolders } from "../../hooks/useFolders";
 import { useLatestQuizAttempt, useQuiz } from "../../hooks/useQuizzes";
 import {
   answerForIndex,
@@ -12,6 +13,7 @@ import {
   stripPraiseOpener,
 } from "./quizMeta";
 import { ExitLink, QUIZZES_PATH } from "./QuizRunner";
+import { ExplainMistake } from "./ExplainMistake";
 import { renderMathText } from "../../lib/markdownToReact";
 import styles from "./quiz.module.css";
 
@@ -37,6 +39,10 @@ export function QuizReview() {
   const { quizId = "" } = useParams();
   const quizQuery = useQuiz(quizId);
   const attemptQuery = useLatestQuizAttempt(quizId);
+  /* The subject a "Why was I wrong?" diagnosis is filed under — the quiz's
+     folder name, the same resolution the attempt's own ledger write used, so
+     the two land on one row. */
+  const { data: folders } = useFolders();
 
   if (quizQuery.isPending || attemptQuery.isPending) {
     return (
@@ -107,6 +113,8 @@ export function QuizReview() {
   const answers = parseStoredAnswers(attempt.answers_json);
   const proctorTermination = parseProctorTermination(attempt.answers_json);
   const taken = formatTaken(attempt.created_at);
+  const subject = folders?.find((f) => f.id === quiz.folder_id)?.name ?? "";
+  const attemptSource = attempt.attempt_key || attempt.id;
 
   return (
     <div className={styles.view}>
@@ -190,6 +198,20 @@ export function QuizReview() {
                     answered, so it congratulates them either way. */}
                 {feedback ? (
                   <p className={styles.reviewFeedback}>{feedback}</p>
+                ) : null}
+                {given &&
+                !wasCorrect &&
+                chosenIndex !== null &&
+                question.choices[chosenIndex] !== undefined ? (
+                  <ExplainMistake
+                    key={`${attemptSource}-${index}`}
+                    question={question}
+                    chosenIndex={chosenIndex}
+                    topic={given.topic ?? question.topic}
+                    subject={subject}
+                    materialId={quiz.material_id}
+                    attemptId={attemptSource}
+                  />
                 ) : null}
               </article>
             );

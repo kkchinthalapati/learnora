@@ -149,6 +149,9 @@ export interface QuizAttempt {
   answers_json: unknown;
   weak_topics: string[] | null;
   created_at: string;
+  /** The run's client-generated key (lib/attemptKey.ts), also the ledger's
+   *  `source_id` for this attempt. Absent on rows written before it. */
+  attempt_key?: string | null;
 }
 
 export interface WeakTopic {
