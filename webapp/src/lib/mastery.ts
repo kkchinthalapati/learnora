@@ -68,3 +68,19 @@ export function masteryLabel({ rung, fading }: TopicMastery): string {
   const name = RUNG_LABELS[rung - 1];
   return fading ? `${name} · fading` : name;
 }
+
+/** Days until a topic's rung would slip untouched (capped at `max`), or null
+ *  when it has no rung to lose. Drives "Next due: X, in about N days". */
+export function daysUntilFading(
+  topic: Pick<TopicState, "mastery" | "evidence" | "stabilityDays">,
+  max = 60,
+): number | null {
+  const now = rungFor(topic.mastery, topic.evidence);
+  if (now === 0) return null;
+  let m = topic.mastery;
+  for (let day = 1; day <= max; day++) {
+    m = decayOneDay(m, topic.stabilityDays);
+    if (rungFor(m, topic.evidence) < now) return day;
+  }
+  return null;
+}

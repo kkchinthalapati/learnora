@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { masteryLabel, topicMastery } from "./mastery";
+import { daysUntilFading, masteryLabel, topicMastery } from "./mastery";
 
 const topic = (mastery: number, evidence = 0.6, stabilityDays = 60) => ({
   mastery,
@@ -36,5 +36,16 @@ describe("masteryLabel", () => {
     expect(masteryLabel({ rung: 3, fading: true })).toBe("Applied · fading");
     expect(masteryLabel({ rung: 1, fading: false })).toBe("Seen");
     expect(masteryLabel({ rung: 0, fading: false })).toBe("Not started");
+  });
+});
+
+describe("daysUntilFading", () => {
+  it("counts the days until the rung slips, and has nothing to say about an unseen topic", () => {
+    const quick = daysUntilFading({ mastery: 0.7, evidence: 0.6, stabilityDays: 3 });
+    const slow = daysUntilFading({ mastery: 0.7, evidence: 0.6, stabilityDays: 60 });
+    expect(quick).not.toBeNull();
+    expect(slow).not.toBeNull();
+    expect(quick!).toBeLessThan(slow!);
+    expect(daysUntilFading({ mastery: 0.9, evidence: 0, stabilityDays: 3 })).toBeNull();
   });
 });

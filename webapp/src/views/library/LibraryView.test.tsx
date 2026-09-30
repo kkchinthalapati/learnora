@@ -454,8 +454,11 @@ describe("Library — Folders tab", () => {
     serveLibrary({ folders: [] });
     renderLibrary();
 
-    expect(await screen.findByText("No folders yet.")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "+ Create Folder" }));
+    expect(
+      await screen.findByText("Your notes become lessons, quizzes and flashcards."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add material" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "New subject" }));
 
     expect(
       await screen.findByRole("heading", { name: "Create a subject" }),

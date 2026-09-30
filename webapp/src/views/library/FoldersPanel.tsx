@@ -61,12 +61,20 @@ export function FoldersPanel() {
   if (folders.length === 0) {
     return (
       <EmptyState
-        icon="folder"
-        title="No folders yet."
-        message="Create a folder for a course or subject, then add a PDF, link, text, or topic. Its notes, flashcards, and quizzes stay grouped here."
+        icon="upload-cloud"
+        title="Your notes become lessons, quizzes and flashcards."
+        message="Add notes, slides or a worksheet, or just name a topic. Only you can see them, and you can delete them at any time."
       >
-        <Button variant="primary" onClick={newFolder}>
-          + Create Folder
+        {/* Secondary: the Library header's "Add your notes" is the page's
+            one primary action. */}
+        <Button
+          variant="secondary"
+          onClick={() => openCreateModal({ type: "material" })}
+        >
+          Add material
+        </Button>
+        <Button variant="ghost" onClick={newFolder}>
+          New subject
         </Button>
       </EmptyState>
     );
