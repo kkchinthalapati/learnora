@@ -71,7 +71,7 @@ export function TodayView() {
         <NextExamCard headless />
       </section>
       <section className={styles.region} aria-labelledby="today-continue"><h2 id="today-continue" className={styles.regionTitle}>Continue</h2><RecentNotebooksShelf /><ResumeLearningCard /></section>
-      <p className={styles.footer}>Your mistakes, streaks and study history are in <Link to="/analytics">Progress</Link> and on the <Link to="/dashboard">Dashboard</Link>.</p>
+      <p className={styles.footer}>Your mistakes, streaks and study history are in <Link to="/analytics">Progress</Link>.</p>
     </div>
   );
 }

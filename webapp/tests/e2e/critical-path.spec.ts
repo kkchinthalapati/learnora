@@ -136,7 +136,7 @@ test.describe("Auth", () => {
     await page.getByRole("button", { name: /Log In/ }).click();
 
     await expect(page).toHaveURL(/\/app\/?$/, { timeout: 20_000 });
-    /* Today owns the root route; the full dashboard kept /dashboard. This
+    /* Today owns the root route (/dashboard redirects to it). This
        asserted a "Dashboard" heading that the landing page stopped having,
        so it failed on the product working as intended. The rail's own
        current-page marker is the stable landmark — it says which view the
@@ -802,7 +802,7 @@ test.describe("Guardrails", () => {
   }) => {
     backend.user.aiConsent = false;
     await loginAs(page);
-    await page.getByRole("button", { name: "Ask AI" }).click();
+    await page.getByRole("button", { name: "Ask the tutor" }).click();
     const input = page.getByLabel("AI chat input");
 
     // "Not now": nothing reaches the AI, and the chat says why.

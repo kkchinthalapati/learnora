@@ -259,6 +259,26 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setIsOpen(false);
     setIsFullscreen(false);
   }, []);
+  const toggle = useCallback(() => {
+    setIsOpen((wasOpen) => {
+      if (wasOpen) setIsFullscreen(false);
+      return !wasOpen;
+    });
+  }, []);
+  /* ⌘J / Ctrl J toggles the tutor from anywhere, the way ⌘K toggles the
+     command palette (CommandPaletteProvider). Capture phase for the same
+     reason: an editor that eats the key would otherwise swallow it. */
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && (e.key === "j" || e.key === "J")) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggle();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [toggle]);
   const toggleFullscreen = useCallback(() => setIsFullscreen((v) => !v), []);
   const clearDraft = useCallback(() => setDraft(""), []);
   const compose = useCallback((text: string) => {
@@ -815,6 +835,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       draft,
       open,
       close,
+      toggle,
       toggleFullscreen,
       compose,
       clearDraft,
@@ -835,6 +856,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       draft,
       open,
       close,
+      toggle,
       toggleFullscreen,
       compose,
       clearDraft,

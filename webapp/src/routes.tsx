@@ -45,9 +45,6 @@ const LazyTimerView = lazy(async () => ({
 const LazyLibraryView = lazy(async () => ({
   default: (await import("./views/library/LibraryView")).LibraryView,
 }));
-const LazyDashboardView = lazy(async () => ({
-  default: (await import("./views/dashboard/DashboardView")).DashboardView,
-}));
 const LazyPlanView = lazy(async () => ({
   default: (await import("./views/plan/PlanView")).PlanView,
 }));
@@ -261,11 +258,9 @@ export function AppRoutes() {
                 <LazyTodayView />
               </DeferredView>
             } />
-            <Route path="/dashboard" element={
-              <DeferredView>
-                <LazyDashboardView />
-              </DeferredView>
-            } />
+            {/* 2026-09 redesign: Today is the home. The misconception ledger
+                that lived on the Dashboard is on Progress now. */}
+            <Route path="/dashboard" element={<Navigate to="/" replace />} />
             <Route
               path="/notebooks"
               element={<Navigate to="/library/notebooks" replace />}
@@ -331,6 +326,12 @@ export function AppRoutes() {
                   <LazyStudyLabView />
                 </DeferredView>
               }
+            />
+            {/* Placeholder until the Session screen lands (redesign phase 4):
+                a paused-session link must never 404. */}
+            <Route
+              path="/study/:sessionId"
+              element={<Navigate to="/study" replace />}
             />
             <Route path="/study-lab" element={<Navigate to="/study" replace />} />
             <Route

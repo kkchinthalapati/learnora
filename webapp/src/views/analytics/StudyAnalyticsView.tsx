@@ -19,6 +19,7 @@ import { anyPending } from "../../lib/queryState";
 import { daysBetween } from "../../lib/studyNow";
 import { StudyHeatmap } from "./StudyHeatmap";
 import { ProgressSectionNav } from "./ProgressSectionNav";
+import { MisconceptionLedgerCard } from "../dashboard/MisconceptionLedgerCard";
 import styles from "./analytics.module.css";
 import { plural } from "../../lib/plural";
 
@@ -154,6 +155,10 @@ export function StudyAnalyticsView() {
   return (
     <div className={styles.container}>
       <ProgressSectionNav />
+      {/* The misconception ledger moved here from the retired Dashboard
+          (/dashboard now redirects to Today): what you keep getting wrong is
+          progress, not a daily to-do. */}
+      <MisconceptionLedgerCard />
       <div className={styles.progressToolbar}>
         <p>
           Progress from the past <strong>{activeRange} days</strong>

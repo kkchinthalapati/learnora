@@ -98,6 +98,8 @@ export interface ChatApi {
 
   open: () => void;
   close: () => void;
+  /** Open if closed, close if open — what ⌘J does. */
+  toggle: () => void;
   toggleFullscreen: () => void;
   /** Open the panel and put `text` in the composer without sending it. */
   compose: (text: string) => void;

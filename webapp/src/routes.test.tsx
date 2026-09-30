@@ -69,7 +69,6 @@ describe("route skeleton", () => {
 
   it.each([
     ["/", "Add your next exam to get a next step"],
-    ["/dashboard", "Dashboard"],
     /* The app shell's Header now supplies the page's <h1> (the redesign
        audit found Tasks' old page-only "Tasks" heading duplicating the
        shell's own nav-derived label right below it); the shell's label —
@@ -99,6 +98,21 @@ describe("route skeleton", () => {
       ),
     ).toBeInTheDocument();
   });
+
+  /* Old URLs redirect, never 404 (2026-09 redesign route map). */
+  it.each([["/dashboard", "Add your next exam to get a next step"]])(
+    "%s redirects to Today",
+    async (path, heading) => {
+      renderAt(path);
+      expect(
+        await screen.findByRole(
+          "heading",
+          { level: 1, name: heading },
+          { timeout: 10000 },
+        ),
+      ).toBeInTheDocument();
+    },
+  );
 
   it.each([
     "/exam-detective",

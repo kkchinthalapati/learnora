@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -9,6 +9,7 @@ import { useOverlayBehavior } from "../../context/overlayStack";
 import { useOptionalTimer } from "../../context/timer";
 import { useAppearance } from "../../context/appearance";
 import { useOptionalChat } from "../../context/chat";
+import { CreateModalContext } from "../../context/createModal";
 import { useToast } from "../../context/toast";
 import { useFolders } from "../../hooks/useFolders";
 import { useMaterials } from "../../hooks/useMaterials";
@@ -64,6 +65,9 @@ export function CommandPalette(props: CommandPaletteProps) {
   const timerRunning = timer?.state?.isRunning ?? false;
   const { appearance, setAppearance } = useAppearance();
   const chat = useOptionalChat();
+  /* Optional: the palette also renders in tests and previews that don't
+     mount the create dialog. */
+  const createModal = useContext(CreateModalContext);
 
   const isDark = resolveDark(appearance.mode);
 
@@ -199,6 +203,31 @@ export function CommandPalette(props: CommandPaletteProps) {
     }
 
     const items: CommandItem[] = [];
+
+    /* "New…" — Create's home since it left the sidebar (the other is the
+       Library header). One entry per thing a student makes. */
+    if (createModal) {
+      const NEW_ENTRIES = [
+        { type: "material", title: "New… material", subtitle: "Upload or paste notes to learn from", icon: "upload-cloud", keywords: ["new", "create", "upload", "notes", "pdf", "material"] },
+        { type: "subject", title: "New… subject", subtitle: "A folder for one course", icon: "folder", keywords: ["new", "create", "subject", "folder", "course"] },
+        { type: "exam", title: "New… exam", subtitle: "Add a date to plan towards", icon: "calendar", keywords: ["new", "create", "exam", "test", "date"] },
+        { type: "task", title: "New… task", subtitle: "Something to get done", icon: "check-square", keywords: ["new", "create", "task", "todo"] },
+      ] as const;
+      for (const entry of NEW_ENTRIES) {
+        items.push({
+          id: `new-${entry.type}`,
+          category: "New",
+          title: entry.title,
+          subtitle: entry.subtitle,
+          icon: entry.icon,
+          keywords: [...entry.keywords],
+          onSelect: () => {
+            handleClose();
+            createModal.openCreateModal({ type: entry.type });
+          },
+        });
+      }
+    }
 
     // --- Actions ---
     items.push({
@@ -371,9 +400,9 @@ export function CommandPalette(props: CommandPaletteProps) {
       id: "nav-ai-analytics",
       category: "Navigation",
       title: "Progress",
-      subtitle: "Where your time goes, and how you're getting on",
+      subtitle: "Mistakes you keep making, and how you're getting on",
       icon: "activity",
-      keywords: ["analytics", "progress", "stats", "charts", "data"],
+      keywords: ["analytics", "progress", "stats", "charts", "data", "dashboard", "mistakes", "misconceptions", "history"],
       onSelect: () => {
         navigate("/analytics");
         handleClose();
@@ -382,19 +411,6 @@ export function CommandPalette(props: CommandPaletteProps) {
 
     // --- Navigation ---
     items.push({ id: "nav-today", category: "Navigation", title: "Today", subtitle: "Your next study step", icon: "zap", keywords: ["home", "today"], onSelect: () => { navigate("/"); handleClose(); } });
-    items.push({
-      id: "nav-dashboard",
-      category: "Navigation",
-      title: "Dashboard",
-      subtitle: "Mistakes, memory, streaks and study history",
-      icon: "dashboard",
-      keywords: ["dashboard", "overview", "streak", "progress", "mistakes"],
-      onSelect: () => {
-        navigate("/dashboard");
-        handleClose();
-      },
-    });
-
     items.push({
       id: "nav-tasks",
       category: "Navigation",
@@ -598,6 +614,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     showToast,
     chat,
     queryClient,
+    createModal,
   ]);
 
   // Filter items by search query

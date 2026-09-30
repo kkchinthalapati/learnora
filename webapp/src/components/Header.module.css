@@ -32,10 +32,10 @@
   overflow: hidden;
   color: var(--text);
   font-family: var(--font-head);
-  font-size: clamp(22px, 3vw, 30px);
-  font-weight: 700;
-  line-height: var(--lh-tight);
-  letter-spacing: var(--tracking-tight);
+  font-size: var(--fs-3xl);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -49,6 +49,7 @@
 .menuToggle.menuToggle {
   display: none;
 }
+
 
 .searchTrigger {
   min-height: var(--touch-target-min);
@@ -102,10 +103,10 @@
     margin-bottom: var(--s-5);
   }
 
-  /* No hamburger on phones: the bottom tab bar's "More" opens the same
-     drawer, where a thumb can reach it. */
+  /* The tab bar holds the five destinations; community, settings and
+     account live in the drawer this opens. */
   .menuToggle.menuToggle {
-    display: none;
+    display: inline-flex;
   }
 
   .headerLeft {
@@ -120,13 +121,11 @@
   .subtitle,
   .clock,
   .searchTriggerLabel,
-  .askTriggerLabel,
   .searchKbd {
     display: none;
   }
 
-  .searchTrigger,
-  .askTrigger {
+  .searchTrigger {
     width: var(--touch-target-min);
     padding: 0;
     justify-content: center;
@@ -205,33 +204,10 @@
   }
 }
 
-
-/* The tutor's permanent front door, beside Search.
-   Given the accent rather than the search field's neutral treatment: it is
-   the one action on this bar a student comes to the app wanting, and it
-   previously had no visible entry point at all. */
-.askTrigger {
-  min-height: var(--touch-target-min);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s-2);
-  padding: 0 var(--s-3);
-  border: 1px solid var(--accent-ring, var(--line));
-  border-radius: var(--r-md);
-  background: var(--accent-soft, var(--surface));
-  color: var(--accent-strong, var(--text));
-  font-family: inherit;
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background var(--t-fast) ease,
-    border-color var(--t-fast) ease,
-    color var(--t-fast) ease;
-}
-
-.askTrigger:hover {
-  background: var(--surface-2);
-  border-color: var(--accent);
-  color: var(--text);
+/* The sidebar carries search (⌘K) at desktop widths; the header keeps a
+   trigger only where the sidebar is a hidden drawer. */
+@media (min-width: 769px) {
+  .searchTrigger {
+    display: none;
+  }
 }

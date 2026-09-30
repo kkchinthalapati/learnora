@@ -127,6 +127,7 @@ describe("route integrity", () => {
       "/exam-traps",
       "/study-lab",
       "/notebooks",
+      "/dashboard",
     ];
     const offenders: string[] = [];
 
@@ -170,9 +171,12 @@ describe("route integrity", () => {
       "utf8",
     );
     const offered = new Set(
-      [...sidebar.matchAll(/\bto:\s*"(\/[^"]*)"/g)].map((m) => m[1]),
+      [...sidebar.matchAll(/\bto(?::\s*|=)"(\/[^"]*)"/g)].map((m) => m[1]),
     );
 
+    /* The five destinations, the pages that hang off Plan and Progress, and
+       the footer's community + account links. The study tools are modes of
+       one Session now and are reached from Study, not the rail. */
     for (const destination of [
       "/",
       "/library",
@@ -184,12 +188,7 @@ describe("route integrity", () => {
       "/analytics",
       "/trajectory",
       "/study",
-      "/solver",
-      "/feynman",
-      "/viva",
-      "/exam-detective",
       "/room",
-      "/friends",
       "/settings",
     ]) {
       expect([...offered]).toContain(destination);
