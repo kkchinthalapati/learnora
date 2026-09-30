@@ -102,7 +102,12 @@ describe("QuizRunner", () => {
     const { container } = renderRunner();
 
     await screen.findByText(/What is the derivative of/);
-    expect(container.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(4);
+    /* KaTeX is a lazy chunk (lib/Math.tsx), so the text can paint before it
+       is typeset; on a busy run the first import is slow. Wait for it. */
+    await waitFor(
+      () => expect(container.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(4),
+      { timeout: 5000 },
+    );
     expect(screen.queryByText(/\$x\^2\$/)).toBeNull();
   });
 
