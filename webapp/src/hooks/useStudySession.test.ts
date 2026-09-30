@@ -18,8 +18,12 @@ beforeEach(() => {
 });
 
 describe("sessionFromParams", () => {
-  it("needs an objective", () => {
+  it("needs an objective, except for mixed recall", () => {
     expect(sessionFromParams(new URLSearchParams("mode=explain"), [])).toBeNull();
+    expect(sessionFromParams(new URLSearchParams("mode=recall&minutes=10"), [])).toMatchObject({
+      objective: "Mixed recall",
+      minutes: 10,
+    });
   });
 
   it("reads mode, topic and the exam-traps / voice / time-box options", () => {

@@ -40,7 +40,9 @@ export function sessionFromParams(
     bridge?.topic ||
     ""
   ).trim();
-  if (!objective) return null;
+  /* Mixed recall needs no topic: it is whatever is due. Every other mode
+     asks the student what they are working on. */
+  if (!objective && mode !== "recall") return null;
 
   const watching = fromLedger
     ? { id: fromLedger.id, text: fromLedger.summary, seenAt: fromLedger.lastSeenAt }
@@ -50,7 +52,7 @@ export function sessionFromParams(
   const minutes = Number(params.get("minutes")) || undefined;
 
   return createStudySession({
-    objective,
+    objective: objective || "Mixed recall",
     mode,
     subject: fromLedger?.subject || bridge?.subject || undefined,
     watchingFor: watching,

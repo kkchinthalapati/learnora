@@ -128,10 +128,16 @@ function recordQuizMisconceptions(
   const quiz = quizzes?.find((q) => q.id === quizId);
   const subject = folders?.find((f) => f.id === quiz?.folder_id)?.name ?? "";
 
-  const candidates = candidatesFromQuizAnswers(
-    answers as Array<{ topic?: string; correct?: boolean }>,
-    { subject, attemptId: attemptKey },
-  );
+  /* A correct answer the student marked as a guess is not evidence they
+     know it: it earns no correction on the ledger (and the scheduler
+     brings it back sooner). Wrong answers count whatever the confidence. */
+  const evidence = (
+    answers as Array<{ topic?: string; correct?: boolean; confidence?: string | null }>
+  ).filter((a) => !(a.correct && a.confidence === "guess"));
+  const candidates = candidatesFromQuizAnswers(evidence, {
+    subject,
+    attemptId: attemptKey,
+  });
   if (candidates.length === 0) return;
 
   /* Deliberately not awaited and never surfaced. The student has finished the

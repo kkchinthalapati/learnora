@@ -253,6 +253,7 @@ describe("guess first", () => {
     expect(looksConceptual("Generate flashcards from my notes")).toBe(false);
     expect(looksConceptual("What are my pending tasks?")).toBe(false);
     expect(looksConceptual("just explain it")).toBe(false);
+    expect(looksConceptual("What should I study next?")).toBe(false);
     expect(looksConceptual("ok")).toBe(false);
   });
 });

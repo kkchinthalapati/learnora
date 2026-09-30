@@ -2,7 +2,7 @@ import {
   test,
   expect,
   loginAs,
-  openDashboardAiActions,
+  askTutor,
   TEST_PASSWORD,
 } from "./support/fixtures";
 import {
@@ -201,10 +201,7 @@ test.describe("Rate limiting", () => {
        whose allowance has to be nearly spent. */
     backend.spendAiRequests(FREE_CHAT_LIMIT - 1, "chat");
     await loginAs(page);
-    await openDashboardAiActions(page);
-
-    // The last generation inside the allowance still goes through.
-    await page.getByRole("button", { name: "What next?" }).click();
+    await askTutor(page);
     await expect(page.getByRole("region", { name: "Learnora AI chat" })).toBeVisible();
     await expect(page.getByRole("log")).toContainText("Here is a study plan", {
       timeout: 20_000,
@@ -231,9 +228,7 @@ test.describe("Rate limiting", () => {
   }) => {
     backend.setPlan("pro").spendAiRequests(FREE_CHAT_LIMIT, "chat");
     await loginAs(page);
-    await openDashboardAiActions(page);
-
-    await page.getByRole("button", { name: "What next?" }).click();
+    await askTutor(page);
 
     await expect(page.getByRole("log")).toContainText("Here is a study plan", {
       timeout: 20_000,
@@ -429,9 +424,11 @@ test.describe("Quizzes", () => {
     await page.getByRole("button", { name: "Dinitroamine", exact: true }).click();
     await page.getByRole("button", { name: /See results/ }).click();
 
-    await expect(page.getByRole("heading", { name: /Quiz Complete/ })).toBeVisible();
-    await expect(page.getByText("1 / 2 correct")).toBeVisible();
-    await expect(page.getByText(/Topics to review:.*Genetics/)).toBeVisible();
+    /* The headline is the finding and the score a caption (2026-09
+       redesign); the missed topic is a by-concept row with its status. */
+    await expect(page.getByRole("heading", { level: 2, name: /Genetics/ })).toBeVisible();
+    await expect(page.getByText(/· 1 of 2$/)).toBeVisible();
+    await expect(page.getByRole("listitem").filter({ hasText: "Genetics" })).toContainText("1 to review");
     await expect(page.getByRole("link", { name: /Review answers/ })).toBeVisible();
   });
 });
@@ -548,9 +545,7 @@ test.describe("AI grounding", () => {
       attemptRow("Genetics", 3, 10, 4),
     ]);
     await loginAs(page);
-    await openDashboardAiActions(page);
-
-    await page.getByRole("button", { name: "What next?" }).click();
+    await askTutor(page);
     await expect
       .poll(() => backend.callsTo("/functions/v1/learnora-ai").length, {
         timeout: 20_000,
@@ -572,9 +567,7 @@ test.describe("AI grounding", () => {
     backend,
   }) => {
     await loginAs(page);
-    await openDashboardAiActions(page);
-
-    await page.getByRole("button", { name: "What next?" }).click();
+    await askTutor(page);
     await expect
       .poll(() => backend.callsTo("/functions/v1/learnora-ai").length, {
         timeout: 20_000,
@@ -593,9 +586,7 @@ test.describe("AI grounding", () => {
     backend.seed("quizzes", [quizRow()]);
     backend.seed("quiz_attempts", [attemptRow("Cells", 4, 5, 1)]);
     await loginAs(page);
-    await openDashboardAiActions(page);
-
-    await page.getByRole("button", { name: "What next?" }).click();
+    await askTutor(page);
     await expect
       .poll(() => backend.callsTo("/functions/v1/learnora-ai").length, {
         timeout: 20_000,
@@ -682,15 +673,15 @@ test.describe("Errors", () => {
     backend,
   }) => {
     await loginAs(page);
-    await openDashboardAiActions(page);
     backend.stub("/functions/v1/learnora-ai", 500, { error: "Model unavailable" });
+    await askTutor(page);
 
-    await page.getByRole("button", { name: "What next?" }).click();
-
-    await expect(page.getByRole("log")).toContainText(/unavailable|failed|error/i, {
+    await expect(page.getByRole("log")).toContainText(/unavailable|failed|error|didn't answer/i, {
       timeout: 30_000,
     });
     // Still navigable afterwards — one failed generation is not a dead app.
+    // (The drawer's scrim takes the first click outside it; Esc closes it.)
+    await page.keyboard.press("Escape");
     await page.getByRole("link", { name: "Plan" }).click();
     await expect(page).toHaveURL(/\/plan/);
   });

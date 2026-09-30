@@ -103,6 +103,12 @@ export function SessionComposer({
             <Icon name="send" size={18} />
           </button>
         </form>
+        {voiceDefault && !speech.isSupported ? (
+          <p className={styles.caption} role="status">
+            Voice input isn't supported in this browser. Type your answer
+            instead; it counts the same.
+          </p>
+        ) : null}
         <div className={styles.quietRow}>
           {actions.map((action) => (
             <button

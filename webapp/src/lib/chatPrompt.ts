@@ -212,7 +212,7 @@ ${includeQuery ? `User message: ${query}` : "The student's own message is the us
 export function looksConceptual(query: string): boolean {
   const q = query.trim().toLowerCase();
   if (q.length < 8) return false;
-  if (/\b(flashcards?|quiz me|timer|tasks?|remind|schedule|just explain)\b/.test(q)) {
+  if (/\b(flashcards?|quiz me|timer|tasks?|remind|schedule|just explain|study next|what next|plan)\b/.test(q)) {
     return false;
   }
   return /^(why|how|what|when|where|which|explain|is|are|does|do|can|could|would)\b/.test(q);

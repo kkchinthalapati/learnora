@@ -259,20 +259,23 @@ describe("QuizRunner", () => {
     it("scores the run and lists the topics that were missed", async () => {
       await playThrough("Dinitrogen acetate");
 
+      /* The headline is the finding; the score is a caption. */
       expect(
-        await screen.findByRole("heading", { name: /Quiz Complete/ }),
+        await screen.findByRole("heading", {
+          level: 2,
+          name: "Cell biology is solid. Genetics needs another look.",
+        }),
       ).toBeInTheDocument();
-      expect(screen.getByText("1 / 2 correct")).toBeInTheDocument();
-      expect(
-        screen.getByText("Topics to review: Genetics"),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/· 1 of 2$/)).toBeInTheDocument();
+      const genetics = screen.getByText("Genetics", { selector: "span" }).closest("li")!;
+      expect(genetics).toHaveTextContent("1 to review");
     });
 
     it("shows no weak topics on a perfect run", async () => {
       await playThrough("Deoxyribonucleic acid");
 
-      expect(await screen.findByText("2 / 2 correct")).toBeInTheDocument();
-      expect(screen.queryByText(/Topics to review/)).not.toBeInTheDocument();
+      expect(await screen.findByText(/· 2 of 2$/)).toBeInTheDocument();
+      expect(screen.queryByText(/to review$/)).not.toBeInTheDocument();
     });
 
     it("records the attempt with the score, answers and weak topics", async () => {
@@ -285,7 +288,7 @@ describe("QuizRunner", () => {
           }),
         );
       });
-      await screen.findByText("1 / 2 correct");
+      await screen.findByText(/· 1 of 2$/);
 
       await waitFor(() => expect(body).toBeDefined());
       expect(body?.[0]).toMatchObject({
@@ -302,6 +305,7 @@ describe("QuizRunner", () => {
           correct: true,
           topic: "Cell biology",
           secondsSpent: expect.any(Number),
+          confidence: null,
         },
         {
           questionId: "q2",
@@ -309,6 +313,7 @@ describe("QuizRunner", () => {
           correct: false,
           topic: "Genetics",
           secondsSpent: expect.any(Number),
+          confidence: null,
         },
       ]);
     });
@@ -324,10 +329,41 @@ describe("QuizRunner", () => {
         );
       });
 
-      expect(await screen.findByText("1 / 2 correct")).toBeInTheDocument();
+      expect(await screen.findByText(/· 1 of 2$/)).toBeInTheDocument();
       expect(
         await screen.findByText(/couldn't save this attempt/),
       ).toBeInTheDocument();
+    });
+
+    it("saves how sure the student was with each answer", async () => {
+      let body: Record<string, unknown>[] | undefined;
+      serveQuiz();
+      server.use(
+        http.post(rest("quiz_attempts"), async ({ request }) => {
+          body = (await request.json()) as Record<string, unknown>[];
+          return new HttpResponse(null, { status: 201 });
+        }),
+      );
+      renderRunner();
+      await screen.findByText("Question 1 of 2");
+      /* Optional, and asked before the answer: once the verdict shows it
+         could no longer be answered honestly. */
+      expect(screen.getByRole("group", { name: /optional/ })).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Guess" }));
+      await userEvent.click(screen.getByRole("button", { name: "Mitochondrion" }));
+      expect(screen.queryByRole("group", { name: /optional/ })).toBeNull();
+      await userEvent.click(screen.getByRole("button", { name: "Next Question →" }));
+      await userEvent.click(screen.getByRole("button", { name: "Certain" }));
+      await userEvent.click(screen.getByRole("button", { name: "Dinitrogen acetate" }));
+      await userEvent.click(screen.getByRole("button", { name: "See results →" }));
+
+      await waitFor(() => expect(body).toBeDefined());
+      const answers = body![0].answers_json as Array<Record<string, unknown>>;
+      expect(answers.map((a) => a.confidence)).toEqual(["guess", "certain"]);
+      /* Sure and wrong leads the results; the right-but-guessed one is ochre. */
+      expect(await screen.findByText(/Confident but wrong/)).toBeInTheDocument();
+      expect(screen.getByText("Q2")).toBeInTheDocument();
+      expect(screen.getByText("Q1: correct, but guessed.")).toBeInTheDocument();
     });
 
     it("records the attempt exactly once", async () => {
@@ -340,7 +376,7 @@ describe("QuizRunner", () => {
           }),
         );
       });
-      await screen.findByText("1 / 2 correct");
+      await screen.findByText(/· 1 of 2$/);
       await waitFor(() => expect(posts).toBe(1));
 
       // Give any stray re-render a chance to fire a second write.
@@ -350,7 +386,7 @@ describe("QuizRunner", () => {
 
     it("offers the review page and the way back to the Library", async () => {
       await playThrough("Dinitrogen acetate");
-      await screen.findByText("1 / 2 correct");
+      await screen.findByText(/· 1 of 2$/);
 
       await userEvent.click(
         screen.getByRole("link", { name: /Review answers/ }),
@@ -479,7 +515,7 @@ describe("QuizRunner draft autosave", () => {
       screen.getByRole("button", { name: "See results →" }),
     );
 
-    await screen.findByText("Quiz Complete! 🎉");
+    await screen.findByText("Nothing to fix.");
     expect(Storage.get(draftKey)).toBeNull();
     expect(getStudySnapshot().lastQuizDraft).toBeNull();
   });
@@ -509,7 +545,7 @@ describe("QuizRunner draft autosave", () => {
       screen.getByRole("button", { name: "See results →" }),
     );
 
-    expect(await screen.findByText("2 / 2 correct")).toBeInTheDocument();
+    expect(await screen.findByText(/· 2 of 2$/)).toBeInTheDocument();
   });
 
   it("starting over drops the draft and begins again at question 1", async () => {
@@ -588,7 +624,7 @@ describe("QuizRunner draft autosave", () => {
       await userEvent.click(
         screen.getByRole("button", { name: "See results →" }),
       );
-      await screen.findByText("2 / 2 correct");
+      await screen.findByText(/· 2 of 2$/);
       return logged;
     }
 
@@ -665,7 +701,7 @@ describe("QuizRunner answer integrity", () => {
       screen.getByRole("button", { name: "Deoxyribonucleic acid" }),
     );
     await userEvent.click(screen.getByRole("button", { name: "See results →" }));
-    await screen.findByText("Quiz Complete");
+    await screen.findByRole("heading", { level: 2, name: /solid|look|fix/ });
 
     await waitFor(() => expect(submitted).toBeDefined());
     const answers = submitted!.answers_json as Array<Record<string, unknown>>;
@@ -700,12 +736,13 @@ describe("QuizRunner results routing", () => {
 
     const fix = await screen.findByRole("link", { name: /Work on/ });
     expect(fix.getAttribute("href")).toContain("/study/new?mode=socratic&topic=");
-    /* Confetti on a zero reads as sarcasm. */
-    expect(screen.queryByText("Quiz Complete! 🎉")).toBeNull();
-    expect(screen.getByText("Quiz Complete")).toBeInTheDocument();
+    /* No confetti, no emoji: the headline states what to fix. */
+    expect(screen.getByRole("heading", { level: 2, name: /need another look/ })).toHaveTextContent(
+      "need another look",
+    );
   });
 
-  it("keeps the celebration for a clean sweep and offers no fix-up", async () => {
+  it("says there is nothing to fix on a clean sweep, and offers no fix-up", async () => {
     serveQuiz();
     renderRunner();
 
@@ -718,7 +755,7 @@ describe("QuizRunner results routing", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "See results →" }));
 
-    await screen.findByText("Quiz Complete! 🎉");
+    await screen.findByText("Nothing to fix.");
     expect(screen.queryByRole("link", { name: /Work on/ })).toBeNull();
   });
 
@@ -740,10 +777,10 @@ describe("QuizRunner results routing", () => {
     await screen.findByText("Question 2 of 2");
     await userEvent.click(screen.getByRole("button", { name: "Dinitrogen acetate" }));
     await userEvent.click(screen.getByRole("button", { name: "See results →" }));
-    await screen.findByText("0 / 2 correct");
+    await screen.findByText(/· 0 of 2$/);
     await waitFor(() => expect(keys).toHaveLength(1));
 
-    await userEvent.click(screen.getByRole("button", { name: /Retake quiz/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Retake test/ }));
     await screen.findByText("Question 1 of 2");
     expect(screen.getByRole("button", { name: "Mitochondrion" })).toBeEnabled();
     await userEvent.click(screen.getByRole("button", { name: "Mitochondrion" }));
@@ -752,7 +789,7 @@ describe("QuizRunner results routing", () => {
       await screen.findByRole("button", { name: "Deoxyribonucleic acid" }),
     );
     await userEvent.click(screen.getByRole("button", { name: "See results →" }));
-    await screen.findByText("2 / 2 correct");
+    await screen.findByText(/· 2 of 2$/);
 
     await waitFor(() => expect(keys).toHaveLength(2));
     expect(keys[0]).not.toEqual(keys[1]);

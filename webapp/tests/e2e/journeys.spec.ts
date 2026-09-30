@@ -51,13 +51,15 @@ test("a mock exam can be sat to its score", async ({ page, backend }) => {
   await page.getByRole("button", { name: /Begin Mock Exam/ }).click();
   await expect(page.getByText(/Question 1 of \d+/)).toBeVisible();
 
-  /* The fixture's two questions, answered right then wrong. */
+  /* The fixture's two questions, answered right then wrong. The runner is
+     navigable now: pick, Next, pick, Submit. */
   await page.getByRole("button", { name: "Catalysts" }).click();
+  await page.getByRole("button", { name: "Next →" }).click();
   await expect(page.getByText("Question 2 of 2")).toBeVisible();
   await page.getByRole("button", { name: "Speed it up forever" }).click();
+  await page.getByRole("button", { name: "Submit test", exact: true }).click();
 
-  await expect(page.getByRole("heading", { name: "Exam Complete!" })).toBeVisible();
-  await expect(page.getByText("1 / 2 correct")).toBeVisible();
+  await expect(page.getByText(/· 1 of 2$/)).toBeVisible();
 });
 
 test("coming back after five days, old tasks read as overdue, not due today", async ({
@@ -71,7 +73,10 @@ test("coming back after five days, old tasks read as overdue, not due today", as
   await page.clock.install({ time: later });
   await loginAs(page);
 
-  await expect(
-    page.getByText(/Overdue since/).first(),
-  ).toBeVisible();
+  /* Today lists due tasks as rows marked "Overdue", and the task list files
+     them under its Overdue section. */
+  await expect(page.getByText("Overdue", { exact: true }).first()).toBeVisible();
+  await page.goto("tasks");
+  await expect(page.getByText(/^Overdue$/i).first()).toBeVisible();
+  await expect(page.getByText("Finish the enzymes past paper")).toBeVisible();
 });

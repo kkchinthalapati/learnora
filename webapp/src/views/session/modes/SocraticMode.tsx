@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
 import { HintLadder } from "../../../components/learning/HintLadder";
 import type { HintLevel } from "../../../components/learning/options";
 import { StudentTurn } from "../../../components/learning/StudentTurn";
@@ -158,12 +159,24 @@ export function SocraticMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
                 <span className={text.meta}>
                   Question {round} of ~{SOCRATIC_ROUNDS}
                 </span>
-                {sparring.offline ? (
-                  <span className={styles.caption}>
-                    Built-in questions: the AI isn't available right now
-                  </span>
-                ) : null}
               </div>
+              {sparring.offline ? (
+                /* A stand-in must never pass for the AI, and its keyword
+                   checker's marks never reach the ledger (see answer()). */
+                <p className={styles.caption} role="status">
+                  {sparring.offline === "consent"
+                    ? "You haven't allowed Learnora's AI to use your study data, so these are built-in practice questions."
+                    : "Learnora's AI isn't available right now, so these are built-in practice questions."}{" "}
+                  Your answers are checked by a simple keyword match and aren't
+                  saved to your progress.
+                  {sparring.offline === "consent" ? (
+                    <>
+                      {" "}
+                      <Link to="/settings?tab=privacy">Turn on AI in Settings</Link>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
               <h2 className={styles.question}>
                 {sparring.currentChallenge.speechText}
               </h2>
