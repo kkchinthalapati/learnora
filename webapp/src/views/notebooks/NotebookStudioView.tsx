@@ -23,6 +23,7 @@ import { useSettings } from "../../context/settings";
 import { fenceUntrusted } from "../../lib/actionTags";
 import { useAiUsage } from "../../hooks/useAiUsage";
 import { plural } from "../../lib/plural";
+import { newSessionHref } from "../../lib/sessionModes";
 
 const MAX_NOTEBOOK_SOURCE_CHARS = 12_000;
 
@@ -1157,7 +1158,7 @@ Use British English throughout.`;
                 className={styles.toolButton}
                 onClick={() => {
                   void navigate(
-                    `/viva?notebookId=${encodeURIComponent(notebook.id)}&topic=${encodeURIComponent(notebook.title)}`,
+                    newSessionHref("socratic", { topic: notebook.title, voice: true }),
                   );
                 }}
               >

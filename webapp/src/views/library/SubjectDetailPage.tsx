@@ -26,6 +26,7 @@ import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { useLibraryActions } from "./useLibraryActions";
 import styles from "./library.module.css";
 import { Badge } from "../../components/Badge";
+import { newSessionHref } from "../../lib/sessionModes";
 
 const MATERIAL_ICONS: Record<MaterialType, IconName> = {
   pdf: "file-text",
@@ -140,7 +141,7 @@ export function SubjectDetailPage() {
       sourceTool: "notes",
       suggestedAction: "teach_apprentice",
     });
-    void navigate("/feynman");
+    void navigate(newSessionHref("teach"));
   };
 
   const handleLaunchDebugger = () => {
@@ -151,7 +152,7 @@ export function SubjectDetailPage() {
       sourceTool: "notes",
       suggestedAction: "debug_stack",
     });
-    void navigate("/solver");
+    void navigate(newSessionHref("explain"));
   };
 
   const handleLaunchExamDetective = () => {
@@ -162,7 +163,7 @@ export function SubjectDetailPage() {
       sourceTool: "notes",
       suggestedAction: "run_premortem",
     });
-    void navigate("/exam-detective");
+    void navigate(newSessionHref("practice", { preset: "traps" }));
   };
 
   if (folders.isPending) {

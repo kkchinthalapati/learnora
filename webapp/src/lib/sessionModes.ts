@@ -31,12 +31,22 @@ export function isSessionMode(value: unknown): value is SessionMode {
 /** A new Session in `mode`, optionally about one topic or misconception. */
 export function newSessionHref(
   mode: SessionMode,
-  params: { topic?: string; misconception?: string; minutes?: number } = {},
+  params: {
+    topic?: string;
+    misconception?: string;
+    minutes?: number;
+    /** Oral practice: open with the mic on. */
+    voice?: boolean;
+    /** Exam traps: Practice with a clock. */
+    preset?: "traps";
+  } = {},
 ): string {
   const q = new URLSearchParams({ mode });
   if (params.topic) q.set("topic", params.topic);
   if (params.misconception) q.set("misconception", params.misconception);
   if (params.minutes) q.set("minutes", String(params.minutes));
+  if (params.voice) q.set("voice", "1");
+  if (params.preset) q.set("preset", params.preset);
   return `/study/new?${q.toString()}`;
 }
 

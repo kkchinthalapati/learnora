@@ -103,14 +103,8 @@ const FILES = sourceFiles(SRC);
 const ROUTES = declaredRoutes(pathConstants(FILES));
 
 describe("route integrity", () => {
-  it("declares the canonical tool routes", () => {
-    for (const route of [
-      "/study",
-      "/solver",
-      "/feynman",
-      "/viva",
-      "/exam-detective",
-    ]) {
+  it("declares the Study hub and the Session route", () => {
+    for (const route of ["/study", "/study/:sessionId"]) {
       expect(ROUTES).toContain(route);
     }
   });
@@ -128,6 +122,11 @@ describe("route integrity", () => {
       "/study-lab",
       "/notebooks",
       "/dashboard",
+      /* Session modes since the 2026-09 redesign (LegacyToolRedirect). */
+      "/solver",
+      "/feynman",
+      "/viva",
+      "/exam-detective",
     ];
     const offenders: string[] = [];
 

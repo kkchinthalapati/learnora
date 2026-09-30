@@ -27,6 +27,7 @@ import { renderMathText } from "../../lib/markdownToReact";
 import { newAttemptKey } from "../../lib/attemptKey";
 import { quizDraftKey } from "../../lib/draftKeys";
 import { clearQuizProgress } from "../../lib/continuity";
+import { newSessionHref } from "../../lib/sessionModes";
 
 /* The quiz runner — ports js/router.js's `startQuiz` (:827-945).
  *
@@ -426,7 +427,7 @@ function QuizSession({
                 it takes the topic straight from here. */}
             {weakTopics.length > 0 ? (
               <Link
-                to={`/solver?topic=${encodeURIComponent(weakTopics[0])}`}
+                to={newSessionHref("socratic", { topic: weakTopics[0] })}
                 className={`${styles.actionLink} ${styles.actionLinkPrimary}`}
               >
                 <Icon name="target" size={16} />

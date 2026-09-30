@@ -699,7 +699,7 @@ describe("QuizRunner results routing", () => {
     await userEvent.click(screen.getByRole("button", { name: "See results →" }));
 
     const fix = await screen.findByRole("link", { name: /Work on/ });
-    expect(fix.getAttribute("href")).toContain("/solver?topic=");
+    expect(fix.getAttribute("href")).toContain("/study/new?mode=socratic&topic=");
     /* Confetti on a zero reads as sarcasm. */
     expect(screen.queryByText("Quiz Complete! 🎉")).toBeNull();
     expect(screen.getByText("Quiz Complete")).toBeInTheDocument();

@@ -11,6 +11,7 @@ import {
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import type { Misconception } from "../../lib/misconceptions";
 import styles from "./MisconceptionLedgerCard.module.css";
+import { newSessionHref } from "../../lib/sessionModes";
 
 /* The ledger, made visible.
  *
@@ -72,7 +73,7 @@ export function MisconceptionLedgerCard() {
       severity: m.severity,
       suggestedAction: "debug_stack",
     });
-    navigate("/solver");
+    navigate(newSessionHref("explain"));
   };
 
   return (
@@ -115,7 +116,7 @@ export function MisconceptionLedgerCard() {
             When the Step-by-step solver, Feynman, Common Exam Traps, or a quiz finds a
             mistake, it gets written down here — so you can easily review and conquer it.
           </p>
-          <Button variant="secondary" onClick={() => navigate("/solver")}>
+          <Button variant="secondary" onClick={() => navigate(newSessionHref("explain"))}>
             Diagnose a mistake
           </Button>
         </div>

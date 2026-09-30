@@ -82,10 +82,10 @@ describe("primaryDestinationForPath", () => {
   it("groups the study tools under Study", () => {
     expect(primaryDestinationForPath("/study/s-1")).toBe("study_lab");
     expect(primaryDestinationForPath("/study")).toBe("study_lab");
-    expect(primaryDestinationForPath("/solver")).toBe("study_lab");
-    expect(primaryDestinationForPath("/viva")).toBe("study_lab");
-    expect(primaryDestinationForPath("/feynman")).toBe("study_lab");
-    expect(primaryDestinationForPath("/exam-detective")).toBe("study_lab");
+    expect(primaryDestinationForPath("/feynman/debrief/s-1")).toBe("study_lab");
+    /* The old tool URLs redirect into a Session before the shell sees them. */
+    expect(primaryDestinationForPath("/solver")).toBeNull();
+    expect(primaryDestinationForPath("/viva")).toBeNull();
   });
 
   /* The legacy aliases are <Navigate> redirects: the router replaces them

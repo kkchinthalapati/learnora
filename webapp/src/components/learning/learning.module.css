@@ -389,3 +389,34 @@
     transition: none;
   }
 }
+
+/* ---- AiErrorCard ------------------------------------------------------- */
+
+.aiError {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--hairline-strong);
+  border-left: 3px solid var(--recall);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.aiErrorTitle {
+  margin: 0;
+  font-weight: 600;
+}
+
+.aiErrorBody {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+  color: var(--text-secondary);
+}
+
+.aiErrorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}

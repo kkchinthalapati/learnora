@@ -26,6 +26,7 @@ import {
   rememberCommandId,
 } from "./recentCommands";
 import styles from "./CommandPalette.module.css";
+import { newSessionHref } from "../../lib/sessionModes";
 
 export interface CommandItem {
   id: string;
@@ -194,7 +195,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                 evidencePrompt: "Opened from the command palette",
                 suggestedAction: "debug_stack",
               });
-              navigate(`/solver?topic=${encodeURIComponent(prefixMatch.text)}`);
+              navigate(newSessionHref("explain", { topic: prefixMatch.text }));
               handleClose();
             },
           },
@@ -333,7 +334,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         "trace",
       ],
       onSelect: () => {
-        navigate("/solver");
+        navigate(newSessionHref("explain"));
         handleClose();
       },
     });
@@ -354,7 +355,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         "studio",
       ],
       onSelect: () => {
-        navigate("/feynman");
+        navigate(newSessionHref("teach"));
         handleClose();
       },
     });
@@ -377,7 +378,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         "challenge",
       ],
       onSelect: () => {
-        navigate("/viva");
+        navigate(newSessionHref("socratic", { voice: true }));
         handleClose();
       },
     });
@@ -391,7 +392,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       badge: "Exam practice",
       keywords: ["exam", "past paper", "traps", "practice", "detective", "stress test", "timed"],
       onSelect: () => {
-        navigate("/exam-detective");
+        navigate(newSessionHref("practice", { preset: "traps" }));
         handleClose();
       },
     });

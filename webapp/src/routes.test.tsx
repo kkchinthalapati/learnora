@@ -17,7 +17,7 @@ beforeAll(async () => {
   await Promise.all([
     import("./views/analytics/StudyAnalyticsView"),
     import("./views/decks/DeckCardsView"),
-    import("./views/exam-detective/ExamDetectiveHubView"),
+    import("./views/session/SessionView"),
     import("./views/feynman/FeynmanDebriefView"),
     import("./views/feynman/FeynmanStudioView"),
     import("./views/friends/FriendInviteLanding"),
@@ -85,8 +85,6 @@ describe("route skeleton", () => {
     ["/friends", "Friends"],
     ["/analytics", "Progress"],
     ["/study", "What do you need help with?"],
-    ["/feynman", "Explain it simply"],
-    ["/solver", "Step-by-step solver"],
     ["/settings", "Settings"],
   ])("%s renders the %s view for a signed-in user", async (path, heading) => {
     renderAt(path);
@@ -114,14 +112,22 @@ describe("route skeleton", () => {
     },
   );
 
+  /* The study tools are Session modes now. Their old URLs redirect into a
+     Session — keeping the topic when they carried one — never a 404. */
   it.each([
-    "/exam-detective",
-  ])("%s renders Exam Detective", async (path) => {
+    ["/solver?topic=Osmosis", "Osmosis"],
+    ["/feynman?topic=Osmosis", "Osmosis"],
+    ["/viva?topic=Osmosis", "Osmosis"],
+    ["/exam-detective", "What are you working on?"],
+    ["/feynman", "What are you working on?"],
+    ["/debugger", "What are you working on?"],
+    ["/sparring/abc", "What are you working on?"],
+  ])("%s redirects into a Session (%s)", async (path, heading) => {
     renderAt(path);
     expect(
       await screen.findByRole(
         "heading",
-        { level: 1, name: "Exam traps" },
+        { level: 1, name: heading },
         { timeout: 10000 },
       ),
     ).toBeInTheDocument();
@@ -145,10 +151,7 @@ describe("route skeleton", () => {
     "/analytics",
     "/study",
     "/settings",
-    "/feynman",
-    "/solver",
-    "/exam-detective",
-    "/viva",
+    "/study/new?mode=teach",
     "/room",
   ])("%s renders exactly one level-1 heading", async (path) => {
     renderAt(path);
@@ -331,9 +334,7 @@ describe("public routes", () => {
     ["/plan"],
     ["/analytics"],
     ["/study"],
-    ["/feynman"],
-    ["/solver"],
-    ["/exam-detective"],
+    ["/study/new?mode=explain"],
     ["/settings"],
   ])("%s shows at most one primary action", async (path) => {
     const { container } = renderAt(path);

@@ -9,6 +9,7 @@ import {
   type CognitiveSuggestedAction,
 } from "../../lib/cognitiveBridge";
 import styles from "./CognitiveCrossLinkBar.module.css";
+import { newSessionHref } from "../../lib/sessionModes";
 
 export interface CognitiveCrossLinkBarProps {
   payload?: CognitiveContextPayload | null;
@@ -42,14 +43,14 @@ const TOOL_CONFIGS: {
   {
     id: "debugger",
     label: "Step-by-step solver",
-    route: "/solver",
+    route: newSessionHref("explain"),
     icon: "zap",
     action: "debug_stack",
   },
   {
     id: "feynman",
     label: "Explain it simply",
-    route: "/feynman",
+    route: newSessionHref("teach"),
     icon: "users",
     action: "teach_apprentice",
   },
