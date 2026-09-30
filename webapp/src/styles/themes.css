@@ -99,6 +99,23 @@ body.dark-theme {
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.7);
+
+  /* 2026-09 redesign. Ochre lifts the same way the accent does: fill and
+     label collapse to one hex because it already clears AA as text on every
+     dark surface (contrast.test.ts). The accent-derived roles (--accent-wash,
+     --accent-deep, --accent-line*) need no dark twin — they mix from the
+     live --accent / --surface on `body` (tokens.css). */
+  --recall: #e0b25c;
+  --recall-text: #e0b25c;
+  --recall-soft: rgba(224, 178, 92, 0.14);
+  --paper: #1a1915;
+  --sidebar-bg: var(--surface-2);
+  --hairline: rgba(240, 236, 228, 0.1);
+  --hairline-strong: rgba(240, 236, 228, 0.16);
+  --text-secondary: #cbc4b8;
+  --track: #22201c;
+  --shadow-drawer: -16px 0 40px -16px rgba(0, 0, 0, 0.7);
+  --scrim: rgba(0, 0, 0, 0.4);
   /* --shadow-accent was repeated here verbatim, which is what it took to beat
      the :root copy that had already frozen --accent-ring at the light value.
      It now derives once from `body` in tokens.css and needs no dark twin. */
