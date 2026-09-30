@@ -166,10 +166,10 @@ export function ReviewView() {
         <h2 className={styles.title}>{deck.title}</h2>
         <EmptyState
           icon="check"
-          title="All caught up! 🎉"
+          title="All caught up"
           message={
             isDailyDrill
-              ? "No cards due across any deck. Take a break!"
+              ? "No cards due across any deck. Recall will bring them back when they start to fade."
               : "No cards due for review in this deck right now."
           }
         >
@@ -712,7 +712,7 @@ export function SocraticCoachDrawer({
     try {
       await navigator.clipboard.writeText(response);
       setCopied(true);
-      showToast("Copied Socratic guidance to clipboard!");
+      showToast("Copied Socratic guidance");
       setTimeout(() => setCopied(false), 2000);
     } catch {
       showToast("Could not copy to clipboard", { error: true });
@@ -1557,7 +1557,7 @@ function ReviewRecap({
       {
         onSuccess: () => {
           setTaskAdded(true);
-          showToast("Added revision task for tomorrow!");
+          showToast("Added a revision task for tomorrow");
         },
         onError: (err) => {
           showToast(`Could not add task: ${err.message}`, { error: true });
@@ -1587,7 +1587,7 @@ function ReviewRecap({
         <p className={styles.eyebrow}>Session recap</p>
         <h2 className={styles.title}>{deckTitle}</h2>
         <h2 id="review-recap-title" className={styles.recapTitle}>
-          {isDrill ? "Drill Complete! ⚡" : "Review Complete! 🧠"}
+          {isDrill ? "Drill complete" : "Review complete"}
         </h2>
 
         {practiceComplete ? (

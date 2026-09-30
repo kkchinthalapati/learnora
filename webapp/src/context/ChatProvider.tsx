@@ -455,7 +455,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         generateQuizFromTopic(topic, settings)
           .then((quiz) => {
             qc.invalidateQueries({ queryKey: quizzesKeys.all });
-            showToast("Quiz generated successfully!");
+            showToast("Quiz ready");
             void navigate(`/quiz/${quiz.id}`);
           })
           .catch((err: unknown) => {
@@ -475,7 +475,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         generateDeckFromTopic(topic, settings)
           .then(() => {
             qc.invalidateQueries({ queryKey: decksKeys.all });
-            showToast("Flashcard deck generated successfully!");
+            showToast("Flashcard deck ready");
             void navigate("/library/flashcards");
           })
           .catch((err: unknown) => {
@@ -495,7 +495,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         generateWeeklyPlan(settings)
           .then((plan) => {
             qc.setQueryData(plansKeys.forWeek(plan.week_start), plan);
-            showToast("Plan generated successfully!");
+            showToast("Plan ready");
             void navigate("/plan");
           })
           .catch((err: unknown) => {

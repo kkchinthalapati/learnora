@@ -227,7 +227,7 @@ describe("ReviewView", () => {
       HttpResponse.json({ text: "<GRADE_FLASHCARD>3</GRADE_FLASHCARD>" }),
     );
     await waitFor(() =>
-      expect(screen.getByText("Review Complete! 🧠")).toBeInTheDocument(),
+      expect(screen.getByText("Review complete")).toBeInTheDocument(),
     );
   });
 
@@ -329,7 +329,7 @@ describe("ReviewView", () => {
     );
     await user.click(screen.getByRole("button", { name: "Easy (4)" }));
 
-    expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+    expect(await screen.findByText("Review complete")).toBeInTheDocument();
     expect(screen.getByText("100%")).toBeInTheDocument();
     expect(screen.getByLabelText("Easy count")).toHaveTextContent("1");
     expect(
@@ -503,7 +503,7 @@ describe("ReviewView", () => {
     await user.click(screen.getByRole("button", { name: "Easy (4)" }));
 
     // Recap screen is shown
-    expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+    expect(await screen.findByText("Review complete")).toBeInTheDocument();
 
     // Retention Card: (25 + 55 + 95) / 3 = 58% -> Needs Review
     expect(screen.getByText("How much you’ll still remember in a week")).toBeInTheDocument();
@@ -590,7 +590,7 @@ describe("ReviewView", () => {
     );
     await user.click(screen.getByRole("button", { name: "Again (1)" }));
 
-    expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+    expect(await screen.findByText("Review complete")).toBeInTheDocument();
 
     const focusBtn = screen.getByRole("button", {
       name: "25 minutes on the tricky ones",
@@ -645,7 +645,7 @@ describe("ReviewView", () => {
     );
     await user.click(screen.getByRole("button", { name: "Hard (2)" }));
 
-    expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+    expect(await screen.findByText("Review complete")).toBeInTheDocument();
 
     const addTaskBtn = screen.getByRole("button", {
       name: "Revise this again tomorrow",
@@ -680,7 +680,7 @@ describe("ReviewView", () => {
     /* The session still advances immediately — a slow or failing write must
        not stall the student's review, the same call Step 8/16 already made
        for task toggles and quiz-attempt writes. */
-    expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+    expect(await screen.findByText("Review complete")).toBeInTheDocument();
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Couldn't save this card's review",
     );
@@ -695,7 +695,7 @@ describe("ReviewView", () => {
     expect(
       await screen.findByRole("heading", { level: 2, name: "Cell Biology" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("All caught up! 🎉")).toBeInTheDocument();
+    expect(screen.getByText("All caught up")).toBeInTheDocument();
   });
 
   it("lets a student practise a deck with nothing due", async () => {
@@ -858,7 +858,7 @@ describe("ReviewView", () => {
       );
 
       await waitFor(() =>
-        expect(screen.getByText("Review Complete! 🧠")).toBeInTheDocument(),
+        expect(screen.getByText("Review complete")).toBeInTheDocument(),
       );
     });
 
@@ -881,7 +881,7 @@ describe("ReviewView", () => {
       );
 
       await waitFor(() =>
-        expect(screen.getByText("Review Complete! 🧠")).toBeInTheDocument(),
+        expect(screen.getByText("Review complete")).toBeInTheDocument(),
       );
     });
 
@@ -952,7 +952,7 @@ describe("ReviewView", () => {
       // Manual grading still works after the AI path failed.
       await user.click(screen.getByRole("button", { name: "Easy (4)" }));
       expect(
-        await screen.findByText("Review Complete! 🧠"),
+        await screen.findByText("Review complete"),
       ).toBeInTheDocument();
     });
 
@@ -1317,7 +1317,7 @@ describe("ReviewView", () => {
       );
       await user.click(screen.getByRole("button", { name: "Hard (2)" }));
 
-      expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+      expect(await screen.findByText("Review complete")).toBeInTheDocument();
 
       const coachBtns = screen.getAllByRole("button", { name: /Socratic Coach/i });
       expect(coachBtns.length).toBeGreaterThan(0);
@@ -1472,7 +1472,7 @@ describe("ReviewView", () => {
       );
       await user.click(screen.getByRole("button", { name: "Good (3)" }));
 
-      expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+      expect(await screen.findByText("Review complete")).toBeInTheDocument();
 
       const sourceLink = screen.getByRole("link", { name: "Source Note" });
       expect(sourceLink).toHaveAttribute("href", "/notes/mat-101");
@@ -1565,7 +1565,7 @@ describe("ReviewView", () => {
 
       await gradeBothCards(advance, 2_000);
 
-      expect(await screen.findByText("Review Complete! 🧠")).toBeInTheDocument();
+      expect(await screen.findByText("Review complete")).toBeInTheDocument();
       expect(logged).toEqual([]);
     });
   });

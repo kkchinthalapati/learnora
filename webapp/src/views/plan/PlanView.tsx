@@ -680,7 +680,7 @@ export function PlanView() {
     }
 
     generate.mutate(true, {
-      onSuccess: () => showToast("Triage plan generated! Focus up."),
+      onSuccess: () => showToast("Triage plan ready"),
       onError: (err) => {
         const message =
           err instanceof PlanShapeError ||

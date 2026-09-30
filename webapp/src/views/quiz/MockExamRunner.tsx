@@ -432,8 +432,8 @@ function MockExamSession({
         <div role="alert" className={styles.graceBanner}>
           <p>
             {graceReason === "fullscreen"
-              ? "You exited fullscreen!"
-              : "You left the exam tab!"}
+              ? "You left fullscreen."
+              : "You left the exam tab."}
           </p>
           <p>
             Auto-submitting in <strong>{Math.ceil(graceCountdown / 1000)}s</strong> unless you return.

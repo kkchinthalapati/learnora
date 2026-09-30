@@ -139,7 +139,7 @@ export function ResetPasswordView() {
   if (phase === "done") {
     return (
       <AuthShell
-        title="All done!"
+        title="Password updated"
         subtitle="You can now sign in with your new password."
         showLegal={false}
       >

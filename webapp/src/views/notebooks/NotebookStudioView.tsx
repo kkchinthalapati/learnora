@@ -142,7 +142,7 @@ export function NotebookStudioView() {
       ? `${notebook.notes}\n\n---\n\n${content}`
       : content;
     updateNotes(next);
-    showToast("Appended to your Notes Canvas!");
+    showToast("Added to your Notes Canvas");
     setActiveArtifactPreview(null);
   };
 
@@ -226,7 +226,7 @@ export function NotebookStudioView() {
     setNewSourceTitle("");
     setNewSourceContent("");
     setIsAddSourceOpen(false);
-    showToast("Study source added to notebook!");
+    showToast("Study source added to notebook");
   };
 
   const handleSendChat = async (overridePrompt?: string) => {
@@ -356,7 +356,7 @@ Use British English throughout.`;
         summary:
           "Structured summary covering core theorems, definitions, and exam pitfalls.",
       });
-      showToast("Cheat Sheet saved to your Notebook Studio!");
+      showToast("Cheat sheet saved to Notebook Studio");
     } catch (cause) {
       /* Deliberately no fallback artifact. This used to save a hardcoded
          paragraph about congruency conditions and tell the student their cheat
@@ -1430,7 +1430,7 @@ Use British English throughout.`;
                 void navigator.clipboard.writeText(
                   activeArtifactPreview.content,
                 );
-                showToast("Copied to clipboard!");
+                showToast("Copied to clipboard");
               }}
             >
               Copy to clipboard

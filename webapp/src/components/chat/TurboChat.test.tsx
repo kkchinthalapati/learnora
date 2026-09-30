@@ -499,7 +499,7 @@ describe("TurboChat", () => {
 
         expect(await screen.findByText("Generating quiz:")).toBeInTheDocument();
         expect(
-          await screen.findByText("Quiz generated successfully!"),
+          await screen.findByText("Quiz ready"),
         ).toBeInTheDocument();
         await waitFor(() =>
           expect(screen.getByText("path:/quiz/quiz-1")).toBeInTheDocument(),
@@ -708,7 +708,7 @@ describe("TurboChat", () => {
           await screen.findByText("Generating your weekly study plan"),
         ).toBeInTheDocument();
         expect(
-          await screen.findByText("Plan generated successfully!"),
+          await screen.findByText("Plan ready"),
         ).toBeInTheDocument();
         await waitFor(() =>
           expect(screen.getByText("path:/plan")).toBeInTheDocument(),

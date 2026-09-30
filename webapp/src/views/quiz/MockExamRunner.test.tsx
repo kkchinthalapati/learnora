@@ -148,7 +148,7 @@ describe("MockExamRunner", () => {
     expect(
       await screen.findByRole("button", { name: "Return to fullscreen" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent("You exited fullscreen!");
+    expect(screen.getByRole("alert")).toHaveTextContent("You left fullscreen.");
   });
 
   it("exits if tab is switched (visibilitychange)", async () => {

@@ -515,7 +515,7 @@ export function AchievementsModal({ open, onClose }: AchievementsModalProps) {
                               month: "short",
                               day: "numeric",
                             })
-                          : "Earned!"}
+                          : "Earned"}
                       </span>
                     </div>
                   ) : (

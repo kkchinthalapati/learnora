@@ -30,7 +30,7 @@ import styles from "./chat.module.css";
  * it either. */
 
 const GREETING =
-  "Hi! I can explain a topic, quiz you, turn your notes into flashcards, or sort out your tasks and timer. I can get things wrong, so check anything important against your notes.";
+  "I can explain a topic, quiz you, turn your notes into flashcards, or sort out your tasks and timer. I can get things wrong, so check anything important against your notes.";
 
 const SUGGESTIONS = [
   /* Explaining and quizzing lead: they are what a student opens the panel

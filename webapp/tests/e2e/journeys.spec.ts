@@ -33,13 +33,13 @@ test("a flashcard review runs from the first card to the recap", async ({
   await page.getByRole("button", { name: "Start review" }).click();
 
   for (let i = 0; i < 20; i++) {
-    const recap = page.getByRole("heading", { name: /Review Complete/ });
+    const recap = page.getByRole("heading", { name: /Review complete/ });
     if (await recap.isVisible()) break;
     await page.getByRole("button", { name: "Flip card to see the answer" }).click();
     await page.getByRole("button", { name: "Good (3)" }).click();
   }
 
-  await expect(page.getByRole("heading", { name: /Review Complete/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Review complete/ })).toBeVisible();
   expect(Number(await page.getByLabel("Good count").innerText())).toBeGreaterThan(0);
 });
 

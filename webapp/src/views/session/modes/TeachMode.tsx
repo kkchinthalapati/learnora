@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
+import { MasteryLadder } from "../../../components/learning/MasteryLadder";
 import { StudentTurn } from "../../../components/learning/StudentTurn";
 import { TutorTurn } from "../../../components/learning/TutorTurn";
 import {
@@ -188,6 +189,8 @@ export function TeachMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
                 </Link>
                 .
               </p>
+              {/* Passing a teach-back is the Explained rung, so it fills here. */}
+              <MasteryLadder topic={draft?.topic ?? session.objective} rung={4} gainedFrom={3} showRungLabels />
             </TutorTurn>
           ) : last ? (
             <p className={text.caption}>
