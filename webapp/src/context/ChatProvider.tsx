@@ -676,6 +676,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           persona: adaptiveNudge?.persona ?? settings.aiPersona,
           conciseness: adaptiveNudge?.conciseness ?? settings.aiConciseness,
           adaptiveNudge: adaptiveNudge?.instruction,
+          guessFirst: options?.guessFirst === true,
           performanceEvidence,
           misconceptionLedger,
           webEvidence: webResponse
@@ -752,6 +753,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           text: cleanText,
           parts: parts.some((p) => p.kind === "widget") ? parts : undefined,
           webSources: webSources?.length ? webSources : undefined,
+          /* The model was asked for a guess-first question and replied with
+             one: the bubble offers the two ways out. */
+          guessPrompt:
+            options?.guessFirst === true && cleanText.endsWith("?")
+              ? true
+              : undefined,
         });
       } catch (err) {
         /* The failed exchange is not written to history: replaying it would

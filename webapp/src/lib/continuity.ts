@@ -52,6 +52,12 @@ export interface LastStudySession {
   minutesLeft: number;
   status: "active" | "paused" | "done";
   lastActiveAt: string;
+  /** The current step's name ("the electron transport chain"). */
+  stepLabel?: string;
+  /** The misconception the session is watching for, in words. */
+  watchingFor?: string;
+  /** Subject or source, for the mono label ("Explain session · Biology"). */
+  subject?: string;
 }
 
 export interface StudySnapshot {

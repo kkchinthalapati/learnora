@@ -7,7 +7,6 @@ import { server } from "../test/mocks/server";
 import { SUPABASE_URL } from "../lib/supabase";
 import { mockAuthSession } from "../test/mockSession";
 import { fakeSession, renderWithAuth } from "../test/auth";
-import { getGreeting } from "../lib/greeting";
 import { AppShell } from "./AppShell";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -162,18 +161,6 @@ describe("AppShell", () => {
     renderShell("/");
     const sidebar = screen.getByRole("navigation", { name: "Main navigation" });
     expect(within(sidebar).queryByRole("button", { name: "Create" })).toBeNull();
-  });
-
-  it("greets the signed-in user by first name, time-of-day appropriate", () => {
-    /* Derives the expected greeting from the real clock rather than mocking
-       it — `getGreeting` itself is already unit-tested against fixed times
-       in lib/greeting.test.ts, and this codebase's own precedent (Step 9)
-       found `vi.useFakeTimers` breaks MSW/userEvent pacing in view tests
-       like this one. */
-    serveDueCount(0);
-    renderShell("/", "Ada Lovelace");
-
-    expect(screen.getByText(getGreeting("Ada"))).toBeInTheDocument();
   });
 
   it("renders the current section as the page's one <h1>", () => {

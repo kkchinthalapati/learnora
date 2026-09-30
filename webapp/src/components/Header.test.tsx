@@ -52,11 +52,12 @@ describe("Header", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders user greeting, live clock and actions on the root route", () => {
+  it("leaves Today's title and greeting to the view on the root route", () => {
     renderHeader({ path: "/", fullName: "Marie Curie" });
 
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
-    expect(screen.getByText(/Marie/i)).toBeInTheDocument();
+    /* Today's headline names the student; the shell no longer repeats it. */
+    expect(screen.queryByText(/Marie/i)).toBeNull();
     expect(screen.getByRole("button", { name: /search/i })).toBeInTheDocument();
     /* Theme moved to Settings → Appearance and Ask to the sidebar (⌘J). */
     expect(screen.queryByRole("button", { name: /toggle theme/i })).toBeNull();

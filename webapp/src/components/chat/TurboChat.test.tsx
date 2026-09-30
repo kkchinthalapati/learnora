@@ -1114,4 +1114,66 @@ describe("follow-up chips", () => {
     /* Sent as a complete instruction rather than dropped in the box. */
     expect(asked).toContain("more simply");
   });
+
+  describe("the Ask drawer (2026-09 redesign)", () => {
+    it("says what it knows about where the student is", async () => {
+      renderChat("/library");
+      const panel = await openChat();
+      expect(within(panel).getByRole("heading", { name: "Ask" })).toBeInTheDocument();
+      expect(within(panel).getByText(/Knows you're on Library/)).toBeInTheDocument();
+    });
+
+    it("closes on Escape", async () => {
+      renderChat();
+      await openChat();
+      await userEvent.keyboard("{Escape}");
+      expect(screen.queryByRole("region", { name: "Learnora AI chat" })).toBeNull();
+    });
+
+    it("asks for a guess first, and offers a hint or the plain answer", async () => {
+      localStorage.setItem("learnora:flag:guessFirst", "true");
+      const sent = capturePrompts(
+        "Before I answer: what happens to the electrons at the end of the chain?",
+      );
+      renderChat();
+      const panel = await openChat();
+
+      await ask("Why does the electron transport chain need oxygen?");
+      await waitFor(() => expect(sent).toHaveLength(1));
+      expect(sent[0]).toContain("GUESS FIRST");
+      expect(
+        await within(panel).findByText(/A guess is fine/),
+      ).toBeInTheDocument();
+
+      /* "Just explain it" always wins, and is sent without the instruction. */
+      await userEvent.click(within(panel).getByRole("button", { name: "Just explain it" }));
+      await waitFor(() => expect(sent).toHaveLength(2));
+      expect(sent[1]).not.toContain("GUESS FIRST");
+    });
+
+    it("answers the student's guess rather than asking again", async () => {
+      localStorage.setItem("learnora:flag:guessFirst", "true");
+      const sent = capturePrompts("What do you think happens next?");
+      renderChat();
+      await openChat();
+      await ask("Why does the chain need oxygen?");
+      await waitFor(() => expect(sent).toHaveLength(1));
+      await screen.findByText(/A guess is fine/);
+      await ask("How would it keep going without it, maybe it stops?");
+      await waitFor(() => expect(sent).toHaveLength(2));
+      expect(sent[1]).not.toContain("GUESS FIRST");
+    });
+
+    it("promotes the thread to a Session", async () => {
+      localStorage.setItem("learnora:flag:guessFirst", "false");
+      serveReply("Oxygen is the final electron acceptor.");
+      renderChat();
+      const panel = await openChat();
+      await ask("Why does the chain need oxygen?");
+      await within(panel).findByText(/final electron acceptor/);
+      await userEvent.click(within(panel).getByRole("button", { name: "Open as session" }));
+      expect(screen.getByText("path:/study/new")).toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Learnora AI chat" })).toBeNull();
+    });
+  });
 });

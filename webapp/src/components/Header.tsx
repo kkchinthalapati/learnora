@@ -5,7 +5,6 @@ import { useAuth } from "../context/auth";
 import { useOptionalCommandPalette } from "../context/commandPalette";
 import { useLiveClock } from "../hooks/useLiveClock";
 import { useTranslation } from "../hooks/useTranslation";
-import { getGreeting } from "../lib/greeting";
 import { sectionLabel, viewOwnsPageTitle } from "../lib/sectionLabel";
 import styles from "./Header.module.css";
 import { HelpCenter } from "./HelpCenter";
@@ -24,14 +23,12 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
   const time = useLiveClock();
   const t = useTranslation();
 
-  const firstName =
-    (user?.user_metadata?.full_name as string | undefined)?.split(" ")[0] ||
-    "Student";
-  const showDashboardGreeting = pathname === "/";
   /* Views listed in viewOwnsPageTitle() render their own hero <h1>; the shell
      yields the title to them so the page does not name itself twice. */
   const ownsTitle = !viewOwnsPageTitle(pathname);
-  const showClock = showDashboardGreeting || pathname.startsWith("/timer");
+  /* Today's own headline greets the student and its meta line carries the
+     date, so the shell adds neither there (2026-09 redesign). */
+  const showClock = pathname.startsWith("/timer");
 
   return (
     <header className={styles.header}>
@@ -47,9 +44,6 @@ export function Header({ onToggleMenu }: { onToggleMenu: () => void }) {
         <div className={styles.pageIdentity}>
           {ownsTitle ? (
             <h1 className={styles.title}>{sectionLabel(pathname, t)}</h1>
-          ) : null}
-          {showDashboardGreeting ? (
-            <p className={styles.subtitle}>{getGreeting(firstName)}</p>
           ) : null}
         </div>
       </div>
