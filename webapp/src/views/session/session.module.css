@@ -543,6 +543,25 @@ button[data-rank="primary"] .ratingKey {
   color: inherit;
 }
 
+/* Explain's "say this step back" — one line, checked by the tutor. */
+.sayBack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.sayBackRow {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.sayBackRow > input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--control-lg);
+  resize: none;
+}
+
 /* ---- Composer ---- */
 
 .composer {

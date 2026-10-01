@@ -3,6 +3,7 @@ import { Card } from "../../components/Card";
 import { MasteryLadder } from "../../components/learning/MasteryLadder";
 import { Skeleton } from "../../components/Skeleton";
 import { useTrajectory } from "../../hooks/useTrajectory";
+import { useFlashcardsDueCount } from "../../hooks/useFlashcards";
 import { daysUntilFading, topicMastery } from "../../lib/mastery";
 import { newSessionHref } from "../../lib/sessionModes";
 import { fadingTopics } from "../../lib/todayPlan";
@@ -14,6 +15,7 @@ import styles from "./fadingTopics.module.css";
    a congratulation. */
 export function FadingTopicsCard() {
   const { exam, forecast, isPending } = useTrajectory();
+  const due = useFlashcardsDueCount().data ?? 0;
 
   if (isPending) {
     return (
@@ -62,9 +64,13 @@ export function FadingTopicsCard() {
         <div className={styles.empty}>
           <p className={text.subtitle}>Nothing is fading right now.</p>
           <p className={styles.caption}>
-            {next
-              ? `${next.t.label} is next: it starts to slip in about ${next.days} ${next.days === 1 ? "day" : "days"}, and Today will bring it back then.`
-              : "Every topic you've studied is holding."}
+            {/* "Every topic is holding" sat beside Today's "Review 3
+                flashcards". Due cards are memory slipping, so say so. */}
+            {due > 0
+              ? `${due} ${due === 1 ? "card is" : "cards are"} due for review, so Recall will bring ${due === 1 ? "it" : "them"} back today.`
+              : next
+                ? `${next.t.label} is next: it starts to slip in about ${next.days} ${next.days === 1 ? "day" : "days"}, and Today will bring it back then.`
+                : "Every topic you've studied is holding."}
           </p>
           {strongest ? (
             <Link

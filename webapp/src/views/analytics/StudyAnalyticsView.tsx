@@ -35,8 +35,11 @@ const RANGE_OPTIONS: ReadonlyArray<{
 
 /* "Balanced" read as a judgement with no reference point, and it was shown
    for subjects with no exam at all. Plain words for what each state means. */
+/* This column measures how study time is spread, not readiness. "On track"
+   sat beside an exam the Exams page put at 25% ready, six days out; the
+   readiness verdict lives on Exams and Trajectory. */
 const SUBJECT_STATUS_LABEL: Record<string, string> = {
-  Balanced: "On track",
+  Balanced: "Time balanced",
   "Needs more time": "Needs more time",
   "Exam soon": "Exam soon — give it time",
 };
@@ -475,8 +478,8 @@ export function StudyAnalyticsView() {
                   gives the table a name when it is reached out of context
                   (table list, browse mode). */}
               <caption className={styles.srOnly}>
-                Study time logged per subject, with upcoming exam dates and
-                preparation status
+                Study time logged per subject, compared with the most-studied
+                subject, with upcoming exam dates and whether time is balanced
               </caption>
               <thead>
                 <tr>
@@ -487,7 +490,7 @@ export function StudyAnalyticsView() {
                     Study Time
                   </th>
                   <th scope="col" className={styles.th}>
-                    Distribution
+                    Vs. most-studied
                   </th>
                   <th scope="col" className={styles.th}>
                     Upcoming Exam
@@ -496,7 +499,7 @@ export function StudyAnalyticsView() {
                     Days Left
                   </th>
                   <th scope="col" className={styles.th}>
-                    Status
+                    Time
                   </th>
                 </tr>
               </thead>

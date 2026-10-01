@@ -280,10 +280,10 @@ describe("StudyAnalyticsView", () => {
     expect(headers.map((h) => h.textContent)).toEqual([
       "Subject",
       "Study Time",
-      "Distribution",
+      "Vs. most-studied",
       "Upcoming Exam",
       "Days Left",
-      "Status",
+      "Time",
     ]);
   });
 });

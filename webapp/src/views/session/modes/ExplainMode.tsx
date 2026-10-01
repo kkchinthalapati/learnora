@@ -3,16 +3,17 @@ import { Button } from "../../../components/Button";
 import { StudentTurn } from "../../../components/learning/StudentTurn";
 import { TutorTurn } from "../../../components/learning/TutorTurn";
 import {
-  diagnoseCognitiveGap,
   generateMicroRepair,
-  recordRepairSuccess,
   type CognitiveStackTrace,
   type MicroRepairChallenge,
 } from "../../../api/aiDebugger";
+import { planExplanation } from "../../../api/aiExplain";
+import { learningEventsApi } from "../../../api/learningEvents";
+import { normaliseTopicKey } from "../../../lib/topicKey";
+import type { MisconceptionCandidate } from "../../../lib/misconceptions";
 import { askInSession, buildSessionContext, type SessionTurn } from "../../../api/aiSession";
 import { useRecordMisconceptions } from "../../../hooks/useMisconceptions";
 import { useSettings } from "../../../context/settings";
-import { candidatesFromStackTrace } from "../../../lib/misconceptions";
 import { Pending } from "../Pending";
 import { SessionComposer } from "../SessionComposer";
 import { useAiTask } from "../useAiTask";
@@ -24,16 +25,21 @@ export interface ExplainData {
   trace?: CognitiveStackTrace;
   repair?: MicroRepairChallenge;
   chosen?: number;
+  /** How many check questions have been asked. A miss is followed by a new
+   *  question, never the one whose answer was just shown. */
+  checks?: number;
   /** Follow-up questions and answers, per step. */
   thread: Record<number, SessionTurn[]>;
 }
 
 const KEYS = ["A", "B", "C", "D", "E"];
 
-/* Explain runs on the Debugger's diagnosis: its three layers become the plan,
-   taught from the root idea up, and the last step is the Debugger's own
-   micro-repair exercise as the check. A layer is about three sentences, so
-   the tutor never goes far without a check. */
+/* Explain teaches a three-step plan from the foundation up (aiExplain.ts),
+   then checks it with one question. Building the plan writes nothing to the
+   misconception ledger — a student who names a topic has not made a mistake.
+   A wrong check answer is the evidence: that, and only that, is recorded. A
+   step is about three sentences, so the tutor never goes far without a
+   check. */
 export function ExplainMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
   const { settings } = useSettings();
   const record = useRecordMisconceptions();
@@ -55,7 +61,7 @@ export function ExplainMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
   const diagnose = () =>
     task.run(
       () =>
-        diagnoseCognitiveGap(
+        planExplanation(
           session.subject || "General",
           session.objective,
           session.watchingFor?.text,
@@ -64,9 +70,6 @@ export function ExplainMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
         if (trace.degraded) {
           throw new Error(trace.degraded.message);
         }
-        /* A stand-in trace returns no candidates; a real one feeds the
-           ledger exactly as the Solver did. */
-        record(candidatesFromStackTrace(trace));
         const sorted = [...trace.layers].sort((a, b) => a.level - b.level);
         ctl.update((s) => ({
           ...s,
@@ -137,13 +140,65 @@ export function ExplainMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
     );
   };
 
+  /* A check answer is evidence only the first time a question is seen: it
+     used to be possible to miss, see the answer marked, press "Try it
+     again" on the same question and have the copied answer recorded as a
+     perfect score. */
   const choose = (index: number) => {
-    if (!data.repair || data.chosen !== undefined) return;
-    save({ chosen: index });
-    if (index === data.repair.interactiveExercise.correctIndex && data.trace) {
-      void recordRepairSuccess(data.trace.id, data.repair.id);
+    const repair = data.repair;
+    if (!repair || data.chosen !== undefined) return;
+    const right = index === repair.interactiveExercise.correctIndex;
+    const checks = (data.checks ?? 0) + 1;
+    save({ chosen: index, checks });
+    const concept = repair.rootConcept || layers[0]?.concept || session.objective;
+    void learningEventsApi
+      .record({
+        source: "quick_check",
+        topicKey: normaliseTopicKey(session.objective),
+        score: right ? 1 : 0,
+        clientId: `explain:${session.id}:${repair.id}`,
+        payload: { mode: "explain", concept },
+      })
+      .catch(() => {
+        /* Best-effort, like every other evidence write. */
+      });
+    /* A miss is evidence of a gap. Getting a fresh question right after a
+       miss is the correction that closes it; a right answer first time is
+       just a pass and leaves the ledger alone. */
+    if (!right || checks > 1) {
+      const candidate: MisconceptionCandidate = {
+        subject: session.subject || "General",
+        concept,
+        summary: repair.interactiveExercise.firstPrinciplesExplanation,
+        severity: "moderate",
+        tool: "debugger",
+        sourceId: repair.id,
+        kind: right ? "correction" : "evidence",
+        detail: `Check question: ${repair.interactiveExercise.prompt}`,
+      };
+      record([candidate]);
     }
   };
+
+  /* After a miss: a different question on the same idea. */
+  const retryCheck = () => {
+    const previous = data.repair;
+    if (!previous) return;
+    const root = layers[0]?.concept ?? session.objective;
+    task.run(
+      () => generateMicroRepair(root, { avoidPrompt: previous.interactiveExercise.prompt }),
+      (result) => {
+        if (!result.challenge) throw new Error(result.degraded.message);
+        save({ repair: result.challenge, chosen: undefined });
+      },
+    );
+  };
+
+  /* "Say this step back": the student's own sentence, checked by the tutor. */
+  const sayItBack = (attempt: string) =>
+    ask(
+      `Here is how I'd say this step in one sentence: "${attempt}". Is that right? If anything important is missing or wrong, tell me what in one or two sentences.`,
+    );
 
   const lastTutorText =
     [...thread].reverse().find((t) => t.role === "model")?.content ??
@@ -161,15 +216,13 @@ export function ExplainMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
               claimLevel={2}
               trap={
                 step === 0
-                  ? session.watchingFor?.text ?? data.trace?.rootCauseSummary
+                  ? session.watchingFor?.text || data.trace?.rootCauseSummary || undefined
                   : undefined
               }
               deeper={layer.prerequisiteOf ? `This is what ${layer.prerequisiteOf} is built on.` : undefined}
               check={
                 <div className={styles.check}>
-                  <p className={styles.checkQuestion}>
-                    Could you say this step back in one sentence?
-                  </p>
+                  <SayItBack onSubmit={sayItBack} disabled={task.pending} />
                   <div className={styles.actions}>
                     <Button variant="primary" onClick={() => ctl.setStep(step + 1)}>
                       I've got it, next step
@@ -208,7 +261,7 @@ export function ExplainMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
                     repair={data.repair}
                     chosen={data.chosen}
                     onChoose={choose}
-                    onRetry={() => save({ chosen: undefined })}
+                    onRetry={retryCheck}
                     onDone={ctl.finish}
                   />
                 ) : undefined
@@ -326,12 +379,52 @@ function RepairCheck({
               </Button>
             ) : (
               <Button variant="secondary" onClick={onRetry}>
-                Try it again
+                Try a different question
               </Button>
             )}
           </div>
         </>
       ) : null}
     </div>
+  );
+}
+
+function SayItBack({
+  onSubmit,
+  disabled,
+}: {
+  onSubmit: (text: string) => void;
+  disabled: boolean;
+}) {
+  const [value, setValue] = useState("");
+  return (
+    <form
+      className={styles.sayBack}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const text = value.trim();
+        if (!text) return;
+        onSubmit(text);
+        setValue("");
+      }}
+    >
+      <label className={styles.checkQuestion} htmlFor="say-it-back">
+        Could you say this step back in one sentence?
+      </label>
+      <div className={styles.sayBackRow}>
+        <input
+          id="say-it-back"
+          className={styles.answerBox}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="In your own words…"
+          maxLength={400}
+          disabled={disabled}
+        />
+        <Button type="submit" variant="secondary" disabled={disabled || !value.trim()}>
+          Check mine
+        </Button>
+      </div>
+    </form>
   );
 }

@@ -11,7 +11,8 @@ import { useQuizAttempts } from "../../hooks/useQuizzes";
 import { useSessionsSince } from "../../hooks/useSessions";
 import { useTasks } from "../../hooks/useTasks";
 import { dueCardsFrom } from "../review/srs";
-import { INTERVENTION_BLOCK_MINS } from "../../lib/trajectory";
+import { INTERVENTION_BLOCK_MINS, isDeckTopicId } from "../../lib/trajectory";
+import { useAllDecks } from "../../hooks/useDecks";
 import { localDateStr } from "../../lib/date";
 import { isFlagOn } from "../../lib/flags";
 import {
@@ -72,6 +73,7 @@ export function TodayView() {
   /* How many cards the top topic's deck owes right now. `useTrajectory` has
      already fetched the cards, so this is a cache read. */
   const cards = useFlashcards();
+  const decks = useAllDecks();
   const topDeckId = forecast?.interventions[0]?.topicId;
   const topDeckDue = useMemo(
     () =>
@@ -151,8 +153,17 @@ export function TodayView() {
           onCreate={() =>
             openCreateModal({ type: "material", outputs: { flashcards: true } })
           }
-          onStart={(deckId, label, minutes = INTERVENTION_BLOCK_MINS) => {
-            prepareFocus(minutes, label, undefined, deckId);
+          onStart={(topicId, label, minutes = INTERVENTION_BLOCK_MINS) => {
+            /* The block's subject comes from its deck. It was left out, so a
+               block on a Biology deck was saved with no subject and never
+               counted toward Biology's study time (4 of 6 production
+               sessions in September had none). A quiz-only topic has no
+               deck to pass. */
+            const deckId = isDeckTopicId(topicId) ? topicId : undefined;
+            const folderId = deckId
+              ? (decks.data ?? []).find((d) => d.id === deckId)?.folder_id ?? null
+              : null;
+            prepareFocus(minutes, label, folderId, deckId);
             /* The button says "Start"; landing on a stopped clock and needing
                a second Start was the gap this screen exists to close. */
             if (!timerState.isRunning) start();

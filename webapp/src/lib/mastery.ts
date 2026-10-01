@@ -45,18 +45,28 @@ function rungFor(mastery: number, evidence: number): MasteryRung {
 /** Map one trajectory topic onto the ladder. `explained` is the fourth rung's
  *  own evidence — a passed Teach / explain check — which no quiz can supply. */
 export function topicMastery(
-  topic: Pick<TopicState, "mastery" | "evidence" | "stabilityDays">,
+  topic: Pick<
+    TopicState,
+    "mastery" | "evidence" | "stabilityDays" | "measuredMastery" | "measuredEvidence"
+  >,
   { explained = false }: { explained?: boolean } = {},
 ): TopicMastery {
-  let rung = rungFor(topic.mastery, topic.evidence);
+  /* Checks only. Forty-five minutes on the timer with no check moved a topic
+     from "Not started" to "Recalled", right under the line "each step needs
+     evidence from a check, not time spent". */
+  const measured = {
+    mastery: topic.measuredMastery ?? topic.mastery,
+    evidence: topic.measuredEvidence ?? topic.evidence,
+  };
+  let rung = rungFor(measured.mastery, measured.evidence);
   if (explained && rung === 3) rung = 4;
   if (rung === 0) return { rung, fading: false };
 
-  let future = topic.mastery;
+  let future = measured.mastery;
   for (let day = 0; day < FADING_HORIZON_DAYS; day++) {
     future = decayOneDay(future, topic.stabilityDays);
   }
-  const futureRung = rungFor(future, topic.evidence);
+  const futureRung = rungFor(future, measured.evidence);
   /* The explained rung sits on top of "applied"; it fades with it. */
   const fading = futureRung < Math.min(rung, 3);
   return { rung, fading };
@@ -72,15 +82,19 @@ export function masteryLabel({ rung, fading }: TopicMastery): string {
 /** Days until a topic's rung would slip untouched (capped at `max`), or null
  *  when it has no rung to lose. Drives "Next due: X, in about N days". */
 export function daysUntilFading(
-  topic: Pick<TopicState, "mastery" | "evidence" | "stabilityDays">,
+  topic: Pick<
+    TopicState,
+    "mastery" | "evidence" | "stabilityDays" | "measuredMastery" | "measuredEvidence"
+  >,
   max = 60,
 ): number | null {
-  const now = rungFor(topic.mastery, topic.evidence);
+  const evidence = topic.measuredEvidence ?? topic.evidence;
+  const now = rungFor(topic.measuredMastery ?? topic.mastery, evidence);
   if (now === 0) return null;
-  let m = topic.mastery;
+  let m = topic.measuredMastery ?? topic.mastery;
   for (let day = 1; day <= max; day++) {
     m = decayOneDay(m, topic.stabilityDays);
-    if (rungFor(m, topic.evidence) < now) return day;
+    if (rungFor(m, evidence) < now) return day;
   }
   return null;
 }
