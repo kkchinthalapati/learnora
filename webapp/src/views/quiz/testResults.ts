@@ -146,9 +146,17 @@ export interface AttemptComparison {
 export function compareAttempts(
   previous: StoredAnswer[] | null,
   current: StoredAnswer[],
+  /** The earlier attempt's stored score. Used when its answers can't be
+   *  read (an older row shape): recounting nothing showed a made-up
+   *  "0 → N" improvement. */
+  previousScore?: number | null,
 ): AttemptComparison | null {
   if (!previous) return null;
   const correct = (a: StoredAnswer[]) => a.filter((x) => x.correct).length;
+  if (previous.length === 0) {
+    if (typeof previousScore !== "number") return null;
+    return { before: previousScore, after: correct(current) };
+  }
   const guesses = (a: StoredAnswer[]) => a.filter((x) => x.confidence === "guess").length;
   const hadConfidence = (a: StoredAnswer[]) => a.some((x) => x.confidence != null);
   return {

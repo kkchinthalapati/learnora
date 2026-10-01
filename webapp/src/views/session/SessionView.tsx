@@ -22,6 +22,8 @@ import { FlagAnswer } from "./FlagAnswer";
 import type { ModeProps } from "./modeTypes";
 import text from "../../styles/text.module.css";
 import styles from "./session.module.css";
+import { useDocumentTitle } from "../../lib/routeTitle";
+import { setActiveAiSession } from "../../api/ai";
 
 const MODE_VIEWS: Record<SessionMode, (props: ModeProps) => React.JSX.Element> = {
   explain: ExplainMode,
@@ -57,6 +59,17 @@ export function SessionView() {
   const { session, savedAt, missing } = ctl;
   const [flagging, setFlagging] = useState<string | null>(null);
   const [planOpen, setPlanOpen] = useState(false);
+  useDocumentTitle(
+    session ? `${MODE_LABELS[session.mode]}: ${session.objective}` : null,
+  );
+
+  /* Every AI call while this session is open is billed to it once, so a
+     free student can finish the session they started. */
+  const activeId = session?.id ?? null;
+  useEffect(() => {
+    setActiveAiSession(activeId);
+    return () => setActiveAiSession(null);
+  }, [activeId]);
   const planId = useId();
 
   /* A new session gets its real URL as soon as it exists, so a reload or a
@@ -88,13 +101,25 @@ export function SessionView() {
     void navigate("/");
   };
 
+  if (ctl.loading) {
+    return (
+      <main className={styles.shell} aria-busy="true">
+        <div className={styles.setup}>
+          <p className={styles.caption} role="status">
+            Fetching this session from your other device…
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   if (missing) {
     return (
       <main className={styles.shell}>
         <div className={styles.setup}>
           <EmptyState
-            title="That session isn't on this device."
-            message="Sessions are saved in the browser you studied in. Start a new one here; nothing else was lost."
+            title="That session couldn't be found."
+            message="It may have been started before sessions were saved to your account, or deleted. Start a new one here; nothing else was lost."
           >
             <Button variant="primary" onClick={() => void navigate("/study")}>
               Start a session
@@ -161,7 +186,13 @@ export function SessionView() {
   return (
     <main className={styles.shell}>
       <header className={styles.topbar}>
-        <button type="button" className={styles.leave} onClick={leave}>
+        <button
+          type="button"
+          className={styles.leave}
+          onClick={leave}
+          /* The visible label is hidden on phones; the X alone has no name. */
+          aria-label="Save & leave"
+        >
           <Icon name="x" size={18} />
           <span className={styles.leaveLabel}>Save & leave</span>
         </button>

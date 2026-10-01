@@ -207,7 +207,10 @@ export function RecallMode({ session, ctl, onSwitchMode }: ModeProps) {
                 </div>
               ) : (
                 <Button variant="primary" size="lg" onClick={reveal}>
-                  Show answer <span className={styles.ratingKey}>Space</span>
+                  Show answer{" "}
+                  <span className={styles.ratingKey} aria-hidden="true">
+                    Space
+                  </span>
                 </Button>
               )}
             </>

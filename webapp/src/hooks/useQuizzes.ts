@@ -5,6 +5,9 @@ import { candidatesFromQuizAnswers } from "../lib/misconceptions";
 import { misconceptionsKeys } from "./useMisconceptions";
 import { foldersKeys } from "./useFolders";
 import type { Folder, Quiz } from "../api/types";
+import { addMissedQuestionCards } from "../api/missedQuestions";
+import { decksKeys } from "./useDecks";
+import { flashcardsKeys } from "./useFlashcards";
 
 export const quizzesKeys = {
   all: ["quizzes"] as const,
@@ -95,6 +98,7 @@ export function useRecordQuizAttempt() {
          average from before it. */
       qc.invalidateQueries({ queryKey: quizzesKeys.attempts });
       recordQuizMisconceptions(qc, quizId, answers, attemptKey);
+      fileMissedQuestions(qc, quizId, answers);
     },
   });
 }
@@ -151,4 +155,27 @@ function recordQuizMisconceptions(
       }
     })
     .catch((err) => console.warn("[misconceptions] quiz write failed:", err));
+}
+
+/* Wrong and guessed questions go to Recall as cards (api/missedQuestions.ts),
+   which is what the results screen tells the student will happen. Behind
+   the results screen like the ledger write: never awaited, never a toast. */
+function fileMissedQuestions(
+  qc: ReturnType<typeof useQueryClient>,
+  quizId: string,
+  answers: unknown,
+): void {
+  const quiz = qc.getQueryData<Quiz[]>(quizzesKeys.all)?.find((q) => q.id === quizId);
+  const run = quiz
+    ? Promise.resolve(quiz)
+    : quizzesApi.fetchAll().then((all) => all.find((q) => q.id === quizId));
+  void run
+    .then((q) => (q ? addMissedQuestionCards(q, answers) : 0))
+    .then((added) => {
+      if (added > 0) {
+        void qc.invalidateQueries({ queryKey: decksKeys.all });
+        void qc.invalidateQueries({ queryKey: flashcardsKeys.all });
+      }
+    })
+    .catch((err) => console.warn("[recall] missed questions not filed:", err));
 }

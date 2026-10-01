@@ -8,6 +8,7 @@
  */
 
 import { callEdge } from "./ai";
+import { levelRules, studentLevel } from "../lib/studentLevel";
 import { fenceUntrusted } from "../lib/actionTags";
 import type { Settings } from "../lib/settings";
 
@@ -57,10 +58,13 @@ export async function askInSession({
   settings?: Settings;
   signal?: AbortSignal;
 }): Promise<string> {
+  /* The level travels with every in-session answer, as it does with the
+     plan and the checks, so a follow-up is pitched where the plan was. */
+  const level = await studentLevel().catch(() => "");
   const { text } = await callEdge(
     {
       history: [...history.slice(-8), { role: "user", content: question }],
-      context,
+      context: level ? `${context}\n${levelRules(level)}` : context,
       tool: "chat",
       settings,
     },

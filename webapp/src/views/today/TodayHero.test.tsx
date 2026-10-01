@@ -53,12 +53,16 @@ describe("TodayHero — next step", () => {
     expect(screen.getByRole("link", { name: /review 12 due cards in enzymes/i })).toHaveAttribute("href", "/review/d1");
   });
 
-  it("makes the timed block the whole action while nothing has measured the topic", async () => {
+  it("sends an unmeasured topic to a Practice session, with the timed block one click away", async () => {
     const unmeasured = { ...forecast, confidence: { ...forecast.confidence, evidence: 0.2 } } as TrajectoryForecast;
     const onStart = vi.fn();
     renderHero({ forecast: unmeasured, onStart });
     expect(screen.queryByRole("link", { name: /find what's missing/i })).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: /start 45 min on enzymes/i }));
+    expect(screen.getByRole("link", { name: /practise enzymes/i })).toHaveAttribute(
+      "href",
+      expect.stringContaining("mode=practice"),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /start 45 min instead/i }));
     expect(onStart).toHaveBeenCalledWith("d1", "Enzymes");
   });
 

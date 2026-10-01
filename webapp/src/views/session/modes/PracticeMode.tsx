@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { learningEventsApi } from "../../../api/learningEvents";
+import { normaliseTopicKey } from "../../../lib/topicKey";
 import { Button } from "../../../components/Button";
 import { ConfidencePicker } from "../../../components/learning/ConfidencePicker";
 import type { Confidence } from "../../../components/learning/options";
@@ -136,6 +138,20 @@ export function PracticeMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
     const correct = chosen === question.correctIndex;
     const answers = { ...data.answers, [index]: { chosen, correct, confidence } };
     ctl.setModeData<PracticeData>("practice", { ...data, answers });
+    /* Every checked problem is a scored event, so Today and Progress learn
+       from Practice the way they learn from flashcards. A guess that landed
+       counts for half: it is not nothing, and it is not knowing. */
+    void learningEventsApi
+      .record({
+        source: "quick_check",
+        topicKey: normaliseTopicKey(question.topic || session.objective),
+        score: correct ? (confidence === "guess" ? 0.5 : 1) : 0,
+        clientId: `practice:${session.id}:${index}`,
+        payload: { mode: "practice", confidence },
+      })
+      .catch(() => {
+        /* Best-effort, like every other evidence write. */
+      });
     /* A lucky guess is not evidence of knowing — it is rescheduled, not
        credited. Wrong answers are evidence either way. */
     if (!(correct && confidence === "guess")) {

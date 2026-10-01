@@ -1165,9 +1165,9 @@ Use British English throughout.`;
                 <div className={styles.toolIconBox}>
                   <Icon name="mic" size={18} />
                 </div>
-                <div className={styles.toolLabel}>Voice Study Partner</div>
+                <div className={styles.toolLabel}>Socratic, by voice</div>
                 <div className={styles.toolSubtext}>
-                  Socratic sparring with Alex & Jordan
+                  Questions instead of answers, out loud
                 </div>
               </button>
             </div>

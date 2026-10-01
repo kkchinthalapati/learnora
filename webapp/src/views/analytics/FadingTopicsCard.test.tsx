@@ -5,6 +5,8 @@ import { FadingTopicsCard } from "./FadingTopicsCard";
 
 const trajectory = vi.hoisted(() => ({ value: {} as Record<string, unknown> }));
 vi.mock("../../hooks/useTrajectory", () => ({ useTrajectory: () => trajectory.value }));
+const due = vi.hoisted(() => ({ value: 0 }));
+vi.mock("../../hooks/useFlashcards", () => ({ useFlashcardsDueCount: () => ({ data: due.value }) }));
 
 const topic = (id: string, label: string, mastery: number, stabilityDays: number) => ({
   id, label, mastery, evidence: 0.6, stabilityDays, weight: 1, cardCount: 5,
@@ -46,5 +48,24 @@ describe("FadingTopicsCard", () => {
   it("stays out of the way with no topics to show", () => {
     renderCard([]);
     expect(screen.queryByRole("heading")).toBeNull();
+  });
+});
+
+describe("FadingTopicsCard with cards due", () => {
+  it("does not claim everything is holding while cards are due", () => {
+    due.value = 3;
+    trajectory.value = {
+      exam: null,
+      isPending: false,
+      forecast: { topics: [{ id: "d", label: "Enzymes", mastery: 0.9, evidence: 0.9, stabilityDays: 400, weight: 1, cardCount: 5 }] },
+    };
+    render(
+      <MemoryRouter>
+        <FadingTopicsCard />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/3 cards are due for review/)).toBeInTheDocument();
+    expect(screen.queryByText(/Every topic you've studied is holding/)).toBeNull();
+    due.value = 0;
   });
 });

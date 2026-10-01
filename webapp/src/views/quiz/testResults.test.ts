@@ -114,3 +114,14 @@ describe("compareAttempts", () => {
     expect(compareAttempts(null, [a(1, true)])).toBeNull();
   });
 });
+
+describe("compareAttempts with an unreadable earlier attempt", () => {
+  it("uses the stored score instead of inventing 0", () => {
+    const current = [
+      { questionId: 0, chosenIndex: 0, correct: true },
+      { questionId: 1, chosenIndex: 0, correct: false },
+    ];
+    expect(compareAttempts([], current, 1)).toEqual({ before: 1, after: 1 });
+    expect(compareAttempts([], current)).toBeNull();
+  });
+});

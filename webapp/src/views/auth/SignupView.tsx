@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent } from "react";
 import { Link } from "react-router";
+import { AI_PROVIDERS_SHORT } from "../../lib/aiProviders";
 import { Button } from "../../components/Button";
 import {
   PasswordField,
@@ -184,8 +185,7 @@ export function SignupView() {
             />
             <label htmlFor={consentId} className={styles.consentLabel}>
               Turn on AI features now: I agree to share my study data with
-              Learnora's AI providers (Anthropic's Claude and Google's Gemini).
-              See our{" "}
+              Learnora's AI providers — {AI_PROVIDERS_SHORT}. See our{" "}
               <Link to="/privacy" target="_blank" rel="noopener noreferrer">
                 Privacy Policy
               </Link>

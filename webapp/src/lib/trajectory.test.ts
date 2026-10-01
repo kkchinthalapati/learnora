@@ -755,3 +755,71 @@ describe("masteryLevel", () => {
     expect(masteryLevel(0.8)).toBe("solid");
   });
 });
+
+describe("evidence: checks, not time (2026-10 audit)", () => {
+  const now = new Date("2026-10-01T12:00:00Z");
+  const deck = { id: "d1", title: "Enzymes", folder_id: "f-bio", user_id: "u", created_at: "2026-09-01T00:00:00Z" } as never;
+  const timeEvent = {
+    id: "t1", user_id: "u", topic_key: "enzymes", deck_id: "d1", folder_id: null,
+    source: "timer", score: null, minutes: 45, occurred_at: "2026-10-01T11:00:00Z",
+    payload: {}, client_id: null,
+  } as never;
+  const attempt = (answers: { topic: string; correct: boolean }[], id = "a1") =>
+    ({
+      id, user_id: "u", quiz_id: "q1", score: answers.filter((a) => a.correct).length,
+      total: answers.length, created_at: "2026-09-30T10:00:00Z", weak_topics: [],
+      answers_json: answers.map((a, i) => ({ questionId: i, chosenIndex: 0, correct: a.correct, topic: a.topic })),
+    }) as never;
+
+  it("a timed block with no check does not move the mastery ladder", async () => {
+    const { topicMastery } = await import("./mastery");
+    const [before] = buildTopicStates({ decks: [deck], cards: [], attempts: [], now });
+    const [after] = buildTopicStates({ decks: [deck], cards: [], attempts: [], events: [timeEvent], now });
+    expect(topicMastery(before).rung).toBe(0);
+    expect(topicMastery(after).rung).toBe(0);
+    // ...while the forecast still credits the study time.
+    expect(after.mastery).toBeGreaterThan(before.mastery);
+  });
+
+  it("quiz answers count as evidence on the matching deck, right answers included", () => {
+    const [none] = buildTopicStates({ decks: [deck], cards: [], attempts: [], now });
+    const [quizzed] = buildTopicStates({
+      decks: [deck], cards: [],
+      attempts: [attempt([{ topic: "Enzymes", correct: true }, { topic: "Enzymes", correct: true }])],
+      now,
+    });
+    expect(quizzed.measuredEvidence).toBeGreaterThan(none.measuredEvidence ?? 0);
+    expect(quizzed.measuredMastery).toBeGreaterThan(none.measuredMastery ?? 0);
+  });
+
+  it("a topic only ever quizzed on becomes a topic of its own", () => {
+    const states = buildTopicStates({
+      decks: [deck], cards: [],
+      attempts: [attempt([{ topic: "Photosynthesis", correct: false }])],
+      now,
+    });
+    const quizOnly = states.find((t) => t.label === "Photosynthesis");
+    expect(quizOnly?.id).toBe("quiz:photosynthesis");
+    expect(quizOnly?.measuredMastery).toBeLessThan(0.25);
+  });
+
+  it("a folder-scoped forecast only takes quiz topics from that folder's quizzes", () => {
+    const src = {
+      decks: [deck], cards: [], now, folderId: "f-bio",
+      attempts: [attempt([{ topic: "Weimar", correct: true }])],
+    };
+    expect(buildTopicStates({ ...src, quizzes: [{ id: "q1", folder_id: "f-hist" }] }).some((t) => t.label === "Weimar")).toBe(false);
+    expect(buildTopicStates({ ...src, quizzes: [{ id: "q1", folder_id: "f-bio" }] }).some((t) => t.label === "Weimar")).toBe(true);
+  });
+});
+
+describe("the Missed questions pile is not a topic", () => {
+  it("is left out of the topic set", () => {
+    const decks = [
+      { id: "d1", title: "Enzymes", folder_id: null },
+      { id: "d2", title: "Missed questions", folder_id: null },
+    ] as never[];
+    const states = buildTopicStates({ decks, cards: [], attempts: [], now: new Date("2026-10-01") });
+    expect(states.map((t) => t.label)).toEqual(["Enzymes"]);
+  });
+});

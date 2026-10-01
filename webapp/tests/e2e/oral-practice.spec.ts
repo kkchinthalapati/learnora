@@ -51,21 +51,21 @@ test("works with no speech recognition: the mic explains, typing answers", async
   await expect(page.getByText(/built-in practice questions/)).toHaveCount(0);
 });
 
-test("says so when the AI is down, and keeps the stand-in out of the ledger", async ({
+test("says so when the AI is down, offers a retry instead of stand-in questions, and writes nothing", async ({
   page,
   backend,
 }) => {
+  /* The built-in question bank is topic-agnostic ("what happens if the
+     external boundary changes?" for photosynthesis). Inside a session an
+     outage is now an error with a retry, never tutoring. */
   backend.stub("learnora-ai", 400, { error: "AI is temporarily unavailable." });
   await withoutSpeechApi(page);
   await loginAs(page);
   await startOn(page, "Photosynthesis");
 
-  await expect(page.getByText(/AI isn't available right now/)).toBeVisible();
-  await page.getByLabel("Your answer").fill(
-    "Plants use light energy to make glucose from carbon dioxide and water.",
-  );
-  await page.getByRole("button", { name: "Send" }).click();
-  await expect(page.getByLabel("Your answer")).toHaveValue("");
+  await expect(page.getByText(/couldn't reach the tutor/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  await expect(page.getByText(/built-in practice questions/)).toHaveCount(0);
 
   /* Give any stray write time to land before asserting there was none. */
   await page.waitForTimeout(1500);

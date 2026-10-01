@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { AI_PROVIDERS } from "../../lib/aiProviders";
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { PrivacyView } from "./PrivacyView";
@@ -38,14 +39,18 @@ describe("PrivacyView", () => {
     }
   });
 
-  it("names the AI providers and says data isn't used for training", () => {
+  it("names every AI provider a request can reach, backups included", () => {
     renderPrivacy();
 
-    expect(screen.getAllByText(/Anthropic/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Google/).length).toBeGreaterThan(0);
+    for (const provider of AI_PROVIDERS) {
+      expect(screen.getAllByText(new RegExp(provider.company.replace(/[()]/g, "\\$&"))).length).toBeGreaterThan(0);
+    }
     expect(
-      screen.getByText(/do not allow Anthropic or Google to train/),
+      screen.getByText(/Learnora does not use your data to train AI models/),
     ).toBeInTheDocument();
+    /* The old claim promised something about the providers' own training
+       that nothing in the system enforced. */
+    expect(screen.queryByText(/do not allow Anthropic or Google to train/)).toBeNull();
   });
 
   it("explains retention and the 30-day backup purge on deletion", () => {

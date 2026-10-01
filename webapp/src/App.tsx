@@ -16,6 +16,7 @@ import { TurboChat } from "./components/chat/TurboChat";
 import { FocusStudyHUD } from "./views/timer/FocusStudyHUD";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AppRoutes } from "./routes";
+import { RouteTitle } from "./lib/routeTitle";
 import { useAuth } from "./context/auth";
 import { useEffect } from "react";
 import { applyAppUpdate, watchForAppUpdate } from "./lib/appUpdate";
@@ -79,6 +80,7 @@ export default function App() {
                       <CreateModalProvider>
                         <ChatProvider>
                           <CommandPaletteProvider>
+                            <RouteTitle />
                             <ErrorBoundary label="route">
                               <AppRoutes />
                             </ErrorBoundary>

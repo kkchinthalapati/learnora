@@ -338,14 +338,10 @@ describe("NotesAiSidebar", () => {
     ).not.toBeChecked();
   });
 
-  it("says the podcast card does not exist yet rather than pretending", async () => {
-    const user = userEvent.setup();
+  it("offers only actions that exist — no 'coming soon' tiles", async () => {
     renderNotes();
-
-    await user.click(await screen.findByRole("button", { name: /Podcast/ }));
-
-    expect(
-      await screen.findByText("Podcast generation coming soon"),
-    ).toBeInTheDocument();
+    await screen.findByRole("button", { name: /Quiz me/ });
+    expect(screen.queryByRole("button", { name: /Podcast/ })).toBeNull();
+    expect(screen.queryByText(/soon/i)).toBeNull();
   });
 });

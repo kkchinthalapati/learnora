@@ -177,7 +177,7 @@ export function CommandPalette(props: CommandPaletteProps) {
         return [
           {
             id: "action-prefix-debug",
-            category: "Step-by-step solver",
+            category: "Explain",
             title: prefixMatch.text
               ? `Look at: "${prefixMatch.text}"`
               : "Type a topic to look at…",
@@ -317,9 +317,9 @@ export function CommandPalette(props: CommandPaletteProps) {
     items.push({
       id: "nav-ai-debugger",
       category: "Study tools",
-      title: "Step-by-step solver",
+      title: "Explain session",
       subtitle:
-        "Work backwards from a mistake to find where you got stuck and repair the gap",
+        "Step by step from the idea underneath, with a check after each step",
       icon: "brain",
       badge: "AI Tool",
       keywords: [

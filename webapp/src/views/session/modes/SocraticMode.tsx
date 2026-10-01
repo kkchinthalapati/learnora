@@ -23,6 +23,9 @@ import styles from "../session.module.css";
 /** Questions a Socratic session asks before it wraps up. */
 export const SOCRATIC_ROUNDS = 4;
 
+const TUTOR_UNREACHED =
+  "I couldn't reach the tutor just now. Your session is saved — try again in a moment.";
+
 export interface SocraticData {
   sparring?: SparringSession;
   /** Hints taken on the current question. */
@@ -58,6 +61,11 @@ export function SocraticMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
           session.watchingFor?.text,
         ),
       (sparring) => {
+        /* The built-in question bank is topic-agnostic ("what happens if the
+           external boundary changes?" for enzymes). Inside a session it is
+           an error with a retry, not tutoring. Declined consent keeps it,
+           labelled, because the student chose that. */
+        if (sparring.offline === "unavailable") throw new Error(TUTOR_UNREACHED);
         ctl.update((s) => ({
           ...s,
           plan: Array.from({ length: SOCRATIC_ROUNDS }, (_, i) => ({
@@ -86,6 +94,9 @@ export function SocraticMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) 
       () => submitStudentAnswer(sparring, reply),
       ({ session: next, feedback }) => {
         setAnswering(false);
+        if (next.offline === "unavailable" && !sparring.offline) {
+          throw new Error(TUTOR_UNREACHED);
+        }
         if (!next.offline) {
           record(
             candidatesFromSparring(feedback, {

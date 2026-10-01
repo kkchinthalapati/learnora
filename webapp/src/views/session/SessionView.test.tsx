@@ -12,18 +12,28 @@ const mocks = vi.hoisted(() => ({
   diagnose: vi.fn(),
   repair: vi.fn(),
   mutate: vi.fn(),
+  record: vi.fn(),
+  event: vi.fn(async () => true),
   due: [] as Array<Record<string, unknown>>,
 }));
 
 vi.mock("../../api/aiDebugger", () => ({
-  diagnoseCognitiveGap: mocks.diagnose,
   generateMicroRepair: mocks.repair,
-  recordRepairSuccess: vi.fn(),
+}));
+
+/* Explain plans with aiExplain since 2026-10 (the debugger's diagnosis
+   wrote "mistakes" for a topic the student only named). Same trace shape. */
+vi.mock("../../api/aiExplain", () => ({
+  planExplanation: mocks.diagnose,
+}));
+
+vi.mock("../../api/learningEvents", () => ({
+  learningEventsApi: { record: mocks.event },
 }));
 
 vi.mock("../../hooks/useMisconceptions", () => ({
   useMisconceptions: () => ({ all: [], ranked: [], forSubject: () => [] }),
-  useRecordMisconceptions: () => vi.fn(),
+  useRecordMisconceptions: () => mocks.record,
 }));
 
 vi.mock("../../hooks/useFlashcards", () => ({
@@ -77,6 +87,8 @@ beforeEach(() => {
   mocks.diagnose.mockReset();
   mocks.repair.mockReset();
   mocks.mutate.mockReset();
+  mocks.record.mockReset();
+  mocks.event.mockClear();
   mocks.due = [];
 });
 
@@ -118,6 +130,49 @@ describe("SessionView", () => {
       await screen.findByRole("heading", { level: 2, name: "Proton pumping" }),
     ).toBeInTheDocument();
     expect(within(plan).getAllByRole("listitem")[0]).toHaveTextContent("Done:");
+  });
+
+  it("Explain: the plan writes no mistakes; only a missed check does, and the retry is a new question", async () => {
+    const challenge = (id: string, prompt: string) => ({
+      challenge: {
+        id,
+        rootConcept: "Gradients store energy",
+        intuitionSummary: "Like water behind a dam.",
+        verified: false,
+        interactiveExercise: {
+          prompt,
+          options: ["The gradient", "The glucose", "The light", "The water"],
+          correctIndex: 0,
+          firstPrinciplesExplanation: "The gradient is the store.",
+        },
+      },
+    });
+    mocks.diagnose.mockResolvedValue(trace);
+    mocks.repair
+      .mockResolvedValueOnce(challenge("r1", "Where is the energy stored?"))
+      .mockResolvedValueOnce(challenge("r2", "What would a leak in the membrane do?"));
+    renderSession("/study/new?mode=explain&topic=ATP%20synthesis");
+
+    await screen.findByRole("heading", { level: 2, name: "Gradients store energy" });
+    expect(mocks.record).not.toHaveBeenCalled();
+
+    for (let i = 0; i < 3; i++) {
+      await userEvent.click(await screen.findByRole("button", { name: "I've got it, next step" }));
+    }
+    await userEvent.click(await screen.findByRole("button", { name: /The glucose/ }));
+    /* The miss is the evidence: one ledger row, and a score of 0. */
+    expect(mocks.record).toHaveBeenCalledTimes(1);
+    expect(mocks.record.mock.calls[0][0][0]).toMatchObject({ kind: "evidence", concept: "Gradients store energy" });
+    expect(mocks.event).toHaveBeenLastCalledWith(expect.objectContaining({ score: 0 }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Try a different question" }));
+    expect(await screen.findByText("What would a leak in the membrane do?")).toBeInTheDocument();
+    expect(mocks.repair).toHaveBeenLastCalledWith("Gradients store energy", {
+      avoidPrompt: "Where is the energy stored?",
+    });
+    await userEvent.click(screen.getByRole("button", { name: /The gradient/ }));
+    expect(mocks.record.mock.calls[1][0][0]).toMatchObject({ kind: "correction" });
+    expect(mocks.event).toHaveBeenLastCalledWith(expect.objectContaining({ score: 1 }));
   });
 
   it("says what was kept when the tutor fails, and retrying works", async () => {
@@ -179,8 +234,22 @@ describe("SessionView", () => {
     expect(loadStudySession(pointer!.id)?.status).toBe("paused");
   });
 
-  it("says plainly when a session isn't on this device", () => {
+  it("looks for a session on the server before saying it can't be found", async () => {
     renderSession("/study/s-unknown?mode=explain");
-    expect(screen.getByText("That session isn't on this device.")).toBeInTheDocument();
+    expect(screen.getByText(/Fetching this session from your other device/)).toBeInTheDocument();
+    expect(await screen.findByText("That session couldn't be found.")).toBeInTheDocument();
+  });
+
+  it("opens a session another device saved", async () => {
+    const { http, HttpResponse } = await import("msw");
+    const { server } = await import("../../test/mocks/server");
+    const { SUPABASE_URL } = await import("../../lib/supabase");
+    const { createStudySession } = await import("../../lib/studySessions");
+    const remote = { ...createStudySession({ objective: "Titration", mode: "explain", id: "s-laptop01" }), plan: [{ id: "a", label: "Moles" }] };
+    server.use(http.get(`${SUPABASE_URL}/rest/v1/study_session_state`, () => HttpResponse.json({ record: remote })));
+    mocks.diagnose.mockResolvedValue(trace);
+    renderSession("/study/s-laptop01?mode=explain");
+    expect(await screen.findByRole("heading", { level: 1, name: "Titration" })).toBeInTheDocument();
+    expect(loadStudySession("s-laptop01")).not.toBeNull();
   });
 });

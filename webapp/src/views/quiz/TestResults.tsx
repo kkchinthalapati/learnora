@@ -74,9 +74,9 @@ export function TestResults({
         (a) => a.quiz_id === quizId && new Date(a.created_at).getTime() < shownAt - 1000,
       )
       .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
-    return prior ? parseStoredAnswers(prior.answers_json) : null;
+    return prior ? { answers: parseStoredAnswers(prior.answers_json), score: prior.score } : null;
   }, [attempts.data, quizId, shownAt]);
-  const comparison = compareAttempts(previous, answers);
+  const comparison = compareAttempts(previous?.answers ?? null, answers, previous?.score);
 
   const lead = groups[0];
   const weakest = rows.find((r) => r.status === "review");

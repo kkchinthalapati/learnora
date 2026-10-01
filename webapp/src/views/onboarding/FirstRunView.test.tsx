@@ -12,10 +12,12 @@ import { WelcomeView } from "./WelcomeView";
 const generate = vi.fn();
 const addDeck = vi.fn();
 const addCards = vi.fn();
-vi.mock("../../api/aiQuiz", async (orig) => ({
-  ...(await orig<typeof import("../../api/aiQuiz")>()),
-  generateQuizQuestions: (...a: unknown[]) => generate(...a),
+const recordEvent = vi.fn(async () => true);
+vi.mock("../../api/firstLesson", async (orig) => ({
+  ...(await orig<typeof import("../../api/firstLesson")>()),
+  generateFirstLesson: (...a: unknown[]) => generate(...a),
 }));
+vi.mock("../../api/learningEvents", () => ({ learningEventsApi: { record: (...a: unknown[]) => recordEvent(...(a as [])) } }));
 vi.mock("../../api/decks", async (orig) => {
   const real = await orig<typeof import("../../api/decks")>();
   return { ...real, decksApi: { ...real.decksApi, add: (...a: unknown[]) => addDeck(...a) } };
@@ -46,6 +48,12 @@ const questions = [
     correctIndex: 1,
   },
 ];
+const lesson = {
+  concept: "The law of demand",
+  hook: questions[0],
+  explanation: "When something costs more, fewer people buy it. Think of a café raising its coffee price.",
+  check: questions[1],
+};
 
 function render(path = "/welcome") {
   return renderWithAuth(<WelcomeView />, { session: newUser }, { initialEntries: [path] });
@@ -54,7 +62,8 @@ function render(path = "/welcome") {
 beforeEach(() => {
   localStorage.clear();
   mockAuthSession("user-1");
-  generate.mockReset().mockResolvedValue(questions);
+  generate.mockReset().mockResolvedValue(lesson);
+  recordEvent.mockClear();
   addDeck.mockReset().mockResolvedValue({ id: "deck-1" });
   addCards.mockReset().mockResolvedValue([]);
   server.use(
@@ -72,28 +81,36 @@ describe("FirstRunView", () => {
     expect(screen.getByRole("button", { name: /drop notes/i })).toBeInTheDocument();
   });
 
-  it("runs topic → guess → check → win and saves the lesson as flashcards", async () => {
+  it("runs topic → guess → lesson → check on the same idea → win, and saves answerable cards", async () => {
     const user = userEvent.setup();
     render();
+    await user.click(await screen.findByRole("button", { name: "GCSE" }));
     await user.type(await screen.findByLabelText(/what you're studying/i), "Supply and demand");
     await user.click(screen.getByRole("button", { name: /^start$/i }));
 
     expect(generate).toHaveBeenCalledTimes(1);
-    expect(generate.mock.calls[0][0]).toMatchObject({
-      options: { questionCount: 2, difficulty: "Easy" },
-    });
+    /* The level chosen on the first screen reaches the lesson prompt. */
+    expect(generate.mock.calls[0]).toEqual(["Supply and demand", "GCSE"]);
 
     await screen.findByText(questions[0].question);
     expect(screen.getByText(/no penalty for guessing/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /it rises/i }));
-    /* A wrong guess shows both the guess and the answer, each with a glyph. */
     expect(screen.getByText(/✕ your guess: it rises/i)).toBeInTheDocument();
     expect(screen.getByText(/✓ answer: it falls/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /show me how/i }));
 
+    /* "Show me how" shows the lesson before any check. */
+    expect(await screen.findByText(/think of a café/i)).toBeInTheDocument();
+    expect(screen.queryByText(questions[1].question)).toBeNull();
+    await user.click(screen.getByRole("button", { name: /check me/i }));
+
     await screen.findByText(questions[1].question);
     await user.click(screen.getByRole("button", { name: /down/i }));
     expect(screen.getByText(/✓ right\./i)).toBeInTheDocument();
+    /* The check is evidence Today will read, on the deck's topic. */
+    expect(recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ topicKey: "supply and demand", score: 1, source: "quick_check" }),
+    );
     await user.click(screen.getByRole("button", { name: /continue/i }));
 
     expect(
@@ -101,10 +118,11 @@ describe("FirstRunView", () => {
     ).toBeInTheDocument();
     await waitFor(() => expect(addCards).toHaveBeenCalledTimes(1));
     expect(addDeck).toHaveBeenCalledWith(null, "Supply and demand");
-    expect(addCards.mock.calls[0][1]).toEqual([
-      { front: questions[0].question, back: "It falls" },
-      { front: questions[1].question, back: "Down" },
-    ]);
+    const [hookCard, checkCard] = addCards.mock.calls[0][1];
+    expect(hookCard.front).toContain("A) It rises");
+    expect(hookCard.back).toContain("It falls");
+    expect(hookCard.back).toContain("Think of a café");
+    expect(checkCard.front).toContain(questions[1].question);
     expect(screen.getByRole("heading", { level: 2, name: /two questions/i })).toBeInTheDocument();
   });
 
@@ -117,6 +135,17 @@ describe("FirstRunView", () => {
     await user.click(screen.getByRole("button", { name: /try again|retry/i }));
     await screen.findByText(questions[0].question);
     expect(generate).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the topic when the lesson fails and they skip, and Study offers it", async () => {
+    generate.mockRejectedValue(new Error("busy"));
+    const user = userEvent.setup();
+    render();
+    await user.type(await screen.findByLabelText(/what you're studying/i), "Mitochondria");
+    await user.click(screen.getByRole("button", { name: /^start$/i }));
+    await user.click(await screen.findByRole("button", { name: /skip to my plan/i }));
+    const { readPendingTopic } = await import("../../lib/pendingTopic");
+    await waitFor(() => expect(readPendingTopic("user-1")).toBe("Mitochondria"));
   });
 
   it("counts a skip as set up so the gate lets them through", async () => {

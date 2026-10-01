@@ -631,3 +631,25 @@ describe("pathForNavigateTarget", () => {
     expect(pathForNavigateTarget("atlantis")).toBeNull();
   });
 });
+
+describe("NAVIGATE covers the app's real destinations", () => {
+  it("every sidebar destination has a key the tutor is taught", async () => {
+    const { NAV_PATHS } = await import("../components/Sidebar");
+    const { NAVIGATE_TARGETS } = await import("./chatActions");
+    const reachable = new Set(NAVIGATE_TARGETS.map((k) => pathForNavigateTarget(k)));
+    for (const path of NAV_PATHS) expect(reachable, path).toContain(path);
+  });
+
+  it("every taught key resolves", async () => {
+    const { NAVIGATE_TARGETS } = await import("./chatActions");
+    for (const key of NAVIGATE_TARGETS) expect(pathForNavigateTarget(key), key).not.toBeNull();
+    expect(pathForNavigateTarget("progress")).toBe("/analytics");
+  });
+
+  it("the prompt lists them and describes the current Library", async () => {
+    const { buildSystemContext } = await import("./chatPrompt");
+    const ctx = buildSystemContext({ pendingTasks: "None", upcomingExams: "None", activeContext: "", query: "" });
+    expect(ctx).toContain("progress, trajectory");
+    expect(ctx).toContain("Subjects, Files & notes, Flashcards, Quizzes and Notebooks");
+  });
+});

@@ -55,6 +55,11 @@ export function TeachMode({ session, ctl, onFlag, onSwitchMode }: ModeProps) {
           session.subject ? forSubject(session.subject) : [],
         ),
       (draft) => {
+        if (draft.fromTemplate) {
+          throw new Error(
+            "I couldn't get your student ready just now. Nothing is lost — try again in a moment.",
+          );
+        }
         ctl.update((s) => ({
           ...s,
           plan: (draft.learningObjectives.length

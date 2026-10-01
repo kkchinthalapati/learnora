@@ -16,14 +16,13 @@ const base = {
 
 describe("chooseNextStep", () => {
   it("measures first when the mastery number is not yet trustworthy", () => {
-    const step = chooseNextStep({
-      ...base,
-      evidence: LOW_EVIDENCE - 0.01,
-      mastery: 0.1,
-    });
+    const step = chooseNextStep({ ...base, evidence: LOW_EVIDENCE - 0.01, mastery: 0.1 });
     expect(step.method).toBe("block");
-    expect(step.to).toBeNull();
-    expect(step.why).toMatch(/nothing has measured/i);
+    expect(step.to).toMatch(/mode=practice/);
+    /* Some evidence exists, so it must not claim none does. */
+    expect(step.why).toMatch(/only a little has measured/i);
+    const none = chooseNextStep({ ...base, evidence: 0, mastery: 0.25 });
+    expect(none.why).toMatch(/nothing has measured/i);
   });
 
   it("sends a measured-and-wrong topic to the Solver, not to more cards", () => {
@@ -55,10 +54,10 @@ describe("chooseNextStep", () => {
     expect(step.to).toBe("/study/new?mode=teach&topic=Hydrolysis");
   });
 
-  it("falls back to a timed block for a half-built topic with nothing due", () => {
+  it("sends a half-built topic with nothing due to a Practice session, not a bare timer", () => {
     const step = chooseNextStep({ ...base, mastery: 0.5, dueCards: 0 });
     expect(step.method).toBe("block");
-    expect(step.to).toBeNull();
+    expect(step.to).toMatch(/^\/study\/new\?mode=practice&topic=/);
   });
 
   it("escapes a topic name that would otherwise break the query string", () => {

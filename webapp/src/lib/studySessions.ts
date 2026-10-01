@@ -6,13 +6,14 @@
  * and Today's Resume can pick it back up (both read lib/continuity, which this
  * keeps in step on every save).
  *
- * Stored on this device for now. The handoff asks for server-side sessions;
- * that needs a table and a migration, which is deliberately a separate,
- * reviewable change — this module is the only thing that would change. */
+ * Stored on this device first (instant, offline-proof), and pushed to the
+ * server behind it (api/studySessionSync) so a session started on one
+ * device can be resumed on another. */
 
 import { recordStudySession } from "./continuity";
 import type { SessionMode } from "./sessionModes";
 import { collection } from "./storage";
+import { scheduleSessionPush } from "../api/studySessionSync";
 
 export interface PlanStepRecord {
   id: string;
@@ -117,6 +118,20 @@ export function saveStudySession(
 ): StudySessionRecord {
   const saved = { ...session, updatedAt: new Date().toISOString() };
   store.save(saved);
+  scheduleSessionPush(saved);
+  rememberInContinuity(saved);
+  return saved;
+}
+
+/** A session that arrived from another device: kept as it was saved there,
+ *  and not pushed straight back. */
+export function adoptRemoteSession(session: StudySessionRecord): StudySessionRecord {
+  store.save(session);
+  rememberInContinuity(session);
+  return session;
+}
+
+function rememberInContinuity(saved: StudySessionRecord): void {
   recordStudySession({
     id: saved.id,
     objective: saved.objective,
@@ -129,7 +144,6 @@ export function saveStudySession(
     watchingFor: saved.watchingFor?.text,
     subject: saved.subject,
   });
-  return saved;
 }
 
 export function deleteStudySession(id: string): void {

@@ -27,9 +27,10 @@ import styles from "./today.module.css";
 /** How long "short on time" means. */
 export const SHORT_BLOCK_MINS = 10;
 
+/* Named after the session each step opens (lib/nextStep). */
 const METHOD_LABELS: Record<StudyMethod, string> = {
-  block: "Study block",
-  solve: "Socratic",
+  block: "Practice",
+  solve: "Explain",
   review: "Recall",
   teach: "Teach",
 };
@@ -342,9 +343,11 @@ export function TodayHero({
   }
 
   /* scenario === "next": the forecast's topic, and chooseNextStep's method. */
+  /* Checks only, like the Progress ladder beside it: study time must not
+     make the hero claim a topic has been measured. */
+  const topicState = forecast.topics?.find((t) => t.id === top.topicId);
   const evidence =
-    forecast.topics?.find((t) => t.id === top.topicId)?.evidence ??
-    forecast.confidence.evidence;
+    topicState?.measuredEvidence ?? topicState?.evidence ?? forecast.confidence.evidence;
   const step = chooseNextStep({
     label: top.label,
     topicId: top.topicId,
@@ -408,13 +411,26 @@ export function TodayHero({
         <details className={styles.why}>
           <summary>Why {top.label}?</summary>
           <ul>
-            <li>
-              An hour on {top.label} adds about{" "}
-              {Math.max(1, Math.round(top.pointsPerHour))}{" "}
-              {Math.round(top.pointsPerHour) === 1 ? "point" : "points"} to your
-              predicted score, more than any other topic right now
-              {runnerUp ? ` (next best: ${runnerUp.label})` : ""}.
-            </li>
+            {/* A precise number on thin evidence ("adds about 48 points",
+                with "only a little data") claims more than the model
+                knows. Points are only shown once the forecast has some
+                evidence behind it; until then the reason is given in words. */}
+            {rough_ ? (
+              <li>
+                {top.label} looks like your biggest gap before this exam, so an
+                hour there should move your predicted score more than any
+                other topic
+                {runnerUp ? ` (next: ${runnerUp.label})` : ""}.
+              </li>
+            ) : (
+              <li>
+                An hour on {top.label} adds about{" "}
+                {Math.max(1, Math.round(top.pointsPerHour))}{" "}
+                {Math.round(top.pointsPerHour) === 1 ? "point" : "points"} (out of
+                100) to your predicted score, more than any other topic right now
+                {runnerUp ? ` (next best: ${runnerUp.label})` : ""}.
+              </li>
+            )}
             <li>
               {rough_
                 ? "The prediction is rough because Learnora has only a little quiz and flashcard data from you. The check at the end makes it more accurate."

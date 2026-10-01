@@ -442,6 +442,13 @@ async function runTag(
 /** Vanilla hash routes → React paths, for `<NAVIGATE>`. Returns null for
  *  anything the app has no route for, so an invented destination is ignored
  *  rather than pushing the student onto the not-found page. */
+/** Every key the tutor is told it may use (the CAPABILITIES line in
+ *  chatPrompt.ts is built from this list). */
+export const NAVIGATE_TARGETS = [
+  "today", "study", "library", "materials", "flashcards", "quizzes", "notebooks",
+  "plan", "availability", "tasks", "exams", "timer", "progress", "trajectory", "settings",
+] as const;
+
 export function pathForNavigateTarget(view: string): string | null {
   const routes: Record<string, string> = {
     dashboard: "/",
@@ -457,6 +464,18 @@ export function pathForNavigateTarget(view: string): string | null {
     quizzes: "/library/quizzes",
     plan: "/plan",
     settings: "/settings",
+    /* The 2026-09 redesign's destinations. The tutor told students "taking
+       you there" for Progress and nothing happened, because none of these
+       had a key. */
+    today: "/",
+    study: "/study",
+    progress: "/analytics",
+    analytics: "/analytics",
+    trajectory: "/trajectory",
+    forecast: "/trajectory",
+    availability: "/my-week",
+    review: "/library/flashcards",
+    notebooks: "/library/notebooks",
   };
   return routes[view] ?? null;
 }

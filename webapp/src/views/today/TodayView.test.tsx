@@ -16,7 +16,10 @@ vi.mock("../../hooks/useTrajectory", () => ({ useTrajectory: () => ({
   forecast: { daysRemaining: 6, topics: [], confidence: { lower: 50, upper: 70, evidence: .6 }, interventions: [{ topicId: "d", label: "Enzymes", mastery: .3, pointsPerHour: 4 }] },
 }) }));
 beforeEach(() => { mockAuthSession("user-1"); timer.completedFocus = null; clearStudySnapshot(); vi.clearAllMocks(); });
-it("leads with one decision, lists due tasks as rows, and passes the deck to the timer", async () => {
+it("leads with one decision, lists due tasks as rows, and passes the deck and its subject to the timer", async () => {
+  server.use(http.get(`${SUPABASE_URL}/rest/v1/flashcard_decks`, () => HttpResponse.json([
+    { id: "d", title: "Enzymes", folder_id: "f-bio", user_id: "user-1", created_at: "2026-09-01T00:00:00Z" },
+  ])));
   server.use(http.get(`${SUPABASE_URL}/rest/v1/tasks`, () => HttpResponse.json([
     { id: 1, text: "Due task", is_done: false, due_date: localDateStr() },
     { id: 2, text: "Future task", is_done: false, due_date: "2099-01-01" },
@@ -31,7 +34,9 @@ it("leads with one decision, lists due tasks as rows, and passes the deck to the
   expect(screen.queryByText("Future task")).toBeNull();
   expect(screen.queryByText("Undated task")).toBeNull();
   await userEvent.click(screen.getByRole("button", { name: /Start 45 min instead/ }));
-  expect(timer.prepareFocus).toHaveBeenCalledWith(45, "Enzymes", undefined, "d");
+  /* The deck's subject travels with the block, so its time counts toward
+     Biology (it was undefined, and production sessions had no subject). */
+  await waitFor(() => expect(timer.prepareFocus).toHaveBeenCalledWith(45, "Enzymes", "f-bio", "d"));
   /* "Start" means start: the student lands on a running clock. */
   expect(timer.start).toHaveBeenCalled();
 });

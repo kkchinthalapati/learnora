@@ -56,7 +56,13 @@ export function formatCreatedLong(iso: string | null): string {
   });
 }
 
+/* One date format across the Library ("Sep 26, 2026"); folders, files and
+   decks each printed it differently (9/26/2026, "Created: …", "Created …"). */
 export function formatCreatedShort(iso: string | null): string {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString();
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
