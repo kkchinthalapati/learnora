@@ -234,8 +234,22 @@ describe("SessionView", () => {
     expect(loadStudySession(pointer!.id)?.status).toBe("paused");
   });
 
-  it("says plainly when a session isn't on this device", () => {
+  it("looks for a session on the server before saying it can't be found", async () => {
     renderSession("/study/s-unknown?mode=explain");
-    expect(screen.getByText("That session isn't on this device.")).toBeInTheDocument();
+    expect(screen.getByText(/Fetching this session from your other device/)).toBeInTheDocument();
+    expect(await screen.findByText("That session couldn't be found.")).toBeInTheDocument();
+  });
+
+  it("opens a session another device saved", async () => {
+    const { http, HttpResponse } = await import("msw");
+    const { server } = await import("../../test/mocks/server");
+    const { SUPABASE_URL } = await import("../../lib/supabase");
+    const { createStudySession } = await import("../../lib/studySessions");
+    const remote = { ...createStudySession({ objective: "Titration", mode: "explain", id: "s-laptop01" }), plan: [{ id: "a", label: "Moles" }] };
+    server.use(http.get(`${SUPABASE_URL}/rest/v1/study_session_state`, () => HttpResponse.json({ record: remote })));
+    mocks.diagnose.mockResolvedValue(trace);
+    renderSession("/study/s-laptop01?mode=explain");
+    expect(await screen.findByRole("heading", { level: 1, name: "Titration" })).toBeInTheDocument();
+    expect(loadStudySession("s-laptop01")).not.toBeNull();
   });
 });

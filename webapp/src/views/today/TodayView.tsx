@@ -6,6 +6,7 @@ import { useCreateModal } from "../../context/createModal";
 import { useTrajectory } from "../../hooks/useTrajectory";
 import { useFlashcards, useFlashcardsDueCount } from "../../hooks/useFlashcards";
 import { useContinuity } from "../../hooks/useContinuity";
+import { useRemoteSessionResume } from "../../hooks/useRemoteSessionResume";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { useQuizAttempts } from "../../hooks/useQuizzes";
 import { useSessionsSince } from "../../hooks/useSessions";
@@ -89,6 +90,7 @@ export function TodayView() {
     snapshot.lastStudySession && snapshot.lastStudySession.status !== "done"
       ? snapshot.lastStudySession
       : null;
+  useRemoteSessionResume(Boolean(session));
   const rough = useMemo(
     () => recentRoughTest(attempts.data ?? [], misconceptions, now),
     [attempts.data, misconceptions, now],

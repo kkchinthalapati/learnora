@@ -75,7 +75,7 @@ export function chooseNextStep({
     return {
       method: "solve",
       action: `Find what's missing in ${label}`,
-      why: `You are getting ${label} wrong rather than forgetting it, so more cards would just rehearse the same mistake. The Solver works backwards to the step you are missing.`,
+      why: `You are getting ${label} wrong rather than forgetting it, so more cards would just rehearse the same mistake. An Explain session works back to the step you are missing.`,
       to: newSessionHref("explain", { topic: label }),
     };
   }
@@ -98,10 +98,15 @@ export function chooseNextStep({
     };
   }
 
+  /* This used to start a 45-minute timer and nothing else: the student
+     landed on the timer page with a clock running and no material, and Today
+     offered the same block again afterwards because time alone measured
+     nothing. A Practice session is problems on the topic, each one a check
+     that the forecast reads. The timed block stays one click away on Today. */
   return {
     method: "block",
-    action: `Start ${INTERVENTION_BLOCK_MINS} min on ${label}`,
-    why: `${label} is half-built and nothing is due on it, so the useful thing is time on the material — with a check at the end to see what moved.`,
-    to: null,
+    action: `Practise ${label}`,
+    why: `${label} is half-built and nothing is due on it, so the useful thing is working problems on it — each one checked, so the next step is based on what you actually know.`,
+    to: newSessionHref("practice", { topic: label }),
   };
 }

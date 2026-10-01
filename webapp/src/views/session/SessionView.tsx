@@ -101,13 +101,25 @@ export function SessionView() {
     void navigate("/");
   };
 
+  if (ctl.loading) {
+    return (
+      <main className={styles.shell} aria-busy="true">
+        <div className={styles.setup}>
+          <p className={styles.caption} role="status">
+            Fetching this session from your other device…
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   if (missing) {
     return (
       <main className={styles.shell}>
         <div className={styles.setup}>
           <EmptyState
-            title="That session isn't on this device."
-            message="Sessions are saved in the browser you studied in. Start a new one here; nothing else was lost."
+            title="That session couldn't be found."
+            message="It may have been started before sessions were saved to your account, or deleted. Start a new one here; nothing else was lost."
           >
             <Button variant="primary" onClick={() => void navigate("/study")}>
               Start a session

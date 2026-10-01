@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { loadFeynmanSession } from "../api/aiFeynman";
 import type { Misconception } from "../lib/misconceptions";
 import { CognitiveBridge } from "../lib/cognitiveBridge";
+import { fetchSession, flushSessionPushes } from "../api/studySessionSync";
 import {
+  adoptRemoteSession,
   createStudySession,
   loadStudySession,
   saveStudySession,
@@ -87,6 +89,8 @@ export interface UseStudySession {
   session: StudySessionRecord | null;
   /** True when the route names a session this device has never seen. */
   missing: boolean;
+  /** Looking for the session on the server (it is not on this device). */
+  loading: boolean;
   /** Last successful save, for "Autosaved 14:02". */
   savedAt: Date | null;
   /** Start a `/study/new` session once the student has named an objective. */
@@ -118,8 +122,33 @@ export function useStudySession({
     return loadStudySession(sessionId) ?? importLegacySession(sessionId);
   });
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  /* Not on this device: look on the server before saying so. */
+  const [remote, setRemote] = useState<"idle" | "loading" | "notfound">(
+    sessionId !== "new" && !session ? "loading" : "idle",
+  );
   const sessionRef = useRef(session);
   sessionRef.current = session;
+
+  useEffect(() => {
+    if (remote !== "loading") return;
+    let live = true;
+    fetchSession(sessionId)
+      .then((found) => {
+        if (!live) return;
+        if (found) {
+          const adopted = adoptRemoteSession(found);
+          sessionRef.current = adopted;
+          setSession(adopted);
+          setRemote("idle");
+        } else {
+          setRemote("notfound");
+        }
+      })
+      .catch(() => live && setRemote("notfound"));
+    return () => {
+      live = false;
+    };
+  }, [remote, sessionId]);
 
   const commit = useCallback((next: StudySessionRecord) => {
     const saved = saveStudySession(next);
@@ -156,6 +185,7 @@ export function useStudySession({
       if (s && s.status === "active") {
         saveStudySession({ ...s, status: "paused" });
       }
+      flushSessionPushes();
     },
     [],
   );
@@ -185,7 +215,8 @@ export function useStudySession({
 
   return {
     session,
-    missing: sessionId !== "new" && session === null,
+    missing: sessionId !== "new" && session === null && remote === "notfound",
+    loading: remote === "loading",
     savedAt,
     begin,
     update,

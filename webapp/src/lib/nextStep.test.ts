@@ -55,10 +55,10 @@ describe("chooseNextStep", () => {
     expect(step.to).toBe("/study/new?mode=teach&topic=Hydrolysis");
   });
 
-  it("falls back to a timed block for a half-built topic with nothing due", () => {
+  it("sends a half-built topic with nothing due to a Practice session, not a bare timer", () => {
     const step = chooseNextStep({ ...base, mastery: 0.5, dueCards: 0 });
     expect(step.method).toBe("block");
-    expect(step.to).toBeNull();
+    expect(step.to).toMatch(/^\/study\/new\?mode=practice&topic=/);
   });
 
   it("escapes a topic name that would otherwise break the query string", () => {
