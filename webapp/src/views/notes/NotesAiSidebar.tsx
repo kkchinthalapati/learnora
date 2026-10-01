@@ -388,20 +388,15 @@ export function NotesAiSidebar({
         <QuickActionCard
           icon="sparkles"
           title="AI Tutor"
-          description="Solver, Explain, Viva"
+          description="Explain, Socratic, Practice, Teach"
           onActivate={() => {
             const topic = materialTitle || "Study Notes";
             CognitiveBridge.saveActiveTopic(topic);
             navigate(`/study?topic=${encodeURIComponent(topic)}`);
           }}
         />
-        <QuickActionCard
-          icon="mic"
-          title="Podcast"
-          description="Listen & learn — soon"
-          soon
-          onActivate={() => showToast("Podcast generation coming soon")}
-        />
+        {/* A "Podcast — soon" tile sat here; a button that only says "not
+            yet" makes the screen feel unfinished. */}
       </div>
 
       <div className={styles.chat}>

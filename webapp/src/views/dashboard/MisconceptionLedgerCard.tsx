@@ -33,11 +33,13 @@ const SEVERITY_LABEL: Record<Misconception["severity"], string> = {
   minor: "Worth a look",
 };
 
+/* The five Study modes are the names students see now (2026-09 redesign);
+   "debugger", "feynman" and "sparring" are the storage keys they kept. */
 const TOOL_LABEL: Record<Misconception["originTool"], string> = {
-  debugger: "the Step-by-step solver",
-  feynman: "Feynman",
-  premortem: "Common Exam Traps",
-  sparring: "Oral practice",
+  debugger: "an Explain session",
+  feynman: "a Teach session",
+  premortem: "Exam traps practice",
+  sparring: "a Socratic session",
   quiz: "your quizzes",
   notes: "your notes",
   review: "review",

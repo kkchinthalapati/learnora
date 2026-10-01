@@ -84,9 +84,9 @@ const HELP_BY_ROUTE: ReadonlyArray<{
     summary:
       "Pick the exercise that matches your problem. Each one starts with just a topic.",
     suggestions: [
-      "Got something wrong? Step-by-step solver",
-      "Think you understand it? Explain it simply",
-      "Oral exam coming up? Oral practice",
+      "Don't get it yet? Explain",
+      "Think you understand it? Teach",
+      "Oral exam coming up? Socratic, mic on",
     ],
   },
 ];

@@ -42,14 +42,14 @@ const TOOL_CONFIGS: {
 }[] = [
   {
     id: "debugger",
-    label: "Step-by-step solver",
+    label: "Explain",
     route: newSessionHref("explain"),
     icon: "zap",
     action: "debug_stack",
   },
   {
     id: "feynman",
-    label: "Explain it simply",
+    label: "Teach",
     route: newSessionHref("teach"),
     icon: "users",
     action: "teach_apprentice",
@@ -57,9 +57,9 @@ const TOOL_CONFIGS: {
 ];
 
 const SOURCE_TOOL_LABELS: Record<CognitiveSourceTool, string> = {
-  debugger: "Step-by-step solver",
-  feynman: "Explain it simply",
-  sparring: "Oral practice",
+  debugger: "Explain",
+  feynman: "Teach",
+  sparring: "Socratic",
   exam_detective: "Exam Detective",
   /* Retained because CognitiveSourceTool still admits it: a payload written
      before Pre-Mortem was folded into Exam Detective can still be sitting in a

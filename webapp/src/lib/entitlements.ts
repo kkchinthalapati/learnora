@@ -234,7 +234,7 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
   },
   preMortem: {
     id: "preMortem",
-    name: "Common Exam Traps",
+    name: "Exam traps practice",
     description: "Spot tricky questions, wording traps, and edge cases before the exam.",
   },
   feynman: {
