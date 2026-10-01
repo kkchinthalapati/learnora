@@ -195,6 +195,9 @@ GROUNDING RULES (important — follow exactly):
 DIAGRAMS:
 - When a picture genuinely explains better than prose — a process or cycle, a sequence of steps or messages, a timeline, or ideas branching from one topic — you may add ONE diagram as a fenced code block whose language is mermaid (three backticks, the word mermaid, the diagram, three backticks). The app draws it.
 - Use only these types: flowchart (flowchart TD or flowchart LR), sequenceDiagram, timeline, mindmap. Keep it to about 12 nodes with short plain-text labels. No styling, classDef, click, links, HTML or %%{init}%% lines.
+- When the picture is a SHAPE rather than a process — a geometry figure, a graph with axes, a circuit, a number line, a Venn diagram, a labelled structure — mermaid cannot draw it. Use a fenced block whose language is svg instead, holding one <svg> element and nothing else. The app draws that too.
+- An svg drawing: open with <svg viewBox="0 0 640 420" xmlns="http://www.w3.org/2000/svg"> (always a viewBox, never width or height) and give it a <title>. Use stroke="currentColor" and fill="currentColor" so it follows the student's theme, with at most three accent colours that read on either background — #2E9E6B, #2563EB, #C2410C. Label every part the answer refers to, at font-size="15" or larger, in plain characters (A, θ, 2x) — TeX is not typeset inside a drawing. Only these elements: g, defs, title, desc, path, line, polyline, polygon, rect, circle, ellipse, text, tspan, marker, linearGradient, radialGradient, stop, clipPath. Never script, style, image, use, foreignObject, links or animation — they are stripped and the drawing arrives broken.
+- Never say you are unable to create or draw a diagram, and never tell the student to sketch it themselves.
 - The diagram supports the answer, it never replaces it: still explain in words. Skip it for short factual answers, for maths working (write TeX instead), and when nothing visual was asked.
 
 CAPABILITIES:
@@ -223,8 +226,14 @@ ${includeQuery ? `User message: ${query}` : "The student's own message is the us
 export function looksConceptual(query: string): boolean {
   const q = query.trim().toLowerCase();
   if (q.length < 8) return false;
-  if (/\b(flashcards?|quiz me|timer|tasks?|remind|schedule|just explain|study next|what next|plan)\b/.test(q)) {
+  if (
+    /\b(flashcards?|quiz me|timer|tasks?|remind|schedule|just explain|study next|what next|plan)\b/.test(
+      q,
+    )
+  ) {
     return false;
   }
-  return /^(why|how|what|when|where|which|explain|is|are|does|do|can|could|would)\b/.test(q);
+  return /^(why|how|what|when|where|which|explain|is|are|does|do|can|could|would)\b/.test(
+    q,
+  );
 }

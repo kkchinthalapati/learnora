@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Diagram } from "../components/Diagram";
 import { MathNode } from "./Math";
 import { MermaidDiagram } from "./MermaidDiagram";
 import { hasMathDelimiter, splitMath } from "./mathSyntax";
@@ -40,9 +41,11 @@ export type MarkdownSegment =
   { kind: "text"; text: string } | { kind: "node"; node: ReactNode };
 
 export interface MarkdownOptions {
-  /** Draw ```mermaid fences as diagrams (MermaidDiagram.tsx) instead of
-   *  showing their source. Opt-in: only the tutor chat is told it may write
-   *  them, and every other surface keeps rendering a fence as code. */
+  /** Draw a model's diagrams rather than showing their source: a ```mermaid
+   *  fence through MermaidDiagram.tsx, and a ```svg one (or a bare `<svg>`
+   *  element in the prose) through Diagram.tsx. Opt-in: only the surfaces
+   *  whose prompt says they may draw pass it, and everywhere else a fence
+   *  stays code and `<svg>` in a reply stays text. */
   diagrams?: boolean;
 }
 
@@ -200,6 +203,40 @@ const HEADING_LEVELS = [
   { prefix: "# ", tag: "h1" },
 ] as const;
 
+/** Fence languages the model uses when it draws an SVG (see
+ *  `DIAGRAM_INSTRUCTIONS` in `lib/diagramPrompt.ts`). Mermaid covers
+ *  processes, sequences and mindmaps; this covers everything mermaid cannot
+ *  draw — geometry, graphs with axes, labelled structures. */
+const SVG_LANGS = new Set(["svg", "diagram"]);
+
+/** A whole `<svg>` element sitting in prose. Models drop the fence often
+ *  enough that without this the student gets a wall of raw markup instead of
+ *  the picture they asked for. */
+const BARE_SVG = /<svg[\s>][\s\S]*?<\/svg\s*>/gi;
+
+const isSvgSource = (text: string) => /^<svg[\s>]/i.test(text.trim());
+
+/** Prose that may have unfenced SVG in it: the drawings become diagrams, and
+ *  everything between them is rendered as ordinary markdown. */
+function renderProseWithDiagrams(prose: string): ReactNode[] {
+  BARE_SVG.lastIndex = 0;
+  if (!BARE_SVG.test(prose)) return renderProse(prose);
+
+  const out: ReactNode[] = [];
+  let last = 0;
+  BARE_SVG.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = BARE_SVG.exec(prose)) !== null) {
+    const before = prose.slice(last, match.index);
+    if (before.trim()) out.push(...renderProse(before));
+    out.push(<Diagram key={nextKey()} source={match[0]} />);
+    last = match.index + match[0].length;
+  }
+  const after = prose.slice(last);
+  if (after.trim()) out.push(...renderProse(after));
+  return out;
+}
+
 function renderTextBlock(
   markdown: string,
   options: MarkdownOptions = {},
@@ -211,12 +248,30 @@ function renderTextBlock(
 
   for (let i = 0; i < parts.length; i += 3) {
     const prose = parts[i];
-    if (prose) out.push(...renderProse(prose));
+    /* Unfenced SVG only counts where drawings are expected at all, same as a
+       fence: on every other surface a reply is prose, and `<svg>` in it is
+       something the student typed. */
+    if (prose) {
+      out.push(
+        ...(options.diagrams
+          ? renderProseWithDiagrams(prose)
+          : renderProse(prose)),
+      );
+    }
 
-    const lang = parts[i + 1];
+    const lang = (parts[i + 1] ?? "").toLowerCase();
     const code = parts[i + 2];
     if (code !== undefined && options.diagrams && lang === "mermaid") {
       out.push(<MermaidDiagram key={nextKey()} code={code.trim()} />);
+    } else if (
+      code !== undefined &&
+      options.diagrams &&
+      SVG_LANGS.has(lang) &&
+      /* The language alone is not enough — a student asking *about* SVG should
+         still see their source as code — so the body has to be an element. */
+      isSvgSource(code)
+    ) {
+      out.push(<Diagram key={nextKey()} source={code.trim()} />);
     } else if (code !== undefined) {
       out.push(
         <pre key={nextKey()} className={styles.pre}>
@@ -268,7 +323,8 @@ function renderProse(prose: string): ReactNode[] {
        a bare `$$` would close as its own paragraph and the equation would
        render as prose between two rows of dollar signs. Single-line `$$…$$`
        needs none of this — splitMath catches it inside the paragraph. */
-    const fenceOpen = line.trim() === "$$" ? "$$" : line.trim() === "\\[" ? "\\]" : null;
+    const fenceOpen =
+      line.trim() === "$$" ? "$$" : line.trim() === "\\[" ? "\\]" : null;
     if (fenceOpen) {
       const body: string[] = [];
       let j = i + 1;

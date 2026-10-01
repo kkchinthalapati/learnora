@@ -155,10 +155,9 @@ describe("renderMarkdownNodes", () => {
       "| Stage | Location |\n|---|---|\n| Light-dependent | Thylakoid |\n| Calvin cycle | Stroma |",
     );
     expect(screen.getByRole("table")).toBeInTheDocument();
-    expect(screen.getAllByRole("columnheader").map((c) => c.textContent)).toEqual([
-      "Stage",
-      "Location",
-    ]);
+    expect(
+      screen.getAllByRole("columnheader").map((c) => c.textContent),
+    ).toEqual(["Stage", "Location"]);
     expect(screen.getAllByRole("row")).toHaveLength(3);
     expect(out()).not.toHaveTextContent("|");
   });
@@ -304,7 +303,6 @@ describe("maths rendering", () => {
   });
 });
 
-
 /* The safety net for maths the model forgot to wrap in dollars. A bare
  * `\sqrt{3}` reaching the student as literal backslashes is worse than the
  * plain "√3" it replaced, so the renderer catches the slip — but only for a
@@ -442,18 +440,23 @@ describe("renderMathText", () => {
 });
 
 describe("mermaid fences", () => {
-  const reply = "Here is the cycle:\n\n```mermaid\nflowchart LR\n  A[Evaporation] --> B[Condensation]\n```\n\nThen it rains.";
+  const reply =
+    "Here is the cycle:\n\n```mermaid\nflowchart LR\n  A[Evaporation] --> B[Condensation]\n```\n\nThen it rains.";
 
   it("stay a plain code block unless the surface opts in", () => {
     render(<div data-testid="plain">{renderMarkdownNodes(reply)}</div>);
     const plain = screen.getByTestId("plain");
-    expect(plain.querySelector("pre code")?.textContent).toContain("flowchart LR");
+    expect(plain.querySelector("pre code")?.textContent).toContain(
+      "flowchart LR",
+    );
     expect(screen.queryByText("Drawing diagram…")).not.toBeInTheDocument();
   });
 
   it("become a diagram where the surface opts in, with the prose kept around it", () => {
     render(
-      <div data-testid="chat">{renderMarkdownNodes(reply, { diagrams: true })}</div>,
+      <div data-testid="chat">
+        {renderMarkdownNodes(reply, { diagrams: true })}
+      </div>,
     );
     expect(screen.getByText("Drawing diagram…")).toBeInTheDocument();
     expect(screen.getByText("Here is the cycle:")).toBeInTheDocument();
@@ -466,6 +469,83 @@ describe("mermaid fences", () => {
         {renderMarkdownNodes("```python\nprint(1)\n```", { diagrams: true })}
       </div>,
     );
-    expect(screen.getByTestId("code").querySelector("pre code")?.textContent).toBe("print(1)");
+    expect(
+      screen.getByTestId("code").querySelector("pre code")?.textContent,
+    ).toBe("print(1)");
+  });
+});
+
+describe("svg fences", () => {
+  const drawing =
+    '<svg viewBox="0 0 100 100"><title>A circle</title>' +
+    '<circle cx="50" cy="50" r="40" stroke="currentColor" fill="none" /></svg>';
+
+  /* Mermaid cannot draw a circle with an angle marked on it, which is most of
+     what a maths or science notebook asks for — so a drawing may also arrive
+     as SVG, sanitised by lib/diagramSvg.tsx. */
+  const renderChat = (markdown: string) =>
+    render(
+      <div data-testid="chat">
+        {renderMarkdownNodes(markdown, { diagrams: true })}
+      </div>,
+    );
+  const chat = () => screen.getByTestId("chat");
+
+  it("stays a plain code block unless the surface opts in", () => {
+    render(
+      <div data-testid="plain">
+        {renderMarkdownNodes("```svg\n" + drawing + "\n```")}
+      </div>,
+    );
+    const plain = screen.getByTestId("plain");
+    expect(plain.querySelector("figure")).toBeNull();
+    expect(plain.querySelector("pre code")?.textContent).toContain("<svg");
+  });
+
+  it("becomes a drawing where the surface opts in, with the prose kept around it", () => {
+    renderChat(
+      "Here it is:\n\n```svg\n" + drawing + "\n```\n\nNotice the radius.",
+    );
+    expect(chat().querySelector("figure svg circle")).toBeInTheDocument();
+    expect(chat().querySelector("pre")).toBeNull();
+    expect(chat()).toHaveTextContent("Notice the radius.");
+  });
+
+  it("renders an unfenced drawing too — models forget the fence", () => {
+    renderChat("Look at this:\n\n" + drawing + "\n\nThe centre is O.");
+    expect(chat().querySelector("figure svg circle")).toBeInTheDocument();
+    expect(chat()).toHaveTextContent("Look at this:");
+    expect(chat()).toHaveTextContent("The centre is O.");
+  });
+
+  it("leaves an unfenced <svg> as text on a surface that does not draw", () => {
+    render(<div data-testid="plain">{renderMarkdownNodes(drawing)}</div>);
+    const plain = screen.getByTestId("plain");
+    expect(plain.querySelector("figure")).toBeNull();
+    expect(plain).toHaveTextContent("<svg viewBox");
+  });
+
+  it("still shows the source when a fence tagged svg is not a drawing", () => {
+    renderChat("```svg\nhow do I write an svg?\n```");
+    expect(chat().querySelector("svg")).toBeNull();
+    expect(chat().querySelector("pre")).toHaveTextContent(
+      "how do I write an svg?",
+    );
+  });
+
+  it("sanitises the drawing rather than trusting the fence", () => {
+    renderChat(
+      '```svg\n<svg viewBox="0 0 10 10"><script>alert(1)</script>' +
+        '<circle cx="5" cy="5" r="4" onclick="alert(2)" /></svg>\n```',
+    );
+    expect(chat().querySelector("script")).toBeNull();
+    expect(chat().querySelector("circle")?.getAttribute("onclick")).toBeNull();
+    expect(chat().querySelector("circle")).toBeInTheDocument();
+  });
+
+  it("keeps a broken drawing's source on screen instead of swallowing it", () => {
+    renderChat('```svg\n<svg viewBox="0 0 10 10"><circle\n```');
+    expect(chat().querySelector("figure svg")).toBeNull();
+    expect(chat()).toHaveTextContent("<circle");
   });
 });
