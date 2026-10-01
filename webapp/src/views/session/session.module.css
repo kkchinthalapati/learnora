@@ -7,6 +7,10 @@
   height: 100dvh;
   display: grid;
   grid-template-rows: var(--topbar-height) minmax(0, 1fr);
+  /* One column that may shrink below its content: without this the grid
+     sized itself to the top bar's five mode buttons (565px) and pushed the
+     composer's Send button off a phone screen. */
+  grid-template-columns: minmax(0, 1fr);
   background: var(--bg);
   color: var(--text);
 }
@@ -533,6 +537,12 @@
   color: var(--text-muted);
 }
 
+/* On the primary "Show answer" fill, muted grey fails contrast (axe); the
+   key hint takes the button's own label colour there. */
+button[data-rank="primary"] .ratingKey {
+  color: inherit;
+}
+
 /* ---- Composer ---- */
 
 .composer {
@@ -746,13 +756,21 @@
     grid-area: title;
   }
 
+  /* The mode control lives inside .topRight in the markup; dissolving the
+     wrapper here is what lets .modes take its own full-width row. */
   .topRight {
+    display: contents;
+  }
+
+  .planToggle {
     grid-area: right;
   }
 
   .modes {
     grid-area: modes;
+    min-width: 0;
     overflow-x: auto;
+    scrollbar-width: none;
   }
 
   .modeBtn {

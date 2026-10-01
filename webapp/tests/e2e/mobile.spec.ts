@@ -126,4 +126,29 @@ test.describe("Mobile", () => {
     await page.getByRole("button", { name: "Mitochondria", exact: true }).click();
     await expect(page.getByRole("button", { name: /See results/ })).toBeVisible();
   });
+
+  /* The Session screen went unchecked here and shipped 565px wide on every
+     phone: the five mode buttons sized the whole grid, and the composer's
+     Send button sat off-screen. Checked in every mode, because each one
+     draws its own centre column. */
+  for (const mode of ["explain", "socratic", "practice", "teach", "recall"]) {
+    test(`a ${mode} session fits the screen and Send is reachable`, async ({ page, backend }) => {
+      backend.aiReply = () => "{}";
+      await loginAs(page);
+      await page.goto(`study/new?mode=${mode}&topic=enzymes`);
+      await expect(page.getByRole("button", { name: "Save & leave" })).toBeVisible();
+      expect(await hasHorizontalOverflow(page)).toBe(false);
+
+      const viewport = page.viewportSize()!;
+      for (const name of ["Explain", "Recall"]) {
+        const box = await page.getByRole("button", { name, exact: true }).boundingBox();
+        expect(box, `${name} mode button`).not.toBeNull();
+      }
+      const send = page.getByRole("button", { name: /^Send/ }).first();
+      if (await send.count()) {
+        const box = (await send.boundingBox())!;
+        expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+      }
+    });
+  }
 });

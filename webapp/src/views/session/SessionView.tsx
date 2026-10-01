@@ -22,6 +22,7 @@ import { FlagAnswer } from "./FlagAnswer";
 import type { ModeProps } from "./modeTypes";
 import text from "../../styles/text.module.css";
 import styles from "./session.module.css";
+import { useDocumentTitle } from "../../lib/routeTitle";
 
 const MODE_VIEWS: Record<SessionMode, (props: ModeProps) => React.JSX.Element> = {
   explain: ExplainMode,
@@ -57,6 +58,9 @@ export function SessionView() {
   const { session, savedAt, missing } = ctl;
   const [flagging, setFlagging] = useState<string | null>(null);
   const [planOpen, setPlanOpen] = useState(false);
+  useDocumentTitle(
+    session ? `${MODE_LABELS[session.mode]}: ${session.objective}` : null,
+  );
   const planId = useId();
 
   /* A new session gets its real URL as soon as it exists, so a reload or a
@@ -161,7 +165,13 @@ export function SessionView() {
   return (
     <main className={styles.shell}>
       <header className={styles.topbar}>
-        <button type="button" className={styles.leave} onClick={leave}>
+        <button
+          type="button"
+          className={styles.leave}
+          onClick={leave}
+          /* The visible label is hidden on phones; the X alone has no name. */
+          aria-label="Save & leave"
+        >
           <Icon name="x" size={18} />
           <span className={styles.leaveLabel}>Save & leave</span>
         </button>

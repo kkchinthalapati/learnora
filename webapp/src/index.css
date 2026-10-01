@@ -139,11 +139,16 @@ textarea:focus {
    it. Zero on wider screens, where there is no bar. */
 :root {
   --mobile-tabbar-clearance: 0px;
+  /* The floating Ask button (56px + its gap) sits over the bottom-right of
+     the page on phones; the last row of every page has to scroll clear of
+     it or its right-hand action stays under the button. */
+  --ask-fab-clearance: 0px;
 }
 
 @media (max-width: 768px) {
   :root {
     --mobile-tabbar-clearance: calc(64px + env(safe-area-inset-bottom, 0px));
+    --ask-fab-clearance: 72px;
   }
 }
 
