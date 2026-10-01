@@ -1441,3 +1441,13 @@
   color: var(--accent-text);
   text-decoration: underline;
 }
+
+/* A blocked or missing microphone, said plainly under the call controls. */
+.micError {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: var(--s-2) 0 0;
+  font-size: var(--fs-sm);
+  color: var(--danger);
+}

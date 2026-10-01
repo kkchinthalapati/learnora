@@ -1,4 +1,5 @@
 import { test, expect, loginAs } from "./support/fixtures";
+import { makePng } from "./support/images";
 
 /* Create ▸ Upload — the path a student takes with their own notes, and the
  * one the audit never exercised. Covers the file reaching storage, the row
@@ -38,6 +39,20 @@ function makePdf(lines: string[]): Buffer {
   for (const o of offsets) out += `${String(o).padStart(10, "0")} 00000 n \n`;
   out += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
   return Buffer.from(out, "latin1");
+}
+
+/** Width and height from a JPEG's start-of-frame marker. */
+function jpegSize(jpeg: Buffer): { width: number; height: number } {
+  let i = 2;
+  while (i < jpeg.length) {
+    const marker = jpeg[i + 1];
+    const length = jpeg.readUInt16BE(i + 2);
+    if (marker >= 0xc0 && marker <= 0xc3) {
+      return { height: jpeg.readUInt16BE(i + 5), width: jpeg.readUInt16BE(i + 7) };
+    }
+    i += 2 + length;
+  }
+  throw new Error("no SOF marker found");
 }
 
 async function openUpload(page: import("@playwright/test").Page) {
@@ -126,4 +141,40 @@ test("refuses a file over 10MB before uploading anything", async ({ page, backen
 
   await expect(dialog.getByRole("alert")).toContainText("The limit is 10MB");
   expect(backend.storage.size).toBe(0);
+});
+
+test("shrinks a photo in the browser and sends it to the image model for notes", async ({ page, backend }) => {
+  await loginAs(page);
+  const dialog = await openUpload(page);
+
+  await dialog.getByLabel("Take a photo").setInputFiles({
+    name: "whiteboard.png",
+    mimeType: "image/png",
+    buffer: makePng(3200, 2400),
+  });
+  await expect(dialog.getByText("Resized so it uploads faster.")).toBeVisible();
+  await expect(dialog.getByText("whiteboard.jpg")).toBeVisible();
+  await chooseBiology(dialog);
+  await dialog.getByRole("button", { name: "Generate Study Resources" }).click();
+
+  /* The shrunk JPEG, not the original PNG, is what reached storage. */
+  await expect.poll(() => backend.storage.size).toBe(1);
+  const [key] = [...backend.storage.keys()];
+  expect(key).toMatch(/^materials\/.+\.jpg$/);
+
+  /* And the notes request carried it as an image the model can read, at the
+     2048px ceiling with the aspect ratio kept. */
+  await expect
+    .poll(() => backend.callsTo("/functions/v1/learnora-ai").length)
+    .toBeGreaterThan(0);
+  const notesCall = backend
+    .callsTo("/functions/v1/learnora-ai")
+    .map((c) => c.body as { mode?: string; file?: { mimeType: string; data: string } })
+    .find((b) => b.mode === "notes");
+  expect(notesCall?.file?.mimeType).toBe("image/jpeg");
+  expect(jpegSize(Buffer.from(notesCall!.file!.data, "base64"))).toEqual({
+    width: 2048,
+    height: 1536,
+  });
+  await expect.poll(() => backend.table("flashcard_decks").length).toBe(1);
 });

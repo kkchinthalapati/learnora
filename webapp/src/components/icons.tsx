@@ -486,6 +486,19 @@ export const ICONS = {
       <polyline points="22 4 12 14.01 9 11.01" />
     </>
   ),
+  camera: (
+    <>
+      <path d="M4.5 7h2.379a1.5 1.5 0 0 0 1.06-.44l1.122-1.12A1.5 1.5 0 0 1 10.12 5h3.758a1.5 1.5 0 0 1 1.06.44l1.122 1.12a1.5 1.5 0 0 0 1.06.44H19.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5v-9A1.5 1.5 0 0 1 4.5 7Z" />
+      <circle cx="12" cy="12.5" r="3.5" />
+    </>
+  ),
+  image: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="8.5" cy="9.5" r="1.5" />
+      <path d="m21 16-4.5-4.5L7 21" />
+    </>
+  ),
 } satisfies Record<string, ReactElement>;
 
 export type IconName = keyof typeof ICONS;

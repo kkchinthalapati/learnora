@@ -11,6 +11,10 @@ import * as aiSparringModule from "../../api/aiSparring";
 
 // Mock Speech Synthesis
 const mockSpeak = vi.fn();
+/* Per test: whether this "browser" has each API, and any recognition error. */
+let mockTtsSupported = true;
+let mockSttSupported = true;
+let mockMicError: string | null = null;
 const mockCancel = vi.fn();
 const mockSetAudioRate = vi.fn();
 
@@ -22,7 +26,7 @@ vi.mock("../../hooks/useSpeechSynthesis", () => ({
     resume: vi.fn(),
     isSpeaking: false,
     isPaused: false,
-    isSupported: true,
+    isSupported: mockTtsSupported,
     currentSpeaker: null,
     voices: [],
     audioRate: 1.0,
@@ -54,8 +58,8 @@ vi.mock("../../hooks/useSpeechRecognition", () => ({
     transcript: mockTranscript,
     interimTranscript: mockInterimTranscript,
     fullTranscript: mockTranscript,
-    isSupported: true,
-    error: null,
+    isSupported: mockSttSupported,
+    error: mockMicError,
     detectedLang: "en-US",
     startListening: () => {
       mockStartListening();
@@ -82,6 +86,64 @@ describe("SocraticSparringView", () => {
     mockIsListening = false;
     mockTranscript = "";
     mockInterimTranscript = "";
+    mockTtsSupported = true;
+    mockSttSupported = true;
+    mockMicError = null;
+  });
+
+  function mockSession() {
+    vi.spyOn(aiSparringModule, "startSparringSession").mockResolvedValueOnce({
+      id: "sess-voice",
+      topic: "Acids and alkalis",
+      status: "active",
+      currentRound: 1,
+      dialogue: [],
+      currentChallenge: {
+        id: "c-1",
+        roundNumber: 1,
+        speaker: "alex",
+        personaName: "Alex",
+        personaAvatar: "🌱",
+        speechText: "What makes a solution acidic?",
+        conceptAnchor: "pH",
+        suggestedHints: [],
+      },
+      cumulativeScores: { clarity: 0, rigour: 0, accuracy: 0, roundsCount: 0 },
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  it("hides speech controls where the browser has no speech support, and opens typing", async () => {
+    mockTtsSupported = false;
+    mockSttSupported = false;
+    mockSession();
+    const user = userEvent.setup();
+    renderWithAuth(<SocraticSparringView />, { session: fakeSession() }, { withRouter: true });
+
+    expect(screen.queryByRole("button", { name: /Read aloud/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^Acids and alkalis$/i }));
+    await screen.findByLabelText("Socratic Sparring Stage");
+
+    expect(screen.queryByRole("button", { name: "Start speaking response" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Replay Question/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Hide text input/ })).toBeInTheDocument();
+  });
+
+  it("says when the microphone is blocked and opens the typed answer box", async () => {
+    mockMicError =
+      "Microphone permission was denied. Please allow microphone access in your browser settings.";
+    mockSession();
+    const user = userEvent.setup();
+    renderWithAuth(<SocraticSparringView />, { session: fakeSession() }, { withRouter: true });
+    await user.click(screen.getByRole("button", { name: /^Acids and alkalis$/i }));
+    await screen.findByLabelText("Socratic Sparring Stage");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /Microphone permission was denied.*type your answer below instead/,
+    );
+    expect(screen.getByRole("button", { name: /Hide text input/ })).toBeInTheDocument();
+    // The mic stays offered: the student may fix the permission and retry.
+    expect(screen.getByRole("button", { name: "Start speaking response" })).toBeInTheDocument();
   });
 
   it("renders topic selection screen with starter topics", () => {

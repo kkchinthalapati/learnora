@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { MathNode } from "./Math";
+import { MermaidDiagram } from "./MermaidDiagram";
 import { hasMathDelimiter, splitMath } from "./mathSyntax";
 import styles from "./markdown.module.css";
 
@@ -37,6 +38,13 @@ import styles from "./markdown.module.css";
  *  they are never serialised to HTML and re-parsed. */
 export type MarkdownSegment =
   { kind: "text"; text: string } | { kind: "node"; node: ReactNode };
+
+export interface MarkdownOptions {
+  /** Draw ```mermaid fences as diagrams (MermaidDiagram.tsx) instead of
+   *  showing their source. Opt-in: only the tutor chat is told it may write
+   *  them, and every other surface keeps rendering a fence as code. */
+  diagrams?: boolean;
+}
 
 let keySeed = 0;
 const nextKey = () => `md-${keySeed++}`;
@@ -192,7 +200,10 @@ const HEADING_LEVELS = [
   { prefix: "# ", tag: "h1" },
 ] as const;
 
-function renderTextBlock(markdown: string): ReactNode[] {
+function renderTextBlock(
+  markdown: string,
+  options: MarkdownOptions = {},
+): ReactNode[] {
   const out: ReactNode[] = [];
   /* Fenced code is taken out first — everything inside is literal, which is
      the whole point of a fence. */
@@ -202,8 +213,11 @@ function renderTextBlock(markdown: string): ReactNode[] {
     const prose = parts[i];
     if (prose) out.push(...renderProse(prose));
 
+    const lang = parts[i + 1];
     const code = parts[i + 2];
-    if (code !== undefined) {
+    if (code !== undefined && options.diagrams && lang === "mermaid") {
+      out.push(<MermaidDiagram key={nextKey()} code={code.trim()} />);
+    } else if (code !== undefined) {
       out.push(
         <pre key={nextKey()} className={styles.pre}>
           <code>{code.trim()}</code>
@@ -370,18 +384,22 @@ function renderProse(prose: string): ReactNode[] {
  *  as React nodes. */
 export function renderMarkdownSegments(
   segments: MarkdownSegment[],
+  options?: MarkdownOptions,
 ): ReactNode[] {
   const out: ReactNode[] = [];
   for (const segment of segments) {
     if (segment.kind === "node") out.push(segment.node);
-    else out.push(...renderTextBlock(segment.text));
+    else out.push(...renderTextBlock(segment.text, options));
   }
   return out;
 }
 
 /** Convenience for plain markdown with no widgets in it. */
-export function renderMarkdownNodes(markdown: string): ReactNode[] {
-  return renderTextBlock(markdown);
+export function renderMarkdownNodes(
+  markdown: string,
+  options?: MarkdownOptions,
+): ReactNode[] {
+  return renderTextBlock(markdown, options);
 }
 
 /** Typeset the maths in a run of text, leaving every other character exactly

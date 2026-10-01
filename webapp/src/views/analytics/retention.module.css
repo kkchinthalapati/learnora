@@ -1,0 +1,208 @@
+/* Memory & retention (RetentionInsights.tsx). Layout and type come from
+   analytics.module.css; this file holds only what that one does not. */
+
+.empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh);
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding: var(--s-4);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.tileSub {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: var(--s-6);
+  margin-top: var(--s-6);
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.subheading {
+  margin: var(--s-6) 0 var(--s-2);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.grid .subheading {
+  margin-top: 0;
+}
+
+.minorHeading {
+  margin: var(--s-4) 0 var(--s-2);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.caption {
+  margin: 0 0 var(--s-3);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+/* The due forecast is one series, so it takes the accent at full strength
+   rather than the heatmap's soft fill. */
+.dueBar {
+  background: var(--accent);
+}
+
+.dueBarEmpty {
+  min-height: 0;
+}
+
+.barValue {
+  margin-bottom: var(--s-1);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Links in running copy wear the accent as text, which clears contrast in
+   both themes — the browser's default blue does not on the dark surface. */
+.empty a,
+.tileSub a {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.list li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-xs);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+}
+
+.listName {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.listValue {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.table th,
+.table td {
+  padding: var(--s-2) var(--s-3);
+  text-align: left;
+  border-bottom: 1px solid var(--glass-border-subtle);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.table thead th {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.table .deckName {
+  font-weight: 600;
+  color: var(--text);
+  white-space: normal;
+  min-width: 140px;
+}
+
+.spark {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.spark svg {
+  display: block;
+  overflow: visible;
+  touch-action: none;
+}
+
+.curve {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.target {
+  stroke: var(--text-faint);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.crosshair {
+  stroke: var(--text-faint);
+  stroke-width: 1;
+}
+
+.dot {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px var(--s-2);
+  border-radius: var(--r-xs);
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-snug);
+  white-space: nowrap;
+  pointer-events: none;
+}

@@ -8,7 +8,7 @@ import {
   confidentButWrong,
   markOf,
   resultsHeadline,
-} from "./testResults";
+} from "./testResultsModel";
 
 const q = (id: number, topic: string): QuizQuestion => ({
   id,

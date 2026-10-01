@@ -12,6 +12,12 @@ import { useMaterials } from "../../hooks/useMaterials";
 import { useQuizDraft } from "../../hooks/useQuizDraft";
 import { Storage } from "../../lib/storage";
 import { isPdf, planPdfUpload } from "../../lib/pdfText";
+import {
+  isImageFile,
+  prepareStudyImage,
+  STUDY_IMAGE_ACCEPT,
+  StudyImageError,
+} from "../../lib/studyImage";
 import { MATERIAL_DRAFT_KEY } from "../../lib/draftKeys";
 import { SUBJECT_MAX } from "../../lib/fieldLimits";
 import { useCreateStudyPackage } from "../../hooks/useStudyPackage";
@@ -45,6 +51,11 @@ export interface MaterialPanelProps {
 
 type SourceKind = StudySource["kind"];
 type Difficulty = typeof CREATE_DEFAULTS.difficulty;
+
+/* Documents and recordings, plus photos of a whiteboard, worksheet or
+   textbook page — those are shrunk in the browser first (lib/studyImage.ts)
+   and read by the one provider that can see images. */
+const UPLOAD_ACCEPT = `.pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg,${STUDY_IMAGE_ACCEPT}`;
 
 const FOLDER_COLORS = ["#4A90E2", "#E24A4A", "#4AE283", "#E2A84A", "#9B4AE2"];
 const PERSONALITY_DESC: Record<string, string> = {
@@ -139,6 +150,11 @@ export function MaterialPanel({
       cancelled = true;
     };
   }, [file]);
+  /* A photo is validated and shrunk before it becomes `file`, which takes a
+     moment on a large one. `photoNote` says what was done to it. */
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
+  const [photoNote, setPhotoNote] = useState<string | null>(null);
+  const pickSeq = useRef(0);
   const [isDragging, setIsDragging] = useState(false);
   const [text, setText] = useState(restoredDraft?.text ?? "");
   const [link, setLink] = useState(restoredDraft?.link ?? "");
@@ -253,18 +269,49 @@ export function MaterialPanel({
     setError(null);
   };
 
+  const takeFile = (picked: File | null) => {
+    // A later pick wins over a photo still being prepared.
+    const seq = ++pickSeq.current;
+    setError(null);
+    setPhotoNote(null);
+    if (!picked || !isImageFile(picked)) {
+      setPreparingPhoto(false);
+      setFile(picked);
+      return;
+    }
+    setFile(null);
+    setPreparingPhoto(true);
+    prepareStudyImage(picked, MAX_UPLOAD_BYTES)
+      .then((prepared) => {
+        if (seq !== pickSeq.current) return;
+        setFile(prepared.file);
+        if (prepared.resized) setPhotoNote("Resized so it uploads faster.");
+      })
+      .catch((caught: unknown) => {
+        if (seq !== pickSeq.current) return;
+        setError(
+          caught instanceof StudyImageError
+            ? caught.message
+            : "That photo couldn't be prepared. Try another one.",
+        );
+      })
+      .finally(() => {
+        if (seq === pickSeq.current) setPreparingPhoto(false);
+      });
+  };
+
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setIsDragging(false);
     if (event.dataTransfer.files.length) {
-      setFile(event.dataTransfer.files[0]);
-      setError(null);
+      takeFile(event.dataTransfer.files[0]);
     }
   };
 
   const handleFileInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setFile(event.target.files?.[0] ?? null);
-    setError(null);
+    takeFile(event.target.files?.[0] ?? null);
+    /* Reset so re-picking the same photo after an error fires again. */
+    event.target.value = "";
   };
 
   const handleNewFolder = async () => {
@@ -296,6 +343,12 @@ export function MaterialPanel({
 
   const validateSource = (): { message: string; focus: () => void } | null => {
     if (source === "file") {
+      if (preparingPhoto) {
+        return {
+          message: "Your photo is still being prepared — one moment.",
+          focus: () => fileInputRef.current?.focus(),
+        };
+      }
       if (!file) {
         return {
           message: "Choose a file to create from.",
@@ -601,18 +654,23 @@ export function MaterialPanel({
                 ref={fileInputRef}
                 type="file"
                 className={styles.srOnly}
-                accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg"
+                accept={UPLOAD_ACCEPT}
                 onChange={handleFileInputChange}
               />
               <span className={styles.dropzoneIcon} aria-hidden="true">
                 <Icon name={file ? "check" : "upload-cloud"} size={26} />
               </span>
-              {file ? (
+              {preparingPhoto ? (
+                <div className={styles.fileSelected} role="status">
+                  <strong>Preparing your photo…</strong>
+                </div>
+              ) : file ? (
                 <div className={styles.fileSelected}>
                   <strong>{file.name}</strong>
                   <span>
                     {`${Math.max(0.1, file.size / (1024 * 1024)).toFixed(1)}MB selected`}
                   </span>
+                  {photoNote && <span role="status">{photoNote}</span>}
                   {fileWarning && (
                     <span role="status" className={styles.fileWarning}>
                       {fileWarning}
@@ -622,21 +680,42 @@ export function MaterialPanel({
               ) : (
                 <div className={styles.dropzonePrompt}>
                   <strong>Drop a file here, or browse</strong>
-                  <span>PDF, Word, text, audio, or video · up to 10MB</span>
+                  <span>
+                    PDF, Word, text, audio, video, or a photo of a whiteboard,
+                    worksheet or textbook page · up to 10MB
+                  </span>
                 </div>
               )}
-              <label
-                className={styles.fileButton}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {file ? "Replace file" : "Browse files"}
-                <input
-                  className={styles.srOnly}
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt,.mp3,.mp4,.wav,.m4a,.aac,.ogg"
-                  onChange={handleFileInputChange}
-                />
-              </label>
+              <div className={styles.fileButtons}>
+                <label
+                  className={styles.fileButton}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {file ? "Replace file" : "Browse files"}
+                  <input
+                    className={styles.srOnly}
+                    type="file"
+                    accept={UPLOAD_ACCEPT}
+                    onChange={handleFileInputChange}
+                  />
+                </label>
+                {/* `capture` opens the rear camera on a phone and is ignored
+                    on a desktop, where this is simply an image picker. */}
+                <label
+                  className={styles.fileButton}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Icon name="camera" size={14} />
+                  Take a photo
+                  <input
+                    className={styles.srOnly}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleFileInputChange}
+                  />
+                </label>
+              </div>
             </div>
           ) : null}
 
