@@ -33,7 +33,7 @@ describe("chooseNextStep", () => {
       dueCards: 40,
     });
     expect(step.method).toBe("solve");
-    expect(step.to).toBe("/solver?topic=Hydrolysis");
+    expect(step.to).toBe("/study/new?mode=explain&topic=Hydrolysis");
   });
 
   it("reviews due cards once the topic is understood but slipping", () => {
@@ -52,7 +52,7 @@ describe("chooseNextStep", () => {
   it("asks a solid topic to be explained rather than drilled again", () => {
     const step = chooseNextStep({ ...base, mastery: SOLID_MASTERY });
     expect(step.method).toBe("teach");
-    expect(step.to).toBe("/feynman?topic=Hydrolysis");
+    expect(step.to).toBe("/study/new?mode=teach&topic=Hydrolysis");
   });
 
   it("falls back to a timed block for a half-built topic with nothing due", () => {
@@ -67,6 +67,6 @@ describe("chooseNextStep", () => {
       label: "Acids & Bases",
       mastery: 0.2,
     });
-    expect(step.to).toBe("/solver?topic=Acids%20%26%20Bases");
+    expect(step.to).toBe("/study/new?mode=explain&topic=Acids+%26+Bases");
   });
 });

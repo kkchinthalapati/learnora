@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#e9e5dc;font-family:'Instrument Sans',system-ui,sans-serif;color:#1a1815}a{color:#0b5c55}a:hover{color:#094943}</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:56px;padding:56px">
+  <header style="display:flex;flex-direction:column;gap:8px;max-width:900px">
+    <a href="Learnora Redesign.dc.html" style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;text-decoration:none">← Learnora redesign / 01</a>
+    <h1 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:48px;letter-spacing:-0.02em;line-height:1.05">Today</h1>
+    <p style="margin:0;font-size:16px;line-height:1.6;color:#625c50;max-width:70ch;text-wrap:pretty">The home screen answers one question: what should I do now? Switch the scenario with the tabs above the artboard. Click "Ask the tutor" in the sidebar to open the drawer.</p>
+  </header>
+
+  <section id="1a" style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:#1a1815;color:#f7f5f0;border-radius:3px">1a</span>
+        <div role="tablist" style="display:flex;gap:4px;padding:3px;background:#dcd6ca;border-radius:8px">
+          <button onClick="{{ setReturning }}" style="height:32px;padding:0 12px;border:0;border-radius:6px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:{{ tabReturning }};color:#1a1815">Returning tomorrow</button>
+          <button onClick="{{ setShort }}" style="height:32px;padding:0 12px;border:0;border-radius:6px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:{{ tabShort }};color:#1a1815">Only 10 minutes</button>
+          <button onClick="{{ setRough }}" style="height:32px;padding:0 12px;border:0;border-radius:6px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:{{ tabRough }};color:#1a1815">After a rough test</button>
+        </div>
+      </div>
+
+      <div data-screen-label="Today" style="width:1280px;height:820px;display:flex;background:#f7f5f0;border:1px solid #d5cfc2;border-radius:12px;overflow:hidden;position:relative;box-shadow:0 16px 40px -12px rgba(24,20,14,0.16)">
+        <dc-import name="LearnoraSidebar" active="today" session="{{ false }}" on-ask="{{ openAsk }}" hint-size="248px,820px"></dc-import>
+        <main style="flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:48px;padding:40px 48px;overflow:hidden">
+          <div style="display:flex;flex-direction:column;gap:36px;min-width:0">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#625c50">Wed 30 Sep · Biology midterm in 14 days</span>
+            </div>
+
+            <sc-if value="{{ isReturning }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:20px">
+                <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:52px;line-height:1.02;letter-spacing:-0.025em;max-width:14ch">Pick up where you left off, Maya.</h2>
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end;padding:24px;background:#fff;border:1px solid #e2ddd1;border-radius:12px">
+                  <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#0b5c55">Explain session · Biology</span>
+                    <span style="font-family:'Newsreader',Georgia,serif;font-size:28px;font-weight:500;letter-spacing:-0.015em;line-height:1.15">Cellular respiration</span>
+                    <div style="display:flex;gap:4px">
+                      <span style="height:4px;width:44px;border-radius:2px;background:#0f766e"></span><span style="height:4px;width:44px;border-radius:2px;background:#0f766e"></span><span style="height:4px;width:44px;border-radius:2px;background:#9cc6c0"></span><span style="height:4px;width:44px;border-radius:2px;background:#e2ddd1"></span><span style="height:4px;width:44px;border-radius:2px;background:#e2ddd1"></span>
+                    </div>
+                    <p style="margin:0;font-size:15px;line-height:1.55;color:#625c50;max-width:52ch;text-wrap:pretty">You stopped at step 3, the electron transport chain. Last time you placed ATP synthase in the outer membrane, so we'll start with a quick check on that.</p>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:8px;align-items:stretch">
+                    <a href="Learnora Session.dc.html" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 22px;border-radius:8px;background:#0f766e;color:#fff;font-size:15px;font-weight:600;text-decoration:none" style-hover="background:#0c5f59">Resume · 12 min left</a>
+                    <span style="font-size:12px;color:#78715f;text-align:center">Your notes and chat are saved</span>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isShort }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:20px">
+                <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:52px;line-height:1.02;letter-spacing:-0.025em;max-width:16ch">Ten minutes is enough to keep things from fading.</h2>
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end;padding:24px;background:#fff;border:1px solid #e2ddd1;border-radius:12px">
+                  <div style="display:flex;flex-direction:column;gap:10px">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#8a5d17">Quick recall · 3 subjects mixed</span>
+                    <span style="font-family:'Newsreader',Georgia,serif;font-size:28px;font-weight:500;letter-spacing:-0.015em">18 cards due, plus 2 questions on glycolysis</span>
+                    <p style="margin:0;font-size:15px;line-height:1.55;color:#625c50;max-width:52ch">Mixed on purpose. Switching between topics is harder, and it is what makes recall hold up on the exam.</p>
+                  </div>
+                  <button style="height:48px;padding:0 22px;border:0;border-radius:8px;background:#0f766e;color:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer">Start · 9 min</button>
+                </div>
+                <p style="margin:0;font-size:14px;color:#625c50">Your electron transport session will still be here. <a href="Learnora Session.dc.html">Resume it instead</a></p>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isRough }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:20px">
+                <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:52px;line-height:1.02;letter-spacing:-0.025em;max-width:15ch">Yesterday's test showed us two things to fix.</h2>
+                <div style="display:flex;flex-direction:column;background:#fff;border:1px solid #e2ddd1;border-radius:12px">
+                  <div style="display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:16px;align-items:center;padding:20px 24px;border-bottom:1px solid #eeeae1">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#78715f">01</span>
+                    <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:16px;font-weight:600">Where ATP synthase sits</span><span style="font-size:14px;color:#625c50">Missed on 3 of 4 questions. One misconception, not three separate mistakes.</span></div>
+                    <a href="Learnora Session.dc.html" style="display:inline-flex;align-items:center;height:44px;padding:0 18px;border-radius:8px;background:#0f766e;color:#fff;font-size:14px;font-weight:600;text-decoration:none">Fix this · 8 min</a>
+                  </div>
+                  <div style="display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:16px;align-items:center;padding:20px 24px">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#78715f">02</span>
+                    <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:16px;font-weight:600">Reading the yield table</span><span style="font-size:14px;color:#625c50">You knew the biology, but misread which column was net ATP.</span></div>
+                    <button style="height:44px;padding:0 18px;border:1px solid #d5cfc2;border-radius:8px;background:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer">Practise · 5 min</button>
+                  </div>
+                </div>
+                <p style="margin:0;font-size:14px;color:#625c50">You got 11 of 16 right. Glycolysis and the Krebs cycle held up. <a href="Learnora Test &amp; Results.dc.html">See the full results</a></p>
+              </div>
+            </sc-if>
+
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <h3 style="margin:0;font-size:13px;font-weight:600;color:#625c50">Also worth doing today</h3>
+              <div style="display:flex;flex-direction:column;border-top:1px solid #e2ddd1">
+                <div style="display:grid;grid-template-columns:10px minmax(0,1fr) auto auto;gap:16px;align-items:center;min-height:56px;border-bottom:1px solid #e2ddd1" style-hover="background:#f2efe8">
+                  <span style="width:8px;height:8px;border-radius:999px;background:#b8862e"></span>
+                  <span style="font-size:15px;font-weight:500">Review 18 flashcards</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#625c50">6 min</span>
+                  <span style="font-size:14px;font-weight:600;color:#0b5c55;padding-right:4px">Review</span>
+                </div>
+                <div style="display:grid;grid-template-columns:10px minmax(0,1fr) auto auto;gap:16px;align-items:center;min-height:56px;border-bottom:1px solid #e2ddd1" style-hover="background:#f2efe8">
+                  <span style="width:8px;height:8px;border-radius:999px;background:#b8862e"></span>
+                  <span style="font-size:15px;font-weight:500">Glycolysis is fading: 5-question check</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#625c50">4 min</span>
+                  <span style="font-size:14px;font-weight:600;color:#0b5c55;padding-right:4px">Check</span>
+                </div>
+                <div style="display:grid;grid-template-columns:10px minmax(0,1fr) auto auto;gap:16px;align-items:center;min-height:56px;border-bottom:1px solid #e2ddd1" style-hover="background:#f2efe8">
+                  <span style="width:8px;height:8px;border-radius:999px;background:#625c50"></span>
+                  <span style="font-size:15px;font-weight:500">Chemistry problem set 4 due Friday</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#625c50">Plan</span>
+                  <span style="font-size:14px;font-weight:600;color:#0b5c55;padding-right:4px">Open</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <aside style="display:flex;flex-direction:column;gap:28px;padding-top:36px">
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><h3 style="margin:0;font-size:13px;font-weight:600;color:#625c50">Biology midterm</h3><a href="#" style="font-size:13px;font-weight:600;text-decoration:none">Progress</a></div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <sc-for list="{{ topics }}" as="t" hint-placeholder-count="5">
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-size:14px;font-weight:500">{{ t.name }}</span><span style="font-size:12px;color:#625c50">{{ t.level }}</span></div>
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px">
+                      <span style="height:6px;border-radius:1px;background:{{ t.c1 }}"></span><span style="height:6px;border-radius:1px;background:{{ t.c2 }}"></span><span style="height:6px;border-radius:1px;background:{{ t.c3 }}"></span><span style="height:6px;border-radius:1px;background:{{ t.c4 }}"></span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <p style="margin:0;font-size:12px;line-height:1.5;color:#78715f">Seen → Recalled → Applied → Explained. Each step needs evidence from a check, not time spent.</p>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;padding-top:20px;border-top:1px solid #e2ddd1">
+              <h3 style="margin:0;font-size:13px;font-weight:600;color:#625c50">This week</h3>
+              <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">
+                <sc-for list="{{ week }}" as="d" hint-placeholder-count="7">
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="width:26px;height:26px;border-radius:5px;background:{{ d.bg }};border:1px solid {{ d.border }}"></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">{{ d.l }}</span></div>
+                </sc-for>
+              </div>
+              <p style="margin:0;font-size:14px;color:#3d3830">4 study days so far. Your goal is 5.</p>
+            </div>
+          </aside>
+        </main>
+
+        <sc-if value="{{ askOpen }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ closeAsk }}" style="position:absolute;inset:0;background:rgba(26,24,21,0.12)"></div>
+          <aside aria-label="Ask the tutor" style="position:absolute;top:0;right:0;bottom:0;width:420px;display:flex;flex-direction:column;background:#fbfaf7;border-left:1px solid #d5cfc2;box-shadow:-16px 0 40px -16px rgba(24,20,14,0.2)">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e2ddd1">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Newsreader',Georgia,serif;font-size:20px;font-weight:500">Ask</span><span style="font-size:12px;color:#625c50">Knows you're on Today · Biology midterm</span></div>
+              <button onClick="{{ closeAsk }}" aria-label="Close" style="width:40px;height:40px;border:0;border-radius:8px;background:transparent;cursor:pointer;color:#625c50" style-hover="background:#ece8df"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg></button>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:20px;padding:20px;overflow:auto">
+              <div style="align-self:flex-end;max-width:85%;padding:10px 14px;background:#1a1815;color:#f7f5f0;border-radius:12px 12px 2px 12px;font-size:14px;line-height:1.5">Why does the electron transport chain need oxygen?</div>
+              <div style="display:flex;flex-direction:column;gap:10px;padding-left:14px;border-left:2px solid #0f766e">
+                <p style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:16px;line-height:1.6">Before I answer: what happens to the electrons once they reach the end of the chain?</p>
+                <p style="margin:0;font-size:13px;line-height:1.5;color:#625c50">A guess is fine. Answering first makes the explanation stick better.</p>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <button style="height:36px;padding:0 12px;border:1px solid #d5cfc2;border-radius:999px;background:#fff;font:inherit;font-size:13px;cursor:pointer">I'm not sure, give me a hint</button>
+                  <button style="height:36px;padding:0 12px;border:1px solid #d5cfc2;border-radius:999px;background:#fff;font:inherit;font-size:13px;cursor:pointer">Just explain it</button>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px dashed #cfc8b9;border-radius:8px;font-size:13px;color:#625c50">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                Will use: Bio ch. 9 notes (PDF, p. 12–18)
+              </div>
+            </div>
+            <div style="padding:16px 20px;border-top:1px solid #e2ddd1;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;gap:6px">
+                <span style="height:28px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;background:#e1ece9;color:#0b5c55;font-size:12px;font-weight:600">Quick answer</span>
+                <span style="height:28px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;border:1px solid #e2ddd1;color:#625c50;font-size:12px;font-weight:600">Open as session</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;min-height:48px;padding:0 6px 0 14px;background:#fff;border:1px solid #0f766e;border-radius:8px;box-shadow:0 0 0 3px rgba(15,118,110,0.18)">
+                <span style="flex:1;font-size:14px;color:#78715f">Type your guess…</span>
+                <button aria-label="Send" style="width:36px;height:36px;border:0;border-radius:6px;background:#0f766e;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button>
+              </div>
+            </div>
+          </aside>
+        </sc-if>
+      </div>
+    </div>
+
+    <aside style="width:380px;display:flex;flex-direction:column;gap:22px;padding-top:44px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#0b5c55">Why it looks like this</span>
+        <p style="margin:0;font-size:15px;line-height:1.6;text-wrap:pretty">One primary action per scenario. The current Today stacks a hero, Due today, Next exam, notebooks, a resume card and a footer, with three buttons in the hero. The redesign keeps the forecast engine and brings it down to one sentence and one button.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h4 style="margin:0;font-size:14px;font-weight:600">Hierarchy</h4>
+        <ol style="margin:0;padding-left:18px;font-size:14px;line-height:1.6;color:#3d3830;display:flex;flex-direction:column;gap:4px">
+          <li>The next thing (headline + one card, one button)</li>
+          <li>Up to three secondary items, as rows, no cards</li>
+          <li>Context: mastery ladder and study days, on the right</li>
+        </ol>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h4 style="margin:0;font-size:14px;font-weight:600">Study days, not streaks</h4>
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#3d3830;text-wrap:pretty">A weekly goal replaces the daily streak. Nothing resets and nothing is lost. Most students here study because of an exam, not for fun, and a trade analysis of streak design notes that for that kind of user <a href="https://trophy.so/blog/streaks-feature-gamification-examples">"a heavily gamified streak can feel patronising"</a> and can add anxiety.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h4 style="margin:0;font-size:14px;font-weight:600">"Recall" ochre</h4>
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#3d3830">The new second accent only marks memory work: due cards, topics that are fading, quick recall. Teal stays for actions. The rule is that a colour stands for one kind of thing.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h4 style="margin:0;font-size:14px;font-weight:600">Tutor drawer asks before it answers</h4>
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#3d3830;text-wrap:pretty">In a high-school field experiment, students who practised with GPT-4 <a href="https://doi.org/10.1073/pnas.2422633122">did worse once the AI was taken away</a>. A tutor that gave teacher-designed hints instead of answers reduced that harm (Bastani et al., PNAS, June 2025). So the drawer asks for a guess first. "Just explain it" is always there, because the student decides.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:14px;background:#f0ece3;border-radius:8px">
+        <h4 style="margin:0;font-size:13px;font-weight:600">States covered</h4>
+        <p style="margin:0;font-size:13px;line-height:1.55;color:#3d3830">No exam and no material → onboarding card (see <a href="Learnora Upload &amp; Onboarding.dc.html">04</a>). Everything done → "You're clear for today" plus a single optional stretch. Loading → the skeleton keeps the headline and card shape (see <a href="Learnora States.dc.html">05</a>).</p>
+      </div>
+    </aside>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;returning&quot;,&quot;short&quot;,&quot;rough&quot;],&quot;default&quot;:&quot;returning&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { scenario: this.props.scenario ?? "returning", askOpen: false };
+  renderVals() {
+    const s = this.state.scenario;
+    const on = "#fbfaf7", off = "transparent";
+    const T = "#0f766e", M = "#9cc6c0", E = "#e2ddd1";
+    const lvl = (n) => [0,1,2,3].map(i => i < n ? T : E);
+    const topic = (name, n, level, fading) => { const c = lvl(n); if (fading) c[n-1] = "#b8862e"; return { name, level, c1:c[0], c2:c[1], c3:c[2], c4:c[3] }; };
+    const days = ["M","T","W","T","F","S","S"], done = [1,1,0,1,1,0,0];
+    return {
+      isReturning: s === "returning", isShort: s === "short", isRough: s === "rough",
+      tabReturning: s === "returning" ? on : off, tabShort: s === "short" ? on : off, tabRough: s === "rough" ? on : off,
+      setReturning: () => this.setState({ scenario: "returning" }),
+      setShort: () => this.setState({ scenario: "short" }),
+      setRough: () => this.setState({ scenario: "rough" }),
+      askOpen: this.state.askOpen,
+      openAsk: () => this.setState({ askOpen: true }),
+      closeAsk: () => this.setState({ askOpen: false }),
+      topics: [
+        topic("Glycolysis", 3, "Applied · fading", true),
+        topic("Krebs cycle", 3, "Applied", false),
+        topic("Electron transport", 1, "Seen", false),
+        topic("Photosynthesis", 2, "Recalled", false),
+        topic("Enzyme kinetics", 4, "Explained", false),
+      ],
+      week: days.map((l, i) => ({ l, bg: done[i] ? T : (i === 2 ? "#fff" : "#ece8df"), border: i === 2 ? T : "transparent" })),
+    };
+  }
+}
+</script>
+</body>
+</html>

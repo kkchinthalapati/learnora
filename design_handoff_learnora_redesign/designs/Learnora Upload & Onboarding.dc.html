@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#e9e5dc;font-family:'Instrument Sans',system-ui,sans-serif;color:#1a1815}a{color:#0b5c55}a:hover{color:#094943}</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:56px;padding:56px">
+  <header style="display:flex;flex-direction:column;gap:8px;max-width:900px">
+    <a href="Learnora Redesign.dc.html" style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;text-decoration:none">← Learnora redesign / 04</a>
+    <h1 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:48px;letter-spacing:-0.02em;line-height:1.05">Onboarding, first session, upload</h1>
+    <p style="margin:0;font-size:16px;line-height:1.6;color:#625c50;max-width:72ch">In the first five minutes the student gets one question, then something taught from their own material, then a small win. Settings come after that. Step through with the tabs.</p>
+  </header>
+
+  <section id="4a" style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:#1a1815;color:#f7f5f0;border-radius:3px">4a</span>
+        <div style="display:flex;gap:4px;padding:3px;background:#dcd6ca;border-radius:8px">
+          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+            <button onClick="{{ t.go }}" style="height:32px;padding:0 12px;border:0;border-radius:6px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:{{ t.bg }}">{{ t.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div data-screen-label="Onboarding" style="width:1280px;height:800px;display:flex;flex-direction:column;background:#f7f5f0;border:1px solid #d5cfc2;border-radius:12px;overflow:hidden;box-shadow:0 16px 40px -12px rgba(24,20,14,0.16)">
+        <div style="display:flex;align-items:center;gap:10px;height:64px;padding:0 32px">
+          <span style="width:28px;height:28px;border-radius:5px;background:#0f766e;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-family:'Newsreader',Georgia,serif;font-size:17px;font-weight:600">L</span>
+          <span style="font-family:'Newsreader',Georgia,serif;font-size:20px;font-weight:600">Learnora</span>
+          <span style="flex:1"></span>
+          <div style="display:flex;gap:4px"><span style="width:28px;height:4px;border-radius:2px;background:#0f766e"></span><span style="width:28px;height:4px;border-radius:2px;background:{{ p2 }}"></span><span style="width:28px;height:4px;border-radius:2px;background:{{ p3 }}"></span></div>
+        </div>
+
+        <sc-if value="{{ isStart }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px;padding:48px 96px 64px;align-items:center">
+            <div style="display:flex;flex-direction:column;gap:22px">
+              <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:56px;line-height:1.02;letter-spacing:-0.025em">What are you studying right now?</h2>
+              <p style="margin:0;font-size:17px;line-height:1.6;color:#625c50;max-width:44ch">Give us one topic, or drop in your notes. You'll get a short lesson built from your material in about a minute.</p>
+              <div style="display:flex;align-items:center;min-height:56px;padding:0 8px 0 18px;background:#fff;border:1px solid #0f766e;border-radius:8px;box-shadow:0 0 0 3px rgba(15,118,110,0.18)">
+                <span style="flex:1;font-size:17px">Cellular respiration, bio midterm<span style="display:inline-block;width:2px;height:20px;background:#0f766e;vertical-align:-4px;margin-left:1px"></span></span>
+                <button onClick="{{ goLesson }}" style="height:42px;padding:0 18px;border:0;border-radius:6px;background:#0f766e;color:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer">Start</button>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:13px;color:#625c50;align-items:center">
+                <span>Or try:</span>
+                <span style="height:30px;display:inline-flex;align-items:center;padding:0 10px;border:1px solid #d5cfc2;border-radius:999px;background:#fff">Quadratic equations</span>
+                <span style="height:30px;display:inline-flex;align-items:center;padding:0 10px;border:1px solid #d5cfc2;border-radius:999px;background:#fff">Causes of WW1</span>
+                <span style="height:30px;display:inline-flex;align-items:center;padding:0 10px;border:1px solid #d5cfc2;border-radius:999px;background:#fff">Supply &amp; demand</span>
+              </div>
+            </div>
+            <div onClick="{{ goUpload }}" style="height:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;border:1.5px dashed #b9b1a1;border-radius:12px;background:repeating-linear-gradient(135deg,#f2efe8 0 10px,#f7f5f0 10px 20px);cursor:pointer;text-align:center;padding:24px">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0b5c55" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17.5 8.5 3.75 3.75 0 0 1 17 16"></path><path d="M12 20v-9"></path><path d="M8.5 14.5 12 11l3.5 3.5"></path></svg>
+              <span style="font-size:17px;font-weight:600">Drop notes, slides or a worksheet</span>
+              <span style="font-size:14px;color:#625c50;max-width:34ch">PDF, images or docs, up to 200 pages. Only you can see them, and you can delete them at any time.</span>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isLesson }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1;display:flex;justify-content:center;padding:32px 96px">
+            <div style="width:720px;display:flex;flex-direction:column;gap:22px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#0b5c55">Your first 3 minutes · Cellular respiration</span>
+              <div style="display:flex;flex-direction:column;gap:14px;padding-left:18px;border-left:2px solid #0f766e">
+                <p style="margin:0;font-family:'Newsreader',Georgia,serif;font-size:30px;line-height:1.2;letter-spacing:-0.01em">Quick one first: where do you think the cell gets most of its ATP?</p>
+                <p style="margin:0;font-size:14px;color:#625c50">No penalty for guessing. It tells us where to start.</p>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="min-height:56px;display:flex;align-items:center;padding:0 16px;border:1.5px solid #c2453a;border-radius:8px;background:#fbf0ee;font-size:16px;gap:12px"><span style="font-size:13px;font-weight:700;color:#96352d">✕ Your guess</span>Glycolysis</div>
+                <div style="min-height:56px;display:flex;align-items:center;padding:0 16px;border:1.5px solid #1e8e6b;border-radius:8px;background:#eef6f2;font-size:16px;gap:12px"><span style="font-size:13px;font-weight:700;color:#15634b">✓ Answer</span>The electron transport chain</div>
+              </div>
+              <p style="margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:17px;line-height:1.65;max-width:62ch">That's the most common guess. Glycolysis makes only 2 ATP per glucose, while the electron transport chain makes about 30. We'll start there, in 3 short steps.</p>
+              <div style="display:flex;gap:10px"><button onClick="{{ goWin }}" style="height:48px;padding:0 22px;border:0;border-radius:8px;background:#0f766e;color:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer">Show me how →</button></div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isWin }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:64px;padding:40px 96px">
+            <div style="display:flex;flex-direction:column;gap:20px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#15634b">4 minutes · first check passed</span>
+              <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:52px;line-height:1.02;letter-spacing:-0.025em;max-width:16ch">You can now explain where most ATP comes from.</h2>
+              <div style="display:flex;flex-direction:column;gap:8px;max-width:520px">
+                <div style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:600">Electron transport chain</span><span style="color:#625c50">Seen → Recalled</span></div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px"><span style="height:8px;border-radius:2px;background:#0f766e"></span><span style="height:8px;border-radius:2px;background:#0f766e"></span><span style="height:8px;border-radius:2px;background:#e2ddd1"></span><span style="height:8px;border-radius:2px;background:#e2ddd1"></span></div>
+              </div>
+              <p style="margin:0;font-size:16px;line-height:1.6;color:#625c50;max-width:52ch">We'll ask you this again in 2 days, the point at which it would start to fade. That is how the recall schedule works.</p>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:16px;padding:24px;background:#fff;border:1px solid #e2ddd1;border-radius:12px;align-self:start">
+              <span style="font-size:15px;font-weight:600">Two questions so we can plan with you</span>
+              <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#625c50">When's the exam?</span><div style="height:44px;display:flex;align-items:center;padding:0 14px;border:1px solid #d5cfc2;border-radius:8px;font-size:15px">14 October</div></div>
+              <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:#625c50">How long can you usually study?</span>
+                <div style="display:flex;gap:4px"><span style="flex:1;height:40px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d5cfc2;border-radius:6px;font-size:13px">10 min</span><span style="flex:1;height:40px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #0f766e;background:#e1ece9;border-radius:6px;font-size:13px;font-weight:600">25 min</span><span style="flex:1;height:40px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d5cfc2;border-radius:6px;font-size:13px">1 hr+</span></div>
+              </div>
+              <a href="Learnora Today.dc.html" style="display:inline-flex;align-items:center;justify-content:center;height:48px;border-radius:8px;background:#0f766e;color:#fff;font-size:15px;font-weight:600;text-decoration:none">Save and see my plan</a>
+              <span style="font-size:12px;color:#78715f;text-align:center">Or <a href="#">skip for now</a>. You can change this later in Plan.</span>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isUpload }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1;display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:48px;padding:32px 64px 48px;min-height:0">
+            <div style="display:flex;flex-direction:column;gap:18px;min-height:0">
+              <div style="display:flex;align-items:baseline;gap:12px"><h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:34px;letter-spacing:-0.015em">Bio ch. 9 notes.pdf</h2><span style="font-size:13px;color:#625c50">24 pages · 3.1 MB</span></div>
+              <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">
+                <sc-for list="{{ pages }}" as="p" hint-placeholder-count="12">
+                  <div style="display:flex;flex-direction:column;gap:4px">
+                    <div style="aspect-ratio:3/4;border-radius:4px;border:1.5px solid {{ p.border }};background:repeating-linear-gradient(0deg,#fff 0 7px,#efebe3 7px 8px);position:relative;opacity:{{ p.op }}"><span style="position:absolute;left:4px;bottom:4px;font-family:'JetBrains Mono',monospace;font-size:10px;padding:1px 4px;border-radius:2px;background:{{ p.tagBg }};color:{{ p.tagFg }}">{{ p.tag }}</span></div>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#625c50">p.{{ p.n }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:10px;padding:12px 14px;background:#f6ecd9;border-radius:6px;font-size:14px;line-height:1.5"><span style="font-weight:700;color:#76511b;white-space:nowrap">Couldn't read p.11</span><span style="color:#3d3830">It looks like a blurry photo. Everything else is fine. <a href="#">Replace this page</a> or continue without it.</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:20px">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#625c50">What Learnora is doing</span>
+                <sc-for list="{{ pipeline }}" as="s" hint-placeholder-count="4">
+                  <div style="display:grid;grid-template-columns:20px minmax(0,1fr);gap:10px;align-items:start">
+                    <span style="width:18px;height:18px;margin-top:2px;border-radius:999px;border:1.5px solid {{ s.ring }};background:{{ s.fill }};color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center">{{ s.mark }}</span>
+                    <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600;color:{{ s.fg }}">{{ s.t }}</span><span style="font-size:13px;color:#625c50">{{ s.d }}</span></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px;padding-top:18px;border-top:1px solid #e2ddd1">
+                <span style="font-size:14px;font-weight:600">Found 6 topics</span>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  <span style="height:30px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;background:#fff;border:1px solid #d5cfc2;font-size:13px">Glycolysis</span><span style="height:30px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;background:#fff;border:1px solid #d5cfc2;font-size:13px">Krebs cycle</span><span style="height:30px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;background:#fff;border:1px solid #d5cfc2;font-size:13px">Electron transport</span><span style="height:30px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;background:#fff;border:1px solid #d5cfc2;font-size:13px">Chemiosmosis</span><span style="height:30px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;background:#fff;border:1px solid #d5cfc2;font-size:13px">Fermentation</span><span style="height:30px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;border:1px dashed #b9b1a1;font-size:13px;color:#625c50">+ edit</span>
+                </div>
+                <span style="font-size:13px;color:#625c50">Filed under <strong style="color:#1a1815">Biology</strong> · <a href="#">change</a></span>
+              </div>
+              <div style="display:flex;gap:8px;padding-top:6px">
+                <button onClick="{{ goLesson }}" style="flex:1;height:48px;border:0;border-radius:8px;background:#0f766e;color:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer">Start learning from this</button>
+              </div>
+              <span style="font-size:12px;color:#78715f">You can start now. Flashcards will finish building in the background.</span>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <aside style="width:380px;display:flex;flex-direction:column;gap:22px;padding-top:44px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#0b5c55">{{ railTitle }}</span>
+        <p style="margin:0;font-size:15px;line-height:1.6;text-wrap:pretty">{{ railBody }}</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h4 style="margin:0;font-size:14px;font-weight:600">{{ railH2 }}</h4>
+        <p style="margin:0;font-size:14px;line-height:1.6;color:#3d3830;text-wrap:pretty">{{ railBody2 }}</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:14px;background:#f0ece3;border-radius:8px">
+        <h4 style="margin:0;font-size:13px;font-weight:600">Upload edge cases</h4>
+        <p style="margin:0;font-size:13px;line-height:1.55;color:#3d3830">Blank PDF → "We couldn't find any text. Is this a scan? Try a photo of each page." Over 200 pages → pick a range of chapters, don't just fail. Wrong file type → the drop zone turns ochre and names the type it got. Duplicate → "You uploaded this on 12 Sep. Open that one?" Processing fails → the file is kept, with a retry that is safe to press.</p>
+      </div>
+    </aside>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;step&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;start&quot;,&quot;lesson&quot;,&quot;win&quot;,&quot;upload&quot;],&quot;default&quot;:&quot;start&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { step: this.props.step ?? "start" };
+  renderVals() {
+    const s = this.state.step;
+    const go = (x) => () => this.setState({ step: x });
+    const defs = [["start","1 · One question"],["lesson","2 · First lesson"],["win","3 · Small win"],["upload","Upload processing"]];
+    const rail = {
+      start: ["Value first", "The current /welcome wizard creates a subject and an exam before anything is taught. Here the only required input is a topic, typed or dropped in. No account setup and no preferences come before the first thing is taught.", "Two front doors, same destination", "Typing a topic works for a student with no notes to hand. Dropping notes grounds the lesson in their own course. Both lead to the same 3-minute lesson."],
+      lesson: ["Start with a guess", "The first thing Learnora does is ask, not lecture. A wrong guess is treated as useful information, and the copy says so. This sets the tone for the whole product: here, getting it wrong is how you find out what to learn.", "Tone", "'That's the most common guess.' The wrong answer is presented as normal, and the correction is concrete (2 vs about 30 ATP) and never judgmental."],
+      win: ["A win you can name", "The success message states the skill gained ('You can now explain…'), not points earned. The mastery ladder appears here for the first time, already moved one step, so the system is learned by seeing it work.", "Personalisation second", "Only two questions come after the win: exam date and usual session length. Everything else (tutor persona, difficulty, pace) is inferred from use or offered in context later."],
+      upload: ["Show the work", "Processing is shown as named steps with page thumbnails, so the student can see what Learnora read and what it couldn't. This builds trust in later answers, which cite these pages.", "Never block on processing", "The student can start learning as soon as the text is read. Flashcards and topic mapping finish in the background and appear when they're ready."],
+    }[s];
+    const pageTag = (n) => n === 11 ? ["unreadable", "#f6ecd9", "#76511b", "#b8862e", 0.7] : n <= 8 ? ["read", "#e1ece9", "#0b5c55", "#e2ddd1", 1] : ["…", "#ece8df", "#625c50", "#e2ddd1", 0.55];
+    return {
+      isStart: s === "start", isLesson: s === "lesson", isWin: s === "win", isUpload: s === "upload",
+      goLesson: go("lesson"), goWin: go("win"), goUpload: go("upload"),
+      tabs: defs.map(d => ({ label: d[1], go: go(d[0]), bg: s === d[0] ? "#fbfaf7" : "transparent" })),
+      p2: s === "start" || s === "upload" ? "#d5cfc2" : "#0f766e", p3: s === "win" ? "#0f766e" : "#d5cfc2",
+      railTitle: rail[0], railBody: rail[1], railH2: rail[2], railBody2: rail[3],
+      pages: Array.from({ length: 12 }, (_, i) => { const t = pageTag(i + 1); return { n: i + 1, tag: t[0], tagBg: t[1], tagFg: t[2], border: t[3], op: t[4] }; }),
+      pipeline: [
+        { t: "Reading text", d: "24 pages · 1 couldn't be read", mark: "✓", fill: "#0f766e", ring: "#0f766e", fg: "#1a1815" },
+        { t: "Finding topics", d: "6 topics, mapped to Biology", mark: "✓", fill: "#0f766e", ring: "#0f766e", fg: "#1a1815" },
+        { t: "Writing recall questions", d: "32 of about 50 · you can start now", mark: "", fill: "#fff", ring: "#0f766e", fg: "#1a1815" },
+        { t: "Linking to your exam", d: "Biology midterm · 14 Oct", mark: "", fill: "transparent", ring: "#cfc8b9", fg: "#625c50" },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

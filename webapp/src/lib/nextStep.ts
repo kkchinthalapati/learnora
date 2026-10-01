@@ -16,6 +16,7 @@
  * or the timer, and the whole thing is testable without a router. */
 
 import { INTERVENTION_BLOCK_MINS } from "./trajectory";
+import { newSessionHref } from "./sessionModes";
 
 /** Below this, `mastery` is a guess rather than a measurement — the honest
  *  next step is the one that produces evidence, not one that acts on it. */
@@ -61,8 +62,6 @@ export function chooseNextStep({
   evidence,
   dueCards,
 }: NextStepInput): NextStep {
-  const topic = encodeURIComponent(label);
-
   if (evidence < LOW_EVIDENCE) {
     return {
       method: "block",
@@ -77,7 +76,7 @@ export function chooseNextStep({
       method: "solve",
       action: `Find what's missing in ${label}`,
       why: `You are getting ${label} wrong rather than forgetting it, so more cards would just rehearse the same mistake. The Solver works backwards to the step you are missing.`,
-      to: `/solver?topic=${topic}`,
+      to: newSessionHref("explain", { topic: label }),
     };
   }
 
@@ -95,7 +94,7 @@ export function chooseNextStep({
       method: "teach",
       action: `Explain ${label} in your own words`,
       why: `${label} is solid enough that recall is no longer the test. Explaining it to someone who keeps asking "but why" is what exposes the parts you have not really got.`,
-      to: `/feynman?topic=${topic}`,
+      to: newSessionHref("teach", { topic: label }),
     };
   }
 

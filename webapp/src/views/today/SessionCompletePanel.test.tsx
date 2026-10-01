@@ -59,14 +59,14 @@ describe("SessionCompletePanel", () => {
     expect(screen.getByText(/1\/4 correct/)).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Work on Denaturation" }),
-    ).toHaveAttribute("href", "/solver?topic=Denaturation");
+    ).toHaveAttribute("href", "/study/new?mode=explain&topic=Denaturation");
   });
 
   it("asks a clean sheet to explain the topic rather than congratulating it and stopping", async () => {
     await runCheck({ correct: 4, total: 4, score: 1, saved: true, missed: [] });
     expect(
       screen.getByRole("link", { name: /Explain Enzymes in your own words/ }),
-    ).toHaveAttribute("href", "/feynman?topic=Enzymes");
+    ).toHaveAttribute("href", "/study/new?mode=teach&topic=Enzymes");
     expect(screen.queryByRole("link", { name: /Work on/ })).toBeNull();
   });
 });

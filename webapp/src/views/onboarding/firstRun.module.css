@@ -1,0 +1,468 @@
+/* First run (2026-09 redesign): full screen on --paper, a 64px top row,
+ * then one screenful per step — start, lesson, win. */
+
+.shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--text);
+}
+
+.top {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-2) var(--s-8);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+
+.mark {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: var(--accent-on);
+  font-size: var(--fs-sm);
+}
+
+.progress {
+  display: flex;
+  gap: var(--s-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progress li {
+  width: 28px;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--track);
+}
+
+.progress li[data-done] {
+  background: var(--accent);
+}
+
+.skip,
+.skipLink {
+  min-height: var(--touch-target-min);
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.skip:hover,
+.skipLink:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.skip:focus-visible,
+.skipLink:focus-visible,
+.example:focus-visible,
+.drop:focus-visible,
+.segment:focus-visible,
+.option:focus-visible,
+.topicInput:focus-visible,
+.dateInput:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.headline {
+  margin: 0;
+  outline: none;
+}
+
+.sub {
+  margin: 0;
+  max-width: var(--measure-read);
+  font-size: var(--fs-md);
+  line-height: var(--lh-snug);
+  color: var(--text-secondary);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---- Start ---- */
+
+.startGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s-12);
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--s-10) var(--s-8);
+}
+
+.startLeft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  min-width: 0;
+}
+
+.topicRow {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.topicRow > button {
+  min-height: 56px;
+}
+
+.topicInput {
+  flex: 1;
+  min-width: 0;
+  min-height: 56px;
+  padding: 0 var(--s-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-read);
+}
+
+.topicInput:focus {
+  border-color: var(--accent);
+}
+
+.examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.examplesLabel {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.example {
+  min-height: var(--control-sm);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.example:hover {
+  border-color: var(--accent-line-strong);
+  color: var(--accent-deep);
+}
+
+.drop {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  padding: var(--s-8);
+  border: 1.5px dashed var(--hairline-strong);
+  border-radius: var(--r-xl);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--surface) 0 12px,
+    var(--accent-wash) 12px 24px
+  );
+  color: var(--text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.drop:hover {
+  border-color: var(--accent);
+}
+
+.drop svg {
+  color: var(--accent-deep);
+}
+
+.dropTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  font-weight: 500;
+}
+
+.dropText {
+  max-width: 36ch;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+  color: var(--text-secondary);
+}
+
+/* ---- Lesson ---- */
+
+.lesson {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--s-10) var(--s-6);
+}
+
+.note {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option {
+  width: 100%;
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.option:hover {
+  border-color: var(--accent-line-strong);
+}
+
+.key {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+
+.result {
+  margin: 0;
+  font-weight: 600;
+}
+
+.result[data-result="right"] {
+  color: var(--success-text);
+}
+
+.result[data-result="wrong"] {
+  color: var(--danger-text);
+}
+
+.explain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0;
+  max-width: var(--measure-read);
+  font-family: var(--font-read);
+  font-size: var(--fs-read);
+  line-height: var(--lh-read);
+}
+
+.explain p {
+  margin: 0;
+}
+
+/* ---- Win ---- */
+
+.winGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  align-items: center;
+  gap: var(--s-12);
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--s-10) var(--s-8);
+}
+
+.winLeft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  min-width: 0;
+}
+
+.passed {
+  color: var(--success-text);
+}
+
+.ladder {
+  max-width: 420px;
+}
+
+.planCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  padding: var(--s-6);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.planTitle {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  font-weight: 500;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.fieldLabel {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.dateInput {
+  min-height: var(--touch-target-min);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.segments {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-1);
+  padding: var(--s-1);
+  border-radius: var(--r-md);
+  background: var(--track);
+}
+
+.segment {
+  min-height: var(--touch-target-min);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segment[aria-pressed="true"] {
+  border-color: var(--hairline-strong);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.skipLink {
+  align-self: center;
+}
+
+@media (pointer: coarse) {
+  .example {
+    min-height: var(--touch-target-min);
+  }
+}
+
+@media (max-width: 900px) {
+  .startGrid,
+  .winGrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-8);
+  }
+
+  .drop {
+    min-height: 180px;
+  }
+}
+
+@media (max-width: 640px) {
+  .top {
+    padding-inline: var(--s-4);
+  }
+
+  .startGrid,
+  .winGrid,
+  .lesson {
+    padding: var(--s-6) var(--s-4);
+  }
+
+  .topicRow {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drop,
+  .option {
+    transition: none;
+  }
+}

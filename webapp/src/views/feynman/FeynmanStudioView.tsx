@@ -23,6 +23,7 @@ import { useRecordMisconceptions } from "../../hooks/useMisconceptions";
    -error type, which is a different thing from a ledger row. */
 import { candidatesFromTeachingTurn } from "../../lib/misconceptions";
 import styles from "./FeynmanStudioView.module.css";
+import { newSessionHref } from "../../lib/sessionModes";
 
 /* Why a turn scored nothing. Without this the studio showed a reply and no
    change to the bar, which reads as the app having lost the message. */
@@ -79,7 +80,7 @@ export function FeynmanStudioView() {
           <p style={{ color: "var(--text-muted)", marginTop: "8px", marginBottom: "20px" }}>
             It may have been deleted, or it was from a while ago.
           </p>
-          <Button variant="primary" onClick={() => navigate("/feynman")}>
+          <Button variant="primary" onClick={() => navigate(newSessionHref("teach"))}>
             <Icon name="chevron-down" size={16} style={{ transform: "rotate(90deg)" }} /> Back
           </Button>
         </div>
@@ -292,7 +293,7 @@ export function FeynmanStudioView() {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => navigate("/feynman")}
+            onClick={() => navigate(newSessionHref("teach"))}
             aria-label="Back to Explain it simply"
           >
             <Icon name="x" size={14} /> Back

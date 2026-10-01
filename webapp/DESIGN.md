@@ -28,6 +28,11 @@ redeclare raw values.
 | Line-height | `--lh 1.6` (body) · `--lh-snug 1.35` · `--lh-tight 1.15` | |
 | Motion | `--ease`, `--ease-spring`, `--t-fast 140ms`, `--t 260ms`, `--t-slow 400ms` | Micro-interactions ≤ `--t`. All motion is wrapped in `@media (prefers-reduced-motion: reduce)`. |
 | Structure | `--sidebar-width 264`, `--touch-target-min 44` | |
+| **2026-09 redesign** — colour | `--paper`, `--sidebar-bg`, `--hairline`, `--hairline-strong`, `--text-secondary`, `--track`, `--recall` / `--recall-text` / `--recall-soft` | Ochre `--recall` means "memory / due / guessed" and nothing else. It is a fill (3:1); `--recall-text` is the same hue as a label (4.5:1). Both are pinned in `contrast.test.ts`. Dark values in `themes.css`. |
+| redesign — accent roles | `--accent-wash`, `--accent-deep`, `--accent-line`, `--accent-line-strong` | `color-mix` off the live accent, so every preset gets them. Declared on `body` (themed aliases must be, see tokens.test). The handoff's `--accent-ink` is `--accent-deep` here — `--accent-ink` already existed. |
+| redesign — reading | `--fs-read 17` · `--fs-read-lg 19` · `--lh-read 1.65` · `--lh-display 1.02` · `--tracking-display` · `--tracking-meta` · `--measure-read 62ch` · `--font-mono` | Tutor prose is set in `--font-read` at `--fs-read`, capped at `--measure-read`. |
+| redesign — layout | `--rail-width 300` · `--drawer-width 420` · `--session-plan-width 260` · `--topbar-height 64` · `--control-sm 32` · `--control-lg 48` | `--control-sm` is fine-pointer only; lift to `--touch-target-min` under `(pointer: coarse)`. |
+| redesign — elevation | `--shadow-focus`, `--shadow-drawer`, `--scrim` | Flat by default: hairlines, not shadows. Only the drawer and modals cast. |
 
 ### ⚠️ Parity constraint
 
@@ -70,6 +75,11 @@ import text from "../../styles/text.module.css";
 | `stat` / `statLg` | one-glance dashboard metric |
 | `muted` / `faint` / `accent` | colour modifiers — compose on top |
 | `truncate` / `clamp2` | overflow helpers |
+| `display` / `pageTitle` | redesign serif headline (Today hero, results finding, first run) / in-page title |
+| `claim` | the one-sentence answer that opens a tutor turn |
+| `prose` | tutor reading text (`--font-read`, `--fs-read`, `--measure-read`) |
+| `meta` | small uppercase-tracked line above a block ("PRACTICE · 3 OF 8") |
+| `secondary` / `recall` / `accentDeep` | colour modifiers for the redesign roles |
 
 ---
 
@@ -79,7 +89,7 @@ import text from "../../styles/text.module.css";
 
 | Primitive | Covers |
 |---|---|
-| `Button` | `primary` (one per screen) · `secondary` · `ghost` (lowest-emphasis text action) · `danger` / `warning` / `success` · `size="sm"` |
+| `Button` | `primary` (one per screen, flat fill) · `secondary` · `ghost` (lowest-emphasis text action) · `danger` (text-style) / `warning` / `success` · `size="sm" \| "lg"` · `busy` (keeps its width, sets `aria-busy`) |
 | `IconButton` | icon-only action, 44px hit area, needs `aria-label` |
 | `Chip` | compact pill — filter/toggle (`pressed`), quick action, or clickable status (`soft` + `tone`). `tone`: `neutral` / `accent` / `success` / `warning` / `danger` |
 | `Card` | `panel` (default) · `elevated` · `row` · `subtle`; `padding` + `radius` props |
@@ -89,6 +99,26 @@ import text from "../../styles/text.module.css";
 | `Modal` | focus-trapped dialog; `--blur-scrim` backdrop |
 | `InlineFeedback` / toast (`ToastProvider`) | transient status; toasts auto-dismiss 3–5s, `aria-live` |
 | `ToggleSwitch`, `PasswordField`, `Combobox` | form controls with the states wired |
+
+### Learning primitives (`src/components/learning/`)
+
+The redesign's study vocabulary. Every mode, the Ask drawer, results and the
+first run are built from these.
+
+| Primitive | Covers |
+|---|---|
+| `TutorTurn` / `StudentTurn` | a turn of tutoring: `meta`, `claim`, prose, optional `structure`, `trap`, `deeper`, `check` slots; `streaming` sets `aria-busy` |
+| `TrapCallout` | "the usual mistake" — accent-edged, labelled in text as well as colour |
+| `HintLadder` | hints revealed one rung at a time, never the answer first |
+| `ConfidencePicker` | Sure / Think so / Guessing before an answer; the answer is stored with it so "guessed right" is not credited as known |
+| `StepPlan` | the ordered plan in a session's side column and the upload pipeline |
+| `MasteryLadder` | Seen → Recalled → Applied → Explained (`lib/mastery.ts`). `gainedFrom` fills newly earned rungs once — the one celebration, static under reduced motion |
+| `AiErrorCard` | "The tutor didn't answer that one" + retry + a non-AI fallback + what was kept |
+
+### Feature flags
+
+`src/lib/flags.ts` — `weeklyGoal`, `guessFirst`, `teachGapChips`. On in dev,
+off in prod, forced per browser with `localStorage["learnora:flag:<name>"]`.
 
 ### State checklist (every async view)
 
@@ -125,6 +155,24 @@ Tracked on branch work; each phase ends green on
 | 3 | View + component CSS de-drift — ~640 raw values across 46 modules → design tokens (Tailwind emerald/red/amber/indigo ramps → `--success`/`--danger`/`--warning`/`--accent`; phantom tokens like `--card-bg`, `--surface-elevated`, `--shadow-xl` → real ones; `blur()` → `--glass-blur`/`--blur-*`; rem/px `font-size` → `--fs-*`; white/black shadow layers → `--glass-inner`/`--shadow-*`). The Feynman, Cognitive Debugger and Study Analytics suites had been built against non-existent tokens and were **broken in dark mode / every accent preset** — now themed. `settings/appearance` (theme studio) exempted. | ✅ done — 12 annotated residuals left (see below) |
 | 4 | Dashboard IA + responsive — priority grid, 3 real breakpoints, one primary CTA, single stat treatment | ⬜ |
 | 5 | Effects & motion budget — cap stacked-blur depth, consolidate blob layers | ⬜ |
+
+### 2026-09 redesign (`design_handoff_learnora_redesign/README.md`)
+
+| Phase | What | Status |
+|---|---|---|
+| 1 | Revamp tokens + dark values, contrast pins for `--recall*` / `--accent-deep`, flat `Button`, new text roles, learning primitives, `lib/mastery.ts`, `lib/flags.ts` | ✅ |
+| 2 | Five-item nav (Today · Library · Study · Plan · Progress), children revealed under their parent, icon rail 768–1023, ⌘J Ask, paused-session card; `/dashboard` → `/` | ✅ |
+| 3 | Today (one scenario-driven hero + rail) and the Ask drawer (guess-first behind a flag) | ✅ |
+| 4 | `/study/:id` session screen, five modes (Explain · Socratic · Practice · Teach · Recall); every old tool URL redirects into it | ✅ |
+| 5 | Error / empty / loading states (`AiErrorCard`, fading topics, ledger copy) | ✅ |
+| 6 | Confidence before answering, results led by the finding, strict test runner, upload pipeline as a `StepPlan` | ✅ |
+| 7 | Value-first `/welcome`: topic or notes → 3-min lesson → win → two planning questions. The full wizard is `SetupWizard`, reached from Settings (`?replay=1`) | ✅ |
+| 8 | Mastery-rung animation where a rung is earned, copy pass, this doc | ✅ |
+
+Not built (need backend or product calls): a server-side sessions table
+(sessions are per-device in localStorage), upload thumbnails / topic chips /
+duplicate detection / early start, "mastery changes" in the results rail,
+"Pause & save" in the strict mock exam.
 
 ### Phase 3 intentional residuals (in `drift.baseline.json`, all annotated in-file)
 

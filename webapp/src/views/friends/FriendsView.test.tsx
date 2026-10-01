@@ -88,7 +88,7 @@ describe("FriendsView", () => {
 
     await user.click(await screen.findByRole("button", { name: "Copy link" }));
 
-    expect(await screen.findByText("Copied!")).toBeInTheDocument();
+    expect(await screen.findByText("Copied")).toBeInTheDocument();
     await expect(navigator.clipboard.readText()).resolves.toContain(
       "friends/add/K7M2QW9X",
     );

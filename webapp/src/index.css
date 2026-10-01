@@ -259,19 +259,24 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* Each picked font also claims --font-read, the serif reading face used for
    long AI prose (tokens.css). A student who chose Atkinson Hyperlegible for
    low vision must get it in the coach's answer too, not a serif. */
+/* --font-mono (the redesign's meta labels, "STEP 3 · EXPLAIN") follows the
+   picked font too: a mono caps label is still text a student has to read. */
 body[data-font-family="outfit"] {
   --font: "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-read: var(--font);
+  --font-mono: var(--font);
 }
 
 body[data-font-family="inter"] {
   --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-read: var(--font);
+  --font-mono: var(--font);
 }
 
 body[data-font-family="mono"] {
   --font: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
   --font-read: var(--font);
+  --font-mono: var(--font);
 }
 
 /* Atkinson Hyperlegible (OFL, Braille Institute) — designed for low-vision
@@ -281,6 +286,7 @@ body[data-font-family="dyslexic"] {
   --font:
     "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-read: var(--font);
+  --font-mono: var(--font);
 }
 
 /* ------------------------------------------------------------------------
@@ -308,6 +314,8 @@ body[data-font-size="sm"] {
   --fs-lg: 16px;
   --fs-xl: 20px;
   --fs-2xl: 25px;
+  --fs-read: 15.5px;
+  --fs-read-lg: 17px;
   --s-1: 4px;
   --s-2: 7px;
   --s-3: 11px;
@@ -328,6 +336,8 @@ body[data-font-size="lg"] {
   --fs-lg: 20px;
   --fs-xl: 24px;
   --fs-2xl: 31px;
+  --fs-read: 18.5px;
+  --fs-read-lg: 21px;
   --s-1: 4px;
   --s-2: 9px;
   --s-3: 13px;

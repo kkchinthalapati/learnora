@@ -43,6 +43,7 @@ import {
   isRegionId,
   type RegionId,
 } from "./region";
+import { newSessionHref } from "./sessionModes";
 
 export const ONBOARDING_VERSION = 1;
 
@@ -843,7 +844,7 @@ const NEXT_STEP_BY_FOCUS: Record<FocusAreaId, Omit<NextStep, "id">> = {
     label: "Explain it simply",
     blurb:
       "Teach a topic back in your own words and get told exactly where it fell apart.",
-    to: "/feynman",
+    to: newSessionHref("teach"),
     cta: "Try it on a topic",
     icon: "brain",
   },

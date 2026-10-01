@@ -7,39 +7,50 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { mockAuthSession } from "../../test/mockSession";
 import { localDateStr } from "../../lib/date";
+import { clearStudySnapshot, recordStudySession } from "../../lib/continuity";
 import { TodayView } from "./TodayView";
 const timer = vi.hoisted(() => ({ prepareFocus: vi.fn(), start: vi.fn(), state: { isRunning: false }, completedFocus: null as null | { id: number; timestamp: string; task: string; minutes: number; deckId: string }, dismissCompletedFocus: vi.fn() }));
 vi.mock("../../context/timer", () => ({ useTimer: () => timer, useOptionalTimer: () => timer }));
 vi.mock("../../hooks/useTrajectory", () => ({ useTrajectory: () => ({
   exam: { id: 1, exam_name: "Biology", folder_id: "f" }, needsMaterial: false, isPending: false,
-  forecast: { daysRemaining: 6, confidence: { lower: 50, upper: 70, evidence: .6 }, interventions: [{ topicId: "d", label: "Enzymes", mastery: .3, pointsPerHour: 4 }] },
+  forecast: { daysRemaining: 6, topics: [], confidence: { lower: 50, upper: 70, evidence: .6 }, interventions: [{ topicId: "d", label: "Enzymes", mastery: .3, pointsPerHour: 4 }] },
 }) }));
-beforeEach(() => { mockAuthSession("user-1"); timer.completedFocus = null; vi.clearAllMocks(); });
-it("leads with a decision, includes only due tasks, and passes the deck to the timer", async () => {
+beforeEach(() => { mockAuthSession("user-1"); timer.completedFocus = null; clearStudySnapshot(); vi.clearAllMocks(); });
+it("leads with one decision, lists due tasks as rows, and passes the deck to the timer", async () => {
   server.use(http.get(`${SUPABASE_URL}/rest/v1/tasks`, () => HttpResponse.json([
     { id: 1, text: "Due task", is_done: false, due_date: localDateStr() },
     { id: 2, text: "Future task", is_done: false, due_date: "2099-01-01" },
     { id: 3, text: "Undated task", is_done: false, due_date: null },
   ])));
-  const { container } = renderWithAuth(<TodayView />, { session: fakeSession() }, { withRouter: true });
-  expect(container.querySelector("section h1")).toHaveTextContent("Study Enzymes next");
-  expect(screen.getAllByRole("heading", { level: 2 }).slice(0, 3).map(e => e.textContent)).toEqual(["Due today", "Next exam", "Continue"]);
-  await screen.findByText("Due task");
+  renderWithAuth(<TodayView />, { session: fakeSession() }, { withRouter: true });
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Study Enzymes next.");
+  /* The meta line: date and the exam countdown. */
+  expect(screen.getByText(/Biology in 6 days/)).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Also worth doing today" })).toBeInTheDocument();
+  expect(await screen.findByText("Due task")).toBeInTheDocument();
   expect(screen.queryByText("Future task")).toBeNull();
   expect(screen.queryByText("Undated task")).toBeNull();
-  await userEvent.click(screen.getByRole("button", { name: /Start 45 min/ }));
+  await userEvent.click(screen.getByRole("button", { name: /Start 45 min instead/ }));
   expect(timer.prepareFocus).toHaveBeenCalledWith(45, "Enzymes", undefined, "d");
-  /* "Start" means start: the student lands on a running clock, not a
-     second Start button. */
+  /* "Start" means start: the student lands on a running clock. */
   expect(timer.start).toHaveBeenCalled();
 });
 
-it("offers a short block for a student with less time", async () => {
+it("switches to a ten-minute recall session for a student with less time", async () => {
   renderWithAuth(<TodayView />, { session: fakeSession() }, { withRouter: true });
-  await userEvent.click(screen.getByRole("button", { name: /Only have 20 min/ }));
-  expect(timer.prepareFocus).toHaveBeenCalledWith(20, "Enzymes", undefined, "d");
-  expect(timer.start).toHaveBeenCalled();
+  await userEvent.click(screen.getByRole("button", { name: "Only have 10 minutes?" }));
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Ten minutes is enough");
+  await userEvent.click(screen.getByRole("button", { name: "I have longer" }));
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Study Enzymes next.");
 });
+
+it("resumes an unfinished session ahead of the forecast", () => {
+  recordStudySession({ id: "s1", objective: "Cellular respiration", mode: "explain", stepIndex: 2, totalSteps: 5, minutesLeft: 12, status: "paused" });
+  renderWithAuth(<TodayView />, { session: fakeSession({ user_metadata: { full_name: "Maya Chen" } }) }, { withRouter: true });
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Pick up where you left off, Maya.");
+  expect(screen.getByRole("link", { name: "Resume · 12 min left" })).toHaveAttribute("href", "/study/s1?mode=explain");
+});
+
 it("offers the completed timer session after navigating home", async () => {
   timer.completedFocus = { id: 42, timestamp: "Today", task: "Enzymes", minutes: 45, deckId: "d" };
   renderWithAuth(<TodayView />, { session: fakeSession() }, { withRouter: true });

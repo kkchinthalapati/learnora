@@ -11,6 +11,7 @@
  */
 
 import type { QuizQuestion } from "../../lib/aiJson";
+import type { Confidence } from "../../components/learning/options";
 
 export interface StoredAnswer {
   questionId: string | number;
@@ -21,6 +22,10 @@ export interface StoredAnswer {
    *  the Speed Demon achievement needed a real speed signal. Optional because
    *  attempts recorded before it existed don't carry it. */
   secondsSpent?: number;
+  /** How sure the student said they were (the optional ConfidencePicker).
+   *  Drives "confident but wrong" and the ochre "guessed" marks on results.
+   *  Absent on attempts recorded before it existed, and when not given. */
+  confidence?: Confidence | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -116,6 +121,12 @@ function toAnswer(value: unknown): StoredAnswer | null {
       value.secondsSpent >= 0
         ? value.secondsSpent
         : undefined,
+    confidence:
+      value.confidence === "guess" ||
+      value.confidence === "fairly" ||
+      value.confidence === "certain"
+        ? value.confidence
+        : undefined,
   };
 }
 
@@ -163,7 +174,13 @@ export function answerForIndex(
   index: number,
 ): StoredAnswer | null {
   const key = questions[index]?.id ?? index;
-  return answers.find((a) => a.questionId === key) || answers[index] || null;
+  const byKey = answers.find((a) => a.questionId === key);
+  if (byKey) return byKey;
+  /* Position is trusted only when the attempt answered every question —
+     the one shape an old, id-less attempt could have. A sparse attempt (a
+     test left with blanks) read positionally gave question 1 question 3's
+     answer. */
+  return answers.length === questions.length ? (answers[index] ?? null) : null;
 }
 
 /* A question's `feedback` is written once, when the quiz is generated, and is

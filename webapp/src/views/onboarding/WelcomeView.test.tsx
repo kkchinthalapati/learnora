@@ -7,7 +7,7 @@ import { server } from "../../test/mocks/server";
 import { SUPABASE_URL } from "../../lib/supabase";
 import { fakeSession, renderWithAuth } from "../../test/auth";
 import { mockAuthSession } from "../../test/mockSession";
-import { WelcomeView } from "./WelcomeView";
+import { SetupWizard } from "./WelcomeView";
 import { OnboardingGate, WELCOME_PATH } from "./OnboardingGate";
 import { SETTINGS_KEY, loadSettings } from "../../lib/settings";
 import { DASHBOARD_LAYOUT_KEY } from "../dashboard/DashboardCustomizeModal";
@@ -19,7 +19,7 @@ const newUser = fakeSession({ created_at: "2026-12-01T00:00:00.000Z" });
 
 function renderWizard() {
   return renderWithAuth(
-    <WelcomeView />,
+    <SetupWizard />,
     { session: newUser },
     {
       initialEntries: ["/welcome"],
@@ -58,10 +58,10 @@ async function walkToSubjectStep(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: /continue/i }));
 }
 
-describe("WelcomeView", () => {
+describe("SetupWizard", () => {
   it("opens on a welcome that names the student", async () => {
     renderWithAuth(
-      <WelcomeView />,
+      <SetupWizard />,
       {
         session: fakeSession({
           created_at: "2026-12-01T00:00:00.000Z",

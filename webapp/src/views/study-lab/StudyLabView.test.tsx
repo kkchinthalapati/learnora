@@ -1,12 +1,17 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { StudyLabView } from "./StudyLabView";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import type { Misconception } from "../../lib/misconceptions";
 
 const ledger = vi.fn();
+
+function SessionProbe() {
+  const { search } = useLocation();
+  return <h1>{`Session ${search}`}</h1>;
+}
 
 vi.mock("../../hooks/useMisconceptions", () => ({
   useMisconceptions: () => ledger(),
@@ -36,8 +41,7 @@ function renderLab(entry = "/study-lab") {
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/study-lab" element={<StudyLabView />} />
-        <Route path="/solver" element={<h1>Debugger Page</h1>} />
-        <Route path="/feynman" element={<h1>Feynman Page</h1>} />
+        <Route path="/study/:sessionId" element={<SessionProbe />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -49,38 +53,32 @@ describe("StudyLabView", () => {
     ledger.mockReturnValue({ ranked: [] });
   });
 
-  it("offers the core routes, including testing yourself", () => {
+  it("offers the five session modes", () => {
     renderLab();
+    const hrefs = screen.getAllByRole("link").map((l) => l.getAttribute("href"));
+    for (const mode of ["explain", "socratic", "practice", "teach", "recall"]) {
+      expect(hrefs).toContain(`/study/new?mode=${mode}`);
+    }
+    /* Oral practice and exam traps are variants, not separate tools. */
     expect(
-      screen.getByRole("link", { name: /Quizzes & flashcards/ }),
-    ).toHaveAttribute("href", "/library/quizzes");
-    expect(screen.getByText("Step-by-step solver")).toBeInTheDocument();
-    expect(screen.getByText("Explain it simply")).toBeInTheDocument();
-    expect(screen.getByText("Oral practice")).toBeInTheDocument();
-    expect(screen.queryByText("Common Exam Traps")).not.toBeInTheDocument();
+      screen.getByRole("link", { name: /Oral practice, mic on/ }),
+    ).toHaveAttribute("href", "/study/new?mode=socratic&voice=1");
+    expect(
+      screen.getByRole("link", { name: /Exam traps, timed/ }),
+    ).toHaveAttribute("href", "/study/new?mode=practice&preset=traps");
   });
 
-  /* The banner named the topic and the cards under it went to bare routes,
-     so picking a method threw away what the page had just said it knew. */
-  it("carries the active topic into whichever method is picked", () => {
+  it("carries the topic into whichever mode is picked", async () => {
     renderLab("/study-lab?topic=Acids%20%26%20Bases");
-    expect(screen.getByText("Acids & Bases")).toBeInTheDocument();
-    const href = (name: string) =>
-      screen.getByRole("link", { name: new RegExp(name) }).getAttribute("href");
-    expect(href("Step-by-step solver")).toBe(
-      "/solver?topic=Acids%20%26%20Bases",
-    );
-    expect(href("Explain it simply")).toBe(
-      "/feynman?topic=Acids%20%26%20Bases",
-    );
-    expect(href("Oral practice")).toBe("/viva?topic=Acids%20%26%20Bases");
-  });
-
-  it("leaves the routes bare when no topic came with the student", () => {
-    renderLab();
+    expect(screen.getByDisplayValue("Acids & Bases")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /Step-by-step solver/ }),
-    ).toHaveAttribute("href", "/solver");
+      screen.getByRole("link", { name: /I think I understand it/ }).getAttribute("href"),
+    ).toBe("/study/new?mode=teach&topic=Acids+%26+Bases");
+    await userEvent.clear(screen.getByRole("textbox"));
+    await userEvent.type(screen.getByRole("textbox"), "Osmosis");
+    expect(
+      screen.getByRole("link", { name: /keep it from fading/ }).getAttribute("href"),
+    ).toBe("/study/new?mode=recall&topic=Osmosis");
   });
 
   /* A new account has no diagnosis, and inventing one would be worse than the
@@ -90,7 +88,7 @@ describe("StudyLabView", () => {
     expect(screen.queryByText(/Based on your work/)).not.toBeInTheDocument();
   });
 
-  it("sends a first-time diagnosis to the Debugger, with the concept loaded", async () => {
+  it("sends a first-time diagnosis to Explain, with the concept loaded", async () => {
     ledger.mockReturnValue({ ranked: [row()] });
     const user = userEvent.setup();
     renderLab();
@@ -100,7 +98,9 @@ describe("StudyLabView", () => {
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Start on this/ }));
 
-    expect(await screen.findByText("Debugger Page")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Session ?mode=explain&topic=Hydrolysis&misconception=m1"),
+    ).toBeInTheDocument();
     expect(CognitiveBridge.getPayload()).toMatchObject({
       concept: "Hydrolysis",
       subject: "Chemistry",
@@ -111,7 +111,7 @@ describe("StudyLabView", () => {
   /* Something that survived correction is not a knowledge gap — it is an
      explanation the student believes and cannot defend, which is what
      teaching it exposes and tracing it does not. */
-  it("sends a recurring one to Feynman instead, and says how often it has been seen", async () => {
+  it("sends a recurring one to Teach instead, and says how often it has been seen", async () => {
     ledger.mockReturnValue({
       ranked: [row({ timesObserved: 4, timesCorrected: 1 })],
     });
@@ -121,7 +121,7 @@ describe("StudyLabView", () => {
     expect(screen.getByText(/Seen 4 times so far/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Start on this/ }));
 
-    expect(await screen.findByText("Feynman Page")).toBeInTheDocument();
+    expect(await screen.findByText(/Session \?mode=teach/)).toBeInTheDocument();
     expect(CognitiveBridge.getPayload()).toMatchObject({
       suggestedAction: "teach_apprentice",
     });

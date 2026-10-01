@@ -27,6 +27,9 @@ import { renderMathText } from "../../lib/markdownToReact";
 import { newAttemptKey } from "../../lib/attemptKey";
 import { quizDraftKey } from "../../lib/draftKeys";
 import { clearQuizProgress } from "../../lib/continuity";
+import { ConfidencePicker } from "../../components/learning/ConfidencePicker";
+import type { Confidence } from "../../components/learning/options";
+import { TestResults } from "./TestResults";
 
 /* The quiz runner — ports js/router.js's `startQuiz` (:827-945).
  *
@@ -238,6 +241,10 @@ function QuizSession({
     questionShownAt.current = Date.now();
   }, [index]);
 
+  /* How sure the student is, asked before they answer — once the verdict is
+     on screen the question can no longer be answered honestly. Optional. */
+  const [confidence, setConfidence] = useState<Confidence | null>(null);
+
   const finished = index >= questions.length;
   const score = answers.filter((a) => a.correct).length;
   const total = questions.length;
@@ -345,6 +352,7 @@ function QuizSession({
         0,
         Math.round((Date.now() - questionShownAt.current) / 1000),
       ),
+      confidence,
     };
 
     /* One row per question, replacing rather than appending.
@@ -368,6 +376,7 @@ function QuizSession({
 
   const next = () => {
     setAnswered(null);
+    setConfidence(null);
     setIndex((i) => i + 1);
   };
 
@@ -396,68 +405,14 @@ function QuizSession({
   );
 
   if (finished) {
-    const weakTopics = weakTopicsFrom(answers);
     return (
-      <div className={styles.view}>
-        <Card variant="panel" padding="lg" className={styles.panel}>
-          <QuizHost
-            message={
-              score === total
-                ? `Finished! ${score} out of ${total}. Nothing to fix here.`
-                : `Finished! You got ${score} out of ${total}. Let's fix what slipped.`
-            }
-          />
-          <ExitLink />
-          {/* Confetti on a zero read as sarcasm. */}
-          <h2>{score === total ? "Quiz Complete! 🎉" : "Quiz Complete"}</h2>
-          <p className={styles.score}>
-            {score} / {total} correct
-          </p>
-          {weakTopics.length > 0 ? (
-            <p className={styles.muted}>
-              Topics to review: {weakTopics.join(", ")}
-            </p>
-          ) : null}
-          <div className={styles.actions}>
-            {/* The screen named the weak topics and then offered no way to
-                act on them — "check your weak topics" pointed at a
-                destination that was not on the page. The Solver is the
-                tool built for "I got this wrong and don't know why", and
-                it takes the topic straight from here. */}
-            {weakTopics.length > 0 ? (
-              <Link
-                to={`/solver?topic=${encodeURIComponent(weakTopics[0])}`}
-                className={`${styles.actionLink} ${styles.actionLinkPrimary}`}
-              >
-                <Icon name="target" size={16} />
-                Work on {weakTopics[0]}
-              </Link>
-            ) : null}
-            <Link
-              to={`/quiz/${quizId}/review`}
-              className={`${styles.actionLink} ${
-                weakTopics.length > 0 ? "" : styles.actionLinkPrimary
-              }`}
-            >
-              <Icon name="list-checks" size={16} />
-              Review answers
-            </Link>
-            {/* Retrieval practice works by repetition; a student who just
-                scored 3/10 had to leave and find the quiz again to retry. */}
-            <button
-              type="button"
-              className={styles.actionLink}
-              onClick={onRetake}
-            >
-              <Icon name="refresh-cw" size={16} />
-              Retake quiz
-            </button>
-            <Link to={QUIZZES_PATH} className={styles.actionLink}>
-              Back to Quizzes
-            </Link>
-          </div>
-        </Card>
-      </div>
+      <TestResults
+        quizId={quizId}
+        title={quizTitle}
+        questions={questions}
+        answers={answers}
+        onRetake={onRetake}
+      />
     );
   }
 
@@ -493,6 +448,10 @@ function QuizSession({
             beside it rendered the same TeX. Text-only otherwise (see
             renderMathText), so nothing else in a question becomes markup. */}
         <h2 className={styles.question}>{renderMathText(question.question)}</h2>
+
+        {answered ? null : (
+          <ConfidencePicker value={confidence} onChange={setConfidence} />
+        )}
 
         <div className={styles.choices}>
           {question.choices.map((choice, i) => {

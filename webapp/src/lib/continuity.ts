@@ -40,7 +40,28 @@ export interface LastFocusGoal {
   lastActiveAt?: string;
 }
 
+/** Pointer to the Session (views/session) the student last left. The full
+ *  session — plan, thread, position — lives in lib/studySessions; this is the
+ *  slice the sidebar's "Session paused" card and Today's Resume need. */
+export interface LastStudySession {
+  id: string;
+  objective: string;
+  mode: string;
+  stepIndex: number;
+  totalSteps: number;
+  minutesLeft: number;
+  status: "active" | "paused" | "done";
+  lastActiveAt: string;
+  /** The current step's name ("the electron transport chain"). */
+  stepLabel?: string;
+  /** The misconception the session is watching for, in words. */
+  watchingFor?: string;
+  /** Subject or source, for the mono label ("Explain session · Biology"). */
+  subject?: string;
+}
+
 export interface StudySnapshot {
+  lastStudySession?: LastStudySession | null;
   lastOpenedMaterial?: LastOpenedMaterial | null;
   lastReviewedDeck?: LastReviewedDeck | null;
   lastQuizDraft?: LastQuizDraft | null;
@@ -49,14 +70,14 @@ export interface StudySnapshot {
 }
 
 export interface ResumeAction {
-  type: "material" | "deck" | "quiz" | "focus";
+  type: "session" | "material" | "deck" | "quiz" | "focus";
   title: string;
   subtitle: string;
   targetUrl: string;
   progressPercentage: number;
   timestamp: string;
   badgeLabel: string;
-  iconName: "notes" | "flashcards" | "quizzes" | "timer";
+  iconName: "session" | "notes" | "flashcards" | "quizzes" | "timer";
 }
 
 const EMPTY_SNAPSHOT: StudySnapshot = Object.freeze({});
@@ -215,6 +236,29 @@ export function recordFocusGoal(goal: {
   });
 }
 
+/** Record where a Session stands; called on every autosave. */
+export function recordStudySession(
+  session: Omit<LastStudySession, "lastActiveAt">,
+): StudySnapshot {
+  return saveStudySnapshot({
+    lastStudySession: {
+      ...session,
+      stepIndex: Math.max(0, session.stepIndex),
+      totalSteps: Math.max(1, session.totalSteps),
+      minutesLeft: Math.max(0, Math.round(session.minutesLeft)),
+      lastActiveAt: new Date().toISOString(),
+    },
+  });
+}
+
+/** The session the student walked away from, if it is still unfinished. */
+export function pausedStudySession(
+  snapshot: StudySnapshot,
+): LastStudySession | null {
+  const s = snapshot.lastStudySession;
+  return s && s.status === "paused" ? s : null;
+}
+
 /**
  * Clears the study snapshot from storage.
  */
@@ -272,6 +316,24 @@ export function getResumeAction(snapshot: StudySnapshot): ResumeAction | null {
     action: ResumeAction;
     time: number;
   }[] = [];
+
+  // 0. An unfinished Session
+  if (snapshot.lastStudySession && snapshot.lastStudySession.status !== "done") {
+    const s = snapshot.lastStudySession;
+    candidates.push({
+      time: new Date(s.lastActiveAt || 0).getTime(),
+      action: {
+        type: "session",
+        title: s.objective || "Study session",
+        subtitle: `Step ${Math.min(s.stepIndex + 1, s.totalSteps)} of ${s.totalSteps} · ${s.minutesLeft} min left`,
+        targetUrl: `/study/${encodeURIComponent(s.id)}?mode=${encodeURIComponent(s.mode)}`,
+        progressPercentage: Math.round((s.stepIndex / s.totalSteps) * 100),
+        timestamp: s.lastActiveAt,
+        badgeLabel: "Session",
+        iconName: "session",
+      },
+    });
+  }
 
   // 1. Last Opened Material
   if (snapshot.lastOpenedMaterial) {

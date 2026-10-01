@@ -93,10 +93,14 @@ test.describe("Mobile", () => {
     await expect(page).toHaveURL(/\/plan/);
     await expect(plan).toHaveAttribute("aria-current", "page");
 
-    /* Everything else is under More, which opens the full menu. */
-    await tabs.getByRole("button", { name: /^More/ }).click();
-    await page.getByRole("link", { name: "Progress" }).click();
+    /* The five destinations are all tabs; community and account are in the
+       drawer behind the header's menu button. */
+    await tabs.getByRole("link", { name: "Progress" }).click();
     await expect(page).toHaveURL(/\/analytics/);
+    await page.getByRole("button", { name: "Toggle Sidebar Menu" }).click();
+    await expect(
+      page.getByRole("link", { name: "Study room & friends" }),
+    ).toBeVisible();
   });
 
   test("quiz answers are tappable and on screen", async ({ page, backend }) => {

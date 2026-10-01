@@ -16,6 +16,7 @@ import {
 import { CognitiveCrossLinkBar } from "../../components/ai/CognitiveCrossLinkBar";
 import { renderMathText } from "../../lib/markdownToReact";
 import styles from "./FeynmanDebriefView.module.css";
+import { newSessionHref } from "../../lib/sessionModes";
 
 export function FeynmanDebriefView() {
   const { sessionId: paramSessionId } = useParams<{ sessionId?: string }>();
@@ -100,7 +101,7 @@ export function FeynmanDebriefView() {
           <p style={{ color: "var(--text-muted)", marginTop: "8px", marginBottom: "20px" }}>
             It may have been deleted, or it was from a while ago.
           </p>
-          <Button variant="primary" onClick={() => navigate("/feynman")}>
+          <Button variant="primary" onClick={() => navigate(newSessionHref("teach"))}>
             <Icon name="chevron-down" size={16} style={{ transform: "rotate(90deg)" }} /> Back
           </Button>
         </div>
@@ -375,7 +376,7 @@ export function FeynmanDebriefView() {
       <div className={styles.actionsFooter}>
         <Button
           variant="secondary"
-          onClick={() => navigate("/feynman")}
+          onClick={() => navigate(newSessionHref("teach"))}
           data-testid="teach-another-btn"
         >
           <Icon name="zap" size={16} /> Explain something else

@@ -10,6 +10,7 @@ import { useTimer } from "../../context/timer";
 import { pickStudyNow } from "../../lib/studyNow";
 import { getSavedTraces } from "../../api/aiDebugger";
 import styles from "./StudyThisNowCard.module.css";
+import { newSessionHref } from "../../lib/sessionModes";
 
 /**
  * The answer to "what should I do right now".
@@ -104,7 +105,7 @@ export function StudyThisNowCard() {
         <Button
           variant="secondary"
           onClick={() =>
-            void navigate(`/solver?topic=${encodeURIComponent(pick.concept)}`)
+            void navigate(newSessionHref("explain", { topic: pick.concept }))
           }
         >
           See why it matters

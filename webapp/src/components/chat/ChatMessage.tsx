@@ -14,6 +14,8 @@ import type {
 } from "../../context/chat";
 import { sourceSnippet } from "../../lib/sourceSnippet";
 import styles from "./chat.module.css";
+import { useNavigate } from "react-router";
+import { AiErrorCard } from "../learning/AiErrorCard";
 
 /* One chat bubble — ports `_appendBubble` (js/ai.js:1276-1298) and the action
  * widgets from the replace pass at :1181-1240.
@@ -134,6 +136,7 @@ export function ChatMessageBubble({
   onRetry?: (message: Message) => void;
 }) {
   const [addedCitations, setAddedCitations] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
 
   if (message.role === "user") {
     return (
@@ -237,19 +240,21 @@ export function ChatMessageBubble({
     });
   };
 
+  /* A failure that can be retried says what happened, what was kept and
+     that retrying is safe — the same card a Session uses. */
+  if (message.error && message.retryQuery && onRetry) {
+    return (
+      <AiErrorCard
+        detail={message.text}
+        onRetry={() => onRetry(message)}
+        onFallback={() => void navigate("/review/daily-drill")}
+      />
+    );
+  }
+
   return (
     <div className={classes} role={message.error ? "alert" : undefined}>
       {body}
-
-      {message.error && message.retryQuery && onRetry ? (
-        <button
-          type="button"
-          className={styles.retryBtn}
-          onClick={() => onRetry(message)}
-        >
-          <Icon name="refresh-cw" size={13} /> Try again
-        </button>
-      ) : null}
 
       {/* Web Citation Cards */}
       {webSources.length > 0 && !message.pending && (

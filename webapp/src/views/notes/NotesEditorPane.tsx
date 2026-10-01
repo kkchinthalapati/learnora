@@ -266,7 +266,7 @@ ${fenceUntrusted(currentHtml)}
       const html = renderMarkdown(md);
       editorRef.current?.setHtml(html);
       handleUserChange(html);
-      showToast("Notes rewritten!");
+      showToast("Notes rewritten");
     },
     onError: (_err) => {
       showToast("Failed to rewrite notes.", { error: true });

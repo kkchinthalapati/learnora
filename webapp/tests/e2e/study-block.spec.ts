@@ -37,8 +37,11 @@ test("Start 45 min runs the block, and its end offers the quick check", async ({
   await expect(hero).toBeVisible();
   const topic = (await hero.getByRole("heading", { level: 1 }).innerText())
     .replace(/^Study /, "")
-    .replace(/ next$/, "");
-  await hero.getByRole("button", { name: /^Start 45 min on / }).click();
+    .replace(/ next\.?$/, "");
+  /* The block is the lead action, or one click away as the fallback when
+     the lead is a Session (chooseNextStep). */
+  const block = hero.getByRole("button", { name: /^Start 45 min (on |instead)/ });
+  await block.first().click();
 
   // "Start" means start: the clock is already running on arrival.
   await expect(page).toHaveURL(/\/timer$/);
@@ -60,14 +63,21 @@ test("Start 45 min runs the block, and its end offers the quick check", async ({
   expect(backend.callsTo("/functions/v1/learnora-ai").length).toBeGreaterThan(0);
 });
 
-test("Only have 20 min? starts a 20-minute block on the same topic", async ({
+/* Short on time switches Today to its ten-minute scenario: a mixed recall
+   session, not a shorter timer (2026-09 redesign). */
+test("Only have 10 minutes? offers a ten-minute mixed recall session", async ({
   page,
   backend,
 }) => {
   seedStudent(backend);
   await loginAs(page);
 
-  await page.getByRole("button", { name: "Only have 20 min?" }).click();
-  await expect(page).toHaveURL(/\/timer$/);
-  await expect(page.getByText(/^(19|20):\d\d$/).first()).toBeVisible();
+  await page.getByRole("button", { name: "Only have 10 minutes?" }).click();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Ten minutes is enough to keep things from fading." }),
+  ).toBeVisible();
+  const start = page.getByRole("link", { name: /^Start · \d+ min$/ });
+  await expect(start).toHaveAttribute("href", /\/study\/new\?mode=recall&minutes=10$/);
+  await start.click();
+  await expect(page).toHaveURL(/\/study\/s-[^?]+\?mode=recall$/);
 });

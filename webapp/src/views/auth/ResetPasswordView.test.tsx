@@ -120,7 +120,7 @@ describe("ResetPasswordView", () => {
     await user.click(screen.getByRole("button", { name: "Update Password →" }));
 
     expect(
-      await screen.findByRole("heading", { level: 1, name: "All done!" }),
+      await screen.findByRole("heading", { level: 1, name: "Password updated" }),
     ).toBeInTheDocument();
     expect(updateUser).toHaveBeenCalledWith({ password: "Password1!" });
 

@@ -28,6 +28,7 @@ describe("CommandPalette", () => {
     draft: "",
     open: vi.fn(),
     close: vi.fn(),
+    toggle: vi.fn(),
     toggleFullscreen: vi.fn(),
     compose: vi.fn(),
     clearDraft: vi.fn(),

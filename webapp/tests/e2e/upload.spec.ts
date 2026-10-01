@@ -41,7 +41,10 @@ function makePdf(lines: string[]): Buffer {
 }
 
 async function openUpload(page: import("@playwright/test").Page) {
-  await page.getByRole("button", { name: /create/i }).first().click();
+  /* Create left the sidebar in the 2026-09 redesign; the Library header's
+     "Add your notes" is where material is added now. */
+  await page.goto("library");
+  await page.getByRole("button", { name: "Add your notes" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("tab", { name: /Upload/ })).toBeVisible();
   return dialog;

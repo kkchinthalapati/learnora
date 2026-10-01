@@ -271,7 +271,7 @@ export function StudyRoomView() {
           >
             <Icon name="link" size={16} />
             <span>
-              {isCopied ? "Link Copied!" : "Copy study room invite link"}
+              {isCopied ? "Link copied" : "Copy study room invite link"}
             </span>
           </Button>
         </div>
@@ -354,10 +354,10 @@ export function StudyRoomView() {
             variant="primary"
             size="md"
             onClick={() => void copyInviteLink()}
-            aria-label="Invite Friends to Study"
+            aria-label="Invite friends to study"
           >
             <Icon name="link" size={16} />
-            <span>{isCopied ? "Link Copied!" : "Invite Friends to Study"}</span>
+            <span>{isCopied ? "Link copied" : "Invite friends to study"}</span>
           </Button>
         </section>
       )}
