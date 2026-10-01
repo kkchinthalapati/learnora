@@ -11,6 +11,7 @@ import type { Flashcard, FlashcardDeck } from "../../api/types";
 import { DeckCardsView } from "./DeckCardsView";
 import { cardDraftKey } from "../../lib/draftKeys";
 import { Storage } from "../../lib/storage";
+import { appCsps, imgSrcAllows } from "../../test/productionCsp";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 
@@ -206,17 +207,44 @@ describe("DeckCardsView", () => {
     server.use(
       http.post(
         `${SUPABASE_URL}/storage/v1/object/sign/card-media/:path*`,
-        () => HttpResponse.json({ signedURL: "/signed/card.png" }),
+        /* Storage's real shape: a path relative to /storage/v1. */
+        ({ request }) => {
+          const key = new URL(request.url).pathname.replace(
+            "/storage/v1/object/sign/",
+            "",
+          );
+          return HttpResponse.json({
+            signedURL: `/object/sign/${key}?token=t`,
+          });
+        },
       ),
     );
     renderView();
 
-    expect(
-      await screen.findByAltText(/Front of card: What is prophase\?/),
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByAltText(/Back of card: The first stage of mitosis\./),
-    ).toBeInTheDocument();
+    const front = await screen.findByAltText(
+      /Front of card: What is prophase\?/,
+    );
+    const back = await screen.findByAltText(
+      /Back of card: The first stage of mitosis\./,
+    );
+
+    /* The signed URL goes straight into src, so production's CSP has to
+       admit it — this suite runs without one, and that is how card images
+       shipped blocked. */
+    for (const [img, side] of [
+      [front, "front"],
+      [back, "back"],
+    ] as const) {
+      const src = img.getAttribute("src") ?? "";
+      expect(new URL(src).pathname).toBe(
+        `/storage/v1/object/sign/card-media/user-1/${side}.png`,
+      );
+      for (const { source, policy } of appCsps()) {
+        expect(imgSrcAllows(policy, src), `"${source}" admits ${src}`).toBe(
+          true,
+        );
+      }
+    }
   });
 
   it("accepts a card whose front is an image with no text", async () => {

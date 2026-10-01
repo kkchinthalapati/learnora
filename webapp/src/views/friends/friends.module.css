@@ -85,10 +85,13 @@
   text-align: center;
 }
 
-/* Initials, not a remote <img>: the deployed CSP is `img-src 'self' data:
-   blob:` (vercel.json), so an avatar_url from a user's OAuth metadata would be
-   blocked in production anyway — and fetching one would hand whoever set it a
-   view-tracking pixel on every leaderboard render. */
+/* Initials when there is no avatar_url, the photo when there is — but only a
+   photo in this project's Supabase storage loads: the deployed CSP's img-src
+   (vercel.json) admits `/storage/v1/object/` on our own project and nothing
+   else remote. avatar_url is user-writable and shown to other people, so any
+   other host — an OAuth provider's picture included — stays blocked (an
+   empty circle) rather than handing whoever set it a view-tracking pixel on
+   every leaderboard render. */
 .avatar {
   flex: 0 0 auto;
   width: 40px;

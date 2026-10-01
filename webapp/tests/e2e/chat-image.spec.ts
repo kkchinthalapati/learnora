@@ -51,8 +51,8 @@ test("draws a diagram on request and shows it from the private bucket", async ({
   /* Loaded, not just present: the browser decoded the bytes behind the
      signed URL. */
   await expect.poll(() => img.evaluate((el) => (el as HTMLImageElement).naturalWidth)).toBe(320);
-  /* Shown from a blob: URL — the production CSP's img-src does not admit
-     the Supabase host, so a signed URL in `src` would be blocked. */
+  /* Shown from a blob: URL, which also backs the Download link — `download`
+     only saves from a same-origin URL, so a signed URL would navigate. */
   await expect(img).toHaveAttribute("src", /^blob:/);
   await expect(panel.getByRole("link", { name: /Download/ })).toHaveAttribute(
     "download",
