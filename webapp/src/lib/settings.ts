@@ -41,6 +41,10 @@ export interface Settings {
   aiStyle: StudyStyle;
   aiAutoAdapt: boolean;
   webAccess: boolean;
+  /** Read the chat tutor's replies aloud (browser text-to-speech). Off by
+   *  default: a reply suddenly spoken in a classroom, on a bus or in a
+   *  library is not something to opt a student into. */
+  aiSpokenReplies: boolean;
   /** Where the student studies — "auto" detects (lib/region.ts). Drives
    *  currency, presets, examiner persona and privacy copy. */
   region: RegionId | "auto";
@@ -64,6 +68,7 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   aiStyle: "balanced",
   aiAutoAdapt: true,
   webAccess: true,
+  aiSpokenReplies: false,
   region: "auto",
   framework: "auto",
   gradeScale: "auto",
@@ -215,6 +220,10 @@ export function loadSettings(): Settings {
       typeof stored.webAccess === "boolean"
         ? stored.webAccess
         : DEFAULT_SETTINGS.webAccess,
+    aiSpokenReplies:
+      typeof stored.aiSpokenReplies === "boolean"
+        ? stored.aiSpokenReplies
+        : DEFAULT_SETTINGS.aiSpokenReplies,
     region: isRegionId(stored.region) ? stored.region : "auto",
     framework: isFrameworkId(stored.framework) ? stored.framework : "auto",
     gradeScale: isGradeScaleId(stored.gradeScale) ? stored.gradeScale : "auto",

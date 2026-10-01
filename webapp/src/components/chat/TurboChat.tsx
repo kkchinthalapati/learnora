@@ -8,6 +8,11 @@ import { notebooksApi } from "../../api/notebooks";
 import { PersonaOffsetToolbar } from "../ai/PersonaOffsetToolbar";
 import { ChatMessageBubble } from "./ChatMessage";
 import { useSettings } from "../../context/settings";
+import { useAiUsage } from "../../hooks/useAiUsage";
+import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
+import { useSpeechSynthesis } from "../../hooks/useSpeechSynthesis";
+import { MAX_IMAGE_DESCRIPTION } from "../../api/aiImage";
+import { toSpeakableText } from "../../lib/speechText";
 import type { SourceMode } from "../ai/PersonaOffsetToolbar";
 import { useExams } from "../../hooks/useExams";
 import { useTranslation } from "../../hooks/useTranslation";
@@ -108,6 +113,8 @@ export function TurboChat() {
     attachFile,
     clearFile,
     saveCards,
+    generateImage,
+    saveImage,
   } = useChat();
   const { showToast } = useToast();
   const { settings, updateAndSave } = useSettings();
@@ -156,6 +163,133 @@ export function TurboChat() {
     .filter((e) => e.exam_date && e.exam_date >= today)
     .sort((a, b) => a.exam_date.localeCompare(b.exam_date))[0];
   const guessFirstOn = isFlagOn("guessFirst");
+  /* Armed by the "Generate image" chip: the next send draws a diagram
+     instead of asking the tutor. Always the student's own click — the model
+     has no way to turn it on. */
+  const [imageMode, setImageMode] = useState(false);
+  const { usageFor, isPending: isUsagePending } = useAiUsage();
+
+  /* --- voice ------------------------------------------------------------
+     Browser speech only (Web Speech API): no keys, no Learnora server
+     involved in recognition. Note the browser may use its vendor's cloud
+     for it — Chrome streams the audio to Google — which is the browser's
+     own behaviour, the same as its dictation elsewhere. The transcript is
+     then sent exactly like typed text: same send(), same consent gate, same
+     server-side safety screen. Every control is hidden where the browser
+     has no support, and typing is never affected. */
+  const {
+    isListening,
+    transcript,
+    fullTranscript,
+    isSupported: canListen,
+    error: micError,
+    startListening,
+    stopListening,
+    resetTranscript,
+  } = useSpeechRecognition({ silenceTimeoutMs: 3000 });
+  const {
+    speak,
+    cancel: cancelSpeech,
+    isSpeaking,
+    isSupported: canSpeak,
+  } = useSpeechSynthesis();
+  /* Hands-free: after a spoken turn, the reply is read out and the mic
+     reopens, until the student presses Stop. Only while spoken replies are
+     on — without them there is no cue for when to talk again. */
+  const [handsFree, setHandsFree] = useState(false);
+  const handsFreeRef = useRef(false);
+  const stoppedByStudentRef = useRef(false);
+  const wasListeningRef = useRef(false);
+  const lastSpokenIdRef = useRef<string | null | undefined>(undefined);
+
+  const startVoice = () => {
+    cancelSpeech();
+    setImageMode(false);
+    stoppedByStudentRef.current = false;
+    resetTranscript();
+    setInput("");
+    handsFreeRef.current = true;
+    setHandsFree(true);
+    startListening();
+  };
+
+  const stopVoice = useCallback(() => {
+    stoppedByStudentRef.current = true;
+    handsFreeRef.current = false;
+    setHandsFree(false);
+    stopListening();
+    cancelSpeech();
+  }, [cancelSpeech, stopListening]);
+
+  /* The words appear in the box as they are recognised. */
+  useEffect(() => {
+    if (isListening) setInput(fullTranscript);
+  }, [isListening, fullTranscript]);
+
+  /* Listening ended. On silence, what was said is sent; on Stop it stays in
+     the box to edit or send by hand; on an error nothing is sent. */
+  useEffect(() => {
+    if (wasListeningRef.current && !isListening) {
+      const said = transcript.trim();
+      if (said && !stoppedByStudentRef.current && !micError) {
+        setInput("");
+        resetTranscript();
+        const awaitingGuessNow = messages[messages.length - 1]?.guessPrompt === true;
+        void send(said, {
+          sourceMode,
+          guessFirst: !awaitingGuessNow && guessFirstOn && looksConceptual(said),
+        });
+      } else if (!said || micError) {
+        handsFreeRef.current = false;
+        setHandsFree(false);
+      }
+    }
+    wasListeningRef.current = isListening;
+    // Only the transition matters; the rest is read at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isListening]);
+
+  /* Read each new reply aloud when that is switched on. Replies restored
+     from an earlier visit are not: only ones that arrive while this panel
+     is mounted. */
+  const spokenReplies = settings.aiSpokenReplies && canSpeak;
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (lastSpokenIdRef.current === undefined) {
+      lastSpokenIdRef.current = last?.id ?? null;
+      return;
+    }
+    if (!last || last.role !== "ai" || last.pending || last.id === lastSpokenIdRef.current) {
+      return;
+    }
+    lastSpokenIdRef.current = last.id;
+    if (!spokenReplies || last.error) {
+      if (handsFreeRef.current && !spokenReplies) {
+        handsFreeRef.current = false;
+        setHandsFree(false);
+      }
+      return;
+    }
+    const words = last.image
+      ? "Here's the picture you asked for."
+      : last.cards
+        ? `I've made ${last.cards.length} flashcards for you.`
+        : toSpeakableText(last.text);
+    if (!words) return;
+    speak(words, {
+      onEnd: () => {
+        if (handsFreeRef.current) {
+          resetTranscript();
+          startListening();
+        }
+      },
+    });
+  }, [messages, spokenReplies, speak, resetTranscript, startListening]);
+
+  /* Closing the panel ends any listening or speaking. */
+  useEffect(() => {
+    if (!isOpen) stopVoice();
+  }, [isOpen, stopVoice]);
   const [isDropTarget, setIsDropTarget] = useState(false);
 
   const panelRef = useRef<HTMLDivElement>(null);
@@ -203,12 +337,45 @@ export function TurboChat() {
 
   const submit = (text: string, { explain = false } = {}) => {
     const value = text.trim();
+    if (imageMode) {
+      if (!value) return;
+      setImageMode(false);
+      setInput("");
+      void generateImage(value);
+      return;
+    }
     if (!value && !file) return;
     setInput("");
     const guessFirst =
       !explain && !awaitingGuess && guessFirstOn && looksConceptual(value);
     void send(value || "Analyse this.", { sourceMode, guessFirst });
   };
+
+  const imageUsage = usageFor("image");
+  const imageAllowance =
+    isUsagePending || imageUsage.unlimited
+      ? null
+      : imageUsage.exceeded
+        ? "No images left today — it resets at midnight UTC."
+        : `${imageUsage.remaining} left today`;
+
+  const toggleImageMode = () => {
+    setImageMode((on) => !on);
+    inputRef.current?.focus();
+  };
+
+  const imageChip = (
+    <button
+      type="button"
+      className={`${styles.chip}${imageMode ? ` ${styles.chipActive}` : ""}`}
+      aria-pressed={imageMode}
+      disabled={isSending}
+      onClick={toggleImageMode}
+    >
+      <Icon name="image" size={14} />
+      Generate image
+    </button>
+  );
 
   /* "Open as session": the thread's question becomes a Session's objective,
      carried by CognitiveBridge the way every tool-to-tool handoff is. */
@@ -290,6 +457,33 @@ export function TurboChat() {
           </span>
         </div>
         <div className={styles.headerControls}>
+          {canSpeak ? (
+            <button
+              type="button"
+              className={styles.iconBtn}
+              aria-label="Read replies aloud"
+              aria-pressed={settings.aiSpokenReplies}
+              title={
+                settings.aiSpokenReplies
+                  ? "Replies are read aloud — click to stop"
+                  : "Read replies aloud"
+              }
+              onClick={() => {
+                const next = !settings.aiSpokenReplies;
+                if (!next) {
+                  cancelSpeech();
+                  handsFreeRef.current = false;
+                  setHandsFree(false);
+                }
+                updateAndSave({ aiSpokenReplies: next });
+              }}
+            >
+              <Icon
+                name={settings.aiSpokenReplies ? "volume-2" : "volume-x"}
+                size={16}
+              />
+            </button>
+          ) : null}
           <button
             type="button"
             className={styles.iconBtn}
@@ -323,6 +517,7 @@ export function TurboChat() {
               key={message.id}
               message={message}
               onSaveCards={saveCards}
+              onSaveImage={saveImage}
               onAddToNotebook={handleAddToNotebook}
               sendPhase={sendPhase}
               onCancel={cancel}
@@ -331,8 +526,9 @@ export function TurboChat() {
               onRetry={
                 message.id === messages[messages.length - 1]?.id
                   ? (m) => {
-                      if (m.retryQuery && !isSending)
-                        void send(m.retryQuery, m.retryOptions);
+                      if (!m.retryQuery || isSending) return;
+                      if (m.retryAsImage) void generateImage(m.retryQuery);
+                      else void send(m.retryQuery, m.retryOptions);
                     }
                   : undefined
               }
@@ -392,8 +588,28 @@ export function TurboChat() {
                   {suggestion.label}
                 </button>
               ))}
+          {/* Offered with both sets: drawing is as useful before a first
+              question as after an answer. */}
+          {imageChip}
         </div>
       )}
+
+      {imageMode ? (
+        <div className={styles.imageModeHint} role="status">
+          <Icon name="image" size={14} />
+          <span>
+            <strong>Image mode</strong> — describe a diagram and press send.
+            {imageAllowance ? ` ${imageAllowance}` : ""}
+          </span>
+          <button
+            type="button"
+            className={styles.imageModeCancel}
+            onClick={() => setImageMode(false)}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
 
       {file ? (
         <div className={styles.filePill}>
@@ -405,6 +621,39 @@ export function TurboChat() {
             onClick={clearFile}
           >
             <Icon name="x" size={12} />
+          </button>
+        </div>
+      ) : null}
+
+      {micError ? (
+        <p className={styles.voiceError} role="alert">
+          <Icon name="alert-circle" size={14} />
+          {micError} You can still type your question.
+        </p>
+      ) : isListening || isSpeaking || handsFree ? (
+        <div className={styles.voiceStatus} role="status">
+          {isListening ? (
+            <>
+              <span className={styles.recordingDot} aria-hidden="true" />
+              <span>Listening — pause when you're done and I'll send it.</span>
+            </>
+          ) : isSpeaking ? (
+            <>
+              <Icon name="volume-2" size={14} />
+              <span>Reading the reply aloud…</span>
+            </>
+          ) : (
+            <>
+              <Icon name="mic" size={14} />
+              <span>Voice conversation on.</span>
+            </>
+          )}
+          <button
+            type="button"
+            className={styles.voiceStop}
+            onClick={stopVoice}
+          >
+            Stop
           </button>
         </div>
       ) : null}
@@ -450,7 +699,7 @@ export function TurboChat() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,.txt,.docx,.png,.jpg,.jpeg"
+            accept=".pdf,.txt,.docx,.png,.jpg,.jpeg,.webp"
             hidden
             onChange={(e) => {
               const picked = e.target.files?.[0];
@@ -460,16 +709,33 @@ export function TurboChat() {
             }}
           />
         </label>
+        {canListen ? (
+          <button
+            type="button"
+            className={`${styles.uploadBtn} ${styles.micBtn}${
+              isListening ? ` ${styles.micBtnActive}` : ""
+            }`}
+            aria-label={isListening ? "Stop listening" : "Speak your question"}
+            aria-pressed={isListening}
+            disabled={isSending && !isListening}
+            onClick={isListening ? stopVoice : startVoice}
+          >
+            <Icon name={isListening ? "mic-off" : "mic"} size={20} />
+          </button>
+        ) : null}
         <input
           ref={inputRef}
           type="text"
           className={styles.input}
           value={input}
           placeholder={
-            awaitingGuess
-              ? "Type your guess…"
-              : "Ask a question, or ask me to do something"
+            imageMode
+              ? "Describe the diagram, e.g. a labelled plant cell"
+              : awaitingGuess
+                ? "Type your guess…"
+                : "Ask a question, or ask me to do something"
           }
+          maxLength={imageMode ? MAX_IMAGE_DESCRIPTION : undefined}
           autoComplete="off"
           aria-label="AI chat input"
           onChange={(e) => setInput(e.target.value)}
@@ -477,10 +743,13 @@ export function TurboChat() {
         <button
           type="submit"
           className={styles.sendBtn}
-          aria-label="Send message"
+          aria-label={imageMode ? "Draw image" : "Send message"}
           /* Also disabled on an empty box. It used to look pressable with
-             nothing typed, do nothing at all, and say nothing about why. */
-          disabled={isSending || input.trim().length === 0}
+             nothing typed, do nothing at all, and say nothing about why.
+             An attachment on its own is enough to send ("Analyse this."). */
+          disabled={
+            isSending || (input.trim().length === 0 && (imageMode || !file))
+          }
         >
           <Icon name="send" size={18} />
         </button>

@@ -103,6 +103,13 @@ export function SessionComposer({
             <Icon name="send" size={18} />
           </button>
         </form>
+        {/* A blocked or missing microphone, said plainly — otherwise the mic
+            simply stops and the student is left guessing why. */}
+        {speech.error ? (
+          <p className={styles.caption} role="alert">
+            {speech.error} You can type your answer instead.
+          </p>
+        ) : null}
         {voiceDefault && !speech.isSupported ? (
           <p className={styles.caption} role="status">
             Voice input isn't supported in this browser. Type your answer

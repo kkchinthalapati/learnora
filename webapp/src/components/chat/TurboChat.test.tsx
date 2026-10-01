@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
@@ -12,6 +12,11 @@ import { fakeSession, renderWithAuth } from "../../test/auth";
 import { ChatProvider } from "../../context/ChatProvider";
 import { useChat } from "../../context/chat";
 import { TurboChat } from "./TurboChat";
+import {
+  FakeRecognition,
+  installFakeSpeech,
+  uninstallFakeSpeech,
+} from "../../test/fakeSpeech";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
 const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
@@ -867,6 +872,55 @@ describe("TurboChat", () => {
       expect(body?.context).toContain("mitosis has four phases");
     });
 
+    it("sends a photo as an image attachment, with nothing typed", async () => {
+      let body:
+        | { history?: { content: string }[]; file?: { mimeType: string } | null }
+        | undefined;
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          body = (await request.json()) as typeof body;
+          return HttpResponse.json({ text: "That's the Krebs cycle." });
+        }),
+      );
+      renderChat();
+      const panel = await openChat();
+      const input = panel.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      await userEvent.upload(
+        input,
+        new File(["jpeg"], "whiteboard.jpg", { type: "image/jpeg" }),
+      );
+      await screen.findByText("whiteboard.jpg");
+      /* An attachment on its own is enough to send. */
+      const sendButton = screen.getByRole("button", { name: "Send message" });
+      expect(sendButton).toBeEnabled();
+      await userEvent.click(sendButton);
+      await screen.findByText("That's the Krebs cycle.");
+
+      expect(body?.file?.mimeType).toBe("image/jpeg");
+      expect(body?.history?.at(-1)?.content).toBe("Analyse this.");
+    });
+
+    it("refuses a photo format it cannot read, with a reason", async () => {
+      renderChat();
+      const panel = await openChat();
+      const input = panel.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      await userEvent.upload(
+        input,
+        new File(["gif"], "diagram.gif", { type: "image/gif" }),
+        { applyAccept: false },
+      );
+      expect(
+        await screen.findByText("That image format can't be read. Use a JPEG, PNG or WebP photo."),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("diagram.gif")).not.toBeInTheDocument();
+    });
+
     it("clears the attachment once it has been sent", async () => {
       serveReply("done");
       renderChat();
@@ -888,6 +942,286 @@ describe("TurboChat", () => {
       expect(
         screen.queryByRole("button", { name: "Remove notes.txt" }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Generate image", () => {
+    /* The CSP admits blob: images but not the Supabase host, so the bubble
+       fetches the signed URL and shows an object URL. jsdom has no
+       createObjectURL; this stands in for it and records what was shown. */
+    const objectUrls: Blob[] = [];
+    beforeEach(() => {
+      objectUrls.length = 0;
+      Object.defineProperty(URL, "createObjectURL", {
+        configurable: true,
+        value: (blob: Blob) => {
+          objectUrls.push(blob);
+          return `blob:learnora/diagram-${objectUrls.length}`;
+        },
+      });
+      Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: () => {} });
+    });
+
+    function serveImage(reply: () => Response) {
+      const bodies: Record<string, unknown>[] = [];
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          bodies.push((await request.json()) as Record<string, unknown>);
+          return reply();
+        }),
+        http.post(`${SUPABASE_URL}/storage/v1/object/sign/chat-media/*`, () =>
+          HttpResponse.json({ signedURL: "/object/sign/chat-media/user-1/cell.png?token=t" }),
+        ),
+        http.get(`${SUPABASE_URL}/storage/v1/object/sign/chat-media/*`, ({ request }) =>
+          new URL(request.url).searchParams.get("token") === "t"
+            ? new HttpResponse(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+                headers: { "Content-Type": "image/png" },
+              })
+            : new HttpResponse(null, { status: 403 }),
+        ),
+      );
+      return bodies;
+    }
+
+    it("is offered beside the starters and the follow-ups", async () => {
+      serveReply("Mitosis has four phases.");
+      renderChat();
+      await openChat();
+      expect(screen.getByRole("button", { name: "Generate image" })).toBeInTheDocument();
+      await ask("what is mitosis");
+      await screen.findByText("Mitosis has four phases.");
+      expect(screen.getByRole("button", { name: "Explain simpler" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Generate image" })).toBeInTheDocument();
+    });
+
+    it("draws only after the student arms it and sends, showing what is left today", async () => {
+      const bodies = serveImage(() =>
+        HttpResponse.json({
+          text: "Diagram: a labelled plant cell",
+          alt: "Diagram: a labelled plant cell",
+          imagePath: "user-1/cell.png",
+        }),
+      );
+      renderChat();
+      await openChat();
+
+      const chip = screen.getByRole("button", { name: "Generate image" });
+      await userEvent.click(chip);
+      expect(chip).toHaveAttribute("aria-pressed", "true");
+      /* Free plan, nothing used yet: the image allowance is 2. */
+      expect(await screen.findByText(/2 left today/)).toBeInTheDocument();
+      expect(bodies).toHaveLength(0);
+
+      await userEvent.type(
+        screen.getByRole("textbox", { name: "AI chat input" }),
+        "a labelled plant cell",
+      );
+      /* The send button's name changes with the mode, so it is clear what
+         pressing it will do. */
+      await userEvent.click(screen.getByRole("button", { name: "Draw image" }));
+
+      const img = await screen.findByRole("img", { name: "Diagram: a labelled plant cell" });
+      /* Read through the signed URL, shown as a same-origin object URL. */
+      expect(img.getAttribute("src")).toBe("blob:learnora/diagram-1");
+      expect(objectUrls[0].type).toBe("image/png");
+      const download = screen.getByRole("link", { name: /Download/ });
+      expect(download.getAttribute("href")).toBe("blob:learnora/diagram-1");
+      expect(download.getAttribute("download")).toBe("learnora-diagram.png");
+      expect(bodies[0]).toMatchObject({
+        mode: "image",
+        tool: "image",
+        history: [{ role: "user", content: "a labelled plant cell" }],
+      });
+      /* One-shot: the next send is an ordinary question again. */
+      expect(screen.getByRole("button", { name: "Generate image" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+    });
+
+    it("saves a drawn diagram as a flashcard", async () => {
+      serveImage(() =>
+        HttpResponse.json({ text: "Diagram: the heart", imagePath: "user-1/heart.png" }),
+      );
+      const cards: Record<string, unknown>[] = [];
+      server.use(
+        http.get(`${SUPABASE_URL}/storage/v1/object/chat-media/*`, () =>
+          new HttpResponse(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), {
+            headers: { "Content-Type": "image/png" },
+          }),
+        ),
+        http.post(`${SUPABASE_URL}/storage/v1/object/card-media/*`, () =>
+          HttpResponse.json({ Key: "card-media/user-1/h.png" }),
+        ),
+        http.get(rest("flashcard_decks"), () => HttpResponse.json([])),
+        http.post(rest("flashcard_decks"), () => HttpResponse.json({ id: "deck-9" })),
+        http.post(rest("flashcards"), async ({ request }) => {
+          const rows = (await request.json()) as Record<string, unknown>[];
+          cards.push(...rows);
+          return HttpResponse.json({ id: "card-1", ...rows[0] });
+        }),
+      );
+      renderChat();
+      await openChat();
+      await userEvent.click(screen.getByRole("button", { name: "Generate image" }));
+      await userEvent.type(screen.getByRole("textbox", { name: "AI chat input" }), "the heart");
+      await userEvent.click(screen.getByRole("button", { name: "Draw image" }));
+      await screen.findByRole("img", { name: "Diagram: the heart" });
+
+      await userEvent.click(screen.getByRole("button", { name: "Save as flashcard" }));
+      expect(await screen.findByText("Saved as a flashcard")).toBeInTheDocument();
+      expect(cards[0]).toMatchObject({ deck_id: "deck-9", back: "the heart" });
+    });
+
+    it("shows a refusal as the reply, with nothing to retry", async () => {
+      serveImage(() =>
+        HttpResponse.json({ text: "I can't help with that topic.", refused: true }),
+      );
+      renderChat();
+      await openChat();
+      await userEvent.click(screen.getByRole("button", { name: "Generate image" }));
+      await userEvent.type(
+        screen.getByRole("textbox", { name: "AI chat input" }),
+        "something it should not draw",
+      );
+      await userEvent.keyboard("{Enter}");
+
+      expect(await screen.findByText("I can't help with that topic.")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Try again/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("img", { name: /Diagram/ })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("voice", () => {
+    afterEach(() => {
+      uninstallFakeSpeech();
+      vi.useRealTimers();
+    });
+
+    function captureEdge(reply = "Osmosis is water moving across a membrane.") {
+      const bodies: { history: { content: string }[] }[] = [];
+      server.use(
+        http.post(EDGE_URL, async ({ request }) => {
+          bodies.push((await request.json()) as (typeof bodies)[number]);
+          return HttpResponse.json({ text: reply });
+        }),
+      );
+      return bodies;
+    }
+
+    it("shows no voice controls where the browser has no speech support", async () => {
+      renderChat();
+      await openChat();
+      expect(screen.queryByRole("button", { name: "Speak your question" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Read replies aloud" })).not.toBeInTheDocument();
+      // Typing is untouched.
+      expect(screen.getByRole("textbox", { name: "AI chat input" })).toBeEnabled();
+    });
+
+    it("sends what was said through the normal chat path once the student pauses", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      installFakeSpeech();
+      const bodies = captureEdge();
+      renderChat();
+      await openChat();
+
+      await userEvent.click(screen.getByRole("button", { name: "Speak your question" }));
+      expect(await screen.findByText(/Listening — pause when you're done/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Stop listening" })).toBeInTheDocument();
+
+      act(() => FakeRecognition.latest().say("what is osmosis"));
+      expect(screen.getByRole("textbox", { name: "AI chat input" })).toHaveValue("what is osmosis");
+
+      // Three seconds of silence ends the turn and sends it.
+      act(() => {
+        vi.advanceTimersByTime(3100);
+      });
+      expect(
+        await screen.findByText("Osmosis is water moving across a membrane."),
+      ).toBeInTheDocument();
+      expect(bodies[0].history.at(-1)?.content).toBe("what is osmosis");
+    });
+
+    it("keeps the words in the box, unsent, when the student presses Stop", async () => {
+      installFakeSpeech();
+      const bodies = captureEdge();
+      renderChat();
+      await openChat();
+
+      await userEvent.click(screen.getByRole("button", { name: "Speak your question" }));
+      await screen.findByText(/Listening/);
+      act(() => FakeRecognition.latest().say("explain mitosis"));
+      await userEvent.click(screen.getByRole("button", { name: "Stop" }));
+
+      expect(screen.getByRole("textbox", { name: "AI chat input" })).toHaveValue("explain mitosis");
+      expect(screen.queryByText(/Listening/)).not.toBeInTheDocument();
+      expect(bodies).toHaveLength(0);
+    });
+
+    it("says so when the microphone is blocked, and leaves typing working", async () => {
+      installFakeSpeech();
+      renderChat();
+      await openChat();
+
+      await userEvent.click(screen.getByRole("button", { name: "Speak your question" }));
+      await screen.findByText(/Listening/);
+      act(() => FakeRecognition.latest().deny());
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        /Microphone permission was denied.*You can still type your question/,
+      );
+      expect(screen.getByRole("button", { name: "Speak your question" })).toBeInTheDocument();
+    });
+
+    it("reads replies aloud only when the student has turned it on", async () => {
+      const synth = installFakeSpeech();
+      captureEdge("**Osmosis** is water moving across a membrane.");
+      renderChat();
+      await openChat();
+
+      await ask("what is osmosis");
+      await screen.findByText(/is water moving across a membrane/);
+      expect(synth.spoken).toEqual([]);
+
+      const toggle = screen.getByRole("button", { name: "Read replies aloud" });
+      expect(toggle).toHaveAttribute("aria-pressed", "false");
+      await userEvent.click(toggle);
+      expect(toggle).toHaveAttribute("aria-pressed", "true");
+
+      await ask("and again");
+      await waitFor(() =>
+        expect(synth.spoken).toEqual(["Osmosis is water moving across a membrane."]),
+      );
+    });
+
+    it("keeps a spoken conversation going hands-free until Stop", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      Storage.set(SETTINGS_KEY, { aiSpokenReplies: true });
+      const synth = installFakeSpeech();
+      captureEdge("Water moves to the saltier side.");
+      renderChat();
+      await openChat();
+
+      await userEvent.click(screen.getByRole("button", { name: "Speak your question" }));
+      await screen.findByText(/Listening/);
+      const recognition = FakeRecognition.latest();
+      act(() => recognition.say("which way does water move"));
+      act(() => {
+        vi.advanceTimersByTime(3100);
+      });
+      await waitFor(() => expect(synth.spoken).toEqual(["Water moves to the saltier side."]));
+      expect(screen.getByText("Reading the reply aloud…")).toBeInTheDocument();
+
+      // When the reply finishes, the mic reopens for the next question.
+      const startsBefore = FakeRecognition.instances.reduce((n, r) => n + r.started, 0);
+      act(() => synth.finish());
+      await waitFor(() =>
+        expect(FakeRecognition.instances.reduce((n, r) => n + r.started, 0)).toBe(startsBefore + 1),
+      );
+      expect(await screen.findByText(/Listening/)).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: "Stop" }));
+      expect(screen.queryByText(/Listening|Voice conversation on/)).not.toBeInTheDocument();
     });
   });
 

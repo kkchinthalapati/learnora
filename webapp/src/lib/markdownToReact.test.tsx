@@ -440,3 +440,32 @@ describe("renderMathText", () => {
     expect(out().textContent).toBe(text);
   });
 });
+
+describe("mermaid fences", () => {
+  const reply = "Here is the cycle:\n\n```mermaid\nflowchart LR\n  A[Evaporation] --> B[Condensation]\n```\n\nThen it rains.";
+
+  it("stay a plain code block unless the surface opts in", () => {
+    render(<div data-testid="plain">{renderMarkdownNodes(reply)}</div>);
+    const plain = screen.getByTestId("plain");
+    expect(plain.querySelector("pre code")?.textContent).toContain("flowchart LR");
+    expect(screen.queryByText("Drawing diagram…")).not.toBeInTheDocument();
+  });
+
+  it("become a diagram where the surface opts in, with the prose kept around it", () => {
+    render(
+      <div data-testid="chat">{renderMarkdownNodes(reply, { diagrams: true })}</div>,
+    );
+    expect(screen.getByText("Drawing diagram…")).toBeInTheDocument();
+    expect(screen.getByText("Here is the cycle:")).toBeInTheDocument();
+    expect(screen.getByText("Then it rains.")).toBeInTheDocument();
+  });
+
+  it("leave other fenced languages as code even when diagrams are on", () => {
+    render(
+      <div data-testid="code">
+        {renderMarkdownNodes("```python\nprint(1)\n```", { diagrams: true })}
+      </div>,
+    );
+    expect(screen.getByTestId("code").querySelector("pre code")?.textContent).toBe("print(1)");
+  });
+});

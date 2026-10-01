@@ -188,6 +188,31 @@ export function screenConversation(history) {
     .some((m) => matchesAny([DRUG_MENTION], m.content));
 }
 
+/* ── Image generation ────────────────────────────────────────────────────
+   A generated picture has no system prompt behind it and no output text to
+   screen afterwards: the image models are handed a description and return
+   pixels. So the description is screened more strictly than a chat turn. On
+   top of the operational-harm screen and the adult-site terms, it refuses
+   nudity, sexualised framing and gore — things a text answer can discuss at
+   syllabus level but a picture for a 13-year-old should never depict.
+   "Sexual reproduction", "reproductive system" and "naked-eye astronomy"
+   stay allowed: anatomy and biology diagrams are coursework. */
+const IMAGE_ONLY_PATTERNS = [
+  /\b(?:nude|nudes|nudity|topless|bottomless|lingerie|underwear|bikini|nsfw|erotic\w*|sexy|seductive|provocative\w*|pin[\s-]?up)\b/i,
+  /\bnaked\b(?![\s-]+(?:eye|mole[\s-]?rats?|singularity|dna|seeds?|gymnosperms?)\b)/i,
+  /\bsex(?:ual(?:ly)?)?\s+(?:scene|act|acts|position|positions|explicit|suggestive|pose|poses)\b/i,
+  /\b(?:gore|gory|dismember\w*|decapitat\w*|mutilat\w*|disembowel\w*|behead\w*|mangled\s+bod(?:y|ies)|dead\s+bod(?:y|ies)|corpses?)\b/i,
+];
+
+/** True when an image description must not be sent to an image model. */
+export function screenImagePrompt(text) {
+  return (
+    screenForUnsafeContent(text) ||
+    isAdultContent(text) ||
+    matchesAny(IMAGE_ONLY_PATTERNS, text)
+  );
+}
+
 /* ── Web research ────────────────────────────────────────────────────────
    Live search reaches the whole web, so pornography needs screening there
    even though the chat screen leaves sexual health and sex education to the

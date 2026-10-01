@@ -25,7 +25,7 @@ async function startOn(page: Page, topic: string) {
   await expect(page).toHaveURL(/\/study\/s-[^?]+\?mode=socratic/);
 }
 
-test("works with no speech recognition: the mic explains, typing answers", async ({
+test("works with no speech recognition: no mic control, typing answers", async ({
   page,
   backend,
 }) => {

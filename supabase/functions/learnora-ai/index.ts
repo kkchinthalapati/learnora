@@ -4,6 +4,7 @@ import {
   SAFETY_REFUSAL,
   screenConversation,
   screenForUnsafeContent,
+  screenImagePrompt,
   SELF_HARM_REFUSAL,
 } from "../_shared/contentSafety.js";
 import { improveQuiz } from "../_shared/quizQuality.js";
@@ -583,6 +584,271 @@ function safetyRefusalResponse(
   );
 }
 
+/* A photo (a whiteboard, worksheet, textbook page) can only be read by
+   Gemini. The text-only chain used to be handed it anyway, with a note that a
+   file existed it could not see, and was still asked to write study notes
+   from it — which produced confident notes about nothing. An image request
+   Gemini did not answer now ends here, with a message that says why. */
+const VISION_UNAVAILABLE_MESSAGE =
+  "Reading photos needs Learnora's image model, and it isn't available right now. Try again in a few minutes, or paste or type the text instead.";
+
+function isImageAttachment(file: any): boolean {
+  return Boolean(file && file.data && /^image\//i.test(String(file.mimeType || "")));
+}
+
+/* 4xx rather than 503 so the client shows this sentence as written — a 5xx
+   body is flattened into the generic "temporarily unavailable" line. */
+function visionUnavailableResponse(headers: Record<string, string>): Response {
+  return new Response(
+    JSON.stringify({ error: VISION_UNAVAILABLE_MESSAGE, visionUnavailable: true }),
+    { status: 422, headers },
+  );
+}
+
+/* =========================================================================
+   IMAGE GENERATION — mode "image"
+
+   Its own short provider list, deliberately NOT part of the text chain
+   above: an image request must never fall through to a text model, and the
+   text chain must never spend an image budget. Reached only by the chat's
+   "Generate image" chip — an explicit student action. Nothing a model writes
+   can trigger it.
+
+   Order: Gemini's image model on the existing GEMINI_API_KEY, Cloudflare
+   Workers AI on the existing token, then OpenAI as the paid floor. Model IDs
+   come from the environment; the defaults were current on 2026-09-29
+   (`gemini-2.5-flash-image` is the GA name — its `-preview` alias is
+   deprecated; `flux-1-schnell` has been on Workers AI since 2024;
+   `gpt-image-1-mini` at quality "low" is the cheapest OpenAI image).
+
+   There is no output text to screen afterwards, so the student's
+   description is screened more strictly than a chat turn
+   (`screenImagePrompt`), and a provider's own safety verdict ends the chain
+   rather than handing the same prompt to a less filtered model.
+   ========================================================================= */
+
+type ImageProvider = {
+  id: "gemini" | "cloudflare" | "openai";
+  keyEnv: string;
+  modelEnv: string;
+  defaultModel: string;
+  accountEnv?: string;
+};
+
+const IMAGE_PROVIDERS: ImageProvider[] = [
+  {
+    id: "gemini",
+    keyEnv: "GEMINI_API_KEY",
+    modelEnv: "GEMINI_IMAGE_MODEL",
+    defaultModel: "gemini-2.5-flash-image",
+  },
+  {
+    id: "cloudflare",
+    keyEnv: "CLOUDFLARE_API_TOKEN",
+    modelEnv: "CLOUDFLARE_IMAGE_MODEL",
+    defaultModel: "@cf/black-forest-labs/flux-1-schnell",
+    accountEnv: "CLOUDFLARE_ACCOUNT_ID",
+  },
+  {
+    // Bills from the first image — last on purpose.
+    id: "openai",
+    keyEnv: "OPENAI_API_KEY",
+    modelEnv: "OPENAI_IMAGE_MODEL",
+    defaultModel: "gpt-image-1-mini",
+  },
+];
+
+const CHAT_MEDIA_BUCKET = "chat-media";
+const IMAGE_TIMEOUT_MS = 40_000;
+const MAX_IMAGE_PROMPT_CHARS = 500;
+/* Mirrors the bucket's file_size_limit (20260929010000_add_chat_media_bucket.sql). */
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+/* Wrapped around every description, so a student asking for "the heart"
+   gets a textbook figure rather than whatever an image model's default
+   style is — and so nothing text-heavy comes back, since image models still
+   misspell words they are asked to draw. */
+const IMAGE_STYLE_PREFIX =
+  "An educational illustration for a secondary-school student: a clean, clearly labelled diagram on a plain white background, in flat colours with simple shapes and a few short labels naming the parts. No paragraphs or blocks of text, no text-heavy layouts, no photorealistic people, and nothing violent, frightening or suggestive. Subject:";
+
+function buildImagePrompt(description: string): string {
+  return `${IMAGE_STYLE_PREFIX} ${description.slice(0, MAX_IMAGE_PROMPT_CHARS).trim()}`;
+}
+
+/* A provider said no on safety grounds — a verdict, not an outage. */
+class ImageSafetyBlock extends Error {}
+
+type GeneratedImage = { bytes: Uint8Array<ArrayBuffer>; mimeType: string };
+
+function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/* The bytes decide the type, not the provider's label for them: what gets
+   stored is only ever a real PNG, JPEG or WebP. */
+function sniffImageType(bytes: Uint8Array): string | null {
+  if (bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return "image/png";
+  }
+  if (bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  if (
+    bytes.length > 12 &&
+    String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+    String.fromCharCode(...bytes.slice(8, 12)) === "WEBP"
+  ) {
+    return "image/webp";
+  }
+  return null;
+}
+
+async function requestImage(
+  provider: ImageProvider,
+  prompt: string,
+  signal: AbortSignal,
+): Promise<{ image: GeneratedImage; model: string }> {
+  const key = Deno.env.get(provider.keyEnv)!;
+  const model = Deno.env.get(provider.modelEnv) || provider.defaultModel;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), IMAGE_TIMEOUT_MS);
+  const onParentAbort = () => controller.abort();
+  signal.addEventListener("abort", onParentAbort);
+
+  try {
+    let b64: string | null = null;
+    let bytes: Uint8Array<ArrayBuffer> | null = null;
+
+    if (provider.id === "gemini") {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+          }),
+        },
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(`gemini returned ${response.status}: ${JSON.stringify(data?.error ?? {})}`);
+      const finish = data?.candidates?.[0]?.finishReason;
+      if (isGeminiSafetyBlock(data) || finish === "IMAGE_SAFETY" || finish === "IMAGE_PROHIBITED_CONTENT") {
+        throw new ImageSafetyBlock(`gemini ${finish || "blocked"}`);
+      }
+      const parts = data?.candidates?.[0]?.content?.parts ?? [];
+      const inline = parts.map((p: any) => p?.inlineData ?? p?.inline_data).find((d: any) => d?.data);
+      b64 = inline?.data ?? null;
+    } else if (provider.id === "cloudflare") {
+      const account = Deno.env.get(provider.accountEnv!)!;
+      // The model id carries its own slashes (@cf/vendor/name) and is part
+      // of the path, so only the account is encoded.
+      const response = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(account)}/ai/run/${model}`,
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, steps: 4 }),
+        },
+      );
+      if ((response.headers.get("content-type") || "").startsWith("image/")) {
+        if (!response.ok) throw new Error(`cloudflare returned ${response.status}`);
+        bytes = new Uint8Array(await response.arrayBuffer());
+      } else {
+        const data = await response.json().catch(() => null);
+        const errors = JSON.stringify(data?.errors ?? data?.error ?? "");
+        if (/nsfw|safety|unsafe/i.test(errors)) throw new ImageSafetyBlock("cloudflare nsfw");
+        if (!response.ok || data?.success === false) {
+          throw new Error(`cloudflare returned ${response.status}: ${errors}`);
+        }
+        b64 = typeof data?.result?.image === "string" ? data.result.image : null;
+      }
+    } else {
+      const body: Record<string, unknown> = { model, prompt, n: 1, size: "1024x1024" };
+      // gpt-image-* always answers in base64 and takes a quality tier;
+      // dall-e-* has to be asked for base64 and has different tiers.
+      if (model.startsWith("dall-e")) body.response_format = "b64_json";
+      else body.quality = "low";
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        signal: controller.signal,
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        if (data?.error?.code === "moderation_blocked" || /safety system/i.test(String(data?.error?.message))) {
+          throw new ImageSafetyBlock("openai moderation_blocked");
+        }
+        throw new Error(`openai returned ${response.status}: ${JSON.stringify(data?.error ?? {})}`);
+      }
+      b64 = data?.data?.[0]?.b64_json ?? null;
+    }
+
+    if (!bytes && b64) bytes = base64ToBytes(b64);
+    if (!bytes || bytes.length === 0) throw new Error(`${provider.id} returned no image.`);
+    if (bytes.length > MAX_IMAGE_BYTES) throw new Error(`${provider.id} returned an image over 5 MB.`);
+    const mimeType = sniffImageType(bytes);
+    if (!mimeType) throw new Error(`${provider.id} returned something that is not a PNG, JPEG or WebP.`);
+    return { image: { bytes, mimeType }, model };
+  } finally {
+    clearTimeout(timeoutId);
+    signal.removeEventListener("abort", onParentAbort);
+  }
+}
+
+/* Walks IMAGE_PROVIDERS in order. A missing key is skipped silently, as in
+   the text chain; a safety verdict is rethrown and ends the walk. */
+async function generateImage(
+  prompt: string,
+  signal: AbortSignal,
+  debugErrors: Record<string, string>,
+): Promise<{ image: GeneratedImage; modelUsed: string }> {
+  /* Same disclosure policy as the text chain (_shared/providerPolicy.js):
+     only providers students were told about, narrowed by
+     AI_PROVIDER_ALLOWLIST, minus any whose key was recently refused. */
+  const permitted = permittedProviderIds(Deno.env.get("AI_PROVIDER_ALLOWLIST"));
+  for (const provider of IMAGE_PROVIDERS) {
+    const label = `image:${provider.id}`;
+    if (!permitted.has(provider.id) || deadKeys.isDead(provider.id)) {
+      debugErrors[label] = "Not permitted by AI_PROVIDER_ALLOWLIST, or its key was recently refused.";
+      continue;
+    }
+    if (!Deno.env.get(provider.keyEnv)) {
+      debugErrors[label] = `${provider.keyEnv} is not set in Supabase.`;
+      continue;
+    }
+    if (provider.accountEnv && !Deno.env.get(provider.accountEnv)) {
+      debugErrors[label] = `${provider.accountEnv} is not set in Supabase.`;
+      continue;
+    }
+    if (signal.aborted) {
+      debugErrors[label] = "Skipped — request budget exhausted.";
+      continue;
+    }
+    try {
+      const { image, model } = await requestImage(provider, prompt, signal);
+      return { image, modelUsed: `${provider.id}/${model}` };
+    } catch (err: any) {
+      if (err instanceof ImageSafetyBlock) throw err;
+      debugErrors[label] = err?.message || String(err);
+      if (isDeadKeyError(debugErrors[label])) deadKeys.markDead(provider.id);
+      console.error(`${label} Error:`, err);
+    }
+  }
+  throw new Error("No image provider answered.");
+}
+
+const EXTENSION_FOR: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+};
+
 /* =========================================================================
    RATE LIMITING
 
@@ -637,17 +903,17 @@ const AI_TOOL_QUOTAS: Record<Plan, Record<string, number>> = {
   free: {
     chat: 15, notes: 3, flashcards: 3, quiz: 3, plan: 1,
     debugger: 2, preMortem: 2, feynman: 2, examDeconstructor: 2,
-    sparring: 2, notebookStudio: 5,
+    sparring: 2, notebookStudio: 5, image: 2,
   },
   plus: {
     chat: 60, notes: 10, flashcards: 10, quiz: 10, plan: 3,
     debugger: 8, preMortem: 6, feynman: 8, examDeconstructor: 6,
-    sparring: 8, notebookStudio: 20,
+    sparring: 8, notebookStudio: 20, image: 10,
   },
   pro: {
     chat: 200, notes: 30, flashcards: 30, quiz: 30, plan: 7,
     debugger: 25, preMortem: 20, feynman: 25, examDeconstructor: 20,
-    sparring: 25, notebookStudio: 60,
+    sparring: 25, notebookStudio: 60, image: 30,
   },
 };
 
@@ -988,7 +1254,18 @@ Deno.serve(async (req) => {
         // resource. Checked (and logged) ahead of the safety screen so a
         // flood of unsafe-topic probes counts against the sender's budget
         // too, rather than getting a free pass because they were refused.
-        const rateLimit = await checkAndLogRateLimit(supabase, user.id, mode, tool, sessionKey);
+        /* An image is billed as an image whatever `tool` claims — otherwise a
+           hand-built request could spend the far larger chat allowance on
+           image generation. Nor is an empty description worth an allowance. */
+        if (mode === "image" && !String(currentMsg || "").trim()) {
+            return new Response(
+                JSON.stringify({ error: "Describe the picture you want first." }),
+                { status: 400, headers: jsonHeaders },
+            );
+        }
+        const rateLimit = await checkAndLogRateLimit(
+            supabase, user.id, mode, mode === "image" ? "image" : tool, sessionKey,
+        );
         if (!rateLimit.allowed) {
             return rateLimitResponse(mode, jsonHeaders, rateLimit.message);
         }
@@ -1000,6 +1277,57 @@ Deno.serve(async (req) => {
         if (screenConversation(history)) {
             console.warn("[safety] Request refused by pre-flight topic screen", { mode, userId: user.id });
             return safetyRefusalResponse(mode, jsonHeaders, currentMsg);
+        }
+
+        if (mode === "image") {
+            const description = String(currentMsg).slice(0, MAX_IMAGE_PROMPT_CHARS).trim();
+            if (screenImagePrompt(description)) {
+                console.warn("[safety] image description refused by screen", { userId: user.id });
+                return safetyRefusalResponse(mode, jsonHeaders, description);
+            }
+            let generated: { image: GeneratedImage; modelUsed: string };
+            try {
+                generated = await generateImage(
+                    buildImagePrompt(description),
+                    AbortSignal.timeout(TOTAL_BUDGET_MS),
+                    debugErrors,
+                );
+            } catch (err) {
+                if (err instanceof ImageSafetyBlock) {
+                    console.warn("[safety] image provider refused", { userId: user.id, reason: err.message });
+                    return safetyRefusalResponse(mode, jsonHeaders, description);
+                }
+                throw err; // refunded and reported by the outer catch
+            }
+
+            /* Stored with the student's own JWT, so the bucket's insert policy
+               — not this code — decides the path is theirs. Only the key
+               goes back to the client; it reads it through a signed URL. */
+            const { mimeType, bytes } = generated.image;
+            const imagePath = `${user.id}/${crypto.randomUUID()}.${EXTENSION_FOR[mimeType]}`;
+            const { error: uploadError } = await supabase.storage
+                .from(CHAT_MEDIA_BUCKET)
+                .upload(imagePath, new Blob([bytes], { type: mimeType }), {
+                    contentType: mimeType,
+                    upsert: false,
+                });
+            if (uploadError) throw new Error(`chat-media upload failed: ${uploadError.message}`);
+
+            const alt = `Diagram: ${description}`;
+            const [imageProvider, ...imageModel] = generated.modelUsed.split("/");
+            recordOutcome(logId, {
+                provider: imageProvider,
+                model: imageModel.join("/"),
+                startedAt,
+                failed: Object.keys(debugErrors).filter((id) => !/not set|Skipped|Not permitted/.test(debugErrors[id])),
+            });
+            return new Response(JSON.stringify({
+                text: alt,
+                alt,
+                imagePath,
+                mimeType,
+                modelUsed: generated.modelUsed,
+            }), { headers: jsonHeaders });
         }
 
         // Bounds the whole chain. Without it a run of slow providers keeps the
@@ -1174,6 +1502,14 @@ Deno.serve(async (req) => {
             }
         } else {
             debugErrors["gemini"] = "GEMINI_API_KEY secret is not set in Supabase.";
+        }
+
+        // Nothing below this line can see an image — see isImageAttachment.
+        // The allowance is handed back: no provider read the photo.
+        if (isImageAttachment(file)) {
+            console.warn("[vision] no image-capable provider answered", { mode, debugErrors });
+            await refundRequest(logId);
+            return visionUnavailableResponse(jsonHeaders);
         }
 
         // Text-only providers can't take the attachment inline. Only actual

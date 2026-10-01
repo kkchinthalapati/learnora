@@ -109,6 +109,7 @@ export function SocraticSparringView() {
     speak,
     cancel: cancelSpeech,
     isSpeaking,
+    isSupported: isTtsSupported,
     currentSpeaker: activeAiSpeaker,
     audioRate,
     setAudioRate,
@@ -121,6 +122,7 @@ export function SocraticSparringView() {
     interimTranscript,
     fullTranscript,
     isSupported: isSttSupported,
+    error: micError,
     startListening,
     stopListening,
     resetTranscript,
@@ -133,6 +135,13 @@ export function SocraticSparringView() {
       }
     },
   });
+
+  /* Without a working microphone the typed answer box is the way in, so it
+     opens by itself: where the browser has no speech recognition at all
+     (the mic control is hidden), and when the mic is blocked or missing. */
+  useEffect(() => {
+    if (!isSttSupported || micError) setShowTextInput(true);
+  }, [isSttSupported, micError]);
 
   // Call timer tick
   useEffect(() => {
@@ -433,32 +442,34 @@ export function SocraticSparringView() {
           </div>
 
           <div className={styles.headerControls}>
-            <button
-              type="button"
-              className={styles.audioToggleBtn}
-              onClick={() => {
-                const next = !autoPlayAudio;
-                setAutoPlayAudio(next);
-                Storage.set(VOICE_KEY, next);
-                if (!next) cancelSpeech();
-                showToast(
-                  next
-                  ? "Questions will be read out loud."
-                  : "Questions won't be read out loud.",
-                );
-              }}
-              aria-pressed={autoPlayAudio}
-              title={
-                autoPlayAudio
-                  ? "Stop reading questions out loud"
-                  : "Read questions out loud"
-              }
-            >
-              <Icon name={autoPlayAudio ? "volume-2" : "volume-x"} size={16} />
-              <span>{autoPlayAudio ? "Read aloud: On" : "Read aloud: Off"}</span>
-            </button>
+            {isTtsSupported && (
+              <button
+                type="button"
+                className={styles.audioToggleBtn}
+                onClick={() => {
+                  const next = !autoPlayAudio;
+                  setAutoPlayAudio(next);
+                  Storage.set(VOICE_KEY, next);
+                  if (!next) cancelSpeech();
+                  showToast(
+                    next
+                    ? "Questions will be read out loud."
+                    : "Questions won't be read out loud.",
+                  );
+                }}
+                aria-pressed={autoPlayAudio}
+                title={
+                  autoPlayAudio
+                    ? "Stop reading questions out loud"
+                    : "Read questions out loud"
+                }
+              >
+                <Icon name={autoPlayAudio ? "volume-2" : "volume-x"} size={16} />
+                <span>{autoPlayAudio ? "Read aloud: On" : "Read aloud: Off"}</span>
+              </button>
+            )}
 
-            {session && (
+            {session && isTtsSupported && (
               <>
                 <button
                   type="button"
@@ -735,7 +746,7 @@ export function SocraticSparringView() {
             isListening={isListening}
             isSpeaking={isSpeaking}
             conceptAnchor={session.currentChallenge.conceptAnchor}
-            onToggleMic={handleToggleMic}
+            onToggleMic={isSttSupported ? handleToggleMic : undefined}
             micDisabled={isSubmitting}
             vibeTitle={activeVibeTitle}
             focusGoal={activeFocusGoal}
@@ -747,15 +758,25 @@ export function SocraticSparringView() {
             isCallPaused={isCallPaused}
             onEndCall={handleEndCall}
             audioRate={audioRate}
-            onToggleAudioRate={handleToggleSpeed}
+            onToggleAudioRate={isTtsSupported ? handleToggleSpeed : undefined}
             isAudioMuted={!autoPlayAudio}
-            onToggleAudioMuted={() => {
-              const next = !autoPlayAudio;
-              setAutoPlayAudio(next);
-              if (!next) cancelSpeech();
-            }}
+            onToggleAudioMuted={
+              isTtsSupported
+                ? () => {
+                    const next = !autoPlayAudio;
+                    setAutoPlayAudio(next);
+                    if (!next) cancelSpeech();
+                  }
+                : undefined
+            }
             callDurationSeconds={callDurationSeconds}
           />
+          {micError ? (
+            <p className={styles.micError} role="alert">
+              <Icon name="alert-circle" size={14} />
+              <span>{micError} You can type your answer below instead.</span>
+            </p>
+          ) : null}
 
           {/* Performance Metrics Grid */}
           {session.cumulativeScores.roundsCount > 0 && (

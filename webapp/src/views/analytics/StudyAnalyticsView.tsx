@@ -19,6 +19,7 @@ import { anyPending } from "../../lib/queryState";
 import { daysBetween } from "../../lib/studyNow";
 import { StudyHeatmap } from "./StudyHeatmap";
 import { ProgressSectionNav } from "./ProgressSectionNav";
+import { RetentionInsights } from "./RetentionInsights";
 import { MisconceptionLedgerCard } from "../dashboard/MisconceptionLedgerCard";
 import { FadingTopicsCard } from "./FadingTopicsCard";
 import styles from "./analytics.module.css";
@@ -312,6 +313,9 @@ export function StudyAnalyticsView() {
 
         <StudyHeatmap data={heatData} />
       </Card>
+
+      {/* ---- Memory & retention (flashcard scheduler forecast) ----------- */}
+      <RetentionInsights />
 
       {/* ---- 3. Two-Column Grid: Peak Hours & AI Insights ----------------- */}
       <div className={styles.twoColGrid}>

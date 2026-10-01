@@ -33,6 +33,8 @@ describe("CommandPalette", () => {
     compose: vi.fn(),
     clearDraft: vi.fn(),
     send: vi.fn().mockResolvedValue(undefined),
+    generateImage: vi.fn().mockResolvedValue(undefined),
+    saveImage: vi.fn().mockResolvedValue(undefined),
     attachFile: vi.fn(),
     clearFile: vi.fn(),
     saveCards: vi.fn().mockResolvedValue(undefined),

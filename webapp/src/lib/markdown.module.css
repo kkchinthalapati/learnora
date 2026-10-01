@@ -74,6 +74,42 @@
   white-space: pre;
 }
 
+/* A ```mermaid fence drawn as an image (MermaidDiagram.tsx). Scales down
+   to the bubble, never up past its natural size. */
+.diagram {
+  margin: 12px 0;
+}
+
+.diagram img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.diagramSource {
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.diagramSource summary {
+  cursor: pointer;
+}
+
+.diagramSource .pre {
+  margin: 8px 0 0;
+}
+
+.diagramNote {
+  margin: 12px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.diagramFallback .pre {
+  margin-top: 6px;
+}
+
 .blockquote {
   border-left: 3px solid var(--primary);
   padding: 8px 16px;

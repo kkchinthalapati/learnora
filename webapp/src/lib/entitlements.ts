@@ -192,7 +192,8 @@ export type AiToolId =
   | "feynman"
   | "examDeconstructor"
   | "sparring"
-  | "notebookStudio";
+  | "notebookStudio"
+  | "image";
 
 export interface AiToolMeta {
   id: AiToolId;
@@ -258,6 +259,11 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
     description:
       "Grounded Q&A, cheat-sheet and deep-dive generation inside a research notebook.",
   },
+  image: {
+    id: "image",
+    name: "Image generation",
+    description: "Labelled diagrams drawn on request in the chat.",
+  },
 };
 
 export const AI_TOOL_IDS = Object.keys(AI_TOOLS) as AiToolId[];
@@ -291,6 +297,7 @@ export const QUOTAS: Record<Plan, Quotas> = {
     examDeconstructor: 2,
     sparring: 2,
     notebookStudio: 5,
+    image: 2,
     notebooks: 3,
     importedCalendars: 0,
   },
@@ -306,6 +313,7 @@ export const QUOTAS: Record<Plan, Quotas> = {
     examDeconstructor: 6,
     sparring: 8,
     notebookStudio: 20,
+    image: 10,
     notebooks: 10,
     importedCalendars: 1,
   },
@@ -321,6 +329,7 @@ export const QUOTAS: Record<Plan, Quotas> = {
     examDeconstructor: 20,
     sparring: 25,
     notebookStudio: 60,
+    image: 30,
     notebooks: Infinity,
     importedCalendars: 5,
   },

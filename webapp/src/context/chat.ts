@@ -32,6 +32,18 @@ export interface WebCitation {
   snippet?: string;
 }
 
+/** A picture drawn by "Generate image". Only the storage key is kept — the
+ *  bubble fetches a signed URL for it when it renders. */
+export interface ChatImage {
+  path: string;
+  alt: string;
+  /** The student's description, which becomes the back of a saved card. */
+  prompt: string;
+  /** Set once saved as a flashcard — the deck it went into. */
+  savedDeckId?: string;
+  saving?: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "ai";
@@ -52,6 +64,11 @@ export interface ChatMessage {
    *  "Try again" instead of making the student retype it. */
   retryQuery?: string;
   retryOptions?: ChatSendOptions;
+  /** The failed request was "Generate image", so Try again redraws rather
+   *  than sending `retryQuery` as a chat message. */
+  retryAsImage?: boolean;
+  /** A reply that is a generated picture rather than prose. */
+  image?: ChatImage;
   /** A reply that was a flashcard set rather than prose. */
   cards?: FlashcardDraft[];
   /** Set once `cards` has been saved as a real deck — the id it saved to,
@@ -96,7 +113,7 @@ export interface ChatApi {
    *  so instead of showing an unexplained spinner. A first answer takes
    *  around thirty seconds against the live provider chain, roughly a third
    *  of it web research, which is far too long to leave unlabelled. */
-  sendPhase: "searching" | "thinking" | null;
+  sendPhase: "searching" | "thinking" | "drawing" | null;
   /** Abandon the answer in flight. Ends the request rather than hiding it. */
   cancel: () => void;
   file: AttachedFile | null;
@@ -113,6 +130,11 @@ export interface ChatApi {
   clearDraft: () => void;
 
   send: (query: string, options?: ChatSendOptions) => Promise<void>;
+  /** "Generate image": draws `description` as a labelled diagram. Only ever
+   *  called from the student's own click — never from a model reply. */
+  generateImage: (description: string) => Promise<void>;
+  /** Saves an image message's picture as a flashcard. */
+  saveImage: (messageId: string) => Promise<void>;
   attachFile: (file: File) => void;
   clearFile: () => void;
 
