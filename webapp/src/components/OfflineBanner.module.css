@@ -87,6 +87,7 @@
   border-radius: var(--r-pill);
   font-size: var(--fs-xs);
   font-weight: 600;
+  text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s ease, transform 0.1s ease;
@@ -121,8 +122,13 @@
 }
 
 @media (max-width: 768px) {
+  /* On a phone the top edge is the header's icon row, and a fixed pill there
+     swallowed taps on Search, Ask AI and the theme toggle for as long as the
+     device was offline — now a normal state. Just above the tab bar instead,
+     where the app's toasts also live (they stack over it: z-index 10010). */
   .bannerWrapper {
-    top: var(--s-2);
+    top: auto;
+    bottom: calc(var(--s-2) + var(--mobile-tabbar-clearance, 0px));
     max-width: calc(100vw - 16px);
   }
 
@@ -131,6 +137,23 @@
     font-size: var(--fs-xs);
     gap: var(--s-2);
   }
+}
+
+/* Inline, themed with the page (unlike the pill above). */
+.pageNotice {
+  margin: 0 0 var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh);
+}
+
+.pageNotice a {
+  color: var(--accent-text);
+  font-weight: 600;
 }
 
 /* Test runner bar: ink inverted from the page in both themes, with an ochre

@@ -6,7 +6,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
@@ -42,9 +42,15 @@ import {
   computeHourlyDistribution,
   detectPeakFocusWindow,
 } from "../../lib/analyticsEngine";
+import { loadLifeContext } from "../../lib/lifeContext";
 import {
-  detectPlanDeficit,
-  rebalanceWeeklyPlan,
+  applyRebalance,
+  peakFocusHint,
+  proposeRebalance,
+  rebalanceDayLabel,
+  rebalanceLimitsFrom,
+  RebalanceError,
+  type RebalanceProposal,
 } from "../../lib/planRebalancer";
 import {
   addStoredPlanBlock,
@@ -125,7 +131,9 @@ function BlockCard({
     block.reason?.includes("Peak Focus");
 
   return (
-    <div className={styles.block}>
+    <div
+      className={`${styles.block} ${block.rebalanced ? styles.blockRebalanced : ""}`}
+    >
       <div className={styles.blockHead}>
         <span className={styles.blockSubject}>
           {block.subject}
@@ -171,6 +179,7 @@ function BlockCard({
       </div>
       <div className={styles.blockMeta}>
         {mins}m{block.startHint ? ` · ${block.startHint}` : ""}
+        {block.rebalanced ? " · Rescheduled" : ""}
       </div>
       {/* Naming the content means Start is never a blind jump: the student can
           see it is about to open a deck they did not pick, and edit the block
@@ -411,6 +420,101 @@ function BlockEditor({
   );
 }
 
+/* The rebalance diff. Shows exactly what `applyRebalance` will write — the
+ * same proposal object feeds both — so nothing changes that the student did
+ * not see first. */
+function RebalancePreview({
+  proposal,
+  saving,
+  onClose,
+  onApply,
+}: {
+  proposal: RebalanceProposal;
+  saving: boolean;
+  onClose: () => void;
+  onApply: () => void;
+}) {
+  const movesId = useId();
+  const shortfallId = useId();
+  const applyLabel =
+    proposal.status === "ready"
+      ? "Apply changes"
+      : proposal.status === "partial"
+        ? "Apply what fits"
+        : "Let it go";
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Rebalance your week"
+      subtitle={proposal.headline}
+      contentClassName={styles.editorModal}
+      footer={
+        <>
+          <Button onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={onApply} disabled={saving}>
+            {saving ? "Saving…" : applyLabel}
+          </Button>
+        </>
+      }
+    >
+      <p className={styles.previewDetail}>{proposal.detail}</p>
+      {proposal.moves.length > 0 ? (
+        <section aria-labelledby={movesId}>
+          <h3 id={movesId} className={styles.previewHeading}>
+            What moves where
+          </h3>
+          <ul className={styles.previewList}>
+            {proposal.moves.map((move, i) => (
+              <li
+                key={`${move.subject}-${move.fromDate}-${move.toDate}-${i}`}
+                className={styles.previewRow}
+              >
+                <span className={styles.previewSubject}>{move.subject}</span>
+                <span className={styles.previewMins}>{move.minutes}m</span>
+                <span className={styles.previewRoute}>
+                  {rebalanceDayLabel(move.fromDate)}{" "}
+                  <span aria-hidden="true">→</span>
+                  <span className={styles.srOnly}>moves to</span>{" "}
+                  <strong>{rebalanceDayLabel(move.toDate)}</strong>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      {proposal.shortfall.length > 0 ? (
+        <section aria-labelledby={shortfallId}>
+          <h3 id={shortfallId} className={styles.previewHeading}>
+            Won&apos;t fit — let go
+          </h3>
+          <ul className={styles.previewList}>
+            {proposal.shortfall.map((item, i) => (
+              <li
+                key={`${item.subject}-${item.fromDate}-${i}`}
+                className={styles.previewRow}
+              >
+                <span className={styles.previewSubject}>{item.subject}</span>
+                <span className={styles.previewMins}>{item.minutes}m</span>
+                <span className={styles.previewRoute}>
+                  from {rebalanceDayLabel(item.fromDate)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      <p className={styles.previewNote}>
+        Missed blocks stay on their day, marked as rescheduled. You can undo
+        this afterwards.
+      </p>
+    </Modal>
+  );
+}
+
 export function PlanView() {
   const monday = mondayOfWeek();
   const weekStartISO = localDateStr(monday);
@@ -425,6 +529,17 @@ export function PlanView() {
   const generate = useGenerateWeeklyPlan();
   const updatePlan = useUpdatePlan();
   const [editor, setEditor] = useState<BlockEditorState>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [previewOpen, setPreviewOpen] = useState(false);
+  /* The plan as it was before the last rebalance. A ref for the toast's Undo
+     (whose closure outlives this render) and state for the inline button;
+     any other edit clears both, so Undo can never roll back later work. */
+  const undoRef = useRef<{ planJson: unknown } | null>(null);
+  const [canUndo, setCanUndo] = useState(false);
+  const setUndo = (snapshot: { planJson: unknown } | null) => {
+    undoRef.current = snapshot;
+    setCanUndo(snapshot !== null);
+  };
   const { showToast } = useToast();
   const { confirm } = useDialog();
   const { prepareFocus } = useTimer();
@@ -521,27 +636,118 @@ export function PlanView() {
     [hourlyStats],
   );
 
-  /* Plan Deficit & Intelligent Auto-Rebalancing */
-  const deficit = useMemo(
-    () =>
-      hasPlan && plan
-        ? detectPlanDeficit(plan.plan_json, recentSessions || [], folders || [])
-        : null,
-    [hasPlan, plan, recentSessions, folders],
+  /* Behind on the plan → propose a rebalance. Waits for sessions and folders
+     so a still-loading session list never flashes a false "you're behind".
+     Limits come from My week (free windows, daily capacity, protected days);
+     due-card counts come from the same planTargets resolution Start uses. */
+  const rebalanceLimits = useMemo(
+    () => rebalanceLimitsFrom(loadLifeContext(), weekStartISO),
+    [weekStartISO],
   );
-
-  const showRebalanceBanner =
-    hasPlan && deficit?.isBehind && deficit.remainingDaysCount > 0;
-
-  const handleAutoRebalance = () => {
-    if (!plan) return;
-    const result = rebalanceWeeklyPlan(plan.plan_json, recentSessions || [], {
-      folders: folders || [],
-      peakFocusWindow,
-    });
-    if (result.isRebalanced) {
-      saveEditedPlan(result.rebalancedPlan, result.summary);
+  const proposal = useMemo(() => {
+    if (!plan || !recentSessions || !folders) return null;
+    const stored = parseStoredPlan(plan.plan_json);
+    if (!stored || stored.days.length === 0) return null;
+    const dueCountBySubject: Record<string, number> = {};
+    for (const day of stored.days) {
+      for (const block of day.blocks ?? []) {
+        dueCountBySubject[block.subject] ??=
+          resolveTarget(block).target?.dueCount ?? 0;
+      }
     }
+    return proposeRebalance(plan.plan_json, recentSessions, {
+      folders,
+      exams: exams ?? [],
+      weekStartISO,
+      dueCountBySubject,
+      ...rebalanceLimits,
+    });
+  }, [
+    plan,
+    recentSessions,
+    folders,
+    exams,
+    weekStartISO,
+    resolveTarget,
+    rebalanceLimits,
+  ]);
+  const isBehind =
+    proposal?.status === "ready" ||
+    proposal?.status === "partial" ||
+    proposal?.status === "no-room";
+  /* The dashboard's "Rebalance?" prompt links here with ?rebalance=1, which
+     opens the preview straight away — still a preview, never an apply. */
+  const wantsPreview = searchParams.get("rebalance") === "1";
+  const showPreview = isBehind && (previewOpen || wantsPreview);
+
+  const closePreview = () => {
+    setPreviewOpen(false);
+    if (wantsPreview) {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.delete("rebalance");
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  };
+
+  const undoRebalance = () => {
+    const snapshot = undoRef.current;
+    if (!snapshot) return;
+    updatePlan.mutate(
+      { weekStartISO, planJson: snapshot.planJson },
+      {
+        onSuccess: () => {
+          setUndo(null);
+          showToast("Rebalance undone.");
+        },
+        onError: () =>
+          showToast("Could not undo the rebalance. Please try again.", {
+            error: true,
+          }),
+      },
+    );
+  };
+
+  const applyPreview = () => {
+    if (!plan || !proposal) return;
+    const previous = plan.plan_json;
+    let next: unknown;
+    try {
+      next = applyRebalance(previous, proposal, {
+        startHint: peakFocusHint(peakFocusWindow),
+      });
+    } catch (applyError) {
+      showToast(
+        applyError instanceof RebalanceError
+          ? applyError.message
+          : "Could not prepare the rebalance.",
+        { error: true },
+      );
+      return;
+    }
+    updatePlan.mutate(
+      { weekStartISO, planJson: next },
+      {
+        onSuccess: () => {
+          closePreview();
+          setUndo({ planJson: previous });
+          showToast(
+            proposal.status === "no-room"
+              ? "Missed blocks cleared. Focus on your priorities."
+              : "Your week is rebalanced.",
+            { actionLabel: "Undo", onAction: undoRebalance, duration: 10000 },
+          );
+        },
+        onError: () =>
+          showToast("Could not save the rebalance. Please try again.", {
+            error: true,
+          }),
+      },
+    );
   };
 
   /* Ports the vanilla's `start-plan-block` handoff (js/router.js:82-85), and
@@ -581,6 +787,7 @@ export function PlanView() {
       {
         onSuccess: () => {
           setEditor(null);
+          setUndo(null);
           showToast(message);
         },
         onError: (saveError) =>
@@ -656,7 +863,10 @@ export function PlanView() {
     }
 
     generate.mutate(false, {
-      onSuccess: () => showToast("Your weekly plan is ready."),
+      onSuccess: () => {
+        setUndo(null);
+        showToast("Your weekly plan is ready.");
+      },
       onError: (err) => {
         const message =
           err instanceof PlanShapeError ||
@@ -682,7 +892,10 @@ export function PlanView() {
     }
 
     generate.mutate(true, {
-      onSuccess: () => showToast("Triage plan ready"),
+      onSuccess: () => {
+        setUndo(null);
+        showToast("Triage plan ready");
+      },
       onError: (err) => {
         const message =
           err instanceof PlanShapeError ||
@@ -746,7 +959,7 @@ export function PlanView() {
         </div>
       </Card>
 
-      {showRebalanceBanner && deficit && (
+      {isBehind && proposal ? (
         <Card
           variant="panel"
           padding="none"
@@ -760,24 +973,41 @@ export function PlanView() {
             </div>
             <div>
               <div className={styles.rebalanceTitle}>
-                You&apos;re {deficit.totalMissedMinutes}m behind this week
+                You&apos;re behind. Rebalance?
               </div>
-              <p className={styles.rebalanceMessage}>
-                {deficit.recommendation}
-              </p>
+              <p className={styles.rebalanceMessage}>{proposal.headline}</p>
             </div>
           </div>
           <Button
             variant="primary"
-            onClick={handleAutoRebalance}
+            onClick={() => setPreviewOpen(true)}
             disabled={updatePlan.isPending}
             className={styles.rebalanceButton}
           >
             <Icon name="refresh-cw" size={14} />
-            {updatePlan.isPending ? "Moving it around…" : "Fit it back in"}
+            Preview changes
           </Button>
         </Card>
-      )}
+      ) : null}
+
+      {canUndo && !isBehind ? (
+        <Card
+          variant="panel"
+          padding="none"
+          className={styles.rebalanceDone}
+          role="status"
+        >
+          <span>Your week was rebalanced.</span>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={undoRebalance}
+            disabled={updatePlan.isPending}
+          >
+            Undo
+          </Button>
+        </Card>
+      ) : null}
 
       {adherence ? (
         <Card variant="panel" padding="none" className={styles.adherence}>
@@ -885,6 +1115,17 @@ export function PlanView() {
           </Card>
         </div>
       )}
+
+      {showPreview && proposal ? (
+        <RebalancePreview
+          proposal={proposal}
+          saving={updatePlan.isPending}
+          onClose={() => {
+            if (!updatePlan.isPending) closePreview();
+          }}
+          onApply={applyPreview}
+        />
+      ) : null}
 
       {editor ? (
         <BlockEditor

@@ -443,3 +443,70 @@
   display: flex;
   margin-top: var(--s-4);
 }
+
+/* "Why was I wrong?" — the structured explanation on the review screen. */
+.explainPanel {
+  display: grid;
+  gap: var(--s-3);
+  justify-items: start;
+  margin-top: var(--s-4);
+  padding: var(--s-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--glass-border);
+  background: var(--surface-2);
+}
+
+.explainLabel {
+  margin: 0;
+  padding: 0;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.explainMisconception {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  line-height: var(--lh-snug);
+  color: var(--text);
+}
+
+.explainBody {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh);
+  color: var(--text);
+}
+
+.explainCheck {
+  display: grid;
+  gap: var(--s-3);
+  width: 100%;
+  margin: var(--s-2) 0 0;
+  padding: var(--s-3) 0 0;
+  border: 0;
+  border-top: 1px solid var(--glass-border-subtle);
+  min-width: 0;
+}
+
+.explainCheckQuestion {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.explainVerdict {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.explainNote {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}

@@ -20,6 +20,7 @@ import type { QuizAttempt, Task } from "../api/types";
 import type { LastStudySession } from "./continuity";
 import type { Misconception } from "./misconceptions";
 import { localDateStr } from "./date";
+import { formatDuration } from "./lifeContext";
 import { topicMastery } from "./mastery";
 import { newSessionHref } from "./sessionModes";
 import type { TopicState, TrajectoryForecast } from "./trajectory";
@@ -128,14 +129,31 @@ export function alsoWorthDoing({
   tasks,
   today,
   exclude = [],
+  planBehindMins = 0,
 }: {
   dueCards: number;
   forecast: TrajectoryForecast | null;
   tasks: Task[];
   today: string;
   exclude?: Array<"cards" | "fading">;
+  /** Minutes of this week's plan missed and not yet rebalanced
+   *  (lib/planRebalancer `detectPlanDeficit`); 0 when on track. */
+  planBehindMins?: number;
 }): AlsoRow[] {
   const rows: AlsoRow[] = [];
+  /* First, so the three-row cap never hides it: a week that has slipped
+     changes what every other row is worth. It only opens the plan's
+     rebalance preview — nothing is rewritten from here. */
+  if (planBehindMins >= 15) {
+    rows.push({
+      id: "plan-behind",
+      kind: "task",
+      label: `You're ${formatDuration(planBehindMins)} behind this week's plan`,
+      estimate: "Plan",
+      action: "Rebalance",
+      to: "/plan?rebalance=1",
+    });
+  }
   if (dueCards > 0 && !exclude.includes("cards")) {
     rows.push({
       id: "cards",

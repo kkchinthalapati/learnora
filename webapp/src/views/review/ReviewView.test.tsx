@@ -239,9 +239,11 @@ describe("ReviewView", () => {
       ],
     });
     let capturedBody: unknown;
+    let capturedUrl: URL | undefined;
     server.use(
       http.patch(rest("flashcards"), async ({ request }) => {
         capturedBody = await request.json();
+        capturedUrl = new URL(request.url);
         return new HttpResponse(null, { status: 204 });
       }),
     );
@@ -267,7 +269,14 @@ describe("ReviewView", () => {
       ease_factor: 2.45,
       stability: expect.any(Number),
       difficulty: expect.any(Number),
+      last_reviewed_at: expect.any(String),
     });
+    /* Only lands over an older review — the newest review of a card wins,
+       and a replay of this one is a no-op. */
+    const reviewedAt = (capturedBody as { last_reviewed_at: string }).last_reviewed_at;
+    expect(capturedUrl?.searchParams.get("or")).toBe(
+      `(last_reviewed_at.is.null,last_reviewed_at.lt.${reviewedAt})`,
+    );
     /* The next card starts unflipped again — grading resets the session's
        per-card state. */
     expect(

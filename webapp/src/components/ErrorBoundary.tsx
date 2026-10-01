@@ -64,19 +64,32 @@ export class ErrorBoundary extends Component<
          re-run the same failed import() against the same missing file and
          land right back here. Offer the update path instead — the service
          worker already has the new build waiting (lib/appUpdate.ts). */
-      const staleBuild = isChunkLoadError(this.state.error);
+      /* The same missing chunk, offline, is not a new version: it is a page
+         this device never saved. Say so, rather than offering a reload that
+         cannot fetch anything either. */
+      const offline =
+        typeof navigator !== "undefined" &&
+        !navigator.onLine &&
+        isChunkLoadError(this.state.error);
+      const staleBuild = !offline && isChunkLoadError(this.state.error);
 
       return (
         <div className={styles.view}>
           <Card variant="panel" padding="lg" className={styles.panel}>
             <Icon name="alert-triangle" size={32} className={styles.icon} />
             <h1>
-              {staleBuild ? "A new version is ready" : "Something went wrong"}
+              {offline
+                ? "You're offline"
+                : staleBuild
+                  ? "A new version is ready"
+                  : "Something went wrong"}
             </h1>
             <p className={styles.muted}>
-              {staleBuild
-                ? "Learnora updated while this tab was open, so part of the app couldn't load. Reloading picks up the new version."
-                : "This screen hit an unexpected error. Your work up to this point may not be saved."}
+              {offline
+                ? "This page needs a connection. Flashcard review still works offline, and your reviews sync when you're back online."
+                : staleBuild
+                  ? "Learnora updated while this tab was open, so part of the app couldn't load. Reloading picks up the new version."
+                  : "This screen hit an unexpected error. Your work up to this point may not be saved."}
             </p>
             <div className={styles.actions}>
               {staleBuild ? (

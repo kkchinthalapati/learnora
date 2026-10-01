@@ -29,6 +29,11 @@ export interface PlanBlock {
   durationMins?: number;
   startHint?: string;
   reason?: string;
+  /** Set by a confirmed rebalance on a missed block whose time was moved (or
+   *  knowingly let go) — it stays visible, but is no longer owed. */
+  rebalanced?: boolean;
+  /** On a catch-up block a rebalance added: the day it was missed. */
+  catchUpFrom?: string;
 }
 
 export interface PlanDay {

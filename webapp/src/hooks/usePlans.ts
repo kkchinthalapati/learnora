@@ -1,7 +1,12 @@
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { plansApi } from "../api/plans";
 import { generateWeeklyPlan } from "../api/aiPlan";
 import { useSettings } from "../context/settings";
+import { localDateStr, mondayOfWeek } from "../lib/date";
+import { detectPlanDeficit } from "../lib/planRebalancer";
+import { useFolders } from "./useFolders";
+import { useSessionsSince } from "./useSessions";
 
 export const plansKeys = {
   forWeek: (weekStartISO: string) => ["plans", weekStartISO] as const,
@@ -52,4 +57,23 @@ export function useGenerateWeeklyPlan() {
     onSuccess: (plan) =>
       qc.setQueryData(plansKeys.forWeek(plan.week_start), plan),
   });
+}
+
+/** "Are you behind on this week's plan?" for surfaces outside /plan (the
+ * Today page's exam card). Read-only by design: those surfaces only link to
+ * the plan's rebalance preview and never rewrite the plan themselves. Reads
+ * the same three queries the Plan view does, so it is a cache hit there.
+ * `null` until all three have loaded, so nothing flashes a false alarm. */
+export function useThisWeekDeficit() {
+  const weekStartISO = localDateStr(mondayOfWeek());
+  const { data: plan } = usePlanForWeek(weekStartISO);
+  const { data: sessions } = useSessionsSince(14);
+  const { data: folders } = useFolders();
+  return useMemo(
+    () =>
+      plan && sessions && folders
+        ? detectPlanDeficit(plan.plan_json, sessions, folders)
+        : null,
+    [plan, sessions, folders],
+  );
 }

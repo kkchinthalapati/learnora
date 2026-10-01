@@ -5,12 +5,38 @@
  *     - App-shell navigation: Network-first with offline cache fallback.
  *     - Static assets (JS, CSS, fonts, images, webmanifest): Stale-While-Revalidate with dynamic caching.
  *     - Dynamic/API/Edge requests: Network-only pass-through (managed by offlineSync & React Query).
- *  2. Web Push notifications & notification click routing.
+ *  2. Offline flashcard review: the page hands over the files the review
+ *     screen needs (CACHE_URLS, below). Card data is NOT cached here — it is
+ *     one student's private data and lives in IndexedDB, keyed to them and
+ *     wiped on sign-out (src/lib/offlineCards.ts). This worker only ever
+ *     holds the app's own static files and its one HTML shell.
+ *  3. Web Push notifications & notification click routing.
  */
 
-const SHELL_CACHE = "learnora-shell-v3";
-const ASSETS_CACHE = "learnora-assets-v3";
+/* Bump both when caching behaviour changes: `activate` deletes every cache
+ * not named here, so a new version never serves an old one's files. */
+const SHELL_CACHE = "learnora-shell-v4";
+const ASSETS_CACHE = "learnora-assets-v4";
 const CURRENT_CACHES = [SHELL_CACHE, ASSETS_CACHE];
+
+/* Every route under /app/ is the same index.html (vercel.json rewrites them
+ * all), so the shell is kept under ONE key and refreshed by every online
+ * navigation. Caching a copy per URL, as before, let an offline visit to a
+ * route last opened weeks ago boot an old build whose files are long gone. */
+const SHELL_KEY = "/app/index.html";
+
+/* Hashed bundles accumulate across deploys (sw.js itself only changes when
+ * this file does). Least-recently-fetched entries go past this; SWR re-puts
+ * an entry on every fetch, which moves it to the end. */
+const MAX_ASSET_ENTRIES = 300;
+
+/* Servers commonly send `Vary: Origin` on static files (vite preview does).
+ * The page requests its entry bundles with an Origin header (they carry
+ * `crossorigin`) while the worker's own fetches don't, so a Vary-respecting
+ * lookup misses files that are sitting right there in the cache — which is
+ * how an offline start came up blank. These are this origin's own static
+ * files; nothing about them varies by Origin. */
+const MATCH = { ignoreVary: true };
 
 const PRECACHE_ASSETS = [
   "/app/",
@@ -26,6 +52,60 @@ const PRECACHE_ASSETS = [
 const STATIC_EXTENSIONS =
   /\.(?:js|css|woff2?|ttf|png|jpe?g|gif|svg|ico|webp)$/i;
 
+function isStaticAssetUrl(url) {
+  return (
+    STATIC_EXTENSIONS.test(url.pathname) ||
+    url.pathname.includes("/assets/") ||
+    url.pathname.endsWith("/manifest.webmanifest")
+  );
+}
+
+async function trimAssets() {
+  const cache = await caches.open(ASSETS_CACHE);
+  const keys = await cache.keys();
+  const excess = keys.length - MAX_ASSET_ENTRIES;
+  for (let i = 0; i < excess; i++) await cache.delete(keys[i]);
+}
+
+/* The page asks for the files the offline review screen needs (it cannot be
+ * precached at install: this file doesn't know the build's hashed names).
+ * Only this app's own static files are accepted — never an API response,
+ * never another origin — so a message can't turn this cache into a store
+ * for anything a student's session can see. */
+async function cacheAppFiles(urls) {
+  const scope = new URL(self.registration.scope);
+  const cache = await caches.open(ASSETS_CACHE);
+  for (const raw of urls) {
+    let url;
+    try {
+      url = new URL(raw, scope);
+    } catch {
+      continue;
+    }
+    if (url.origin !== scope.origin) continue;
+    if (!url.pathname.startsWith(scope.pathname)) continue;
+    if (!isStaticAssetUrl(url)) continue;
+    const request = new Request(url.href);
+    if (await cache.match(request, MATCH)) continue;
+    try {
+      const response = await fetch(request);
+      if (response && response.status === 200) await cache.put(request, response);
+    } catch {
+      /* Offline or gone — the next warm-up will try again. */
+    }
+  }
+  /* The shell too, so an offline start boots the build these files are from. */
+  try {
+    const shell = await fetch(new Request(scope.href, { cache: "no-cache" }));
+    if (shell && shell.status === 200) {
+      await (await caches.open(SHELL_CACHE)).put(SHELL_KEY, shell);
+    }
+  } catch {
+    /* Keep the shell we have. */
+  }
+  await trimAssets();
+}
+
 /* Deliberately no `skipWaiting()` here.
  *
  * Taking over immediately sounds like the helpful choice, but it cannot
@@ -37,6 +117,9 @@ const STATIC_EXTENSIONS =
  * offers a reload, and the message below is what the student's click sends. */
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+  if (event.data?.type === "CACHE_URLS" && Array.isArray(event.data.urls)) {
+    event.waitUntil(cacheAppFiles(event.data.urls.slice(0, 400)));
+  }
 });
 
 self.addEventListener("install", (event) => {
@@ -104,16 +187,17 @@ self.addEventListener("fetch", (event) => {
         .then((response) => {
           if (response && response.status === 200) {
             const copy = response.clone();
-            caches.open(SHELL_CACHE).then((cache) => cache.put(request, copy));
+            event.waitUntil(
+              caches.open(SHELL_CACHE).then((cache) => cache.put(SHELL_KEY, copy)),
+            );
           }
           return response;
         })
         .catch(async () => {
           const cached =
-            (await caches.match(request)) ||
-            (await caches.match("/app/")) ||
-            (await caches.match("/app/index.html")) ||
-            (await caches.match("/index.html"));
+            (await caches.match(SHELL_KEY, MATCH)) ||
+            (await caches.match("/app/", MATCH)) ||
+            (await caches.match("/index.html", MATCH));
           if (cached) return cached;
           throw new Error("Offline and no shell cache available.");
         }),
@@ -122,20 +206,20 @@ self.addEventListener("fetch", (event) => {
   }
 
   // 2. Static assets & bundle chunks: Stale-While-Revalidate
-  const isStaticAsset =
-    STATIC_EXTENSIONS.test(url.pathname) ||
-    url.pathname.includes("/assets/") ||
-    url.pathname.endsWith("/manifest.webmanifest");
-
-  if (isStaticAsset) {
+  if (isStaticAssetUrl(url)) {
     event.respondWith(
       caches.open(ASSETS_CACHE).then(async (cache) => {
-        const cachedResponse = await cache.match(request);
+        const cachedResponse = await cache.match(request, MATCH);
 
         const fetchPromise = fetch(request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
-              cache.put(request, networkResponse.clone());
+              /* Not event.waitUntil: when the cached copy was served, this
+                 runs after the event has finished and waitUntil would throw. */
+              cache
+                .put(request, networkResponse.clone())
+                .then(trimAssets)
+                .catch(() => {});
             }
             return networkResponse;
           })

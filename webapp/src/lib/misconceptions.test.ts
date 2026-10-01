@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MAX_PROMPT_MISCONCEPTIONS,
+  candidatesFromMistakeExplanation,
   candidatesFromPreMortem,
   candidatesFromQuizAnswers,
   candidatesFromReviewLapses,
@@ -10,6 +11,7 @@ import {
   candidatesFromTeachingTurn,
   conceptKey,
   formatMisconceptionsForPrompt,
+  isPlaceholderSummary,
   misconceptionPriority,
   misconceptionsForSubject,
   prepareCandidates,
@@ -421,6 +423,65 @@ describe("extractors", () => {
       "Nothing",
     );
     expect(out.find((c) => c.concept === "Moles")?.kind).toBe("correction");
+  });
+
+  it("marks the quiz's own summaries as placeholders, and nothing else", () => {
+    const [evidence] = candidatesFromQuizAnswers(
+      [{ topic: "Hydrolysis", correct: false, question: "What is added?" }],
+      { subject: "Chemistry" },
+    );
+    expect(isPlaceholderSummary(evidence.summary)).toBe(true);
+    expect(isPlaceholderSummary("Answered incorrectly on Moles")).toBe(true);
+    expect(isPlaceholderSummary("Thinks water is released, not consumed.")).toBe(false);
+    expect(isPlaceholderSummary("")).toBe(false);
+    expect(isPlaceholderSummary(null)).toBe(false);
+  });
+
+  it("files a mistake explanation under the question's topic, keyed to the attempt", () => {
+    const [candidate] = candidatesFromMistakeExplanation(
+      {
+        concept: "Water in hydrolysis reactions",
+        misconception: "You may think hydrolysis releases water.",
+      },
+      {
+        subject: "Chemistry",
+        topic: "Hydrolysis",
+        attemptId: "attempt-key-1",
+        chosen: "Water is released",
+        correct: "Water is consumed",
+      },
+    );
+    expect(candidate).toEqual({
+      subject: "Chemistry",
+      concept: "Hydrolysis",
+      summary: "You may think hydrolysis releases water.",
+      severity: "moderate",
+      tool: "quiz",
+      sourceId: "attempt-key-1",
+      kind: "evidence",
+      detail: 'Chose "Water is released" instead of "Water is consumed".',
+      skipIfSourceRecorded: true,
+    });
+    // Same row key as the attempt's own quiz candidate, so they merge.
+    const [quiz] = candidatesFromQuizAnswers(
+      [{ topic: "Hydrolysis", correct: false }],
+      { subject: "Chemistry", attemptId: "attempt-key-1" },
+    );
+    expect(conceptKey(candidate.concept)).toBe(conceptKey(quiz.concept));
+  });
+
+  it("falls back to the tutor's concept only when the question has no topic", () => {
+    const [candidate] = candidatesFromMistakeExplanation(
+      { concept: "Water in hydrolysis", misconception: "You may think…" },
+      { subject: "Chemistry", attemptId: "a1" },
+    );
+    expect(candidate.concept).toBe("Water in hydrolysis");
+    expect(
+      candidatesFromMistakeExplanation(
+        { concept: "", misconception: "You may think…" },
+        { subject: "Chemistry", attemptId: "a1" },
+      ),
+    ).toEqual([]);
   });
   it("ignores a one-off lapse's severity but escalates a chronically failed card", () => {
     const out = candidatesFromReviewLapses(

@@ -11,6 +11,7 @@ import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { useQuizAttempts } from "../../hooks/useQuizzes";
 import { useSessionsSince } from "../../hooks/useSessions";
 import { useTasks } from "../../hooks/useTasks";
+import { useThisWeekDeficit } from "../../hooks/usePlans";
 import { dueCardsFrom } from "../review/srs";
 import { INTERVENTION_BLOCK_MINS, isDeckTopicId } from "../../lib/trajectory";
 import { useAllDecks } from "../../hooks/useDecks";
@@ -62,6 +63,9 @@ export function TodayView() {
   const tasks = useTasks();
   const sessions = useSessionsSince(7);
   const dueCount = useFlashcardsDueCount();
+  /* Behind on this week's plan → a "Rebalance" row (read-only; the plan
+     page previews and applies). */
+  const planDeficit = useThisWeekDeficit();
   const [shortOnTime, setShortOnTime] = useState(false);
 
   const now = useMemo(() => new Date(), []);
@@ -115,6 +119,7 @@ export function TodayView() {
     tasks: tasks.data ?? [],
     today,
     exclude: scenario === "short" ? ["cards", "fading"] : [],
+    planBehindMins: planDeficit?.isBehind ? planDeficit.totalMissedMinutes : 0,
   });
 
   const studiedDates = useMemo(() => {

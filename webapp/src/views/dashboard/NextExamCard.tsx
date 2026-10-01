@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { Card } from "../../components/Card";
 import { Chip } from "../../components/Chip";
 import { Icon } from "../../components/Icon";
 import { Skeleton } from "../../components/Skeleton";
 import { useExams } from "../../hooks/useExams";
 import { useExamReadiness } from "../../hooks/useExamReadiness";
+import { useThisWeekDeficit } from "../../hooks/usePlans";
+import { formatDuration } from "../../lib/lifeContext";
 import { localDateStr } from "../../lib/date";
 import { Storage } from "../../lib/storage";
 import { ExamPrepModal } from "../exams/ExamPrepModal";
@@ -14,6 +17,23 @@ import styles from "./dashboard.module.css";
 
 /* "Next exam" spotlight. */
 const COUNTDOWN_EXAM_KEY = "learnora_countdown_exam_id";
+
+/* The countdown is where falling behind matters most, so the prompt lives
+ * here. It only links to the Plan view's preview — the student sees what
+ * would move before anything is rewritten. */
+function PlanBehindPrompt() {
+  const deficit = useThisWeekDeficit();
+  if (!deficit?.isBehind) return null;
+  return (
+    <Link to="/plan?rebalance=1" className={styles.behindPrompt}>
+      <Icon name="refresh-cw" size={14} />
+      <span>
+        You&apos;re {formatDuration(deficit.totalMissedMinutes)} behind this
+        week&apos;s plan. <strong>Rebalance?</strong>
+      </span>
+    </Link>
+  );
+}
 
 /** `headless`: the page names this card and carries its link (Today), so
  *  the card's own header row is left out. */
@@ -69,6 +89,7 @@ export function NextExamCard({ headless = false }: { headless?: boolean } = {}) 
           No exams scheduled. You&apos;re all clear, or add one to start
           planning.
         </p>
+        <PlanBehindPrompt />
       </Card>
     );
   }
@@ -160,6 +181,7 @@ export function NextExamCard({ headless = false }: { headless?: boolean } = {}) 
             )}
           </div>
         </div>
+        <PlanBehindPrompt />
       </Card>
 
       {prepModalOpen && (

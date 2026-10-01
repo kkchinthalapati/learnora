@@ -20,6 +20,23 @@ export interface CardFields {
   backImagePath?: string | null;
 }
 
+/* Set once the database says `flashcards.last_reviewed_at` does not exist (a
+ * build shipped ahead of supabase/migrations/20260929020000_…), so later
+ * reviews go straight to the old unconditional write. Same pattern as
+ * api/profile.ts's `settingsColumnMissing`. */
+let lastReviewedColumnMissing = false;
+
+function isMissingLastReviewedColumn(error: {
+  code?: string;
+  message?: string;
+}): boolean {
+  return (
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    /last_reviewed_at/i.test(error.message ?? "")
+  );
+}
+
 /* Direct port of js/api.js's `Flashcards` object (:697-782). */
 export const flashcardsApi = {
   async fetchByDeck(deckId: string): Promise<Flashcard[]> {
@@ -156,12 +173,20 @@ export const flashcardsApi = {
    * dropped them (as this did) made the next review start from scratch. They
    * are optional because a queued offline review recorded by an older build
    * carries only the legacy three. */
+  /* `reviewedAt` is when the student graded the card, which for a review
+   * replayed from the offline queue can be long before this write. The write
+   * only lands if the card's stored `last_reviewed_at` is older (or unset), so
+   * the newest review wins whichever device or queue delivers it last, and a
+   * replay of a review that already landed matches no row — a no-op, never a
+   * second application. Until the column is deployed this degrades to the old
+   * unconditional write. */
   async updateReview(
     cardId: string,
     nextReviewDate: string,
     interval: number,
     ease: number,
     memory?: { stability?: number; difficulty?: number },
+    reviewedAt: string = new Date().toISOString(),
   ): Promise<void> {
     const userId = await requireUserId();
     const update: Record<string, unknown> = {
@@ -171,6 +196,19 @@ export const flashcardsApi = {
     };
     if (typeof memory?.stability === "number") update.stability = memory.stability;
     if (typeof memory?.difficulty === "number") update.difficulty = memory.difficulty;
+
+    if (!lastReviewedColumnMissing) {
+      const { error } = await supabase
+        .from("flashcards")
+        .update({ ...update, last_reviewed_at: reviewedAt })
+        .eq("id", cardId)
+        .eq("user_id", userId)
+        .or(`last_reviewed_at.is.null,last_reviewed_at.lt.${reviewedAt}`);
+      if (!error) return;
+      if (!isMissingLastReviewedColumn(error)) throw new Error(error.message);
+      lastReviewedColumnMissing = true;
+    }
+
     const { error } = await supabase
       .from("flashcards")
       .update(update)
@@ -209,6 +247,22 @@ export const flashcardsApi = {
       .limit(limit);
     if (error) throw new Error(error.message);
     return (data ?? []) as FlashcardDue[];
+  },
+
+  /* The offline copy (lib/offlineCards.ts): every card that is due now or
+   * will fall due before `beforeIso`, so a student who goes offline tonight
+   * still has tomorrow's cards. Same NULL-means-due rule as fetchAllDue. */
+  async fetchDueBefore(beforeIso: string, limit = 500): Promise<Flashcard[]> {
+    const userId = await requireUserId();
+    const { data, error } = await supabase
+      .from("flashcards")
+      .select("*")
+      .eq("user_id", userId)
+      .or(`next_review_date.is.null,next_review_date.lte.${beforeIso}`)
+      .order("next_review_date", { ascending: true, nullsFirst: true })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return data ?? [];
   },
 
   async fetchWeakDecks(limit = 5): Promise<string[]> {

@@ -8,6 +8,9 @@ import {
   submitSrsReview,
   logSession,
   toggleTask,
+  countQueuedReviews,
+  OfflineStorageError,
+  type SrsReviewPayload,
 } from "./offlineSync";
 import { flashcardsApi } from "../api/flashcards";
 import { sessionsApi } from "../api/sessions";
@@ -151,12 +154,15 @@ describe("offlineSync", () => {
       expect(result.remaining).toBe(0);
       expect(getOfflineQueueSize()).toBe(0);
 
+      // Queued by an older build, so no review time: the write falls back to
+      // "now" inside updateReview.
       expect(flashcardsApi.updateReview).toHaveBeenCalledWith(
         "c-10",
         "2026-08-26T00:00:00.000Z",
         2,
         2.5,
         { stability: undefined, difficulty: undefined },
+        undefined,
       );
       expect(sessionsApi.log).toHaveBeenCalledWith({
         minutes: 30,
@@ -222,6 +228,7 @@ describe("offlineSync", () => {
         1,
         2.5,
         { stability: undefined, difficulty: undefined },
+        expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
       );
       expect(getOfflineQueueSize()).toBe(0);
     });
@@ -266,6 +273,74 @@ describe("offlineSync", () => {
         toggleTask({ id: 7, currentStatus: false }),
       ).rejects.toThrow("503 Service Unavailable");
       expect(getOfflineQueueSize()).toBe(0);
+    });
+  });
+
+  describe("offline review sync: idempotent, newest review wins", () => {
+    const review = (reviewedAt: string, interval: number): SrsReviewPayload => ({
+      cardId: "c-1",
+      nextReviewDate: "2026-10-01T00:00:00.000Z",
+      interval,
+      ease: 2.5,
+      reviewedAt,
+    });
+
+    it("keeps one queued review per card: the newest", () => {
+      enqueueOfflineAction("submitSrsReview", review("2026-09-29T10:00:00.000Z", 1));
+      enqueueOfflineAction("submitSrsReview", review("2026-09-29T11:00:00.000Z", 4));
+      // Arrives late (e.g. a retry of the first grade): must not win.
+      enqueueOfflineAction("submitSrsReview", review("2026-09-29T09:00:00.000Z", 9));
+
+      const queue = getOfflineQueue();
+      expect(queue).toHaveLength(1);
+      expect((queue[0].payload as SrsReviewPayload).interval).toBe(4);
+    });
+
+    it("stamps the grade time on an offline review and replays it with that time", async () => {
+      Object.defineProperty(navigator, "onLine", { value: false, writable: true, configurable: true });
+      await submitSrsReview({ cardId: "c-7", nextReviewDate: "2026-10-01T00:00:00.000Z", interval: 2, ease: 2.5, reviewedAt: "2026-09-29T08:00:00.000Z" });
+      Object.defineProperty(navigator, "onLine", { value: true, writable: true, configurable: true });
+
+      await flushOfflineQueue();
+      expect(flashcardsApi.updateReview).toHaveBeenCalledWith(
+        "c-7",
+        "2026-10-01T00:00:00.000Z",
+        2,
+        2.5,
+        { stability: undefined, difficulty: undefined },
+        "2026-09-29T08:00:00.000Z",
+      );
+      expect(getOfflineQueueSize()).toBe(0);
+    });
+
+    it("replays the same stamp on a retry, so a slow success can't be applied twice", async () => {
+      vi.mocked(flashcardsApi.updateReview).mockRejectedValueOnce(new Error("socket hang up"));
+      enqueueOfflineAction("submitSrsReview", review("2026-09-29T10:00:00.000Z", 3));
+
+      await flushOfflineQueue(); // fails, stays queued
+      await flushOfflineQueue(); // retried
+      const stamps = vi.mocked(flashcardsApi.updateReview).mock.calls.map((call) => call[5]);
+      expect(stamps).toEqual(["2026-09-29T10:00:00.000Z", "2026-09-29T10:00:00.000Z"]);
+    });
+
+    it("counts only card reviews as reviews", () => {
+      enqueueOfflineAction("submitSrsReview", review("2026-09-29T10:00:00.000Z", 1));
+      enqueueOfflineAction("submitSrsReview", { ...review("2026-09-29T10:00:00.000Z", 1), cardId: "c-2" });
+      enqueueOfflineAction("toggleTask", { id: 1, currentStatus: false });
+      expect(countQueuedReviews(getOfflineQueue())).toBe(2);
+    });
+
+    it("refuses, loudly, to pretend an offline review was kept when storage is blocked", async () => {
+      Object.defineProperty(navigator, "onLine", { value: false, writable: true, configurable: true });
+      const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw new DOMException("blocked", "QuotaExceededError");
+      });
+      vi.spyOn(console, "error").mockImplementation(() => {});
+
+      await expect(
+        submitSrsReview({ cardId: "c-9", nextReviewDate: "2026-10-01T00:00:00.000Z", interval: 1, ease: 2.5 }),
+      ).rejects.toBeInstanceOf(OfflineStorageError);
+      setItem.mockRestore();
     });
   });
 });

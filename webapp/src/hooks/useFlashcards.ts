@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { flashcardsApi, type CardFields } from "../api/flashcards";
-import { submitSrsReview } from "../lib/offlineSync";
+import { useOptionalAuth } from "../context/auth";
+import { recordOfflineGrade } from "../lib/offlineCards";
+import { submitSrsReview, type SrsReviewPayload } from "../lib/offlineSync";
 
 export const flashcardsKeys = {
   all: ["flashcards"] as const,
@@ -90,16 +92,22 @@ export function useDeleteFlashcard() {
  * un-grade the card in the UI. */
 export function useUpdateFlashcardReview() {
   const qc = useQueryClient();
+  const userId = useOptionalAuth()?.user?.id;
   return useMutation({
-    mutationFn: (payload: {
-      cardId: string;
-      nextReviewDate: string;
-      interval: number;
-      ease: number;
-      stability?: number;
-      difficulty?: number;
-    }) => submitSrsReview(payload),
-    onSuccess: ({ queued }) => {
+    /* React Query's default ("online") parks a mutation in memory while the
+       browser is offline, so a grade never reached the durable queue below
+       and was lost if the tab closed. submitSrsReview decides online vs
+       queued itself; let it run. */
+    networkMode: "always",
+    mutationFn: (payload: SrsReviewPayload) => submitSrsReview(payload),
+    onSuccess: ({ queued }, payload) => {
+      /* The device's offline copy learns the grade too, online or not, so a
+         card graded now never reappears as due in an offline session later. */
+      if (userId) {
+        void recordOfflineGrade(userId, payload).then(() =>
+          qc.invalidateQueries({ queryKey: ["offline-review"] }),
+        );
+      }
       if (queued) return;
       /* The whole family, including the unscoped all-cards list: Today's
          recommendation, exam readiness and the forecast all read that one,

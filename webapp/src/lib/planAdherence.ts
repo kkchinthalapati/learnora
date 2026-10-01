@@ -38,6 +38,9 @@ function totalPlannedMinutes(days: PlanDay[]): number {
   let total = 0;
   for (const day of days) {
     for (const block of day.blocks ?? []) {
+      // A rebalanced block's minutes were re-planned as a catch-up block,
+      // which is counted instead — counting both would plan them twice.
+      if (block.rebalanced) continue;
       total += block.durationMins ?? DEFAULT_BLOCK_MINUTES;
     }
   }
@@ -79,6 +82,7 @@ export function computeWeekAdherence(
   const plannedBySubject = new Map<string, number>();
   for (const day of days) {
     for (const block of day.blocks ?? []) {
+      if (block.rebalanced) continue;
       const mins = block.durationMins ?? DEFAULT_BLOCK_MINUTES;
       plannedBySubject.set(
         block.subject,

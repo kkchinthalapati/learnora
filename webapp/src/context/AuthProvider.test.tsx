@@ -5,6 +5,12 @@ import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { AuthProvider } from "./AuthProvider";
 import { useAuth } from "./auth";
 import { fakeSession } from "../test/auth";
+import {
+  loadOfflineSnapshot,
+  saveOfflineSnapshot,
+  setOfflineKVForTests,
+  type OfflineKV,
+} from "../lib/offlineCards";
 
 const unsubscribe = vi.fn();
 const getSession = vi.fn();
@@ -150,5 +156,38 @@ describe("AuthProvider", () => {
     await waitFor(() => expect(onAuthStateChange).toHaveBeenCalled());
     unmount();
     expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  describe("offline flashcard copy", () => {
+    function memoryKV(): OfflineKV {
+      const data = new Map<string, unknown>();
+      const k = (store: string, key: string) => `${store}/${key}`;
+      return {
+        get: async <T,>(store: string, key: string) => data.get(k(store, key)) as T | undefined,
+        put: async (store, key, value) => void data.set(k(store, key), value),
+        delete: async (store, key) => void data.delete(k(store, key)),
+        keys: async () => [...data.keys()],
+        clear: async () => data.clear(),
+      };
+    }
+
+    it("is wiped on sign-out, and kept across a same-student token refresh", async () => {
+      setOfflineKVForTests(memoryKV());
+      getSession.mockResolvedValue({ data: { session: fakeSession() }, error: null });
+      await saveOfflineSnapshot("user-1", [], []);
+
+      const user = userEvent.setup();
+      renderProvider();
+      await waitFor(() =>
+        expect(screen.getByTestId("state")).toHaveTextContent("student@example.com"),
+      );
+
+      emitAuthChange("TOKEN_REFRESHED", fakeSession());
+      await new Promise((r) => setTimeout(r, 0));
+      expect(await loadOfflineSnapshot("user-1")).not.toBeNull();
+
+      await user.click(screen.getByRole("button", { name: "Sign out" }));
+      await waitFor(async () => expect(await loadOfflineSnapshot("user-1")).toBeNull());
+    });
   });
 });

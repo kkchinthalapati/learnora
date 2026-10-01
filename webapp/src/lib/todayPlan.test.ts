@@ -141,6 +141,26 @@ describe("alsoWorthDoing", () => {
     expect(rows[2]).toMatchObject({ kind: "task", estimate: "Today" });
   });
 
+  it("leads with a rebalance prompt when the week's plan has slipped", () => {
+    const rows = alsoWorthDoing({ dueCards: 18, forecast, tasks, today: "2026-09-30", planBehindMins: 90 });
+    expect(rows[0]).toEqual({
+      id: "plan-behind",
+      kind: "task",
+      label: "You're 1h 30m behind this week's plan",
+      estimate: "Plan",
+      action: "Rebalance",
+      to: "/plan?rebalance=1",
+    });
+    expect(rows).toHaveLength(3);
+  });
+
+  it("says nothing about the plan when it is on track (or under 15 minutes behind)", () => {
+    for (const planBehindMins of [0, 10]) {
+      const rows = alsoWorthDoing({ dueCards: 0, forecast: null, tasks: [], today: "2026-09-30", planBehindMins });
+      expect(rows.map((r) => r.id)).not.toContain("plan-behind");
+    }
+  });
+
   it("drops what the lead card already offers", () => {
     const rows = alsoWorthDoing({ dueCards: 18, forecast, tasks: [], today: "2026-09-30", exclude: ["cards"] });
     expect(rows.map((r) => r.id)).toEqual(["fading-d2"]);

@@ -25,7 +25,7 @@ This is the single source of truth for what is merged and what is live. **Before
 | A5 | Webapp | ✅ PR #122 (2026-10-01) | ✅ Vercel deploys `main` automatically on merge |
 | B1a | `20260929000000_materials_allow_study_photos.sql` | ❌ only on `claude/beautiful-cerf-vt46z2` | ❌ |
 | B1b | `20260929010000_add_chat_media_bucket.sql` | ❌ only on `claude/beautiful-cerf-vt46z2` | ❌ |
-| B2a | `20260929000000_flashcards_last_reviewed_at.sql` | ❌ only on `claude/dreamy-keller-3sjvnp` | ❌ |
+| B2a | `20260929020000_flashcards_last_reviewed_at.sql` (renamed from `20260929000000_…` on the branch, 2026-10-01) | ❌ only on `claude/dreamy-keller-3sjvnp` (PR #129) | ❌ |
 
 ### What deploys what
 
@@ -51,8 +51,8 @@ So the runbook is: **A1 → A2 → A3 → A4**, verifying each with its query be
 | If you merge… | Apply first / with it | What happens if you don't |
 |---------------|-----------------------|---------------------------|
 | `claude/beautiful-cerf-vt46z2` | B1a and B1b, before or right after the merge, then redeploy `learnora-ai` (that branch changes it) | Photo uploads are refused by Storage (the `materials` bucket has no image types). "Generate image" fails because the `chat-media` bucket doesn't exist. |
-| `claude/dreamy-keller-3sjvnp` | **First rename** its migration to `20260929020000_flashcards_last_reviewed_at.sql` (version collision with beautiful-cerf), then apply B2a | The client falls back to the old unconditional review write, so an offline review replayed late can overwrite a newer one. |
-| Both | Rename dreamy-keller's file, then apply B1a, B1b, B2a | Two files share version `20260929000000`, so `supabase db push` rejects or skips one |
+| `claude/dreamy-keller-3sjvnp` | Apply B2a. Its migration is already renamed to `20260929020000_flashcards_last_reviewed_at.sql` on the branch (version collision with beautiful-cerf, resolved 2026-10-01) | The client falls back to the old unconditional review write, so an offline review replayed late can overwrite a newer one. |
+| Both | Apply B1a, B1b, B2a (dreamy-keller's file is already renamed) | Two files share version `20260929000000`, so `supabase db push` rejects or skips one |
 
 Both branches were cut before PR #122. Merge `main` into each and re-run the tests before merging. Their migrations are dated before `20261001…`, so `supabase db push` needs `--include-all`.
 
@@ -236,7 +236,7 @@ from public.ai_request_log order by created_at desc limit 5;
 
 These live on branches with no open PR. **Don't apply them before their code is merged.** They're harmless on their own, but they'd widen what Storage accepts with no client using it.
 
-> ⚠️ **Version collision:** both branches have a migration with version **`20260929000000`**. Merging both as-is gives two files with the same version, and `supabase db push` will reject or skip one. Before merging the second branch, rename dreamy-keller's file to `20260929020000_flashcards_last_reviewed_at.sql`. Both are also dated *before* this PR's `20261001…` files. That's fine for the SQL Editor, but with the CLI you may need `supabase db push --include-all`.
+> ⚠️ **Version collision:** both branches have a migration with version **`20260929000000`**. Merging both as-is gives two files with the same version, and `supabase db push` will reject or skip one. Before merging the second branch, rename dreamy-keller's file to `20260929020000_flashcards_last_reviewed_at.sql`. **Done on `claude/dreamy-keller-3sjvnp` (2026-10-01).** Both are also dated *before* this PR's `20261001…` files. That's fine for the SQL Editor, but with the CLI you may need `supabase db push --include-all`.
 
 ### B1 — branch `claude/beautiful-cerf-vt46z2` (photo study material, chat image generation)
 
@@ -359,7 +359,7 @@ Check before merging that branch: make sure `delete-account` also empties the us
 
 ### B2 — branch `claude/dreamy-keller-3sjvnp` (offline flashcard review)
 
-#### B2a — `20260929000000_flashcards_last_reviewed_at.sql` (rename to `20260929020000_…` — see collision note)
+#### B2a — `20260929020000_flashcards_last_reviewed_at.sql` (renamed from `20260929000000_…` — see collision note)
 
 ```sql
 -- Offline flashcard review: order card reviews by when they happened.

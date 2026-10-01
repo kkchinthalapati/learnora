@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes } from "react-router";
@@ -287,5 +287,113 @@ describe("QuizReview", () => {
     expect(
       screen.getByText(/Exited fullscreen mode during the proctored exam/),
     ).toBeInTheDocument();
+  });
+
+  describe("Why was I wrong?", () => {
+    const EDGE_URL = `${SUPABASE_URL}/functions/v1/learnora-ai`;
+    const GOOD = {
+      concept: "DNA naming",
+      misconception: "You may be matching the letters to any chemical name that fits.",
+      explanation: "DNA is deoxyribonucleic acid: the sugar is deoxyribose. Dinitrogen acetate is not a biological molecule.",
+      check: {
+        question: "What does the R in RNA stand for?",
+        choices: ["Ribose", "Radium"],
+        correctIndex: 0,
+      },
+    };
+
+    function serveExplain(text: string) {
+      const edgeCalls: Array<{ tool?: string }> = [];
+      const ledgerWrites: Array<Record<string, unknown>> = [];
+      server.use(
+        http.get(rest("quizzes"), () =>
+          HttpResponse.json([
+            {
+              id: "quiz-1",
+              user_id: "user-1",
+              title: "Biology basics",
+              folder_id: "f-bio",
+              material_id: null,
+              questions_json: QUESTIONS,
+              created_at: "2026-07-01T00:00:00.000Z",
+            },
+          ]),
+        ),
+        http.get(rest("quiz_attempts"), () =>
+          HttpResponse.json([{ ...ATTEMPT, attempt_key: "run-key-1" }]),
+        ),
+        http.get(rest("folders"), () =>
+          HttpResponse.json([{ id: "f-bio", user_id: "user-1", name: "Biology", color: "#10b981", created_at: "2026-07-01" }]),
+        ),
+        http.post(EDGE_URL, async ({ request }) => {
+          edgeCalls.push((await request.json()) as { tool?: string });
+          return HttpResponse.json({ text });
+        }),
+        http.post(rest("misconceptions"), async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          ledgerWrites.push(body);
+          return HttpResponse.json({
+            id: "mc-1",
+            ...body,
+            status: "open",
+            times_observed: 1,
+            times_corrected: 0,
+            first_seen_at: "2026-09-01T00:00:00Z",
+            last_seen_at: "2026-09-01T00:00:00Z",
+            resolved_at: null,
+          });
+        }),
+      );
+      return { edgeCalls, ledgerWrites };
+    }
+
+    it("is offered on the wrong answer only, and costs nothing until pressed", async () => {
+      const { edgeCalls } = serveExplain(JSON.stringify(GOOD));
+      renderReview();
+
+      const buttons = await screen.findAllByRole("button", { name: /Why was I wrong\?/ });
+      expect(buttons).toHaveLength(1);
+      const wrongQuestion = screen.getByText("What does DNA stand for?").closest("article") as HTMLElement;
+      expect(within(wrongQuestion).getByRole("button", { name: /Why was I wrong\?/ })).toBeInTheDocument();
+      expect(edgeCalls).toHaveLength(0);
+    });
+
+    it("explains the mistake, asks a check question, and logs it to the ledger", async () => {
+      const { edgeCalls, ledgerWrites } = serveExplain(JSON.stringify(GOOD));
+      renderReview();
+
+      await userEvent.click(await screen.findByRole("button", { name: /Why was I wrong\?/ }));
+
+      const panel = await screen.findByRole("region", { name: "Why this answer was wrong" });
+      expect(within(panel).getByText(GOOD.misconception)).toBeInTheDocument();
+      expect(within(panel).getByText(GOOD.explanation)).toBeInTheDocument();
+      expect(within(panel).getByText(GOOD.check.question)).toBeInTheDocument();
+      expect(edgeCalls).toHaveLength(1);
+      expect(edgeCalls[0].tool).toBe("debugger");
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Radium" }));
+      expect(within(panel).getByRole("status")).toHaveTextContent("Not quite. The answer is “Ribose”.");
+
+      await waitFor(() => expect(ledgerWrites).toHaveLength(1));
+      expect(ledgerWrites[0]).toMatchObject({
+        subject: "Biology",
+        concept: "Genetics",
+        summary: GOOD.misconception,
+        origin_tool: "quiz",
+      });
+      expect(await within(panel).findByText("Logged to your misconception ledger.")).toBeInTheDocument();
+    });
+
+    it("shows a calm fallback, not raw model text, when the reply is unusable", async () => {
+      const { ledgerWrites } = serveExplain("Honestly the student just guessed lol");
+      renderReview();
+
+      await userEvent.click(await screen.findByRole("button", { name: /Why was I wrong\?/ }));
+
+      expect(await screen.findByText(/not in a form we could show/)).toBeInTheDocument();
+      expect(screen.queryByText(/just guessed/)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+      expect(ledgerWrites).toHaveLength(0);
+    });
   });
 });

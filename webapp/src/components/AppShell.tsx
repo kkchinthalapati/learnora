@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Outlet } from "react-router";
+import { Outlet, useLocation } from "react-router";
 import { Header } from "./Header";
-import { OfflineBanner } from "./OfflineBanner";
+import { OfflineBanner, OfflinePageNotice } from "./OfflineBanner";
 import { Sidebar } from "./Sidebar";
 import { MobileTabBar } from "./MobileTabBar";
 import { useBlockReminders } from "../hooks/useBlockReminders";
+import { useOfflineReviewSync } from "../hooks/useOfflineReview";
+import { keepUrlInWorkerScope } from "../lib/serviceWorker";
 import styles from "./AppShell.module.css";
 
 const MOBILE_BREAKPOINT = 768;
@@ -32,6 +34,15 @@ export function AppShell() {
      looking at their dashboard is a reminder for the one case they did not
      need one. */
   useBlockReminders();
+  /* Keeps due cards on the device and the review screen in the worker's
+     cache, so flashcard review works with no connection. */
+  useOfflineReviewSync();
+  /* Home renders at /app, outside the worker's /app/ scope; see
+     keepUrlInWorkerScope. Re-checked on every navigation back home. */
+  const { pathname } = useLocation();
+  useEffect(() => {
+    keepUrlInWorkerScope();
+  }, [pathname]);
 
   const [mobileOpen, setMobileOpen] = useState(false);
   /* null = follow the viewport (rail on tablets, full on desktop); a click
@@ -95,6 +106,7 @@ export function AppShell() {
         <div className={styles.contentFrame}>
           <Header onToggleMenu={handleToggleMenu} />
           <div id="page-content" tabIndex={-1}>
+            <OfflinePageNotice />
             <Outlet />
           </div>
         </div>
