@@ -1,14 +1,60 @@
-# Unapplied Supabase migrations
+# Unapplied Supabase migrations — status and runbook
 
 Checked against production project `mlvgqwqiynpwpwzqufdf` on **2026-10-01**.
 
 - All **44** migrations recorded as applied in production match a file in `supabase/migrations/` on `main` (matched by name; production versions differ because they were applied through the dashboard/MCP).
 - I spot-checked the live schema against those 44 (notes `updated_at` + trigger, `profiles.settings`, `learning_events`). **No drift found.**
 - **6 migrations are not applied.**
-  - **3 in this PR (Section A).** Apply them with this PR, in the order shown.
-  - **3 on unmerged feature branches (Section B).** Apply those only when you merge that branch.
+  - **3 from PR #122 (Section A).** The code is merged; apply them now, in the order below.
+  - **3 on unmerged feature branches (Section B).** Apply those only when that branch merges.
 
 Every migration below is idempotent (`if not exists` / `on conflict do nothing` / `drop … if exists`), so re-running one is safe.
+
+---
+
+## Status — read this first (agents: update it when you change any row)
+
+This is the single source of truth for what is merged and what is live. **Before acting, verify against production** with the query in each step; production wins over this table. After you apply, deploy or merge something, flip its row and add the date. When every row in a section is ✅, move that section's SQL to the "Done" note at the bottom; don't delete the history.
+
+| Step | What | Code merged to `main`? | Live in production? |
+|------|------|------------------------|---------------------|
+| A1 | `20261001000000_ai_request_log_outcome.sql` | ✅ PR #122 (2026-10-01) | ❌ not applied |
+| A2 | `20261001010000_ai_request_log_session_key.sql` | ✅ PR #122 (2026-10-01) | ❌ not applied |
+| A3 | `20261001020000_study_session_state.sql` | ✅ PR #122 (2026-10-01) | ❌ not applied |
+| A4 | `learnora-ai` edge function with `_shared/` modules | ✅ PR #122 (2026-10-01) | ❌ production runs v64 (pre-PR) |
+| A5 | Webapp | ✅ PR #122 (2026-10-01) | ✅ Vercel deploys `main` automatically on merge |
+| B1a | `20260929000000_materials_allow_study_photos.sql` | ❌ only on `claude/beautiful-cerf-vt46z2` | ❌ |
+| B1b | `20260929010000_add_chat_media_bucket.sql` | ❌ only on `claude/beautiful-cerf-vt46z2` | ❌ |
+| B2a | `20260929000000_flashcards_last_reviewed_at.sql` | ❌ only on `claude/dreamy-keller-3sjvnp` | ❌ |
+
+### What deploys what
+
+- **Merging to `main` deploys only the webapp** (Vercel, automatically).
+- **Nothing deploys Supabase automatically.** There is no GitHub Actions workflow. Migrations and edge functions go live only when someone runs them, through the CLI, the dashboard or the Supabase MCP. So "merged" never means "live" for rows A1–A4 or B.
+
+### Order for Section A, and what happens at each point
+
+PR #122 was merged **before** A1–A4 were applied. That is safe, because the new webapp degrades against the old backend. Here is exactly what users get in each state:
+
+| State | What users get |
+|-------|----------------|
+| **Now: webapp merged, A1–A4 not done** | Everything works. Study sessions save in the browser only. The sync calls fail quietly and "resume on another device" doesn't appear (same as before). AI quotas count every call, as before. The AI still runs through v64's provider chain, which **includes Mistral, a provider the new privacy text no longer names**. Close this gap promptly (step 4). |
+| After 1. A1 | No visible change. The columns exist for the new function to fill. |
+| After 2. A2 | No visible change. **A2 must be applied before step 4.** The new function writes `session_key`; without the column, its quota insert fails, and it fails open, so **AI limits would not be enforced at all**. |
+| After 3. A3 | Study sessions start syncing. A session paused on one device shows up in Today's Resume on another. |
+| After 4. A4 `supabase functions deploy learnora-ai` | The quota counts one study session once (up to 16 calls). The provider chain matches the privacy policy, with no Mistral. Dead keys are skipped. Each request logs its provider, model and latency. |
+
+So the runbook is: **A1 → A2 → A3 → A4**, verifying each with its query below. A3 is independent of the others and can go any time. The one hard rule: **never deploy learnora-ai (A4) before A2.**
+
+### Section B: when to merge what
+
+| If you merge… | Apply first / with it | What happens if you don't |
+|---------------|-----------------------|---------------------------|
+| `claude/beautiful-cerf-vt46z2` | B1a and B1b, before or right after the merge, then redeploy `learnora-ai` (that branch changes it) | Photo uploads are refused by Storage (the `materials` bucket has no image types). "Generate image" fails because the `chat-media` bucket doesn't exist. |
+| `claude/dreamy-keller-3sjvnp` | **First rename** its migration to `20260929020000_flashcards_last_reviewed_at.sql` (version collision with beautiful-cerf), then apply B2a | The client falls back to the old unconditional review write, so an offline review replayed late can overwrite a newer one. |
+| Both | Rename dreamy-keller's file, then apply B1a, B1b, B2a | Two files share version `20260929000000`, so `supabase db push` rejects or skips one |
+
+Both branches were cut before PR #122. Merge `main` into each and re-run the tests before merging. Their migrations are dated before `20261001…`, so `supabase db push` needs `--include-all`.
 
 ---
 
@@ -29,15 +75,15 @@ or paste each SQL block below into **Dashboard → SQL Editor** in the order giv
 
 ---
 
-## Section A — required for this PR (apply in this order)
+## Section A — PR #122 (merged; apply in this order)
 
 | # | File | What it does | Order constraint |
 |---|------|--------------|------------------|
 | A1 | `20261001000000_ai_request_log_outcome.sql` | Logs provider, model, latency and failed providers per AI request | Before the learnora-ai deploy |
 | A2 | `20261001010000_ai_request_log_session_key.sql` | Bills AI quota per study session (`session_key`) + quota index | **Must be applied before the learnora-ai deploy.** Otherwise inserts fail and the function fails open, so **limits are not enforced** |
-| A3 | `20261001020000_study_session_state.sql` | Server-side study sessions (resume on another device) | Before the webapp deploy (without it the client's sync calls error and sessions stay browser-only, as today) |
+| A3 | `20261001020000_study_session_state.sql` | Server-side study sessions (resume on another device) | Any time (until applied, the webapp's sync calls fail quietly and sessions stay browser-only) |
 | A4 | `supabase functions deploy learnora-ai` | Picks up the new `_shared/` modules (system prompt, provider policy, session billing) | After A1 + A2 |
-| A5 | Deploy the webapp (merge → Vercel) | — | After A3 + A4 |
+| A5 | Webapp | Deployed by merging PR #122 (Vercel) | Done. It degrades safely until A1–A4 are live |
 
 ### A1 — ai_request_log outcome columns
 
@@ -379,3 +425,9 @@ where table_schema='public' and table_name='flashcards' and column_name='last_re
    `supabase secrets unset CEREBRAS_API_KEY`
 2. **Optional:** set `AI_PROVIDER_ALLOWLIST` (comma-separated provider ids) to pin the chain to providers named in the privacy policy. If unset, it defaults to the disclosed list in `supabase/functions/_shared/providerPolicy.js`, which excludes Mistral.
 3. **Legal sign-off on the updated privacy/provider wording** in the webapp's privacy and consent copy before the webapp deploy.
+
+---
+
+## Done
+
+_Nothing yet. When a section is fully live, note it here with the date and the production version/verify result, e.g. "2026-10-02 — A1–A4 applied; learnora-ai v65; verify queries passed."_
