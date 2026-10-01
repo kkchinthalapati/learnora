@@ -8,6 +8,7 @@ import {
 } from "../_shared/contentSafety.js";
 import { improveQuiz } from "../_shared/quizQuality.js";
 import { buildSystemInstruction, isJsonMode, JSON_MODES } from "../_shared/systemPrompt.js";
+import { billingDecision } from "../_shared/sessionBilling.js";
 import {
   createDeadKeyRegistry,
   isDeadKeyError,
@@ -818,12 +819,29 @@ async function getUserPlan(supabase: any, userId: string): Promise<Plan> {
   }
 }
 
+/* A Study session makes several AI calls — Explain plans and then writes a
+   check, Socratic asks four questions and scores each answer, Teach grades
+   every explanation. The daily allowance was counted per call, so the free
+   plan's 2 a day meant one Explain session, and Socratic ran out after the
+   first answer. Calls that carry the same session key now count once
+   against the allowance, up to SESSION_CALL_CAP calls; the allowance is
+   therefore "sessions a day" for these tools. */
+const SESSION_CALL_CAP = Number(Deno.env.get("AI_SESSION_CALL_CAP")) || 16;
+const SESSION_KEY_PATTERN = /^[A-Za-z0-9_-]{6,80}$/;
+const SESSION_CAP_MESSAGE =
+  "This study session has had all the AI help it can today. Start a new session to keep going — your work here is saved.";
+
 async function checkAndLogRateLimit(
   supabase: any,
   userId: string,
   mode: string | undefined,
   tool: string | undefined,
+  rawSessionKey?: unknown,
 ): Promise<RateLimitVerdict> {
+  const sessionKey =
+    typeof rawSessionKey === "string" && SESSION_KEY_PATTERN.test(rawSessionKey)
+      ? rawSessionKey
+      : null;
   /* `tool` comes from the request body. The daily count is per tool name, so
      an unrecognised name must not become a fresh allowance of its own — any
      client could otherwise send "x1", "x2", … and never reach a daily limit.
@@ -862,15 +880,23 @@ async function checkAndLogRateLimit(
        and explaining to a traveller why their allowance reset twice. */
     const midnight = new Date();
     midnight.setUTCHours(0, 0, 0, 0);
-    const { count: today, error: dailyError } = await supabase
+    const { data: todayRows, error: dailyError } = await supabase
       .from("ai_request_log")
-      .select("id", { count: "exact", head: true })
+      .select("session_key")
       .eq("user_id", userId)
       .eq("tool", billedTool)
-      .gte("created_at", midnight.toISOString());
+      .gte("created_at", midnight.toISOString())
+      .limit(1000);
+    const rows: { session_key: string | null }[] = dailyError ? [] : (todayRows ?? []);
+    const verdict = billingDecision(rows, sessionKey, dailyMax, SESSION_CALL_CAP);
 
-    if (!dailyError && (today ?? 0) >= dailyMax) {
-      console.warn("[rate-limit] daily blocked", { userId, mode, tool: billedTool, today, plan });
+    if (!dailyError && !verdict.allowed && verdict.reason === "session") {
+      console.warn("[rate-limit] session cap", { userId, tool: billedTool, plan });
+      return { allowed: false, message: SESSION_CAP_MESSAGE };
+    }
+
+    if (!dailyError && !verdict.allowed) {
+      console.warn("[rate-limit] daily blocked", { userId, mode, tool: billedTool, plan });
       return {
         allowed: false,
         message: plan === "free" ? DAILY_LIMIT_MESSAGE_FREE : DAILY_LIMIT_MESSAGE_PAID,
@@ -879,7 +905,7 @@ async function checkAndLogRateLimit(
 
     const { data: logRow, error: insertError } = await supabase
       .from("ai_request_log")
-      .insert({ user_id: userId, mode: mode ?? null, tool: billedTool })
+      .insert({ user_id: userId, mode: mode ?? null, tool: billedTool, session_key: sessionKey })
       .select("id")
       .single();
     if (insertError) {
@@ -944,7 +970,7 @@ Deno.serve(async (req) => {
     let logId: string | undefined;
 
     try {
-        const { history, file, settings, mode, tool, context } = await req.json();
+        const { history, file, settings, mode, tool, context, sessionKey } = await req.json();
         const s = settings || {};
 
         /* Instructions and workspace data written by the app, kept out of the
@@ -962,7 +988,7 @@ Deno.serve(async (req) => {
         // resource. Checked (and logged) ahead of the safety screen so a
         // flood of unsafe-topic probes counts against the sender's budget
         // too, rather than getting a free pass because they were refused.
-        const rateLimit = await checkAndLogRateLimit(supabase, user.id, mode, tool);
+        const rateLimit = await checkAndLogRateLimit(supabase, user.id, mode, tool, sessionKey);
         if (!rateLimit.allowed) {
             return rateLimitResponse(mode, jsonHeaders, rateLimit.message);
         }

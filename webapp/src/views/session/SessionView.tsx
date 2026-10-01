@@ -23,6 +23,7 @@ import type { ModeProps } from "./modeTypes";
 import text from "../../styles/text.module.css";
 import styles from "./session.module.css";
 import { useDocumentTitle } from "../../lib/routeTitle";
+import { setActiveAiSession } from "../../api/ai";
 
 const MODE_VIEWS: Record<SessionMode, (props: ModeProps) => React.JSX.Element> = {
   explain: ExplainMode,
@@ -61,6 +62,14 @@ export function SessionView() {
   useDocumentTitle(
     session ? `${MODE_LABELS[session.mode]}: ${session.objective}` : null,
   );
+
+  /* Every AI call while this session is open is billed to it once, so a
+     free student can finish the session they started. */
+  const activeId = session?.id ?? null;
+  useEffect(() => {
+    setActiveAiSession(activeId);
+    return () => setActiveAiSession(null);
+  }, [activeId]);
   const planId = useId();
 
   /* A new session gets its real URL as soon as it exists, so a reload or a

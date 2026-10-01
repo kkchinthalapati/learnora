@@ -292,6 +292,29 @@ export class MockBackend {
     ).length;
   }
 
+  /** Allowance units spent today on a tool: each session key once, each
+   *  call without one once — what the edge function compares. */
+  aiUnitsToday(tool: string): number {
+    const midnight = new Date();
+    midnight.setUTCHours(0, 0, 0, 0);
+    const rows = this.table("ai_request_log").filter(
+      (row) => new Date(String(row.created_at)) >= midnight && String(row.tool ?? DEFAULT_AI_TOOL) === tool,
+    );
+    const sessions = new Set(rows.map((r) => r.session_key).filter(Boolean));
+    return sessions.size + rows.filter((r) => !r.session_key).length;
+  }
+
+  sessionBilledToday(tool: string, sessionKey: string): boolean {
+    const midnight = new Date();
+    midnight.setUTCHours(0, 0, 0, 0);
+    return this.table("ai_request_log").some(
+      (row) =>
+        new Date(String(row.created_at)) >= midnight &&
+        String(row.tool ?? DEFAULT_AI_TOOL) === tool &&
+        row.session_key === sessionKey,
+    );
+  }
+
   /** This user's plan's allowance for one tool. */
   dailyAiLimit(tool: string = DEFAULT_AI_TOOL): number {
     const plan = this.user.plan === "pro" ? "pro" : "free";
@@ -751,7 +774,11 @@ export class MockBackend {
          429 after N calls — is what makes the rate-limit tests test the app's
          handling of a real limit rather than a fixture. */
       const tool = String(payload.tool ?? DEFAULT_AI_TOOL);
-      if (this.aiRequestsToday(tool) >= this.dailyAiLimit(tool)) {
+      /* Same billing as the real function: a study session's calls count
+         once (see checkAndLogRateLimit's SESSION_CALL_CAP comment). */
+      const sessionKey = typeof payload.sessionKey === "string" ? payload.sessionKey : null;
+      if (!(sessionKey && this.sessionBilledToday(tool, sessionKey)) &&
+          this.aiUnitsToday(tool) >= this.dailyAiLimit(tool)) {
         /* Both keys, because the real function is inconsistent about which one
            carries the message — `error` for the JSON modes and `text` for
            chat and notes — and src/api/ai.ts reads whichever is present. */
@@ -765,6 +792,7 @@ export class MockBackend {
         id: nextId(),
         user_id: this.user.id,
         tool,
+        session_key: sessionKey,
         created_at: nowIso(),
       });
       await json(route, 200, { text: this.aiReply(payload) });

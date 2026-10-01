@@ -70,6 +70,20 @@ export interface EdgePayload {
    *  message as "[SYSTEM — …]", which left a student's "ignore the above"
    *  with exactly the same standing as the app's own rules. */
   context?: string;
+  /** The Study session this call belongs to. The edge function bills a
+   *  session's calls once against the daily allowance (see
+   *  checkAndLogRateLimit). Set automatically while a session is open. */
+  sessionKey?: string;
+}
+
+/* The open Study session, if any. Module state rather than a parameter on
+   every AI function, because a session's calls come from a dozen helpers
+   (plan, check, sparring, Feynman grading…) that should not each need to
+   know they are inside one. SessionView sets and clears it. */
+let activeSessionKey: string | null = null;
+
+export function setActiveAiSession(key: string | null): void {
+  activeSessionKey = key && /^[A-Za-z0-9_-]{6,80}$/.test(key) ? key : null;
 }
 
 export interface EdgeResult {
@@ -149,7 +163,9 @@ export async function callEdge(
 ): Promise<EdgeResult> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
-  const body = JSON.stringify(payload);
+  const body = JSON.stringify(
+    activeSessionKey && !payload.sessionKey ? { ...payload, sessionKey: activeSessionKey } : payload,
+  );
 
   /* Every AI feature funnels through here, so this is the one gate. A student
      who has not agreed is asked now, and the request carries on if they say

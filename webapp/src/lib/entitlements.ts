@@ -229,8 +229,8 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
   },
   debugger: {
     id: "debugger",
-    name: "Step-by-step solver",
-    description: "Root-cause tracing and gap solver for a concept you got wrong.",
+    name: "Explain sessions",
+    description: "Step-by-step Explain sessions in Study. Counted per session, not per answer.",
   },
   preMortem: {
     id: "preMortem",
@@ -239,8 +239,8 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
   },
   feynman: {
     id: "feynman",
-    name: "Explain it simply",
-    description: "Teaching a concept to an AI apprentice to prove you know it.",
+    name: "Teach sessions",
+    description: "Teach sessions in Study: explain an idea to someone new. Counted per session.",
   },
   examDeconstructor: {
     id: "examDeconstructor",
@@ -249,8 +249,8 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
   },
   sparring: {
     id: "sparring",
-    name: "Oral practice",
-    description: "Live viva and oral test practice with an AI study partner.",
+    name: "Socratic & oral practice",
+    description: "Socratic sessions in Study, with or without the mic. Counted per session.",
   },
   notebookStudio: {
     id: "notebookStudio",
