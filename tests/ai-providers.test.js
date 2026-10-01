@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import { createDeadKeyRegistry, permittedProviderIds } from '../supabase/functions/_shared/providerPolicy.js';
+import { isJsonMode } from '../supabase/functions/_shared/systemPrompt.js';
 
 /* Same approach as safety.test.js: the provider chain lives in a Deno edge
    function that can't be imported here, so the real source is sliced out of
@@ -69,9 +71,13 @@ function stripTypes(source) {
 
 const SNIPPET = stripTypes(`${TABLE_SRC}\n${CALLER_SRC}`);
 
-function load(env = {}) {
+function load(env = {}, { permitAll = false } = {}) {
   const context = {
     Deno: { env: { get: (k) => env[k] } },
+    // Imported by index.ts from _shared/, so supplied rather than sliced.
+    permittedProviderIds: permitAll ? () => ({ has: () => true }) : permittedProviderIds,
+    deadKeys: createDeadKeyRegistry(),
+    isJsonMode,
     console: { error() {}, warn() {}, log() {} },
     Number,
     JSON,
@@ -206,14 +212,27 @@ test('providers with no placeholder resolve to their URL unchanged', () => {
 /* ---- AI_EXTRA_PROVIDERS --------------------------------------------- */
 
 test('extra providers are appended after the built-ins, never ahead of them', () => {
+  const extra = {
+    AI_EXTRA_PROVIDERS: JSON.stringify([
+      { id: 'together', keyEnv: 'TOGETHER_API_KEY', defaultModel: 'x', url: 'https://api.together.xyz/v1/chat/completions' },
+    ]),
+  };
+  const api = load(extra, { permitAll: true });
+  const chain = api.providerChain();
+  assert.strictEqual(chain.length, api.BUILTIN_PROVIDERS.length + 1);
+  assert.strictEqual(chain[chain.length - 1].id, 'together');
+});
+
+test('the chain only calls providers students were told about', () => {
   const api = load({
     AI_EXTRA_PROVIDERS: JSON.stringify([
       { id: 'together', keyEnv: 'TOGETHER_API_KEY', defaultModel: 'x', url: 'https://api.together.xyz/v1/chat/completions' },
     ]),
   });
-  const chain = api.providerChain();
-  assert.strictEqual(chain.length, api.BUILTIN_PROVIDERS.length + 1);
-  assert.strictEqual(chain[chain.length - 1].id, 'together');
+  const ids = api.providerChain().map((p) => p.id);
+  assert.ok(!ids.includes('together'), 'an undisclosed extra provider must be dropped');
+  assert.ok(!ids.includes('mistral'), 'mistral is not disclosed, so it is never called');
+  assert.deepStrictEqual([...load({ AI_PROVIDER_ALLOWLIST: 'groq' }).providerChain().map((p) => p.id)], ['groq']);
 });
 
 test('an extra provider gets a derived model secret name when it omits one', () => {
@@ -229,7 +248,7 @@ test('malformed AI_EXTRA_PROVIDERS is ignored rather than taking the AI offline'
   for (const raw of ['not json', '{"id":"x"}', '[]', '   ']) {
     const api = load({ AI_EXTRA_PROVIDERS: raw });
     assert.deepStrictEqual(plain(api.parseExtraProviders()), [], `raw: ${raw}`);
-    assert.strictEqual(api.providerChain().length, api.BUILTIN_PROVIDERS.length);
+    assert.strictEqual(load({ AI_EXTRA_PROVIDERS: raw }, { permitAll: true }).providerChain().length, api.BUILTIN_PROVIDERS.length);
   }
 });
 
@@ -429,7 +448,7 @@ test('the text chain holds no image provider, and image mode never reaches it', 
 });
 
 test('an image is always billed as an image, whatever tool the request claims', () => {
-  assert.match(SOURCE, /checkAndLogRateLimit\(\s*supabase, user\.id, mode, mode === "image" \? "image" : tool,?\s*\)/);
+  assert.match(SOURCE, /checkAndLogRateLimit\(\s*supabase, user\.id, mode, mode === "image" \? "image" : tool,(?:\s*sessionKey,?)?\s*\)/);
 });
 
 test('the image prompt is wrapped in the educational style and capped', () => {

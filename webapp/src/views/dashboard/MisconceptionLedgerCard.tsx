@@ -11,6 +11,7 @@ import {
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import type { Misconception } from "../../lib/misconceptions";
 import styles from "./MisconceptionLedgerCard.module.css";
+import { newSessionHref } from "../../lib/sessionModes";
 
 /* The ledger, made visible.
  *
@@ -32,11 +33,13 @@ const SEVERITY_LABEL: Record<Misconception["severity"], string> = {
   minor: "Worth a look",
 };
 
+/* The five Study modes are the names students see now (2026-09 redesign);
+   "debugger", "feynman" and "sparring" are the storage keys they kept. */
 const TOOL_LABEL: Record<Misconception["originTool"], string> = {
-  debugger: "the Step-by-step solver",
-  feynman: "Feynman",
-  premortem: "Common Exam Traps",
-  sparring: "Oral practice",
+  debugger: "an Explain session",
+  feynman: "a Teach session",
+  premortem: "Exam traps practice",
+  sparring: "a Socratic session",
   quiz: "your quizzes",
   notes: "your notes",
   review: "review",
@@ -72,7 +75,7 @@ export function MisconceptionLedgerCard() {
       severity: m.severity,
       suggestedAction: "debug_stack",
     });
-    navigate("/solver");
+    navigate(newSessionHref("explain", { topic: m.concept, misconception: m.id }));
   };
 
   return (
@@ -112,10 +115,10 @@ export function MisconceptionLedgerCard() {
         <div className={styles.empty}>
           <p className={styles.emptyLead}>Nothing on record yet.</p>
           <p className={styles.emptyBody}>
-            When the Step-by-step solver, Feynman, Common Exam Traps, or a quiz finds a
-            mistake, it gets written down here — so you can easily review and conquer it.
+            When a study session, a practice problem or a quiz finds a mistake,
+            it is written down here so you can come back and fix it.
           </p>
-          <Button variant="secondary" onClick={() => navigate("/solver")}>
+          <Button variant="secondary" onClick={() => navigate(newSessionHref("explain"))}>
             Diagnose a mistake
           </Button>
         </div>

@@ -191,13 +191,13 @@ describe("FeynmanDebriefView Component", () => {
     expect(screen.queryByTestId("export-success-banner")).toBeNull();
   });
 
-  it("navigates to hub when Teach Another Topic is clicked", async () => {
+  it("starts a new Teach session when Teach Another Topic is clicked", async () => {
     const user = userEvent.setup();
     renderWithProviders(<FeynmanDebriefView />, undefined, { withRouter: true });
 
     const teachAnotherBtn = screen.getByTestId("teach-another-btn");
     await user.click(teachAnotherBtn);
 
-    expect(mockNavigate).toHaveBeenCalledWith("/feynman");
+    expect(mockNavigate).toHaveBeenCalledWith("/study/new?mode=teach");
   });
 });

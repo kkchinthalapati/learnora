@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useLocation, useNavigate } from "react-router";
 import { Icon } from "../Icon";
 import { useChat } from "../../context/chat";
 import { useToast } from "../../context/toast";
@@ -10,9 +11,17 @@ import { useSettings } from "../../context/settings";
 import { useAiUsage } from "../../hooks/useAiUsage";
 import { useSpeechRecognition } from "../../hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "../../hooks/useSpeechSynthesis";
-import { toSpeakableText } from "../../lib/speechText";
 import { MAX_IMAGE_DESCRIPTION } from "../../api/aiImage";
+import { toSpeakableText } from "../../lib/speechText";
 import type { SourceMode } from "../ai/PersonaOffsetToolbar";
+import { useExams } from "../../hooks/useExams";
+import { useTranslation } from "../../hooks/useTranslation";
+import { CognitiveBridge } from "../../lib/cognitiveBridge";
+import { looksConceptual } from "../../lib/chatPrompt";
+import { localDateStr } from "../../lib/date";
+import { isFlagOn } from "../../lib/flags";
+import { sectionLabel } from "../../lib/sectionLabel";
+import { newSessionHref } from "../../lib/sessionModes";
 import styles from "./chat.module.css";
 
 /* The workspace chat panel — ports index.html:2314-2455 and its wiring in
@@ -26,7 +35,7 @@ import styles from "./chat.module.css";
  * it either. */
 
 const GREETING =
-  "Hi! I can explain a topic, quiz you, turn your notes into flashcards, or sort out your tasks and timer. I can get things wrong, so check anything important against your notes.";
+  "I can explain a topic, quiz you, turn your notes into flashcards, or sort out your tasks and timer. I can get things wrong, so check anything important against your notes.";
 
 const SUGGESTIONS = [
   /* Explaining and quizzing lead: they are what a student opens the panel
@@ -87,10 +96,6 @@ const FOLLOW_UPS = [
   },
 ] as const;
 
-interface Position {
-  left: number;
-}
-
 export function TurboChat() {
   const {
     messages,
@@ -149,6 +154,15 @@ export function TurboChat() {
   );
 
   const [input, setInput] = useState("");
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const t = useTranslation();
+  const exams = useExams();
+  const today = localDateStr();
+  const nextExam = (exams.data ?? [])
+    .filter((e) => e.exam_date && e.exam_date >= today)
+    .sort((a, b) => a.exam_date.localeCompare(b.exam_date))[0];
+  const guessFirstOn = isFlagOn("guessFirst");
   /* Armed by the "Generate image" chip: the next send draws a diagram
      instead of asking the tutor. Always the student's own click — the model
      has no way to turn it on. */
@@ -220,7 +234,11 @@ export function TurboChat() {
       if (said && !stoppedByStudentRef.current && !micError) {
         setInput("");
         resetTranscript();
-        void send(said, { sourceMode });
+        const awaitingGuessNow = messages[messages.length - 1]?.guessPrompt === true;
+        void send(said, {
+          sourceMode,
+          guessFirst: !awaitingGuessNow && guessFirstOn && looksConceptual(said),
+        });
       } else if (!said || micError) {
         handsFreeRef.current = false;
         setHandsFree(false);
@@ -272,7 +290,6 @@ export function TurboChat() {
   useEffect(() => {
     if (!isOpen) stopVoice();
   }, [isOpen, stopVoice]);
-  const [position, setPosition] = useState<Position | null>(null);
   const [isDropTarget, setIsDropTarget] = useState(false);
 
   const panelRef = useRef<HTMLDivElement>(null);
@@ -301,57 +318,24 @@ export function TurboChat() {
     if (feed) feed.scrollTop = feed.scrollHeight;
   }, [messages]);
 
-  /* Dragging pins the panel with an inline `left`. That survives a window
-     resize and leaving fullscreen, either of which can push the header — and
-     with it the only close button — outside the viewport, leaving the panel
-     impossible to close by clicking (js/ai.js:1530-1548).
-     Horizontal only: the panel's height is deliberately locked to 100vh (a
-     full-height docked surface, like the nav drawer — see chat.module.css),
-     so there is never any vertical room to move within and no `top` to
-     track. */
-  const clampIntoView = useCallback(() => {
-    const panel = panelRef.current;
-    setPosition((prev) => {
-      if (!prev || !panel) return prev;
-      const maxLeft = Math.max(0, window.innerWidth - panel.offsetWidth);
-      return { left: Math.max(0, Math.min(prev.left, maxLeft)) };
-    });
-  }, []);
-
+  /* Esc closes the drawer; ⌘J (ChatProvider) toggles it. */
   useEffect(() => {
-    window.addEventListener("resize", clampIntoView);
-    return () => window.removeEventListener("resize", clampIntoView);
-  }, [clampIntoView]);
-
-  useEffect(() => {
-    if (!isFullscreen) clampIntoView();
-  }, [isFullscreen, clampIntoView]);
-
-  const onHeaderPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    const panel = panelRef.current;
-    if (!panel || isFullscreen) return;
-    if ((e.target as HTMLElement).closest("button")) return;
-
-    const rect = panel.getBoundingClientRect();
-    const offsetX = e.clientX - rect.left;
-
-    const onMove = (move: PointerEvent) => {
-      const maxLeft = Math.max(0, window.innerWidth - panel.offsetWidth);
-      setPosition({
-        left: Math.max(0, Math.min(move.clientX - offsetX, maxLeft)),
-      });
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.defaultPrevented) close();
     };
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, close]);
 
   if (!isOpen) return null;
 
-  const submit = (text: string) => {
+  /* Guess first (experimental): a conceptual question gets a question back
+     before the answer. Not when the student is already answering one — that
+     reply *is* their guess, and it must be answered. */
+  const awaitingGuess = messages[messages.length - 1]?.guessPrompt === true;
+
+  const submit = (text: string, { explain = false } = {}) => {
     const value = text.trim();
     if (imageMode) {
       if (!value) return;
@@ -362,7 +346,9 @@ export function TurboChat() {
     }
     if (!value && !file) return;
     setInput("");
-    void send(value || "Analyse this.", { sourceMode });
+    const guessFirst =
+      !explain && !awaitingGuess && guessFirstOn && looksConceptual(value);
+    void send(value || "Analyse this.", { sourceMode, guessFirst });
   };
 
   const imageUsage = usageFor("image");
@@ -391,6 +377,26 @@ export function TurboChat() {
     </button>
   );
 
+  /* "Open as session": the thread's question becomes a Session's objective,
+     carried by CognitiveBridge the way every tool-to-tool handoff is. */
+  const openAsSession = () => {
+    const question = [...messages]
+      .reverse()
+      .find((m) => m.role === "user")?.text;
+    const topic = (question || input).trim();
+    CognitiveBridge.setPayload({
+      subject: nextExam?.exam_name ?? "General",
+      topic: topic || "What I was asking about",
+      sourceTool: "notes",
+      evidencePrompt: messages
+        .slice(-6)
+        .map((m) => `${m.role === "user" ? "Student" : "Tutor"}: ${m.text}`)
+        .join("\n"),
+    });
+    close();
+    void navigate(newSessionHref("explain", { topic: topic || undefined }));
+  };
+
   /* Only against a finished answer. Offering "explain simpler" while one
      is still arriving invites a second request the student did not need,
      and offering it on an error would re-ask instead of retrying. */
@@ -415,14 +421,6 @@ export function TurboChat() {
     <div
       ref={panelRef}
       className={`${styles.panel}${isFullscreen ? ` ${styles.fullscreen}` : ""}`}
-      style={
-        position && !isFullscreen
-          ? {
-              left: position.left,
-              right: "auto",
-            }
-          : undefined
-      }
       role="region"
       aria-label="Learnora AI chat"
       onDragOver={(e) => e.preventDefault()}
@@ -449,15 +447,15 @@ export function TurboChat() {
         </div>
       ) : null}
 
-      <div
-        className={styles.header}
-        onPointerDown={onHeaderPointerDown}
-        data-testid="chat-header"
-      >
-        <h2 className={styles.headerTitle}>
-          <Icon name="bot" size={18} />
-          Learnora AI
-        </h2>
+      <div className={styles.header} data-testid="chat-header">
+        <div className={styles.headerText}>
+          <h2 className={styles.headerTitle}>Ask</h2>
+          {/* What the tutor can see, so a student knows what "this" means. */}
+          <span className={styles.headerContext}>
+            Knows you're on {sectionLabel(pathname, t)}
+            {nextExam ? ` · ${nextExam.exam_name}` : ""}
+          </span>
+        </div>
         <div className={styles.headerControls}>
           {canSpeak ? (
             <button
@@ -542,35 +540,59 @@ export function TurboChat() {
       {/* Follow-ups replace the starters once there is something to follow
           up on: the starters are for an empty panel, and showing both
           would put six chips under every answer. */}
-      <div className={styles.suggestions}>
-        {showFollowUps
-          ? FOLLOW_UPS.map((followUp) => (
-              <button
-                key={followUp.label}
-                type="button"
-                className={styles.chip}
-                disabled={isSending}
-                onClick={() => submit(followUp.prompt)}
-              >
-                <Icon name={followUp.icon} size={14} />
-                {followUp.label}
-              </button>
-            ))
-          : SUGGESTIONS.map((suggestion) => (
-              <button
-                key={suggestion.label}
-                type="button"
-                className={styles.chip}
-                onClick={() => chipClicked(suggestion)}
-              >
-                <Icon name={suggestion.icon} size={14} />
-                {suggestion.label}
-              </button>
-            ))}
-        {/* Offered with both sets: drawing is as useful before a first
-            question as after an answer. */}
-        {imageChip}
-      </div>
+      {awaitingGuess && !isSending ? (
+        <div className={styles.guess}>
+          <p className={styles.guessCaption}>
+            A guess is fine. Answering first makes the explanation stick better.
+          </p>
+          <div className={styles.suggestions}>
+            <button
+              type="button"
+              className={styles.chip}
+              onClick={() => submit("I'm not sure, give me a hint.")}
+            >
+              I'm not sure, give me a hint
+            </button>
+            <button
+              type="button"
+              className={styles.chip}
+              onClick={() => submit("Just explain it.", { explain: true })}
+            >
+              Just explain it
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className={styles.suggestions}>
+          {showFollowUps
+            ? FOLLOW_UPS.map((followUp) => (
+                <button
+                  key={followUp.label}
+                  type="button"
+                  className={styles.chip}
+                  disabled={isSending}
+                  onClick={() => submit(followUp.prompt)}
+                >
+                  <Icon name={followUp.icon} size={14} />
+                  {followUp.label}
+                </button>
+              ))
+            : SUGGESTIONS.map((suggestion) => (
+                <button
+                  key={suggestion.label}
+                  type="button"
+                  className={styles.chip}
+                  onClick={() => chipClicked(suggestion)}
+                >
+                  <Icon name={suggestion.icon} size={14} />
+                  {suggestion.label}
+                </button>
+              ))}
+          {/* Offered with both sets: drawing is as useful before a first
+              question as after an answer. */}
+          {imageChip}
+        </div>
+      )}
 
       {imageMode ? (
         <div className={styles.imageModeHint} role="status">
@@ -650,6 +672,21 @@ export function TurboChat() {
         />
       </div>
 
+      <div className={styles.modeRow} role="group" aria-label="How to answer">
+        <button type="button" className={styles.modeChip} aria-pressed="true">
+          Quick answer
+        </button>
+        <button
+          type="button"
+          className={styles.modeChip}
+          aria-pressed="false"
+          onClick={openAsSession}
+          disabled={messages.every((m) => m.role !== "user") && !input.trim()}
+        >
+          Open as session
+        </button>
+      </div>
+
       <form
         className={styles.dock}
         onSubmit={(e) => {
@@ -694,7 +731,9 @@ export function TurboChat() {
           placeholder={
             imageMode
               ? "Describe the diagram, e.g. a labelled plant cell"
-              : "Ask AI to do anything... (e.g. 'Start a 25m timer')"
+              : awaitingGuess
+                ? "Type your guess…"
+                : "Ask a question, or ask me to do something"
           }
           maxLength={imageMode ? MAX_IMAGE_DESCRIPTION : undefined}
           autoComplete="off"
@@ -718,5 +757,13 @@ export function TurboChat() {
     </div>
   );
 
-  return createPortal(panel, document.body);
+  return createPortal(
+    <>
+      {isFullscreen ? null : (
+        <div className={styles.scrim} aria-hidden="true" onClick={close} />
+      )}
+      {panel}
+    </>,
+    document.body,
+  );
 }

@@ -1,5 +1,6 @@
 import { lazy, Suspense, type ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router";
+import { LegacyToolRedirect } from "./views/session/LegacyToolRedirect";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import {
   OnboardingGate,
@@ -45,9 +46,6 @@ const LazyTimerView = lazy(async () => ({
 const LazyLibraryView = lazy(async () => ({
   default: (await import("./views/library/LibraryView")).LibraryView,
 }));
-const LazyDashboardView = lazy(async () => ({
-  default: (await import("./views/dashboard/DashboardView")).DashboardView,
-}));
 const LazyPlanView = lazy(async () => ({
   default: (await import("./views/plan/PlanView")).PlanView,
 }));
@@ -64,10 +62,6 @@ const LazyDevelopersView = lazy(async () => ({
   default: (await import("./views/marketing/MarketingPages")).DevelopersView,
 }));
 
-const LazyExamDetectiveHubView = lazy(async () => ({
-  default: (await import("./views/exam-detective/ExamDetectiveHubView"))
-    .ExamDetectiveHubView,
-}));
 const LazyNotebookStudioView = lazy(async () => ({
   default: (await import("./views/notebooks/NotebookStudioView"))
     .NotebookStudioView,
@@ -106,17 +100,9 @@ const LazyTrajectoryView = lazy(async () => ({
 const LazyStudyRoomView = lazy(async () => ({
   default: (await import("./views/room/StudyRoomView")).StudyRoomView,
 }));
-const LazyFeynmanStudioView = lazy(async () => ({
-  default: (await import("./views/feynman/FeynmanStudioView"))
-    .FeynmanStudioView,
-}));
 const LazyFeynmanDebriefView = lazy(async () => ({
   default: (await import("./views/feynman/FeynmanDebriefView"))
     .FeynmanDebriefView,
-}));
-const LazySocraticSparringView = lazy(async () => ({
-  default: (await import("./views/sparring/SocraticSparringView"))
-    .SocraticSparringView,
 }));
 const LazyWelcomeToProView = lazy(async () => ({
   default: (await import("./views/pro-welcome/WelcomeToProView"))
@@ -142,12 +128,8 @@ const LazyStudyAnalyticsView = lazy(async () => ({
   default: (await import("./views/analytics/StudyAnalyticsView"))
     .StudyAnalyticsView,
 }));
-const LazyCognitiveDebuggerView = lazy(async () => ({
-  default: (await import("./views/debugger/CognitiveDebuggerView"))
-    .CognitiveDebuggerView,
-}));
-const LazyFeynmanHubView = lazy(async () => ({
-  default: (await import("./views/feynman/FeynmanHubView")).FeynmanHubView,
+const LazySessionView = lazy(async () => ({
+  default: (await import("./views/session/SessionView")).SessionView,
 }));
 const LazyStudyLabView = lazy(async () => ({
   default: (await import("./views/study-lab/StudyLabView")).StudyLabView,
@@ -247,6 +229,16 @@ export function AppRoutes() {
         {/* Everything below is for an account that has been set up. A brand
             new one is sent to /welcome first. */}
         <Route element={<OnboardingGate />}>
+          {/* Focus mode: a Session has no sidebar or header — its own top bar
+              carries "Save & leave". Outside AppShell for that reason. */}
+          <Route
+            path="/study/:sessionId"
+            element={
+              <DeferredView>
+                <LazySessionView />
+              </DeferredView>
+            }
+          />
           {/* The sidebar/header chrome — see AppShell's own comment for why
             this sits here rather than inside ProtectedRoute itself. */}
           <Route
@@ -261,11 +253,9 @@ export function AppRoutes() {
                 <LazyTodayView />
               </DeferredView>
             } />
-            <Route path="/dashboard" element={
-              <DeferredView>
-                <LazyDashboardView />
-              </DeferredView>
-            } />
+            {/* 2026-09 redesign: Today is the home. The misconception ledger
+                that lived on the Dashboard is on Progress now. */}
+            <Route path="/dashboard" element={<Navigate to="/" replace />} />
             <Route
               path="/notebooks"
               element={<Navigate to="/library/notebooks" replace />}
@@ -430,44 +420,20 @@ export function AppRoutes() {
               path="/ai-tutor/:mode"
               element={<Navigate to="/study" replace />}
             />
-            <Route
-              path="/solver"
-              element={
-                <DeferredView>
-                  <LazyCognitiveDebuggerView />
-                </DeferredView>
-              }
-            />
-            <Route
-              path="/debugger"
-              element={<Navigate to="/solver" replace />}
-            />
+            {/* The study tools are modes of one Session now (2026-09
+                redesign). Old URLs redirect, keeping any ?topic= they carry
+                — see LegacyToolRedirect. The Feynman debrief stays a page:
+                Teach mode links to it when a session finishes. */}
+            <Route path="/solver" element={<LegacyToolRedirect mode="explain" />} />
+            <Route path="/debugger" element={<LegacyToolRedirect mode="explain" />} />
             <Route
               path="/exam-detective"
-              element={
-                <DeferredView>
-                  <LazyExamDetectiveHubView />
-                </DeferredView>
-              }
+              element={<LegacyToolRedirect mode="practice" preset="traps" />}
             />
-            {/* /premortem and /exam-traps (and their /radar children) were
-                redirect aliases for /exam-detective. Removed: nothing in the
-                app links to them, and Exam Detective is the one front door. */}
-            <Route
-              path="/feynman"
-              element={
-                <DeferredView>
-                  <LazyFeynmanHubView />
-                </DeferredView>
-              }
-            />
+            <Route path="/feynman" element={<LegacyToolRedirect mode="teach" />} />
             <Route
               path="/feynman/studio/:sessionId"
-              element={
-                <DeferredView>
-                  <LazyFeynmanStudioView />
-                </DeferredView>
-              }
+              element={<LegacyToolRedirect mode="teach" keepSessionId />}
             />
             <Route
               path="/feynman/debrief/:sessionId"
@@ -477,26 +443,15 @@ export function AppRoutes() {
                 </DeferredView>
               }
             />
-            <Route
-              path="/viva"
-              element={
-                <DeferredView>
-                  <LazySocraticSparringView />
-                </DeferredView>
-              }
-            />
+            <Route path="/viva" element={<LegacyToolRedirect mode="socratic" voice />} />
             <Route
               path="/viva/:sessionId"
-              element={
-                <DeferredView>
-                  <LazySocraticSparringView />
-                </DeferredView>
-              }
+              element={<LegacyToolRedirect mode="socratic" voice />}
             />
-            <Route path="/sparring" element={<Navigate to="/viva" replace />} />
+            <Route path="/sparring" element={<LegacyToolRedirect mode="socratic" voice />} />
             <Route
               path="/sparring/:sessionId"
-              element={<Navigate to="/viva" replace />}
+              element={<LegacyToolRedirect mode="socratic" voice />}
             />
             {/* Inside the guard on purpose: an invite link opened by someone
               who is signed out goes through ProtectedRoute's existing

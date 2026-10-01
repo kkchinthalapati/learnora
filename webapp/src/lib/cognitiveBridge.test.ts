@@ -83,11 +83,12 @@ describe("CognitiveBridge", () => {
      <Navigate> redirects kept for old bookmarks; nothing in the app should
      send a student to one. */
   it("maps AI tools to their canonical routes, not the legacy aliases", () => {
-    expect(CognitiveBridge.getTargetRoute("debugger")).toBe("/solver");
-    expect(CognitiveBridge.getTargetRoute("feynman")).toBe("/feynman");
-    expect(CognitiveBridge.getTargetRoute("sparring")).toBe("/viva");
-    expect(CognitiveBridge.getTargetRoute("exam_detective")).toBe("/exam-detective");
-    expect(CognitiveBridge.getTargetRoute("premortem")).toBe("/exam-detective");
+    /* The tools are Session modes (2026-09 redesign). */
+    expect(CognitiveBridge.getTargetRoute("debugger")).toBe("/study/new?mode=explain");
+    expect(CognitiveBridge.getTargetRoute("feynman")).toBe("/study/new?mode=teach");
+    expect(CognitiveBridge.getTargetRoute("sparring")).toBe("/study/new?mode=socratic&voice=1");
+    expect(CognitiveBridge.getTargetRoute("exam_detective")).toBe("/study/new?mode=practice&preset=traps");
+    expect(CognitiveBridge.getTargetRoute("premortem")).toBe("/study/new?mode=practice&preset=traps");
   });
 
   it("handles storage persistence gracefully", () => {

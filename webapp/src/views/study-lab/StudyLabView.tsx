@@ -1,90 +1,89 @@
+import { useEffect, useState } from "react";
+import { useOptionalAuth } from "../../context/auth";
+import { clearPendingTopic, readPendingTopic } from "../../lib/pendingTopic";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { CognitiveBridge } from "../../lib/cognitiveBridge";
 import type { Misconception } from "../../lib/misconceptions";
+import {
+  MODE_LABELS,
+  newSessionHref,
+  type SessionMode,
+} from "../../lib/sessionModes";
+import text from "../../styles/text.module.css";
 import styles from "./studyLab.module.css";
 
-interface StudyRoute {
+interface ModeCard {
+  mode: SessionMode;
   prompt: string;
-  title: string;
   description: string;
-  outcome: string;
-  to: string;
   icon: IconName;
-  /** Whether the destination reads a `?topic=` param. */
-  takesTopic?: boolean;
+  /** A variant of the same mode, one link below the card. */
+  variant?: { label: string; voice?: boolean; preset?: "traps" };
 }
 
-const STUDY_ROUTES: StudyRoute[] = [
+/* Start with the problem you have, not the name of a tool. Each card opens a
+   Session in one mode; the student can switch mode inside it. */
+const MODE_CARDS: ModeCard[] = [
   {
-    prompt: "I got something wrong",
-    title: "Step-by-step solver",
+    mode: "explain",
+    prompt: "I don't get it yet",
     description:
-      "Bring one wrong answer or a tricky topic. Learnora works backwards to solve where you got stuck.",
-    outcome: "Leave with the exact missing step fixed",
-    to: "/solver",
-    icon: "bug",
-    takesTopic: true,
+      "Step by step from the idea underneath, with a quick check after each step.",
+    icon: "book-open",
   },
   {
-    prompt: "I think I understand it",
-    title: "Explain it simply",
+    mode: "socratic",
+    prompt: "I want to reason it out",
     description:
-      "Explain the topic in your own words to a deliberately confused student. Their questions expose what you skipped.",
-    outcome: "Leave with the gaps in your explanation",
-    to: "/feynman",
-    icon: "award",
-    takesTopic: true,
-  },
-  {
-    prompt: "I want oral test practice",
-    title: "Oral practice",
-    description:
-      "Answer questions out loud (or by typing), the way an oral exam or viva works.",
-    outcome: "Leave confident explaining it on the spot",
-    to: "/viva",
-    icon: "mic",
-    takesTopic: true,
-  },
-  /* "Test me" is what most students come to a study page for, and it was
-     the one thing this menu did not offer: quizzes and flashcards lived
-     only in the Library, two clicks and a tab away from here. */
-  {
-    prompt: "I want to test myself",
-    title: "Quizzes & flashcards",
-    description:
-      "Take a practice quiz or make a new one from any topic. Recalling answers is what makes them stick.",
-    outcome: "Leave knowing what you can and can't recall",
-    to: "/library/quizzes",
+      "Questions instead of answers, and hints whenever you're stuck.",
     icon: "help-circle",
+    variant: { label: "Oral practice, mic on", voice: true },
+  },
+  {
+    mode: "practice",
+    prompt: "I want to solve problems",
+    description:
+      "Mixed problems, rated for how sure you are, checked one at a time.",
+    icon: "target",
+    variant: { label: "Exam traps, timed", preset: "traps" },
+  },
+  {
+    mode: "teach",
+    prompt: "I think I understand it",
+    description:
+      "Explain it to someone new. Their questions show what you skipped.",
+    icon: "users",
+  },
+  {
+    mode: "recall",
+    prompt: "I want to keep it from fading",
+    description: "The flashcards that are due, mixed across topics. About ten minutes.",
+    icon: "layers",
   },
 ];
 
-/* Which route suits a diagnosis.
- *
- * Not a ranking of the tools — a mapping from what the ledger knows to the
- * kind of practice that actually addresses it. A belief seen once is a
- * hypothesis, so it goes to the Debugger to be traced. One that has survived
- * being corrected is not a knowledge gap, it is an explanation the student
- * believes and cannot yet defend, which is exactly what teaching it to a
- * confused apprentice exposes. */
-function routeFor(m: Misconception): {
-  to: string;
+/* Which mode suits a diagnosis. A belief seen once is a hypothesis, so it
+   is explained from the root up; one that survived being corrected is an
+   explanation the student believes and can't yet defend, which teaching it
+   exposes. */
+function modeFor(m: Misconception): {
+  mode: SessionMode;
   action: "debug_stack" | "teach_apprentice";
   why: string;
 } {
   return m.timesObserved > 1
     ? {
-        to: "/feynman",
+        mode: "teach",
         action: "teach_apprentice",
         why: "It has come back after being corrected, so the fastest way through is to try teaching it.",
       }
     : {
-        to: "/solver",
+        mode: "explain",
         action: "debug_stack",
-        why: "Work backwards from it to the idea underneath.",
+        why: "Work back from it to the idea underneath.",
       };
 }
 
@@ -92,21 +91,22 @@ export function StudyLabView() {
   const navigate = useNavigate();
   const { ranked } = useMisconceptions();
   const [searchParams] = useSearchParams();
+  const userId = useOptionalAuth()?.user?.id;
+  /* A first-run topic that never got its lesson (the AI failed and they
+     skipped) is waiting here, as the error card promised. */
+  const [topic, setTopic] = useState(
+    () => searchParams.get("topic")?.trim() || readPendingTopic(userId) || "",
+  );
+  useEffect(() => {
+    if (topic.trim()) clearPendingTopic(userId);
+    // Only once the student has seen it here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const activeTopic = topic.trim();
 
-  /* Arriving from "Open in AI Tutor" on a flashcard, or the notes sidebar.
-     Those screens used to reach a wrapper that showed the topic in a banner
-     above its tab strip; without this the student lands on a generic menu and
-     has to remember what they were working on. The callers also write the
-     topic to CognitiveBridge, which is what the tools themselves read — this
-     is the visible half of the same handoff. */
-  const activeTopic = searchParams.get("topic")?.trim() || "";
-
-  /* The one row worth interrupting the menu for. Showing three would recreate
-     the choice this page exists to remove, and showing a list of everything a
-     student has ever got wrong reads as a telling-off rather than a next
-     step — the same bar MisconceptionLedgerCard applies. */
+  /* The one row worth interrupting the menu for; absent on a new account. */
   const top = ranked[0];
-  const suggested = top ? routeFor(top) : null;
+  const suggested = top ? modeFor(top) : null;
 
   const startSuggested = () => {
     if (!top || !suggested) return;
@@ -120,99 +120,78 @@ export function StudyLabView() {
       severity: top.severity,
       suggestedAction: suggested.action,
     });
-    void navigate(suggested.to);
+    void navigate(
+      newSessionHref(suggested.mode, { topic: top.concept, misconception: top.id }),
+    );
   };
+
+  const href = (mode: SessionMode, extra: { voice?: boolean; preset?: "traps" } = {}) =>
+    newSessionHref(mode, { topic: activeTopic || undefined, ...extra });
 
   return (
     <div className={styles.view}>
       <header className={styles.hero}>
-        <span className={styles.eyebrow}>Study tools</span>
-        <h1>What do you need help with?</h1>
-        <p>
-          Start with the problem you have, not the name of a tool. Each route
-          gives you a different kind of practice.
-        </p>
+        <span className={text.meta}>Study</span>
+        <h1 className={text.display}>What do you need help with?</h1>
+        <label className={styles.topicField}>
+          <span className={styles.topicLabel}>What are you working on?</span>
+          <input
+            className={styles.topicInput}
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="A topic, a question you got wrong, a line from your notes"
+          />
+        </label>
       </header>
 
-      {/* The page asked a question this app can often answer itself. Four
-          equally-weighted doors is the right layout for a student with no
-          history; for one whose work has already been diagnosed, offering the
-          menu and nothing else throws away the diagnosis. Absent entirely
-          when the ledger is empty, which is every new account. */}
       {top && suggested ? (
         <aside className={styles.suggestion} aria-labelledby="lab-suggestion">
           <div>
-            <span className={styles.eyebrow}>
+            <span className={text.meta}>
               Based on your work{top.subject ? ` in ${top.subject}` : ""}
             </span>
-            <h2 id="lab-suggestion">{top.concept}</h2>
+            <h2 id="lab-suggestion" className={text.claim}>
+              {top.concept}
+            </h2>
             <p>
               {top.summary || "This keeps coming up in your work."}{" "}
               {suggested.why}
-              {top.timesObserved > 1
-                ? ` Seen ${top.timesObserved} times so far.`
-                : ""}
+              {top.timesObserved > 1 ? ` Seen ${top.timesObserved} times so far.` : ""}
             </p>
           </div>
-          <button
-            type="button"
-            className={styles.secondaryLink}
-            onClick={startSuggested}
-          >
-            Start on this →
+          <button type="button" className={styles.primary} onClick={startSuggested}>
+            Start on this
           </button>
         </aside>
       ) : null}
 
-      {activeTopic ? (
-        <p className={styles.activeTopic}>
-          Working on <strong>{activeTopic}</strong> — pick how you want to
-          practise it.
-        </p>
-      ) : null}
-
-      {/* The banner named the topic and then every card below it dropped it:
-          the student picked a method and landed on an empty form, or on the
-          Feynman default "Photosynthesis", having just been told this page
-          knew what they were working on. All three destinations read a
-          `topic` param, so carrying it is the whole fix. */}
-      <section className={styles.routeGrid} aria-label="Choose a study method">
-        {STUDY_ROUTES.map((route) => (
-          <Link
-            key={route.to}
-            to={
-              activeTopic && route.takesTopic
-                ? `${route.to}?topic=${encodeURIComponent(activeTopic)}`
-                : route.to
-            }
-            className={styles.routeCard}
-          >
-            <span className={styles.icon} aria-hidden="true">
-              <Icon name={route.icon} size={20} />
-            </span>
-            <span className={styles.prompt}>{route.prompt}</span>
-            <h2>{route.title}</h2>
-            <p>{route.description}</p>
-            <span className={styles.outcome}>{route.outcome}</span>
-            <span className={styles.open}>Start this exercise →</span>
-          </Link>
+      <section className={styles.modeGrid} aria-label="Choose how to study">
+        {MODE_CARDS.map((card) => (
+          <div key={card.mode} className={styles.modeCard}>
+            <Link to={href(card.mode)} className={styles.modeLink}>
+              <span className={styles.icon} aria-hidden="true">
+                <Icon name={card.icon} size={20} />
+              </span>
+              <span className={styles.prompt}>{card.prompt}</span>
+              <span className={styles.modeTitle}>{MODE_LABELS[card.mode]}</span>
+              <span className={styles.modeText}>{card.description}</span>
+            </Link>
+            {card.variant ? (
+              <Link
+                to={href(card.mode, { voice: card.variant.voice, preset: card.variant.preset })}
+                className={styles.variant}
+              >
+                {card.variant.label} →
+              </Link>
+            ) : null}
+          </div>
         ))}
       </section>
 
-      <aside className={styles.examChoice} aria-labelledby="exam-choice-title">
-        <div>
-          <span className={styles.eyebrow}>Already know the exam?</span>
-          <h2 id="exam-choice-title">Learn the traps, then sit a timed set</h2>
-          <p>
-            Read the playbook of tricks examiners reuse, pull a past paper
-            apart, then answer a timed sprint and see which traps still catch
-            you.
-          </p>
-        </div>
-        <Link to="/exam-detective" className={styles.secondaryLink}>
-          Practise exam traps →
-        </Link>
-      </aside>
+      <p className={styles.footnote}>
+        Or take a saved quiz from the{" "}
+        <Link to="/library/quizzes">Library</Link>.
+      </p>
     </div>
   );
 }

@@ -5,6 +5,9 @@ import { candidatesFromQuizAnswers } from "../lib/misconceptions";
 import { misconceptionsKeys } from "./useMisconceptions";
 import { foldersKeys } from "./useFolders";
 import type { Folder, Quiz } from "../api/types";
+import { addMissedQuestionCards } from "../api/missedQuestions";
+import { decksKeys } from "./useDecks";
+import { flashcardsKeys } from "./useFlashcards";
 
 export const quizzesKeys = {
   all: ["quizzes"] as const,
@@ -95,6 +98,7 @@ export function useRecordQuizAttempt() {
          average from before it. */
       qc.invalidateQueries({ queryKey: quizzesKeys.attempts });
       recordQuizMisconceptions(qc, quizId, answers, attemptKey);
+      fileMissedQuestions(qc, quizId, answers);
     },
   });
 }
@@ -128,10 +132,16 @@ function recordQuizMisconceptions(
   const quiz = quizzes?.find((q) => q.id === quizId);
   const subject = folders?.find((f) => f.id === quiz?.folder_id)?.name ?? "";
 
-  const candidates = candidatesFromQuizAnswers(
-    answers as Array<{ topic?: string; correct?: boolean }>,
-    { subject, attemptId: attemptKey },
-  );
+  /* A correct answer the student marked as a guess is not evidence they
+     know it: it earns no correction on the ledger (and the scheduler
+     brings it back sooner). Wrong answers count whatever the confidence. */
+  const evidence = (
+    answers as Array<{ topic?: string; correct?: boolean; confidence?: string | null }>
+  ).filter((a) => !(a.correct && a.confidence === "guess"));
+  const candidates = candidatesFromQuizAnswers(evidence, {
+    subject,
+    attemptId: attemptKey,
+  });
   if (candidates.length === 0) return;
 
   /* Deliberately not awaited and never surfaced. The student has finished the
@@ -145,4 +155,27 @@ function recordQuizMisconceptions(
       }
     })
     .catch((err) => console.warn("[misconceptions] quiz write failed:", err));
+}
+
+/* Wrong and guessed questions go to Recall as cards (api/missedQuestions.ts),
+   which is what the results screen tells the student will happen. Behind
+   the results screen like the ledger write: never awaited, never a toast. */
+function fileMissedQuestions(
+  qc: ReturnType<typeof useQueryClient>,
+  quizId: string,
+  answers: unknown,
+): void {
+  const quiz = qc.getQueryData<Quiz[]>(quizzesKeys.all)?.find((q) => q.id === quizId);
+  const run = quiz
+    ? Promise.resolve(quiz)
+    : quizzesApi.fetchAll().then((all) => all.find((q) => q.id === quizId));
+  void run
+    .then((q) => (q ? addMissedQuestionCards(q, answers) : 0))
+    .then((added) => {
+      if (added > 0) {
+        void qc.invalidateQueries({ queryKey: decksKeys.all });
+        void qc.invalidateQueries({ queryKey: flashcardsKeys.all });
+      }
+    })
+    .catch((err) => console.warn("[recall] missed questions not filed:", err));
 }

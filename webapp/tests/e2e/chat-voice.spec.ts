@@ -39,7 +39,7 @@ async function say(page: import("@playwright/test").Page, text: string) {
 test("a spoken question is sent like a typed one once the student pauses", async ({ page, backend }) => {
   backend.aiReply = () => "Osmosis is water moving across a membrane.";
   await loginAs(page);
-  await page.getByRole("button", { name: "Ask AI" }).click();
+  await page.getByRole("button", { name: "Ask the tutor" }).first().click();
   const panel = page.getByRole("region", { name: "Learnora AI chat" });
 
   await panel.getByRole("button", { name: "Speak your question" }).click();

@@ -28,6 +28,7 @@ describe("CommandPalette", () => {
     draft: "",
     open: vi.fn(),
     close: vi.fn(),
+    toggle: vi.fn(),
     toggleFullscreen: vi.fn(),
     compose: vi.fn(),
     clearDraft: vi.fn(),
@@ -96,7 +97,7 @@ describe("CommandPalette", () => {
 
     expect(screen.getByText("Start 25m Timer")).toBeInTheDocument();
     expect(screen.getByText("Start 50m Timer")).toBeInTheDocument();
-    expect(screen.getByText("Step-by-step solver")).toBeInTheDocument();
+    expect(screen.getByText("Explain session")).toBeInTheDocument();
   });
 
   it("finds quizzes: the Quizzes page and each quiz by its title", async () => {

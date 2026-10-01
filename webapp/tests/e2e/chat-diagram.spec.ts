@@ -29,7 +29,7 @@ test("draws a mermaid diagram from a tutor reply, and falls back when it cannot"
   });
 
   await loginAs(page);
-  await page.getByRole("button", { name: "Ask AI" }).click();
+  await page.getByRole("button", { name: "Ask the tutor" }).first().click();
   const panel = page.getByRole("region", { name: "Learnora AI chat" });
   await expect(panel).toBeVisible();
   // Lazy: nothing of mermaid's has been fetched for a chat with no diagram.

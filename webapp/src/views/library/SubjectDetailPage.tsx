@@ -26,6 +26,7 @@ import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { useLibraryActions } from "./useLibraryActions";
 import styles from "./library.module.css";
 import { Badge } from "../../components/Badge";
+import { newSessionHref } from "../../lib/sessionModes";
 
 const MATERIAL_ICONS: Record<MaterialType, IconName> = {
   pdf: "file-text",
@@ -140,7 +141,7 @@ export function SubjectDetailPage() {
       sourceTool: "notes",
       suggestedAction: "teach_apprentice",
     });
-    void navigate("/feynman");
+    void navigate(newSessionHref("teach"));
   };
 
   const handleLaunchDebugger = () => {
@@ -151,7 +152,7 @@ export function SubjectDetailPage() {
       sourceTool: "notes",
       suggestedAction: "debug_stack",
     });
-    void navigate("/solver");
+    void navigate(newSessionHref("explain"));
   };
 
   const handleLaunchExamDetective = () => {
@@ -162,7 +163,7 @@ export function SubjectDetailPage() {
       sourceTool: "notes",
       suggestedAction: "run_premortem",
     });
-    void navigate("/exam-detective");
+    void navigate(newSessionHref("practice", { preset: "traps" }));
   };
 
   if (folders.isPending) {
@@ -251,28 +252,28 @@ export function SubjectDetailPage() {
             type="button"
             className={styles.subjectAiBtn}
             onClick={handleLaunchFeynman}
-            title="Test depth of understanding by teaching an AI apprentice"
+            title="Explain it to someone new; their questions show what you skipped"
           >
             <Icon name="award" size={13} />
-            <span>Feynman Practice</span>
+            <span>Teach</span>
           </button>
           <button
             type="button"
             className={styles.subjectAiBtn}
             onClick={handleLaunchDebugger}
-            title="Diagnose foundational mistakes and repair missing steps"
+            title="Step by step from the idea underneath, with a check after"
           >
             <Icon name="zap" size={13} />
-            <span>Step-by-step solver</span>
+            <span>Explain</span>
           </button>
           <button
             type="button"
             className={styles.subjectAiBtn}
             onClick={handleLaunchExamDetective}
-            title="Spot tricky wording and exam traps before test day"
+            title="Timed problems built around the traps examiners set"
           >
             <Icon name="shield" size={13} />
-            <span>Common Exam Traps</span>
+            <span>Exam traps</span>
           </button>
         </div>
       </div>

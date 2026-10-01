@@ -55,6 +55,9 @@ export interface ChatMessage {
   fileName?: string;
   /** AI message still waiting on the model. */
   pending?: boolean;
+  /** A reply that asked the student to guess first, so the bubble can offer
+   *  "give me a hint" / "just explain it". */
+  guessPrompt?: boolean;
   /** AI message that is a failure notice rather than a reply. */
   error?: boolean;
   /** On a failure notice: the question that failed, so the bubble can offer
@@ -96,6 +99,8 @@ export type ChatSourceMode = "web" | "notebook" | "hybrid";
 
 export interface ChatSendOptions {
   sourceMode?: ChatSourceMode;
+  /** Ask for a guess before explaining (experimental; lib/flags). */
+  guessFirst?: boolean;
 }
 
 export interface ChatApi {
@@ -115,6 +120,8 @@ export interface ChatApi {
 
   open: () => void;
   close: () => void;
+  /** Open if closed, close if open — what ⌘J does. */
+  toggle: () => void;
   toggleFullscreen: () => void;
   /** Open the panel and put `text` in the composer without sending it. */
   compose: (text: string) => void;

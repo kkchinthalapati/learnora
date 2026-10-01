@@ -1,0 +1,850 @@
+/* Session (2026-09 redesign): focus mode, no sidebar. A 64px top bar, a
+ * 260px plan panel and a centre column (max 820px) with the composer pinned
+ * under it. Every mode draws inside the same shell. */
+
+.shell {
+  height: 100vh;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: var(--topbar-height) minmax(0, 1fr);
+  /* One column that may shrink below its content: without this the grid
+     sized itself to the top bar's five mode buttons (565px) and pushed the
+     composer's Send button off a phone screen. */
+  grid-template-columns: minmax(0, 1fr);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---- Top bar ---- */
+
+.topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-5);
+  padding: 0 var(--s-6);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--paper);
+}
+
+.leave {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: var(--touch-target-min);
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.leave:hover {
+  background: var(--track);
+  color: var(--text);
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-head);
+  font-size: var(--fs-read-lg);
+  font-weight: 500;
+}
+
+.goal {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.topRight {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.planToggle {
+  display: none;
+}
+
+.modes {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-md);
+  background: var(--track);
+}
+
+.modeBtn {
+  min-height: 34px;
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease);
+}
+
+.modeBtn:hover {
+  color: var(--text);
+}
+
+.modeBtn[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---- Body ---- */
+
+.body {
+  display: grid;
+  grid-template-columns: var(--session-plan-width) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  padding: var(--s-6);
+  border-right: 1px solid var(--hairline);
+  overflow-y: auto;
+}
+
+.planSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.watching {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+  color: var(--text-secondary);
+}
+
+.planFoot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.planFoot a {
+  color: var(--accent-deep);
+  font-weight: 600;
+}
+
+.centre {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  max-width: 820px;
+  margin: 0 auto;
+  padding: var(--s-8) var(--s-12);
+}
+
+.metaRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.question {
+  margin: 0;
+  max-width: 30ch;
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.caption {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.streaming {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+/* ---- Check card (Explain) ---- */
+
+.check {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-5);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.checkQuestion {
+  margin: 0;
+  font-weight: 600;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option {
+  width: 100%;
+  min-height: 40px;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-base);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.option:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.option:disabled {
+  cursor: default;
+}
+
+.option[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.option[data-result="right"] {
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+
+.option[data-result="wrong"] {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.key {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.option[aria-pressed="true"] .key {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.verdict {
+  margin: 0;
+  font-size: var(--fs-base);
+  line-height: var(--lh-snug);
+}
+
+.verdict[data-result="right"] {
+  color: var(--success-text);
+}
+
+.verdict[data-result="wrong"] {
+  color: var(--danger-text);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+/* Steps grid (Explain): bordered cells with mono labels. */
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.stepsGrid > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding: var(--s-3) var(--s-4);
+  font-size: var(--fs-sm);
+}
+
+.stepsGrid > div + div {
+  border-left: 1px solid var(--hairline);
+}
+
+/* ---- Practice ---- */
+
+.problem {
+  margin: 0;
+  font-family: var(--font-read);
+  font-size: var(--fs-read-lg);
+  line-height: 1.5;
+}
+
+.answerBox {
+  width: 100%;
+  min-height: 120px;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font: inherit;
+  resize: vertical;
+}
+
+.answerBox:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus);
+}
+
+/* ---- Teach ---- */
+
+.persona {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: var(--s-3);
+  align-items: center;
+  padding: var(--s-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.personaInitial {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-pill);
+  background: var(--recall-soft);
+  color: var(--recall-text);
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+}
+
+.personaName {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.personaText {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.personaTurn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding-left: var(--s-4);
+  border-left: 2px solid var(--recall);
+  font-family: var(--font-read);
+  font-size: var(--fs-md);
+  line-height: var(--lh-read);
+}
+
+.personaTurnName {
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--recall-text);
+}
+
+.gapChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.gapChip {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-sm);
+}
+
+.gapChip[data-kind="skipped"] {
+  background: var(--recall-soft);
+  color: var(--recall-text);
+}
+
+.gapChip[data-kind="covered"] {
+  background: var(--accent-wash);
+  color: var(--accent-deep);
+}
+
+/* ---- Recall ---- */
+
+.recall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-6);
+  text-align: center;
+}
+
+.recallCard {
+  width: min(560px, 100%);
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-4);
+  padding: var(--s-8) var(--s-6);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.recallPrompt {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+}
+
+.recallAnswer {
+  margin: 0;
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--hairline);
+  font-family: var(--font-read);
+  font-size: var(--fs-read);
+  line-height: var(--lh-read);
+}
+
+.ratings {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-3);
+}
+
+.rating {
+  width: 130px;
+  min-height: var(--control-lg);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rating:hover {
+  border-color: var(--accent-line-strong);
+}
+
+.ratingKey {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* On the primary "Show answer" fill, muted grey fails contrast (axe); the
+   key hint takes the button's own label colour there. */
+button[data-rank="primary"] .ratingKey {
+  color: inherit;
+}
+
+/* Explain's "say this step back" — one line, checked by the tutor. */
+.sayBack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.sayBackRow {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.sayBackRow > input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--control-lg);
+  resize: none;
+}
+
+/* ---- Composer ---- */
+
+.composer {
+  border-top: 1px solid var(--hairline);
+  background: var(--paper);
+}
+
+.composerInner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  max-width: 820px;
+  margin: 0 auto;
+  padding: var(--s-3) var(--s-12) var(--s-4);
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 52px;
+  padding: var(--s-1) var(--s-1) var(--s-1) var(--s-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.inputRow:focus-within {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-base);
+  outline: none;
+}
+
+.input:focus,
+.input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.iconAction,
+.send {
+  flex-shrink: 0;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.iconAction {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.iconAction:hover,
+.iconAction[aria-pressed="true"] {
+  background: var(--track);
+  color: var(--text);
+}
+
+.iconAction[aria-pressed="true"] {
+  color: var(--accent-deep);
+}
+
+.send {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.send:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.send:disabled {
+  background: var(--surface-active);
+  color: var(--text-faint);
+  cursor: default;
+}
+
+.quietRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1) var(--s-4);
+  font-size: var(--fs-sm);
+}
+
+.quiet {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.quiet:hover:not(:disabled) {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.quiet:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.flag {
+  margin-left: auto;
+}
+
+@media (pointer: coarse) {
+  .quiet {
+    min-height: var(--touch-target-min);
+  }
+}
+
+/* ---- Setup (a /study/new with no objective yet) ---- */
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  max-width: 560px;
+  margin: 0 auto;
+  padding: var(--s-16) var(--s-6);
+}
+
+.setupRow {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.setupInput {
+  flex: 1;
+  min-height: var(--control-lg);
+  padding: 0 var(--s-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font: inherit;
+}
+
+.setupInput:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus);
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 1279px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .plan {
+    display: none;
+  }
+
+  .planOpen {
+    position: fixed;
+    top: var(--topbar-height);
+    right: var(--s-4);
+    z-index: 20;
+    display: flex;
+    width: min(320px, 90vw);
+    max-height: 70vh;
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--r-lg);
+    background: var(--paper);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .planToggle {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 767px) {
+  .shell {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .topbar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "leave title right"
+      "modes modes modes";
+    row-gap: var(--s-2);
+    padding: var(--s-2) var(--s-3);
+  }
+
+  .leave {
+    grid-area: leave;
+  }
+
+  .titleBlock {
+    grid-area: title;
+  }
+
+  /* The mode control lives inside .topRight in the markup; dissolving the
+     wrapper here is what lets .modes take its own full-width row. */
+  .topRight {
+    display: contents;
+  }
+
+  .planToggle {
+    grid-area: right;
+  }
+
+  .modes {
+    grid-area: modes;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .modeBtn {
+    flex-shrink: 0;
+    min-height: var(--touch-target-min);
+  }
+
+  .leaveLabel {
+    display: none;
+  }
+
+  .column {
+    padding: var(--s-6) var(--s-4);
+  }
+
+  .composerInner {
+    padding: var(--s-3) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .stepsGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stepsGrid > div + div {
+    border-left: 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .input,
+  .setupInput,
+  .answerBox {
+    font-size: var(--fs-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modeBtn,
+  .option {
+    transition: none;
+  }
+}
+
+/* "Flag this answer" floats above the composer: a popover, so it may cast
+   the one shadow in-flow surfaces don't get. */
+.centre {
+  position: relative;
+}
+
+.flagLayer {
+  position: absolute;
+  left: 50%;
+  bottom: 140px;
+  z-index: 10;
+  width: min(640px, calc(100% - var(--s-8)));
+  transform: translateX(-50%);
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--r-lg);
+}

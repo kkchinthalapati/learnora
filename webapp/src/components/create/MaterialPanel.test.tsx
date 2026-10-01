@@ -499,7 +499,7 @@ describe("MaterialPanel streamlined creation", () => {
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Retry Failed Stages" }),
+      screen.getByRole("button", { name: "Retry what didn't finish" }),
     ).toBeInTheDocument();
 
     // State is preserved
@@ -507,7 +507,7 @@ describe("MaterialPanel streamlined creation", () => {
 
     // Click retry
     await user.click(
-      screen.getByRole("button", { name: "Retry Failed Stages" }),
+      screen.getByRole("button", { name: "Retry what didn't finish" }),
     );
     expect(
       await screen.findByText("Created notes, flashcards."),

@@ -121,7 +121,7 @@ export function FlashcardsPanel() {
                 </p>
               ) : null}
               <p className={styles.cardMeta}>
-                Created: {formatCreatedShort(deck.created_at)}
+                Created {formatCreatedShort(deck.created_at)}
               </p>
               <span className={styles.cardCta}>
                 {counts && counts.due === 0 && counts.total > 0

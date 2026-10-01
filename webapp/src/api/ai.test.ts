@@ -387,3 +387,26 @@ describe("callEdge cancellation", () => {
     ).resolves.toEqual({ text: "fine" });
   });
 });
+
+describe("session key on AI calls", () => {
+  it("is attached while a Study session is open, and only a well-formed one", async () => {
+    const { setActiveAiSession, callEdge } = await import("./ai");
+    const { http, HttpResponse } = await import("msw");
+    const { server } = await import("../test/mocks/server");
+    const { SUPABASE_URL } = await import("../lib/supabase");
+    const bodies: Record<string, unknown>[] = [];
+    server.use(
+      http.post(`${SUPABASE_URL}/functions/v1/learnora-ai`, async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ text: "ok" });
+      }),
+    );
+    setActiveAiSession("s-mupf7t3-a5347c87");
+    await callEdge({ history: [{ role: "user", content: "hi" }], tool: "debugger" });
+    setActiveAiSession("bad key with spaces");
+    await callEdge({ history: [{ role: "user", content: "hi" }], tool: "debugger" });
+    setActiveAiSession(null);
+    expect(bodies[0].sessionKey).toBe("s-mupf7t3-a5347c87");
+    expect(bodies[1].sessionKey).toBeUndefined();
+  });
+});

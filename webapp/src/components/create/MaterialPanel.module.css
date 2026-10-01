@@ -629,3 +629,13 @@
   font-size: var(--fs-xs);
   line-height: var(--lh);
 }
+
+/* "What Learnora is doing": the pipeline as a plan (2026-09 redesign). */
+.pipelineLabel {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}

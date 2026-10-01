@@ -216,7 +216,7 @@ describe("StudyRoomView", () => {
       within(emptySection).getByText(/Studying is more motivating together/i),
     ).toBeInTheDocument();
 
-    const inviteBtn = within(emptySection).getByRole("button", { name: /Invite Friends to Study/i });
+    const inviteBtn = within(emptySection).getByRole("button", { name: /Invite friends to study/i });
     await user.click(inviteBtn);
 
     expect(mockCopyInviteLink).toHaveBeenCalled();

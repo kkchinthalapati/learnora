@@ -13,7 +13,6 @@ const WIDTHS = [1440, 1024, 768, 390] as const;
 
 const ROUTES = [
   "",
-  "dashboard",
   "library",
   "plan",
   "my-week",
@@ -22,10 +21,10 @@ const ROUTES = [
   "timer",
   "analytics",
   "study",
-  "solver",
-  "feynman",
-  "viva",
-  "exam-detective",
+  "study/new?mode=explain",
+  "study/new?mode=teach",
+  "study/new?mode=socratic&voice=1",
+  "study/new?mode=practice&preset=traps",
   "settings",
 ] as const;
 
@@ -154,11 +153,4 @@ test.describe("responsive layout", () => {
     });
   }
 
-  test("the Study this now block renders from a real trace", async ({ page }) => {
-    await page.goto("dashboard");
-    const block = page.getByTestId("study-this-now");
-    await expect(block).toBeVisible({ timeout: 15_000 });
-    await expect(block.getByRole("heading", { name: "Vector addition" })).toBeVisible();
-    await expect(block).toContainText("2 other topics on the paper sit on top of it");
-  });
 });

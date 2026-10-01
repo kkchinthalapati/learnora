@@ -64,22 +64,20 @@ export async function loginAs(
   });
 }
 
-/** Reveal the dashboard's AI actions card ("What next?", "Quiz me", …).
+/** Open the Ask drawer from the sidebar and ask the tutor something.
  *
- * The dashboard is tabbed now — Focus & Tasks / Insights & Trajectory /
- * Activity & Peers / All — and the AI actions live on the last two, not on the
- * tab that opens by default. A test that clicks straight for "What next?"
- * waits out its timeout against a button that is not rendered, which says
- * nothing about whether the assistant works. */
-export async function openDashboardAiActions(page: Page): Promise<void> {
-  /* Navigate first. Signing in used to land on the tabbed dashboard, so this
-     helper could assume it was already there; since Today took the root
-     route it lands somewhere with no tabs at all, and every test that came
-     through here failed on the tab click rather than on anything it meant
-     to assert. */
-  await page.goto("dashboard");
-  await page.getByRole("tab", { name: "Activity & Peers" }).click();
-  await expect(page.getByRole("button", { name: "What next?" })).toBeVisible();
+ * The dashboard's AI actions card ("What next?") went with the Dashboard in
+ * the 2026-09 redesign; the sidebar's "Ask the tutor" (⌘J) is the one way in
+ * now. "What should I study next?" is the same request that card sent. */
+export async function askTutor(
+  page: Page,
+  prompt = "What should I study next?",
+): Promise<void> {
+  await page.goto("");
+  await page.getByRole("button", { name: "Ask the tutor" }).first().click();
+  const input = page.getByLabel("AI chat input");
+  await input.fill(prompt);
+  await input.press("Enter");
 }
 
 /** Ask the assistant for something and wait for the round trip to finish.

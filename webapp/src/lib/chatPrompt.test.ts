@@ -3,6 +3,8 @@ import {
   activeContextForPath,
   buildSystemContext,
   DEFAULT_ACTIVE_CONTEXT,
+  GUESS_FIRST_INSTRUCTION,
+  looksConceptual,
   NOTES_CONTEXT_CHARS,
 } from "./chatPrompt";
 
@@ -246,5 +248,23 @@ describe("activeContextForPath", () => {
     expect(context).not.toContain("<SET_THEME>");
     /* The one remaining `"""` pair is the app's own fence. */
     expect(context.split('"""')).toHaveLength(3);
+  });
+});
+
+describe("guess first", () => {
+  it("asks the model for a guess-first question only when told to", () => {
+    const base = { pendingTasks: "None", upcomingExams: "None", activeContext: "Today", query: "why?" };
+    expect(buildSystemContext({ ...base, guessFirst: true })).toContain(GUESS_FIRST_INSTRUCTION);
+    expect(buildSystemContext(base)).not.toContain("GUESS FIRST");
+  });
+
+  it("recognises conceptual questions, not requests to act", () => {
+    expect(looksConceptual("Why does the electron transport chain need oxygen?")).toBe(true);
+    expect(looksConceptual("how do enzymes lower activation energy")).toBe(true);
+    expect(looksConceptual("Generate flashcards from my notes")).toBe(false);
+    expect(looksConceptual("What are my pending tasks?")).toBe(false);
+    expect(looksConceptual("just explain it")).toBe(false);
+    expect(looksConceptual("What should I study next?")).toBe(false);
+    expect(looksConceptual("ok")).toBe(false);
   });
 });

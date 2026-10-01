@@ -27,9 +27,11 @@ describe("studentLevel", () => {
     expect(await studentLevel()).toBe("university");
   });
 
-  it("falls back to the region's exam system when nothing was picked", async () => {
+  it("falls back to the region's exam system, marked as unconfirmed, when nothing was picked", async () => {
     signedInWith(undefined);
-    expect(await studentLevel()).toBe(getFramework().boardLabel);
+    const level = await studentLevel();
+    expect(level.startsWith(getFramework().boardLabel)).toBe(true);
+    expect(level).toMatch(/not confirmed by the student/);
   });
 });
 

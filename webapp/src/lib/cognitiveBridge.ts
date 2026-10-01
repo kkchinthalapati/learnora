@@ -7,6 +7,8 @@
  * - Pre-Mortem Adversarial Radar (/premortem)
  */
 
+import { newSessionHref } from "./sessionModes";
+
 export type CognitiveSourceTool =
   | "debugger"
   | "feynman"
@@ -151,15 +153,16 @@ export const CognitiveBridge = {
 
   getTargetRoute(tool: "debugger" | "feynman" | "exam_detective" | "premortem" | "sparring"): string {
     switch (tool) {
+      /* The tools are Session modes now; a new Session reads the payload. */
       case "debugger":
-        return "/solver";
+        return newSessionHref("explain");
       case "feynman":
-        return "/feynman";
+        return newSessionHref("teach");
       case "exam_detective":
       case "premortem":
-        return "/exam-detective";
+        return newSessionHref("practice", { preset: "traps" });
       case "sparring":
-        return "/viva";
+        return newSessionHref("socratic", { voice: true });
       default:
         return "/";
     }

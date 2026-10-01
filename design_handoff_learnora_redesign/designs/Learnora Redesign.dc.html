@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#f7f5f0;font-family:'Instrument Sans',system-ui,sans-serif;color:#1a1815}a{color:#0b5c55}a:hover{color:#094943}</style>
+</helmet>
+<div style="max-width:1120px;margin:0 auto;padding:64px 40px 96px;display:flex;flex-direction:column;gap:72px">
+  <header style="display:flex;flex-direction:column;gap:18px">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#0b5c55">Learnora · design direction · Sept 2026</span>
+    <h1 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:clamp(44px,6vw,76px);line-height:1;letter-spacing:-0.03em;max-width:15ch">"I can figure this out."</h1>
+    <p style="margin:0;font-size:18px;line-height:1.6;color:#3d3830;max-width:64ch;text-wrap:pretty">Learnora already has strong parts: a forecast engine, a misconception ledger, spaced repetition, and five AI study tools. The problem is that they arrive as about twenty separate destinations. This direction regroups them into one idea: <strong>every visit is a session with a clear goal, and every session ends with evidence of learning.</strong></p>
+  </header>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <h2 style="margin:0;font-size:13px;font-weight:600;color:#625c50">Screens</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">
+      <sc-for list="{{ screens }}" as="s" hint-placeholder-count="6">
+        <a href="{{ s.href }}" style="display:flex;flex-direction:column;gap:8px;padding:20px;background:#fff;border:1px solid #e2ddd1;border-radius:12px;text-decoration:none;color:#1a1815" style-hover="border-color:#9cc6c0">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#0b5c55">{{ s.n }}</span>
+          <span style="font-family:'Newsreader',Georgia,serif;font-size:24px;font-weight:500;letter-spacing:-0.01em">{{ s.t }}</span>
+          <span style="font-size:14px;line-height:1.5;color:#625c50">{{ s.d }}</span>
+        </a>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px">
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:32px;letter-spacing:-0.015em">Principles</h2>
+      <ol style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:14px">
+        <sc-for list="{{ principles }}" as="p" hint-placeholder-count="5">
+          <li style="display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#78715f;padding-top:2px">{{ p.n }}</span><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:16px;font-weight:600">{{ p.t }}</span><span style="font-size:14px;line-height:1.55;color:#3d3830">{{ p.d }}</span></div></li>
+        </sc-for>
+      </ol>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:32px;letter-spacing:-0.015em">Navigation: 20 destinations → 5</h2>
+      <div style="display:flex;flex-direction:column;border-top:1px solid #e2ddd1">
+        <sc-for list="{{ ia }}" as="r" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:110px minmax(0,1fr);gap:16px;padding:12px 0;border-bottom:1px solid #e2ddd1"><span style="font-size:15px;font-weight:600">{{ r.to }}</span><span style="font-size:14px;line-height:1.5;color:#3d3830">{{ r.from }}</span></div>
+        </sc-for>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.55;color:#625c50">The tutor stays a drawer available on every screen (⌘J), and it knows which page it was opened from. "Open as session" promotes a drawer chat into a full session with a plan. On mobile, the same five items become the bottom tab bar, with Ask as a floating action within thumb reach.</p>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:32px;letter-spacing:-0.015em">The session loop</h2>
+    <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border:1px solid #e2ddd1;border-radius:12px;background:#fff">
+      <sc-for list="{{ loop }}" as="l" hint-placeholder-count="6">
+        <div style="display:flex;flex-direction:column;gap:6px;padding:18px;border-right:1px solid #eeeae1"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;color:#0b5c55">{{ l.k }}</span><span style="font-size:14px;line-height:1.5">{{ l.d }}</span></div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:32px;letter-spacing:-0.015em">Priorities</h2>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px">
+      <sc-for list="{{ prio }}" as="p" hint-placeholder-count="4">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-size:14px;font-weight:700;color:{{ p.c }}">{{ p.t }}</span>
+          <ul style="margin:0;padding-left:16px;font-size:14px;line-height:1.55;color:#3d3830;display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ p.items }}" as="i" hint-placeholder-count="3"><li>{{ i }}</li></sc-for>
+          </ul>
+          <span style="font-size:13px;line-height:1.5;color:#625c50">{{ p.why }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <h2 style="margin:0;font-size:13px;font-weight:600;color:#625c50">Sources cited in the rationale</h2>
+    <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.6;display:flex;flex-direction:column;gap:6px">
+      <li><a href="https://doi.org/10.1073/pnas.2422633122">Bastani et al., "Generative AI without guardrails can harm learning," PNAS, June 2025</a>: practice with GPT-4 raised practice scores but reduced performance once the AI was removed. Teacher-designed hints in place of answers reduced the harm.</li>
+      <li><a href="https://ies.ed.gov/use-work/awards/efficacy-study-interleaved-mathematics-practice">Rohrer, Dedrick, Hartwig &amp; Cheung, 2020 (IES summary)</a>: interleaved practice, 61% vs 38% on an unannounced test, d = 0.83, across 54 seventh-grade classes. <a href="https://notes.andymatuschak.org/zHvJf88XUgLPMhdTigkoiUR">Notes on the paper</a> record that teachers found interleaved sets took longer.</li>
+      <li><a href="https://trophy.so/blog/streaks-feature-gamification-examples">Trophy, "Apps that use streaks" (Mar 2026)</a>: for learners who are there because they have to be, heavy streaks can feel patronising. This is industry analysis, not peer-reviewed research.</li>
+      <li><a href="https://appstorys.com/blog-Streaks-Milestones-Habit-Gamification">AppStorys (Jul 2026)</a>: harsh streak resets drive abandonment, so recovery paths are recommended. Industry guidance.</li>
+    </ul>
+    <p style="margin:0;font-size:13px;line-height:1.55;color:#625c50">What the sources support: guardrailed hints over answers, and mixing topics in practice. What I inferred: confidence ratings, the four-step mastery ladder, and the weekly study-day goal. These are design choices, not tested results. They should be validated with Learnora's own learning-event data.</p>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      screens: [
+        { n: "00", t: "Design system", d: "Tokens, the recall ochre accent, type voices, buttons, learning components, copy rules.", href: "Learnora Design System.dc.html" },
+        { n: "01", t: "Today", d: "One next step, shown for three scenarios: returning, 10 minutes, and after a rough test. Includes the Ask drawer.", href: "Learnora Today.dc.html" },
+        { n: "02", t: "Session + modes", d: "Explain, Socratic, Practice, Teach and Recall as distinct ways of interacting within one session.", href: "Learnora Session.dc.html" },
+        { n: "03", t: "Test & results", d: "A quiet test room with confidence ratings. Results are grouped by the misconception behind them, not by score.", href: "Learnora Test & Results.dc.html" },
+        { n: "04", t: "Onboarding & upload", d: "One question, then a first lesson, then a small win. Upload shows what was read and what wasn't.", href: "Learnora Upload & Onboarding.dc.html" },
+        { n: "05", t: "States", d: "Empty, loading, generating and error states, each saying what was kept and what to do next.", href: "Learnora States.dc.html" },
+      ],
+      principles: [
+        { n: "01", t: "One next thing", d: "Each screen has one filled button. Everything else is a row, a link or context." },
+        { n: "02", t: "Ask before telling", d: "The tutor asks for a guess first. 'Just explain it' is always available, so the student decides." },
+        { n: "03", t: "Evidence, not effort", d: "Mastery moves on checks, not on minutes or streaks. Guessed answers don't count." },
+        { n: "04", t: "Mistakes are information", d: "Wrong answers are grouped by the belief behind them. The copy never scolds." },
+        { n: "05", t: "Show the work", d: "Sources, what was read, and whether retrying is safe are always visible. Any answer can be flagged." },
+      ],
+      ia: [
+        { to: "Today", from: "Today, Dashboard, the Continue shelf, session complete" },
+        { to: "Library", from: "Notebooks, subjects, notes, decks, quizzes, upload" },
+        { to: "Study", from: "Study tools, Solver, Feynman, Viva, Exam traps, the /ai-tutor alias → one session with modes" },
+        { to: "Plan", from: "Plan, Availability, Tasks, Exams, Focus timer (it becomes a session option)" },
+        { to: "Progress", from: "Analytics, Trajectory, misconception ledger, achievements" },
+        { to: "Footer", from: "Study room and Friends grouped as one item. Settings sits under the avatar. Terms moves to Settings." },
+      ],
+      loop: [
+        { k: "BEFORE", d: "Today suggests a topic and explains why in one sentence." },
+        { k: "START", d: "The session states its goal, a 3–5 step plan, and what it's watching for." },
+        { k: "DURING", d: "The mode sets who does the thinking. A check follows every explanation." },
+        { k: "STRUGGLE", d: "Hint ladder: nudge, then a bigger hint, then show and re-quiz. Switching mode is suggested, never forced." },
+        { k: "END", d: "A recap names the skill gained, and the mastery step animates once." },
+        { k: "AFTER", d: "Items are scheduled for recall. Tomorrow's Today opens with 'pick up where you left off'." },
+      ],
+      prio: [
+        { t: "Must have", c: "#0b5c55", items: ["Collapse the navigation to 5 destinations", "Today with a single next step", "Unify the study tools into one session with modes", "Error states that say what was preserved"], why: "These fix the main failure: students not knowing where to click. Most of the engine already exists." },
+        { t: "High value", c: "#1a1815", items: ["Confidence ratings in tests and results", "Mastery ladder in place of percentages", "Upload pipeline visibility"], why: "Each one turns data Learnora already collects into a decision the student can make." },
+        { t: "Polish", c: "#1a1815", items: ["Recall ochre as a semantic accent", "A single mastery animation", "A copy pass using the rules in 00"], why: "Visible consistency, cheap to ship once the tokens are in place." },
+        { t: "Experimental", c: "#76511b", items: ["Weekly study-day goal instead of streaks", "Teach-mode persona gap list", "Asking for a guess first by default in the drawer"], why: "Likely to be good for learning but could hurt engagement. A/B test against retention and learning events." },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -9,6 +9,7 @@
  */
 
 import { callEdge } from "./ai";
+import { isLimitOrRefusal } from "./aiLimit";
 import { learningEventsApi } from "./learningEvents";
 import { normaliseTopicKey } from "../lib/topicKey";
 import { extractJSON } from "../lib/aiJson";
@@ -572,6 +573,10 @@ Respond ONLY with valid JSON in this exact schema:
       ],
     };
   } catch (err) {
+    /* A daily limit or a refusal is the server's ruling, not an outage:
+       answering it with the built-in question bank told students "the AI
+       isn't available" when they had simply used today's allowance. */
+    if (isLimitOrRefusal(err)) throw err;
     /* Built-in opening so the student can still practise — flagged, so the
        view can say plainly that this is not the AI. */
     offlineReason = offlineReasonFor(err);
@@ -782,6 +787,7 @@ Respond ONLY with valid JSON in this exact schema:
       ],
     };
   } catch (err) {
+    if (isLimitOrRefusal(err)) throw err;
     const local = evaluateStudentSpeechLocally(
       session.topic,
       studentText,

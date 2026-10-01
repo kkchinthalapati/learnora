@@ -1,0 +1,422 @@
+/* Learning components (2026-09 redesign): MasteryLadder, TutorTurn,
+ * StudentTurn, TrapCallout, HintLadder, ConfidencePicker, StepPlan.
+ *
+ * One module because they are one vocabulary — the tutor's turn, the
+ * student's turn and the things that hang off them — and they share the
+ * meta-label and pill recipes below. Every value is a token; colour is never
+ * the only signal (each state also carries a glyph or a word). */
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.meta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ---- MasteryLadder ------------------------------------------------------ */
+
+.ladder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.ladderHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.ladderTopic {
+  min-width: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ladderLevel {
+  flex-shrink: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.segments {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-1);
+}
+
+.segment {
+  position: relative;
+  height: 8px;
+  border-radius: var(--r-xs);
+  background: var(--hairline);
+  overflow: hidden;
+}
+
+.segmentsSm .segment {
+  height: 6px;
+}
+
+.segment::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.segment[data-state="filled"]::after {
+  background: var(--accent);
+  transform: scaleX(1);
+}
+
+.segment[data-state="fading"]::after {
+  background: var(--recall);
+  transform: scaleX(1);
+}
+
+.rungLabels {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-1);
+}
+
+/* The one celebration: a rung gained fills left to right, once. */
+@media (prefers-reduced-motion: no-preference) {
+  .segment[data-gained="true"]::after {
+    animation: rung-fill var(--t-slow) var(--ease) both;
+  }
+}
+
+@keyframes rung-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ---- TutorTurn / StudentTurn ------------------------------------------- */
+
+.tutorTurn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding-left: var(--s-4);
+  border-left: 2px solid var(--accent);
+  min-width: 0;
+}
+
+.claim {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text);
+}
+
+.prose {
+  font-family: var(--font-read);
+  font-size: var(--fs-read);
+  line-height: var(--lh-read);
+  max-width: var(--measure-read);
+  color: var(--text);
+}
+
+.prose > * {
+  margin: 0;
+}
+
+.prose > * + * {
+  margin-top: var(--s-3);
+}
+
+/* 7x15 teal block, 1s opacity pulse. Static under reduced motion. */
+.cursor {
+  display: inline-block;
+  width: 7px;
+  height: 15px;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--accent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cursor {
+    animation: cursor-pulse 1s ease-in-out infinite;
+  }
+}
+
+@keyframes cursor-pulse {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.deeper {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.deeper > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent-deep);
+}
+
+.deeperBody {
+  font-family: var(--font-read);
+  font-size: var(--fs-md);
+  line-height: var(--lh-read);
+  max-width: var(--measure-read);
+}
+
+.studentTurn {
+  align-self: flex-end;
+  max-width: min(85%, var(--measure-read));
+  margin-left: auto;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-lg) var(--r-lg) var(--r-xs) var(--r-lg);
+  background: var(--text);
+  color: var(--bg);
+  font-size: var(--fs-base);
+  line-height: var(--lh-snug);
+  overflow-wrap: anywhere;
+}
+
+/* ---- TrapCallout -------------------------------------------------------- */
+
+.trap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-sm);
+  background: var(--recall-soft);
+  font-size: var(--fs-base);
+  line-height: var(--lh-snug);
+  color: var(--text);
+}
+
+.trapLabel {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--recall-text);
+}
+
+/* ---- Pills: HintLadder + ConfidencePicker ------------------------------ */
+
+.pillRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.pillRowLabel {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: var(--control-sm);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+
+.pill:hover:not(:disabled) {
+  background: var(--accent-wash);
+  border-color: var(--accent-line-strong);
+}
+
+.pill:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.pill[data-used="true"] {
+  color: var(--text-muted);
+}
+
+.segmentGroup {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+}
+
+.segmentBtn {
+  min-height: var(--control-sm);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition:
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
+}
+
+.segmentBtn:hover {
+  border-color: var(--accent-line-strong);
+}
+
+.segmentBtn[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+  color: var(--accent-deep);
+  font-weight: 600;
+}
+
+.optional {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+
+/* 32px is the drawn size; a finger still gets the 44px floor. */
+@media (pointer: coarse) {
+  .pill,
+  .segmentBtn {
+    min-height: var(--touch-target-min);
+  }
+}
+
+/* ---- StepPlan ----------------------------------------------------------- */
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--s-3);
+  padding: var(--s-2) var(--s-2);
+  border-radius: var(--r-md);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+  color: var(--text-muted);
+}
+
+.step[data-status="current"] {
+  background: var(--accent-wash);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.step[data-status="done"] {
+  color: var(--text-secondary);
+}
+
+.dot {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+  border: 1.5px solid var(--hairline-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--accent-on);
+}
+
+.step[data-status="current"] .dot {
+  border: 2px solid var(--accent);
+}
+
+.step[data-status="done"] .dot {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.stepDetail {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill,
+  .segmentBtn {
+    transition: none;
+  }
+}
+
+/* ---- AiErrorCard ------------------------------------------------------- */
+
+.aiError {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4) var(--s-5);
+  border: 1px solid var(--hairline-strong);
+  border-left: 3px solid var(--recall);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.aiErrorTitle {
+  margin: 0;
+  font-weight: 600;
+}
+
+.aiErrorBody {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+  color: var(--text-secondary);
+}
+
+.aiErrorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}

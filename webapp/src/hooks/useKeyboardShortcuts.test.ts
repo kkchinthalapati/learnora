@@ -281,3 +281,108 @@ describe("useKeyboardShortcuts", () => {
     expect(callback).not.toHaveBeenCalled();
   });
 });
+
+describe("useKeyboardShortcuts — native controls keep their keys", () => {
+  function press(key: string) {
+    const event = new KeyboardEvent("keydown", {
+      key,
+      bubbles: true,
+      cancelable: true,
+    });
+    (document.activeElement ?? document.body).dispatchEvent(event);
+    return event;
+  }
+
+  it("leaves Enter and Space to a focused button", () => {
+    const next = vi.fn();
+    renderHook(() => useKeyboardShortcuts({ Enter: next, " ": next }));
+    const button = document.createElement("button");
+    document.body.appendChild(button);
+    button.focus();
+
+    const enter = press("Enter");
+    const space = press(" ");
+
+    expect(next).not.toHaveBeenCalled();
+    expect(enter.defaultPrevented).toBe(false);
+    expect(space.defaultPrevented).toBe(false);
+    button.remove();
+  });
+
+  it("leaves Enter to a focused link", () => {
+    const next = vi.fn();
+    renderHook(() => useKeyboardShortcuts({ Enter: next }));
+    const link = document.createElement("a");
+    link.href = "/library";
+    document.body.appendChild(link);
+    link.focus();
+
+    expect(press("Enter").defaultPrevented).toBe(false);
+    expect(next).not.toHaveBeenCalled();
+    link.remove();
+  });
+
+  it("still handles Enter when the focused button is disabled", () => {
+    const next = vi.fn();
+    renderHook(() => useKeyboardShortcuts({ Enter: next }));
+    const button = document.createElement("button");
+    document.body.appendChild(button);
+    button.focus();
+    button.disabled = true;
+    /* jsdom keeps focus on a control that becomes disabled, as some
+       browsers do after an answer is picked. */
+    button.focus();
+
+    press("Enter");
+
+    expect(next).toHaveBeenCalledTimes(1);
+    button.remove();
+  });
+
+  it("still claims letter shortcuts on a focused button", () => {
+    const pick = vi.fn();
+    renderHook(() => useKeyboardShortcuts({ b: pick }));
+    const button = document.createElement("button");
+    document.body.appendChild(button);
+    button.focus();
+
+    press("b");
+
+    expect(pick).toHaveBeenCalledTimes(1);
+    button.remove();
+  });
+
+  it("ignores keys typed into a select (type-ahead)", () => {
+    const pick = vi.fn();
+    renderHook(() => useKeyboardShortcuts({ b: pick }));
+    const select = document.createElement("select");
+    document.body.appendChild(select);
+    select.focus();
+
+    press("b");
+
+    expect(pick).not.toHaveBeenCalled();
+    select.remove();
+  });
+});
+
+describe("useKeyboardShortcuts — open dialogs", () => {
+  it("does nothing while a modal dialog is open over the view", () => {
+    const pick = vi.fn();
+    renderHook(() => useKeyboardShortcuts({ b: pick }));
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "alertdialog");
+    dialog.setAttribute("aria-modal", "true");
+    const button = document.createElement("button");
+    dialog.appendChild(button);
+    document.body.appendChild(dialog);
+    button.focus();
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "b" }));
+    expect(pick).not.toHaveBeenCalled();
+
+    dialog.remove();
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "b" }));
+    expect(pick).toHaveBeenCalledTimes(1);
+  });
+});

@@ -103,14 +103,8 @@ const FILES = sourceFiles(SRC);
 const ROUTES = declaredRoutes(pathConstants(FILES));
 
 describe("route integrity", () => {
-  it("declares the canonical tool routes", () => {
-    for (const route of [
-      "/study",
-      "/solver",
-      "/feynman",
-      "/viva",
-      "/exam-detective",
-    ]) {
+  it("declares the Study hub and the Session route", () => {
+    for (const route of ["/study", "/study/:sessionId"]) {
       expect(ROUTES).toContain(route);
     }
   });
@@ -127,6 +121,12 @@ describe("route integrity", () => {
       "/exam-traps",
       "/study-lab",
       "/notebooks",
+      "/dashboard",
+      /* Session modes since the 2026-09 redesign (LegacyToolRedirect). */
+      "/solver",
+      "/feynman",
+      "/viva",
+      "/exam-detective",
     ];
     const offenders: string[] = [];
 
@@ -170,9 +170,12 @@ describe("route integrity", () => {
       "utf8",
     );
     const offered = new Set(
-      [...sidebar.matchAll(/\bto:\s*"(\/[^"]*)"/g)].map((m) => m[1]),
+      [...sidebar.matchAll(/\bto(?::\s*|=)"(\/[^"]*)"/g)].map((m) => m[1]),
     );
 
+    /* The five destinations, the pages that hang off Plan and Progress, and
+       the footer's community + account links. The study tools are modes of
+       one Session now and are reached from Study, not the rail. */
     for (const destination of [
       "/",
       "/library",
@@ -184,12 +187,7 @@ describe("route integrity", () => {
       "/analytics",
       "/trajectory",
       "/study",
-      "/solver",
-      "/feynman",
-      "/viva",
-      "/exam-detective",
       "/room",
-      "/friends",
       "/settings",
     ]) {
       expect([...offered]).toContain(destination);

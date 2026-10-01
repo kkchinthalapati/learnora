@@ -125,6 +125,10 @@ export const handlers = [
     () => new HttpResponse(null, { status: 204 }),
   ),
 
+  /* Server copies of study sessions (api/studySessionSync): nothing on the
+     server by default, and writes accepted. */
+  http.get(rest("study_session_state"), () => HttpResponse.json([])),
+  http.post(rest("study_session_state"), () => HttpResponse.json([], { status: 201 })),
   http.get(rest("learning_events"), () => HttpResponse.json([])),
   http.post(rest("learning_events"), () =>
     HttpResponse.json(null, { status: 201 }),

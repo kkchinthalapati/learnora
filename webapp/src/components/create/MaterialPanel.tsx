@@ -19,6 +19,7 @@ import {
   StudyImageError,
 } from "../../lib/studyImage";
 import { MATERIAL_DRAFT_KEY } from "../../lib/draftKeys";
+import { SUBJECT_MAX } from "../../lib/fieldLimits";
 import { useCreateStudyPackage } from "../../hooks/useStudyPackage";
 import { useDialog } from "../../context/dialog";
 import { useSettings } from "../../context/settings";
@@ -37,6 +38,8 @@ import type { IconName } from "../icons";
 import styles from "./MaterialPanel.module.css";
 import { Button } from "../Button";
 import { Icon } from "../Icon";
+import { StepPlan } from "../learning/StepPlan";
+import { pipelineSteps } from "./pipeline";
 
 export interface MaterialPanelProps {
   folderId?: string | null;
@@ -318,6 +321,7 @@ export function MaterialPanel({
         title: "New subject",
         placeholder: "e.g. CS101, Biology",
         confirmText: "Create subject",
+        maxLength: SUBJECT_MAX,
       },
     );
     if (!name) return;
@@ -1093,8 +1097,20 @@ export function MaterialPanel({
         <div className={styles.failureAlert} role="alert">
           <div className={styles.failureHead}>
             <Icon name="alert-circle" size={18} />
-            <span>Some stages encountered errors during generation:</span>
+            <span>
+              Part of this didn't finish. Your material is kept, and retrying
+              only redoes the parts below, so nothing is made twice.
+            </span>
           </div>
+          <StepPlan
+            label="What Learnora did"
+            current={-1}
+            steps={pipelineSteps({
+              message: null,
+              outputs: { notes: wantNotes, flashcards: wantFlashcards, quiz: wantQuiz },
+              failed: stageFailures.map((f) => f.stage),
+            })}
+          />
           <ul className={styles.failureList}>
             {stageFailures.map((failure, idx) => (
               <li key={idx}>
@@ -1111,7 +1127,7 @@ export function MaterialPanel({
               disabled={create.isPending}
               onClick={() => void handleRetryFailedStages()}
             >
-              {create.isPending ? "Retrying..." : "Retry Failed Stages"}
+              {create.isPending ? "Retrying…" : "Retry what didn't finish"}
             </Button>
           </div>
         </div>
@@ -1129,7 +1145,7 @@ export function MaterialPanel({
               disabled={create.isPending}
               onClick={() => void handleRetryFailedStages()}
             >
-              {create.isPending ? "Retrying..." : "Retry Failed Stages"}
+              {create.isPending ? "Retrying…" : "Retry what didn't finish"}
             </Button>
           </div>
         </div>
@@ -1138,14 +1154,18 @@ export function MaterialPanel({
       {/* Progress Animation */}
       {progress ? (
         <div className={styles.progress} role="status" aria-live="polite">
-          <span className={styles.spinner} aria-hidden="true" />
           <div className={styles.progressCopy}>
-            <strong>
-              {source === "topic"
-                ? "Building from your topic"
-                : "Building from your source"}
-            </strong>
-            <span>{progress}</span>
+            <strong className={styles.pipelineLabel}>What Learnora is doing</strong>
+            <span className={styles.srOnly}>{progress}</span>
+            <StepPlan
+              label="Pipeline"
+              current={-1}
+              steps={pipelineSteps({
+                message: progress,
+                outputs: { notes: wantNotes, flashcards: wantFlashcards, quiz: wantQuiz },
+                failed: [],
+              })}
+            />
           </div>
         </div>
       ) : null}

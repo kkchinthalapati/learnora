@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { studentLevel } from "../lib/studentLevel";
 import type { ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router";
@@ -261,6 +262,26 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setIsOpen(false);
     setIsFullscreen(false);
   }, []);
+  const toggle = useCallback(() => {
+    setIsOpen((wasOpen) => {
+      if (wasOpen) setIsFullscreen(false);
+      return !wasOpen;
+    });
+  }, []);
+  /* ⌘J / Ctrl J toggles the tutor from anywhere, the way ⌘K toggles the
+     command palette (CommandPaletteProvider). Capture phase for the same
+     reason: an editor that eats the key would otherwise swallow it. */
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && (e.key === "j" || e.key === "J")) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggle();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [toggle]);
   const toggleFullscreen = useCallback(() => setIsFullscreen((v) => !v), []);
   const clearDraft = useCallback(() => setDraft(""), []);
   const compose = useCallback((text: string) => {
@@ -455,7 +476,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         generateQuizFromTopic(topic, settings)
           .then((quiz) => {
             qc.invalidateQueries({ queryKey: quizzesKeys.all });
-            showToast("Quiz generated successfully!");
+            showToast("Quiz ready");
             void navigate(`/quiz/${quiz.id}`);
           })
           .catch((err: unknown) => {
@@ -475,7 +496,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         generateDeckFromTopic(topic, settings)
           .then(() => {
             qc.invalidateQueries({ queryKey: decksKeys.all });
-            showToast("Flashcard deck generated successfully!");
+            showToast("Flashcard deck ready");
             void navigate("/library/flashcards");
           })
           .catch((err: unknown) => {
@@ -495,7 +516,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         generateWeeklyPlan(settings)
           .then((plan) => {
             qc.setQueryData(plansKeys.forWeek(plan.week_start), plan);
-            showToast("Plan generated successfully!");
+            showToast("Plan ready");
             void navigate("/plan");
           })
           .catch((err: unknown) => {
@@ -657,7 +678,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           }
         }
 
+        const level = await studentLevel().catch(() => "");
         const systemContext = buildSystemContext({
+          studentLevel: level,
           pendingTasks,
           upcomingExams,
           activeContext: activeContextForPath(pathname, notesMarkdown),
@@ -676,6 +699,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           persona: adaptiveNudge?.persona ?? settings.aiPersona,
           conciseness: adaptiveNudge?.conciseness ?? settings.aiConciseness,
           adaptiveNudge: adaptiveNudge?.instruction,
+          guessFirst: options?.guessFirst === true,
           performanceEvidence,
           misconceptionLedger,
           webEvidence: webResponse
@@ -752,6 +776,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           text: cleanText,
           parts: parts.some((p) => p.kind === "widget") ? parts : undefined,
           webSources: webSources?.length ? webSources : undefined,
+          /* The model was asked for a guess-first question and replied with
+             one: the bubble offers the two ways out. */
+          guessPrompt:
+            options?.guessFirst === true && cleanText.endsWith("?")
+              ? true
+              : undefined,
         });
       } catch (err) {
         /* The failed exchange is not written to history: replaying it would
@@ -930,6 +960,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       draft,
       open,
       close,
+      toggle,
       toggleFullscreen,
       compose,
       clearDraft,
@@ -952,6 +983,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       draft,
       open,
       close,
+      toggle,
       toggleFullscreen,
       compose,
       clearDraft,

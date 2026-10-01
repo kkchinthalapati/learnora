@@ -134,8 +134,11 @@ export function getDaysRemaining(
   const target = new Date(parts[0], parts[1] - 1, parts[2]);
   target.setHours(0, 0, 0, 0);
 
+  /* Both are local midnights, so the gap is a whole number of calendar
+     days give or take the DST hour; round, since ceil counted a day extra
+     across the autumn clock change. */
   const msDiff = target.getTime() - current.getTime();
-  return Math.max(0, Math.ceil(msDiff / (1000 * 60 * 60 * 24)));
+  return Math.max(0, Math.round(msDiff / (1000 * 60 * 60 * 24)));
 }
 
 /**

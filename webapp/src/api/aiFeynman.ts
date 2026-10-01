@@ -5,6 +5,7 @@
  */
 
 import { callEdge } from "./ai";
+import { isLimitOrRefusal } from "./aiLimit";
 import { extractJSON } from "../lib/aiJson";
 import { getFramework } from "../lib/region";
 import { collection } from "../lib/storage";
@@ -358,6 +359,8 @@ export interface Misconception {
 }
 
 export interface ApprenticeDraft {
+  /** Built from a generic template because the AI gave no usable draft. */
+  fromTemplate?: boolean;
   id: string;
   subject: string;
   topic: string;
@@ -1448,11 +1451,19 @@ Rules:
         }
       }
     }
-  } catch {
-    // Fall back to robust simulation knowledge base
+  } catch (err) {
+    /* The daily limit or a refusal is the server's ruling; a template draft
+       would hide it behind made-up "misconceptions". */
+    if (isLimitOrRefusal(err)) throw err;
   }
 
-  return generateDynamicDraft(safeSubject, safeTopic, persona, difficulty, analogyStyle, depth, customAudience);
+  /* A generic template ("it multiplies forever… only on sunny days") with
+     the topic's name pasted in. Flagged so a caller can refuse to present it
+     as the AI's work; the Teach session does. */
+  return {
+    ...generateDynamicDraft(safeSubject, safeTopic, persona, difficulty, analogyStyle, depth, customAudience),
+    fromTemplate: true,
+  };
 }
 
 /** Keep only the concept names the draft actually defined, restored to the
@@ -1914,7 +1925,9 @@ export async function evaluateTeachingExplanation(
       effectiveAudience,
     );
     if (marked) return { ...marked, scoredBy: "ai" };
-  } catch {
+  } catch (err) {
+    // A daily limit is not an outage: say so instead of a keyword score.
+    if (isLimitOrRefusal(err)) throw err;
     // Fall back to the local scorer below.
   }
 

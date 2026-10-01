@@ -1,4 +1,5 @@
 import type { Page, Route } from "@playwright/test";
+import { QUOTAS } from "../../../src/lib/entitlements";
 
 /* A stand-in for the whole Supabase project, served from inside the browser's
  * network layer.
@@ -37,16 +38,11 @@ export const TEST_USER_ID = "11111111-1111-4111-8111-111111111111";
  *  quizzes can still chat, and a suite that models a single 25/day ceiling
  *  cannot tell those two refusals apart. */
 export const AI_TOOL_QUOTAS: Record<"free" | "pro", Record<string, number>> = {
-  free: {
-    chat: 15, notes: 3, flashcards: 3, quiz: 3, plan: 1,
-    debugger: 2, preMortem: 2, feynman: 2, examDeconstructor: 2,
-    sparring: 2, notebookStudio: 5, image: 2,
-  },
-  pro: {
-    chat: 400, notes: 60, flashcards: 60, quiz: 60, plan: 30,
-    debugger: 40, preMortem: 40, feynman: 40, examDeconstructor: 40,
-    sparring: 40, notebookStudio: 80, image: 30,
-  },
+  /* Read from the app's own table, which tests/quota-parity.test.js keeps
+     equal to the edge function's. A hand copy here had drifted (pro
+     sparring 40 against the server's 25). */
+  free: { ...QUOTAS.free },
+  pro: { ...QUOTAS.pro },
 };
 
 /** The tool the edge function bills a call to when the caller names none. */
@@ -290,6 +286,29 @@ export class MockBackend {
         new Date(String(row.created_at)) >= midnight &&
         (tool === undefined || String(row.tool ?? DEFAULT_AI_TOOL) === tool),
     ).length;
+  }
+
+  /** Allowance units spent today on a tool: each session key once, each
+   *  call without one once — what the edge function compares. */
+  aiUnitsToday(tool: string): number {
+    const midnight = new Date();
+    midnight.setUTCHours(0, 0, 0, 0);
+    const rows = this.table("ai_request_log").filter(
+      (row) => new Date(String(row.created_at)) >= midnight && String(row.tool ?? DEFAULT_AI_TOOL) === tool,
+    );
+    const sessions = new Set(rows.map((r) => r.session_key).filter(Boolean));
+    return sessions.size + rows.filter((r) => !r.session_key).length;
+  }
+
+  sessionBilledToday(tool: string, sessionKey: string): boolean {
+    const midnight = new Date();
+    midnight.setUTCHours(0, 0, 0, 0);
+    return this.table("ai_request_log").some(
+      (row) =>
+        new Date(String(row.created_at)) >= midnight &&
+        String(row.tool ?? DEFAULT_AI_TOOL) === tool &&
+        row.session_key === sessionKey,
+    );
   }
 
   /** This user's plan's allowance for one tool. */
@@ -751,7 +770,11 @@ export class MockBackend {
          429 after N calls — is what makes the rate-limit tests test the app's
          handling of a real limit rather than a fixture. */
       const tool = String(payload.tool ?? DEFAULT_AI_TOOL);
-      if (this.aiRequestsToday(tool) >= this.dailyAiLimit(tool)) {
+      /* Same billing as the real function: a study session's calls count
+         once (see checkAndLogRateLimit's SESSION_CALL_CAP comment). */
+      const sessionKey = typeof payload.sessionKey === "string" ? payload.sessionKey : null;
+      if (!(sessionKey && this.sessionBilledToday(tool, sessionKey)) &&
+          this.aiUnitsToday(tool) >= this.dailyAiLimit(tool)) {
         /* Both keys, because the real function is inconsistent about which one
            carries the message — `error` for the JSON modes and `text` for
            chat and notes — and src/api/ai.ts reads whichever is present. */
@@ -765,6 +788,7 @@ export class MockBackend {
         id: nextId(),
         user_id: this.user.id,
         tool,
+        session_key: sessionKey,
         created_at: nowIso(),
       });
       await json(route, 200, { text: this.aiReply(payload) });

@@ -45,6 +45,8 @@ export interface ForecastSources {
   decks: FlashcardDeck[];
   cards: Flashcard[];
   attempts: QuizAttempt[];
+  /** For placing quiz-only topics in the exam's subject. */
+  quizzes?: { id: string; folder_id?: string | null }[];
   life: LifeContext;
   today?: string;
   /** Which exam to forecast. Defaults to the soonest upcoming one, which is
@@ -131,6 +133,7 @@ export function buildForecast(src: ForecastSources): ForecastJoin {
     decks: src.decks,
     cards: src.cards,
     attempts: src.attempts,
+    quizzes: src.quizzes,
     /* Scoped to the matched folder when there is one. Without a match we
        forecast off everything, which is imprecise but far better than
        forecasting off nothing — and the view says which of the two it is. */

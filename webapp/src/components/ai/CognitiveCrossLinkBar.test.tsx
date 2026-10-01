@@ -44,7 +44,7 @@ describe("CognitiveCrossLinkBar", () => {
       "Inner Derivative Multiplier",
     );
     expect(screen.getByTestId("cross-link-subject-badge")).toHaveTextContent("Calculus");
-    expect(screen.getByTestId("cross-link-source-badge")).toHaveTextContent("From: Step-by-step solver");
+    expect(screen.getByTestId("cross-link-source-badge")).toHaveTextContent("From: Explain");
     expect(screen.getByTestId("cross-link-severity-badge")).toHaveTextContent("Needs work");
     expect(screen.getByTestId("cross-link-misconceptions-count")).toHaveTextContent(
       "1 thing to sort out",
@@ -75,7 +75,7 @@ describe("CognitiveCrossLinkBar", () => {
       "Velocity vs Acceleration",
     );
     expect(screen.getByTestId("cross-link-source-badge")).toHaveTextContent(
-      "From: Explain it simply",
+      "From: Teach",
     );
     expect(screen.getByTestId("cross-link-severity-badge")).toHaveTextContent("Worth a look");
   });
@@ -130,7 +130,7 @@ describe("CognitiveCrossLinkBar", () => {
     const feynmanBtn = screen.getByTestId("cross-link-feynman-btn");
     fireEvent.click(feynmanBtn);
 
-    expect(handleNavigate).toHaveBeenCalledWith("/feynman", "feynman");
+    expect(handleNavigate).toHaveBeenCalledWith("/study/new?mode=teach", "feynman");
 
     const bridgePayload = CognitiveBridge.getPayload();
     expect(bridgePayload).not.toBeNull();
@@ -154,7 +154,7 @@ describe("CognitiveCrossLinkBar", () => {
     const solverBtn = screen.getByTestId("cross-link-debugger-btn");
     fireEvent.click(solverBtn);
 
-    expect(handleNavigate).toHaveBeenCalledWith("/solver", "debugger");
+    expect(handleNavigate).toHaveBeenCalledWith("/study/new?mode=explain", "debugger");
     expect(CognitiveBridge.getPayload()?.suggestedAction).toBe("debug_stack");
   });
 

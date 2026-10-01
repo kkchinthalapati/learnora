@@ -128,3 +128,70 @@
   line-clamp: 2;
   overflow: hidden;
 }
+
+/* ---- 2026-09 redesign roles --------------------------------------------- *
+ * Newsreader 500 carries every heading tier; Source Serif (--font-read)
+ * carries tutor prose; JetBrains Mono carries the caps meta line. All three
+ * families fall back to the student's picked font (index.css). */
+
+/* Today headline, results headline, onboarding. 52px at desktop. */
+.display {
+  font-family: var(--font-head);
+  font-size: var(--fs-4xl);
+  font-weight: 500;
+  line-height: var(--lh-display);
+  letter-spacing: var(--tracking-display);
+  color: var(--text);
+}
+
+.pageTitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-3xl);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+/* Tutor step heading, next-step topic, card title. */
+.claim {
+  font-family: var(--font-head);
+  font-size: var(--fs-2xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text);
+}
+
+/* Teaching prose — every tutor explanation. */
+.prose {
+  font-family: var(--font-read);
+  font-size: var(--fs-read);
+  line-height: var(--lh-read);
+  max-width: var(--measure-read);
+  color: var(--text);
+}
+
+/* "STEP 3 · EXPLAIN", "BIOLOGY MIDTERM PRACTICE · 11 OF 16". The handoff
+   allows 11px; 12px is the app's floor, so it is 12. */
+.meta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.secondary {
+  color: var(--text-secondary);
+}
+
+.recall {
+  color: var(--recall-text);
+}
+
+.accentDeep {
+  color: var(--accent-deep);
+}

@@ -246,7 +246,13 @@ export const quizAttempts = [
     quiz_id: "q-1",
     score: 1,
     total: 2,
-    answers_json: [{ selected: 0 }, { selected: 0 }],
+    /* The shape QuizRunner writes. It was [{ selected }], which nothing
+       parses, so harness and e2e runs showed "no quiz attempted" to the
+       tutor and a "0 → 1" improvement on results despite this attempt. */
+    answers_json: [
+      { questionId: 0, chosenIndex: 0, correct: true, topic: "Enzymes" },
+      { questionId: 1, chosenIndex: 0, correct: false, topic: "Rates" },
+    ],
     weak_topics: ["Rates"],
     created_at: daysAgo(7),
   },

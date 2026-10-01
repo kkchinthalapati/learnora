@@ -132,3 +132,24 @@
     gap: var(--s-2);
   }
 }
+
+/* Test runner bar: ink inverted from the page in both themes, with an ochre
+   dot for "your work is being kept". */
+.testBar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-5);
+  background: var(--text);
+  color: var(--bg);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+}
+
+.testDot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: var(--r-pill);
+  background: var(--recall);
+}

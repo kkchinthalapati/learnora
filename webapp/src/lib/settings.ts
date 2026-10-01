@@ -17,7 +17,7 @@ export const SETTINGS_KEY = "learnora_settings";
 export type AiPersona = "tutor" | "coach" | "buddy" | "professor";
 export type AiConciseness = "short" | "medium" | "detailed";
 export type PersonaDepth = 1 | 2 | 3 | 4 | 5;
-export type StudyStyle = "visual" | "rigorous" | "exam_trap" | "concise";
+export type StudyStyle = "balanced" | "visual" | "rigorous" | "exam_trap" | "concise";
 
 export interface Settings {
   aiPersona: AiPersona;
@@ -65,7 +65,7 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   timerFocusWatchdog: true,
   examTerminationGrace: true,
   aiDepth: 3,
-  aiStyle: "concise",
+  aiStyle: "balanced",
   aiAutoAdapt: true,
   webAccess: true,
   aiSpokenReplies: false,
@@ -150,6 +150,7 @@ export const AI_STYLE_OPTIONS: ReadonlyArray<{
   value: StudyStyle;
   label: string;
 }> = [
+  { value: "balanced", label: "Balanced ⚖️" },
   { value: "visual", label: "Visual 🎨" },
   { value: "rigorous", label: "Rigorous 📐" },
   { value: "exam_trap", label: "Exam Trap 🎯" },

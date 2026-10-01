@@ -53,7 +53,7 @@ describe("sectionLabel", () => {
     expect(sectionLabel("/tasks", t)).toBe("Tasks");
     expect(sectionLabel("/plan", t)).toBe("Plan");
     expect(sectionLabel("/exams", t)).toBe("Exams");
-    expect(sectionLabel("/study-lab", t)).toBe("Study tools");
+    expect(sectionLabel("/study", t)).toBe("Study");
     expect(sectionLabel("/settings", t)).toBe("Settings");
   });
 
@@ -75,12 +75,17 @@ describe("primaryDestinationForPath", () => {
     expect(primaryDestinationForPath("/notes/material-1")).toBe("library");
   });
 
-  it("groups study tools under Study tools", () => {
+  it("puts the focus timer under Plan", () => {
+    expect(primaryDestinationForPath("/timer")).toBe("plan");
+  });
+
+  it("groups the study tools under Study", () => {
+    expect(primaryDestinationForPath("/study/s-1")).toBe("study_lab");
     expect(primaryDestinationForPath("/study")).toBe("study_lab");
-    expect(primaryDestinationForPath("/solver")).toBe("study_lab");
-    expect(primaryDestinationForPath("/viva")).toBe("study_lab");
-    expect(primaryDestinationForPath("/feynman")).toBe("study_lab");
-    expect(primaryDestinationForPath("/exam-detective")).toBe("study_lab");
+    expect(primaryDestinationForPath("/feynman/debrief/s-1")).toBe("study_lab");
+    /* The old tool URLs redirect into a Session before the shell sees them. */
+    expect(primaryDestinationForPath("/solver")).toBeNull();
+    expect(primaryDestinationForPath("/viva")).toBeNull();
   });
 
   /* The legacy aliases are <Navigate> redirects: the router replaces them

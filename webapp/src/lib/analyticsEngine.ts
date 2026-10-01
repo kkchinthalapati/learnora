@@ -423,7 +423,10 @@ export function computeSubjectUrgencyMatrix(
 
       if (isRelated) {
         const examDate = parseLocalDate(exam.exam_date);
-        const diffDays = Math.ceil(
+        /* Round, not ceil: both ends are local midnights, so a span that
+           crosses the autumn clock change is 25 hours long for one day,
+           and ceil turned "5 days" into 6. */
+        const diffDays = Math.round(
           (examDate.getTime() - todayTime) / (1000 * 60 * 60 * 24),
         );
 

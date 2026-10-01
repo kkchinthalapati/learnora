@@ -268,8 +268,9 @@ test('self-harm gets crisis resources, not the study refusal', async (t) => {
 });
 
 test('learnora-ai does not put free text from settings into the system prompt', () => {
+  // The system prompt is assembled in _shared/systemPrompt.js since 2026-10.
   const source = readFileSync(
-    new URL('../supabase/functions/learnora-ai/index.ts', import.meta.url),
+    new URL('../supabase/functions/_shared/systemPrompt.js', import.meta.url),
     'utf8',
   );
   assert.doesNotMatch(source, /\$\{s\.aiLanguage/, 'aiLanguage must go through the AI_LANGUAGES allow-list');

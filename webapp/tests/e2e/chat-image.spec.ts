@@ -37,7 +37,7 @@ test("draws a diagram on request and shows it from the private bucket", async ({
     await route.fulfill({ body: DIAGRAM, contentType: "image/png" });
   });
 
-  await page.getByRole("button", { name: "Ask AI" }).click();
+  await page.getByRole("button", { name: "Ask the tutor" }).first().click();
   const panel = page.getByRole("region", { name: "Learnora AI chat" });
   await panel.getByRole("button", { name: "Generate image" }).click();
   await expect(panel.getByText(/Image mode/)).toBeVisible();

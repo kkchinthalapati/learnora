@@ -62,6 +62,8 @@ import {
   type ResolvedBlockTarget,
 } from "./planTargets";
 import styles from "./plan.module.css";
+import { useStudySchedule } from "../../hooks/useStudySchedule";
+import { formatClock, formatDuration } from "../../lib/lifeContext";
 
 /* The Weekly Plan — ports index.html:942-955 + js/router.js's `loadPlanView`
  * (:1046-1141) and `AI.generateWeeklyPlan`'s call site.
@@ -680,7 +682,7 @@ export function PlanView() {
     }
 
     generate.mutate(true, {
-      onSuccess: () => showToast("Triage plan generated! Focus up."),
+      onSuccess: () => showToast("Triage plan ready"),
       onError: (err) => {
         const message =
           err instanceof PlanShapeError ||
@@ -859,20 +861,26 @@ export function PlanView() {
             <span className={styles.emptyIcon}>
               <Icon name="calendar-week" size={44} />
             </span>
-            <h2>No plan yet for this week</h2>
+            {/* There were two planners under Plan: this empty page asking
+                the AI to "Generate my week", and Availability already showing
+                a full week built from the same tasks, exams and free time.
+                The worked-out week is the plan; the AI is an option on top. */}
+            <h2>Your week, from your availability</h2>
             <p className={styles.emptyMessage}>
-              Learnora AI builds one from your open tasks and upcoming exams,
-              around the free time you set in{" "}
+              Worked out from your open tasks, upcoming exams and the free time
+              you set in{" "}
               <Link to="/my-week" className={styles.emptyLink}>Availability</Link>.
+              It updates as those change.
             </p>
+            <ScheduleWeek />
             <Button
-              variant="primary"
+              variant="secondary"
               className={styles.emptyCta}
               onClick={() => void runGenerate()}
               disabled={generate.isPending}
             >
               <Icon name="bot" size={17} />
-              Generate my week
+              Ask the AI to rearrange it
             </Button>
           </Card>
         </div>
@@ -892,5 +900,42 @@ export function PlanView() {
         />
       ) : null}
     </div>
+  );
+}
+
+/* The deterministic week (the same schedule Availability previews). */
+function ScheduleWeek() {
+  const schedule = useStudySchedule();
+  const days = schedule.days.filter((d) =>
+    schedule.blocks.some((b) => b.date === d.date),
+  );
+  if (days.length === 0) {
+    return (
+      <p className={styles.emptyMessage}>
+        Nothing needs scheduling yet. Add a task or an exam and it will appear
+        here.
+      </p>
+    );
+  }
+  return (
+    <ul className={styles.scheduleWeek} aria-label="This week's study blocks">
+      {days.map((day) => (
+        <li key={day.date}>
+          <strong>
+            {parseLocalDate(day.date).toLocaleDateString(undefined, {
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+            })}
+          </strong>
+          <span>
+            {schedule.blocks
+              .filter((b) => b.date === day.date)
+              .map((b) => `${formatClock(b.startMin)} ${b.label} (${formatDuration(b.endMin - b.startMin)})`)
+              .join(" · ")}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

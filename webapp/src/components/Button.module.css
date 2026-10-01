@@ -1,10 +1,7 @@
-/* Ported from style.css's base `button` rule plus .btn-primary /
- * .btn-secondary / .btn-danger / .btn-warning / .btn-success / .btn-sm.
- * Values are 1:1; only the selectors become module-scoped. */
+/* Originally ported from style.css's `button` / .btn-* rules; restyled flat
+ * for the 2026-09 redesign (no gradients, no sheen, no hover lift). */
 
 .btn {
-  /* Subtle top highlight shared by the semantic-variant hovers. */
-  --btn-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.1);
   display: inline-flex;
   min-height: var(--touch-target-min);
   align-items: center;
@@ -21,142 +18,136 @@
   color: var(--text);
   background: transparent;
   transition:
-    background var(--t-fast) ease,
-    border-color var(--t-fast) ease,
-    box-shadow var(--t-fast) ease,
-    transform var(--t-fast) ease,
-    color var(--t-fast) ease;
+    background var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease);
 }
 
-.btn:active {
+.btn:active:not(:disabled) {
   transform: translateY(1px);
 }
 
+/* Flat accent fill. The 135deg gradient and white sheen are gone
+ * (2026-09 redesign): a gradient primary is the loudest "generated UI" tell
+ * there is, and one flat teal button per screen is the whole hierarchy. */
 .primary {
-  /* Brighter sheen than --btn-sheen: the primary gradient can carry it. */
-  background: linear-gradient(
-    135deg,
-    var(--accent) 0%,
-    var(--accent-hover) 100%
-  );
+  background: var(--accent);
   color: var(--accent-on);
-  box-shadow:
-    var(--shadow-sm),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--accent);
   text-shadow: var(--accent-on-shadow);
 }
 .primary:hover:not(:disabled) {
-  background: linear-gradient(
-    135deg,
-    var(--accent-hover) 0%,
-    var(--accent-press) 100%
-  );
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 .primary:active {
   background: var(--accent-press);
-  transform: translateY(1px);
+  border-color: var(--accent-press);
+}
+.primary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .secondary {
   background: var(--surface);
   color: var(--text);
-  border-color: var(--glass-border);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
+  border-color: var(--hairline-strong);
 }
 .secondary:hover:not(:disabled) {
   background: var(--surface-2);
-  border-color: var(--accent-ring);
-  color: var(--accent-text);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
-}
-.secondary:active {
-  transform: translateY(1px);
+  border-color: var(--accent-line-strong);
 }
 
-/* Lowest-emphasis text action — no fill, no border at rest. For the
- * "Copy", "Dismiss", "Show more" inline actions the views had been
- * hand-rolling as bespoke `.recapActionBtn` / `.socraticCopyBtn` /
- * `.secondaryBtn` classes. */
+/* Lowest-emphasis text action ("Quiet" in the redesign) — no fill, no
+ * border at rest. For the "Copy", "Dismiss", "Show more" inline actions. */
 .ghost {
   background: transparent;
   color: var(--text-muted);
   border-color: transparent;
 }
 .ghost:hover:not(:disabled) {
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  border-color: var(--accent-ring);
+  background: var(--track);
+  color: var(--text);
 }
 .ghost:active {
   background: var(--surface-active);
 }
 
+/* Destructive: a text action with a soft hover, never a red slab. Pair it
+   with an inline confirm that names what will be lost, then an undo toast
+   (useDeferredDelete). */
 .danger {
-  background: var(--danger-soft);
+  background: transparent;
   color: var(--danger-text);
   border-color: transparent;
-  box-shadow: var(--btn-sheen);
 }
 .danger:hover:not(:disabled) {
-  background: var(--danger);
-  color: var(--danger-on);
-  box-shadow:
-    0 4px 16px color-mix(in srgb, var(--danger) 30%, transparent),
-    var(--btn-sheen);
-  transform: translateY(-1px);
-}
-.danger:active {
-  transform: translateY(1px);
-  box-shadow: var(--btn-sheen);
+  background: var(--danger-soft);
 }
 
 .warning {
   background: var(--warning-soft);
   color: var(--warning-text);
   border-color: transparent;
-  box-shadow: var(--btn-sheen);
 }
 .warning:hover:not(:disabled) {
   background: var(--warning);
   color: var(--warning-on);
-  box-shadow:
-    0 4px 16px color-mix(in srgb, var(--warning) 30%, transparent),
-    var(--btn-sheen);
-  transform: translateY(-1px);
-}
-.warning:active {
-  transform: translateY(1px);
-  box-shadow: var(--btn-sheen);
 }
 
 .success {
   background: var(--success-soft);
   color: var(--success-text);
   border-color: transparent;
-  box-shadow: var(--btn-sheen);
 }
 .success:hover:not(:disabled) {
   background: var(--success);
   color: var(--success-on);
-  box-shadow:
-    0 4px 16px color-mix(in srgb, var(--success) 30%, transparent),
-    var(--btn-sheen);
-  transform: translateY(-1px);
-}
-.success:active {
-  transform: translateY(1px);
-  box-shadow: var(--btn-sheen);
 }
 
+/* A real disabled fill rather than a faded version of the live one: at
+   opacity .55 a disabled primary still read as teal, i.e. as clickable. */
 .btn:disabled {
-  opacity: 0.55;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
+}
+.primary:disabled {
+  background: var(--surface-active);
+  border-color: var(--surface-active);
+  color: var(--text-faint);
+  text-shadow: none;
+}
+.secondary:disabled,
+.ghost:disabled,
+.danger:disabled,
+.warning:disabled,
+.success:disabled {
+  opacity: 0.55;
+}
+
+.lg {
+  min-height: var(--control-lg);
+  padding: var(--s-3) var(--s-6);
+}
+
+/* Busy: an inline spinner beside the verb ("Saving"), not a replaced label. */
+.spinner {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--r-pill);
+  animation: btn-spin 0.8s linear infinite;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .sm {
@@ -172,5 +163,8 @@
   .btn:active,
   .btn:hover:not(:disabled) {
     transform: none;
+  }
+  .spinner {
+    animation-duration: 2.4s;
   }
 }

@@ -106,6 +106,7 @@ function DialogHost({
     placeholder = "",
     defaultValue = "",
     inputType = "text",
+    maxLength,
     resolve,
   } = request;
 
@@ -135,15 +136,18 @@ function DialogHost({
       settle(true);
       return;
     }
-    const trimmed = value.trim();
-    if (!trimmed) {
+    /* A password is returned exactly as typed: sign-in doesn't trim it, so
+       trimming here meant a password with a leading or trailing space
+       signed in fine but could never confirm a wipe or account deletion. */
+    const result = inputType === "password" ? value : value.trim();
+    if (!result) {
       setInvalid(true);
       inputRef.current?.focus();
       shake(inputRef.current);
       return;
     }
-    settle(trimmed);
-  }, [isPrompt, value, settle]);
+    settle(result);
+  }, [isPrompt, inputType, value, settle]);
 
   useOverlayBehavior({
     ref: contentRef,
@@ -203,6 +207,7 @@ function DialogHost({
             className={`${styles.input}${invalid ? ` ${styles.invalid}` : ""}`}
             value={value}
             placeholder={placeholder}
+            maxLength={maxLength}
             aria-label={title}
             aria-invalid={invalid || undefined}
             onChange={(e) => {

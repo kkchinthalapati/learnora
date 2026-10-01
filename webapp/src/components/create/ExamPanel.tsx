@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { useSaveExam } from "../../hooks/useExams";
 import { useToast } from "../../context/toast";
 import { Button } from "../Button";
+import { localDateStr } from "../../lib/date";
 import shared from "./formShared.module.css";
 
 interface ExamPanelProps {
@@ -10,13 +11,6 @@ interface ExamPanelProps {
 }
 
 type Difficulty = "Easy" | "Medium" | "Hard";
-
-function localDateStr(d = new Date()): string {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 /* Quick-create only — mirrors the "New exam" half of the vanilla
  * #exam-modal (js/main.js:1748-1902). Editing, status changes and delete
@@ -32,8 +26,17 @@ export function ExamPanel({ onClose, onDone }: ExamPanelProps) {
   const dateRef = useRef<HTMLInputElement>(null);
   const saveExam = useSaveExam();
   const { showToast } = useToast();
+  /* `isPending` only disables the button after a re-render, so a
+     double-click's second submit got in first and added the exam twice
+     (the same fix ExamModal has). */
+  const submittingRef = useRef(false);
 
   const today = localDateStr();
+  const maxDate = (() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + 5);
+    return localDateStr(d);
+  })();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -53,6 +56,15 @@ export function ExamPanel({ onClose, onDone }: ExamPanelProps) {
       dateRef.current?.focus();
       return;
     }
+    /* noValidate makes `max` advisory, so a typed year of 2206 for 2026
+       was saved as-is. */
+    if (examDate > maxDate) {
+      setError("That date is more than five years away — check the year.");
+      dateRef.current?.focus();
+      return;
+    }
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setError(null);
     try {
       // New exams always start "Scheduled" — the vanilla create form hides
@@ -71,6 +83,8 @@ export function ExamPanel({ onClose, onDone }: ExamPanelProps) {
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      submittingRef.current = false;
     }
   };
 
@@ -104,6 +118,7 @@ export function ExamPanel({ onClose, onDone }: ExamPanelProps) {
           type="date"
           value={examDate}
           min={today}
+          max={maxDate}
           onChange={(e) => setExamDate(e.target.value)}
         />
       </div>
