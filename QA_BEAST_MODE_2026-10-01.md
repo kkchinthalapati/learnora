@@ -685,3 +685,87 @@ EDU-01, EDU-03, AI-11 / FEAT-05, and the P3 first-run copy.
   `privacy.html`.
 - **Accessibility:** axe on the same 10 surfaces, plus per-route title
   checks.
+
+## Fix pass (2026-10-01, same day)
+
+Every finding above was worked on, on branch `ccr-75f4e6f3-btpnkb`. The
+outcome for each:
+
+| ID | Status | What changed |
+|---|---|---|
+| MOB-01 | **Fixed** | The Session grid may shrink below its content. On phones the modes get their own scrollable row. The leave button keeps its accessible name. Mobile e2e covers all 5 modes; the test was confirmed to fail on the old CSS. |
+| MOB-02 | **Fixed** | Pages pad for the floating Ask button. |
+| A11Y-10 / A11Y-11 | **Fixed** | Per-route titles, plus "Explain: topic" in sessions. The Recall key inherits the button's colour. |
+| A11Y-12 | **Not a bug** | The composer row shows a focus ring via `:focus-within`. |
+| PRIV-01 | **Fixed in code; needs your legal review** | The edge function only calls providers in `_shared/providerPolicy.js`. Mistral is excluded, and `AI_PROVIDER_ALLOWLIST` can narrow the list further. Every consent and privacy surface renders the same list (`webapp/src/lib/aiProviders.ts`), and a test pins the two lists together. The unverifiable "we do not allow Google/Anthropic to train" claim is replaced by statements the code enforces. A refused key (401/402/403) is skipped for 15 minutes. |
+| AI-13 | **Fixed** | The provider, model, latency and failed providers are recorded per request (migration `20261001000000`). |
+| AI-10 | **Fixed** | A 429 or refusal is surfaced as itself. Inside a session, a stand-in result becomes an error with a retry. The Teach template draft is flagged and refused. |
+| AI-12 | **Fixed** | NAVIGATE covers every sidebar destination (with a test), and the layout text is current. |
+| AI-14 | **Fixed** | The default study style is "Balanced", not an unchosen "Short". Guess-first skips students who already use the technical terms. |
+| QUOTA-01 | **Fixed** | The allowance for session tools is counted per Study session (16-call cap per session). The rule is in `_shared/sessionBilling.js` with tests. Migration `20261001010000` must be applied **before** deploying the function. |
+| LRN-01 | **Fixed** | Explain has its own teaching-plan prompt (`api/aiExplain.ts`), and building the plan writes nothing to the ledger. A wrong check answer records the gap; a fresh question answered correctly afterwards records the correction. Production's 9 `debugger` rows predate the redesign, so no cleanup was needed. |
+| EDU-02 | **Fixed** | After a miss, Explain asks a different question. Post-reveal answers no longer count. |
+| EDU-04 | **Fixed** | "Say this step back" has an answer box, and the tutor checks it. |
+| DATA-10 | **Fixed** | The mastery ladder reads checks only; the forecast still credits study time. Verified in the browser: a 45-minute timer left the ladder unchanged. |
+| DATA-11 | **Fixed** | Quiz answers are score events. Quiz-only topics join the forecast once a deck exists (students with no decks keep the quiz-only forecast). Practice answers record evidence. Topic matching uses whole words. Unreviewed cards count as unmeasured. |
+| DATA-12 | **Fixed** | The win screen computes its ladder the way Today does. Verified in the browser: both show "Recalled". |
+| DATA-13 | **Fixed** | Blocks carry their deck's subject. |
+| DATA-14 | **Fixed** | Progress mentions due cards. The subject table's "On track" is relabelled "Time balanced". The hero's "nothing measured" uses the same evidence as the ladder. |
+| LOOP-01 | **Fixed** | Wrong and guessed quiz questions become cards in a per-subject "Missed questions" deck, which is due at once and is not shown as a topic. |
+| EDU-01 / EDU-03 | **Fixed** | First run makes one request for hook, explanation and same-idea check (`api/firstLesson.ts`). An incomplete reply is retried, never padded. |
+| AI-11 | **Fixed** | An optional "Studying for" chip row on first run. The level reaches chat, quizzes, Explain and session answers. A guessed fallback is labelled as unconfirmed. |
+| UX-10 | **Fixed** | A topic skipped after a failure is kept and prefilled in Study. |
+| UX-11 | **Fixed** | Today's main action opens a Practice session; the timed block stays one click away. |
+| SESS-01 | **Fixed** | Sessions are synced to `study_session_state` (migration `20261001020000`, owner-only RLS). A missing session is fetched from the server, and Today resumes sessions started on another device. |
+| EDU-05 | **Fixed** | Words, not points, while evidence is thin. |
+| UX-12 / UX-13 | **Fixed** | One vocabulary (the five mode names). Study plan shows the worked-out week, and AI rearranging is optional. |
+| P3 items | **Fixed** | Sign-up copy, the "Podcast — soon" tile removed, one date format, first-run copy, and a stored-score fallback for attempt comparison. The quiz confidence order was kept: both screens ask before revealing. |
+| TD-01 | **Fixed** | The fixture uses the real attempt shape, and the e2e mock reads the app's quota table. |
+
+**Checks on the final commit:**
+
+- Vitest: 252 files / 3,194 tests passing.
+- Node tests: 161/161.
+- Playwright e2e (desktop + mobile): 81/81.
+- `tsc -b`: clean.
+- `deno check` on `learnora-ai`: clean (run against local stubs for the two remote imports).
+- The original browser reproductions were re-run against the fixes and now behave correctly.
+
+**Deploy order (not done from here):**
+
+1. Apply the three migrations: `20261001000000`, `20261001010000` and `20261001020000`.
+2. Deploy `learnora-ai`.
+3. Ship the webapp.
+
+The privacy text and the provider list need your sign-off. The dead
+Cerebras key should be removed from the Supabase secrets.
+
+## AI evaluation
+
+The real providers were not reachable from the test container, and no
+provider key was available. So `webapp/scripts/ai-eval` builds the
+**exact** production requests and runs them blind against a stand-in model
+(Claude Haiku). Each request is the edge function's system instruction plus
+the app's context and mode prompt, captured as the request leaves
+`callEdge`. Haiku stands in for the free-tier models production actually
+uses; this tests the prompts, not production's exact output.
+
+The same scenarios were graded against the same rubrics before and after
+the fixes:
+
+| Scenario | Before | After |
+|---|---|---|
+| chat-weak-student | PASS 7/8 (turn 2 lectured instead of hinting) | PASS 8/8. "idk" now gets a one-line scaffold ("If you bend the key, will it still fit?"); misconception corrected; direct exam answer on request. |
+| chat-strong-student | PARTIAL 3/5 (guess-first on a precise question; "harder" not harder; uncompetitive mislabelled) | PARTIAL 4/5. Answers the precise Vmax/Km question directly; harder question is harder. Still one factual slip: says a non-competitive inhibitor also raises Km (it does not). Model knowledge, not prompt. |
+| chat-boundaries | PARTIAL 3/4 (NAVIGATE progress ignored by the app) | PASS 4/4. The same `<NAVIGATE>progress</NAVIGATE>` now resolves to /analytics. |
+| chat-safety | PASS 2/2 | not re-run (prompt unchanged) |
+| quiz-generation | PARTIAL (one ambiguous key, garbled stem, keys 1,1,1,1,0,0) | PASS. Six distinct sub-skills, keys correct, no ambiguous option found, LaTeX used, positions varied. |
+| first-run-lesson | FAIL (no teaching; check tested a different idea) | PASS. Hook on alliances, a 100-word explanation of the alliance chain, check on that same idea. |
+| explain-plan | FAIL (fabricated deficits written to the ledger) | PASS. Three GCSE-level steps from "why plants need energy" up; no statement about the student; trap empty; nothing written to the ledger. |
+| explain-not-yet | PASS | not re-run (prompt unchanged) |
+| socratic-evaluate | FAIL (marked against "AP / College Board"; 3 missing points, one the student had made) | IMPROVED. Marked against GCSE; accuracy 95; one missing point ("what breaks the shape"), which is borderline for GCSE; nothing mis-attributed. |
+
+The remaining risk is factual accuracy that prompts cannot guarantee: the
+"non-competitive inhibitor raises Km" slip. That supports keeping the
+quiz verifier, the "Flag this answer" control, and a stronger primary
+model.
