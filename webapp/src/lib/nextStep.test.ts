@@ -16,14 +16,13 @@ const base = {
 
 describe("chooseNextStep", () => {
   it("measures first when the mastery number is not yet trustworthy", () => {
-    const step = chooseNextStep({
-      ...base,
-      evidence: LOW_EVIDENCE - 0.01,
-      mastery: 0.1,
-    });
+    const step = chooseNextStep({ ...base, evidence: LOW_EVIDENCE - 0.01, mastery: 0.1 });
     expect(step.method).toBe("block");
-    expect(step.to).toBeNull();
-    expect(step.why).toMatch(/nothing has measured/i);
+    expect(step.to).toMatch(/mode=practice/);
+    /* Some evidence exists, so it must not claim none does. */
+    expect(step.why).toMatch(/only a little has measured/i);
+    const none = chooseNextStep({ ...base, evidence: 0, mastery: 0.25 });
+    expect(none.why).toMatch(/nothing has measured/i);
   });
 
   it("sends a measured-and-wrong topic to the Solver, not to more cards", () => {

@@ -812,3 +812,14 @@ describe("evidence: checks, not time (2026-10 audit)", () => {
     expect(buildTopicStates({ ...src, quizzes: [{ id: "q1", folder_id: "f-bio" }] }).some((t) => t.label === "Weimar")).toBe(true);
   });
 });
+
+describe("the Missed questions pile is not a topic", () => {
+  it("is left out of the topic set", () => {
+    const decks = [
+      { id: "d1", title: "Enzymes", folder_id: null },
+      { id: "d2", title: "Missed questions", folder_id: null },
+    ] as never[];
+    const states = buildTopicStates({ decks, cards: [], attempts: [], now: new Date("2026-10-01") });
+    expect(states.map((t) => t.label)).toEqual(["Enzymes"]);
+  });
+});

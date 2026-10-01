@@ -44,6 +44,10 @@ import { fenceUntrusted } from "./actionTags";
 import { normaliseTopicKey, topicMatches } from "./topicKey";
 import { parseStoredAnswers } from "../views/quiz/quizMeta";
 
+/** The same title api/missedQuestions files cards under (not imported, so
+ *  the model stays free of the API layer). */
+const MISSED_DECK_TITLE = "Missed questions";
+
 /* --- Model constants ---------------------------------------------------
  *
  * Chosen to be defensible rather than precise. The decisions this engine
@@ -272,6 +276,9 @@ function applyEvents(
   base: { mastery: number; evidence: number; stabilityDays: number },
   events: LearningEvent[],
   now: Date,
+  /** Where the checks-only figure starts, when it differs from `base`
+   *  (cards that were never reviewed are not evidence of knowing). */
+  measuredBase?: number,
 ): {
   mastery: number;
   evidence: number;
@@ -281,7 +288,7 @@ function applyEvents(
 } {
   let { mastery, evidence, stabilityDays } = base;
   /* The same fold with the time events left out. */
-  let measuredMastery = base.mastery;
+  let measuredMastery = measuredBase ?? base.mastery;
   let measuredEvidence = base.evidence;
   const horizon = now.getTime() - EVENT_HORIZON_DAYS * 86_400_000;
   const live = events.filter((e) => {
@@ -331,9 +338,17 @@ function applyEvents(
  * no cards has nothing to project. */
 export function buildTopicStates(src: TopicSources): TopicState[] {
   const now = src.now ?? new Date();
-  const decks = src.folderId
+  /* "Missed questions" (api/missedQuestions) is a review pile spanning a
+     subject's topics, not a topic: it would show on Today as one. Its cards
+     still reach Recall through the due-card queue. */
+  const decks = (src.folderId
     ? src.decks.filter((d) => d.folder_id === src.folderId)
-    : src.decks;
+    : src.decks
+  ).filter((d) => d.title !== MISSED_DECK_TITLE);
+  /* A student with no decks here gets the quiz-only forecast instead
+     (lib/quizForecast, QuizOnlyForecast) — a separate, deliberately simpler
+     view. Quiz-only topics join this model once there is a deck to join. */
+  if (decks.length === 0) return [];
 
   /* Attempts saved before answers carried topics only say which topics came
      back wrong. Those still pull a deck down, capped: three bad answers on a
@@ -382,6 +397,22 @@ export function buildTopicStates(src: TopicSources): TopicState[] {
 
     const penalty = Math.min(0.3, weaknessFor(deck.title) * 0.06);
 
+    /* A card created this minute and never reviewed has a retention of 1
+       (nothing has had time to fade), which says nothing about knowing it.
+       The checks-only figure starts from reviewed cards alone, so a fresh
+       deck is "unmeasured" there rather than "solid". */
+    const reviewed = cards.filter((c) => (c.srs_interval ?? 0) > 0 || Boolean(c.next_review_date));
+    const measuredBase = reviewed.length
+      ? Math.max(
+          0,
+          Math.min(
+            1,
+            reviewed.reduce((sum, c) => sum + computeRetentionProbability(c, now), 0) / reviewed.length -
+              penalty,
+          ),
+        )
+      : UNMEASURED_MASTERY;
+
     const blended = applyEvents(
       {
         mastery: Math.max(0, Math.min(1, retention - penalty)),
@@ -390,6 +421,7 @@ export function buildTopicStates(src: TopicSources): TopicState[] {
       },
       deckEvents,
       now,
+      measuredBase,
     );
 
     return {

@@ -15,12 +15,14 @@
  * topic off the query string, so nothing here has to touch CognitiveBridge
  * or the timer, and the whole thing is testable without a router. */
 
-import { INTERVENTION_BLOCK_MINS } from "./trajectory";
 import { newSessionHref } from "./sessionModes";
 
 /** Below this, `mastery` is a guess rather than a measurement — the honest
  *  next step is the one that produces evidence, not one that acts on it. */
 export const LOW_EVIDENCE = 0.35;
+/** Below this nothing has been checked at all — the mastery ladder's own
+ *  "Not started" line (lib/mastery MIN_EVIDENCE). */
+export const NO_EVIDENCE = 0.05;
 /** Below this, the student is getting the topic wrong, not merely rusty.
  *  Drilling cards at that point rehearses the misunderstanding. */
 export const SHAKY_MASTERY = 0.45;
@@ -63,11 +65,18 @@ export function chooseNextStep({
   dueCards,
 }: NextStepInput): NextStep {
   if (evidence < LOW_EVIDENCE) {
+    /* Two cases the old line merged: nothing at all, and a little. It said
+       "Nothing has measured Enzymes yet" beside a Progress ladder showing
+       Enzymes measured, because the ladder counts any check and this
+       threshold is higher. */
+    const nothing = evidence < NO_EVIDENCE;
     return {
       method: "block",
-      action: `Start ${INTERVENTION_BLOCK_MINS} min on ${label}`,
-      why: `Nothing has measured ${label} yet. The block ends with a four-question check, so the next step after it is based on what you actually know.`,
-      to: null,
+      action: `Practise ${label}`,
+      why: nothing
+        ? `Nothing has measured ${label} yet. A few checked problems will show where you are, so the next step is based on what you actually know.`
+        : `Only a little has measured ${label} so far. A few more checked problems will make the next step much surer.`,
+      to: newSessionHref("practice", { topic: label }),
     };
   }
 

@@ -181,11 +181,19 @@ export function FirstRunView() {
   /* The ladder on the win screen, computed the way Today computes it — it
      used to be hard-coded to "Recalled", and Today showed the same topic as
      "Not started" a moment later. */
-  const winRung = useMemo<MasteryRung>(() => {
-    if (checkAnswer === null || !q2) return 0;
+  const winMastery = useMemo<{ rung: MasteryRung; fading: boolean }>(() => {
+    if (checkAnswer === null || !q2) return { rung: 0, fading: false };
     const now = new Date();
     const cards = [q1, q2].map(
-      (_, i) => ({ id: `c${i}`, deck_id: "first", srs_interval: 0, ease_factor: 2.5, next_review_date: null }) as unknown as Flashcard,
+      (_, i) =>
+        ({
+          id: `c${i}`,
+          deck_id: "first",
+          srs_interval: 0,
+          ease_factor: 2.5,
+          next_review_date: null,
+          created_at: now.toISOString(),
+        }) as unknown as Flashcard,
     );
     const [state] = buildTopicStates({
       decks: [{ id: "first", title: topic, folder_id: null } as never],
@@ -200,7 +208,7 @@ export function FirstRunView() {
         },
       ],
     });
-    return state ? topicMastery(state).rung : 0;
+    return state ? topicMastery(state) : { rung: 0, fading: false };
   }, [checkAnswer, q1, q2, passed, topic]);
   const minutes = startedAt
     ? Math.max(1, Math.round((Date.now() - startedAt) / 60_000))
@@ -462,7 +470,8 @@ export function FirstRunView() {
             <div className={styles.ladder}>
               <MasteryLadder
                 topic={topic}
-                rung={winRung}
+                rung={winMastery.rung}
+                fading={winMastery.fading}
                 gainedFrom={0}
                 showRungLabels
               />

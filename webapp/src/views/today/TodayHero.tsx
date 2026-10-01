@@ -27,9 +27,10 @@ import styles from "./today.module.css";
 /** How long "short on time" means. */
 export const SHORT_BLOCK_MINS = 10;
 
+/* Named after the session each step opens (lib/nextStep). */
 const METHOD_LABELS: Record<StudyMethod, string> = {
-  block: "Study block",
-  solve: "Socratic",
+  block: "Practice",
+  solve: "Explain",
   review: "Recall",
   teach: "Teach",
 };
@@ -342,9 +343,11 @@ export function TodayHero({
   }
 
   /* scenario === "next": the forecast's topic, and chooseNextStep's method. */
+  /* Checks only, like the Progress ladder beside it: study time must not
+     make the hero claim a topic has been measured. */
+  const topicState = forecast.topics?.find((t) => t.id === top.topicId);
   const evidence =
-    forecast.topics?.find((t) => t.id === top.topicId)?.evidence ??
-    forecast.confidence.evidence;
+    topicState?.measuredEvidence ?? topicState?.evidence ?? forecast.confidence.evidence;
   const step = chooseNextStep({
     label: top.label,
     topicId: top.topicId,
