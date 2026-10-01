@@ -6,22 +6,29 @@ import { Icon } from "../../components/Icon";
 import { AiErrorCard } from "../../components/learning/AiErrorCard";
 import { MasteryLadder } from "../../components/learning/MasteryLadder";
 import { TutorTurn } from "../../components/learning/TutorTurn";
-import { generateQuizQuestions } from "../../api/aiQuiz";
+import { generateFirstLesson, type FirstLesson } from "../../api/firstLesson";
+import { learningEventsApi } from "../../api/learningEvents";
 import { decksApi } from "../../api/decks";
 import { flashcardsApi } from "../../api/flashcards";
 import { useAuth } from "../../context/auth";
 import { useCreateModal } from "../../context/createModal";
-import { useSettings } from "../../context/settings";
 import { decksKeys } from "../../hooks/useDecks";
 import { flashcardsKeys } from "../../hooks/useFlashcards";
 import { useLifeContext } from "../../hooks/useLifeContext";
 import { useSaveExam } from "../../hooks/useExams";
 import { useUpdateProfile } from "../../hooks/useAuthActions";
-import { fenceUntrusted } from "../../lib/actionTags";
 import type { QuizQuestion } from "../../lib/aiJson";
+import type { Flashcard } from "../../api/types";
+import { buildTopicStates } from "../../lib/trajectory";
+import { topicMastery, type MasteryRung } from "../../lib/mastery";
+import { normaliseTopicKey } from "../../lib/topicKey";
+import { studentLevel } from "../../lib/studentLevel";
+import { savePendingTopic } from "../../lib/pendingTopic";
 import { localDateStr } from "../../lib/date";
 import {
   EMPTY_ANSWERS,
+  examBoardLabel,
+  type ExamTypeId,
   markOnboardedLocally,
   ONBOARDING_METADATA_KEY,
   ONBOARDING_VERSION,
@@ -32,6 +39,18 @@ import text from "../../styles/text.module.css";
 import styles from "./firstRun.module.css";
 
 const EXAMPLES = ["Quadratic equations", "Causes of WW1", "Supply & demand"];
+
+/* What they're studying for. The redesigned first run asked nothing, so
+   every new account reached the AI with no level: an en-US browser meant a
+   GCSE student was marked against "AP / College Board". One optional row of
+   chips, kept in the same onboarding answers lib/studentLevel reads. */
+const LEVELS: ReadonlyArray<{ id: string; label: string; examType?: ExamTypeId; university?: true }> = [
+  { id: "gcse", label: "GCSE", examType: "gcse" },
+  { id: "a_level", label: "A-Level", examType: "a_level" },
+  { id: "ib", label: "IB", examType: "ib" },
+  { id: "ap", label: "AP", examType: "ap" },
+  { id: "university", label: "University", university: true },
+];
 
 /* Session length → Life Sync's block sizes, which the planner already uses. */
 export const SESSION_LENGTHS = [
@@ -53,7 +72,6 @@ export function FirstRunView() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
-  const { settings } = useSettings();
   const { openCreateModal } = useCreateModal();
   const { update: updateLifeContext } = useLifeContext();
   const saveExam = useSaveExam();
@@ -62,9 +80,12 @@ export function FirstRunView() {
 
   const [step, setStep] = useState<Step>("start");
   const [topic, setTopic] = useState("");
-  const [questions, setQuestions] = useState<QuizQuestion[] | null>(null);
+  const [lesson, setLesson] = useState<FirstLesson | null>(null);
+  const [levelId, setLevelId] = useState<string | null>(null);
   const [guess, setGuess] = useState<number | null>(null);
-  const [checking, setChecking] = useState(false);
+  /* hook → teach → check, inside the lesson step. */
+  const [phase, setPhase] = useState<"hook" | "teach" | "check">("hook");
+  const checking = phase === "check";
   const [checkAnswer, setCheckAnswer] = useState<number | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [examDate, setExamDate] = useState("");
@@ -76,7 +97,7 @@ export function FirstRunView() {
   /* Each step is a new screenful; move focus so a screen reader follows. */
   useEffect(() => {
     headingRef.current?.focus();
-  }, [step, checking]);
+  }, [step, phase]);
 
   const firstName = useMemo(() => {
     const full = (user?.user_metadata as Record<string, unknown> | undefined)?.full_name;
@@ -89,6 +110,8 @@ export function FirstRunView() {
       await updateProfile.mutateAsync({
         [ONBOARDING_METADATA_KEY]: {
           ...EMPTY_ANSWERS,
+          examType: chosenLevel?.examType ?? null,
+          goal: chosenLevel?.university ? "university" : null,
           version: ONBOARDING_VERSION,
           completedAt: new Date().toISOString(),
           skipped,
@@ -100,16 +123,18 @@ export function FirstRunView() {
     }
   };
 
+  const chosenLevel = LEVELS.find((l) => l.id === levelId) ?? null;
+  const levelLabel = async () =>
+    chosenLevel?.examType
+      ? examBoardLabel(chosenLevel.examType)
+      : chosenLevel?.university
+        ? "university"
+        : studentLevel();
+
   const loadLesson = (subject: string) =>
     task.run(
-      () =>
-        generateQuizQuestions({
-          sourceText: `Topic: ${fenceUntrusted(subject)}\nWrite the first question as a "guess what happens" question a beginner could reasonably guess at, and the second as a check that the idea landed.`,
-          topic: fenceUntrusted(subject),
-          settings,
-          options: { questionCount: 2, difficulty: "Easy" },
-        }),
-      (qs) => setQuestions(qs),
+      async () => generateFirstLesson(subject, await levelLabel()),
+      (l) => setLesson(l),
     );
 
   const begin = (value: string) => {
@@ -130,10 +155,53 @@ export function FirstRunView() {
     openCreateModal({ type: "material", outputs: { flashcards: true, notes: true } });
   };
 
-  const q1 = questions?.[0];
-  const q2 = questions?.[1] ?? questions?.[0];
+  const q1 = lesson?.hook;
+  const q2 = lesson?.check;
   const passed =
     checkAnswer !== null && q2 !== undefined && checkAnswer === q2.correctIndex;
+
+  /* The check is real evidence: recorded once, on the topic the saved deck
+     is named after, so Today reads the same result this screen shows. */
+  const answerCheck = (index: number) => {
+    setCheckAnswer(index);
+    if (!q2) return;
+    void learningEventsApi
+      .record({
+        source: "quick_check",
+        topicKey: normaliseTopicKey(topic),
+        score: index === q2.correctIndex ? 1 : 0,
+        clientId: `first-run:${user?.id ?? "anon"}:${normaliseTopicKey(topic)}`,
+        payload: { mode: "first-run", concept: lesson?.concept },
+      })
+      .catch(() => {
+        /* Best-effort, like every other evidence write. */
+      });
+  };
+
+  /* The ladder on the win screen, computed the way Today computes it — it
+     used to be hard-coded to "Recalled", and Today showed the same topic as
+     "Not started" a moment later. */
+  const winRung = useMemo<MasteryRung>(() => {
+    if (checkAnswer === null || !q2) return 0;
+    const now = new Date();
+    const cards = [q1, q2].map(
+      (_, i) => ({ id: `c${i}`, deck_id: "first", srs_interval: 0, ease_factor: 2.5, next_review_date: null }) as unknown as Flashcard,
+    );
+    const [state] = buildTopicStates({
+      decks: [{ id: "first", title: topic, folder_id: null } as never],
+      cards,
+      attempts: [],
+      now,
+      events: [
+        {
+          id: "e", user_id: "", topic_key: normaliseTopicKey(topic), deck_id: null, folder_id: null,
+          source: "quick_check", score: passed ? 1 : 0, minutes: 0, occurred_at: now.toISOString(),
+          payload: {}, client_id: null,
+        },
+      ],
+    });
+    return state ? topicMastery(state).rung : 0;
+  }, [checkAnswer, q1, q2, passed, topic]);
   const minutes = startedAt
     ? Math.max(1, Math.round((Date.now() - startedAt) / 60_000))
     : 1;
@@ -141,14 +209,17 @@ export function FirstRunView() {
   /* The lesson's two questions become two flashcards, so Recall can bring
      the idea back before it fades. Once, and best-effort. */
   const saveCards = async () => {
-    if (savedCards.current || !questions?.length) return;
+    if (savedCards.current || !lesson) return;
     savedCards.current = true;
     try {
       const deck = await decksApi.add(null, topic);
-      await flashcardsApi.addBatch(
-        deck.id,
-        questions.map((q) => ({ front: q.question, back: q.choices[q.correctIndex] })),
-      );
+      /* Options stay on the front: a stem like "Which of these…" is
+         unanswerable on its own. The back carries the lesson's teaching. */
+      const card = (q: QuizQuestion) => ({
+        front: `${q.question}\n\n${q.choices.map((c, i) => `${"ABCDE"[i]}) ${c}`).join("\n")}`,
+        back: `${q.choices[q.correctIndex]}\n\n${lesson.explanation}`,
+      });
+      await flashcardsApi.addBatch(deck.id, [card(lesson.hook), card(lesson.check)]);
       await Promise.all([
         qc.invalidateQueries({ queryKey: decksKeys.all }),
         qc.invalidateQueries({ queryKey: flashcardsKeys.all }),
@@ -188,6 +259,9 @@ export function FirstRunView() {
   };
 
   const skip = async () => {
+    /* "Your topic is kept" is what the error card says, so keep it: Study
+       opens with it filled in. */
+    if (topic.trim() && !lesson && user) savePendingTopic(user.id, topic.trim());
     await markDone(true);
     navigate("/", { replace: true });
   };
@@ -242,6 +316,22 @@ export function FirstRunView() {
                 Start
               </Button>
             </div>
+            <div className={styles.examples} role="group" aria-labelledby="level-label">
+              <span id="level-label" className={styles.examplesLabel}>
+                Studying for (optional):
+              </span>
+              {LEVELS.map((l) => (
+                <button
+                  key={l.id}
+                  type="button"
+                  className={styles.example}
+                  aria-pressed={levelId === l.id}
+                  onClick={() => setLevelId(levelId === l.id ? null : l.id)}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
             <div className={styles.examples}>
               <span className={styles.examplesLabel}>Or try:</span>
               {EXAMPLES.map((ex) => (
@@ -280,7 +370,7 @@ export function FirstRunView() {
               fallbackLabel="Skip to my plan"
               kept="Nothing is lost by skipping: your topic is kept and you can start a lesson from Study any time."
             />
-          ) : q1 && !checking ? (
+          ) : q1 && phase === "hook" ? (
             <TutorTurn
               meta="Quick one first"
               check={
@@ -296,16 +386,13 @@ export function FirstRunView() {
                         ✓ Answer: {q1.choices[q1.correctIndex]}
                       </p>
                     ) : null}
-                    <div className={styles.explain}>
-                      {guess !== q1.correctIndex ? (
-                        <p>
-                          That's a common first guess, and making it helps: the
-                          answer now has something to attach to.
-                        </p>
-                      ) : null}
-                      {q1.feedback ? <p>{q1.feedback}</p> : null}
-                    </div>
-                    <Button variant="primary" onClick={() => setChecking(true)}>
+                    {guess !== q1.correctIndex ? (
+                      <p className={styles.explain}>
+                        Guessing first helps: the answer now has something to
+                        attach to.
+                      </p>
+                    ) : null}
+                    <Button variant="primary" onClick={() => setPhase("teach")}>
                       Show me how →
                     </Button>
                   </div>
@@ -317,12 +404,30 @@ export function FirstRunView() {
                 <p className={styles.note}>No penalty for guessing. It tells us where to start.</p>
               ) : null}
             </TutorTurn>
+          ) : lesson && phase === "teach" ? (
+            /* The lesson itself. It used to be missing: "Show me how" went
+               straight to the next question. */
+            <TutorTurn
+              meta={`The idea · ${lesson.concept}`}
+              check={
+                <Button variant="primary" onClick={() => setPhase("check")}>
+                  Got it, check me →
+                </Button>
+              }
+            >
+              {lesson.explanation.split(/\n{2,}/).map((para, i) => (
+                <p key={i}>{para}</p>
+              ))}
+              {lesson.hook.feedback ? (
+                <p className={styles.note}>Back to the first question: {lesson.hook.feedback}</p>
+              ) : null}
+            </TutorTurn>
           ) : q2 && checking ? (
             <TutorTurn
               meta="Now check it landed"
               check={
                 checkAnswer === null ? (
-                  <Options question={q2} onPick={setCheckAnswer} />
+                  <Options question={q2} onPick={answerCheck} />
                 ) : (
                   <div className={styles.results}>
                     <p className={styles.result} data-result={passed ? "right" : "wrong"}>
@@ -357,8 +462,8 @@ export function FirstRunView() {
             <div className={styles.ladder}>
               <MasteryLadder
                 topic={topic}
-                rung={passed ? 2 : 1}
-                gainedFrom={passed ? 1 : 0}
+                rung={winRung}
+                gainedFrom={0}
                 showRungLabels
               />
             </div>

@@ -14,6 +14,7 @@
  */
 
 import { callEdge } from "./ai";
+import { levelRules, studentLevel } from "../lib/studentLevel";
 import { quizzesApi } from "./quizzes";
 import { type QuizQuestion, extractQuizJSON } from "../lib/aiJson";
 import { fenceUntrusted } from "../lib/actionTags";
@@ -243,7 +244,7 @@ export async function generateQuizQuestions({ sourceText, topic, settings, optio
             options.personality ?? AI_PERSONA_QUIZ_HOST[settings.aiPersona],
           count: options.questionCount ?? QUIZ_DEFAULTS.questionCount,
           misconceptionFocus,
-        }),
+        }) + `\n\n${levelRules(await studentLevel().catch(() => "secondary school"))}`,
       },
     ],
     mode: "quiz",

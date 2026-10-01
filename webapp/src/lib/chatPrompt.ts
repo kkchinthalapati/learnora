@@ -60,6 +60,9 @@ export interface ChatContext {
   /** Provider-returned web snippets. Already labelled and fenced by the
    * caller; this function only places them beside the grounding rules. */
   webEvidence?: string;
+  /** What the student is studying for ("GCSE", "university"), from
+   *  lib/studentLevel. Omitted when unknown. */
+  studentLevel?: string;
   /** When false, the student's message is left out: it travels as the user
    *  turn and this whole block as the request's separate `context`, so the
    *  student's words are never part of the app's instructions. */
@@ -148,6 +151,7 @@ export function buildSystemContext({
   misconceptionLedger = "",
   webEvidence = "",
   includeQuery = true,
+  studentLevel = "",
 }: ChatContext): string {
   const voiceInstructions = PERSONA_VOICE[persona];
   const concisenessInstruction = CONCISENESS_INSTRUCTION[conciseness];
@@ -159,6 +163,7 @@ VOICE:
 - ${concisenessInstruction}
 ${adaptiveNudge ? `- ADAPTIVE NUDGE: ${adaptiveNudge}` : ""}
 ${guessFirst ? `- ${GUESS_FIRST_INSTRUCTION}` : ""}
+${studentLevel ? `- STUDENT LEVEL: ${studentLevel}. Pitch explanations, examples and questions at this level; add detail from a higher level only when the student asks for it.` : ""}
 - Speak in the first person. "I can help with that" — never "Learnora can help with that", and never describe yourself in the third person.
 - "Learnora" names the app and its features (Today, Study, Progress). It is not a substitute for "I".
 

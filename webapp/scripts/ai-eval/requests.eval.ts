@@ -25,11 +25,14 @@ import { SUPABASE_URL } from "../../src/lib/supabase";
 import { DEFAULT_SETTINGS, type Settings } from "../../src/lib/settings";
 import { buildSystemContext } from "../../src/lib/chatPrompt";
 import { generateQuizQuestions } from "../../src/api/aiQuiz";
-import { diagnoseCognitiveGap } from "../../src/api/aiDebugger";
+import { planExplanation } from "../../src/api/aiExplain";
 import { askInSession, buildSessionContext } from "../../src/api/aiSession";
 import { startSparringSession, submitStudentAnswer } from "../../src/api/aiSparring";
 import { generateApprenticeDraft } from "../../src/api/aiFeynman";
 import { firstRunLessonRequest } from "./firstRun";
+import { vi, beforeEach } from "vitest";
+import { supabase } from "../../src/lib/supabase";
+import { fakeSession } from "../../src/test/auth";
 // @ts-expect-error — plain JS module shared with the Deno edge function.
 import { buildSystemInstruction } from "../../../supabase/functions/_shared/systemPrompt.js";
 
@@ -101,6 +104,7 @@ function drawerContext(activeContext = "User is on the general dashboard."): str
     persona: settings.aiPersona,
     conciseness: settings.aiConciseness,
     guessFirst: true,
+    studentLevel: "GCSE",
     performanceEvidence:
       "PERFORMANCE EVIDENCE (from the student's actual quiz results):\n- Quizzes taken in the last 30 days: 1 (2 questions answered).\n- Enzymes: 0/1 correct (provisional). Rates: 1/1 correct (provisional).",
     misconceptionLedger:
@@ -115,6 +119,20 @@ function chat(id: string, title: string, first: string, followUps: string[], rub
     { history: [{ role: "user", content: first }], context: ctx, tool: "chat", settings: { ...settings } },
   );
 }
+
+/* The student every scenario models: a GCSE student who picked "GCSE" on
+   first run. Before that chip existed there was no level on file, and
+   studentLevel() fell back to the browser locale's exam system. */
+beforeEach(() => {
+  const session = fakeSession({
+    id: "eval-student",
+    user_metadata: { full_name: "Eval Student", onboarding: { version: 1, examType: "gcse", completedAt: "2026-10-01T00:00:00Z" } },
+  });
+  vi.spyOn(supabase.auth, "getSession").mockResolvedValue({
+    data: { session },
+    error: null,
+  } as Awaited<ReturnType<typeof supabase.auth.getSession>>);
+});
 
 describe("AI eval: build requests", () => {
   it("tutor chat — weak student", () => {
@@ -219,7 +237,7 @@ describe("AI eval: build requests", () => {
   });
 
   it("first-run lesson", async () => {
-    const [req] = await capture(() => firstRunLessonRequest("Causes of WW1", settings));
+    const [req] = await capture(() => firstRunLessonRequest("Causes of WW1", "GCSE"));
     write(
       {
         id: "first-run-lesson",
@@ -237,7 +255,7 @@ describe("AI eval: build requests", () => {
   });
 
   it("explain mode — plain topic, no mistake", async () => {
-    const [req] = await capture(() => diagnoseCognitiveGap("Biology", "photosynthesis"));
+    const [req] = await capture(() => planExplanation("Biology", "photosynthesis"));
     write(
       {
         id: "explain-plan",

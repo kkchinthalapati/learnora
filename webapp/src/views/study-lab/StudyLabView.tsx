@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useOptionalAuth } from "../../context/auth";
+import { clearPendingTopic, readPendingTopic } from "../../lib/pendingTopic";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Icon } from "../../components/Icon";
 import type { IconName } from "../../components/icons";
@@ -89,7 +91,17 @@ export function StudyLabView() {
   const navigate = useNavigate();
   const { ranked } = useMisconceptions();
   const [searchParams] = useSearchParams();
-  const [topic, setTopic] = useState(searchParams.get("topic")?.trim() || "");
+  const userId = useOptionalAuth()?.user?.id;
+  /* A first-run topic that never got its lesson (the AI failed and they
+     skipped) is waiting here, as the error card promised. */
+  const [topic, setTopic] = useState(
+    () => searchParams.get("topic")?.trim() || readPendingTopic(userId) || "",
+  );
+  useEffect(() => {
+    if (topic.trim()) clearPendingTopic(userId);
+    // Only once the student has seen it here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const activeTopic = topic.trim();
 
   /* The one row worth interrupting the menu for; absent on a new account. */

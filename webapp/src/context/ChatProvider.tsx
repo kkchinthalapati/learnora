@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { studentLevel } from "../lib/studentLevel";
 import type { ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router";
@@ -657,7 +658,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           }
         }
 
+        const level = await studentLevel().catch(() => "");
         const systemContext = buildSystemContext({
+          studentLevel: level,
           pendingTasks,
           upcomingExams,
           activeContext: activeContextForPath(pathname, notesMarkdown),
