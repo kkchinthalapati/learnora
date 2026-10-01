@@ -56,9 +56,10 @@ export const tasksApi = {
 
   async updateText(id: number, newText: string): Promise<void> {
     const userId = await requireUserId();
+    /* Same cap as `add`: a rename was the way around it. */
     const { error } = await supabase
       .from("tasks")
-      .update({ text: newText })
+      .update({ text: newText.slice(0, TASK_MAX) })
       .eq("id", id)
       .eq("user_id", userId);
     if (error) throw new Error(error.message);

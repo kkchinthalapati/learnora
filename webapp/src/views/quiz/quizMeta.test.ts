@@ -169,6 +169,18 @@ describe("answerForIndex", () => {
   it("returns null when the question was never answered", () => {
     expect(answerForIndex([], questions, 0)).toBeNull();
   });
+
+  /* A test left with blanks stores only what was answered; reading that
+     positionally gave question 1 question 2's answer. */
+  it("never reads a sparse attempt by position", () => {
+    const idless = parseStoredQuestions([
+      { question: "a", choices: ["1", "2"], correctIndex: 0 },
+      { question: "b", choices: ["1", "2"], correctIndex: 1 },
+    ]);
+    const answers: StoredAnswer[] = [{ questionId: 1, chosenIndex: 1, correct: true }];
+    expect(answerForIndex(answers, idless, 0)).toBeNull();
+    expect(answerForIndex(answers, idless, 1)?.correct).toBe(true);
+  });
 });
 
 describe("weakTopicsFrom", () => {

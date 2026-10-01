@@ -164,6 +164,61 @@ describe("MaterialPanel streamlined creation", () => {
     ).toBeInTheDocument();
   });
 
+  it("turns a photo into notes and flashcards through the normal pipeline", async () => {
+    serveDb();
+    const edgeBodies: {
+      mode?: string;
+      history: { content: string }[];
+      file?: { mimeType: string; name: string } | null;
+    }[] = [];
+    server.use(
+      http.post(`${SUPABASE_URL}/storage/v1/object/materials/*`, () =>
+        HttpResponse.json({ Key: "materials/user-1/board.jpg" }),
+      ),
+      http.post(EDGE_URL, async ({ request }) => {
+        const body = (await request.json()) as (typeof edgeBodies)[number];
+        edgeBodies.push(body);
+        return HttpResponse.json({
+          text: body.mode === "notes" ? NOTES_MARKDOWN : JSON.stringify(CARDS),
+        });
+      }),
+    );
+    const user = await openDialog();
+    await user.click(screen.getByRole("tab", { name: /Upload Document/ }));
+    await user.upload(
+      screen.getByLabelText("Take a photo"),
+      new File(["jpeg bytes"], "board.jpg", { type: "image/jpeg" }),
+    );
+    expect(await screen.findByText("board.jpg")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Generate Study Resources" }),
+    );
+    expect(await screen.findByText("Created flashcards.")).toBeInTheDocument();
+
+    /* The photo is read once, into notes, by the attachment path — and the
+       deck is built from those notes, never from the image again. */
+    const [notesCall, deckCall] = edgeBodies;
+    expect(notesCall.mode).toBe("notes");
+    expect(notesCall.file?.mimeType).toBe("image/jpeg");
+    expect(notesCall.history[0].content).toMatch(/attached photo/);
+    expect(deckCall.mode).toBe("flashcards");
+    expect(deckCall.file ?? null).toBeNull();
+  });
+
+  it("explains a photo format it cannot read, without selecting it", async () => {
+    const user = await openDialog();
+    await user.click(screen.getByRole("tab", { name: /Upload Document/ }));
+    await user.upload(
+      screen.getByLabelText("Take a photo"),
+      new File(["heic"], "IMG_0001.heic", { type: "image/heic" }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Use a JPEG, PNG or WebP photo.",
+    );
+    expect(screen.queryByText("IMG_0001.heic")).not.toBeInTheDocument();
+  });
+
   it("only offers Saved Material when the student has one", async () => {
     server.use(
       http.get(`${SUPABASE_URL}/rest/v1/materials`, () =>
@@ -444,7 +499,7 @@ describe("MaterialPanel streamlined creation", () => {
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Retry Failed Stages" }),
+      screen.getByRole("button", { name: "Retry what didn't finish" }),
     ).toBeInTheDocument();
 
     // State is preserved
@@ -452,7 +507,7 @@ describe("MaterialPanel streamlined creation", () => {
 
     // Click retry
     await user.click(
-      screen.getByRole("button", { name: "Retry Failed Stages" }),
+      screen.getByRole("button", { name: "Retry what didn't finish" }),
     );
     expect(
       await screen.findByText("Created notes, flashcards."),

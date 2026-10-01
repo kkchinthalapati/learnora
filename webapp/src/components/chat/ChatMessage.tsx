@@ -9,11 +9,15 @@ import {
 } from "../../lib/markdownToReact";
 import type {
   ActionWidget,
+  ChatImage,
   ChatMessage as Message,
   WebCitation,
 } from "../../context/chat";
+import { fetchChatImage } from "../../api/aiImage";
 import { sourceSnippet } from "../../lib/sourceSnippet";
 import styles from "./chat.module.css";
+import { useNavigate } from "react-router";
+import { AiErrorCard } from "../learning/AiErrorCard";
 
 /* One chat bubble — ports `_appendBubble` (js/ai.js:1276-1298) and the action
  * widgets from the replace pass at :1181-1240.
@@ -55,7 +59,7 @@ function ThinkingDots({
   phase,
   onCancel,
 }: {
-  phase?: "searching" | "thinking" | null;
+  phase?: "searching" | "thinking" | "drawing" | null;
   onCancel?: () => void;
 }) {
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -70,7 +74,9 @@ function ThinkingDots({
   const label =
     phase === "searching"
       ? "Looking things up…"
-      : slow
+      : phase === "drawing"
+        ? "Drawing your diagram…"
+        : slow
         ? "Still writing your answer…"
         : "Writing your answer…";
 
@@ -98,6 +104,81 @@ function ThinkingDots({
   );
 }
 
+/* A generated picture, from its storage key. The bucket is private, so it
+   is read through a signed URL — fetched into an object URL rather than put
+   in `src`, because the same URL serves the Download link, and only a
+   same-origin URL like blob: makes that a real download rather than a
+   navigation. */
+function GeneratedImage({
+  image,
+  onSave,
+}: {
+  image: ChatImage;
+  onSave?: () => void;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | null = null;
+    fetchChatImage(image.path)
+      .then((blob) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        setUrl(objectUrl);
+      })
+      .catch(() => {
+        if (active) setFailed(true);
+      });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [image.path]);
+
+  if (failed) {
+    return <em>This picture is no longer available.</em>;
+  }
+  if (!url) {
+    return <span className={styles.imageLoading}>Loading your diagram…</span>;
+  }
+  const ext = image.path.split(".").pop() || "png";
+  return (
+    <figure className={styles.generatedImage}>
+      <img src={url} alt={image.alt} loading="lazy" />
+      <figcaption className={styles.imageActions}>
+        <a
+          href={url}
+          className={styles.imageAction}
+          download={`learnora-diagram.${ext}`}
+        >
+          <Icon name="download" size={14} />
+          Download
+        </a>
+        {onSave ? (
+          image.savedDeckId ? (
+            <span className={styles.cardsSaved}>
+              <Icon name="check" size={14} />
+              Saved as a flashcard
+            </span>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              disabled={image.saving}
+              onClick={onSave}
+            >
+              <Icon name="layers" size={14} />
+              {image.saving ? "Saving…" : "Save as flashcard"}
+            </Button>
+          )
+        ) : null}
+      </figcaption>
+    </figure>
+  );
+}
+
 function extractDomain(url?: string): string {
   if (!url) return "web";
   try {
@@ -110,6 +191,7 @@ function extractDomain(url?: string): string {
 export function ChatMessageBubble({
   message,
   onSaveCards,
+  onSaveImage,
   onAddToNotebook,
   sendPhase,
   onCancel,
@@ -121,19 +203,22 @@ export function ChatMessageBubble({
    *  see NotesAiSidebar's header comment), so the button silently isn't
    *  offered rather than wired to nothing. */
   onSaveCards?: (messageId: string) => void;
+  /** Saves `message.image` as a flashcard; omitted where that isn't offered. */
+  onSaveImage?: (messageId: string) => void;
   onAddToNotebook?: (citation: {
     title: string;
     url?: string;
     snippet?: string;
   }) => void | Promise<void>;
-  /** Which half of the wait this is, for the pending bubble only. */
-  sendPhase?: "searching" | "thinking" | null;
+  /** Which part of the wait this is, for the pending bubble only. */
+  sendPhase?: "searching" | "thinking" | "drawing" | null;
   /** Abandons the answer in flight. Offered once the wait turns long. */
   onCancel?: () => void;
   /** Re-sends the question behind a failure notice. */
   onRetry?: (message: Message) => void;
 }) {
   const [addedCitations, setAddedCitations] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
 
   if (message.role === "user") {
     return (
@@ -172,6 +257,13 @@ export function ChatMessageBubble({
   let body;
   if (message.pending) {
     body = <ThinkingDots phase={sendPhase} onCancel={onCancel} />;
+  } else if (message.image) {
+    body = (
+      <GeneratedImage
+        image={message.image}
+        onSave={onSaveImage ? () => onSaveImage(message.id) : undefined}
+      />
+    );
   } else if (message.cards) {
     body = (
       <div>
@@ -219,9 +311,10 @@ export function ChatMessageBubble({
             node: <ActionWidgetChip key={`w-${i}`} widget={part.widget} />,
           },
     );
-    body = renderMarkdownSegments(segments);
+    body = renderMarkdownSegments(segments, { diagrams: true });
   } else if (cleanDisplayContent) {
-    body = renderMarkdownNodes(cleanDisplayContent);
+    /* The tutor may answer with a ```mermaid diagram (lib/chatPrompt.ts). */
+    body = renderMarkdownNodes(cleanDisplayContent, { diagrams: true });
   } else {
     /* Every visible word was an action tag — the vanilla said the same
        (js/ai.js:1256). */
@@ -237,19 +330,21 @@ export function ChatMessageBubble({
     });
   };
 
+  /* A failure that can be retried says what happened, what was kept and
+     that retrying is safe — the same card a Session uses. */
+  if (message.error && message.retryQuery && onRetry) {
+    return (
+      <AiErrorCard
+        detail={message.text}
+        onRetry={() => onRetry(message)}
+        onFallback={() => void navigate("/review/daily-drill")}
+      />
+    );
+  }
+
   return (
     <div className={classes} role={message.error ? "alert" : undefined}>
       {body}
-
-      {message.error && message.retryQuery && onRetry ? (
-        <button
-          type="button"
-          className={styles.retryBtn}
-          onClick={() => onRetry(message)}
-        >
-          <Icon name="refresh-cw" size={13} /> Try again
-        </button>
-      ) : null}
 
       {/* Web Citation Cards */}
       {webSources.length > 0 && !message.pending && (

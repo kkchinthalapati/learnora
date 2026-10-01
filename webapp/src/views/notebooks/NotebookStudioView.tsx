@@ -15,6 +15,11 @@ import styles from "./notebooks.module.css";
 import { EmptyState } from "../../components/EmptyState";
 import { WebSourceImportModal } from "./WebSourceImportModal";
 import { renderMarkdownNodes } from "../../lib/markdownToReact";
+import { extractSvgSource } from "../../lib/diagramSvg";
+import {
+  DIAGRAM_CHAT_HINT,
+  buildDiagramTaskPrompt,
+} from "../../lib/diagramPrompt";
 import { useStudentEvidence } from "../../hooks/useStudentEvidence";
 import { useMisconceptions } from "../../hooks/useMisconceptions";
 import { formatEvidenceForPrompt } from "../../lib/studentEvidence";
@@ -22,6 +27,8 @@ import { formatMisconceptionsForPrompt } from "../../lib/misconceptions";
 import { useSettings } from "../../context/settings";
 import { fenceUntrusted } from "../../lib/actionTags";
 import { useAiUsage } from "../../hooks/useAiUsage";
+import { plural } from "../../lib/plural";
+import { newSessionHref } from "../../lib/sessionModes";
 
 const MAX_NOTEBOOK_SOURCE_CHARS = 12_000;
 
@@ -108,6 +115,10 @@ export function NotebookStudioView() {
     return <span className={badgeClass}>{label}</span>;
   };
 
+  // Diagram brief: what the drawing should show, asked before generating.
+  const [isDiagramPromptOpen, setIsDiagramPromptOpen] = useState(false);
+  const [diagramRequest, setDiagramRequest] = useState("");
+
   // New source form state
   const [newSourceTitle, setNewSourceTitle] = useState("");
   const [newSourceType, setNewSourceType] = useState<SourceType>("pdf");
@@ -140,7 +151,7 @@ export function NotebookStudioView() {
       ? `${notebook.notes}\n\n---\n\n${content}`
       : content;
     updateNotes(next);
-    showToast("Appended to your Notes Canvas!");
+    showToast("Added to your Notes Canvas");
     setActiveArtifactPreview(null);
   };
 
@@ -155,7 +166,9 @@ export function NotebookStudioView() {
         notebook.id,
       );
       await flashcardsApi.addBatch(deck.id, cards);
-      showToast(`Created a flashcard deck with ${cards.length} cards.`);
+      showToast(
+        `Created a flashcard deck with ${plural(cards.length, "card")}.`,
+      );
       setActiveArtifactPreview(null);
       void navigate(`/review/${deck.id}`);
     } catch {
@@ -187,7 +200,10 @@ export function NotebookStudioView() {
         title="Notebook not found"
         message="This notebook may have been deleted or does not exist."
       >
-        <Button variant="primary" onClick={() => void navigate("/library/notebooks")}>
+        <Button
+          variant="primary"
+          onClick={() => void navigate("/library/notebooks")}
+        >
           Back to Notebooks
         </Button>
       </EmptyState>
@@ -224,7 +240,7 @@ export function NotebookStudioView() {
     setNewSourceTitle("");
     setNewSourceContent("");
     setIsAddSourceOpen(false);
-    showToast("Study source added to notebook!");
+    showToast("Study source added to notebook");
   };
 
   const handleSendChat = async (overridePrompt?: string) => {
@@ -253,7 +269,9 @@ ${
     ? "When referencing facts from the provided sources, cite them clearly using bracketed numbers like [1], [2] matching the source index."
     : "No sources are attached, so answer from general subject knowledge and do not invent bracketed citation markers like [1] — there is nothing for them to reference."
 }
-Keep explanations friendly, encouraging, and structured for student success.`;
+Keep explanations friendly, encouraging, and structured for student success.
+
+${DIAGRAM_CHAT_HINT}`;
 
       /* While the cache is still filling, the summary would read "0 quizzes
          taken" — which is a claim, not an absence. Say the true thing
@@ -354,7 +372,7 @@ Use British English throughout.`;
         summary:
           "Structured summary covering core theorems, definitions, and exam pitfalls.",
       });
-      showToast("Cheat Sheet saved to your Notebook Studio!");
+      showToast("Cheat sheet saved to Notebook Studio");
     } catch (cause) {
       /* Deliberately no fallback artifact. This used to save a hardcoded
          paragraph about congruency conditions and tell the student their cheat
@@ -417,6 +435,65 @@ Use British English throughout.`;
         cause instanceof Error
           ? cause.message
           : "Could not write the breakdown. Please try again.",
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  /* Unlike the other tools this one has a free-text brief: "a diagram" is
+     never one thing, and a student who wants the circle theorems on a single
+     circle should not get a generic concept map instead.
+
+     An SVG drawing, not a ```mermaid one: mermaid covers processes, sequences
+     and mindmaps (lib/chatPrompt.ts), but it cannot draw a circle with an
+     angle marked on it, which is most of what a maths or science notebook
+     needs. */
+  const handleGenerateDiagram = async (request?: string) => {
+    if (studioUsage.exceeded) {
+      showToast("You've reached today's limit for Studio AI tools.", {
+        actionLabel: "View plan",
+        onAction: () => void navigate("/settings?tab=subscription"),
+      });
+      return;
+    }
+    setIsGenerating(true);
+    showToast("Drawing your diagram…");
+
+    try {
+      const res = await callEdge({
+        history: [
+          {
+            role: "user",
+            content: `You are a diagram illustrator for a British revision app. You draw accurate, labelled SVG diagrams for students.\n\nSOURCES:\n${groundedSourceText()}\n\nTASK:\n${buildDiagramTaskPrompt(notebook.title, request)}`,
+          },
+        ],
+        tool: "notebookStudio",
+        settings,
+      });
+
+      /* A reply with no drawing in it is a failed generation, not an artifact
+         — saving it would put a wall of prose in the diagram slot, which is
+         the same lie the old hardcoded fallbacks told. */
+      if (!extractSvgSource(res.text)) {
+        showToast("That did not come back as a diagram. Please try again.");
+        return;
+      }
+
+      addArtifact({
+        type: "diagram",
+        title: request?.trim()
+          ? `Diagram: ${request.trim()}`
+          : `${notebook.subject} Diagram: ${notebook.title}`,
+        content: res.text,
+        summary: "Labelled diagram drawn from your notebook sources.",
+      });
+      showToast("Diagram saved to Notebook Studio");
+    } catch (cause) {
+      showToast(
+        cause instanceof Error
+          ? cause.message
+          : "Could not draw that diagram. Please try again in a moment.",
       );
     } finally {
       setIsGenerating(false);
@@ -820,7 +897,9 @@ Use British English throughout.`;
                             <div className={styles.userText}>{msg.content}</div>
                           ) : (
                             <div className={styles.replyProse}>
-                              {renderMarkdownNodes(msg.content)}
+                              {renderMarkdownNodes(msg.content, {
+                                diagrams: true,
+                              })}
                             </div>
                           )}
 
@@ -881,6 +960,18 @@ Use British English throughout.`;
                         }
                       >
                         ⚠️ Exam traps
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.filterPill}
+                        style={{ fontSize: "11px", padding: "4px 8px" }}
+                        onClick={() =>
+                          handleSendChat(
+                            "Draw me a labelled diagram of this topic.",
+                          )
+                        }
+                      >
+                        📐 Draw a diagram
                       </button>
                     </div>
 
@@ -977,7 +1068,7 @@ Use British English throughout.`;
                         <div className={styles.userText}>{msg.content}</div>
                       ) : (
                         <div className={styles.replyProse}>
-                          {renderMarkdownNodes(msg.content)}
+                          {renderMarkdownNodes(msg.content, { diagrams: true })}
                         </div>
                       )}
 
@@ -1048,6 +1139,17 @@ Use British English throughout.`;
                   >
                     📝 3 Practice questions
                   </button>
+                  <button
+                    type="button"
+                    className={styles.filterPill}
+                    onClick={() =>
+                      handleSendChat(
+                        "Draw me a labelled diagram that shows how this topic fits together.",
+                      )
+                    }
+                  >
+                    📐 Draw a diagram
+                  </button>
                 </div>
 
                 <div className={styles.chatInputRow}>
@@ -1090,7 +1192,11 @@ Use British English throughout.`;
                 className={`${styles.toolButton} ${studioUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={() => void handleGenerateFeynman()}
                 disabled={isGenerating}
-                title={studioUsage.exceeded ? "Daily allowance reached for Studio tools" : undefined}
+                title={
+                  studioUsage.exceeded
+                    ? "Daily allowance reached for Studio tools"
+                    : undefined
+                }
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="brain" size={18} />
@@ -1105,9 +1211,34 @@ Use British English throughout.`;
               <button
                 type="button"
                 className={`${styles.toolButton} ${studioUsage.exceeded ? styles.toolButtonDisabled : ""}`}
+                onClick={() => setIsDiagramPromptOpen(true)}
+                disabled={isGenerating}
+                title={
+                  studioUsage.exceeded
+                    ? "Daily allowance reached for Studio tools"
+                    : undefined
+                }
+              >
+                <div className={styles.toolIconBox}>
+                  <Icon name="network" size={18} />
+                </div>
+                <div className={styles.toolLabel}>Diagram</div>
+                <div className={styles.toolSubtext}>
+                  Draw & label the concept
+                </div>
+                {renderQuotaBadge(studioUsage)}
+              </button>
+
+              <button
+                type="button"
+                className={`${styles.toolButton} ${studioUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={() => void handleGenerateCheatSheet()}
                 disabled={isGenerating}
-                title={studioUsage.exceeded ? "Daily allowance reached for Studio tools" : undefined}
+                title={
+                  studioUsage.exceeded
+                    ? "Daily allowance reached for Studio tools"
+                    : undefined
+                }
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="file-text" size={18} />
@@ -1124,7 +1255,11 @@ Use British English throughout.`;
                 className={`${styles.toolButton} ${flashcardsUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={handleGenerateFlashcards}
                 disabled={isGenerating}
-                title={flashcardsUsage.exceeded ? "Daily allowance reached for flashcard decks" : undefined}
+                title={
+                  flashcardsUsage.exceeded
+                    ? "Daily allowance reached for flashcard decks"
+                    : undefined
+                }
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="layers" size={18} />
@@ -1141,7 +1276,11 @@ Use British English throughout.`;
                 className={`${styles.toolButton} ${quizUsage.exceeded ? styles.toolButtonDisabled : ""}`}
                 onClick={handleGenerateQuiz}
                 disabled={isGenerating}
-                title={quizUsage.exceeded ? "Daily allowance reached for practice quizzes" : undefined}
+                title={
+                  quizUsage.exceeded
+                    ? "Daily allowance reached for practice quizzes"
+                    : undefined
+                }
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="check" size={18} />
@@ -1156,16 +1295,19 @@ Use British English throughout.`;
                 className={styles.toolButton}
                 onClick={() => {
                   void navigate(
-                    `/viva?notebookId=${encodeURIComponent(notebook.id)}&topic=${encodeURIComponent(notebook.title)}`,
+                    newSessionHref("socratic", {
+                      topic: notebook.title,
+                      voice: true,
+                    }),
                   );
                 }}
               >
                 <div className={styles.toolIconBox}>
                   <Icon name="mic" size={18} />
                 </div>
-                <div className={styles.toolLabel}>Voice Study Partner</div>
+                <div className={styles.toolLabel}>Socratic, by voice</div>
                 <div className={styles.toolSubtext}>
-                  Socratic sparring with Alex & Jordan
+                  Questions instead of answers, out loud
                 </div>
               </button>
             </div>
@@ -1203,7 +1345,9 @@ Use British English throughout.`;
                               ? "file-text"
                               : art.type === "flashcards"
                                 ? "layers"
-                                : "check"
+                                : art.type === "diagram"
+                                  ? "network"
+                                  : "check"
                         }
                         size={12}
                       />
@@ -1241,8 +1385,8 @@ Use British English throughout.`;
                     margin: 0,
                   }}
                 >
-                  Pick a tool above to make your first plain-English breakdown
-                  or revision sheet.
+                  Pick a tool above to draw your first diagram, or make a
+                  plain-English breakdown or revision sheet.
                 </p>
               )}
             </div>
@@ -1371,6 +1515,88 @@ Use British English throughout.`;
         </Modal>
       )}
 
+      {/* Diagram Brief Modal */}
+      {isDiagramPromptOpen && (
+        <Modal
+          open={isDiagramPromptOpen}
+          onClose={() => setIsDiagramPromptOpen(false)}
+          title="Draw a diagram"
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const request = diagramRequest;
+              setIsDiagramPromptOpen(false);
+              setDiagramRequest("");
+              void handleGenerateDiagram(request);
+            }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--s-4)",
+            }}
+          >
+            <div>
+              <label
+                htmlFor="diagram-brief"
+                style={{
+                  display: "block",
+                  fontSize: "var(--fs-sm)",
+                  fontWeight: 600,
+                  marginBottom: "var(--s-1)",
+                }}
+              >
+                What should the diagram show?
+              </label>
+              <textarea
+                id="diagram-brief"
+                placeholder="e.g. the circle theorems labelled on one big circle"
+                value={diagramRequest}
+                onChange={(e) => setDiagramRequest(e.target.value)}
+                rows={3}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  borderRadius: "var(--r-md)",
+                  border: "1px solid var(--border)",
+                  background: "var(--surface)",
+                  color: "var(--text)",
+                  fontFamily: "inherit",
+                }}
+              />
+              <p
+                style={{
+                  fontSize: "var(--fs-xs)",
+                  color: "var(--text-muted)",
+                  margin: "var(--s-1) 0 0",
+                }}
+              >
+                Leave it blank and your AI Tutor will pick the most useful
+                diagram for {notebook.title}.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "var(--s-2)",
+              }}
+            >
+              <Button
+                type="button"
+                onClick={() => setIsDiagramPromptOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" disabled={isGenerating}>
+                {isGenerating ? "Drawing…" : "Draw it"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
       {/* Artifact Preview Modal */}
       {activeArtifactPreview && (
         <Modal
@@ -1382,7 +1608,9 @@ Use British English throughout.`;
             className={styles.replyProse}
             style={{ maxHeight: "60vh", overflowY: "auto" }}
           >
-            {renderMarkdownNodes(activeArtifactPreview.content)}
+            {renderMarkdownNodes(activeArtifactPreview.content, {
+              diagrams: true,
+            })}
           </div>
           <div
             style={{
@@ -1428,7 +1656,7 @@ Use British English throughout.`;
                 void navigator.clipboard.writeText(
                   activeArtifactPreview.content,
                 );
-                showToast("Copied to clipboard!");
+                showToast("Copied to clipboard");
               }}
             >
               Copy to clipboard

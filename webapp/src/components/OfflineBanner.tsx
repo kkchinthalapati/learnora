@@ -99,16 +99,34 @@ export function OfflineBanner() {
 
 /* The pill says "offline"; this says what that means for the page underneath
  * it, which otherwise just sits on its loading placeholders. Not shown on a
- * review screen, the one place that does work offline. */
+ * review screen, the one place that does work offline, nor in a mock exam,
+ * which says what offline means for it in its own bar (OfflineTestBar). */
 export function OfflinePageNotice() {
   const { isOnline } = useOnlineStatus();
   const { pathname } = useLocation();
-  if (isOnline || pathname.startsWith("/review")) return null;
+  if (isOnline || pathname.startsWith("/review") || pathname.endsWith("/mock-exam")) {
+    return null;
+  }
   return (
     <p className={styles.pageNotice}>
       You&apos;re offline, so this page can&apos;t load anything new until you reconnect.
       Flashcard review works offline —{" "}
       <Link to="/review/daily-drill">review your saved cards</Link>.
     </p>
+  );
+}
+
+/* The test runner's own offline bar (2026-09 redesign). In flow and
+   persistent rather than a toast: while it shows, Submit is unavailable, and
+   the student has to be able to see why. Says what is being kept. */
+export function OfflineTestBar() {
+  const { isOnline } = useOnlineStatus();
+  if (isOnline) return null;
+  return (
+    <div className={styles.testBar} role="status" aria-live="polite">
+      <span className={styles.testDot} aria-hidden="true" />
+      You're offline. Answers are being saved on this device. Submit will be
+      available again once you reconnect.
+    </div>
   );
 }

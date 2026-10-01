@@ -4,7 +4,12 @@ import { useCardImageUrl } from "../hooks/useCardImage";
  *
  * Renders nothing at all while the signed URL is in flight or if it fails —
  * a broken-image icon in the middle of a review is worse than a card that
- * simply shows its text. */
+ * simply shows its text.
+ *
+ * The signed URL goes straight into `src`. That works in production only
+ * because vercel.json's img-src admits this project's `/storage/v1/object/`
+ * path — dev and tests run without the CSP, so src/productionCsp.test.ts is
+ * what notices if that stops being true. */
 export function CardImage({
   path,
   alt,

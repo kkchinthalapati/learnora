@@ -9,39 +9,40 @@
  * while a reply was in flight, but the in-bubble thinking dots already say
  * that, in the one place the student is looking. */
 
+/* The Ask drawer (2026-09 redesign): 420px, --paper, a strong hairline on
+   its left edge and the one drawer shadow. Docked right; it no longer drags,
+   so Esc and the scrim are the ways out besides the close button. */
 .panel {
   position: fixed;
   z-index: 1000;
   top: 0;
   bottom: 0;
   right: 0;
-  width: clamp(340px, 92vw, 440px);
-  /* dvh, not vh: on a phone 100vh is the viewport *including* the area the
-     on-screen keyboard covers, so the composer pinned to the bottom of the
-     panel ended up under it — measured at 161px below the visible area with
-     the keyboard up, which put the send button out of reach while typing.
-     dvh shrinks with the keyboard. vh stays first as the fallback. */
+  width: min(var(--drawer-width), 92vw);
+  /* dvh, not vh: on a phone 100vh includes the area the on-screen keyboard
+     covers, which put the composer under it. vh stays as the fallback. */
   height: 100vh;
   height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 0;
-  border-left: 1px solid var(--glass-border);
-  border-top: none;
-  border-bottom: none;
-  border-right: none;
-  background: var(--glass-bg-strong);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  /* --shadow-lg rather than a literal cast: the raw rgba was identical in
-     both themes, so the docked panel had no edge to speak of against a dark
-     page. Matches how the nav drawer lifts off the page
-     (components/Sidebar.module.css). */
-  box-shadow:
-    var(--shadow-lg),
-    var(--glass-inner);
-  animation: slideInRight var(--t) var(--ease);
+  border: 0;
+  border-left: 1px solid var(--hairline-strong);
+  background: var(--paper);
+  box-shadow: var(--shadow-drawer);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .panel {
+    animation: slideInRight var(--t) var(--ease);
+  }
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--scrim);
 }
 
 @keyframes slideInRight {
@@ -70,25 +71,31 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--s-3);
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--line);
-  cursor: grab;
-  background: rgba(255, 255, 255, 0.02);
-  touch-action: none;
+  padding: var(--s-4) var(--s-5);
+  border-bottom: 1px solid var(--hairline);
 }
 
-.header:active {
-  cursor: grabbing;
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .headerTitle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   margin: 0;
-  font-size: var(--fs-md);
-  font-weight: 600;
-  color: var(--accent-text);
+  font-family: var(--font-head);
+  font-size: var(--fs-xl);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.headerContext {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
 }
 
 .headerControls {
@@ -99,8 +106,8 @@
 }
 
 .iconBtn {
-  width: 34px;
-  height: 34px;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -114,7 +121,7 @@
 }
 
 .iconBtn:hover {
-  background: var(--surface-hover);
+  background: var(--track);
   color: var(--text);
 }
 
@@ -123,8 +130,8 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--s-3);
-  padding: 20px;
+  gap: var(--s-4);
+  padding: var(--s-5);
 }
 
 .bubble {
@@ -140,31 +147,26 @@
   margin-bottom: 0;
 }
 
+/* The student's own words: ink, inverted, right-aligned (StudentTurn). */
 .userBubble {
   align-self: flex-end;
-  /* Was a fixed indigo (#6b7ee8) rather than --accent-hover — looked
-     intentional under the default teal/indigo pairing, but every other
-     accent preset (Hacker's green, Sunset's orange, …) painted this bubble
-     half in a colour that had nothing to do with the theme the student
-     picked. */
-  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-  color: var(--accent-on);
-  border-bottom-right-radius: var(--r-xs);
-  box-shadow:
-    var(--glass-inner),
-    var(--shadow-sm);
+  background: var(--text);
+  color: var(--bg);
+  border-radius: var(--r-lg) var(--r-lg) var(--r-xs) var(--r-lg);
 }
 
+/* The tutor's turn: a teal rule and the reading serif (TutorTurn). */
 .aiBubble {
-  align-self: flex-start;
+  align-self: stretch;
+  max-width: none;
   position: relative;
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border-subtle);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
+  padding: 0 0 0 var(--s-4);
+  border-left: 2px solid var(--accent);
+  border-radius: 0;
+  font-family: var(--font-read);
+  font-size: var(--fs-md);
+  line-height: var(--lh-read);
   color: var(--text);
-  border-bottom-left-radius: var(--r-xs);
 }
 
 .errorBubble {
@@ -336,22 +338,156 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  color: var(--text-muted);
-  padding: 6px 12px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-md);
-  box-shadow: var(--glass-inner), var(--shadow-sm);
+  min-height: var(--control-sm);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
   cursor: pointer;
 }
 
-.chip:hover {
+.chip:hover:not(:disabled) {
+  background: var(--accent-wash);
+  border-color: var(--accent-line-strong);
+}
+
+.chip:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* Guess first: the caption under the tutor's question, then the two exits. */
+.guess {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.guessCaption {
+  margin: 0;
+  padding: 0 var(--s-5);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+/* "Quick answer" / "Open as session" above the input. */
+.modeRow {
+  display: flex;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4) 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.modeChip {
+  min-height: var(--control-sm);
+  padding: 0 var(--s-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modeChip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+  color: var(--accent-deep);
+  cursor: default;
+}
+
+.modeChip:hover:not(:disabled):not([aria-pressed="true"]) {
+  border-color: var(--accent-line-strong);
+}
+
+.modeChip:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+@media (pointer: coarse) {
+  .chip,
+  .modeChip {
+    min-height: var(--touch-target-min);
+  }
+}
+
+/* "Generate image" while armed: the next send draws instead of answering. */
+.chipActive,
+.chipActive:hover {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.imageModeHint {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0 16px 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.imageModeHint strong {
   color: var(--text);
-  border-color: var(--accent-ring);
+}
+
+.imageModeCancel {
+  margin-left: auto;
+  padding: 2px 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* --- generated image --- */
+
+.generatedImage {
+  margin: 0;
+}
+
+/* Diagrams are drawn on white by design (see IMAGE_STYLE_PREFIX in the edge
+   function); the hairline border keeps that white block framed in dark mode
+   rather than floating. */
+.generatedImage img {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+}
+
+.imageActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+
+.imageAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--accent-text);
+}
+
+.imageLoading {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
 }
 
 /* --- file pill --- */
@@ -391,62 +527,152 @@
   display: flex;
   align-items: center;
   gap: var(--s-2);
-  padding: 14px 16px;
-  border-top: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.02);
+  margin: var(--s-3) var(--s-4) var(--s-4);
+  padding: var(--s-1) var(--s-1) var(--s-1) var(--s-2);
+  min-height: var(--control-lg);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
 }
 
+.dock:focus-within {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus);
+}
+
+/* The dock draws the field; the input itself is bare. Its own outline is
+   replaced by the dock's :focus-within ring above. */
 .input {
   flex: 1;
   min-width: 0;
-  border-radius: var(--r-pill);
-  padding: 10px 16px;
+  padding: var(--s-2) 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+}
+
+.input:focus,
+.input:focus-visible {
+  box-shadow: none;
+  outline: none;
 }
 
 .uploadBtn {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  border-radius: 50%;
+  border-radius: var(--r-md);
   cursor: pointer;
-  transition: background var(--t-fast) ease;
+  transition: background var(--t-fast) var(--ease);
 }
 
 .uploadBtn:hover {
-  background: var(--accent-soft);
-  color: var(--accent-text);
+  background: var(--track);
+  color: var(--text);
 }
 
+/* --- voice --- */
+
+.micBtn {
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.micBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.micBtnActive,
+.micBtnActive:hover {
+  color: var(--danger-on);
+  background: var(--danger);
+}
+
+.voiceStatus,
+.voiceError {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0 16px 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.voiceError {
+  color: var(--danger);
+}
+
+.recordingDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+  animation: recording-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes recording-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recordingDot {
+    animation: none;
+  }
+}
+
+.voiceStop {
+  margin-left: auto;
+  padding: 2px 10px;
+  border: 1px solid var(--danger);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--danger);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* 36px teal square with the send glyph. */
 .sendBtn {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--accent-on);
-  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  background: var(--accent);
   border: none;
-  border-radius: 50%;
+  border-radius: var(--r-md);
   cursor: pointer;
-  box-shadow: var(--glass-inner);
 }
 
 .sendBtn:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--accent-hover), var(--accent));
-  box-shadow:
-    0 4px 16px var(--accent-glow),
-    var(--glass-inner);
+  background: var(--accent-hover);
 }
 
 .sendBtn:disabled {
-  opacity: 0.6;
+  background: var(--surface-active);
+  color: var(--text-faint);
   cursor: default;
+}
+
+@media (pointer: coarse) {
+  .uploadBtn,
+  .sendBtn {
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+  }
 }
 
 /* --- drag-to-upload overlay --- */

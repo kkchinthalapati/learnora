@@ -192,7 +192,8 @@ export type AiToolId =
   | "feynman"
   | "examDeconstructor"
   | "sparring"
-  | "notebookStudio";
+  | "notebookStudio"
+  | "image";
 
 export interface AiToolMeta {
   id: AiToolId;
@@ -229,18 +230,18 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
   },
   debugger: {
     id: "debugger",
-    name: "Step-by-step solver",
-    description: "Root-cause tracing and gap solver for a concept you got wrong.",
+    name: "Explain sessions",
+    description: "Step-by-step Explain sessions in Study. Counted per session, not per answer.",
   },
   preMortem: {
     id: "preMortem",
-    name: "Common Exam Traps",
+    name: "Exam traps practice",
     description: "Spot tricky questions, wording traps, and edge cases before the exam.",
   },
   feynman: {
     id: "feynman",
-    name: "Explain it simply",
-    description: "Teaching a concept to an AI apprentice to prove you know it.",
+    name: "Teach sessions",
+    description: "Teach sessions in Study: explain an idea to someone new. Counted per session.",
   },
   examDeconstructor: {
     id: "examDeconstructor",
@@ -249,14 +250,19 @@ export const AI_TOOLS: Record<AiToolId, AiToolMeta> = {
   },
   sparring: {
     id: "sparring",
-    name: "Oral practice",
-    description: "Live viva and oral test practice with an AI study partner.",
+    name: "Socratic & oral practice",
+    description: "Socratic sessions in Study, with or without the mic. Counted per session.",
   },
   notebookStudio: {
     id: "notebookStudio",
     name: "Notebook Studio",
     description:
       "Grounded Q&A, cheat-sheet and deep-dive generation inside a research notebook.",
+  },
+  image: {
+    id: "image",
+    name: "Image generation",
+    description: "Labelled diagrams drawn on request in the chat.",
   },
 };
 
@@ -291,6 +297,7 @@ export const QUOTAS: Record<Plan, Quotas> = {
     examDeconstructor: 2,
     sparring: 2,
     notebookStudio: 5,
+    image: 2,
     notebooks: 3,
     importedCalendars: 0,
   },
@@ -306,6 +313,7 @@ export const QUOTAS: Record<Plan, Quotas> = {
     examDeconstructor: 6,
     sparring: 8,
     notebookStudio: 20,
+    image: 10,
     notebooks: 10,
     importedCalendars: 1,
   },
@@ -321,6 +329,7 @@ export const QUOTAS: Record<Plan, Quotas> = {
     examDeconstructor: 20,
     sparring: 25,
     notebookStudio: 60,
+    image: 30,
     notebooks: Infinity,
     importedCalendars: 5,
   },

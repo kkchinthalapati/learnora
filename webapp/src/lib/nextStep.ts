@@ -15,11 +15,14 @@
  * topic off the query string, so nothing here has to touch CognitiveBridge
  * or the timer, and the whole thing is testable without a router. */
 
-import { INTERVENTION_BLOCK_MINS } from "./trajectory";
+import { newSessionHref } from "./sessionModes";
 
 /** Below this, `mastery` is a guess rather than a measurement — the honest
  *  next step is the one that produces evidence, not one that acts on it. */
 export const LOW_EVIDENCE = 0.35;
+/** Below this nothing has been checked at all — the mastery ladder's own
+ *  "Not started" line (lib/mastery MIN_EVIDENCE). */
+export const NO_EVIDENCE = 0.05;
 /** Below this, the student is getting the topic wrong, not merely rusty.
  *  Drilling cards at that point rehearses the misunderstanding. */
 export const SHAKY_MASTERY = 0.45;
@@ -61,14 +64,19 @@ export function chooseNextStep({
   evidence,
   dueCards,
 }: NextStepInput): NextStep {
-  const topic = encodeURIComponent(label);
-
   if (evidence < LOW_EVIDENCE) {
+    /* Two cases the old line merged: nothing at all, and a little. It said
+       "Nothing has measured Enzymes yet" beside a Progress ladder showing
+       Enzymes measured, because the ladder counts any check and this
+       threshold is higher. */
+    const nothing = evidence < NO_EVIDENCE;
     return {
       method: "block",
-      action: `Start ${INTERVENTION_BLOCK_MINS} min on ${label}`,
-      why: `Nothing has measured ${label} yet. The block ends with a four-question check, so the next step after it is based on what you actually know.`,
-      to: null,
+      action: `Practise ${label}`,
+      why: nothing
+        ? `Nothing has measured ${label} yet. A few checked problems will show where you are, so the next step is based on what you actually know.`
+        : `Only a little has measured ${label} so far. A few more checked problems will make the next step much surer.`,
+      to: newSessionHref("practice", { topic: label }),
     };
   }
 
@@ -76,8 +84,8 @@ export function chooseNextStep({
     return {
       method: "solve",
       action: `Find what's missing in ${label}`,
-      why: `You are getting ${label} wrong rather than forgetting it, so more cards would just rehearse the same mistake. The Solver works backwards to the step you are missing.`,
-      to: `/solver?topic=${topic}`,
+      why: `You are getting ${label} wrong rather than forgetting it, so more cards would just rehearse the same mistake. An Explain session works back to the step you are missing.`,
+      to: newSessionHref("explain", { topic: label }),
     };
   }
 
@@ -95,14 +103,19 @@ export function chooseNextStep({
       method: "teach",
       action: `Explain ${label} in your own words`,
       why: `${label} is solid enough that recall is no longer the test. Explaining it to someone who keeps asking "but why" is what exposes the parts you have not really got.`,
-      to: `/feynman?topic=${topic}`,
+      to: newSessionHref("teach", { topic: label }),
     };
   }
 
+  /* This used to start a 45-minute timer and nothing else: the student
+     landed on the timer page with a clock running and no material, and Today
+     offered the same block again afterwards because time alone measured
+     nothing. A Practice session is problems on the topic, each one a check
+     that the forecast reads. The timed block stays one click away on Today. */
   return {
     method: "block",
-    action: `Start ${INTERVENTION_BLOCK_MINS} min on ${label}`,
-    why: `${label} is half-built and nothing is due on it, so the useful thing is time on the material — with a check at the end to see what moved.`,
-    to: null,
+    action: `Practise ${label}`,
+    why: `${label} is half-built and nothing is due on it, so the useful thing is working problems on it — each one checked, so the next step is based on what you actually know.`,
+    to: newSessionHref("practice", { topic: label }),
   };
 }

@@ -69,7 +69,7 @@ function InviteCard() {
     }
     try {
       await navigator.clipboard.writeText(link);
-      showToast("Copied!");
+      showToast("Copied");
     } catch {
       showToast("Could not copy — select the link instead.", { error: true });
     }

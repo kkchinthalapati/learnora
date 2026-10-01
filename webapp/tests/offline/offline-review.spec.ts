@@ -152,7 +152,7 @@ test("flashcard review works offline and syncs once, newest review winning", asy
     await page.getByRole("button", { name: "Good (3)" }).click();
   }
   expect(sawImage).toBe(true);
-  await expect(page.getByText(/Complete!/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^(Review|Drill) complete$/ })).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "waiting to sync" })).toContainText(
     "Offline · 3 reviews waiting to sync",
   );
@@ -162,7 +162,7 @@ test("flashcard review works offline and syncs once, newest review winning", asy
   // device's copy already knows its one card was just graded.
   await page.goto("review/deck-genes");
   await expect(page.getByRole("heading", { name: "Genetics" })).toBeVisible();
-  await expect(page.getByText("All caught up! 🎉")).toBeVisible();
+  await expect(page.getByText("All caught up", { exact: true })).toBeVisible();
 
   // Anything else says it needs a connection instead of breaking.
   await page.goto("analytics");

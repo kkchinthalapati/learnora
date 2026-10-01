@@ -164,7 +164,7 @@ describe("PlanView", () => {
     );
     renderPlan();
 
-    await screen.findByText("No plan yet for this week");
+    await screen.findByText("Your week, from your availability");
     const thisWeekRequest = urls.find(
       (u) => u.searchParams.get("week_start") === `eq.${WEEK_START}`,
     );
@@ -180,10 +180,10 @@ describe("PlanView", () => {
       renderPlan();
 
       expect(
-        await screen.findByText("No plan yet for this week"),
+        await screen.findByText("Your week, from your availability"),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: /Generate my week/ }),
+        screen.getByRole("button", { name: /Ask the AI to rearrange it/ }),
       ).toBeInTheDocument();
       /* The header used to repeat this action under a second name. While the
          week is empty the centred call to action is the only way in. */
@@ -191,7 +191,7 @@ describe("PlanView", () => {
         screen.queryByRole("button", { name: "Generate Plan" }),
       ).not.toBeInTheDocument();
       expect(
-        screen.getAllByRole("button", { name: /Generate my week/ }),
+        screen.getAllByRole("button", { name: /Ask the AI to rearrange it/ }),
       ).toHaveLength(1);
     });
 
@@ -213,7 +213,7 @@ describe("PlanView", () => {
 
       await userEvent.click(
         await screen.findByRole("button", {
-          name: /Generate my week/,
+          name: /Ask the AI to rearrange it/,
         }),
       );
 
@@ -235,7 +235,7 @@ describe("PlanView", () => {
 
       await userEvent.click(
         await screen.findByRole("button", {
-          name: /Generate my week/,
+          name: /Ask the AI to rearrange it/,
         }),
       );
 
@@ -256,7 +256,7 @@ describe("PlanView", () => {
 
       await userEvent.click(
         await screen.findByRole("button", {
-          name: /Generate my week/,
+          name: /Ask the AI to rearrange it/,
         }),
       );
 
@@ -265,7 +265,7 @@ describe("PlanView", () => {
           "Failed to generate your weekly plan. Please try again.",
         ),
       ).toBeInTheDocument();
-      expect(screen.getByText("No plan yet for this week")).toBeInTheDocument();
+      expect(screen.getByText("Your week, from your availability")).toBeInTheDocument();
     });
 
     /* A model that replied but produced nothing plan-shaped is a different
@@ -281,7 +281,7 @@ describe("PlanView", () => {
 
       await userEvent.click(
         await screen.findByRole("button", {
-          name: /Generate my week/,
+          name: /Ask the AI to rearrange it/,
         }),
       );
 
@@ -631,7 +631,7 @@ describe("PlanView", () => {
       renderPlan();
 
       expect(
-        await screen.findByText("No plan yet for this week"),
+        await screen.findByText("Your week, from your availability"),
       ).toBeInTheDocument();
     });
 
@@ -914,7 +914,7 @@ describe("PlanView", () => {
       servePrevWeekPlan(null);
       renderPlan();
 
-      await screen.findByText("No plan yet for this week");
+      await screen.findByText("Your week, from your availability");
       expect(
         screen.queryByText(/of last week's plan done/),
       ).not.toBeInTheDocument();

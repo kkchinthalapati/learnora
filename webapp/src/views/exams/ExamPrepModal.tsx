@@ -95,7 +95,7 @@ export function ExamPrepModal({ open, exam, onClose }: ExamPrepModalProps) {
   const daysLeft = readiness?.daysRemaining ?? 0;
   const countdownText =
     daysLeft <= 0
-      ? "Exam Today!"
+      ? "Exam today"
       : daysLeft === 1
         ? "1 Day Remaining"
         : `${daysLeft} Days Remaining`;

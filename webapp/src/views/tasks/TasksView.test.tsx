@@ -82,7 +82,7 @@ describe("TasksView", () => {
     renderTasks();
 
     expect(
-      await screen.findByText("No tasks yet - add one above!"),
+      await screen.findByText("No tasks yet. Add one above."),
     ).toBeInTheDocument();
   });
 
@@ -90,7 +90,7 @@ describe("TasksView", () => {
     serveTasks([]);
     renderTasks();
 
-    await screen.findByText("No tasks yet - add one above!");
+    await screen.findByText("No tasks yet. Add one above.");
     expect(screen.getByRole("link", { name: "Tasks" })).toHaveAttribute(
       "aria-current",
       "page",
@@ -150,7 +150,7 @@ describe("TasksView", () => {
       }),
     );
     renderTasks();
-    await screen.findByText("No tasks yet - add one above!");
+    await screen.findByText("No tasks yet. Add one above.");
 
     await user.click(screen.getByRole("button", { name: "Add Task" }));
 
@@ -168,7 +168,7 @@ describe("TasksView", () => {
       }),
     );
     renderTasks();
-    await screen.findByText("No tasks yet - add one above!");
+    await screen.findByText("No tasks yet. Add one above.");
 
     const input = screen.getByRole("textbox", { name: "New Task Input" });
     await user.type(input, "Write essay");
@@ -198,7 +198,7 @@ describe("TasksView", () => {
       }),
     );
     renderTasks();
-    await screen.findByText("No tasks yet - add one above!");
+    await screen.findByText("No tasks yet. Add one above.");
 
     await user.type(
       screen.getByRole("textbox", { name: "New Task Input" }),
@@ -492,7 +492,7 @@ describe("TasksView", () => {
       const user = userEvent.setup();
       serveTasks([]);
       renderTasks();
-      await screen.findByText("No tasks yet - add one above!");
+      await screen.findByText("No tasks yet. Add one above.");
 
       const dueInput = screen.getByLabelText(/Due date/);
 
@@ -517,7 +517,7 @@ describe("TasksView", () => {
         }),
       );
       renderTasks();
-      await screen.findByText("No tasks yet - add one above!");
+      await screen.findByText("No tasks yet. Add one above.");
 
       await user.type(
         screen.getByRole("textbox", { name: "New Task Input" }),

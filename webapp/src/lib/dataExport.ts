@@ -13,6 +13,7 @@
  */
 
 import { supabase } from "./supabase";
+import { localDateStr } from "./date";
 
 /** Tables owned by the user, each filtered by `user_id`. */
 export const EXPORTED_TABLES = [
@@ -74,9 +75,11 @@ export async function buildDataExport(userId: string): Promise<DataExport> {
   };
 }
 
-/** Filename carries the date, so repeated exports don't overwrite silently. */
+/** Filename carries the date, so repeated exports don't overwrite silently.
+ *  The student's local date: the UTC one is tomorrow's on an evening in the
+ *  Americas. */
 export function exportFilename(now = new Date()): string {
-  return `learnora-data-${now.toISOString().slice(0, 10)}.json`;
+  return `learnora-data-${localDateStr(now)}.json`;
 }
 
 export function downloadDataExport(

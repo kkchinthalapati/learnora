@@ -11,7 +11,10 @@ type Variant =
 
 interface ButtonProps extends ComponentPropsWithRef<"button"> {
   variant?: Variant;
-  size?: "md" | "sm";
+  size?: "md" | "sm" | "lg";
+  /* Work in flight. Shows an inline spinner beside the children (pass the
+     verb: "Saving"), sets aria-busy and blocks further clicks. */
+  busy?: boolean;
 }
 
 export function Button({
@@ -19,12 +22,15 @@ export function Button({
   size = "md",
   className,
   type = "button",
+  busy = false,
+  disabled,
+  children,
   ...rest
 }: ButtonProps) {
   const classes = [
     styles.btn,
     styles[variant],
-    size === "sm" ? styles.sm : null,
+    size === "sm" ? styles.sm : size === "lg" ? styles.lg : null,
     className,
   ]
     .filter(Boolean)
@@ -45,5 +51,17 @@ export function Button({
 
   // Default to type="button": a bare <button> inside a form submits it, which
   // is almost never what a modal's Cancel or a toolbar action wants.
-  return <button type={type} className={classes} data-rank={rank} {...rest} />;
+  return (
+    <button
+      type={type}
+      className={classes}
+      data-rank={rank}
+      disabled={disabled || busy}
+      aria-busy={busy || undefined}
+      {...rest}
+    >
+      {busy ? <span className={styles.spinner} aria-hidden="true" /> : null}
+      {children}
+    </button>
+  );
 }

@@ -92,6 +92,7 @@ export function PreferencesTab() {
   const aiStyleId = useId();
   const autoAdaptId = useId();
   const webAccessId = useId();
+  const spokenRepliesId = useId();
   const uiLangId = useId();
   const aiLangId = useId();
   const tzId = useId();
@@ -331,6 +332,26 @@ export function PreferencesTab() {
               label="Live Web Intelligence"
               checked={settings.webAccess}
               onChange={(checked) => setSettings({ webAccess: checked })}
+            />
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <span className={styles.labelText} id={spokenRepliesId}>
+              Read chat replies aloud
+            </span>
+            <p className={styles.fieldDesc}>
+              Speak Learnora AI chat answers using your browser's voice. Off by
+              default, so nothing plays out loud unless you ask.
+            </p>
+          </div>
+          <div className={styles.fieldAction}>
+            <ToggleSwitch
+              labelledBy={spokenRepliesId}
+              label="Read chat replies aloud"
+              checked={settings.aiSpokenReplies}
+              onChange={(checked) => setSettings({ aiSpokenReplies: checked })}
             />
           </div>
         </div>

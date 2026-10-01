@@ -18,13 +18,14 @@ async function withoutSpeechApi(page: Page) {
   });
 }
 
+/* Oral practice is a Socratic Session with the mic on (2026-09 redesign);
+   /viva redirects there, carrying the topic. */
 async function startOn(page: Page, topic: string) {
-  await page.goto("viva");
-  await page.getByPlaceholder(/Newton's third law/i).fill(topic);
-  await page.getByRole("button", { name: "Start challenge" }).click();
+  await page.goto(`viva?topic=${encodeURIComponent(topic)}`);
+  await expect(page).toHaveURL(/\/study\/s-[^?]+\?mode=socratic/);
 }
 
-test("works with no speech recognition: the mic explains, typing answers", async ({
+test("works with no speech recognition: no mic control, typing answers", async ({
   page,
   backend,
 }) => {
@@ -32,16 +33,17 @@ test("works with no speech recognition: the mic explains, typing answers", async
   await loginAs(page);
   await startOn(page, "Photosynthesis");
 
-  await expect(page.getByLabel("Type response")).toBeVisible();
-  await page.getByRole("button", { name: "Start speaking response" }).click();
+  await expect(page.getByLabel("Your answer")).toBeVisible();
+  /* No speech API: no mic to press, and the screen says so. */
+  await expect(page.getByRole("button", { name: "Answer by voice" })).toHaveCount(0);
   await expect(
-    page.getByText(/Speech recognition is not supported in this browser/),
+    page.getByText(/Voice input isn't supported in this browser/),
   ).toBeVisible();
 
-  await page.getByLabel("Type response").fill(
+  await page.getByLabel("Your answer").fill(
     "Plants use light energy to turn carbon dioxide and water into glucose and oxygen.",
   );
-  await page.getByRole("button", { name: "Submit" }).click();
+  await page.getByRole("button", { name: "Send" }).click();
   await expect
     .poll(() => backend.callsTo("/functions/v1/learnora-ai").length)
     .toBeGreaterThanOrEqual(2);
@@ -49,21 +51,21 @@ test("works with no speech recognition: the mic explains, typing answers", async
   await expect(page.getByText(/built-in practice questions/)).toHaveCount(0);
 });
 
-test("says so when the AI is down, and keeps the stand-in out of the ledger", async ({
+test("says so when the AI is down, offers a retry instead of stand-in questions, and writes nothing", async ({
   page,
   backend,
 }) => {
+  /* The built-in question bank is topic-agnostic ("what happens if the
+     external boundary changes?" for photosynthesis). Inside a session an
+     outage is now an error with a retry, never tutoring. */
   backend.stub("learnora-ai", 400, { error: "AI is temporarily unavailable." });
   await withoutSpeechApi(page);
   await loginAs(page);
   await startOn(page, "Photosynthesis");
 
-  await expect(page.getByText(/AI isn't available right now/)).toBeVisible();
-  await page.getByLabel("Type response").fill(
-    "Plants use light energy to make glucose from carbon dioxide and water.",
-  );
-  await page.getByRole("button", { name: "Submit" }).click();
-  await expect(page.getByLabel("Type response")).toHaveValue("");
+  await expect(page.getByText(/couldn't reach the tutor/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  await expect(page.getByText(/built-in practice questions/)).toHaveCount(0);
 
   /* Give any stray write time to land before asserting there was none. */
   await page.waitForTimeout(1500);

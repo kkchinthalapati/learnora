@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#f7f5f0;font-family:'Instrument Sans',system-ui,sans-serif;color:#1a1815}a{color:#0b5c55}a:hover{color:#094943}</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:56px;max-width:1280px">
+  <header style="display:flex;flex-direction:column;gap:8px;max-width:900px">
+    <a href="Learnora Redesign.dc.html" style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;text-decoration:none">← Learnora redesign / 00</a>
+    <h1 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:56px;letter-spacing:-0.025em;line-height:1.02">Design system</h1>
+    <p style="margin:0;font-size:16px;line-height:1.6;color:#625c50;max-width:72ch">An evolution of <code style="font-family:'JetBrains Mono',monospace;font-size:14px">tokens.css</code> with the same bones: warm paper, deep teal, a serif voice. The changes are one new semantic accent, a display tier that is actually used, a smaller component set, and the rule that a colour always stands for the same kind of thing.</p>
+  </header>
+
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:30px">Colour: each hue has one job</h2>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px">
+      <sc-for list="{{ colors }}" as="c" hint-placeholder-count="8">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="height:88px;border-radius:8px;background:{{ c.hex }};border:1px solid rgba(26,24,21,0.08);display:flex;align-items:flex-end;padding:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:{{ c.on }}">{{ c.hex }}</span></div>
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600">{{ c.name }}</span><span style="font-size:13px;line-height:1.45;color:#625c50">{{ c.job }}</span></div>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin:0;font-size:14px;line-height:1.6;color:#3d3830;max-width:80ch">New in this version: <strong>Recall ochre</strong>. The current app uses teal for everything, so "Resume", "fading" and "due" all look the same. Ochre now marks memory and time-sensitive work only. Semantic colours never appear without a second cue (✓ ✕ ! or a label) for colour-blind users. The 15 accent presets stay, but each preset only swaps the action hue.</p>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:30px">Type: three voices</h2>
+    <div style="display:flex;flex-direction:column;border-top:1px solid #e2ddd1">
+      <sc-for list="{{ type }}" as="t" hint-placeholder-count="8">
+        <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:24px;align-items:baseline;padding:16px 0;border-bottom:1px solid #e2ddd1">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;font-weight:600">{{ t.role }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">{{ t.spec }}</span></div>
+          <span style="font-family:{{ t.ff }};font-size:{{ t.fs }};font-weight:{{ t.fw }};line-height:{{ t.lh }};letter-spacing:{{ t.ls }}">{{ t.sample }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin:0;font-size:14px;line-height:1.6;color:#3d3830;max-width:80ch">Newsreader for claims and headings (24px and up). Instrument Sans for UI. Source Serif 4 for the tutor's teaching prose, at a 62ch measure. JetBrains Mono for metadata and step numbers, only in caps labels up to 12px. The accessibility font setting (Atkinson Hyperlegible) overrides all three.</p>
+  </section>
+
+  <section style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px">
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:30px">Spacing</h2>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <sc-for list="{{ space }}" as="s" hint-placeholder-count="8">
+          <div style="display:grid;grid-template-columns:48px 80px minmax(0,1fr);gap:12px;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:12px">{{ s.px }}</span><span style="height:12px;width:{{ s.w }};background:#0f766e;border-radius:1px"></span><span style="font-size:13px;color:#625c50">{{ s.use }}</span></div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:30px">Radius, elevation, motion</h2>
+      <div style="display:flex;gap:16px;align-items:flex-end">
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:center"><span style="width:56px;height:40px;border:1.5px solid #1a1815;border-radius:5px"></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px">5 · control</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:center"><span style="width:56px;height:40px;border:1.5px solid #1a1815;border-radius:8px"></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px">8 · button</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:center"><span style="width:72px;height:56px;border:1.5px solid #1a1815;border-radius:12px"></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px">12 · container</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:center"><span style="width:56px;height:32px;border:1.5px solid #1a1815;border-radius:999px"></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px">pill · chip only</span></div>
+      </div>
+      <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.6;color:#3d3830;display:flex;flex-direction:column;gap:4px">
+        <li>Only two elevations. In-flow content has a hairline and no shadow. Drawers, popovers and the device frame use one shadow.</li>
+        <li>Glass blur is dropped from the default theme and kept only as an opt-in sidebar style.</li>
+        <li>Motion: 140ms for state changes and 260ms for spatial moves (drawer, step advance), both with ease-out <code style="font-family:'JetBrains Mono',monospace;font-size:12px">cubic-bezier(.16,1,.3,1)</code>. No spring, no bounce.</li>
+        <li>Celebration happens only when mastery moves up a step: the ladder segment fills over 400ms. Reduced motion shows the new state immediately.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:30px">Buttons: one primary per screen</h2>
+    <div style="display:grid;grid-template-columns:120px repeat(5,minmax(0,1fr));gap:12px;align-items:center">
+      <span></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">DEFAULT</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">HOVER</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">FOCUS</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">LOADING</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">DISABLED</span>
+      <span style="font-size:13px;font-weight:600">Primary</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#0f766e;color:#fff;font-size:14px;font-weight:600">Resume</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#0c5f59;color:#fff;font-size:14px;font-weight:600">Resume</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#0f766e;color:#fff;font-size:14px;font-weight:600;outline:2px solid #0f766e;outline-offset:2px">Resume</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;background:#0f766e;color:#fff;font-size:14px;font-weight:600"><span style="width:12px;height:12px;border-radius:999px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff"></span>Saving</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#d9d4c9;color:#78715f;font-size:14px;font-weight:600">Resume</span>
+      <span style="font-size:13px;font-weight:600">Secondary</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#fff;border:1px solid #d5cfc2;font-size:14px;font-weight:600">Practise</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#f0ede5;border:1px solid #9cc6c0;font-size:14px;font-weight:600">Practise</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#fff;border:1px solid #d5cfc2;font-size:14px;font-weight:600;outline:2px solid #0f766e;outline-offset:2px">Practise</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#fff;border:1px solid #d5cfc2;font-size:14px;font-weight:600;color:#625c50">Working…</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#f7f5f0;border:1px solid #e2ddd1;font-size:14px;font-weight:600;color:#a39c8c">Practise</span>
+      <span style="font-size:13px;font-weight:600">Quiet</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#625c50">Skip step</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#ece8df;font-size:14px;font-weight:600">Skip step</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;font-size:14px;font-weight:600;outline:2px solid #0f766e;outline-offset:2px">Skip step</span>
+      <span></span><span></span>
+      <span style="font-size:13px;font-weight:600">Destructive</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#96352d">Delete session</span>
+      <span style="height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:#f7e6e3;font-size:14px;font-weight:600;color:#96352d">Delete session</span>
+      <span style="grid-column:span 3;font-size:13px;line-height:1.5;color:#625c50">Always a two-step action: the button reveals an inline confirm that names what will be lost ("3 sessions, 42 cards"). Account deletion also asks the student to type the account name. Anything that is deleted can be undone for 10 seconds.</span>
+    </div>
+  </section>
+
+  <section style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px">
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:30px">Learning components</h2>
+      <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:600">Mastery ladder</span>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px"><span style="height:8px;border-radius:2px;background:#0f766e"></span><span style="height:8px;border-radius:2px;background:#0f766e"></span><span style="height:8px;border-radius:2px;background:#b8862e"></span><span style="height:8px;border-radius:2px;background:#e2ddd1"></span></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50"><span>SEEN</span><span>RECALLED</span><span>APPLIED</span><span>EXPLAINED</span></div>
+        <span style="font-size:13px;line-height:1.5;color:#625c50">Four steps, each earned from a check. An ochre segment means a step was reached but is now fading. This replaces single percentages and the predicted-grade number, which moves to the Progress view.</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;padding-left:14px;border-left:2px solid #0f766e"><span style="font-size:13px;font-weight:600">Tutor turn</span><span style="font-family:'Source Serif 4',Georgia,serif;font-size:15px;line-height:1.6">Serif prose, a teal rule, and a check at the end.</span></div>
+      <div style="display:flex;gap:10px;padding:10px 12px;background:#f6ecd9;border-radius:6px"><span style="font-size:13px;font-weight:700;color:#76511b">Common trap</span><span style="font-size:13px">Misconception callout</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span style="height:32px;display:inline-flex;align-items:center;padding:0 10px;border:1px solid #d5cfc2;border-radius:999px;font-size:12px">Nudge</span><span style="height:32px;display:inline-flex;align-items:center;padding:0 10px;border:1px solid #d5cfc2;border-radius:999px;font-size:12px">Bigger hint</span><span style="height:32px;display:inline-flex;align-items:center;padding:0 10px;border:1px solid #d5cfc2;border-radius:999px;font-size:12px">Show me, then quiz me</span><span style="font-size:12px;color:#625c50;align-self:center">Hint ladder</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:30px">Copy rules</h2>
+      <div style="display:flex;flex-direction:column;border-top:1px solid #e2ddd1;font-size:14px">
+        <sc-for list="{{ copy }}" as="c" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;padding:12px 0;border-bottom:1px solid #e2ddd1"><span style="color:#96352d;text-decoration:line-through;text-decoration-color:rgba(150,53,45,0.4)">{{ c.no }}</span><span style="color:#15634b;font-weight:500">{{ c.yes }}</span></div>
+        </sc-for>
+      </div>
+      <p style="margin:0;font-size:13px;line-height:1.55;color:#625c50">Buttons are verb plus object, with a time estimate when the action starts some work. Errors cover what happened, what was kept and what to do. No exclamation marks, and no emoji in the product UI.</p>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px;padding:24px;background:#1a1815;color:#f0ece4;border-radius:12px">
+    <h2 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:26px">Dark mode</h2>
+    <p style="margin:0;font-size:14px;line-height:1.6;color:#c9c2b4;max-width:80ch">The existing dark ramp stays: bg #141310, bone text #f0ece4. The accent goes lighter (teal #5eb8ad) with ink labels, and ochre goes lighter (#e0b25c). The contrast tests in <code style="font-family:'JetBrains Mono',monospace;font-size:12px">contrast.test.ts</code> extend to the ochre pair. Every swatch above has a dark counterpart at the same step.</p>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const serif = "'Newsreader',Georgia,serif", sans = "'Instrument Sans',system-ui,sans-serif", read = "'Source Serif 4',Georgia,serif", mono = "'JetBrains Mono',monospace";
+    return {
+      colors: [
+        { name: "Paper", hex: "#f7f5f0", on: "#625c50", job: "Page background. Warm, not white, so it is easier on the eyes over long sessions." },
+        { name: "Ink", hex: "#1a1815", on: "#f7f5f0", job: "Text and the student's own turns in chat." },
+        { name: "Action teal", hex: "#0f766e", on: "#ffffff", job: "Things you can do next. One filled use per screen." },
+        { name: "Recall ochre", hex: "#b8862e", on: "#1a1815", job: "Memory: due, fading, guessed. Always paired with text in #76511b." },
+        { name: "Correct", hex: "#1e8e6b", on: "#000000", job: "Only for verified-correct answers. Never used for decoration." },
+        { name: "Wrong", hex: "#c2453a", on: "#ffffff", job: "Only for wrong answers and destructive actions. Always paired with ✕." },
+        { name: "Surface", hex: "#ffffff", on: "#625c50", job: "Content that is a unit of work: the next-step card, the test sheet." },
+        { name: "Muted text", hex: "#625c50", on: "#ffffff", job: "Secondary text, 6.3:1 on paper. #78715f is the floor for captions." },
+      ],
+      type: [
+        { role: "Display", spec: "Newsreader 500 · 52/1.02", ff: serif, fs: "52px", fw: 500, lh: 1.02, ls: "-0.025em", sample: "Pick up where you left off." },
+        { role: "Page title", spec: "Newsreader 500 · 36/1.1", ff: serif, fs: "36px", fw: 500, lh: 1.1, ls: "-0.02em", sample: "Test results" },
+        { role: "Section / claim", spec: "Newsreader 500 · 28/1.15", ff: serif, fs: "28px", fw: 500, lh: 1.15, ls: "-0.015em", sample: "The chain pumps protons." },
+        { role: "Teaching prose", spec: "Source Serif 4 · 17/1.65 · 62ch", ff: read, fs: "17px", fw: 400, lh: 1.65, ls: "0", sample: "Electrons from NADH move along proteins in the inner membrane." },
+        { role: "Body / UI", spec: "Instrument Sans 400 · 15/1.55", ff: sans, fs: "15px", fw: 400, lh: 1.55, ls: "0", sample: "You stopped at step 3, the electron transport chain." },
+        { role: "Label / button", spec: "Instrument Sans 600 · 14", ff: sans, fs: "14px", fw: 600, lh: 1.3, ls: "0", sample: "Resume · 12 min left" },
+        { role: "Caption", spec: "Instrument Sans 400 · 12–13 · #625c50", ff: sans, fs: "13px", fw: 400, lh: 1.45, ls: "0", sample: "Your notes and chat are saved" },
+        { role: "Meta label", spec: "JetBrains Mono · 11–12 caps +0.06em", ff: mono, fs: "12px", fw: 400, lh: 1.3, ls: "0.06em", sample: "STEP 3 · EXPLAIN" },
+      ],
+      space: [
+        { px: "4", w: "4px", use: "Icon to label, segment gaps" },
+        { px: "8", w: "8px", use: "Between related controls" },
+        { px: "12", w: "12px", use: "Inside rows, chip groups" },
+        { px: "16", w: "16px", use: "Card padding (compact), form stacks" },
+        { px: "24", w: "24px", use: "Card padding, rail gaps" },
+        { px: "32", w: "32px", use: "Between sections in a column" },
+        { px: "48", w: "48px", use: "Page gutters (desktop), column gap" },
+        { px: "64", w: "64px", use: "Onboarding and empty-state breathing room" },
+      ],
+      copy: [
+        { no: "Something went wrong.", yes: "The tutor didn't answer. Your message is saved." },
+        { no: "Great job!!! 🎉", yes: "You can now explain where ATP comes from." },
+        { no: "You failed 5 questions.", yes: "One idea is costing you 3 marks." },
+        { no: "Don't lose your streak!", yes: "4 study days this week. Your goal is 5." },
+        { no: "Generate", yes: "Build 16 questions · about 1 min" },
+        { no: "Are you sure?", yes: "Delete 3 sessions and 42 cards? You can undo this for 10 s." },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

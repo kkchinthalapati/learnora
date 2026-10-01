@@ -248,7 +248,7 @@ export function TasksView() {
           </div>
 
           {ordered.length === 0 ? (
-            <p className={styles.empty}>No tasks yet - add one above!</p>
+            <p className={styles.empty}>No tasks yet. Add one above.</p>
           ) : taskGroups.length === 0 ? (
             <p className={styles.empty}>No tasks match this filter.</p>
           ) : (

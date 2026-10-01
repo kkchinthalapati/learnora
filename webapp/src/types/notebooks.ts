@@ -12,7 +12,7 @@ export interface NotebookSource {
 }
 
 export type ArtifactType =
-  "feynman" | "cheat_sheet" | "flashcards" | "quiz" | "summary";
+  "feynman" | "cheat_sheet" | "flashcards" | "quiz" | "summary" | "diagram";
 
 export interface NotebookArtifact {
   id: string;

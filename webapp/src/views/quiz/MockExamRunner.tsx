@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from "react-router";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { useToast } from "../../context/toast";
-import { useDialog } from "../../context/dialog";
 import { useQuiz, useRecordQuizAttempt } from "../../hooks/useQuizzes";
 import { useExamProctor } from "../../hooks/useExamProctor";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
@@ -22,6 +21,13 @@ import { QUIZZES_PATH } from "./QuizRunner";
 import { newAttemptKey } from "../../lib/attemptKey";
 import { examDraftKey } from "../../lib/draftKeys";
 import { useStudyClock } from "../../hooks/useStudyClock";
+import { useOnlineStatus } from "../../lib/offlineSync";
+import { OfflineTestBar } from "../../components/OfflineBanner";
+import { ConfidencePicker } from "../../components/learning/ConfidencePicker";
+import type { Confidence } from "../../components/learning/options";
+import { TestResults } from "./TestResults";
+import text from "../../styles/text.module.css";
+import runner from "./testRunner.module.css";
 
 interface ExamDraftState {
   index: number;
@@ -32,6 +38,8 @@ interface ExamDraftState {
   /** Identifies this sitting, so recording it twice writes one attempt.
    *  Optional so a draft written by an older build still resumes. */
   attemptKey?: string;
+  /** Questions flagged for review, by index. */
+  flagged?: number[];
 }
 
 function isUsableExamDraft(
@@ -145,7 +153,7 @@ export function MockExamRunner() {
   }
 
   return (
-    <div className={styles.view} ref={containerRef} style={{ background: "var(--bg)", height: "100vh", overflowY: "auto" }}>
+    <div className={runner.frame} ref={containerRef}>
       <MockExamSession
         quizId={quiz.id}
         quizTitle={quiz.title || "Mock Exam"}
@@ -169,11 +177,11 @@ function MockExamSession({
 }) {
   const recordAttempt = useRecordQuizAttempt();
   const { showToast } = useToast();
-  const { confirm } = useDialog();
   const navigate = useNavigate();
   const { settings } = useSettings();
-  /* Unlike QuizRunner, this screen doesn't time its questions, so the clock is
-     marked per answer instead of fed pre-measured durations. */
+  const { isOnline } = useOnlineStatus();
+  /* This screen doesn't time its questions, so the clock is marked per
+     answer instead of fed pre-measured durations. */
   const studyClock = useStudyClock({
     timerType: "quiz",
     task: quizTitle,
@@ -182,32 +190,31 @@ function MockExamSession({
 
   useEffect(() => {
     studyClock.mark();
-    // Mount-only: opens the clock so the first question's time counts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const draftKey = examDraftKey(quizId);
 
   /* A refresh mid-exam drops `isFullscreen` in the parent, so the student
-     always lands back on the "Begin Mock Exam" gate first — re-entering
-     fullscreen is itself the resume gesture, so unlike QuizRunner this
-     resumes silently rather than asking. A stale/corrupt/out-of-range draft
-     is treated as no draft. */
+     lands back on the "Begin" gate first — re-entering fullscreen is itself
+     the resume gesture, so this resumes silently. A stale/corrupt draft is
+     treated as no draft. */
   const [resumedDraft] = useState(() => {
     const stored = Storage.get<ExamDraftState>(draftKey);
     return isUsableExamDraft(stored, questions.length) ? stored : null;
   });
 
   const [index, setIndex] = useState(() => resumedDraft?.index ?? 0);
+  /* One stored answer per answered question, replaced when the student
+     changes their mind — the test is navigable now, not auto-advancing. */
   const [answers, setAnswers] = useState<StoredAnswer[]>(
     () => resumedDraft?.answers ?? [],
   );
-  /* Fixed for the life of the session (not recomputed as time ticks) — the
-     wall-clock target the countdown works backward from. A raw persisted
-     countdown would let a refresh "bank" time (or unfairly lose it) relative
-     to whatever's actually left; anchoring to an absolute timestamp instead
-     makes a refresh time-neutral, which is the actual correctness
-     requirement for a timed exam. */
+  const [flagged, setFlagged] = useState<number[]>(
+    () => resumedDraft?.flagged ?? [],
+  );
+  /* Fixed for the life of the session — the wall-clock target the countdown
+     works back from, so a refresh is time-neutral. */
   const [examEndAt] = useState(
     () => resumedDraft?.examEndAt ?? Date.now() + questions.length * 60_000,
   );
@@ -216,38 +223,33 @@ function MockExamSession({
       ? Math.max(0, Math.round((examEndAt - Date.now()) / 1000))
       : questions.length * 60,
   );
+  const [hideTimer, setHideTimer] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  /* "Submit test…" with blanks lists them inline rather than in a modal. */
+  const [reviewingBlanks, setReviewingBlanks] = useState(false);
 
-  /* One key for the sitting, carried in the draft so a refresh mid-exam keeps
-     it. It matters more here than in QuizRunner: this screen has *two* record
-     paths — the finished effect below and submitExam's early-exit/termination
-     write — and nothing stopped both firing for one sitting and booking two
-     attempts against it. Same key on both, so the second is a no-op. */
+  /* One key for the sitting, carried in the draft. Two record paths exist —
+     the finished effect and a proctoring termination — and the same key on
+     both makes the second a no-op. */
   const [attemptKey] = useState(
     () => resumedDraft?.attemptKey ?? newAttemptKey(),
   );
 
-  const finished = index >= questions.length || timeLeft <= 0;
+  const timeUp = timeLeft <= 0;
+  const finished = submitted || timeUp;
   const score = answers.filter((a) => a.correct).length;
   const total = questions.length;
 
-  /* submitExam (early exit / proctoring termination) records and navigates
-     away without ever flipping `index`/`timeLeft` into the "finished" shape
-     — so `finished` alone doesn't reliably disable autosave for that path.
-     Without this, a re-render landing between submitExam's draft.clear()
-     and the component actually unmounting (e.g. the toast it shows causes
-     one) would see `enabled` still true and re-arm the debounced write,
-     silently resurrecting the draft right after it was cleared. A ref
-     (not state) is enough — it only needs to be correct by the time some
-     *other* render reads it, not to cause one itself. */
+  /* A termination records and navigates away without flipping `finished`;
+     this keeps autosave from resurrecting the draft it just cleared. */
   const submittedRef = useRef(false);
 
   const draft = useQuizDraft<ExamDraftState>(
     draftKey,
-    { index, answers, examEndAt, attemptKey },
+    { index, answers, examEndAt, attemptKey, flagged },
     {
       enabled: !finished && !submittedRef.current,
-      warnOnUnload:
-        !finished && !submittedRef.current && answers.length > 0,
+      warnOnUnload: !finished && !submittedRef.current && answers.length > 0,
     },
   );
 
@@ -262,8 +264,12 @@ function MockExamSession({
   const { mutate: record } = recordAttempt;
 
   useEffect(() => {
-    if (!finished) return;
+    if (!finished || submittedRef.current) return;
+    submittedRef.current = true;
     draft.clear();
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
     record(
       {
         quizId,
@@ -275,57 +281,38 @@ function MockExamSession({
       },
       {
         onError: () =>
-          showToast("Failed to save exam attempt.", { error: true }),
+          showToast(
+            "Your result is shown here, but saving the attempt failed. It is kept on this device and will retry.",
+            { error: true },
+          ),
       },
     );
     studyClock.commit();
+    // Runs on the transition into "finished" only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finished, quizId, score, total, answers, record, showToast]);
+  }, [finished]);
 
-  /* The proctoring guard: leaving fullscreen or switching tabs ends the
-     exam. Scoped to `!finished` so it can never fire once every question is
-     answered (or time is up) — including the moment between finishing and
-     clicking "Review Answers", when exiting fullscreen is the *expected*
-     next step, not a violation.
-
-     Unlike a plain kick-out, this still records whatever was answered
-     before the interruption (same shape as the natural-finish effect
-     above) rather than silently discarding it — leaving early costs the
-     rest of the exam, not the part already done.
-
-     If settings.examTerminationGrace is enabled, shows a countdown warning
-     before terminating (see useExamProctor). */
-  const submitExam = (
-    reason: "terminated" | "voluntary",
-    proctorReason?: "fullscreen" | "visibility",
-  ) => {
+  /* Leaving fullscreen or switching tabs ends a strict mock exam. What was
+     answered is still recorded — leaving early costs the rest of the exam,
+     not the part already done. */
+  const terminate = (proctorReason: "fullscreen" | "visibility") => {
     if (document.fullscreenElement) {
       document.exitFullscreen?.().catch(() => {});
     }
-    // Bypasses the `finished`-triggered effect above (index/timeLeft never
-    // actually cross the finished threshold on this path), so the draft
-    // needs clearing here too — and autosave needs to stay off from here
-    // on, or a re-render before the component unmounts (e.g. the toast
-    // below) would re-arm it. See submittedRef's declaration for why.
     submittedRef.current = true;
     draft.clear();
-    const storedAnswers = answers;
-    const finalAnswers = proctorReason
-      ? {
-          items: storedAnswers,
-          proctorTermination: {
-            reason: proctorReason,
-            timestamp: new Date().toISOString(),
-          },
-        }
-      : storedAnswers;
-
     record(
       {
         quizId,
         score,
         total,
-        answers: finalAnswers,
+        answers: {
+          items: answers,
+          proctorTermination: {
+            reason: proctorReason,
+            timestamp: new Date().toISOString(),
+          },
+        },
         weakTopics: weakTopicsFrom(answers),
         attemptKey,
       },
@@ -334,120 +321,119 @@ function MockExamSession({
           showToast("Failed to save exam attempt.", { error: true }),
       },
     );
-    /* Terminated exams included: the student still spent the time studying.
-       commit is idempotent, so this and the natural-finish effect above can
-       never double-credit one sitting. */
     studyClock.commit();
-
-    if (reason === "terminated") {
-      showToast(
-        proctorReason === "fullscreen"
-          ? "Mock Exam terminated: Exited fullscreen"
-          : "Mock Exam terminated: Left exam tab",
-        { error: true },
-      );
-      navigate(`/quiz/${quizId}/review`);
-    } else {
-      showToast("Mock Exam submitted.");
-      navigate(QUIZZES_PATH);
-    }
+    showToast(
+      proctorReason === "fullscreen"
+        ? "Mock exam ended: you left fullscreen. Your answers so far are saved."
+        : "Mock exam ended: you left the exam tab. Your answers so far are saved.",
+      { error: true },
+    );
+    navigate(`/quiz/${quizId}/review`);
   };
 
   const { graceCountdown, graceReason } = useExamProctor({
     isActive: !finished,
     enabled: settings.examTerminationGrace,
-    onTerminate: (terminateReason) => {
-      submitExam("terminated", terminateReason);
-    },
+    onTerminate: terminate,
   });
 
-  /* `question` is undefined once `finished` (index runs past the end) — fine,
-     since `choose` below is only ever invoked from the keyboard-shortcut
-     handlers or the choice buttons, both gated off once finished. */
   const question = questions[index];
+  const answerFor = (i: number) =>
+    answers.find((a) => a.questionId === (questions[i]?.id ?? i));
+  const current = answerFor(index);
+  const unanswered = questions
+    .map((_, i) => i)
+    .filter((i) => !answerFor(i));
 
   const choose = (chosenIndex: number) => {
-    const correct = chosenIndex === question.correctIndex;
+    if (finished || !question) return;
     studyClock.mark();
-    setAnswers((prev) => [
-      ...prev,
-      {
-        questionId: question.id ?? index,
+    const key = question.id ?? index;
+    setAnswers((prev) => {
+      const entry: StoredAnswer = {
+        questionId: key,
         chosenIndex,
-        correct,
+        correct: chosenIndex === question.correctIndex,
         topic: question.topic,
-      },
-    ]);
-    setIndex((i) => i + 1);
+        confidence: prev.find((a) => a.questionId === key)?.confidence ?? null,
+      };
+      const at = prev.findIndex((a) => a.questionId === key);
+      if (at === -1) return [...prev, entry];
+      const next = [...prev];
+      next[at] = entry;
+      return next;
+    });
   };
 
-  /* Keyboard shortcuts: 1-4 or A-D to choose answer (auto-advances).
-   *
-   * Must be called unconditionally on every render — it sits above the
-   * `if (finished)` early return below so the hook order never changes
-   * between renders (a hook call after a conditional return violates the
-   * Rules of Hooks: React throws "Rendered fewer hooks than expected" the
-   * moment `finished` flips true). `enabled: !finished` is what actually
-   * turns the shortcuts off once the exam ends, not the early return. */
+  const rate = (confidence: Confidence | null) => {
+    const key = question?.id ?? index;
+    setAnswers((prev) =>
+      prev.map((a) => (a.questionId === key ? { ...a, confidence } : a)),
+    );
+  };
+
+  const go = (i: number) => {
+    setIndex(Math.max(0, Math.min(questions.length - 1, i)));
+  };
+
+  const toggleFlag = () =>
+    setFlagged((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
+    );
+
+  const submit = () => {
+    if (!isOnline) return;
+    if (unanswered.length > 0 && !reviewingBlanks) {
+      setReviewingBlanks(true);
+      return;
+    }
+    setSubmitted(true);
+  };
+
+  /* A–D (or 1–4) select, ←/→ move, F flags. */
   useKeyboardShortcuts(
     {
       "1": () => choose(0),
       "2": () => choose(1),
       "3": () => choose(2),
       "4": () => choose(3),
-      "a": () => choose(0),
-      "b": () => choose(1),
-      "c": () => choose(2),
-      "d": () => choose(3),
+      a: () => choose(0),
+      b: () => choose(1),
+      c: () => choose(2),
+      d: () => choose(3),
+      ArrowLeft: () => go(index - 1),
+      ArrowRight: () => go(index + 1),
+      f: toggleFlag,
     },
     { enabled: !finished },
   );
 
   if (finished) {
-    const exitExam = () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(console.error);
-      }
-      navigate(`/quiz/${quizId}/review`);
-    };
-
     return (
-      <Card variant="panel" padding="lg" className={styles.panel}>
-        <h2>Exam Complete!</h2>
-        <p className={styles.score}>{score} / {total} correct</p>
-        {timeLeft <= 0 && <p className={styles.muted}>Time's up!</p>}
-        <Button variant="primary" onClick={exitExam}>Review Answers</Button>
-      </Card>
+      <TestResults
+        quizId={quizId}
+        title={quizTitle}
+        questions={questions}
+        answers={answers}
+        note={timeUp && !submitted ? "Time's up. Everything you answered was submitted." : undefined}
+      />
     );
   }
 
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
-
-  const isStressful = timeLeft < 30;
-
-  const endExamEarly = async () => {
-    const ok = await confirm(
-      "Are you sure you want to end the exam now? Your answers so far will be recorded, but you won't get points for unanswered questions.",
-      { title: "End Exam Early?", confirmText: "End Exam", danger: true },
-    );
-    if (ok) {
-      submitExam("voluntary");
-    }
-  };
+  const minutes = Math.floor(Math.max(0, timeLeft) / 60);
+  const seconds = Math.max(0, timeLeft) % 60;
+  const urgent = timeLeft < 60;
+  const answeredCount = questions.length - unanswered.length;
 
   return (
-    <>
+    <div className={runner.runner}>
+      <OfflineTestBar />
       {graceCountdown !== null && (
-        // role="alert" (an assertive live region) so screen-reader users get
-        // the same interruption sighted students get from the banner
-        // appearing — without it, this warning was silent for them even
-        // though the exam clock keeps running either way.
         <div role="alert" className={styles.graceBanner}>
           <p>
             {graceReason === "fullscreen"
-              ? "You exited fullscreen!"
-              : "You left the exam tab!"}
+              ? "You left fullscreen."
+              : "You left the exam tab."}
           </p>
           <p>
             Auto-submitting in <strong>{Math.ceil(graceCountdown / 1000)}s</strong> unless you return.
@@ -459,9 +445,7 @@ function MockExamSession({
                 size="sm"
                 onClick={() => {
                   if (document.documentElement.requestFullscreen) {
-                    document.documentElement
-                      .requestFullscreen()
-                      .catch(() => {});
+                    document.documentElement.requestFullscreen().catch(() => {});
                   }
                 }}
               >
@@ -471,34 +455,144 @@ function MockExamSession({
           ) : null}
         </div>
       )}
-      <Card variant="panel" padding="lg" className={styles.panel}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <p className={styles.progress}>Question {index + 1} of {questions.length}</p>
-          <p className={isStressful ? styles.timeLeftUrgent : styles.timeLeft}>
-            Time Left: {minutes}:{seconds.toString().padStart(2, "0")}
-          </p>
-        </div>
-        <h2 className={styles.question}>{renderMathText(question.question)}</h2>
 
-        <div className={styles.choices}>
-          {question.choices.map((choice, i) => (
-            <button
-              key={i}
-              type="button"
-              className={styles.choice}
-              onClick={() => choose(i)}
+      <header className={runner.topbar}>
+        <div className={runner.titleBlock}>
+          <h1 className={runner.title}>{quizTitle}</h1>
+          <span className={runner.sub}>
+            {questions.length} questions · closed book
+          </span>
+        </div>
+        <div className={runner.topRight}>
+          {hideTimer ? null : (
+            <span
+              className={runner.timer}
+              data-urgent={urgent || undefined}
+              role="timer"
+              aria-label={`Time left: ${minutes} minutes ${seconds} seconds`}
             >
-              {renderMathText(choice)}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ marginTop: "2rem", display: "flex", gap: "1rem" }}>
-          <Button variant="secondary" onClick={endExamEarly}>
-            End Exam Early
+              {minutes}:{seconds.toString().padStart(2, "0")} left
+            </span>
+          )}
+          <Button variant="secondary" size="sm" onClick={() => setHideTimer((h) => !h)}>
+            {hideTimer ? "Show timer" : "Hide timer"}
           </Button>
         </div>
-      </Card>
-    </>
+      </header>
+
+      <nav className={runner.navigator} aria-label="Questions">
+        <ol className={runner.squares}>
+          {questions.map((_, i) => {
+            const isAnswered = Boolean(answerFor(i));
+            const isFlagged = flagged.includes(i);
+            return (
+              <li key={i}>
+                <button
+                  type="button"
+                  className={runner.square}
+                  data-answered={isAnswered || undefined}
+                  aria-current={i === index ? "step" : undefined}
+                  onClick={() => go(i)}
+                  aria-label={`Question ${i + 1}${isAnswered ? ", answered" : ", not answered"}${isFlagged ? ", flagged" : ""}`}
+                >
+                  {i + 1}
+                  {isFlagged ? <span className={runner.flagDot} aria-hidden="true" /> : null}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+        <span className={runner.summary}>
+          {answeredCount} answered · {flagged.length} flagged · {unanswered.length} to go
+        </span>
+      </nav>
+
+      <main className={runner.body}>
+        <div className={runner.column}>
+          <div className={runner.metaRow}>
+            <span className={text.meta}>
+              Question {index + 1} of {questions.length}
+            </span>
+            <button
+              type="button"
+              className={runner.flagBtn}
+              aria-pressed={flagged.includes(index)}
+              onClick={toggleFlag}
+            >
+              {flagged.includes(index) ? "Flagged for review" : "Flag for review"}
+            </button>
+          </div>
+          <h2 className={runner.stem}>{renderMathText(question.question)}</h2>
+          <ul className={runner.options} aria-label="Choices">
+            {question.choices.map((choice, i) => (
+              <li key={i}>
+                <button
+                  type="button"
+                  className={runner.option}
+                  aria-pressed={current?.chosenIndex === i}
+                  onClick={() => choose(i)}
+                >
+                  <span className={runner.key} aria-hidden="true">
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  <span>{renderMathText(choice)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          {current ? (
+            <ConfidencePicker value={current.confidence ?? null} onChange={rate} />
+          ) : null}
+
+          {reviewingBlanks && unanswered.length > 0 ? (
+            <section className={runner.blanks} aria-labelledby="blanks-title">
+              <p id="blanks-title" className={runner.blanksTitle}>
+                {unanswered.length} {unanswered.length === 1 ? "question is" : "questions are"} still blank
+              </p>
+              <ul className={runner.blankList}>
+                {unanswered.map((i) => (
+                  <li key={i}>
+                    <button type="button" className={runner.blankLink} onClick={() => go(i)}>
+                      Question {i + 1}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <div className={runner.blankActions}>
+                <Button variant="secondary" size="sm" onClick={() => setSubmitted(true)} disabled={!isOnline}>
+                  Submit anyway
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setReviewingBlanks(false)}>
+                  Keep going
+                </Button>
+              </div>
+            </section>
+          ) : null}
+        </div>
+      </main>
+
+      <footer className={runner.footer}>
+        <div className={runner.footLeft}>
+          <Button variant="secondary" onClick={() => go(index - 1)} disabled={index === 0}>
+            ← Previous
+          </Button>
+          <span className={runner.saved}>Saved on this device and in your account</span>
+        </div>
+        <div className={runner.footRight}>
+          <Button variant="ghost" onClick={submit} disabled={!isOnline}>
+            Submit test…
+          </Button>
+          {index < questions.length - 1 ? (
+            <Button variant="primary" onClick={() => go(index + 1)}>
+              Next →
+            </Button>
+          ) : (
+            <Button variant="primary" onClick={submit} disabled={!isOnline}>
+              Submit test
+            </Button>
+          )}
+        </div>
+      </footer>
+    </div>
   );
 }

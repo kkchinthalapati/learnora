@@ -21,7 +21,10 @@ export async function studentLevel(): Promise<string> {
   } catch {
     /* No session to read: fall through to the region. */
   }
-  return getFramework().boardLabel;
+  /* A guess from the browser's locale, said to be one: an en-US laptop
+     used by a GCSE student was being marked against "AP / College Board".
+     First run now asks; this is for the students who skipped it. */
+  return `${getFramework().boardLabel} (not confirmed by the student, so keep to core secondary-school detail)`;
 }
 
 /** The instruction every question-and-marking prompt gets, so what is asked,

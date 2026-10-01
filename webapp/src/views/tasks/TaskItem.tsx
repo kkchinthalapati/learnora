@@ -11,6 +11,7 @@ import {
   isRecurringWeekly,
   localDateStr,
 } from "../../lib/date";
+import { TASK_MAX } from "../../lib/fieldLimits";
 import styles from "./tasks.module.css";
 
 /* One row of the task list — ports js/main.js:1348-1570.
@@ -127,6 +128,7 @@ export function TaskItem({
           className={styles.editInput}
           aria-label="Edit task text"
           autoFocus
+          maxLength={TASK_MAX}
           value={draftText}
           onChange={(e) => setDraftText(e.target.value)}
           onBlur={commitText}

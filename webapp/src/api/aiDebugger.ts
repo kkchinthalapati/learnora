@@ -185,9 +185,9 @@ You MUST reply with ONLY valid raw JSON conforming to this exact schema (no pros
 }
 
 /** Build the prompt for generating a 60-second micro-repair */
-export function buildMicroRepairPrompt(rootConcept: string): string {
+export function buildMicroRepairPrompt(rootConcept: string, avoidPrompt?: string): string {
   return `You are the Learnora Micro-Repair Engine. Generate a short first-principles interactive mental repair for the following broken foundational concept: "${rootConcept}".
-
+${avoidPrompt ? `\nThe student has just missed this question and seen its answer, so ask something DIFFERENT that tests the same idea from another angle — not a rewording of it:\n"""${avoidPrompt}"""\n` : ""}
 Strip out the jargon. Explain it the way you would to a friend who has never seen it before, in plain British English, so it clicks quickly.
 
 The four answer options MUST each be a short clause under 40 characters — "A rate of change", "The final numeric answer" — never a full sentence.
@@ -369,8 +369,11 @@ export async function diagnoseCognitiveGap(
  *  Debugger calls a day are spent by one diagnosis and one real repair, so
  *  "Go over it again" was exactly where the template appeared: its pass was
  *  the second correction, and a 429 closed a real misconception. */
-export async function generateMicroRepair(rootConcept: string): Promise<MicroRepairResult> {
-  const prompt = buildMicroRepairPrompt(rootConcept);
+export async function generateMicroRepair(
+  rootConcept: string,
+  { avoidPrompt }: { avoidPrompt?: string } = {},
+): Promise<MicroRepairResult> {
+  const prompt = buildMicroRepairPrompt(rootConcept, avoidPrompt);
 
   let parsed: any;
   try {

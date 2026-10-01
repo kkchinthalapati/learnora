@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#e9e5dc;font-family:'Instrument Sans',system-ui,sans-serif;color:#1a1815}a{color:#0b5c55}a:hover{color:#094943}@keyframes lpulse{0%,100%{opacity:1}50%{opacity:.45}}</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:48px;padding:56px;max-width:1400px">
+  <header style="display:flex;flex-direction:column;gap:8px;max-width:900px">
+    <a href="Learnora Redesign.dc.html" style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;text-decoration:none">← Learnora redesign / 05</a>
+    <h1 style="margin:0;font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:48px;letter-spacing:-0.02em;line-height:1.05">Empty, loading and error states</h1>
+    <p style="margin:0;font-size:16px;line-height:1.6;color:#625c50;max-width:72ch">Every state message answers four things: what happened, what was kept, what you can do, and whether retrying is safe. Empty states teach the product by offering the one action that fills them.</p>
+  </header>
+
+  <section id="5a" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:center;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:#1a1815;color:#f7f5f0;border-radius:3px">5a</span><h2 style="margin:0;font-size:15px;font-weight:600">Empty</h2></div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+      <div style="display:flex;flex-direction:column;gap:12px;padding:28px;background:#f7f5f0;border:1px solid #d5cfc2;border-radius:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">LIBRARY · NO MATERIAL</span>
+        <span style="font-family:'Newsreader',Georgia,serif;font-size:26px;line-height:1.15">Your notes become lessons, quizzes and flashcards.</span>
+        <span style="font-size:14px;line-height:1.55;color:#625c50">Drop a PDF, slides or a photo of a worksheet. Learnora finds the topics and links them to your exam.</span>
+        <button style="align-self:flex-start;height:44px;padding:0 18px;border:0;border-radius:8px;background:#0f766e;color:#fff;font:inherit;font-size:14px;font-weight:600">Add material</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;padding:28px;background:#f7f5f0;border:1px solid #d5cfc2;border-radius:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">PROGRESS · NO WEAK TOPICS</span>
+        <span style="font-family:'Newsreader',Georgia,serif;font-size:26px;line-height:1.15">Nothing is fading right now.</span>
+        <span style="font-size:14px;line-height:1.55;color:#625c50">This list fills itself from your quizzes and recall sessions. The next topic due for review is Glycolysis, on Friday.</span>
+        <button style="align-self:flex-start;height:44px;padding:0 16px;border:1px solid #d5cfc2;border-radius:8px;background:#fff;font:inherit;font-size:14px;font-weight:600">Challenge me anyway</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;padding:28px;background:#f7f5f0;border:1px solid #d5cfc2;border-radius:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">TODAY · ALL DONE</span>
+        <span style="font-family:'Newsreader',Georgia,serif;font-size:26px;line-height:1.15">You're clear for today.</span>
+        <span style="font-size:14px;line-height:1.55;color:#625c50">All 18 cards are reviewed and the session is done. Stopping here is fine: spacing the work out is part of how memory works.</span>
+        <a href="#" style="align-self:flex-start;font-size:14px;font-weight:600;min-height:44px;display:inline-flex;align-items:center">Optional: a 5-min stretch on electron transport</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="5b" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:center;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:#1a1815;color:#f7f5f0;border-radius:3px">5b</span><h2 style="margin:0;font-size:15px;font-weight:600">Loading and generating</h2></div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+      <div style="display:flex;flex-direction:column;gap:14px;padding:28px;background:#f7f5f0;border:1px solid #d5cfc2;border-radius:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">TODAY · SKELETON</span>
+        <span style="height:12px;width:40%;border-radius:3px;background:#e6e1d6"></span>
+        <span style="height:34px;width:85%;border-radius:4px;background:#e6e1d6"></span>
+        <span style="height:34px;width:60%;border-radius:4px;background:#e6e1d6"></span>
+        <span style="height:110px;border-radius:12px;background:#fff;border:1px solid #e2ddd1"></span>
+        <span style="font-size:13px;color:#625c50">Working out your next step…</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;padding:28px;background:#f7f5f0;border:1px solid #d5cfc2;border-radius:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">TUTOR · STREAMING</span>
+        <div style="display:flex;flex-direction:column;gap:10px;padding-left:14px;border-left:2px solid #0f766e">
+          <span style="font-family:'Newsreader',Georgia,serif;font-size:21px;line-height:1.2">The chain pumps protons. ATP synthase lets them back.</span>
+          <span style="font-family:'Source Serif 4',Georgia,serif;font-size:15px;line-height:1.6">Electrons from NADH move along proteins in the inner membrane<span style="display:inline-block;width:7px;height:15px;background:#0f766e;vertical-align:-2px;margin-left:2px;animation:lpulse 1s ease-in-out infinite"></span></span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center"><button style="height:36px;padding:0 12px;border:1px solid #d5cfc2;border-radius:6px;background:#fff;font:inherit;font-size:13px;font-weight:600">Stop</button><span style="font-size:12px;color:#625c50">Reading Bio ch. 9, p. 14</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;padding:28px;background:#f7f5f0;border:1px solid #d5cfc2;border-radius:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">TEST · GENERATING</span>
+        <span style="font-family:'Newsreader',Georgia,serif;font-size:22px;line-height:1.2">Building 16 questions from 3 topics</span>
+        <div style="display:flex;gap:4px"><span style="flex:1;height:6px;border-radius:2px;background:#0f766e"></span><span style="flex:1;height:6px;border-radius:2px;background:#0f766e"></span><span style="flex:1;height:6px;border-radius:2px;background:#9cc6c0"></span><span style="flex:1;height:6px;border-radius:2px;background:#e2ddd1"></span></div>
+        <span style="font-size:14px;line-height:1.5;color:#625c50">Questions 1–9 are ready. You can start now, and the rest will arrive before you reach them.</span>
+        <button style="align-self:flex-start;height:44px;padding:0 18px;border:0;border-radius:8px;background:#0f766e;color:#fff;font:inherit;font-size:14px;font-weight:600">Start test</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="5c" style="display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:center;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;padding:3px 8px;background:#1a1815;color:#f7f5f0;border-radius:3px">5c</span><h2 style="margin:0;font-size:15px;font-weight:600">Errors</h2></div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+      <div style="display:flex;flex-direction:column;gap:12px;padding:24px;background:#f7f5f0;border:1px solid #d5cfc2;border-radius:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">TUTOR · AI UNAVAILABLE (INLINE, IN THE THREAD)</span>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:14px 16px;background:#fff;border:1px solid #e2ddd1;border-radius:8px">
+          <span style="font-size:15px;font-weight:600">The tutor didn't answer that one.</span>
+          <span style="font-size:14px;line-height:1.5;color:#3d3830">The AI service is busy. Your message is saved below, so nothing was lost, and retrying won't send it twice.</span>
+          <div style="display:flex;gap:8px"><button style="height:40px;padding:0 14px;border:0;border-radius:6px;background:#0f766e;color:#fff;font:inherit;font-size:13px;font-weight:600">Try again</button><button style="height:40px;padding:0 14px;border:1px solid #d5cfc2;border-radius:6px;background:#fff;font:inherit;font-size:13px;font-weight:600">Switch to flashcards meanwhile</button></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;padding:24px;background:#f7f5f0;border:1px solid #d5cfc2;border-radius:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">TEST · OFFLINE (PERSISTENT BAR)</span>
+        <div style="display:flex;gap:12px;align-items:center;padding:12px 16px;background:#1a1815;color:#f7f5f0;border-radius:8px">
+          <span style="width:8px;height:8px;border-radius:999px;background:#e0b25c"></span>
+          <span style="flex:1;font-size:14px;line-height:1.45">You're offline. Answers are being saved on this device. Submit will be available again once you reconnect.</span>
+        </div>
+        <span style="font-size:13px;line-height:1.5;color:#625c50">The test keeps working. The only thing blocked is the one action that needs the network, and the bar says which one.</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;padding:24px;background:#f7f5f0;border:1px solid #d5cfc2;border-radius:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">UPLOAD · FAILED</span>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:14px 16px;background:#fff;border:1px solid #e0c28e;border-radius:8px">
+          <span style="font-size:15px;font-weight:600">We couldn't find any text in Scan_004.pdf</span>
+          <span style="font-size:14px;line-height:1.5;color:#3d3830">It looks like a scanned image. Photos of each page usually work better. The file is still in your Library.</span>
+          <div style="display:flex;gap:8px"><button style="height:40px;padding:0 14px;border:0;border-radius:6px;background:#0f766e;color:#fff;font:inherit;font-size:13px;font-weight:600">Upload page photos</button><button style="height:40px;padding:0 14px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:13px;font-weight:600;color:#96352d">Remove file</button></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;padding:24px;background:#f7f5f0;border:1px solid #d5cfc2;border-radius:12px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#625c50">TUTOR · STUDENT FLAGS AN ANSWER</span>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:14px 16px;background:#fff;border:1px solid #e2ddd1;border-radius:8px">
+          <span style="font-size:15px;font-weight:600">Thanks. What looks wrong?</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap"><span style="height:32px;display:inline-flex;align-items:center;padding:0 10px;border:1px solid #0f766e;background:#e1ece9;border-radius:999px;font-size:12px;font-weight:600">Contradicts my notes</span><span style="height:32px;display:inline-flex;align-items:center;padding:0 10px;border:1px solid #d5cfc2;border-radius:999px;font-size:12px">Factually wrong</span><span style="height:32px;display:inline-flex;align-items:center;padding:0 10px;border:1px solid #d5cfc2;border-radius:999px;font-size:12px">Confusing</span></div>
+          <span style="font-size:13px;line-height:1.5;color:#625c50">The tutor will re-check this against Bio ch. 9, p. 14 and say whether it was wrong. Nothing you've answered will be marked against you.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+</body>
+</html>

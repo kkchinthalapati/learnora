@@ -64,6 +64,11 @@ describe("focus indicators", () => {
       selector: ".searchWrapper:focus-within",
       label: "command palette search",
     },
+    {
+      file: "components/chat/chat.module.css",
+      selector: ".dock:focus-within",
+      label: "Ask drawer composer",
+    },
   ];
 
   for (const { file, selector, label } of cases) {

@@ -41,7 +41,12 @@ import type {
 import { computeRetentionProbability } from "./adaptiveLearning";
 import { dateInDays, localDateStr, parseLocalDate } from "./date";
 import { fenceUntrusted } from "./actionTags";
-import { topicMatches } from "./topicKey";
+import { normaliseTopicKey, topicMatches } from "./topicKey";
+import { parseStoredAnswers } from "../views/quiz/quizMeta";
+
+/** The same title api/missedQuestions files cards under (not imported, so
+ *  the model stays free of the API layer). */
+const MISSED_DECK_TITLE = "Missed questions";
 
 /* --- Model constants ---------------------------------------------------
  *
@@ -128,6 +133,13 @@ export interface TopicState {
   weight: number;
   /** How many cards back this topic, for the UI's "based on…" line. */
   cardCount: number;
+  /** Mastery and evidence from checks alone — card reviews, quiz answers and
+   *  scored events, never time on the clock. The forecast projects with
+   *  `mastery` (study time is real progress); the mastery ladder reads these,
+   *  because its promise is "each step needs evidence from a check, not time
+   *  spent". Optional so hand-built states in tests and callers still work. */
+  measuredMastery?: number;
+  measuredEvidence?: number;
 }
 
 export interface TrajectoryPoint {
@@ -209,6 +221,39 @@ export interface TopicSources {
   /** Outcomes and time from the timer, quick checks and the AI tools. Optional
    *  so a caller that has not fetched them still gets the card-only forecast. */
   events?: LearningEvent[];
+  /** The quizzes the attempts belong to, for their subject. Without it a
+   *  quiz-only topic cannot be scoped to an exam's folder and is left out of
+   *  a folder-scoped forecast rather than guessed into it. */
+  quizzes?: { id: string; folder_id?: string | null }[];
+}
+
+/** Every answered quiz question as a score event (1 right, 0 wrong) on its
+ *  topic. Quizzes used to count only through `weak_topics` — a penalty — so
+ *  a student who answered every Enzymes question correctly was still told
+ *  "Nothing has measured Enzymes yet". */
+export function quizAnswerEvents(attempts: QuizAttempt[]): LearningEvent[] {
+  const out: LearningEvent[] = [];
+  for (const attempt of attempts) {
+    parseStoredAnswers(attempt.answers_json).forEach((answer, i) => {
+      if (!answer.topic) return;
+      const key = normaliseTopicKey(answer.topic);
+      if (!key) return;
+      out.push({
+        id: `quiz:${attempt.id}:${i}`,
+        user_id: attempt.user_id,
+        topic_key: key,
+        deck_id: null,
+        folder_id: null,
+        source: "quick_check",
+        score: answer.correct ? 1 : 0,
+        minutes: 0,
+        occurred_at: attempt.created_at,
+        payload: { quizId: attempt.quiz_id, label: answer.topic },
+        client_id: null,
+      });
+    });
+  }
+  return out;
 }
 
 /** Events that belong to a deck: by id when the recorder knew it, else by the
@@ -231,8 +276,20 @@ function applyEvents(
   base: { mastery: number; evidence: number; stabilityDays: number },
   events: LearningEvent[],
   now: Date,
-): { mastery: number; evidence: number; stabilityDays: number } {
+  /** Where the checks-only figure starts, when it differs from `base`
+   *  (cards that were never reviewed are not evidence of knowing). */
+  measuredBase?: number,
+): {
+  mastery: number;
+  evidence: number;
+  stabilityDays: number;
+  measuredMastery: number;
+  measuredEvidence: number;
+} {
   let { mastery, evidence, stabilityDays } = base;
+  /* The same fold with the time events left out. */
+  let measuredMastery = measuredBase ?? base.mastery;
+  let measuredEvidence = base.evidence;
   const horizon = now.getTime() - EVENT_HORIZON_DAYS * 86_400_000;
   const live = events.filter((e) => {
     const at = new Date(e.occurred_at).getTime();
@@ -258,6 +315,8 @@ function applyEvents(
     if (e.score == null) continue;
     mastery = mastery + (e.score - mastery) * weight;
     evidence = Math.min(1, evidence + SCORE_EVENT_EVIDENCE);
+    measuredMastery = measuredMastery + (e.score - measuredMastery) * weight;
+    measuredEvidence = Math.min(1, measuredEvidence + SCORE_EVENT_EVIDENCE);
     weight /= 2;
   }
 
@@ -265,6 +324,8 @@ function applyEvents(
     mastery: Math.max(0, Math.min(1, mastery)),
     evidence,
     stabilityDays: Math.max(MIN_STABILITY_DAYS, stabilityDays),
+    measuredMastery: Math.max(0, Math.min(1, measuredMastery)),
+    measuredEvidence,
   };
 }
 
@@ -277,33 +338,42 @@ function applyEvents(
  * no cards has nothing to project. */
 export function buildTopicStates(src: TopicSources): TopicState[] {
   const now = src.now ?? new Date();
-  const decks = src.folderId
+  /* "Missed questions" (api/missedQuestions) is a review pile spanning a
+     subject's topics, not a topic: it would show on Today as one. Its cards
+     still reach Recall through the due-card queue. */
+  const decks = (src.folderId
     ? src.decks.filter((d) => d.folder_id === src.folderId)
-    : src.decks;
+    : src.decks
+  ).filter((d) => d.title !== MISSED_DECK_TITLE);
+  /* A student with no decks here gets the quiz-only forecast instead
+     (lib/quizForecast, QuizOnlyForecast) — a separate, deliberately simpler
+     view. Quiz-only topics join this model once there is a deck to join. */
   if (decks.length === 0) return [];
 
-  /* How often each topic name has come back wrong recently. Matched against
-     deck titles loosely, because a quiz's weak topic is free text written by
-     the model and a deck title is free text written by the student — they
-     agree often enough to be worth using and never reliably enough to trust. */
+  /* Attempts saved before answers carried topics only say which topics came
+     back wrong. Those still pull a deck down, capped: three bad answers on a
+     topic is a signal, thirty is the same signal with more noise attached.
+     Attempts with per-answer topics count through `quizEvents` instead —
+     right answers as well as wrong ones. */
   const weakCounts = new Map<string, number>();
   for (const attempt of src.attempts) {
+    if (parseStoredAnswers(attempt.answers_json).some((a) => a.topic)) continue;
     for (const topic of attempt.weak_topics ?? []) {
-      const key = topic.trim().toLowerCase();
+      const key = topic.trim();
       if (key) weakCounts.set(key, (weakCounts.get(key) ?? 0) + 1);
     }
   }
   const weaknessFor = (title: string): number => {
-    const key = title.trim().toLowerCase();
     let hits = 0;
     for (const [topic, count] of weakCounts) {
-      if (key.includes(topic) || topic.includes(key)) hits += count;
+      if (topicMatches(title, topic)) hits += count;
     }
     return hits;
   };
 
-  const events = src.events ?? [];
-  const raw = decks.map((deck) => {
+  const quizEvents = quizAnswerEvents(src.attempts);
+  const events = [...(src.events ?? []), ...quizEvents];
+  const raw: TopicState[] = decks.map((deck): TopicState => {
     const cards = src.cards.filter((c) => c.deck_id === deck.id);
     const cardCount = cards.length;
     const deckEvents = eventsForDeck(deck, events);
@@ -325,9 +395,23 @@ export function buildTopicStates(src: TopicSources): TopicState[] {
     const stabilityDays =
       cards.reduce((sum, c) => sum + cardStability(c), 0) / cardCount;
 
-    /* Quiz misses pull mastery down, capped: three bad answers on a topic is
-       a signal, thirty is the same signal with more noise attached. */
     const penalty = Math.min(0.3, weaknessFor(deck.title) * 0.06);
+
+    /* A card created this minute and never reviewed has a retention of 1
+       (nothing has had time to fade), which says nothing about knowing it.
+       The checks-only figure starts from reviewed cards alone, so a fresh
+       deck is "unmeasured" there rather than "solid". */
+    const reviewed = cards.filter((c) => (c.srs_interval ?? 0) > 0 || Boolean(c.next_review_date));
+    const measuredBase = reviewed.length
+      ? Math.max(
+          0,
+          Math.min(
+            1,
+            reviewed.reduce((sum, c) => sum + computeRetentionProbability(c, now), 0) / reviewed.length -
+              penalty,
+          ),
+        )
+      : UNMEASURED_MASTERY;
 
     const blended = applyEvents(
       {
@@ -337,6 +421,7 @@ export function buildTopicStates(src: TopicSources): TopicState[] {
       },
       deckEvents,
       now,
+      measuredBase,
     );
 
     return {
@@ -350,8 +435,47 @@ export function buildTopicStates(src: TopicSources): TopicState[] {
     };
   });
 
+  /* Topics the student has only ever been quizzed on. A deck used to be the
+     only way a topic existed, so a student who studied by quizzes had no
+     topics at all. Matched against every deck, not just this folder's, so a
+     topic that belongs to another subject's deck is not duplicated here. A
+     folder-scoped forecast only takes quiz topics it can place in that
+     folder. */
+  const folderOfQuiz = new Map((src.quizzes ?? []).map((q) => [q.id, q.folder_id ?? null]));
+  const quizOnly = new Map<string, { label: string; events: LearningEvent[] }>();
+  for (const e of quizEvents) {
+    if (src.decks.some((d) => topicMatches(e.topic_key, d.title))) continue;
+    if (src.folderId) {
+      const quizId = String(e.payload.quizId ?? "");
+      if (folderOfQuiz.get(quizId) !== src.folderId) continue;
+    }
+    const entry = quizOnly.get(e.topic_key) ?? {
+      label: String(e.payload.label ?? e.topic_key),
+      events: [],
+    };
+    entry.events.push(e);
+    quizOnly.set(e.topic_key, entry);
+  }
+  for (const [key, { label, events: topicEvents }] of quizOnly) {
+    const sorted = [...topicEvents].sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
+    const blended = applyEvents(
+      { mastery: UNMEASURED_MASTERY, evidence: 0, stabilityDays: MIN_STABILITY_DAYS },
+      sorted,
+      now,
+    );
+    raw.push({ id: `${QUIZ_TOPIC_PREFIX}${key}`, label, ...blended, weight: 1, cardCount: 0 });
+  }
+
   const total = raw.reduce((sum, t) => sum + t.weight, 0) || 1;
   return raw.map((t) => ({ ...t, weight: t.weight / total }));
+}
+
+/** Topic ids that are not decks start with this. Anything that treats a
+ *  topic id as a deck id (review links, the timer's deck) must check. */
+export const QUIZ_TOPIC_PREFIX = "quiz:";
+
+export function isDeckTopicId(id: string | null | undefined): id is string {
+  return Boolean(id) && !id!.startsWith(QUIZ_TOPIC_PREFIX);
 }
 
 /* --- The model ---------------------------------------------------------- */

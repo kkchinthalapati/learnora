@@ -3,6 +3,8 @@ import {
   activeContextForPath,
   buildSystemContext,
   DEFAULT_ACTIVE_CONTEXT,
+  GUESS_FIRST_INSTRUCTION,
+  looksConceptual,
   NOTES_CONTEXT_CHARS,
 } from "./chatPrompt";
 
@@ -36,6 +38,17 @@ describe("buildSystemContext", () => {
 
   /* Without these the model invents chapters and deadlines a student would
      then act on. */
+  it("offers mermaid diagrams, only of the four types the renderer is asked for", () => {
+    const prompt = buildSystemContext(base);
+    expect(prompt).toContain("DIAGRAMS:");
+    expect(prompt).toMatch(/language is mermaid/);
+    expect(prompt).toMatch(/flowchart .*sequenceDiagram, timeline, mindmap/);
+    expect(prompt).toMatch(/No styling, classDef, click, links, HTML or %%\{init\}%% lines/);
+    // Never a replacement for the explanation, and never for maths.
+    expect(prompt).toMatch(/still explain in words/);
+    expect(prompt).toMatch(/maths working \(write TeX instead\)/);
+  });
+
   it("keeps the grounding rules", () => {
     const prompt = buildSystemContext(base);
     expect(prompt).toContain("GROUNDING RULES");
@@ -235,5 +248,23 @@ describe("activeContextForPath", () => {
     expect(context).not.toContain("<SET_THEME>");
     /* The one remaining `"""` pair is the app's own fence. */
     expect(context.split('"""')).toHaveLength(3);
+  });
+});
+
+describe("guess first", () => {
+  it("asks the model for a guess-first question only when told to", () => {
+    const base = { pendingTasks: "None", upcomingExams: "None", activeContext: "Today", query: "why?" };
+    expect(buildSystemContext({ ...base, guessFirst: true })).toContain(GUESS_FIRST_INSTRUCTION);
+    expect(buildSystemContext(base)).not.toContain("GUESS FIRST");
+  });
+
+  it("recognises conceptual questions, not requests to act", () => {
+    expect(looksConceptual("Why does the electron transport chain need oxygen?")).toBe(true);
+    expect(looksConceptual("how do enzymes lower activation energy")).toBe(true);
+    expect(looksConceptual("Generate flashcards from my notes")).toBe(false);
+    expect(looksConceptual("What are my pending tasks?")).toBe(false);
+    expect(looksConceptual("just explain it")).toBe(false);
+    expect(looksConceptual("What should I study next?")).toBe(false);
+    expect(looksConceptual("ok")).toBe(false);
   });
 });

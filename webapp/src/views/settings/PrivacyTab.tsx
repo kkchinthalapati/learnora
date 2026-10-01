@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { AI_PROVIDERS_SHORT } from "../../lib/aiProviders";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Icon } from "../../components/Icon";
@@ -92,9 +93,9 @@ export function PrivacyTab() {
             <h3 id="settings-ai-consent-heading">AI and your study data</h3>
             <p>
               AI features send what you&apos;re working on — your questions,
-              notes and answers — to Learnora&apos;s AI providers, Anthropic
-              (Claude) and Google (Gemini). The timer, tasks, exams and
-              flashcard reviews work without it.
+              notes and answers — to Learnora&apos;s AI providers:{" "}
+              {AI_PROVIDERS_SHORT}. The timer, tasks, exams and flashcard
+              reviews work without it.
             </p>
           </div>
         </div>

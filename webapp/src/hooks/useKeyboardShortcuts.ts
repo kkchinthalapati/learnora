@@ -1,11 +1,17 @@
 import { useEffect, useRef } from "react";
 
+/* Elements that act on Enter/Space themselves. */
+const ACTIVATABLE =
+  'button, a[href], summary, [role="button"], [role="link"], [role="checkbox"], [role="radio"], [role="switch"], [role="tab"], [role="menuitem"], [role="option"]';
+
 /**
  * Simple keyboard shortcut handler.
  *
  * Maps keys to callbacks. Ignores events when the active element is an
- * input, textarea, or contenteditable node (to avoid hijacking text entry),
- * and ignores any chord that carries a modifier (see below).
+ * input, textarea, select, or contenteditable node (to avoid hijacking text
+ * entry), ignores any chord that carries a modifier, stands down while a
+ * modal dialog is open, and leaves Enter/Space to a focused button or link
+ * (see below).
  *
  * Key names can be single characters ('a', '1', ' ') or special keys
  * ('Enter', 'Escape', 'ArrowUp', etc.). Comparison is case-insensitive
@@ -39,11 +45,14 @@ export function useKeyboardShortcuts(
          by itself signal a browser chord. */
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-      /* Ignore events when typing in an input/textarea/contenteditable */
+      /* Ignore events when typing in an input/textarea/select/contenteditable.
+         A focused <select> uses letters and digits for type-ahead, so "b"
+         jumping to "Biology" also picked answer B behind it. */
       const activeElement = document.activeElement as HTMLElement;
       if (
         activeElement?.tagName === "INPUT" ||
         activeElement?.tagName === "TEXTAREA" ||
+        activeElement?.tagName === "SELECT" ||
         activeElement?.isContentEditable ||
         activeElement?.contentEditable === "true" ||
         activeElement?.getAttribute?.("contenteditable") === "true"
@@ -51,8 +60,26 @@ export function useKeyboardShortcuts(
         return;
       }
 
+      /* Every caller is a full-page view, so an open modal dialog sits on top
+         of it and the keys belong to the dialog. Without this, "b" pressed on
+         QuizRunner's "Resume quiz?" prompt answered the hidden question, and
+         1-4 in ReviewView's Socratic drawer graded the card behind it. */
+      if (document.querySelector('[aria-modal="true"]')) return;
+
       /* Normalize the key (lowercase for letters) */
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+
+      /* Enter and Space already mean "activate" on a focused button or link.
+         Claiming them there cancelled that activation: in QuizRunner a
+         keyboard student who tabbed to an answer and pressed Enter got
+         nothing, Enter on the Exit link didn't leave, and Enter on "Ask
+         why" skipped to the next question instead. A disabled one can't
+         activate — the answer just picked keeps focus in some browsers, and
+         Enter must still move on from it. */
+      if (key === "Enter" || key === " ") {
+        const control = activeElement?.closest?.(ACTIVATABLE);
+        if (control && !control.matches(":disabled")) return;
+      }
 
       /* Check for a matching shortcut */
       for (const [shortcutKey, callback] of Object.entries(

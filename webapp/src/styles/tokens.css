@@ -273,6 +273,54 @@
     border-color var(--t-fast) var(--ease);
   --card-hover-lift: translateY(-2px);
   --card-hover-lift-sm: translateY(-1px);
+
+  /* --- 2026-09 redesign (design_handoff_learnora_redesign/README.md) --- */
+  /* Recall ochre: the one new semantic hue. It marks memory and
+     time-sensitive work only — due, fading, guessed — so "Resume" (teal, an
+     action) and "fading" (ochre, a memory state) stop looking identical.
+     --recall is a fill (3:1 floor); --recall-text is the same hue as a label
+     (4.5:1 floor) and happens to equal --warning-text, which is the same
+     job. Dark values in themes.css.
+     The handoff's #b8862e scored 2.97:1 on --bg, a hair under the 3:1 a
+     meaningful graphic needs (WCAG 1.4.11); this is the same hue walked
+     down ~3% in lightness. */
+  --recall: #ad7d2a;
+  --recall-text: #76511b;
+  --recall-soft: #f6ecd9;
+
+  /* Surfaces the redesign names. --paper is a half-step lighter than --bg:
+     the test room, the Ask drawer and the session top bar sit on it. */
+  --paper: #fbfaf7;
+  --sidebar-bg: #f0ece3;
+  /* Opaque hairlines. --glass-border-subtle is translucent, which reads fine
+     on --surface but muddies on --paper; these are the two in-flow weights
+     (divider/card edge, and control edge). */
+  --hairline: #e2ddd1;
+  --hairline-strong: #d5cfc2;
+  /* Secondary body text — between --text and --text-muted. */
+  --text-secondary: #3d3830;
+  /* Track/fill behind segmented controls, empty week-day squares, and the
+     quiet button's hover. */
+  --track: #ece8df;
+
+  /* Type roles. --fs-4xl (clamp 38→52) is the display tier and --fs-3xl
+     (clamp 30→38) the page title; these fill the reading sizes between. */
+  --fs-read: 17px;
+  --fs-read-lg: 19px;
+  --lh-display: 1.02;
+  --lh-read: 1.65;
+  --tracking-display: -0.025em;
+  --tracking-meta: 0.06em;
+  --measure-read: 62ch;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* Layout. */
+  --rail-width: 300px;
+  --drawer-width: 420px;
+  --session-plan-width: 260px;
+  --topbar-height: 64px;
+  --control-sm: 32px;
+  --control-lg: 48px;
 }
 
 /* --- Theme-derived aliases ------------------------------------------------
@@ -318,4 +366,20 @@ body {
   --card-shadow-hover: var(--shadow-md);
 
   --shadow-accent: 0 0 0 1px var(--accent-ring);
+
+  /* Redesign accent roles. The handoff gives these as teal hexes
+     (#e1ece9 wash, #0b5c55 label, #cfe0dc / #9cc6c0 edges), but the app
+     ships 13 accent presets, so they are mixed from the live accent instead
+     and land within a hair of the spec hex on the default teal.
+     --accent-deep is --accent-text walked toward --text, so it can only gain
+     contrast over --accent-text, which contrast.test.ts already holds at AA.
+     (The handoff calls this --accent-ink; that name is taken — it is the
+     near-black label on light accent fills.) */
+  --accent-wash: color-mix(in srgb, var(--accent) 13%, var(--surface));
+  --accent-deep: color-mix(in srgb, var(--accent-text) 78%, var(--text));
+  --accent-line: color-mix(in srgb, var(--accent) 22%, var(--surface));
+  --accent-line-strong: color-mix(in srgb, var(--accent) 40%, var(--surface));
+  --shadow-focus: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+  --shadow-drawer: -16px 0 40px -16px rgba(24, 20, 14, 0.2);
+  --scrim: rgba(26, 24, 21, 0.12);
 }

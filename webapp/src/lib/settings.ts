@@ -17,7 +17,7 @@ export const SETTINGS_KEY = "learnora_settings";
 export type AiPersona = "tutor" | "coach" | "buddy" | "professor";
 export type AiConciseness = "short" | "medium" | "detailed";
 export type PersonaDepth = 1 | 2 | 3 | 4 | 5;
-export type StudyStyle = "visual" | "rigorous" | "exam_trap" | "concise";
+export type StudyStyle = "balanced" | "visual" | "rigorous" | "exam_trap" | "concise";
 
 export interface Settings {
   aiPersona: AiPersona;
@@ -41,6 +41,10 @@ export interface Settings {
   aiStyle: StudyStyle;
   aiAutoAdapt: boolean;
   webAccess: boolean;
+  /** Read the chat tutor's replies aloud (browser text-to-speech). Off by
+   *  default: a reply suddenly spoken in a classroom, on a bus or in a
+   *  library is not something to opt a student into. */
+  aiSpokenReplies: boolean;
   /** Where the student studies — "auto" detects (lib/region.ts). Drives
    *  currency, presets, examiner persona and privacy copy. */
   region: RegionId | "auto";
@@ -61,9 +65,10 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   timerFocusWatchdog: true,
   examTerminationGrace: true,
   aiDepth: 3,
-  aiStyle: "concise",
+  aiStyle: "balanced",
   aiAutoAdapt: true,
   webAccess: true,
+  aiSpokenReplies: false,
   region: "auto",
   framework: "auto",
   gradeScale: "auto",
@@ -145,6 +150,7 @@ export const AI_STYLE_OPTIONS: ReadonlyArray<{
   value: StudyStyle;
   label: string;
 }> = [
+  { value: "balanced", label: "Balanced ⚖️" },
   { value: "visual", label: "Visual 🎨" },
   { value: "rigorous", label: "Rigorous 📐" },
   { value: "exam_trap", label: "Exam Trap 🎯" },
@@ -214,6 +220,10 @@ export function loadSettings(): Settings {
       typeof stored.webAccess === "boolean"
         ? stored.webAccess
         : DEFAULT_SETTINGS.webAccess,
+    aiSpokenReplies:
+      typeof stored.aiSpokenReplies === "boolean"
+        ? stored.aiSpokenReplies
+        : DEFAULT_SETTINGS.aiSpokenReplies,
     region: isRegionId(stored.region) ? stored.region : "auto",
     framework: isFrameworkId(stored.framework) ? stored.framework : "auto",
     gradeScale: isGradeScaleId(stored.gradeScale) ? stored.gradeScale : "auto",

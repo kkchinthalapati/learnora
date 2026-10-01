@@ -5,6 +5,7 @@ import { useDeleteFolder, useRenameFolder } from "../../hooks/useFolders";
 import { useDeleteMaterial } from "../../hooks/useMaterials";
 import { useDeleteDeck } from "../../hooks/useDecks";
 import { useDeleteQuiz } from "../../hooks/useQuizzes";
+import { SUBJECT_MAX } from "../../lib/fieldLimits";
 
 export function useLibraryActions() {
   const { confirm, promptText } = useDialog();
@@ -21,6 +22,7 @@ export function useLibraryActions() {
         title: "Rename folder",
         defaultValue: currentName,
         confirmText: "Save",
+        maxLength: SUBJECT_MAX,
       });
       if (!name || name === currentName) return;
       try {

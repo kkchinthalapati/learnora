@@ -3,43 +3,50 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { MobileTabBar } from "./MobileTabBar";
+import { ChatContext, type ChatApi } from "../context/chat";
 
-function renderAt(path: string, onMore = vi.fn()) {
-  render(
+function renderAt(path: string, chat?: Partial<ChatApi>) {
+  const tree = (
     <MemoryRouter initialEntries={[path]}>
-      <MobileTabBar onMore={onMore} />
-    </MemoryRouter>,
+      <MobileTabBar />
+    </MemoryRouter>
   );
-  return onMore;
+  render(
+    chat ? (
+      <ChatContext.Provider value={{ isOpen: false, ...chat } as ChatApi}>
+        {tree}
+      </ChatContext.Provider>
+    ) : (
+      tree
+    ),
+  );
 }
 
 describe("MobileTabBar", () => {
-  it("offers the five main places and More", () => {
+  it("offers the same five destinations as the sidebar", () => {
     renderAt("/");
     const nav = screen.getByRole("navigation", { name: "Quick navigation" });
-    for (const name of ["Today", "Library", "Study", "Plan", "Timer"]) {
+    for (const name of ["Today", "Library", "Study", "Plan", "Progress"]) {
       expect(nav).toContainElement(screen.getByRole("link", { name }));
     }
-    expect(screen.getByRole("button", { name: /^More/ })).toBeInTheDocument();
   });
 
-  it("marks the section a sub-page belongs to as current", () => {
-    renderAt("/quiz/q-1");
-    expect(screen.getByRole("link", { name: "Library" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-    expect(screen.getByRole("link", { name: "Today" })).not.toHaveAttribute(
-      "aria-current",
-    );
+  it.each([
+    ["/quiz/q-1", "Library"],
+    ["/timer", "Plan"],
+    ["/trajectory", "Progress"],
+  ])("marks exactly one tab current on %s (%s)", (path, name) => {
+    renderAt(path);
+    const current = screen
+      .getAllByRole("link")
+      .filter((l) => l.getAttribute("aria-current") === "page");
+    expect(current.map((l) => l.textContent)).toEqual([name]);
   });
 
-  it("lights More for pages that live under it, and opens the menu", async () => {
-    const onMore = renderAt("/analytics");
-    for (const name of ["Today", "Library", "Study", "Plan", "Timer"]) {
-      expect(screen.getByRole("link", { name })).not.toHaveAttribute("aria-current");
-    }
-    await userEvent.click(screen.getByRole("button", { name: /^More/ }));
-    expect(onMore).toHaveBeenCalled();
+  it("floats an Ask button that opens the tutor", async () => {
+    const open = vi.fn();
+    renderAt("/", { open });
+    await userEvent.click(screen.getByRole("button", { name: "Ask the tutor" }));
+    expect(open).toHaveBeenCalled();
   });
 });

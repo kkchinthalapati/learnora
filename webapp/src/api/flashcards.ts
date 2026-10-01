@@ -21,7 +21,7 @@ export interface CardFields {
 }
 
 /* Set once the database says `flashcards.last_reviewed_at` does not exist (a
- * build shipped ahead of supabase/migrations/20260929000000_…), so later
+ * build shipped ahead of supabase/migrations/20260929020000_…), so later
  * reviews go straight to the old unconditional write. Same pattern as
  * api/profile.ts's `settingsColumnMissing`. */
 let lastReviewedColumnMissing = false;

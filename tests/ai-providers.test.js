@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import { createDeadKeyRegistry, permittedProviderIds } from '../supabase/functions/_shared/providerPolicy.js';
+import { isJsonMode } from '../supabase/functions/_shared/systemPrompt.js';
 
 /* Same approach as safety.test.js: the provider chain lives in a Deno edge
    function that can't be imported here, so the real source is sliced out of
@@ -69,9 +71,13 @@ function stripTypes(source) {
 
 const SNIPPET = stripTypes(`${TABLE_SRC}\n${CALLER_SRC}`);
 
-function load(env = {}) {
+function load(env = {}, { permitAll = false } = {}) {
   const context = {
     Deno: { env: { get: (k) => env[k] } },
+    // Imported by index.ts from _shared/, so supplied rather than sliced.
+    permittedProviderIds: permitAll ? () => ({ has: () => true }) : permittedProviderIds,
+    deadKeys: createDeadKeyRegistry(),
+    isJsonMode,
     console: { error() {}, warn() {}, log() {} },
     Number,
     JSON,
@@ -206,14 +212,27 @@ test('providers with no placeholder resolve to their URL unchanged', () => {
 /* ---- AI_EXTRA_PROVIDERS --------------------------------------------- */
 
 test('extra providers are appended after the built-ins, never ahead of them', () => {
+  const extra = {
+    AI_EXTRA_PROVIDERS: JSON.stringify([
+      { id: 'together', keyEnv: 'TOGETHER_API_KEY', defaultModel: 'x', url: 'https://api.together.xyz/v1/chat/completions' },
+    ]),
+  };
+  const api = load(extra, { permitAll: true });
+  const chain = api.providerChain();
+  assert.strictEqual(chain.length, api.BUILTIN_PROVIDERS.length + 1);
+  assert.strictEqual(chain[chain.length - 1].id, 'together');
+});
+
+test('the chain only calls providers students were told about', () => {
   const api = load({
     AI_EXTRA_PROVIDERS: JSON.stringify([
       { id: 'together', keyEnv: 'TOGETHER_API_KEY', defaultModel: 'x', url: 'https://api.together.xyz/v1/chat/completions' },
     ]),
   });
-  const chain = api.providerChain();
-  assert.strictEqual(chain.length, api.BUILTIN_PROVIDERS.length + 1);
-  assert.strictEqual(chain[chain.length - 1].id, 'together');
+  const ids = api.providerChain().map((p) => p.id);
+  assert.ok(!ids.includes('together'), 'an undisclosed extra provider must be dropped');
+  assert.ok(!ids.includes('mistral'), 'mistral is not disclosed, so it is never called');
+  assert.deepStrictEqual([...load({ AI_PROVIDER_ALLOWLIST: 'groq' }).providerChain().map((p) => p.id)], ['groq']);
 });
 
 test('an extra provider gets a derived model secret name when it omits one', () => {
@@ -229,7 +248,7 @@ test('malformed AI_EXTRA_PROVIDERS is ignored rather than taking the AI offline'
   for (const raw of ['not json', '{"id":"x"}', '[]', '   ']) {
     const api = load({ AI_EXTRA_PROVIDERS: raw });
     assert.deepStrictEqual(plain(api.parseExtraProviders()), [], `raw: ${raw}`);
-    assert.strictEqual(api.providerChain().length, api.BUILTIN_PROVIDERS.length);
+    assert.strictEqual(load({ AI_EXTRA_PROVIDERS: raw }, { permitAll: true }).providerChain().length, api.BUILTIN_PROVIDERS.length);
   }
 });
 
@@ -342,4 +361,114 @@ test('JSON mode is only requested from providers that support it', () => {
     undefined,
     'sending response_format to a provider that rejects it fails the whole call',
   );
+});
+
+/* ---- Photos need the one provider that can see them ------------------ */
+
+/* An uploaded photo reaches only Gemini. When Gemini did not answer, the
+   text-only chain used to be asked to write notes from a file it could not
+   see. The guard must sit between the Gemini channel and the fallback loop,
+   hand the allowance back, and recognise images and nothing else. */
+function loadVisionGuard() {
+  const src = slice('const VISION_UNAVAILABLE_MESSAGE', 'function visionUnavailableResponse')
+    .replace(/function isImageAttachment\(file: any\): boolean/, 'function isImageAttachment(file)');
+  assert.ok(!/:\s*(?:any|boolean)\b/.test(src), 'an unstripped annotation is left in the guard');
+  const context = { module: { exports: {} }, String, Boolean };
+  vm.createContext(context);
+  vm.runInContext(`${src}\nmodule.exports = { isImageAttachment, VISION_UNAVAILABLE_MESSAGE };`, context);
+  return context.module.exports;
+}
+
+test('an image attachment is recognised; documents and empty payloads are not', () => {
+  const { isImageAttachment } = loadVisionGuard();
+  assert.strictEqual(isImageAttachment({ data: 'x', mimeType: 'image/jpeg' }), true);
+  assert.strictEqual(isImageAttachment({ data: 'x', mimeType: 'image/png' }), true);
+  assert.strictEqual(isImageAttachment({ data: 'x', mimeType: 'application/pdf' }), false);
+  assert.strictEqual(isImageAttachment({ data: '', mimeType: 'image/jpeg' }), false);
+  assert.strictEqual(isImageAttachment(null), false);
+});
+
+test('an image request Gemini did not answer stops before the text-only chain, and is refunded', () => {
+  const gemini = SOURCE.indexOf('CHANNEL 1: GEMINI');
+  const guard = SOURCE.indexOf('if (isImageAttachment(file))');
+  const fallback = SOURCE.indexOf('CHANNELS 2..N');
+  assert.ok(gemini !== -1 && guard !== -1 && fallback !== -1);
+  assert.ok(gemini < guard && guard < fallback, 'the guard must run after Gemini and before the fallback loop');
+  const body = SOURCE.slice(guard, SOURCE.indexOf('\n        }\n', guard));
+  assert.match(body, /await refundRequest\(logId\)/);
+  assert.match(body, /return visionUnavailableResponse\(/);
+  const { VISION_UNAVAILABLE_MESSAGE } = loadVisionGuard();
+  assert.match(VISION_UNAVAILABLE_MESSAGE, /photo/i);
+});
+
+/* ---- Image generation: its own chain, never the text one ------------- */
+
+function loadImageHelpers() {
+  const src = slice('const IMAGE_PROVIDERS', 'async function requestImage')
+    .replace('const IMAGE_PROVIDERS: ImageProvider[]', 'const IMAGE_PROVIDERS')
+    .replace('function buildImagePrompt(description: string): string', 'function buildImagePrompt(description)')
+    .replace('type GeneratedImage = { bytes: Uint8Array<ArrayBuffer>; mimeType: string };', '')
+    .replace('function base64ToBytes(b64: string): Uint8Array<ArrayBuffer>', 'function base64ToBytes(b64)')
+    .replace('function sniffImageType(bytes: Uint8Array): string | null', 'function sniffImageType(bytes)');
+  assert.ok(!/:\s*(?:string|Uint8Array|ImageProvider)\b/.test(src), 'an unstripped annotation is left in the image helpers');
+  const context = { module: { exports: {} }, String, Uint8Array, atob, Error };
+  vm.createContext(context);
+  vm.runInContext(
+    `${src}\nmodule.exports = { IMAGE_PROVIDERS, buildImagePrompt, sniffImageType, base64ToBytes, MAX_IMAGE_PROMPT_CHARS };`,
+    context,
+  );
+  return context.module.exports;
+}
+
+test('image providers run Gemini, then Cloudflare, then the paid OpenAI floor', () => {
+  const { IMAGE_PROVIDERS } = loadImageHelpers();
+  assert.deepStrictEqual(plain(IMAGE_PROVIDERS.map((p) => p.id)), ['gemini', 'cloudflare', 'openai']);
+  // Model names come from the environment, with a default to fall back on.
+  for (const p of IMAGE_PROVIDERS) {
+    assert.match(p.modelEnv, /_IMAGE_MODEL$/, `${p.id} model must be overridable by env`);
+    assert.ok(p.defaultModel, `${p.id} needs a default model`);
+  }
+  // Reuses the keys the text chain already has — no new secret needed.
+  assert.deepStrictEqual(plain(IMAGE_PROVIDERS.map((p) => p.keyEnv)), [
+    'GEMINI_API_KEY', 'CLOUDFLARE_API_TOKEN', 'OPENAI_API_KEY',
+  ]);
+});
+
+test('the text chain holds no image provider, and image mode never reaches it', () => {
+  const { BUILTIN_PROVIDERS } = load();
+  assert.ok(!BUILTIN_PROVIDERS.some((p) => /image/i.test(p.modelEnv)));
+  const imageBranch = SOURCE.indexOf('if (mode === "image") {\n            const description');
+  const textChain = SOURCE.indexOf('CHANNEL 1: GEMINI');
+  assert.ok(imageBranch !== -1 && imageBranch < textChain, 'the image branch must return before the text chain');
+  const branch = SOURCE.slice(imageBranch, textChain);
+  assert.match(branch, /screenImagePrompt\(description\)/, 'the description is screened');
+  assert.match(branch, /instanceof ImageSafetyBlock/, 'a provider safety verdict ends the chain');
+  assert.match(branch, /\.from\(CHAT_MEDIA_BUCKET\)/, 'the image is stored, not returned inline');
+  assert.ok(!/b64|base64/i.test(branch.slice(branch.indexOf('return new Response'))), 'no image bytes in the response');
+});
+
+test('an image is always billed as an image, whatever tool the request claims', () => {
+  assert.match(SOURCE, /checkAndLogRateLimit\(\s*supabase, user\.id, mode, mode === "image" \? "image" : tool,(?:\s*sessionKey,?)?\s*\)/);
+});
+
+test('the image prompt is wrapped in the educational style and capped', () => {
+  const { buildImagePrompt, MAX_IMAGE_PROMPT_CHARS } = loadImageHelpers();
+  const prompt = buildImagePrompt('a plant cell');
+  assert.match(prompt, /labelled diagram/);
+  assert.match(prompt, /white background/);
+  assert.match(prompt, /no text-heavy layouts/i);
+  assert.ok(prompt.endsWith('a plant cell'));
+  assert.ok(buildImagePrompt('x'.repeat(2000)).length < MAX_IMAGE_PROMPT_CHARS + 600);
+});
+
+test('only real PNG, JPEG and WebP bytes are accepted as an image', () => {
+  const { sniffImageType } = loadImageHelpers();
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0]);
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0]);
+  const webp = new Uint8Array([...'RIFF'].map((c) => c.charCodeAt(0)).concat([0, 0, 0, 0], [...'WEBP'].map((c) => c.charCodeAt(0)), [0]));
+  const svg = new Uint8Array([...'<svg xmlns="http://www.w3.org/2000/svg">'].map((c) => c.charCodeAt(0)));
+  assert.strictEqual(sniffImageType(png), 'image/png');
+  assert.strictEqual(sniffImageType(jpeg), 'image/jpeg');
+  assert.strictEqual(sniffImageType(webp), 'image/webp');
+  assert.strictEqual(sniffImageType(svg), null);
 });

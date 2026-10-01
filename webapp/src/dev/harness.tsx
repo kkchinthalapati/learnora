@@ -152,6 +152,30 @@ function install(supabaseUrl: string) {
       return new Response(null, { status: 204 });
     if (path.startsWith("/auth/v1/")) return json({});
 
+    /* edge function — the harness has no model behind it, so every mode
+       answers with something shaped like a real reply. A diagram request
+       gets a real drawing back, which is the only way to look at how one
+       renders without a live key. */
+    if (path.startsWith("/functions/v1/learnora-ai")) {
+      let prompt = "";
+      try {
+        const raw =
+          init?.body ??
+          (input instanceof Request ? await input.clone().text() : "");
+        prompt = typeof raw === "string" ? raw : "";
+      } catch {
+        /* an unreadable body just means the generic reply below */
+      }
+      if (/diagram|draw|sketch|\bsvg\b/i.test(prompt)) {
+        return json({
+          text: `Here is the whole set on one circle.\n\n\`\`\`svg\n${fx.sampleDiagramSvg}\n\`\`\`\n\nNotice that the angle at the centre (2x) is always double the angle at the circumference (x) standing on the same arc.`,
+        });
+      }
+      return json({
+        text: "This is the harness talking — there is no model behind it. Ask for a diagram to see one drawn.",
+      });
+    }
+
     /* rpc */
     if (path.startsWith("/rest/v1/rpc/")) {
       const name = path.slice("/rest/v1/rpc/".length);
@@ -178,7 +202,13 @@ function install(supabaseUrl: string) {
         const echoed = Array.isArray(body) ? body : body ? [body] : [];
         if (table === "learning_events" && method === "POST") {
           for (const row of echoed) {
-            if (!rows.some(existing => (existing as { client_id?: string }).client_id === row.client_id)) {
+            if (
+              !rows.some(
+                (existing) =>
+                  (existing as { client_id?: string }).client_id ===
+                  row.client_id,
+              )
+            ) {
               rows.push({ id: `harness-event-${rows.length}`, ...row });
             }
           }
@@ -191,6 +221,16 @@ function install(supabaseUrl: string) {
             ...(row as object),
           })),
         );
+      }
+
+      /* `.single()`/`.maybeSingle()` ask PostgREST for an object rather than
+         a list, via the Accept header. Answering with the array anyway is
+         what left the notebook studio on "Notebook not found". */
+      const accept =
+        (init?.headers as Record<string, string>)?.Accept ??
+        (input instanceof Request ? (input.headers.get("accept") ?? "") : "");
+      if (accept.includes("vnd.pgrst.object+json")) {
+        return json(rows[0] ?? null);
       }
 
       /* `count: "exact", head: true` reads the count out of content-range. */

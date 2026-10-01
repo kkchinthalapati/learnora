@@ -7,7 +7,6 @@ import { server } from "../test/mocks/server";
 import { SUPABASE_URL } from "../lib/supabase";
 import { mockAuthSession } from "../test/mockSession";
 import { fakeSession, renderWithAuth } from "../test/auth";
-import { getGreeting } from "../lib/greeting";
 import { AppShell } from "./AppShell";
 
 const rest = (path: string) => `${SUPABASE_URL}/rest/v1/${path}`;
@@ -87,9 +86,9 @@ describe("AppShell", () => {
       "href",
       "/plan",
     );
-    expect(screen.getByRole("link", { name: /Focus/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Study$/ })).toHaveAttribute(
       "href",
-      "/timer",
+      "/study",
     );
     expect(screen.getByRole("link", { name: /Progress/ })).toHaveAttribute(
       "href",
@@ -155,28 +154,13 @@ describe("AppShell", () => {
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
 
-  it("opens the create modal from the sidebar's Create button", async () => {
+  /* Create moved to Library and the command palette's "New…" entry; the
+     rail is five destinations, not a launcher. */
+  it("keeps Create out of the sidebar", () => {
     serveDueCount(0);
     renderShell("/");
-    const user = userEvent.setup();
-
-    await user.click(screen.getByRole("button", { name: "Create" }));
-
-    expect(
-      screen.getByRole("dialog", { name: "What do you want to learn?" }),
-    ).toBeInTheDocument();
-  });
-
-  it("greets the signed-in user by first name, time-of-day appropriate", () => {
-    /* Derives the expected greeting from the real clock rather than mocking
-       it — `getGreeting` itself is already unit-tested against fixed times
-       in lib/greeting.test.ts, and this codebase's own precedent (Step 9)
-       found `vi.useFakeTimers` breaks MSW/userEvent pacing in view tests
-       like this one. */
-    serveDueCount(0);
-    renderShell("/", "Ada Lovelace");
-
-    expect(screen.getByText(getGreeting("Ada"))).toBeInTheDocument();
+    const sidebar = screen.getByRole("navigation", { name: "Main navigation" });
+    expect(within(sidebar).queryByRole("button", { name: "Create" })).toBeNull();
   });
 
   it("renders the current section as the page's one <h1>", () => {
@@ -193,7 +177,7 @@ describe("AppShell", () => {
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 
-  it("keeps log out out of the header, and offers it under Account", async () => {
+  it("keeps log out out of the header, and offers it in the account menu", async () => {
     serveDueCount(0);
     const signOut = vi.fn().mockResolvedValue(undefined);
     renderWithAuth(
@@ -210,38 +194,10 @@ describe("AppShell", () => {
     expect(
       within(screen.getByRole("banner")).queryByRole("button", { name: /log out/i }),
     ).toBeNull();
-    await user.click(screen.getByRole("button", { name: "Expand Account" }));
+    await user.click(screen.getByRole("button", { name: "Account menu" }));
     await user.click(screen.getByRole("button", { name: "Log out" }));
 
     expect(signOut).toHaveBeenCalled();
-  });
-
-  it("flips the theme with one click, and persists only the theme (not other unsaved appearance edits)", async () => {
-    /* Doesn't assume which state "system" resolves to first (that depends
-       on jsdom's default `prefers-color-scheme`, which this suite doesn't
-       control) — only that one click flips it, persists exactly that flip,
-       and a second click flips it back. */
-    serveDueCount(0);
-    renderShell("/");
-    const user = userEvent.setup();
-    const toggle = screen.getByRole("button", { name: "Toggle Theme" });
-
-    const wasDark = document.body.classList.contains("dark-theme");
-
-    await user.click(toggle);
-
-    expect(document.body.classList.contains("dark-theme")).toBe(!wasDark);
-    expect(JSON.parse(localStorage.getItem("learnora_mode") ?? "")).toBe(
-      wasDark ? "light" : "dark",
-    );
-    // A studio-only field was never touched by this control.
-    expect(localStorage.getItem("learnora_accent")).toBeNull();
-
-    await user.click(toggle);
-    expect(document.body.classList.contains("dark-theme")).toBe(wasDark);
-    expect(JSON.parse(localStorage.getItem("learnora_mode") ?? "")).toBe(
-      wasDark ? "dark" : "light",
-    );
   });
 
   it("toggles the mobile menu open and closed from the header button", async () => {
@@ -315,7 +271,9 @@ describe("AppShell", () => {
     // link's accessible name intact for assistive tech.
     expect(screen.getByRole("link", { name: "Today" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Plan" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Create" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Study room & friends" }),
+    ).toBeInTheDocument();
   });
 
   it("auto-closes the mobile menu after choosing a nav link on a narrow viewport", async () => {
@@ -328,9 +286,11 @@ describe("AppShell", () => {
     renderShell("/");
     const user = userEvent.setup();
 
-    /* On a phone the menu opens from the bottom tab bar's More. */
+    /* On a phone the drawer opens from the header's menu button. */
     const sidebar = screen.getByRole("navigation", { name: "Main navigation" });
-    await user.click(screen.getByRole("button", { name: /^More/ }));
+    await user.click(
+      screen.getByRole("button", { name: "Toggle Sidebar Menu" }),
+    );
     expect(sidebar.className).toMatch(/drawerOpen/);
 
     await user.click(within(sidebar).getByRole("link", { name: /Library/ }));

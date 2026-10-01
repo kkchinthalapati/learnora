@@ -171,7 +171,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
           );
         } else {
           showToast(
-            "Guest session saved locally! Sign up to sync across devices.",
+            "Guest session saved on this device. Sign up to sync across devices.",
             {
               actionLabel: "Sign Up",
               /* A full page load rather than router navigation: TimerProvider

@@ -28,6 +28,7 @@ import { ToggleSwitch } from "../../components/ToggleSwitch";
 import { useAuth } from "../../context/auth";
 import { useSettings } from "../../context/settings";
 import { useToast } from "../../context/toast";
+import { FirstRunView } from "./FirstRunView";
 import { localDateStr } from "../../lib/date";
 import { useUpdateProfile } from "../../hooks/useAuthActions";
 import { useLifeContext } from "../../hooks/useLifeContext";
@@ -85,7 +86,15 @@ type StepId = (typeof STEPS)[number];
    or count toward "step 3 of 5". */
 const QUESTION_STEPS = STEPS.slice(1, -1);
 
+/* /welcome. A first run gets the value-first flow (topic → lesson → win →
+ * two questions); "Run setup again" in Settings (?replay=1) gets the full
+ * setup wizard, which edits every preference the first run skips. */
 export function WelcomeView() {
+  const [params] = useSearchParams();
+  return params.get("replay") === "1" ? <SetupWizard /> : <FirstRunView />;
+}
+
+export function SetupWizard() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { user } = useAuth();

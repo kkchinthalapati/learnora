@@ -36,17 +36,14 @@ export type PrimaryDestination =
   | "dashboard"
   | "library"
   | "plan"
-  | "focus"
   | "progress"
   | "study_lab";
 
 export function primaryDestinationForPath(
   pathname: string,
 ): PrimaryDestination | null {
-  /* "/dashboard" does NOT map to the "dashboard" destination even though
-   * the names match: that destination is Today (`to: "/"`), and lighting
-   * Today while viewing the Dashboard was wrong. The Dashboard is a child of
-   * Progress now — see the progress branch below. */
+  /* Five destinations (2026-09 redesign). /dashboard redirects to Today, and
+     the focus timer is a Plan page now — it was a destination of its own. */
   if (pathname === "/") return "dashboard";
   if (isNotebooksSection(pathname)) return "library";
   if (isLibrarySection(pathname)) return "library";
@@ -54,17 +51,14 @@ export function primaryDestinationForPath(
     pathname.startsWith("/plan") ||
     pathname.startsWith("/my-week") ||
     pathname.startsWith("/tasks") ||
-    pathname.startsWith("/exams")
+    pathname.startsWith("/exams") ||
+    pathname.startsWith("/timer")
   ) {
     return "plan";
   }
-  if (pathname.startsWith("/timer")) return "focus";
-  /* The Dashboard is "how am I doing" now (DashboardView.tsx), so it sits
-     under Progress with Trajectory rather than floating with no rail item. */
   if (
     pathname.startsWith("/analytics") ||
-    pathname.startsWith("/trajectory") ||
-    pathname.startsWith("/dashboard")
+    pathname.startsWith("/trajectory")
   )
     return "progress";
   if (isStudyLabSection(pathname)) return "study_lab";
@@ -75,8 +69,10 @@ export function isStudyLabSection(pathname: string): boolean {
   /* Canonical routes only. /debugger, /sparring, /premortem, /exam-traps and
      /ai-tutor are <Navigate> redirects, so the router replaces them before any
      of this runs — matching on them here could never fire. */
-  return ["/study", "/viva", "/solver", "/feynman", "/exam-detective"].some(
-    (routePrefix) => pathname.startsWith(routePrefix),
+  /* /solver, /feynman, /viva and /exam-detective redirect into a Session
+     now; only the debrief page survives under /feynman. */
+  return ["/study", "/feynman/debrief"].some((routePrefix) =>
+    pathname.startsWith(routePrefix),
   );
 }
 
@@ -109,11 +105,8 @@ export function sectionLabel(
      destination had two names depending on where you read it. */
   if (pathname.startsWith("/analytics")) return "Progress";
   if (pathname.startsWith("/trajectory")) return "Trajectory";
-  if (pathname.startsWith("/study")) return "Study tools";
-  if (pathname.startsWith("/feynman")) return "Explain it simply";
-  if (pathname.startsWith("/solver")) return "Step-by-step solver";
-  if (pathname.startsWith("/exam-detective")) return "Exam traps";
-  if (pathname.startsWith("/viva")) return "Oral practice";
+  if (pathname.startsWith("/study")) return "Study";
+  if (pathname.startsWith("/feynman/debrief")) return "Teach debrief";
   if (pathname.startsWith("/my-week")) return "Availability";
   if (pathname.startsWith("/plan")) return "Plan";
   if (pathname.startsWith("/exams")) return "Exams";
@@ -143,11 +136,8 @@ const HERO_ROUTES = [
   "/",
   "/library",
   "/study",
-  "/viva",
   "/feynman",
-  "/solver",
   "/room",
-  "/exam-detective",
 ];
 
 export function viewOwnsPageTitle(pathname: string): boolean {

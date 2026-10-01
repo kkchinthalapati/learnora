@@ -7,6 +7,7 @@ import { useAllDecks } from "../../hooks/useDecks";
 import { useFolders } from "../../hooks/useFolders";
 import type { LocalSession } from "../../lib/localSessions";
 import styles from "./today.module.css";
+import { newSessionHref } from "../../lib/sessionModes";
 
 /** Placeholder task names the timer writes when the student attached
  *  nothing — they name no subject, so they cannot be quizzed on. */
@@ -55,8 +56,8 @@ export function SessionCompletePanel({ session, onClose }: { session: LocalSessi
         : "Nothing slipped. The test of a topic you can recall is whether you can explain it."}</p>
       <div className={styles.heroActions}>
         {result.missed.length
-          ? <Link to={`/solver?topic=${encodeURIComponent(result.missed[0])}`} className={styles.stepLink}>Work on {result.missed[0]}</Link>
-          : topic ? <Link to={`/feynman?topic=${encodeURIComponent(topic)}`} className={styles.stepLink}>Explain {topic} in your own words</Link> : null}
+          ? <Link to={newSessionHref("explain", { topic: result.missed[0] })} className={styles.stepLink}>Work on {result.missed[0]}</Link>
+          : topic ? <Link to={newSessionHref("teach", { topic })} className={styles.stepLink}>Explain {topic} in your own words</Link> : null}
         <Button variant="secondary" onClick={onClose}>Done</Button>
       </div>
     </> : checking && topic ? <QuickCheck key={session.id} topic={topic} deckId={session.deckId} folderId={session.folderId} clientId={`quick-check:${session.id}`} onDone={setResult} onSkip={onClose} /> : <>
