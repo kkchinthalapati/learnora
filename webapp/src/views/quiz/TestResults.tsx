@@ -14,7 +14,7 @@ import {
   confidentButWrong,
   resultsHeadline,
   type Mark,
-} from "./testResults";
+} from "./testResultsModel";
 import styles from "./results.module.css";
 
 const MARK_LABEL: Record<Mark, string> = {
