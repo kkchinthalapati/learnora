@@ -105,10 +105,12 @@ describe("QuizRunner", () => {
     /* KaTeX is a lazy chunk (lib/Math.tsx), so the text can paint before it
        is typeset; on a busy run the first import is slow. Wait for it. */
     await waitFor(
-      () => expect(container.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(4),
+      () => {
+        expect(container.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(4);
+        expect(screen.queryByText(/\$x\^2\$/)).toBeNull();
+      },
       { timeout: 5000 },
     );
-    expect(screen.queryByText(/\$x\^2\$/)).toBeNull();
   });
 
   it("hides the Next button until an answer is picked", async () => {
