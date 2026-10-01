@@ -73,7 +73,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   },
 ];
 
-const NAV_PATHS = NAV_ITEMS.flatMap((item) => [
+export const NAV_PATHS = NAV_ITEMS.flatMap((item) => [
   item.to,
   ...(item.children ?? []).map((c) => c.to),
 ]);

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useDialog } from "../context/dialog";
 import { useToast } from "../context/toast";
 import { registerAiConsentRequester, setAiConsent } from "../lib/aiConsent";
+import { AI_PROVIDERS_SHORT } from "../lib/aiProviders";
 
 /* Asks for AI consent at the moment it is needed — see lib/aiConsent.ts.
  *
@@ -16,7 +17,7 @@ export function AiConsentBridge() {
     () =>
       registerAiConsentRequester(async () => {
         const allowed = await confirm(
-          "To answer, Learnora sends what you're working on — your question, notes or answers — to its AI providers, Anthropic (Claude) and Google (Gemini). Nothing is sent unless you allow it, and you can change your mind any time in Settings ▸ Privacy.",
+          `To answer, Learnora sends what you're working on — your question, notes or answers — to its AI providers: ${AI_PROVIDERS_SHORT}. Nothing is sent unless you allow it, and you can change your mind any time in Settings ▸ Privacy.`,
           {
             title: "Let Learnora's AI use your study data?",
             confirmText: "Allow",

@@ -15,7 +15,7 @@ export const DEPTH_LABELS: Record<PersonaDepth, string> = {
   5: "In depth",
 };
 
-export type StudyStyle = "visual" | "rigorous" | "exam_trap" | "concise";
+export type StudyStyle = "balanced" | "visual" | "rigorous" | "exam_trap" | "concise";
 
 export interface StudyStyleOption {
   id: StudyStyle;
@@ -24,6 +24,11 @@ export interface StudyStyleOption {
 }
 
 export const STUDY_STYLES: ReadonlyArray<StudyStyleOption> = [
+  {
+    id: "balanced",
+    label: "Balanced",
+    description: "A clear explanation with one example",
+  },
   {
     id: "visual",
     label: "Visual",
@@ -98,7 +103,7 @@ export function PersonaOffsetToolbar({
   className,
 }: PersonaOffsetToolbarProps) {
   const [internalDepth, setInternalDepth] = useState<PersonaDepth>(3);
-  const [internalStyle, setInternalStyle] = useState<StudyStyle>("concise");
+  const [internalStyle, setInternalStyle] = useState<StudyStyle>("balanced");
   const [internalSourceMode, setInternalSourceMode] =
     useState<SourceMode>("hybrid");
   const [isDrawerOpen, setIsDrawerOpen] = useState(!compact);

@@ -92,18 +92,24 @@ export interface EdgeResult {
 export class AiError extends Error {
   readonly retryable: boolean;
   readonly refused: boolean;
+  /** The HTTP status the edge function answered with, when it answered.
+   *  429 is the daily allowance or the burst limit — never an outage, and
+   *  never a reason to fall back to canned content. */
+  readonly status?: number;
 
   constructor(
     message: string,
     {
       retryable = true,
       refused = false,
-    }: { retryable?: boolean; refused?: boolean } = {},
+      status,
+    }: { retryable?: boolean; refused?: boolean; status?: number } = {},
   ) {
     super(message);
     this.name = "AiError";
     this.retryable = retryable;
     this.refused = refused;
+    this.status = status;
   }
 }
 
@@ -237,6 +243,7 @@ export async function callEdge(
             // A content refusal carries its own explanation and must be shown
             // verbatim rather than flattened into "generation failed".
             refused: errorBody.refused === true,
+            status: response.status,
           },
         );
       }

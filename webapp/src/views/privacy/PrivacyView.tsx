@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { AI_PROVIDERS, PRIMARY_PROVIDERS_TEXT } from "../../lib/aiProviders";
 import { LOGO_URL as logoUrl } from "../../lib/logoUrl";
 import styles from "./privacy.module.css";
 
@@ -95,31 +96,37 @@ export function PrivacyView() {
             <h2>2. AI Providers We Use</h2>
             <p>
               Learnora's AI features — the study assistant, flashcard and quiz
-              generation, and forecasting — are powered by third-party AI
-              models. We currently use{" "}
-              <strong>Claude, made by Anthropic</strong>, and{" "}
-              <strong>Gemini, made by Google</strong>. Which provider handles
-              a given request depends on the feature; either way, the same
-              rule applies:
+              generation, study sessions and forecasting — are powered by
+              third-party AI models. Most requests are answered by{" "}
+              <strong>{PRIMARY_PROVIDERS_TEXT}</strong>. When those are
+              unavailable or out of capacity, a request may instead be answered
+              by one of these backup providers:
             </p>
+            <ul>
+              {AI_PROVIDERS.filter((p) => p.role === "backup").map((p) => (
+                <li key={p.id}>
+                  <strong>{p.company}</strong> — {p.service}
+                </li>
+              ))}
+            </ul>
             <p>
               <strong>
                 When you use an AI feature, the relevant content (your prompt,
                 and any study material or quiz history needed to answer it) is
-                sent to Anthropic and/or Google to generate a response.
+                sent to one of the providers above to generate a response.
               </strong>{" "}
               Nothing is sent to an AI provider unless you actively use an AI
-              feature — browsing your tasks, notes, or exams does not.
+              feature — browsing your tasks, notes, or exams does not. Learnora
+              only ever sends requests to the providers listed here.
             </p>
             <p>
               <strong>
-                We do not allow Anthropic or Google to train their models on
-                your data,
+                Learnora does not use your data to train AI models and does not
+                sell it.
               </strong>{" "}
-              and neither provider retains your data beyond what is needed to
-              process the request, per their respective API terms. We don't
-              sell access to your data to these providers or anyone else —
-              this is a service we pay for, not a data-sharing arrangement.
+              Each provider processes requests under its own API terms, which
+              govern how long it keeps a request and whether it may use it to
+              improve its services.
             </p>
             <p>
               We encourage you to avoid pasting sensitive personal

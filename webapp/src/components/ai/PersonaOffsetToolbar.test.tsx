@@ -9,7 +9,7 @@ describe("PersonaOffsetToolbar", () => {
 
     expect(screen.getByRole("region", { name: "Answer settings" })).toBeInTheDocument();
     const summary = screen.getByRole("button", { name: /^Answer settings:/ });
-    expect(summary).toHaveTextContent("Answers from my notes + web · Standard · Short");
+    expect(summary).toHaveTextContent("Answers from my notes + web · Standard · Balanced");
   });
 
   it("switches where answers come from inside the drawer", async () => {
