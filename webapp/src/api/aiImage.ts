@@ -81,10 +81,11 @@ export async function getChatImageUrl(
   return data.signedUrl;
 }
 
-/** The picture as bytes the page can show. The app's CSP allows images only
- *  from 'self', data: and blob: — not the Supabase host — so a signed URL
- *  cannot go straight into an <img>. It is fetched instead (connect-src does
- *  allow Supabase) and handed back as a Blob for an object URL. */
+/** The picture as bytes, for an object URL. The CSP's img-src does admit
+ *  this project's storage path now, but the chat bubble's Download link
+ *  needs a same-origin URL: `download` is ignored on a cross-origin href, so
+ *  a signed URL there would navigate instead of saving. One fetch serves both
+ *  the <img> and the link. */
 export async function fetchChatImage(path: string): Promise<Blob> {
   const response = await fetch(await getChatImageUrl(path));
   if (!response.ok) throw new Error(`Image request failed: ${response.status}`);

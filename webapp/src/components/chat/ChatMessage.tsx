@@ -105,10 +105,10 @@ function ThinkingDots({
 }
 
 /* A generated picture, from its storage key. The bucket is private, so it
-   is read through a signed URL — fetched rather than put in `src`, because
-   the CSP's img-src admits blob: but not the Supabase host. The same object
-   URL serves the Download link, which a same-origin blob: URL makes a real
-   download rather than a navigation. */
+   is read through a signed URL — fetched into an object URL rather than put
+   in `src`, because the same URL serves the Download link, and only a
+   same-origin URL like blob: makes that a real download rather than a
+   navigation. */
 function GeneratedImage({
   image,
   onSave,
